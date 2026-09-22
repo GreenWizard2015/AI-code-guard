@@ -1,0 +1,36 @@
+{
+  "name": "ai-code-guard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ai-code-guard": "src/bridge/ts/core/cli.ts"
+  },
+  "scripts": {
+    "test": "pnpm test:python && NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4",
+    "test:python": "PYTHONPATH=src/parser/python-bridge python3 -m pytest tests/python",
+    "coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/parser/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python",
+    "coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4 --coverage --coverageReporters=text",
+    "coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
+    "coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
+    "posttest": "pnpm lint",
+    "test:runner": "tsx test-runner.ts",
+    "lint": "tsx src/bridge/ts/core/cli.ts --entry-file src/bridge/ts/core/cli.ts --entry-file test-runner.ts",
+    "format": "pnpm format:ts && pnpm format:python",
+    "format:ts": "biome format --write test-runner.ts src/bridge/ts/core/cli.ts tests/core/test-runner.ts tests/core/quality-checks.ts tests/core/quality-check-definitions.ts",
+    "format:python": "python3 -m black src/parser/python-bridge",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "tsx": "^4.7.1"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@biomejs/biome": "^1.5.3",
+    "@types/node": "^20.11.30",
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.3"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules
+.ai-code-guard
+.coverage*
+.coveragerc
+coverage
+htmlcov
+__pycache__
+task.md
