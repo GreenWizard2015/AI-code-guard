@@ -45,3 +45,10 @@ jobs:
 
       - name: Run full test runner
         run: pnpm test:runner -- --headless
+
+      - name: Print lint issues
+        if: ${{ failure() }}
+        run: |
+          if [ -f .ai-code-guard/issues.md ]; then
+            cat .ai-code-guard/issues.md
+          fi

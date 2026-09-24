@@ -164,7 +164,16 @@ export class QualityCheckDefinitions {
 			{
 				label: "Coding lint",
 				command: "pnpm",
-				args: ["--dir", this.project_root, "lint"],
+				args: [
+					"--dir",
+					this.project_root,
+					"lint",
+					"--",
+					"--policy",
+					"all",
+					"--batch-size",
+					"1000000",
+				],
 				environment: process.env,
 			},
 		];
