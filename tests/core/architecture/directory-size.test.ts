@@ -2,6 +2,7 @@ import { DirectoryCommentSegments } from 'src/bridge/ts/core/support/directory-c
 import { DirectoryStructureRules } from 'src/bridge/ts/rules/support/directory-structure-rules';
 import { TestFixture } from 'tests/core/test-fixture';
 import { join } from 'node:path';
+import { mkdirSync } from 'node:fs';
 
 import { describe, expect, test } from '@jest/globals';
 
@@ -59,6 +60,25 @@ describe('directory size lint rules', () => {
 		);
 		const report = test_fixture.collect_fixture_report(files);
 		expect(report.violations).toContainEqual(expect.objectContaining({
+			message: 'directory contains too many files (found 41)',
+			rule_id: 'directory-max-size',
+		}));
+	});
+
+	test('does not hide directory size behind empty child directories', () => {
+		const files = Object.fromEntries(
+			Array.from({ length: 41 }, (_, index) => [`source/file-${index}.ts`, 'export const value = 1;\n'])
+		);
+		const directory_rules = new DirectoryStructureRules();
+		const violations = test_fixture.with_temporary_files(
+			'coding-lint-empty-directory-',
+			files,
+			root => {
+				mkdirSync(join(root, 'source', 'empty-child'));
+				return directory_rules.directory_violation(join(root, 'source'), root);
+			}
+		);
+		expect(violations).toContainEqual(expect.objectContaining({
 			message: 'directory contains too many files (found 41)',
 			rule_id: 'directory-max-size',
 		}));

@@ -2,6 +2,7 @@ import { readdirSync } from 'node:fs';
 import { relative } from 'node:path';
 import { dirname } from 'node:path';
 import { basename } from 'node:path';
+import { join } from 'node:path';
 import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import {
@@ -38,7 +39,11 @@ export class DirectoryStructureRules {
 	private direct_file_count(directory: string): number {
 		const entries = readdirSync(directory, { withFileTypes: true });
 		for (const entry of entries) {
-if (entry.isDirectory() && !this.ignored_directories.has(entry.name)) {
+			if (!entry.isDirectory() || this.ignored_directories.has(entry.name)) {
+				continue;
+			}
+			const child_entries = readdirSync(join(directory, entry.name), { withFileTypes: true });
+			if (child_entries.length > 0) {
 				return 0;
 			}
 		}
