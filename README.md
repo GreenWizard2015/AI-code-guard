@@ -56,7 +56,7 @@ AI Code Guard treats code structure as part of the domain contract. Its rules ar
 - Python 3.10 or newer;
 - `python3-venv` when using a virtual environment.
 
-The Python bridge uses only the Python standard library at runtime. The development and test commands use the packages listed in [`requirements.txt`](requirements.txt): `pytest`, `black`, and `coverage`.
+The Python bridge uses only the Python standard library at runtime. Development, tests, and CI checks use the packages listed in [`requirements.txt`](requirements.txt).
 
 ## Installation
 
