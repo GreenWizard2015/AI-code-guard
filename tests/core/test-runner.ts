@@ -48,6 +48,9 @@ export class TestExecution {
 		request: TestRunnerRequest,
 		arg: string,
 	): TestRunnerRequest {
+		if (arg === "--") {
+			return request;
+		}
 		if (arg === "--help") {
 			return { ...request, help_requested: true };
 		}
@@ -98,7 +101,7 @@ Examples:
 	private print_start(headless: boolean): void {
 		process.stdout.write(`🖥️  Mode: ${headless ? "Headless" : "UI"}\n`);
 		process.stdout.write("\n");
-		process.stdout.write("📦 Installing test dependencies...\n");
+		process.stdout.write("📦 Preparing test dependencies...\n");
 	}
 
 	/** Responsibilities: _quality checks execution_. **/
@@ -122,6 +125,14 @@ Examples:
 		return environments[0];
 	}
 
+	/** Responsibilities: _dependencies installation_. **/
+	private install_dependencies(env: NodeJS.ProcessEnv): void {
+		if (env.CI === "true") {
+			return;
+		}
+		this.run_command("pnpm", ["--dir", this.project_root, "install"], env);
+	}
+
 	/** Responsibilities: _runner state initialization_. **/
 	constructor(project_root: string = "") {
 		if (project_root === undefined) {
@@ -132,13 +143,13 @@ Examples:
 		this.quality_checks = new QualityCheckProcess(this.project_root);
 	}
 
-	/** Responsibilities: _dependencies installation_. **/
+	/** Responsibilities: _tests execution_. **/
 	public run_tests(
 		args: readonly string[],
 		...environments: NodeJS.ProcessEnv[]
 	): void {
 		const test_env = this.test_environment(...environments);
-		this.run_command("pnpm", ["--dir", this.project_root, "install"], test_env);
+		this.install_dependencies(test_env);
 		this.run_command(
 			"pnpm",
 			["--dir", this.project_root, "test", ...args],
