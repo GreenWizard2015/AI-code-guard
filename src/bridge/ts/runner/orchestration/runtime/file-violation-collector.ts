@@ -10,6 +10,7 @@ import { FileFunctionCountReporter } from 'src/bridge/ts/runner/orchestration/ru
 import { SourceFileAst } from 'src/bridge/ts/runner/orchestration/runtime/source-file-ast';
 import { TestPathSyntax } from 'src/test-path-syntax';
 import { RULES_BY_ID } from 'src/model/constants';
+import { CyrillicTextRules } from 'src/bridge/ts/rules/support/cyrillic-text-rules';
 
 /** Responsibilities: _collection file-level callable test_. **/
 export class FileViolationCollector {
@@ -17,6 +18,7 @@ export class FileViolationCollector {
 	private readonly reexports = new Reexports();
 	private readonly function_count_reporter = new FileFunctionCountReporter();
 	private readonly test_path_syntax = new TestPathSyntax();
+	private readonly cyrillic_text_rules = new CyrillicTextRules();
 	/** Responsibilities: _summary callable count first_. **/
 	private function_count(functions: readonly { start: number }[]): FunctionCount {
 		let first_line = 0;
@@ -113,6 +115,7 @@ export class FileViolationCollector {
 			this.function_count(source.normalized_ast.functions)
 		);
 		this.append_coding_rules(violations, source, file, text);
+		violations.push(...this.cyrillic_text_rules.source_violations(file, text, python));
 		violations.push(...this.collect_singletons(source, file, text, python));
 	}
 

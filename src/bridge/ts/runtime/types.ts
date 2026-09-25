@@ -8,6 +8,7 @@ export type LintRunState = {
 	repo_root: string;
 	files: string[];
 	ignored_files: ReadonlySet<string>;
+	ignored_directories: ReadonlySet<string>;
 	project_files: string[];
 	project_class_names: ReadonlySet<string>;
 	project_protocol_names: ReadonlySet<string>;

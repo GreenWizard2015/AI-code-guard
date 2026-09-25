@@ -19,6 +19,11 @@ export const RULE_DATA = {
 		hint: 'Use a concise noun phrase naming the owned work. Do not: describe results or invocation mechanics.',
 		priority: 0,
 	},
+	'cyrillic-comment': {
+		message: 'contains Cyrillic text in a comment or Markdown file',
+		hint: 'Use Latin script in comments and Markdown. Cyrillic is allowed inside source string literals.',
+		priority: 2,
+	},
 	'assertion-outside-test': {
 		message: 'test assertions must stay inside test cases',
 		hint: 'in test files, keep expect inside test("name", () => {}) in TypeScript and assert or unittest self.assert* inside def test_* in Python. Production files are outside this rule.',

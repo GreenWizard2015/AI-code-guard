@@ -40,6 +40,7 @@ startup and fails when a rule document is missing or a diagnostic uses an unknow
 - [`python-class-method`](python-class-method.md)
 - [`complex-constructor`](complex-constructor.md)
 - [`complex-default-parameter`](complex-default-parameter.md)
+- [`cyrillic-comment`](cyrillic-comment.md)
 - [`composition-depth`](composition-depth.md)
 - [`conditional-execution`](conditional-execution.md)
 - [`typescript-console-in-test`](typescript-console-in-test.md)

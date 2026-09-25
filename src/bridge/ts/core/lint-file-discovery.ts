@@ -3,12 +3,25 @@ import { relative } from 'node:path';
 import { join } from 'node:path';
 import { DEFAULT_TARGET_FILES, IGNORED_DIRS } from 'src/constants';
 import { SKIPPED_PATH_PARTS } from 'src/bridge/ts/core/constants';
+import { GitIgnoredPaths } from 'src/bridge/ts/core/support/git-ignored-paths';
 
 /** Responsibilities: _discovery supported source files_. **/
 export class LintFileDiscovery {
 	private readonly skipped_path_parts = SKIPPED_PATH_PARTS;
 	private readonly ignored_dirs = IGNORED_DIRS;
 	private readonly default_target_files = DEFAULT_TARGET_FILES;
+	private readonly git_ignored_paths = new Map<string, GitIgnoredPaths>();
+
+	/** Responsibilities: _Git ignore filter retrieval_. **/
+	private git_filter(repo_root: string): GitIgnoredPaths {
+		const existing = this.git_ignored_paths.get(repo_root);
+		if (existing !== undefined) {
+			return existing;
+		}
+		const created = new GitIgnoredPaths(repo_root);
+		this.git_ignored_paths.set(repo_root, created);
+		return created;
+	}
 
 	/** Responsibilities: _aggregation supported source path_. **/
 	private append_source_file(repo_root: string, path: string, files: string[]): void {
@@ -32,7 +45,7 @@ export class LintFileDiscovery {
 		for (const entry of readdirSync(root, { withFileTypes: true })) {
 			const path = join(root, entry.name);
 			if (entry.isDirectory()) {
-if (!this.ignored_dirs.has(entry.name) && !ignored_directories.has(path.replaceAll('\\', '/'))) {
+				if (!this.ignored_dirs.has(entry.name) && !ignored_directories.has(path.replaceAll('\\', '/'))) {
 					this.walk_directory(repo_root, path, files, ignored_directories);
 				}
 				continue;
@@ -68,7 +81,7 @@ if (!this.ignored_dirs.has(entry.name) && !ignored_directories.has(path.replaceA
 		const files: string[] = [];
 		this.walk_directory(repo_root, root, files, ignored_directories);
 		files.sort();
-		return files;
+		return this.git_filter(repo_root).filter(files);
 	}
 
 	/** Responsibilities: _target file normalization_. **/
@@ -77,9 +90,10 @@ if (!this.ignored_dirs.has(entry.name) && !ignored_directories.has(path.replaceA
 		if (!raw_value) {
 			return this.default_target_files;
 		}
-		return raw_value
+		const files = raw_value
 			.split(',')
 			.map(value => this.normalize_target_file(repo_root, value))
 			.filter(value => value.length > 0);
+		return this.git_filter(repo_root).filter(files);
 	}
 }

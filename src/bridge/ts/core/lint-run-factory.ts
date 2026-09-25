@@ -142,6 +142,7 @@ export class LintRunConfiguration {
 			repo_root,
 			files,
 			ignored_files: ignored_files_set,
+			ignored_directories,
 			project_files,
 			...project_names,
 			context,

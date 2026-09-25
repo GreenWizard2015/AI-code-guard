@@ -42,3 +42,16 @@ export type ClassSummaryOptions = {
 	parsed_indexes: number[];
 	has_module_functions: boolean;
 };
+
+export type CyrillicQuoteDelimiter = "'" | '"';
+
+export type CyrillicCommentText = {
+	line: number;
+	text: string;
+};
+
+export type CyrillicQuoteState = {
+	active: boolean;
+	delimiter: CyrillicQuoteDelimiter;
+	triple: boolean;
+};
