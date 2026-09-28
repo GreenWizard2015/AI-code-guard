@@ -213,12 +213,34 @@ describe('coding-lint task reporting', () => {
 			const output = reporting.format([], { batch_size: 10, policy: 'top-category' });
 			return { root, output, report: readFileSync(join(root, '.ai-code-guard', 'report.md'), 'utf8') };
 		});
+		const architecture_review = result.output.includes('ZERO LINT ISSUES IS NOT COMPLETION:');
+		const function_review = result.output.includes('If any functions.ts, functions.tsx, or functions.py file exists');
 		expect({
 			philosophy: result.output.includes('## Rule philosophy'),
-			architecture_review: result.output.includes('A clean lint result does not replace a manual architectural review.'),
+			architecture_review: architecture_review && function_review,
 			report_path: result.output.includes(`Report in file \`${join(result.root, '.ai-code-guard', 'report.md')}\`.`),
 			report: result.report.includes('| — | 0 | 0 |'),
 		}).toEqual({ philosophy: true, architecture_review: true, report_path: true, report: true });
+	});
+
+	test('stops the review request when the exact completion code is in markdown', () => {
+		const fixture = new TestFixture();
+		const result = fixture.with_temporary_files('task-review-code-', {}, (root, reporting) => {
+			const initial = reporting.format([], { batch_size: 10, policy: 'top-category' });
+			const completion_match = initial.match(/Architecture review completion code: [0-9a-f]{32} \d{4}-\d{2}-\d{2} \d{2}:\d{2}/u);
+			let completion_code = '';
+			if (completion_match) {
+				completion_code = completion_match[0];
+			}
+			const review = join(root, '.ai-code-guard', 'review');
+			mkdirSync(review, { recursive: true });
+			writeFileSync(join(review, 'complete.md'), completion_code);
+			return reporting.format([], { batch_size: 10, policy: 'top-category' });
+		});
+		expect({
+			verified: result.includes('Architecture review completion code verified.'),
+			request_stopped: !result.includes('ZERO LINT ISSUES IS NOT COMPLETION:'),
+		}).toEqual({ verified: true, request_stopped: true });
 	});
 
 	test('requests details for short review notes', () => {

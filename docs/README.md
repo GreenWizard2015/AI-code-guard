@@ -57,7 +57,7 @@ AI Code Guard treats code structure as part of the domain contract. Its rules ar
 - Python 3.10 or newer;
 - `python3-venv` when using a virtual environment.
 
-The Python bridge uses only the Python standard library at runtime. Development, tests, and CI checks use the packages listed in [`requirements.txt`](requirements.txt).
+The Python bridge uses only the Python standard library at runtime. Development, tests, and CI checks use the packages listed in [`requirements.txt`](../requirements.txt).
 
 ## Installation
 
@@ -198,7 +198,7 @@ The CLI also recognizes common entry points automatically:
 
 ## Ubuntu shortcut: `ai-code-guard` from any directory
 
-The repository includes [`setup-ubuntu-bash.sh`](setup-ubuntu-bash.sh), which installs the project dependencies and configures the global Bash function automatically. Run it once from the checkout:
+The repository includes [`setup-ubuntu-bash.sh`](../setup-ubuntu-bash.sh), which installs the project dependencies and configures the global Bash function automatically. Run it once from the checkout:
 
 ```bash
 chmod +x /absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
@@ -206,7 +206,7 @@ chmod +x /absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
 source ~/.bashrc
 ```
 
-The script creates `.venv`, installs [`requirements.txt`](requirements.txt), installs the Node dependencies, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
+The script creates `.venv`, installs [`requirements.txt`](../requirements.txt), installs the Node dependencies, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
 
 The shortcut uses absolute paths for the linter installation and passes the directory where the command was invoked as the project root. This means the same command can lint any project without changing directory first.
 
@@ -257,9 +257,9 @@ The Python implementation is intentionally isolated in `src/parser/python-bridge
 
 ## Rule documentation
 
-The complete rule index is in [`docs/rules/README.md`](docs/rules/README.md). Each rule document describes its purpose, detection boundary, examples, and intended refactoring direction.
+The complete rule index is in [`rules/README.md`](rules/README.md). Each rule document describes its purpose, detection boundary, examples, and intended refactoring direction.
 
-The report includes an absolute path to the relevant rule document. If a critical placement diagnostic is present, start with [`function-placement`](docs/rules/function-placement.md), move the free functions, and then rerun the linter.
+The report includes an absolute path to the relevant rule document. If a critical placement diagnostic is present, start with [`function-placement`](rules/function-placement.md), move the free functions, and then rerun the linter.
 
 Each run creates `.ai-code-guard` in the project root. The selected task is
 written to `.ai-code-guard/issues.md`, and the referenced rule documents are

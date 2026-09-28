@@ -1,13 +1,32 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import type { TaskDocumentationProtocol } from 'src/protocols';
 
 /** Responsibilities: _discovery architecture review files_. **/
 export class TaskReview {
 	private readonly review_root: string;
+	private readonly documentation: TaskDocumentationProtocol;
+	private readonly review_code = this.completion_code(new Date());
+
+	/** Responsibilities: _review completion code creation_. **/
+	private completion_code(timestamp: Date): string {
+		const minute = [
+			timestamp.getFullYear().toString().padStart(4, '0'),
+			(timestamp.getMonth() + 1).toString().padStart(2, '0'),
+			timestamp.getDate().toString().padStart(2, '0'),
+			timestamp.getHours().toString().padStart(2, '0'),
+			timestamp.getMinutes().toString().padStart(2, '0'),
+		].join('');
+		const display = `${minute.slice(0, 4)}-${minute.slice(4, 6)}-${minute.slice(6, 8)} ${minute.slice(8, 10)}:${minute.slice(10, 12)}`;
+		const hash = createHash('md5').update(minute).digest('hex');
+		return `Architecture review completion code: ${hash} ${display}`;
+	}
 
 	/** Responsibilities: _initialization review directory task_. **/
-	constructor(root: string) {
+	constructor(root: string, documentation: TaskDocumentationProtocol) {
 		this.review_root = join(resolve(root, '.ai-code-guard'), 'review');
+		this.documentation = documentation;
 	}
 
 	/** Responsibilities: _review markdown files_. **/
@@ -34,14 +53,16 @@ export class TaskReview {
 	/** Responsibilities: _output architecture review instruction_. **/
 	public instruction(): string {
 		const review_path = `${this.review_root}/*.md`;
-		return [
-			'A clean lint result does not replace a manual architectural review.',
-			`Review the project code and document each confirmed major architectural problem in a separate ${review_path} file.`,
-			'Do not record lint-detectable, minor, or speculative concerns.',
-			'If the review finds no major architectural problems, explicitly confirm that result before stopping.',
-			'Your goal is to keep the linter clean. This review is a linter requirement, so you MUST complete it.',
-			'Run `ai-code-guard` again after the review, even when no review files were created, and stop only when the rerun confirms that no review task remains.',
-		].join(' ');
+		const instruction = this.documentation.architecture_review(review_path, this.review_code);
+		if (!instruction.includes(this.review_code)) {
+			throw new Error('Architecture review instruction omitted its completion code.');
+		}
+		return instruction;
+	}
+
+	/** Responsibilities: _architecture review completion verification_. **/
+	public completed(): boolean {
+		return this.files().some(file => this.text(file).includes(this.review_code));
 	}
 
 }

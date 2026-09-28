@@ -44,12 +44,12 @@ export class Cli {
 	/** Responsibilities: _classification collection violations fail_. **/
 	private should_fail(
 		violations: Violation[],
+		files: readonly string[],
 		stage_timer: LintStageTimerProtocol,
 	): boolean {
-		const report_status = new ReportStatus(violations);
-		return stage_timer.measure(
-			"process-result",
-			() => violations.length > 0 && report_status.warnings(),
+		const report_status = new ReportStatus(violations, files);
+		return stage_timer.measure("process-result", () =>
+			report_status.warnings(),
 		);
 	}
 
@@ -88,7 +88,7 @@ export class Cli {
 	): void {
 		const { report } = this.lint_report(options, stage_timer);
 		const violations = report.violations;
-		const should_fail = this.should_fail(violations, stage_timer);
+		const should_fail = this.should_fail(violations, report.files, stage_timer);
 		const result_reporter = new CliResultReporter(
 			new TaskReporting(options.root),
 		);

@@ -56,4 +56,15 @@ describe('report status', () => {
 			warnings: false,
 		});
 	});
+
+	test('functions files fail with no diagnostics', () => {
+		const status = new ReportStatus([], ['src/functions.py']);
+		expect({
+			summary: status.summary(),
+			warnings: status.warnings(),
+		}).toEqual({
+			summary: 'Total issues: 0.\nTotal files: 0.',
+			warnings: true,
+		});
+	});
 });

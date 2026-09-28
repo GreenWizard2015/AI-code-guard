@@ -7,13 +7,8 @@ import type { TaskWorkspaceProtocol } from 'src/protocols';
 export class TaskDocumentation {
 	private readonly documentation_root: string;
 
-	/** Responsibilities: _documentation root initialization_. **/
-	constructor(documentation_root: string) {
-		this.documentation_root = documentation_root;
-	}
-
 	/** Responsibilities: _rule document coverage validation_. **/
-	public validate(): void {
+	private validate_rule_documents(): void {
 		const documentation_directory = join(this.documentation_root, 'docs', 'rules');
 		const rule_ids = new Set(Object.keys(RULE_DATA));
 		for (const rule_id of rule_ids) {
@@ -33,6 +28,17 @@ export class TaskDocumentation {
 		}
 	}
 
+	/** Responsibilities: _documentation root initialization_. **/
+	constructor(documentation_root: string) {
+		this.documentation_root = documentation_root;
+	}
+
+	/** Responsibilities: _rule document coverage validation_. **/
+	public validate(): void {
+		this.architecture_review('{{REVIEW_PATH}}', '{{REVIEW_CODE}}');
+		this.validate_rule_documents();
+	}
+
 	/** Responsibilities: _selection rule documents copying_. **/
 	public copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspaceProtocol): void {
 		for (const rule_id of rule_ids) {
@@ -43,13 +49,29 @@ export class TaskDocumentation {
 
 	/** Responsibilities: _rule philosophy reading_. **/
 	public philosophy(): string {
-		const readme = readFileSync(join(this.documentation_root, 'README.md'), 'utf8');
+		const readme = readFileSync(join(this.documentation_root, 'docs', 'README.md'), 'utf8');
 		const start = readme.indexOf('## Rule philosophy');
 		const end = readme.indexOf('\n## Requirements', start);
 		if (start < 0 || end < 0) {
-			throw new Error('README.md does not contain the Rule philosophy section.');
+				throw new Error('docs/README.md does not contain the Rule philosophy section.');
 		}
 		return readme.slice(start, end).trim();
+	}
+
+	/** Responsibilities: _architecture review documentation reading_. **/
+	public architecture_review(review_path: string, review_code: string): string {
+		const document_path = join(this.documentation_root, 'docs', 'architecture-review.md');
+		if (!existsSync(document_path)) {
+			throw new Error(`Architecture review documentation is missing: ${document_path}`);
+		}
+		const document = readFileSync(document_path, 'utf8');
+		if (!document.includes('{{REVIEW_PATH}}')) {
+			throw new Error(`Architecture review documentation must contain {{REVIEW_PATH}}: ${document_path}`);
+		}
+		if (!document.includes('{{REVIEW_CODE}}')) {
+			throw new Error(`Architecture review documentation must contain {{REVIEW_CODE}}: ${document_path}`);
+		}
+		return document.replaceAll('{{REVIEW_PATH}}', review_path).replaceAll('{{REVIEW_CODE}}', review_code).trim();
 	}
 
 }

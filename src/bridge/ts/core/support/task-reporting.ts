@@ -33,7 +33,7 @@ export class TaskReporting {
 		this.file_selector = new TaskFileSelector(root);
 		this.workspace = new TaskWorkspace(root);
 		this.documentation = new TaskDocumentation(REPORTING_PROJECT_ROOT);
-		this.review = new TaskReview(root);
+		this.review = new TaskReview(root, this.documentation);
 		this.clean_report = new TaskCleanReport(this.workspace, this.documentation, this.review);
 		this.issue_document = new TaskIssueDocument(root, this.workspace, this.documentation);
 	}

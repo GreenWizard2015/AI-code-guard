@@ -78,6 +78,7 @@ export interface TaskDocumentationProtocol {
 	validate(): void;
 	copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspaceProtocol): void;
 	philosophy(): string;
+	architecture_review(review_path: string, review_code: string): string;
 }
 
 /** Responsibilities: _task review operations_. **/
@@ -86,6 +87,7 @@ export interface TaskReviewProtocol {
 	line_count(file: string): number;
 	text(file: string): string;
 	instruction(): string;
+	completed(): boolean;
 }
 
 /** Responsibilities: _project source scanning_. **/
