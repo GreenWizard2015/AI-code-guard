@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass, field
 from typing import Any, cast
-from implementation.references.call_returns import CallReturns
+from implementation.references.protocols import (
+    PythonCallReturnsProtocol,
+    PythonReferenceBuilderProtocol,
+    PythonReferenceContextProtocol,
+)
 from implementation.references.instance_collector import PythonInstanceCollector
 from implementation.references.property_type_collector import (
     PythonPropertyTypeCollector,
@@ -12,21 +15,22 @@ from implementation.references.property_type_resolver import PythonPropertyType
 from implementation.references.reference_builder import PythonReference
 from implementation.references.reference_context import PythonReferenceContext
 from implementation.references.reference_state import PythonReferenceState
-from implementation.ast.annotation_resolver import AnnotationNames
+from implementation.references.protocols import PythonCallReturnStateProtocol
+from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
 from implementation.ast.node_index import PythonAstNodeIndex
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.types import JsonObject
 import ast
 
 
-@dataclass
 class PythonReferenceCollector:
     """Responsibilities: _construction Python reference context_."""
 
     tree: ast.Module
-    call_returns: CallReturns
-    _state: PythonReferenceState = field(default_factory=PythonReferenceState)
-    node_index: PythonAstNodeIndexProtocol = field(default_factory=PythonAstNodeIndex)
+    call_returns: PythonCallReturnsProtocol
+    call_return_state: PythonCallReturnStateProtocol
+    _state: PythonReferenceState
+    node_index: PythonAstNodeIndexProtocol
 
     def _import_aliases(self) -> dict[str, str]:
         """Responsibilities: _collection import aliases module_."""
@@ -57,7 +61,7 @@ class PythonReferenceCollector:
             self.tree, type_resolver, self.node_index
         )
         properties: Any = property_collector.collect_properties()
-        return PythonReferenceContext(aliases, {}, properties, {})
+        return PythonReferenceContext(aliases, {}, properties, self.call_return_state)
 
     def _append_call_args(self, node: ast.AST, owner: str) -> None:
         """Responsibilities: _collection references invocation arguments_."""
@@ -120,13 +124,29 @@ class PythonReferenceCollector:
         for child in ast.iter_child_nodes(node):
             self._collect_references(child, current_owner)
 
-    def context(self) -> PythonReferenceContext:
-        """Responsibilities: _output initialization reference-resolution context_."""
-        return cast(PythonReferenceContext, self._state.context)
+    def __init__(
+        self,
+        tree: ast.Module,
+        call_returns: PythonCallReturnsProtocol,
+        node_index: PythonAstNodeIndexProtocol,
+        *provided_states: PythonCallReturnStateProtocol,
+    ) -> None:
+        """Responsibilities: _initialization reference collection dependencies_."""
+        self.tree: ast.Module = tree
+        self.call_returns: PythonCallReturnsProtocol = call_returns
+        self.call_return_state: PythonCallReturnStateProtocol = next(
+            iter(provided_states), call_returns.return_state()
+        )
+        self._state: PythonReferenceState = PythonReferenceState()
+        self.node_index: PythonAstNodeIndexProtocol = node_index
 
-    def reference_builder(self) -> PythonReference:
+    def context(self) -> PythonReferenceContextProtocol:
+        """Responsibilities: _output initialization reference-resolution context_."""
+        return cast(PythonReferenceContextProtocol, self._state.context)
+
+    def reference_builder(self) -> PythonReferenceBuilderProtocol:
         """Responsibilities: _creation builder normalization reference_."""
-        return cast(PythonReference, self._state.builder)
+        return cast(PythonReferenceBuilderProtocol, self._state.builder)
 
     def collect_references(self) -> list[JsonObject]:
         """Responsibilities: _collection output normalization callable_."""
@@ -134,7 +154,7 @@ class PythonReferenceCollector:
         self._state.context = self._reference_context(annotation_resolver)
         self._state.builder = PythonReference(self.context())
         self._state.references.clear()
-        self.call_returns.reset_call_returns(self.context())
+        self.call_return_state.state_cleanup()
         self.call_returns.collect_call_returns(self.tree, self.context())
         instances: Any = PythonInstanceCollector(self.tree, self.context())
         instances.collect_instances(annotation_resolver)

@@ -20,17 +20,33 @@ export type PythonOperationInput = {
 	named_symbols: NamedSymbol[];
 };
 
-export type PythonRuleInput = {
+type PythonRuleDiagnostics = {
 	violations: Violation[];
 	file_name: LintFileNameContract;
+};
+
+type PythonRuleAstInput = {
 	classes: AstClassNode[];
 	functions: AstCallableNode[];
-	project_class_names: ReadonlySet<string>;
-	project_type_names: ReadonlySet<string>;
 	reference_aliases: AstReferenceAlias[];
 	python_imports: AstPythonImport[];
 	operations: PythonOperationInput;
+};
+
+type PythonRuleProjectNames = {
+	project_class_names: ReadonlySet<string>;
+	project_protocol_names: ReadonlySet<string>;
+	project_type_names: ReadonlySet<string>;
+};
+
+type PythonRuleOptions = {
 	suppress_short_class: boolean;
 };
+
+export type PythonRuleInput =
+	PythonRuleDiagnostics
+	& PythonRuleAstInput
+	& PythonRuleProjectNames
+	& PythonRuleOptions;
 
 export type PythonRuleAppender = (input: PythonRuleInput) => void;

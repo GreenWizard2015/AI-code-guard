@@ -10,3 +10,9 @@ class Service {
 
 **Fix:** Move the class to a focused top-level module or use composition. Dataclasses and
 exception classes remain valid small-file owners.
+
+```py
+class Service:
+    class State:
+        pass
+```

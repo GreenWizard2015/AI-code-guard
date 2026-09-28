@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { CliOptions } from 'src/bridge/ts/core/types';
+import type { CliOptions } from 'src/types';
 
 /** Responsibilities: _CLI arguments directory parsing_. **/
 export class CommandLineOptions {

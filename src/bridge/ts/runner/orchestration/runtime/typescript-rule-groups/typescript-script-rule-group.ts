@@ -1,8 +1,8 @@
-import { DictionaryReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/dictionary-returns';
+import { DictionaryReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/dictionary-returns';
 import { InlineTypes } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/inline-types';
-import { ObjectLiteralReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-returns';
+import { ObjectLiteralReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-returns';
 import { PointlessAssignments } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/pointless-assignments';
-import { PrivateMemberAccess } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access';
+import { PrivateMemberAccess } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-access';
 import { RepeatedBranch } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/repeated-branch';
 import { TypeOperations } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/type-operations';
 import { JestTestRules } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-test-rules';
@@ -36,7 +36,7 @@ export class TypeScriptScriptRuleGroup implements TypeScriptRuleGroupContract {
 	/** Responsibilities: _script-level TypeScript violations addition_. **/
 	public append(violations: Violation[]): void {
 		const file = this.context.file_name.value;
-		const source_file = this.context.ast_file.source_file;
+		const source_file = this.context.ast_file.source_file_node();
 		this.type_script_declarations.append_prefix_violations(violations, file, source_file);
 		this.inline_types.append_inline_types(violations, file, source_file);
 		this.type_operations.append_type_ops(violations, file, source_file);

@@ -3,6 +3,7 @@ import ts from 'typescript';
 
 import type { AstClassField, AstTypeKind } from 'src/types';
 import { TypeScriptTypeNode } from 'src/model/typescript-type-node';
+import { TypeScriptCallbackAliases } from 'src/parser/ts/typescript-callback-aliases';
 
 
 import type { CallbackCounts, CallbackKind, FieldTypeData } from 'src/types';
@@ -10,15 +11,26 @@ import type { CallbackCounts, CallbackKind, FieldTypeData } from 'src/types';
 /** Responsibilities: _classification TypeScript class interface_. **/
 export class TypeScriptClassMembers {
 	private readonly source_file: ts.SourceFile;
+	private readonly callback_aliases: TypeScriptCallbackAliases;
+
+	/** Responsibilities: _callback initializer classification_. **/
+	private callback_initializer_kind(initializer: ts.Expression): CallbackKind {
+		if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) {
+			return 'inline';
+		}
+		if (ts.isIdentifier(initializer)) {
+			return this.callback_aliases.kind(initializer.text);
+		}
+		return 'none';
+	}
+
 	/** Responsibilities: _classification callback shape class_. **/
 	private callback_kind(member: ts.ClassElement): CallbackKind {
 		if (!ts.isPropertyDeclaration(member)) {
 			return 'none';
 		}
 		if (member.initializer !== undefined) {
-if (ts.isArrowFunction(member.initializer) || ts.isFunctionExpression(member.initializer)) {
-				return 'inline';
-			}
+			return this.callback_initializer_kind(member.initializer);
 		}
 		if (member.type !== undefined) {
 			const type_node = new TypeScriptTypeNode(member.type);
@@ -71,6 +83,7 @@ if (!ts.isPropertyDeclaration(member) || !ts.isIdentifier(member.name)) {
 			value_name: this.identifier_initializer_name(member),
 			type: type_data.type,
 			type_kind: type_data.type_kind,
+			class_variable: false,
 		}];
 	}
 
@@ -94,12 +107,14 @@ if (!ts.isPropertySignature(member) || member.name === undefined) {
 			value_name: '',
 			type,
 			type_kind: type_kind_value,
+			class_variable: false,
 		}];
 	}
 
 	/** Responsibilities: _initialization source file usage_. **/
 	public constructor(source_file: ts.SourceFile) {
 		this.source_file = source_file;
+		this.callback_aliases = new TypeScriptCallbackAliases(source_file);
 	}
 
 	/** Responsibilities: _inline callback count_. **/

@@ -2,12 +2,24 @@ import { randomUUID } from 'node:crypto';
 import { AstModel } from 'src/bridge/ts/core/ast-model';
 import { PythonAstBridge } from 'src/bridge/ts/core/python-ast-bridge';
 import { PythonAstWorker } from 'src/bridge/ts/core/python-ast-worker.mjs';
-import type { NormalizedAstFile } from 'src/types';
+import type { PythonAstWorkerResponse } from 'src/bridge/ts/core/python-ast-worker.mjs';
+import type {
+	NormalizedAstFile,
+	PythonBatchAstOptions,
+} from 'src/types';
+import { LintStageTimer } from 'src/stage-timing';
+import { PythonAstBatchCache } from 'src/bridge/ts/core/python-ast-batch-cache';
+import type { LintStageTimerProtocol } from 'src/protocols';
 
 /** Responsibilities: _cache Python AST batches_. **/
 export class PythonAstData {
 	private readonly parsed_ast_cache = new Map<string, NormalizedAstFile>();
+	private readonly batch_cache = new PythonAstBatchCache(
+		this.parsed_ast_cache,
+		process.env.NODE_ENV !== 'test',
+	);
 	private readonly ast_model = new AstModel();
+	private readonly default_stage_timer = new LintStageTimer();
 	private readonly worker: PythonAstWorker;
 
 	/** Responsibilities: _Python results validation_. **/
@@ -15,78 +27,6 @@ export class PythonAstData {
 		if (parsed.language !== 'python') {
 			throw new Error('Python AST bridge returned an unexpected language.');
 		}
-	}
-
-	/** Responsibilities: _cached batch results collection_. **/
-	private cached_batch_results(
-		texts: readonly string[]
-	): Map<number, NormalizedAstFile> {
-		const results = new Map<number, NormalizedAstFile>();
-		for (const [index, text] of texts.entries()) {
-			const ast = this.parsed_ast_cache.get(text);
-			if (ast !== undefined) {
-				results.set(index, ast);
-			}
-		}
-		return results;
-	}
-
-	/** Responsibilities: _missing batch positions lookup_. **/
-	private missing_batch_indexes(
-		texts: readonly string[],
-		results: ReadonlyMap<number, NormalizedAstFile>
-	): number[] {
-		const indexes: number[] = [];
-		for (const index of texts.keys()) {
-			if (!results.has(index)) {
-				indexes.push(index);
-			}
-		}
-		return indexes;
-	}
-
-	/** Responsibilities: _uncached sources validation_. **/
-	private missing_batch_texts(texts: readonly string[], indexes: readonly number[]): string[] {
-		return indexes.map(index => {
-			if (index < 0 || index >= texts.length) {
-				throw new Error('Python AST batch source is missing.');
-			}
-			return texts[index];
-		});
-	}
-
-	/** Responsibilities: _cache parsed results_. **/
-	private store_batch_results(
-		texts: readonly string[],
-		indexes: readonly number[],
-		parsed: readonly NormalizedAstFile[],
-		results: Map<number, NormalizedAstFile>
-	): void {
-		for (const [index, text_index] of indexes.entries()) {
-			const text_in_range = text_index >= 0 && text_index < texts.length;
-			const ast_in_range = index >= 0 && index < parsed.length;
-			if (!text_in_range || !ast_in_range) {
-				throw new Error('Python AST bridge returned an incomplete batch.');
-			}
-			const text = texts[text_index];
-			const ast = parsed[index];
-			this.parsed_ast_cache.set(text, ast);
-			results.set(text_index, ast);
-		}
-	}
-
-	/** Responsibilities: _rebuild ordered results_. **/
-	private complete_batch(
-		texts: readonly string[],
-		results: ReadonlyMap<number, NormalizedAstFile>
-	): NormalizedAstFile[] {
-		const values = Array.from(results.values());
-		return texts.map((_, index) => {
-			if (index < 0 || index >= values.length) {
-				throw new Error('Python AST batch result is missing.');
-			}
-			return values[index];
-		});
 	}
 
 	/** Responsibilities: _encode batch sources_. **/
@@ -98,32 +38,86 @@ export class PythonAstData {
 		return sources;
 	}
 
-	/** Responsibilities: _worker batch validation_. **/
-	private worker_batch_results(
+	/** Responsibilities: _record Python bridge timings_. **/
+	private record_bridge_timings(
+		stage_timer: LintStageTimerProtocol,
+		stage_prefix: string,
+		response: PythonAstWorkerResponse
+	): void {
+		stage_timer.add_duration(
+			`${stage_prefix}.bridge-round-trip.python-ast-parse`,
+			response.timings.ast_parse_ms
+		);
+		stage_timer.add_duration(
+			`${stage_prefix}.bridge-round-trip.python-ast-build`,
+			response.timings.ast_build_ms
+		);
+		for (const timing of response.timings.ast_stages) {
+			stage_timer.add_duration(
+				`${stage_prefix}.bridge-round-trip.python-ast-build.${timing.name}`,
+				timing.duration_ms
+			);
+		}
+	}
+
+	/** Responsibilities: _named bridge AST resolution_. **/
+	private response_ast(response: PythonAstWorkerResponse, name: string): NormalizedAstFile {
+		for (const [response_name, parsed] of Object.entries(response.asts)) {
+			if (response_name === name) {
+				return parsed;
+			}
+		}
+		throw new Error('Python AST worker returned an incomplete batch.');
+	}
+
+	/** Responsibilities: _bridge batch validation_. **/
+	private validated_batch_results(
 		batch_id: string,
-		texts: readonly string[]
+		texts: readonly string[],
+		response: PythonAstWorkerResponse
 	): NormalizedAstFile[] {
-		const response = this.worker.batch_result(batch_id, this.source_map(texts));
 		if (response.batchId !== batch_id) {
 			throw new Error('Python AST worker returned an unexpected batch id.');
 		}
 		return texts.map((_, index) => {
-			const name = String(index);
-			if (!(name in response.asts)) {
-				throw new Error('Python AST worker returned an incomplete batch.');
-			}
-			const parsed = response.asts[name];
+			const parsed = this.response_ast(response, String(index));
 			this.validate_bridge_output(parsed);
 			return parsed;
 		});
 	}
 
+	/** Responsibilities: _worker batch validation_. **/
+	private worker_batch_results(
+		batch_id: string,
+		texts: readonly string[],
+		stage_timer: LintStageTimerProtocol,
+		stage_prefix = 'python-bridge'
+	): NormalizedAstFile[] {
+		const sources = stage_timer.measure(
+			`${stage_prefix}.batch-source-map`,
+			() => this.source_map(texts)
+		);
+		const response = stage_timer.measure(
+			`${stage_prefix}.bridge-round-trip`,
+			() => this.worker.batch_result(batch_id, sources)
+		);
+		this.record_bridge_timings(stage_timer, stage_prefix, response);
+		return stage_timer.measure(
+			`${stage_prefix}.response-validation`,
+			() => this.validated_batch_results(batch_id, texts, response)
+		);
+	}
+
 	/** Responsibilities: _nonempty batches parsing_. **/
-	private parse_bridge_batch(texts: readonly string[]): NormalizedAstFile[] {
+	private parse_bridge_batch(
+		texts: readonly string[],
+		stage_timer: LintStageTimerProtocol,
+		stage_prefix = 'python-bridge'
+	): NormalizedAstFile[] {
 		if (texts.length === 0) {
 			return [];
 		}
-		return this.worker_batch_results(randomUUID(), texts);
+		return this.worker_batch_results(randomUUID(), texts, stage_timer, stage_prefix);
 	}
 
 	/** Responsibilities: _bridge workers initialization_. **/
@@ -137,28 +131,32 @@ export class PythonAstData {
 	}
 
 	/** Responsibilities: _Python batches parsing_. **/
-	public batch_ast(texts: readonly string[]): NormalizedAstFile[] {
-		const results = this.cached_batch_results(texts);
-		const missing_indexes = this.missing_batch_indexes(texts, results);
-		const parsed = this.parse_bridge_batch(this.missing_batch_texts(texts, missing_indexes));
-		this.store_batch_results(texts, missing_indexes, parsed, results);
-		return this.complete_batch(texts, results);
+	public batch_ast(options: PythonBatchAstOptions): NormalizedAstFile[] {
+		return this.batch_cache.resolve(options, texts => this.parse_bridge_batch(
+			texts,
+			options.stage_timer,
+			options.stage_prefix
+		));
 	}
 
 	/** Responsibilities: _retrieve cached ASTs_. **/
 	public source_ast(text: string): NormalizedAstFile {
-		const cached = this.parsed_ast_cache.get(text);
-		if (cached) {
-			return cached;
+		const cached = this.batch_cache.cached(text);
+		if (cached.present()) {
+			return cached.value();
 		}
 		if (text.length === 0) {
 			const empty = this.ast_model.empty_ast_file('python');
 			this.parsed_ast_cache.set(text, empty);
 			return empty;
 		}
-		const parsed = this.batch_ast([text])[0];
-		this.parsed_ast_cache.set(text, parsed);
-		return parsed;
+		return this.batch_ast({
+			texts: [text],
+			stage_timer: this.default_stage_timer,
+			stage_prefix: 'python-bridge',
+			files: [],
+			repo_root: '',
+		})[0];
 	}
 
 }

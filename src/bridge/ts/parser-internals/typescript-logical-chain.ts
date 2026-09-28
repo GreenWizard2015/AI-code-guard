@@ -47,7 +47,7 @@ export class TypeScriptLogicalChain {
 		return ts.isBinaryExpression(parent) && this.logical_operator(parent);
 	}
 
-	/** Responsibilities: _classification logical expression belongs_. **/
+	/** Responsibilities: _classification concise arrow expression_. **/
 	private expression_lambda(node: ts.BinaryExpression): boolean {
 		let parent = node.parent;
 		while (parent !== undefined) {
@@ -78,12 +78,16 @@ export class TypeScriptLogicalChain {
 		if (!ts.isBinaryExpression(node) || !this.logical_operator(node)) {
 			return false;
 		}
-		if (this.named_initializer(node) || this.has_logical_parent(node) || this.expression_lambda(node)) {
+		if (this.named_initializer(node) || this.has_logical_parent(node)) {
 			return false;
 		}
 		const too_many_parts = this.logical_part_count(node) > 3;
 		const metrics = this.metrics_for(node.getSourceFile());
 		const too_long = metrics.significant_characters(node.getText()) >= this.maximum_characters;
+		const short_arrow = this.expression_lambda(node) && !too_many_parts;
+		if (short_arrow) {
+			return false;
+		}
 		return too_many_parts || too_long;
 	}
 }

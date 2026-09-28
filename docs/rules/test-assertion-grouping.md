@@ -20,3 +20,9 @@ self.assertEqual(
 The same rule applies to Jest `expect` calls. It reports tests with three or more direct assertion statements.
 
 Tests with more than five direct assertions also receive a complexity warning. Split them into smaller atomic tests.
+
+The same rule applies to Jest:
+
+```ts
+expect({ name, status, visibility }).toEqual({ name: 'Service', status: 'ready', visibility: 'private' });
+```

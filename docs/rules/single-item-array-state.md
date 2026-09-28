@@ -21,3 +21,11 @@ function find_service(): ServiceResult {
 ```
 
 The rule reports any element access on a locally declared function, method, or arrow function whose declared result is an array. It also reports a local value assigned from `[0]` and immediately guarded against `undefined`. In Python, the equivalent is a locally declared function or method returning `list[T]` or `List[T]` and then accessed by index. Real collection processing should use a named collection contract and explicit collection operations rather than using an indexed access as a missing-value state.
+
+```py
+def find_service() -> list[Service]:
+    return []
+
+
+service = find_service()[0]
+```

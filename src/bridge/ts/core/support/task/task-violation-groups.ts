@@ -1,5 +1,5 @@
 import { resolve, isAbsolute } from 'node:path';
-import type { ReportViolation } from 'src/bridge/ts/core/types';
+import type { ReportViolation } from 'src/types';
 
 /** Responsibilities: _group task violations priority_. **/
 export class TaskViolationGroups {

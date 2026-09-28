@@ -58,7 +58,10 @@ export class DirectoryRules {
 		if (this.directory_file_rules.protocol_info(violations, file, line_count, classes)) {
 			return;
 		}
-if (line_count >= this.min_file_lines || this.directory_file_rules.small_owner(classes)) {
+		if (line_count >= this.min_file_lines) {
+			return;
+		}
+		if (this.directory_file_rules.small_owner(classes)) {
 			return;
 		}
 		violations.push(this.directory_file_rules.FILE_SIZE_RULE.violation(file, 1));

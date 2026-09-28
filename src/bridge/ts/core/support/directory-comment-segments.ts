@@ -1,6 +1,6 @@
 import type { AstSourceSpan } from 'src/types';
-import type { CommentScanResult, SourceRange } from 'src/bridge/ts/core/types';
-import type { CommentSegment } from 'src/bridge/ts/core/types';
+import type { CommentScanResult, SourceRange } from 'src/types';
+import type { CommentSegment } from 'src/types';
 
 /** Responsibilities: _source text identification scanning_. **/
 export class DirectoryCommentSegments {

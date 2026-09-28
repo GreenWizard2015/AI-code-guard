@@ -3,7 +3,8 @@ import { TypeScriptReferenceHelpers } from 'src/bridge/ts/parser/typescript-refe
 import ts from 'typescript';
 
 import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { TypeScriptPropertyState } from 'src/model/typescript-property-state';
+import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
+import type { TypeScriptObjectPropertyCollectorProtocol } from 'src/protocols';
 import { TypeScriptObjectPropertyCollector } from 'src/parser/ts/typescript-object-property-collector';
 
 
@@ -15,9 +16,9 @@ export class TypeScriptInstanceAliasCollector {
 	private readonly source_file: ts.SourceFile;
 	private readonly aliases: Map<string, string>;
 	private readonly instances: TypeScriptInstanceStore;
-	private readonly properties: TypeScriptPropertyState;
+	private readonly properties: TypeScriptPropertyStateProtocol;
 	private readonly resolvers: InstanceAliasResolvers;
-	private readonly object_properties: TypeScriptObjectPropertyCollector;
+	private readonly object_properties: TypeScriptObjectPropertyCollectorProtocol;
 
 	/** Responsibilities: _resolution current class owner_. **/
 	private class_owner(node: ts.Node, owner: string = ''): string {
@@ -76,6 +77,22 @@ export class TypeScriptInstanceAliasCollector {
 			return true;
 		}
 		return this.object_properties.appended(node, initializer);
+	}
+
+	/** Responsibilities: _instance reference alias addition_. **/
+	private append_reference_alias(
+		node: ts.VariableDeclaration,
+		initializer: ts.Expression
+	): boolean {
+		if (!ts.isIdentifier(node.name) || !ts.isIdentifier(initializer)) {
+			return false;
+		}
+		const owner = this.instances.instance_owner(initializer.text, initializer);
+		if (!owner) {
+			return false;
+		}
+		this.instances.add(node.name.text, owner, node);
+		return true;
 	}
 
 	/** Responsibilities: _aggregation invocation result aliases_. **/
@@ -145,6 +162,9 @@ if (!resolved_owner && ts.isPropertyAccessExpression(initializer.expression)) {
 		if (this.append_destructured(node, initializer, owner)) {
 			return true;
 		}
+		if (this.append_reference_alias(node, initializer)) {
+			return true;
+		}
 return this.append_constructed(node, initializer) || this.append_call(node, owner);
 	}
 
@@ -185,7 +205,7 @@ return this.append_constructed(node, initializer) || this.append_call(node, owne
 		source_file: ts.SourceFile,
 		aliases: Map<string, string>,
 		instances: TypeScriptInstanceStore,
-		properties: TypeScriptPropertyState,
+		properties: TypeScriptPropertyStateProtocol,
 		resolvers: InstanceAliasResolvers
 	) {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();

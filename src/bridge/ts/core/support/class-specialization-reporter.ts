@@ -11,6 +11,27 @@ export class MethodSpecializationReporter {
 
 	private readonly methods: readonly AstCallableNode[];
 
+	/** Responsibilities: _hook method classification_. **/
+	private external_hook_method(method: AstCallableNode): boolean {
+		for (const decorator of method.decorators) {
+			if (decorator.toLowerCase().includes('hook')) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Responsibilities: _specialization method selection_. **/
+	private included_method(method: AstCallableNode): boolean {
+		if (method.name === 'constructor') {
+			return false;
+		}
+		if (method.name === '__init__') {
+			return false;
+		}
+		return !this.external_hook_method(method);
+	}
+
 	/** Responsibilities: _aggregation callback-field diagnostics analysis_. **/
 	private append_callback_rule(): void {
 		const inline_callback_fields = this.node.inline_callback_fields;
@@ -108,7 +129,7 @@ return this.node.base_class_names !== undefined && this.node.base_class_names.le
 		this.file = file;
 		this.node = node;
 		this.methods = node.methods.filter(
-			method => method.name !== 'constructor' && method.name !== '__init__'
+			method => this.included_method(method)
 		);
 	}
 
@@ -117,7 +138,7 @@ return this.node.base_class_names !== undefined && this.node.base_class_names.le
 		if (this.node.is_data_class || this.is_mixin()) {
 			return;
 		}
-if ((this.node.type_contract || this.node.protocol) && this.methods.length === 0) {
+		if (this.methods.length === 0) {
 			return;
 		}
 		this.append_public_rules(this.methods, this.has_base_type());

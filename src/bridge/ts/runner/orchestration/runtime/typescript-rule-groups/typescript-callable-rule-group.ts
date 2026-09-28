@@ -1,7 +1,9 @@
 import { AnyTypes } from 'src/rules/typescript/any-types';
+import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
 import { MetricViolations } from 'src/metric-violations';
 import { CallableMetrics } from 'src/metrics/callable-metrics';
 import { MethodContractRules } from 'src/metrics/method-contract-rules';
+import { ProjectTypeBoundary } from 'src/metrics/project-type-boundary';
 import type { Violation } from 'src/protocols';
 import type { AstCallableNode } from 'src/types';
 import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
@@ -10,7 +12,7 @@ import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestra
 /** Responsibilities: _callable metrics application_, _application callable naming type_. **/
 export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract {
 	private readonly context: TypeScriptScannerRuleContext;
-	private readonly any_types = new AnyTypes();
+	private readonly any_types: AnyTypes;
 	private readonly metric_violations = new MetricViolations();
 	private readonly method_contract_rules = new MethodContractRules();
 
@@ -25,9 +27,37 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 		}
 	}
 
+	/** Responsibilities: _aggregation project type boundary violations_. **/
+	private append_boundary(violations: Violation[], callables: readonly AstCallableNode[]): void {
+		if (this.context.file_name.test()) {
+			return;
+		}
+		const allowed_contracts = new Set(
+			[...this.context.project_type_names].filter(
+				name => !this.context.project_class_names.has(name)
+			)
+		);
+		for (const name of this.context.project_interface_names) {
+			allowed_contracts.add(name);
+		}
+		const boundary = new ProjectTypeBoundary({
+			violations,
+			file: this.context.file_name.value,
+			callables,
+			project_types: this.context.project_type_names,
+			allowed_contracts,
+			reference_aliases: this.context.ast.reference_aliases,
+			language: 'typescript',
+		});
+		boundary.append();
+	}
+
 	/** Responsibilities: _callable rule context initialization_. **/
 	public constructor(context: TypeScriptScannerRuleContext) {
 		this.context = context;
+		const type_aliases = new TypeScriptTypeAliases();
+		type_aliases.collect(context.ast_file.source_file_node());
+		this.any_types = new AnyTypes(type_aliases);
 	}
 
 	/** Responsibilities: _aggregation callable rule violations_. **/
@@ -38,6 +68,7 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 		const methods = classes.flatMap(node => node.methods);
 		this.append_function_metrics(violations, file, functions);
 		this.any_types.append_any_info(violations, file, [...functions, ...methods], classes);
+		this.append_boundary(violations, [...functions, ...methods]);
 		this.method_contract_rules.append(violations, file, methods);
 		this.metric_violations.append_depth_violations(violations, file, this.context.ast.attribute_accesses);
 	}

@@ -50,7 +50,7 @@ export class TypeScriptDeclarations {
 
 	/** Responsibilities: _extraction named top-level function_. **/
 	private top_function_declarations(
-		statement: ts.Statement,
+		statement: ts.Node,
 		source_file: ts.SourceFile
 	): NamedDeclaration[] {
 		if (!ts.isFunctionDeclaration(statement) || !statement.name) {
@@ -61,7 +61,7 @@ export class TypeScriptDeclarations {
 
 	/** Responsibilities: _function-valued top-level variables extraction_. **/
 	private top_variable_declarations(
-		statement: ts.Statement,
+		statement: ts.Node,
 		source_file: ts.SourceFile
 	): NamedDeclaration[] {
 		if (!ts.isVariableStatement(statement)) {
@@ -71,7 +71,7 @@ export class TypeScriptDeclarations {
 	}
 
 	/** Responsibilities: _extraction private named imports_. **/
-	private named_imports(statement: ts.Statement, source_file: ts.SourceFile): NamedDeclaration[] {
+	private named_imports(statement: ts.Node, source_file: ts.SourceFile): NamedDeclaration[] {
 		if (!ts.isImportDeclaration(statement)) {
 			return [];
 		}
@@ -80,6 +80,19 @@ export class TypeScriptDeclarations {
 			return [];
 		}
 		return bindings.elements.flatMap(element => this.imported_declaration(element, source_file));
+	}
+
+	/** Responsibilities: _collection nested TypeScript declarations_. **/
+	private declarations_for_node(node: ts.Node, source_file: ts.SourceFile): NamedDeclaration[] {
+		const declarations = [
+			...this.top_function_declarations(node, source_file),
+			...this.top_variable_declarations(node, source_file),
+			...this.named_imports(node, source_file),
+		];
+		for (const child of node.getChildren()) {
+			declarations.push(...this.declarations_for_node(child, source_file));
+		}
+		return declarations;
 	}
 
 	/** Responsibilities: _derivation class-like private prefix_. **/
@@ -158,11 +171,7 @@ if (group.length < 2 || group.every(declaration => declaration.has_self)) {
 		file: string,
 		source_file: ts.SourceFile
 	): void {
-		const declarations = source_file.statements.flatMap(statement => [
-			...this.top_function_declarations(statement, source_file),
-			...this.top_variable_declarations(statement, source_file),
-			...this.named_imports(statement, source_file),
-		]);
+		const declarations = this.declarations_for_node(source_file, source_file);
 		const groups = this.prefix_groups(declarations);
 		this.append_group_violations(violations, file, groups);
 	}

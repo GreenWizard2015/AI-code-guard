@@ -2,10 +2,13 @@ from __future__ import annotations
 
 
 from typing import Any
-from implementation.ast.callable_arguments import CallableArguments
-from implementation.ast.callable_metrics import CallableMetrics
-from implementation.ast.callable_statements import CallableStatements
-from implementation.references.callable_test_assertions import (
+from implementation.ast.protocols import (
+    PythonCallableArgumentsProtocol,
+    PythonCallableMetricsProtocol,
+    PythonCallableStatementsProtocol,
+    PythonSourceSegmentsProtocol,
+)
+from implementation.references.test_assertions.callable_test_assertions import (
     PythonCallableTestAssertions,
 )
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
@@ -19,9 +22,9 @@ class PythonCallableNode:
 
     def _callable_data(
         self,
-        callable_statements: CallableStatements,
-        callable_arguments: CallableArguments,
-        callable_metrics: CallableMetrics,
+        callable_statements: PythonCallableStatementsProtocol,
+        callable_arguments: PythonCallableArgumentsProtocol,
+        callable_metrics: PythonCallableMetricsProtocol,
     ) -> JsonObject:
         """Responsibilities: _identity metrics arguments assembly_."""
         arguments: Any = callable_arguments.callable_arguments(self.node)
@@ -42,9 +45,10 @@ class PythonCallableNode:
         )
         if self.owner:
             data["owner"] = self.owner
+        data["nested"] = self.nested
         return data
 
-    def _body_lines(self, callable_statements: CallableStatements) -> int:
+    def _body_lines(self, callable_statements: PythonCallableStatementsProtocol) -> int:
         """Responsibilities: _calculation callable body line_."""
         body: Any = callable_statements.body_without_docstring(self.node.body)
         if not body:
@@ -58,7 +62,7 @@ class PythonCallableNode:
         line_count = last_line - first_line
         return line_count + 1
 
-    def _characters(self, callable_statements: CallableStatements) -> int:
+    def _characters(self, callable_statements: PythonCallableStatementsProtocol) -> int:
         """Responsibilities: _calculation significant characters callable_."""
         body: Any = ""
         callable_body: Any = callable_statements.body_without_docstring(self.node.body)
@@ -69,10 +73,11 @@ class PythonCallableNode:
         characters: Any = self.source_segments.significant_characters(body)
         return max(1, characters)
 
-    def _test_data(self, callable_statements: CallableStatements) -> JsonObject:
+    def _test_data(self, callable_statements: PythonCallableStatementsProtocol) -> JsonObject:
         """Responsibilities: _collection assertion test-ending metadata_."""
         return {
             "has_unittest_assertion": self.test_assertions.unittest_assertion_present(),
+            "unittest_assertion_alias": self.test_assertions.assertion_aliases.assertion_alias_present,
             "unittest_exception_only": self.test_assertions.exception_only_assertion(),
             "test_exception_bypass": self.test_assertions.exception_bypass(),
             "unittest_ending_valid": self.test_assertions.valid_assertion_ending(
@@ -87,19 +92,20 @@ class PythonCallableNode:
         self,
         node: ast.AST,
         node_index: PythonAstNodeIndexProtocol,
-        source_segments: SourceSegments,
+        source_segments: PythonSourceSegmentsProtocol,
         owner: str = "",
     ) -> None:
         """Responsibilities: _initialization callable AST source_."""
         self.node: Any = node
         self.owner: Any = owner
+        self.nested: bool = False
         self.node_index: Any = node_index
         self.source_segments: Any = source_segments
         self.test_assertions: PythonCallableTestAssertions = (
             PythonCallableTestAssertions(node, node_index)
         )
 
-    def statements(self, callable_statements: CallableStatements) -> list[JsonObject]:
+    def statements(self, callable_statements: PythonCallableStatementsProtocol) -> list[JsonObject]:
         """Responsibilities: _normalization statements callable body_."""
         statements: list[dict[str, Any]] = []
         for item in callable_statements.body_without_docstring(self.node.body):
@@ -108,9 +114,9 @@ class PythonCallableNode:
 
     def result(
         self,
-        callable_statements: CallableStatements,
-        callable_arguments: CallableArguments,
-        callable_metrics: CallableMetrics,
+        callable_statements: PythonCallableStatementsProtocol,
+        callable_arguments: PythonCallableArgumentsProtocol,
+        callable_metrics: PythonCallableMetricsProtocol,
     ) -> JsonObject:
         """Responsibilities: _construction complete normalization callable_."""
         data: Any = self._callable_data(

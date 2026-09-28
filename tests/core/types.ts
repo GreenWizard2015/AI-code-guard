@@ -49,6 +49,7 @@ type FixtureCallableShape = {
 	exception_only: boolean;
 	has_self: boolean;
 	has_unittest_assertion: boolean;
+	unittest_assertion_alias: boolean;
 	unittest_exception_only: boolean;
 	test_exception_bypass: boolean;
 	unittest_ending_valid: boolean;

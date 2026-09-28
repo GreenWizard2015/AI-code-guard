@@ -2,6 +2,9 @@
 
 **Purpose:** Anonymous object shapes cannot be reused or named at a boundary.
 
+This also applies to inline type descriptions on variables and to `as` or
+`satisfies` expressions. Give the shape a name before using it.
+
 ```ts
 function load(input: { id: string }): Result {
   const input_id = input.id.trim();

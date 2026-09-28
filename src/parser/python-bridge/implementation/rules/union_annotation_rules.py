@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
+from implementation.rules.protocols import PythonTypingAliasesProtocol
 from implementation.types import JsonObject
 
 
@@ -11,6 +12,9 @@ class UnionAnnotationRules:
 
     def _subscript_name(self, value: ast.AST) -> str:
         """Responsibilities: _identification subscript type name_."""
+        resolved = self.typing_aliases.expression_name(value)
+        if resolved:
+            return resolved
         if type(value) is ast.Name:
             return value.id
         if type(value) is ast.Attribute:
@@ -22,12 +26,14 @@ class UnionAnnotationRules:
         if type(value) is not ast.Subscript:
             return False
         name: Any = self._subscript_name(value.value)
-        if name == "Optional":
+        if self.typing_aliases.matches_optional(name):
             return self._has_value_type([value.slice])
         if name != "Union" or type(value.slice) is not ast.Tuple:
             return False
         values: Any = list(value.slice.elts)
-        return self._has_none(values) and self._has_value_type(values)
+        if not self._has_none(values):
+            return False
+        return self._has_value_type(values)
 
     def _has_none(self, values: list[ast.AST]) -> bool:
         """Responsibilities: _None union members identification_."""
@@ -75,7 +81,7 @@ class UnionAnnotationRules:
             return self._union_types(node)
         if type(node) is not ast.Subscript:
             return [node]
-        if self._subscript_name(node.value) != "Union":
+        if not self.typing_aliases.matches_union(self._subscript_name(node.value)):
             return [node]
         if type(node.slice) is ast.Tuple:
             return list(node.slice.elts)
@@ -117,8 +123,9 @@ class UnionAnnotationRules:
                 issues.append(
                     {"line": node.lineno - 1, "kind": "python-optional-union"}
                 )
-            if self._has_none(values) and self._has_value_type(values):
-                issues.append({"line": node.lineno - 1, "kind": "nullable-domain-type"})
+            if self._has_none(values):
+                if self._has_value_type(values):
+                    issues.append({"line": node.lineno - 1, "kind": "nullable-domain-type"})
         if len(values) > 1 and not any(
             self._is_nullish_type(value) for value in values
         ):
@@ -156,11 +163,15 @@ class UnionAnnotationRules:
         return self._issues_for_intersection(candidate, intersection)
 
     def __init__(
-        self, max_union_items: int, node_index: PythonAstNodeIndexProtocol
+        self,
+        max_union_items: int,
+        node_index: PythonAstNodeIndexProtocol,
+        typing_aliases: PythonTypingAliasesProtocol,
     ) -> None:
         """Responsibilities: _union analysis initialization_."""
         self.max_union_items: Any = max_union_items
         self.node_index: Any = node_index
+        self.typing_aliases: PythonTypingAliasesProtocol = typing_aliases
 
     def union(self, annotation: ast.AST) -> bool:
         """Responsibilities: _composite annotations identification_."""

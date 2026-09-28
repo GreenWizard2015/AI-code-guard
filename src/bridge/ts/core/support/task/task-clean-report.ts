@@ -1,13 +1,11 @@
-import type { TaskWorkspace } from 'src/bridge/ts/core/support/task/task-workspace';
-import type { TaskDocumentation } from 'src/bridge/ts/core/support/task/task-documentation';
-import type { TaskReview } from 'src/bridge/ts/core/support/task/task-review';
+import type { TaskDocumentationProtocol, TaskReviewProtocol, TaskWorkspaceProtocol } from 'src/protocols';
 import { MAX_REVIEW_LINES, MIN_REVIEW_LINES } from 'src/constants';
 
 /** Responsibilities: _task report formatting_. **/
 export class TaskCleanReport {
-	private readonly workspace: TaskWorkspace;
-	private readonly documentation: TaskDocumentation;
-	private readonly review: TaskReview;
+	private readonly workspace: TaskWorkspaceProtocol;
+	private readonly documentation: TaskDocumentationProtocol;
+	private readonly review: TaskReviewProtocol;
 
 	/** Responsibilities: _short-file notice collection_. **/
 	private short_file_notices(): string[] {
@@ -32,7 +30,7 @@ export class TaskCleanReport {
 	}
 
 	/** Responsibilities: _initialization task workspace documentation_. **/
-	public constructor(workspace: TaskWorkspace, documentation: TaskDocumentation, review: TaskReview) {
+	public constructor(workspace: TaskWorkspaceProtocol, documentation: TaskDocumentationProtocol, review: TaskReviewProtocol) {
 		this.workspace = workspace;
 		this.documentation = documentation;
 		this.review = review;

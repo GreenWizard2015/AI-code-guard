@@ -37,6 +37,7 @@ AI Code Guard treats code structure as part of the domain contract. Its rules ar
 
 | Priority | General scope |
 | ---: | --- |
+| 8 | Forbidden nested ownership structures, including nested classes and type declarations. |
 | 7 | Critical placement, missing/unused code, and size violations. |
 | 6 | Critical test, type-safety, and architecture violations. |
 | 5 | Type, contract, ownership, and responsibility-boundary violations. |
@@ -243,6 +244,11 @@ src/
 tests/
 ├── core/                     TypeScript/Jest integration and unit tests
 └── python/                   Python bridge tests
+
+Test files below root `tests/` mirror a source module and may use one or more
+scope directories before the module or before the test file, for example
+`tests/performance/load/payments/` or
+`tests/payments/acceptance/uat/`. Root `__tests__/` is also supported.
 
 docs/rules/                   One document for each diagnostic rule
 ```

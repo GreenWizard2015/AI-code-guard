@@ -1,6 +1,6 @@
 import { SourceNames } from 'src/bridge/ts/core/support/source-names';
 import type { LintProjectContext } from 'src/protocols';
-import type { ProjectNames } from 'src/bridge/ts/core/types';
+import type { ProjectNames } from 'src/types';
 
 /** Responsibilities: _derivation project class protocol_. **/
 export class ProjectNameRegistry {
@@ -46,6 +46,15 @@ export class ProjectNameRegistry {
 		return new Set(names);
 	}
 
+	/** Responsibilities: _collection project interface names_. **/
+	private interface_names(project_files: string[], context: LintProjectContext): ReadonlySet<string> {
+		return new Set(project_files
+			.filter(file => context.source_record(file).typescript())
+			.flatMap(file => context.source_record(file).normalized_ast.classes)
+			.filter(class_node => class_node.type_contract)
+			.map(class_node => class_node.name));
+	}
+
 	/** Responsibilities: _collection class names project_. **/
 	public class_names(project_files: string[], context: LintProjectContext): ReadonlySet<string> {
 		const names: string[] = [];
@@ -64,6 +73,7 @@ export class ProjectNameRegistry {
 		return {
 			project_class_names: this.class_names(project_files, context),
 			project_protocol_names: this.protocol_names(project_files, context),
+			project_interface_names: this.interface_names(project_files, context),
 			project_contract_names: this.contract_names(project_files, context),
 			project_type_names: this.type_names(repo_root, project_files, context),
 		};

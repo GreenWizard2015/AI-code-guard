@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 
-from implementation.ast.annotation_resolver import AnnotationNames
-from implementation.references.reference_context import PythonReferenceContext
+from implementation.references.protocols import (
+    PythonAnnotationResolverProtocol,
+    PythonReferenceContextProtocol,
+)
 import ast
 from typing import Any, Optional
 
@@ -34,10 +36,10 @@ class PythonInstanceCollector:
         if not element.id:
             return
         if type(node.target) is ast.Name:
-            self.context.instances[node.target.id] = element.id
+            self.context.record_instance(node.target.id, element.id)
             return
         if type(node.target) is ast.Attribute and owner:
-            self.context.properties[f"{owner}.{node.target.attr}"] = element.id
+            self.context.record_property(f"{owner}.{node.target.attr}", element.id)
 
     def _assignment_parts(self, node: ast.AST) -> dict[str, Optional[ast.AST]]:
         """Responsibilities: _normalization target value parts_."""
@@ -67,13 +69,13 @@ class PythonInstanceCollector:
         if type(value) is ast.Call:
             return self.context.call_return_owner(value.func, fallback_to_name=True)
         if type(value) is ast.Name:
-            return self.context.instances.get(value.id, "")
+            return self.context.instance_owner(value.id)
         if type(value) is ast.Attribute:
             attribute_owner: Any = self.context.attribute_owner(value, owner)
             if attribute_owner:
                 return attribute_owner
         return annotation_resolver.annotation_name(
-            annotation, self.context.aliases, REFERENCE_GENERICS
+            annotation, self.context.annotation_aliases(), REFERENCE_GENERICS
         )
 
     def _store_parameters(
@@ -89,10 +91,13 @@ class PythonInstanceCollector:
         ]
         for argument in arguments:
             owner: Any = annotation_resolver.annotation_name(
-                argument.annotation, self.context.aliases, REFERENCE_GENERICS
+                argument.annotation, self.context.annotation_aliases(), REFERENCE_GENERICS
             )
-            if owner and argument.arg not in self.context.instances:
-                self.context.instances[argument.arg] = owner
+            if not owner:
+                continue
+            if self.context.instance_owner(argument.arg):
+                continue
+            self.context.record_instance(argument.arg, owner)
 
     def _record_alias(
         self, node: ast.AST, owner: str, annotation_resolver: AnnotationNames
@@ -103,13 +108,13 @@ class PythonInstanceCollector:
         if not instance_type:
             return
         if type(target) is ast.Name:
-            self.context.instances[target.id] = instance_type
+            self.context.record_instance(target.id, instance_type)
             return
         if type(target) is not ast.Attribute or not owner:
             return
         property_key: Any = f"{owner}.{target.attr}"
-        if property_key not in self.context.properties:
-            self.context.properties[property_key] = instance_type
+        if not self.context.property_owner(property_key):
+            self.context.record_property(property_key, instance_type)
 
     def _collect_instances(
         self,
@@ -139,20 +144,20 @@ class PythonInstanceCollector:
                 current.iter, current_owner
             )
             if iterable_owner:
-                self.context.instances[current.target.id] = iterable_owner
+                self.context.record_instance(current.target.id, iterable_owner)
         for child in ast.iter_child_nodes(current):
             self._collect_for_aliases(child, current_owner)
 
     def __init__(
         self,
         tree: ast.Module,
-        context: PythonReferenceContext,
+        context: PythonReferenceContextProtocol,
     ) -> None:
         """Responsibilities: _initialization AST context node_."""
         self.tree: Any = tree
-        self.context: Any = context
+        self.context: PythonReferenceContextProtocol = context
 
-    def collect_instances(self, annotation_resolver: AnnotationNames) -> None:
+    def collect_instances(self, annotation_resolver: PythonAnnotationResolverProtocol) -> None:
         """Responsibilities: _collection instances module class_."""
         self._collect_instances(self.tree, "", annotation_resolver)
 

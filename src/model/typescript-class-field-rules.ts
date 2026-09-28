@@ -83,21 +83,15 @@ if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 		}
 	}
 
-	/** Responsibilities: _imported field violations collection_. **/
-	private collect_statement(statement: ts.Statement, context: TypeScriptClassFieldContext): Violation[] {
+	/** Responsibilities: _nested class field collection_. **/
+	private collect_node(node: ts.Node, context: TypeScriptClassFieldContext): Violation[] {
 		const violations: Violation[] = [];
-		if (ts.isClassDeclaration(statement)) {
-			this.append_members(statement.members, context, violations);
-			return violations;
+		if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+			this.append_members(node.members, context, violations);
 		}
-		if (!ts.isVariableStatement(statement)) {
-			return violations;
-		}
-		for (const declaration of statement.declarationList.declarations) {
-if (declaration.initializer && ts.isClassExpression(declaration.initializer)) {
-				this.append_members(declaration.initializer.members, context, violations);
-			}
-		}
+		node.forEachChild(child => {
+			violations.push(...this.collect_node(child, context));
+		});
 		return violations;
 	}
 
@@ -147,9 +141,33 @@ if (imported === undefined || imported.source_file === context.file) {
 			imports: imported_function_aliases.imported_function_aliases(source_file),
 			functions,
 		};
-		return source_file.statements.flatMap(statement =>
-			this.collect_statement(statement, field_context)
-		);
+		return this.collect_node(source_file, field_context);
+	}
+
+	/** Responsibilities: _report missing visibility_. **/
+	private visibility_member(node: ts.Node): boolean {
+		if (ts.isMethodDeclaration(node)) {
+			return true;
+		}
+		if (ts.isPropertyDeclaration(node)) {
+			return true;
+		}
+		if (ts.isGetAccessor(node)) {
+			return true;
+		}
+		return ts.isSetAccessor(node);
+	}
+
+	/** Responsibilities: _member modifier resolution_. **/
+	private modifiers(node: ts.Node): readonly ts.Modifier[] {
+		if (!ts.canHaveModifiers(node)) {
+			return [];
+		}
+		const modifiers = ts.getModifiers(node);
+		if (modifiers === undefined) {
+			return [];
+		}
+		return modifiers;
 	}
 
 	/** Responsibilities: _report missing visibility_. **/
@@ -157,14 +175,14 @@ if (imported === undefined || imported.source_file === context.file) {
 		if (this.test_file(file)) {
 			return false;
 		}
-		if (!ts.isMethodDeclaration(node) && !ts.isPropertyDeclaration(node)) {
+		if (!this.visibility_member(node)) {
 			return false;
 		}
 		if (!ts.isClassDeclaration(node.parent) && !ts.isClassExpression(node.parent)) {
 			return false;
 		}
-		const modifiers = node.modifiers;
-		if (!modifiers) {
+		const modifiers = this.modifiers(node);
+		if (modifiers.length === 0) {
 			return true;
 		}
 		return !modifiers.some(modifier => VISIBILITY_MODIFIERS.includes(modifier.kind));
@@ -178,8 +196,8 @@ if (imported === undefined || imported.source_file === context.file) {
 		if (!ts.isPropertyDeclaration(node)) {
 			return false;
 		}
-		const modifiers = node.modifiers;
-		if (!modifiers) {
+		const modifiers = this.modifiers(node);
+		if (modifiers.length === 0) {
 			return true;
 		}
 		return !modifiers.some(modifier => modifier.kind === ts.SyntaxKind.ReadonlyKeyword);
@@ -214,7 +232,7 @@ if (imported === undefined || imported.source_file === context.file) {
 			return this.source_fields(
 				file,
 				repo_root,
-				source.typescript_ast.source_file,
+				source.typescript_ast.source_file_node(),
 				functions
 			);
 		});

@@ -38,11 +38,20 @@ export class NullableTypeRules {
 	}
 
 	/** Responsibilities: _classification union contains nullish_. **/
+	private nullable_parent(node: ts.Node): ts.Node {
+		let parent = node.parent;
+		while (ts.isParenthesizedTypeNode(parent)) {
+			parent = parent.parent;
+		}
+		return parent;
+	}
+
+	/** Responsibilities: _classification union contains nullish_. **/
 	private is_nullable_union(node: ts.Node): boolean {
 		if (!ts.isUnionTypeNode(node)) {
 			return false;
 		}
-		const parent = node.parent;
+		const parent = this.nullable_parent(node);
 		if (!this.is_nullable_parent(parent)) {
 			return false;
 		}

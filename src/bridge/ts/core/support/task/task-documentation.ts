@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { RULE_DATA } from 'src/parser/ts/constants';
-import type { TaskWorkspace } from 'src/bridge/ts/core/support/task/task-workspace';
+import type { TaskWorkspaceProtocol } from 'src/protocols';
 
 /** Responsibilities: _rule documentation validation_, _rule documents copying_, _philosophy access projection_. **/
 export class TaskDocumentation {
@@ -34,7 +34,7 @@ export class TaskDocumentation {
 	}
 
 	/** Responsibilities: _selection rule documents copying_. **/
-	public copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspace): void {
+	public copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspaceProtocol): void {
 		for (const rule_id of rule_ids) {
 			const source = join(this.documentation_root, 'docs', 'rules', `${rule_id}.md`);
 			copyFileSync(source, workspace.rule_document_path(rule_id));

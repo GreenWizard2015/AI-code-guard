@@ -27,11 +27,9 @@ class CallableArguments:
     def _typed_argument(self, argument: ast.arg) -> list[dict[str, str]]:
         """Responsibilities: _normalization typed callable argument_."""
         annotation: Any = argument.annotation
-        if annotation is None or type(annotation) not in (
-            ast.Name,
-            ast.Attribute,
-            ast.Subscript,
-        ):
+        if annotation is None:
+            return []
+        if type(annotation) not in (ast.Name, ast.Attribute, ast.Subscript):
             return []
         kind: Any = "named"
         if type(annotation) is ast.Name and annotation.id in self.builtin_types:
@@ -60,6 +58,31 @@ class CallableArguments:
                     names.append(decorator.attr)
         return names
 
+    def _parameter_types(self, arguments: list[ast.arg]) -> list[str]:
+        """Responsibilities: _collection callable parameter types_."""
+        return [
+            ast.unparse(argument.annotation)
+            for argument in arguments
+            if argument.annotation
+        ]
+
+    def _untyped_parameters(self, arguments: list[ast.arg]) -> list[str]:
+        """Responsibilities: _collection untyped callable parameters_."""
+        names: list[str] = []
+        for argument in arguments:
+            if argument.annotation is not None:
+                continue
+            if argument.arg in ("self", "cls"):
+                continue
+            names.append(argument.arg)
+        return names
+
+    def _has_self(self, arguments: list[ast.arg]) -> bool:
+        """Responsibilities: _classification callable self parameter_."""
+        if not arguments:
+            return False
+        return arguments[0].arg == "self"
+
     def __init__(self, node_index: PythonAstNodeIndexProtocol) -> None:
         """Responsibilities: _initialization reusable Python AST_."""
         self.node_index: Any = node_index
@@ -73,26 +96,15 @@ class CallableArguments:
         characters: int,
     ) -> JsonObject:
         """Responsibilities: _construction normalization argument metadata_."""
-        parameter_types: Any = [
-            ast.unparse(argument.annotation)
-            for argument in arguments
-            if argument.annotation
-        ]
-        untyped_parameters: Any = [
-            argument.arg
-            for argument in arguments
-            if argument.annotation is None and argument.arg not in ("self", "cls")
-        ]
-        has_self: Any = bool(arguments and arguments[0].arg == "self")
         return {
             "argument_count": len(arguments),
             "characters": characters,
-            "parameter_types": parameter_types,
-            "untyped_parameters": untyped_parameters,
+            "parameter_types": self._parameter_types(arguments),
+            "untyped_parameters": self._untyped_parameters(arguments),
             "argument_uses": self._argument_uses(node, arguments),
             "typed_arguments": self._typed_arguments(arguments),
             "decorators": self._decorator_names(node),
-            "has_self": has_self,
+            "has_self": self._has_self(arguments),
             "visibility": self.method_visibility(node.name),
         }
 
@@ -108,8 +120,9 @@ class CallableArguments:
 
     def method_visibility(self, name: str) -> str:
         """Responsibilities: _classification Python method visibility_."""
-        if name.startswith("__") and name.endswith("__"):
-            return "public"
+        if name.startswith("__"):
+            if name.endswith("__"):
+                return "public"
         if name.startswith("_"):
             return "private"
         return "public"

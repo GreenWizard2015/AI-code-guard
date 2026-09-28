@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs';
 import type { SpawnOptions, SpawnSyncOptionsWithStringEncoding } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { delimiter, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Responsibilities: _configuration Python bridge paths_. **/
 export class PythonAstBridge {
 	private readonly project_root = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 	private readonly python_bridge_path = resolve(this.project_root, 'src/parser/python-bridge');
+	private readonly python_path = [this.python_bridge_path, this.project_root].join(delimiter);
 	private readonly bridge_file_name = 'src/parser/python-bridge/entrypoint.py';
 
 	/** Responsibilities: _construction command-line arguments bridge_. **/
@@ -47,7 +48,7 @@ export class PythonAstBridge {
 			input: `code:${text}`,
 			encoding: 'utf8' as const,
 			maxBuffer: 4 * 1024 * 1024,
-			env: { ...process.env, PYTHONPATH: this.python_bridge_path },
+			env: { ...process.env, PYTHONPATH: this.python_path },
 		};
 	}
 

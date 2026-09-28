@@ -59,7 +59,9 @@ class CallableStatements:
         ):
             return set()
         body: Any = node.body
-        if not body or not self.string_statement(body[0]):
+        if not body:
+            return set()
+        if not self.string_statement(body[0]):
             return set()
         docstring: Any = body[0]
         end_line: Any = docstring.end_lineno
@@ -99,8 +101,9 @@ class CallableStatements:
 
     def body_without_docstring(self, body: list[ast.stmt]) -> list[ast.stmt]:
         """Responsibilities: _removal leading docstring callable_."""
-        if body and self.string_statement(body[0]):
-            return body[1:]
+        if body:
+            if self.string_statement(body[0]):
+                return body[1:]
         return body
 
     def collect_docstring_lines(self, root: ast.AST) -> set[int]:

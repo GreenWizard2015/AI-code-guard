@@ -19,3 +19,8 @@ class Contact {
 ```
 
 **Fix:** Call `flow.update()` at the caller or move real behavior to the owning class.
+
+```py
+def update(identifier: str, title: str) -> None:
+    flow.update(identifier, title)
+```

@@ -31,3 +31,13 @@ docstrings are excluded from the measurement.
 For a genuine minimum-size finding, either add real state or behavior that belongs to the class or
 lower the character threshold when the boundary is intentionally small. Do not add padding methods
 or fields just to cross a limit.
+
+```py
+class MessageReader:
+    def __init__(self, source: MessageSource, options: ReaderOptions) -> None:
+        self.source = source
+        self.options = options
+
+    def read(self) -> Message:
+        return self.source.read(self.options)
+```

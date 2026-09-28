@@ -13,11 +13,14 @@ import {
 } from 'src/bridge/ts/parser-internals/constants';
 import ts from 'typescript';
 import type { RuleContextData } from 'src/types';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _aggregation TypeScript invocation union_. **/
 export class TypeScriptBoundaryRuleAppender {
 	private readonly max_union_types = 3;
 	private readonly basic_rules = new TypeScriptBasicRules();
+	private readonly getattr_aliases = new TypeScriptExpressionAliases('getattr');
+	private readonly setattr_aliases = new TypeScriptExpressionAliases('setattr');
 	private readonly nullable_type_rules = new NullableTypeRules();
 	private readonly union_contract_bypass = new UnionContractBypass();
 	private readonly composite_state_type = new CompositeStateTypeRules();
@@ -28,10 +31,10 @@ export class TypeScriptBoundaryRuleAppender {
 			if (!ts.isIdentifier(node.expression)) {
 				return;
 			}
-			if (node.expression.text === 'getattr') {
+			if (this.getattr_aliases.receiver(node.expression, node)) {
 				context.append_rule(node, GETATTR);
 			}
-			if (node.expression.text === 'setattr') {
+			if (this.setattr_aliases.receiver(node.expression, node)) {
 				context.append_rule(node, SETATTR);
 			}
 		}
@@ -56,6 +59,9 @@ export class TypeScriptBoundaryRuleAppender {
 	/** Responsibilities: _aggregation basic type boundary_. **/
 	private append_basic_rules(node: ts.Node, context: RuleContextData): void {
 		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
+			this.basic_rules.append_alias_rules(node, context.append_rule);
+		}
+		if (ts.isInterfaceDeclaration(node)) {
 			this.basic_rules.append_alias_rules(node, context.append_rule);
 		}
 		if (ts.isParameter(node)) {

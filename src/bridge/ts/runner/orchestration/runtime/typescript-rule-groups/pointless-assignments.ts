@@ -4,6 +4,7 @@ import ts from 'typescript';
 import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import type { Assignment } from 'src/types';
+import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
 
 
 
@@ -12,6 +13,7 @@ export class PointlessAssignments {
 	private readonly assignment_rule_id = 'pointless-assignment';
 	private readonly script_assignment_analysis = new TypeScriptAssignmentAnalysis();
 	private readonly pointless_expression = new PointlessExpression();
+	private readonly callable_body = new TypeScriptCallableBody();
 
 	/** Responsibilities: _assignment candidates collection_, _output names validation_. **/
 	private append_statement(
@@ -71,15 +73,17 @@ export class PointlessAssignments {
 			return;
 		}
 		const visit = (node: ts.Node): void => {
-			if (!ts.isFunctionLike(node) || !('body' in node)) {
+			const handled = this.callable_body.resolve(node, false, body => {
+				if (!ts.isBlock(body)) {
+					return false;
+				}
+				this.append_callable(violations, file, source_file, body);
+				return true;
+			});
+			if (handled) {
 				ts.forEachChild(node, visit);
 				return;
 			}
-			if (node.body === undefined || node.body === null || (!ts.isBlock(node.body))) {
-				ts.forEachChild(node, visit);
-				return;
-			}
-			this.append_callable(violations, file, source_file, node.body);
 			ts.forEachChild(node, visit);
 		};
 		visit(source_file);

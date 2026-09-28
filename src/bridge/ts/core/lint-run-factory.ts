@@ -4,11 +4,10 @@ import { ProjectNameRegistry } from 'src/bridge/ts/core/support/project-names-fa
 import { resolve } from 'node:path';
 import { relative } from 'node:path';
 import { dirname } from 'node:path';
-import type { LintProjectContext } from 'src/protocols';
+import type { LintProjectContext, LintStageTimerProtocol } from 'src/protocols';
 import { LintRunAnalysis } from 'src/bridge/ts/core/lint-run-analysis';
-import type { LintAnalysisStage, LintRunState } from 'src/bridge/ts/runtime/types';
-import type { LintExecutionReport, ProjectNames } from 'src/bridge/ts/core/types';
-import { LintStageTimer } from 'src/bridge/ts/core/stage-timing';
+import type { LintAnalysisStage, LintRunState } from 'src/types';
+import type { LintExecutionReport, ProjectNames } from 'src/types';
 import { PythonAstData } from 'src/bridge/ts/core/python-ast-parser';
 import { PythonAstWorker } from 'src/bridge/ts/core/python-ast-worker.mjs';
 import { PythonAstBridge } from 'src/bridge/ts/core/python-ast-bridge';
@@ -79,7 +78,7 @@ export class LintRunConfiguration {
 	private discover_target_files(
 		repo_root: string,
 		configured: readonly string[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): string[] {
 		return stage_timer.measure(
 			'startup.file-discovery',
@@ -92,7 +91,7 @@ export class LintRunConfiguration {
 		repo_root: string,
 		files: string[],
 		configured: readonly string[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): string[] {
 		return stage_timer.measure(
 			'startup.project-file-discovery',
@@ -104,7 +103,7 @@ export class LintRunConfiguration {
 	private create_project_context(
 		repo_root: string,
 		project_files: string[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): LintProjectContext {
 		const context_factory = new LintProjectContextCreator(this.python_ast_parser);
 		return stage_timer.measure(
@@ -118,7 +117,7 @@ export class LintRunConfiguration {
 		repo_root: string,
 		project_files: string[],
 		context: LintProjectContext,
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): ProjectNames {
 		return stage_timer.measure(
 			'startup.project-names',
@@ -130,7 +129,7 @@ export class LintRunConfiguration {
 	private lint_state(
 		repo_root: string,
 		configured: readonly string[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): LintRunState {
 		const files = this.discover_target_files(repo_root, configured, stage_timer);
 		const project_files = this.discover_project_files(repo_root, files, configured, stage_timer);
@@ -173,7 +172,7 @@ export class LintRunConfiguration {
 	public lint_report(
 		repo_root: string,
 		ignored_directories: readonly string[],
-		provided_timer: LintStageTimer
+		provided_timer: LintStageTimerProtocol
 	): LintExecutionReport {
 		const directories = ignored_directories;
 		const stage_timer = provided_timer;

@@ -12,3 +12,12 @@ export class B {
 ```
 
 **Fix:** Move independent classes to focused files; keep one small exception hierarchy together when appropriate.
+
+```py
+class A:
+    name: str = 'a'
+
+
+class B:
+    name: str = 'b'
+```

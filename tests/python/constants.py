@@ -27,6 +27,79 @@ factory = namedtuple("Factory", "value")
 factory_two = typing.NamedTuple("FactoryTwo", [])
 """
 
+BUILTIN_DECORATOR_ALIAS_SOURCE = """
+from builtins import staticmethod as sm
+from builtins import classmethod as cm
+
+static_alias = sm
+class_alias = cm
+
+destructured_static, ignored = (staticmethod, None)
+starred_class, *ignored = (classmethod, None, None)
+
+class Service:
+    @sm
+    def build(value: int) -> int:
+        return value
+
+    @cm
+    def create(cls, value: int) -> int:
+        return value
+
+    @static_alias
+    def alias_build(value: int) -> int:
+        return value
+
+    @class_alias
+    def alias_create(cls, value: int) -> int:
+        return value
+
+    @destructured_static
+    def destructured_build(value: int) -> int:
+        return value
+
+    @starred_class
+    def starred_create(cls, value: int) -> int:
+        return value
+"""
+
+TYPE_FACTORY_ALIAS_SOURCE = """
+from typing import TypedDict as TD
+
+User = TD("User", {"id": int})
+Factory = TD
+Assigned = Factory("Assigned", {"id": int})
+TupleFactory, ignored = (TD, None)
+TupleAssigned = TupleFactory("TupleAssigned", {"id": int})
+StarFactory, *ignored = (TD, None, None)
+StarAssigned = StarFactory("StarAssigned", {"id": int})
+"""
+
+REFLECTION_ALIAS_SOURCE = """
+from builtins import getattr as ga
+
+value = ga(item, "name")
+"""
+
+OPTIONAL_ALIAS_SOURCE = """
+from typing import Optional
+
+OptionalAlias = Optional
+
+def read(value: OptionalAlias[str]) -> OptionalAlias[str]:
+    return value
+
+OptionalDestructured, ignored = (Optional, None)
+
+def read_destructured(value: OptionalDestructured[str]) -> OptionalDestructured[str]:
+    return value
+
+OptionalStar, *ignored = (Optional, None, None)
+
+def read_star(value: OptionalStar[str]) -> OptionalStar[str]:
+    return value
+"""
+
 EDGE_SOURCE = """
 import package
 from .relative import item

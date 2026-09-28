@@ -1,21 +1,36 @@
 import ts from 'typescript';
 import { ConsoleMock } from 'src/bridge/ts/parser-internals/console-mock';
 import type { RuleContextData } from 'src/types';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _classification Jest test callbacks_. **/
 export class TypeScriptTestNodeRules {
 	private readonly console_mock = new ConsoleMock();
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+
+	/** Responsibilities: _unwrapping expect callee_. **/
+	private unwrapped_expression(expression: ts.Expression): ts.Expression {
+		let current = expression;
+		while (true) {
+			if (ts.isParenthesizedExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			return current;
+		}
+	}
 
 	/** Responsibilities: _aggregation expectation diagnostics test_. **/
 	private append_expect(node: ts.Node, context: RuleContextData): void {
 		if ((!context.test_file) || (!ts.isCallExpression(node)) || this.inside_test_callback(node)) {
 			return;
 		}
-		const expression = node.expression;
-		if (!ts.isIdentifier(expression)) {
-			return;
-		}
-		if (expression.text === 'expect') {
+		const expression = this.unwrapped_expression(node.expression);
+		if (this.expect_aliases.receiver(expression, node)) {
 			context.append_rule(node, 'assertion-outside-test');
 		}
 	}

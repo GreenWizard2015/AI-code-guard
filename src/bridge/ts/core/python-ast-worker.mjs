@@ -5,11 +5,14 @@ export class PythonAstWorker {
 	constructor(arguments_list, options, persistent) {
 		this.arguments_list = arguments_list;
 		this.options = options;
-		if (!persistent) {
-			this.child = null;
-			return;
-		}
-		this.child = spawn('python3', arguments_list, options);
+		this.persistent = persistent;
+		this.child = null;
+		if (!persistent) return;
+	}
+
+	start_persistent() {
+		if (!this.persistent || this.child !== null) return;
+		this.child = spawn('python3', this.arguments_list, this.options);
 		const input = this.child.stdin;
 		const output = this.child.stdout;
 		if (input === null || output === null) {
@@ -85,6 +88,7 @@ export class PythonAstWorker {
 
 	batch_result(batch_id, sources) {
 		const request = JSON.stringify({ batchId: batch_id, sources });
+		this.start_persistent();
 		if (this.child === null) {
 			return this.single_batch_result(request);
 		}
@@ -120,6 +124,14 @@ export class PythonAstWorker {
 			return;
 		}
 		this.write_frame(JSON.stringify({ command: 'exit' }));
-		this.child.kill();
+		const response = JSON.parse(this.read_response());
+		if (response.status !== 'exited') {
+			throw new Error('Python AST worker did not acknowledge exit.');
+		}
+		const child = this.child;
+		this.child = null;
+		if (child.exitCode === null) {
+			child.kill();
+		}
 	}
 }

@@ -1,14 +1,14 @@
 import ts from 'typescript';
 
 import type { AstCallableNode, AstClassNode, AstVisibility } from 'src/types';
-import type { TypeScriptCallableData } from 'src/model/typescript-callable-data';
+import type { TypeScriptCallableDataProtocol } from 'src/model/protocols';
 import type { CallableDataOptions } from 'src/model/types';
 
 import type { CallableNodeContext } from 'src/model/types';
 
 /** Responsibilities: _collection TypeScript callable nodes_. **/
 export class CallableNodes {
-	private readonly callable_data: TypeScriptCallableData;
+	private readonly callable_data: TypeScriptCallableDataProtocol;
 	/** Responsibilities: _callable initializers identification_. **/
 	private is_callable_initializer(
 		node: ts.Expression
@@ -103,7 +103,7 @@ if (ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) 
 
 	/** Responsibilities: _construction callable AST node_. **/
 	private callable_node(
-		callable_data: TypeScriptCallableData,
+		callable_data: TypeScriptCallableDataProtocol,
 		source_file: ts.SourceFile,
 		member: ts.ClassElement,
 		owner: string
@@ -124,7 +124,7 @@ if (ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) 
 
 	/** Responsibilities: _construction interface method AST_. **/
 	private interface_method_nodes(
-		callable_data: TypeScriptCallableData,
+		callable_data: TypeScriptCallableDataProtocol,
 		source_file: ts.SourceFile,
 		node: ts.InterfaceDeclaration
 	): AstCallableNode[] {
@@ -144,7 +144,7 @@ if (ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) 
 	}
 
 	/** Responsibilities: _callable node construction initialization_. **/
-	public constructor(callable_data: TypeScriptCallableData) {
+	public constructor(callable_data: TypeScriptCallableDataProtocol) {
 		this.callable_data = callable_data;
 	}
 

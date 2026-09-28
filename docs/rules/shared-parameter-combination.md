@@ -17,3 +17,12 @@ same callable locations contain the complete parameter set.
 
 **Fix:** Introduce a named context/options type for the complete combination and update every
 listed caller to pass that contract.
+
+```py
+def first(identifier: str, tab: Tab) -> None:
+    pass
+
+
+def second(identifier: str, tab: Tab) -> None:
+    pass
+```

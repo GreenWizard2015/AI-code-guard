@@ -21,6 +21,16 @@ export class CallableDefinitionUsage {
 	private readonly method_count: number;
 	private readonly matcher: CallableReferenceMatcher;
 
+	/** Responsibilities: _hook method classification_. **/
+	private external_hook_method(): boolean {
+		for (const decorator of this.definition.node.decorators) {
+			if (decorator.toLowerCase().includes('hook')) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Responsibilities: _selection usage label analysis_. **/
 	private usage_label(): string {
 		let label = this.definition.node.name;
@@ -91,6 +101,9 @@ export class CallableDefinitionUsage {
 	public external_method(): boolean {
 		if (this.definition.kind !== 'method') {
 			return false;
+		}
+		if (this.external_hook_method()) {
+			return true;
 		}
 		return this.callable_ownership.external_method(this.definition, this.production_files);
 	}

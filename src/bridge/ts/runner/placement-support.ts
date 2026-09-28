@@ -92,6 +92,9 @@ export class PlacementSupport {
 			return;
 		}
 		for (const node of functions) {
+			if (node.nested === true) {
+				continue;
+			}
 			violations.push(function_placement_rule.violation(file, node.start + 1, {
 				ext: extname(file).slice(1),
 			}));

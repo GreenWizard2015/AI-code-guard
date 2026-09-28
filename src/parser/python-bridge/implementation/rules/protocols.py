@@ -1,0 +1,61 @@
+from __future__ import annotations
+
+import ast
+from typing import Protocol
+
+
+
+class PythonReflectionNamesProtocol(Protocol):
+    """Responsibilities: _Python reflection name resolution contract_."""
+
+    def access_name(self, function: ast.AST) -> str: ...
+
+
+class PythonArrayTypeInspectorProtocol(Protocol):
+    """Responsibilities: _Python array type inspection contract_."""
+
+    def array_type(self, annotation: ast.AST) -> bool: ...
+
+
+class PythonReturnArrayAnalyzerProtocol(Protocol):
+    """Responsibilities: _Python array return analysis contract_."""
+
+    def single_arrays(self, node: ast.AST) -> bool: ...
+
+
+class PythonDecoratorRulesProtocol(Protocol):
+    """Responsibilities: _Python decorator rule contract_."""
+
+    def observe(self, node: ast.AST) -> None: ...
+
+    def kinds(self, node: ast.AST) -> set[str]: ...
+
+
+class PythonTypingAliasesProtocol(Protocol):
+    """Responsibilities: _Python typing alias resolution contract_."""
+
+    def expression_name(self, value: ast.AST) -> str: ...
+
+    def matches_optional(self, name: str) -> bool: ...
+
+    def matches_union(self, name: str) -> bool: ...
+
+
+class PythonExceptionAliasStateProtocol(Protocol):
+    """Responsibilities: _Python exception alias state contract_."""
+
+    def broad(self, node: ast.AST) -> bool: ...
+
+    def observe(self, node: ast.AST) -> None: ...
+
+    def exception_names(self) -> set[str]: ...
+
+
+class PythonSysPathAliasesProtocol(Protocol):
+    """Responsibilities: _Python sys.path alias state contract_."""
+
+    def system_name(self, name: str) -> bool: ...
+
+    def path_name(self, name: str) -> bool: ...
+
+    def path_mutating(self, name: str) -> bool: ...

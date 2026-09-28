@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 from typing import Any
-from implementation.references.reference_context import PythonReferenceContext
+from implementation.references.protocols import PythonReferenceContextProtocol
 from implementation.types import JsonObject
 import ast
 
@@ -13,9 +13,7 @@ class PythonReference:
     def _function_reference(self, function: ast.Name, line: int) -> JsonObject:
         """Responsibilities: _construction normalization function reference_."""
         name: Any = function.id
-        alias: Any = self.context.aliases.get(function.id)
-        if alias is not None:
-            name = alias
+        name = self.context.annotation_aliases().get(function.id, function.id)
         return {"name": name, "kind": "function", "line": line}
 
     def _method_reference(
@@ -53,7 +51,7 @@ class PythonReference:
                 return node.value
         return ast.Constant(value=None)
 
-    def __init__(self, context: PythonReferenceContext) -> None:
+    def __init__(self, context: PythonReferenceContextProtocol) -> None:
         """Responsibilities: _reference-resolution context initialization_."""
         self.context: Any = context
 

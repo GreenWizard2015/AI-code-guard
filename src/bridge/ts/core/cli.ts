@@ -5,12 +5,11 @@ import { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
 import { ReportStatus } from "src/bridge/ts/core/report-status";
 import { CommandLineOptions } from "src/bridge/ts/core/support/cli-options-parser";
 import { UnusedCode } from "src/bridge/ts/core/unused-code";
-import type { LintRunResult } from "src/bridge/ts/runtime/types";
+import type { LintRunResult } from "src/types";
 import { relative } from "node:path";
-import type { CliOptions, LintExecutionReport } from "src/bridge/ts/core/types";
-import { LintStageTimer } from "src/bridge/ts/core/stage-timing";
-import type { Violation } from "src/protocols";
-import type { LintProjectContext } from "src/protocols";
+import type { CliOptions, LintExecutionReport } from "src/types";
+import { LintStageTimer } from "src/stage-timing";
+import type { LintProjectContext, LintStageTimerProtocol, Violation } from "src/protocols";
 
 /** Responsibilities: _CLI option parsing_. **/
 export class Cli {
@@ -41,7 +40,7 @@ export class Cli {
 	/** Responsibilities: _classification collection violations fail_. **/
 	private should_fail(
 		violations: Violation[],
-		stage_timer: LintStageTimer,
+		stage_timer: LintStageTimerProtocol,
 	): boolean {
 		const report_status = new ReportStatus(violations);
 		return stage_timer.measure(
@@ -53,7 +52,7 @@ export class Cli {
 	/** Responsibilities: _creation lint reporting task_. **/
 	private lint_report(
 		options: CliOptions,
-		stage_timer: LintStageTimer,
+		stage_timer: LintStageTimerProtocol,
 	): LintExecutionReport {
 		const execution = stage_timer.measure("startup", () =>
 			this.lint_run_factory.lint_report(
@@ -79,7 +78,7 @@ export class Cli {
 	}
 
 	/** Responsibilities: _execution project lint execution_. **/
-	public run_project(options: CliOptions, stage_timer: LintStageTimer): void {
+	public run_project(options: CliOptions, stage_timer: LintStageTimerProtocol): void {
 		const { report } = this.lint_report(options, stage_timer);
 		const violations = report.violations;
 		const should_fail = this.should_fail(violations, stage_timer);

@@ -2,9 +2,8 @@ import { PythonAstData } from 'src/bridge/ts/core/python-ast-parser';
 import { PythonCodingLineRules } from 'src/bridge/ts/runner/orchestration/runtime/python/python-coding-line-rules';
 import { Syntax } from 'src/syntax';
 import { TestPathSyntax } from 'src/test-path-syntax';
-import type { Violation } from 'src/protocols';
+import type { CodingRuleSourceData, Violation } from 'src/protocols';
 import { RULES_BY_ID } from 'src/model/constants';
-import type { CodingRuleSource } from 'src/coding-rule-source';
 import type { AstCodingIssue, NormalizedAstFile } from 'src/types';
 import { DuplicateTypeShapes } from 'src/duplicate-type-shapes';
 
@@ -15,7 +14,7 @@ export class PythonCodingRuleCollector {
 	private readonly duplicate_type_shapes = new DuplicateTypeShapes();
 
 	/** Responsibilities: _aggregation normalization coding issues_. **/
-	private append_coding_issues(violations: Violation[], source: CodingRuleSource): void {
+	private append_coding_issues(violations: Violation[], source: CodingRuleSourceData): void {
 		const syntax = new Syntax();
 		const coding_line_rules = new PythonCodingLineRules();
 		for (const [line, text] of syntax.split_lines(source.text).entries()) {
@@ -31,7 +30,7 @@ export class PythonCodingRuleCollector {
 	/** Responsibilities: _aggregation structural shape violations_. **/
 	private append_shapes(
 		violations: Violation[],
-		source: CodingRuleSource,
+		source: CodingRuleSourceData,
 		ast: NormalizedAstFile
 	): void {
 		const rule = RULES_BY_ID.get('duplicate-type-shape');
@@ -46,7 +45,7 @@ export class PythonCodingRuleCollector {
 	/** Responsibilities: _classification coding issue suppressed_. **/
 	private skip_issue(
 		issue: AstCodingIssue,
-		source: CodingRuleSource,
+		source: CodingRuleSourceData,
 		test_path_syntax: TestPathSyntax
 	): boolean {
 		if (issue.kind === 'assertion-outside-test') {
@@ -55,17 +54,22 @@ export class PythonCodingRuleCollector {
 		if (issue.kind === 'assertion-in-test-function') {
 			return true;
 		}
-if (issue.kind === this.inline_generic_kind && test_path_syntax.test_file(source.file)) {
-			return true;
+		if (issue.kind === this.inline_generic_kind) {
+			if (test_path_syntax.test_file(source.file)) {
+				return true;
+			}
 		}
 		const test_only_kinds = ['python-test-assert-statement', 'exception-raising', 'python-test-subtest'];
-return test_only_kinds.includes(issue.kind) && !test_path_syntax.test_py(source.file);
+		if (!test_only_kinds.includes(issue.kind)) {
+			return false;
+		}
+		return !test_path_syntax.test_py(source.file);
 	}
 
 	/** Responsibilities: _aggregation AST-derived Python rule_. **/
 	public append_ast_issues(
 		violations: Violation[],
-		source: CodingRuleSource,
+		source: CodingRuleSourceData,
 		issues: AstCodingIssue[]
 	): void {
 		const test_path_syntax = new TestPathSyntax();
@@ -81,9 +85,9 @@ return test_only_kinds.includes(issue.kind) && !test_path_syntax.test_py(source.
 	}
 
 	/** Responsibilities: _collection coding AST rule_. **/
-	public collect_python_rules(source: CodingRuleSource): Violation[] {
+	public collect_python_rules(source: CodingRuleSourceData): Violation[] {
 		const violations: Violation[] = [];
-		const ast = source.normalized_python_ast;
+		const ast = source.normalized_ast;
 		this.append_shapes(violations, source, ast);
 		let coding_issues = ast.coding_issues;
 		if (coding_issues === undefined) {

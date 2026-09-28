@@ -72,19 +72,17 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 	/** Responsibilities: _resolution local imports statement_. **/
 	private local_import(statement: ts.Statement): LocalImport[] {
 		const declarations = this.import_declaration(statement);
-		if (declarations.length === 0) {
-			return [];
+		for (const import_declaration of declarations) {
+			const clause = import_declaration.importClause;
+			if (clause === undefined) {
+				continue;
+			}
+			const file = this.local_import_file(import_declaration);
+			if (file) {
+				return [{ clause, file }];
+			}
 		}
-		const import_declaration = declarations[0];
-		const clause = import_declaration.importClause;
-		if (clause === undefined) {
-			return [];
-		}
-		const file = this.local_import_file(import_declaration);
-		if (!file) {
-			return [];
-		}
-		return [{ clause, file }];
+		return [];
 	}
 
 	/** Responsibilities: _resolution local import file_. **/
@@ -105,16 +103,13 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 
 	/** Responsibilities: _import addition resolution_. **/
 	private add_import(statement: ts.Statement, imports: Map<string, ImportedSymbol>): void {
-		const resolved_list = this.local_import(statement);
-		if (resolved_list.length === 0) {
-			return;
+		for (const resolved of this.local_import(statement)) {
+			const { clause, file: imported_file } = resolved;
+			if (clause.name) {
+				imports.set(clause.name.text, this.imported_symbol(imported_file, 'default'));
+			}
+			this.add_named_imports(clause, imported_file, imports);
 		}
-		const resolved = resolved_list[0];
-		const { clause, file: imported_file } = resolved;
-		if (clause.name) {
-			imports.set(clause.name.text, this.imported_symbol(imported_file, 'default'));
-		}
-		this.add_named_imports(clause, imported_file, imports);
 	}
 
 	/** Responsibilities: _imported symbol resolution_. **/

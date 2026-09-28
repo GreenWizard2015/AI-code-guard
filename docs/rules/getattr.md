@@ -6,5 +6,10 @@
 value = getattr(item, "name", None)
 ```
 
-**Fix:** Use an explicit attribute or a typed boundary helper.
+The equivalent TypeScript dynamic lookup is also rejected:
 
+```ts
+const value = getattr(item, 'name');
+```
+
+**Fix:** Use an explicit attribute or a typed boundary helper.

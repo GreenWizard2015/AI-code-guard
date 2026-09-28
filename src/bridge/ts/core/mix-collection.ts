@@ -2,7 +2,7 @@ import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import { ClassNode } from 'src/bridge/ts/core/support/class-node';
 import type { ClassNodeInput } from 'src/bridge/ts/core/support/types';
-import type { MixCallableNode } from 'src/bridge/ts/core/types';
+import type { MixCallableNode } from 'src/types';
 import type { LintFileNameContract } from 'src/types';
 
 /** Responsibilities: _detection mixed classes aggregation_. **/

@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from 'node:path';
-import type { ReportViolation } from 'src/bridge/ts/core/types';
+import type { ReportViolation } from 'src/types';
 import { TaskViolationGroups } from 'src/bridge/ts/core/support/task/task-violation-groups';
 import type { TaskFileSelection } from 'src/bridge/ts/core/support/task/types';
 

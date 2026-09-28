@@ -15,7 +15,7 @@ export class ProjectSourceImports {
 	private context_source_file(file: string, context: LintProjectContext): ts.SourceFile {
 		const source = context.source_record(file);
 		if (source.typescript()) {
-			return source.typescript_ast.source_file;
+			return source.typescript_ast.source_file_node();
 		}
 		return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
 	}

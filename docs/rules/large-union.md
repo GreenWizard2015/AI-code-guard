@@ -6,5 +6,11 @@
 type Result = A | B | C | D;
 ```
 
-**Fix:** Introduce a focused discriminated type or protocol.
+Python annotations with the same number of alternatives are also reported:
 
+```py
+def read(value: A | B | C | D) -> A:
+    return value
+```
+
+**Fix:** Introduce a focused discriminated type or protocol.

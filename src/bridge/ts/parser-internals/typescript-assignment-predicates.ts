@@ -1,7 +1,9 @@
 import ts from 'typescript';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _property assignments classification_, _primitive assignments classification_. **/
 export class TypeScriptAssignmentPredicates {
+	private readonly self_aliases = new TypeScriptExpressionAliases('this');
 	private readonly primitive_type_kinds = new Set([
 		ts.SyntaxKind.StringKeyword,
 		ts.SyntaxKind.NumberKeyword,
@@ -16,10 +18,10 @@ export class TypeScriptAssignmentPredicates {
 if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
 			return false;
 		}
-		if (!ts.isPropertyAccessExpression(node.left)) {
+		if (!ts.isPropertyAccessExpression(node.left) && !ts.isElementAccessExpression(node.left)) {
 			return false;
 		}
-		return node.left.expression.kind === ts.SyntaxKind.ThisKeyword;
+		return this.self_aliases.receiver(node.left.expression, node);
 	}
 
 	/** Responsibilities: _primitive variable annotations identification_. **/

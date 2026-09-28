@@ -2,10 +2,12 @@ import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import type { AstCallableNode, AstClassNode } from 'src/types';
 import { GENERIC_TYPES } from 'src/rules/typescript/constants';
+import type { TypeScriptTypeAliasesProtocol } from 'src/protocols';
 
 /** Responsibilities: _reporting any-typed parameters output_. **/
 export class AnyTypes {
 	private readonly generic_types = GENERIC_TYPES;
+	private readonly type_aliases: TypeScriptTypeAliasesProtocol;
 
 	/** Responsibilities: _aggregation any diagnostics callable_. **/
 	private append_parameter_infos(
@@ -27,12 +29,13 @@ export class AnyTypes {
 		violations: Violation[], file: string, callable: AstCallableNode, name: string, type: string
 	): void {
 		const is_receiver = name === 'self' || name === 'cls' || name === '_';
-		if (!this.generic_types.has(type) || is_receiver) {
+		const resolved_type = this.type_aliases.resolve(type);
+		if (!this.generic_types.has(resolved_type) || is_receiver) {
 			return;
 		}
 		const subject = `parameter "${name}"`;
-		this.append_info(violations, file, callable, subject, type);
-		if (!file.endsWith('.py') && type === 'unknown') {
+		this.append_info(violations, file, callable, subject, resolved_type);
+		if (!file.endsWith('.py') && resolved_type === 'unknown') {
 			const rule = new DiagnosticRule('typescript-unknown-parameter-type');
 			violations.push(rule.violation(file, callable.start + 1, { name }));
 		}
@@ -48,10 +51,11 @@ export class AnyTypes {
 		if (!return_type) {
 			return;
 		}
-		if (!this.generic_types.has(return_type)) {
+		const resolved_type = this.type_aliases.resolve(return_type);
+		if (!this.generic_types.has(resolved_type)) {
 			return;
 		}
-		this.append_info(violations, file, callable, 'return type', return_type);
+		this.append_info(violations, file, callable, 'return type', resolved_type);
 	}
 
 	/** Responsibilities: _aggregation normalization any diagnostic_. **/
@@ -69,11 +73,17 @@ export class AnyTypes {
 
 	/** Responsibilities: _aggregation any diagnostic class_. **/
 	private append_field_info(violations: Violation[], file: string, name: string, type: string, line: number): void {
-		if (!this.generic_types.has(type)) {
+		const resolved_type = this.type_aliases.resolve(type);
+		if (!this.generic_types.has(resolved_type)) {
 			return;
 		}
 		const rule = new DiagnosticRule('type-warning');
-		violations.push(rule.violation(file, line, { subject: `field "${name}"`, type }));
+		violations.push(rule.violation(file, line, { subject: `field "${name}"`, type: resolved_type }));
+	}
+
+	/** Responsibilities: _initialization type alias resolver_. **/
+	public constructor(type_aliases: TypeScriptTypeAliasesProtocol) {
+		this.type_aliases = type_aliases;
 	}
 
 	/** Responsibilities: _aggregation any diagnostics callable_. **/

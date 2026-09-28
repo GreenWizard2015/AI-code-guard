@@ -15,11 +15,12 @@ class PythonAstNodeIndex:
 
     def cache_nodes(self, root: ast.AST) -> list[ast.AST]:
         """Responsibilities: _traversal caching nodes AST_."""
-        nodes: Any = list(ast.walk(root))
-        self._cache[root] = nodes
+        nodes: Any = [root]
         for parent in nodes:
             for child in ast.iter_child_nodes(parent):
+                nodes.append(child)
                 self._parents.setdefault(child, []).append(parent)
+        self._cache[root] = nodes
         return nodes
 
     def nodes(self, root: ast.AST) -> list[ast.AST]:
@@ -27,13 +28,6 @@ class PythonAstNodeIndex:
         if root in self._cache:
             return self._cache[root]
         return self.cache_nodes(root)
-
-    def clear(self) -> int:
-        """Responsibilities: _AST node cache cleanup_."""
-        cleared_nodes: Any = len(self._cache)
-        self._cache.clear()
-        self._parents.clear()
-        return cleared_nodes
 
     def parents(self, node: ast.AST) -> list[ast.AST]:
         """Responsibilities: _output parent path caching_."""

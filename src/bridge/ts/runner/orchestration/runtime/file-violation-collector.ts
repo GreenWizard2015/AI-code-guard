@@ -1,31 +1,76 @@
 import { DirectoryRules } from 'src/bridge/ts/rules/support/directory-rules';
-import { PlacementSupport } from 'src/bridge/ts/runner/placement-support';
-import { Reexports } from 'src/bridge/ts/runner/orchestration/runtime/python/reexports';
-import ts from 'typescript';
-import type { FunctionCount, LintSourceRecord } from 'src/types';
+import type { LintSourceRecord } from 'src/types';
+import type { RemainingViolationOptions } from 'src/bridge/ts/runner/orchestration/runtime/types';
 import type { Violation } from 'src/protocols';
-import { CodingRuleLinter } from 'src/bridge/ts/runner/orchestration/runtime/coding-rules';
-import { SingletonCollector } from 'src/bridge/ts/runner/orchestration/runtime/singleton-collector';
-import { FileFunctionCountReporter } from 'src/bridge/ts/runner/orchestration/runtime/file-function-count-reporter';
-import { SourceFileAst } from 'src/bridge/ts/runner/orchestration/runtime/source-file-ast';
 import { TestPathSyntax } from 'src/test-path-syntax';
 import { RULES_BY_ID } from 'src/model/constants';
-import { CyrillicTextRules } from 'src/bridge/ts/rules/support/cyrillic-text-rules';
+import {
+	TestFileOrganization,
+} from 'src/bridge/ts/runner/orchestration/runtime/test-targets/test-file-organization';
+import { FileSystemTestPathChecker } from 'src/bridge/ts/runner/orchestration/runtime/test-targets/test-path-checker';
+import { TestTargets } from 'src/bridge/ts/runner/orchestration/runtime/test-targets/test-targets';
+import { FileRemainingViolationCollector } from 'src/bridge/ts/runner/orchestration/runtime/file-remaining-violation-collector';
 
 /** Responsibilities: _collection file-level callable test_. **/
 export class FileViolationCollector {
-	private readonly placement_support = new PlacementSupport();
-	private readonly reexports = new Reexports();
-	private readonly function_count_reporter = new FileFunctionCountReporter();
 	private readonly test_path_syntax = new TestPathSyntax();
-	private readonly cyrillic_text_rules = new CyrillicTextRules();
-	/** Responsibilities: _summary callable count first_. **/
-	private function_count(functions: readonly { start: number }[]): FunctionCount {
-		let first_line = 0;
-		if (functions[0] !== undefined) {
-			first_line = functions[0].start;
+	private readonly remaining = new FileRemainingViolationCollector();
+
+	/** Responsibilities: _aggregation test organization diagnostics_. **/
+	private append_test_organization(
+		violations: Violation[],
+		source: LintSourceRecord,
+		file: string,
+		project_root: string
+	): void {
+		const normalized_path = source.relative_path.split('\\').join('/');
+		if (!this.valid_test_filename(normalized_path)) {
+			return;
 		}
-		return { count: functions.length, first_line };
+		if (!this.test_path_syntax.test_file(source.relative_path, true)) {
+			return;
+		}
+		const checker = new FileSystemTestPathChecker(project_root);
+		const organization = new TestFileOrganization(project_root, checker);
+		if (organization.valid(source.relative_path)) {
+			return;
+		}
+		const rule = RULES_BY_ID.get('test-file-organization');
+		if (rule !== undefined) {
+			violations.push(rule.violation(file, 1, {}));
+		}
+	}
+
+	/** Responsibilities: _aggregation test target diagnostics_. **/
+	private append_test_targets(
+		violations: Violation[],
+		source: LintSourceRecord,
+		file: string,
+		project_root: string,
+	): void {
+		const normalized_path = source.relative_path.split('\\').join('/');
+		if (!this.valid_test_filename(normalized_path)) {
+			return;
+		}
+		if (!this.test_path_syntax.test_file(source.relative_path, true)) {
+			return;
+		}
+		const targets = new TestTargets(new TestFileOrganization(project_root, new FileSystemTestPathChecker(project_root)));
+		if (targets.valid(source.relative_path, source.text, source.python())) {
+			return;
+		}
+		const rule = RULES_BY_ID.get('test-targets');
+		if (rule !== undefined) {
+			violations.push(rule.violation(file, 1, {}));
+		}
+	}
+
+	/** Responsibilities: _test filename eligibility_. **/
+	private valid_test_filename(normalized_path: string): boolean {
+		if (!normalized_path.startsWith('tests/')) {
+			return true;
+		}
+		return this.test_path_syntax.test_file_name(normalized_path);
 	}
 
 	/** Responsibilities: _aggregation test-file location diagnostics_. **/
@@ -46,77 +91,10 @@ export class FileViolationCollector {
 		}
 	}
 
-	/** Responsibilities: _collection singleton violations normalization_. **/
-	private collect_singletons(
-		source: LintSourceRecord,
-		file: string,
-		text: string,
-		python: boolean
-	): Violation[] {
-		const local_class_names = new Set(source.normalized_ast.classes.map(node => node.name));
-		let source_file: ts.SourceFile;
-		if (source.typescript()) {
-			source_file = source.typescript_ast.source_file;
-		} else {
-			source_file = ts.createSourceFile(file, '', ts.ScriptTarget.Latest, true);
-		}
-		const singleton_collector = new SingletonCollector(
-			file,
-			text,
-			local_class_names,
-			source.normalized_ast,
-			source_file
-		);
-		return singleton_collector.collect_violations(python);
-	}
-
-	/** Responsibilities: _aggregation coding-rule violations source_. **/
-	private append_coding_rules(
-		violations: Violation[],
-		source: LintSourceRecord,
-		file: string,
-		text: string
-	): void {
-		const source_ast = new SourceFileAst(
-			{ file, text },
-			source.normalized_ast,
-			this.source_file(source, file, text),
-		);
-		const coding_rule_linter = new CodingRuleLinter(source_ast);
-		violations.push(...coding_rule_linter.lint());
-	}
-
-	/** Responsibilities: _retrieval normalization source record_. **/
-	private source_file(
-		source: LintSourceRecord,
-		file: string,
-		text: string,
-	): ts.SourceFile {
-		if (source.typescript()) {
-			return source.typescript_ast.source_file;
-		}
-		return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
-	}
-
 	/** Responsibilities: _aggregation remaining file-level violations_. **/
-	public append_remaining_violations(
-		violations: Violation[],
-		source: LintSourceRecord,
-		file: string,
-		text: string,
-		python: boolean
-	): void {
-		this.placement_support.append_function_violations(violations, file, source.normalized_ast.functions);
-		this.reexports.append_reexport_violations(violations, file, text, source);
-		this.function_count_reporter.append(
-			violations,
-			file,
-			source.file_name,
-			this.function_count(source.normalized_ast.functions)
-		);
-		this.append_coding_rules(violations, source, file, text);
-		violations.push(...this.cyrillic_text_rules.source_violations(file, text, python));
-		violations.push(...this.collect_singletons(source, file, text, python));
+	public append_remaining_violations(options: RemainingViolationOptions): void {
+		this.remaining.append(options);
+		this.remaining.append_language(options);
 	}
 
 	/** Responsibilities: _aggregation directory structure violations_. **/
@@ -124,9 +102,12 @@ export class FileViolationCollector {
 		violations: Violation[],
 		source: LintSourceRecord,
 		file: string,
-		text: string
+		text: string,
+		project_root: string
 	): void {
 		this.append_test_location(violations, source, file);
+		this.append_test_organization(violations, source, file, project_root);
+		this.append_test_targets(violations, source, file, project_root);
 		const directory_rules = new DirectoryRules();
 		directory_rules.append_file_violation({
 			violations,

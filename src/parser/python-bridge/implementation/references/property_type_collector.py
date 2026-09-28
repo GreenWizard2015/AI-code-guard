@@ -2,8 +2,7 @@ from __future__ import annotations
 
 
 from typing import Any, cast
-from implementation.ast.protocols import PythonAstNodeIndexProtocol
-from implementation.references.property_type_resolver import PythonPropertyType
+from implementation.ast.protocols import PythonAstNodeIndexProtocol, PythonPropertyTypeProtocol
 import ast
 
 
@@ -107,13 +106,13 @@ class PythonPropertyTypeCollector:
     def __init__(
         self,
         tree: ast.Module,
-        type_resolver: PythonPropertyType,
+        type_resolver: PythonPropertyTypeProtocol,
         node_index: PythonAstNodeIndexProtocol,
     ) -> None:
         """Responsibilities: _initialization source tree type_."""
         self.tree: Any = tree
         self.node_index: Any = node_index
-        self.type_resolver: Any = type_resolver
+        self.type_resolver: PythonPropertyTypeProtocol = type_resolver
         self._properties: dict[str, str] = {}
 
     def collect_properties(self) -> dict[str, str]:
@@ -128,5 +127,6 @@ class PythonPropertyTypeCollector:
         """Responsibilities: _collection declared initialization properties_."""
         self._collect_class_members(node)
         initializers: Any = self._initializer(node)
-        if initializers:
-            self._append_init_properties(initializers[0], node.name)
+        for initializer in initializers:
+            self._append_init_properties(initializer, node.name)
+            break

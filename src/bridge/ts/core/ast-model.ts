@@ -64,6 +64,7 @@ export class AstModel {
 			type_members: {},
 			coding_issues: [],
 			python_imports: [],
+			python_callable_count: { count: 0, first_line: 0 },
 			python_main_guard: false,
 			docstring_spans: [],
 			responsibility_targets: [],

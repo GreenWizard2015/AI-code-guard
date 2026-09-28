@@ -17,14 +17,13 @@ export class TypeScriptAssignmentAnalysis {
 		source_file: ts.SourceFile
 	): Assignment[] {
 		const details_list = this.assignment_details(declaration);
-		if (details_list.length === 0) {
-			return [];
+		for (const details of details_list) {
+			return [{
+				line: source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line,
+				...details,
+			}];
 		}
-		const details = details_list[0];
-		return [{
-			line: source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line,
-			...details,
-		}];
+		return [];
 	}
 
 	/** Responsibilities: _extraction assignment details variable_. **/
@@ -46,11 +45,12 @@ export class TypeScriptAssignmentAnalysis {
 if (!ts.isVariableStatement(statement) || statement.declarationList.declarations.length !== 1) {
 			return [];
 		}
-		const declaration = statement.declarationList.declarations[0];
-		if (!declaration.initializer) {
-			return [];
+		for (const declaration of statement.declarationList.declarations) {
+			if (declaration.initializer) {
+				return [declaration];
+			}
 		}
-		return [declaration];
+		return [];
 	}
 
 	/** Responsibilities: _classification final assignment not_. **/
@@ -102,12 +102,10 @@ if (!ts.isVariableStatement(statement) || statement.declarationList.declarations
 
 	/** Responsibilities: _collection normalization assignments statement_. **/
 	public assignment_value(statement: ts.Statement, source_file: ts.SourceFile): Assignment[] {
-		const declarations = this.assignment_declaration(statement);
-		if (declarations.length === 0) {
-			return [];
+		for (const declaration of this.assignment_declaration(statement)) {
+			return this.create_assignment(declaration, statement, source_file);
 		}
-		const declaration = declarations[0];
-		return this.create_assignment(declaration, statement, source_file);
+		return [];
 	}
 
 	/** Responsibilities: _reporting assignments introduce pointless_. **/

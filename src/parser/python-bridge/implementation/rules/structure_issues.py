@@ -33,11 +33,15 @@ class StructureIssues:
         if not is_comparison or len(node.ops) != 1:
             return ""
         is_name_comparison = type(node.ops[0]) is ast.Eq
-        if not is_name_comparison or type(node.left) is not ast.Name:
+        if not is_name_comparison:
             return ""
         if len(node.comparators) != 1:
             return ""
-        return node.left.id
+        operands: list[ast.AST] = [node.left, node.comparators[0]]
+        names = [operand.id for operand in operands if type(operand) is ast.Name]
+        if len(names) != 1:
+            return ""
+        return names[0]
 
     def _branch_chain(self, node: ast.If) -> list[str]:
         """Responsibilities: _condition normalization_."""
@@ -67,8 +71,9 @@ class StructureIssues:
                 continue
             chain: Any = self._branch_chain(node)
             has_repeated_name = len(chain) >= 2
-            if has_repeated_name and len(set(chain)) == 1:
-                result.append({"line": node.lineno - 1})
+            if has_repeated_name:
+                if len(set(chain)) == 1:
+                    result.append({"line": node.lineno - 1})
         return result
 
     def deep_attribute_accesses(self, tree: ast.Module) -> list[dict[str, int]]:
@@ -77,7 +82,9 @@ class StructureIssues:
         accesses: list[dict[str, int]] = []
         for node in self.node_index.nodes(tree):
             is_nested_attribute = type(node) is ast.Attribute
-            if not is_nested_attribute or id(node) in nested:
+            if not is_nested_attribute:
+                continue
+            if id(node) in nested:
                 continue
             depth: Any = self._attribute_depth(node)
             if depth > self.max_attribute_depth:

@@ -8,3 +8,8 @@ return BUILT_VALUE;
 ```
 
 **Fix:** Return `build(input)` directly unless the name is reused or documents a real transition.
+
+```py
+built_value = build(input_value)
+return built_value
+```

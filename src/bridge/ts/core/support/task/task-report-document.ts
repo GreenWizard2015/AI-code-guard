@@ -1,9 +1,9 @@
-import type { ReportViolation } from 'src/bridge/ts/core/types';
-import { TaskWorkspace } from 'src/bridge/ts/core/support/task/task-workspace';
+import type { ReportViolation } from 'src/types';
+import type { TaskWorkspaceProtocol } from 'src/protocols';
 
 /** Responsibilities: _group report violations_, _output reporting rendering_. **/
 export class TaskReportDocument {
-	private readonly workspace: TaskWorkspace;
+	private readonly workspace: TaskWorkspaceProtocol;
 	private readonly violations: readonly ReportViolation[];
 
 	/** Responsibilities: _group violations markdown rule_. **/
@@ -32,7 +32,7 @@ export class TaskReportDocument {
 	}
 
 	/** Responsibilities: _initialization reporting workspace violations_. **/
-	public constructor(workspace: TaskWorkspace, violations: readonly ReportViolation[]) {
+	public constructor(workspace: TaskWorkspaceProtocol, violations: readonly ReportViolation[]) {
 		this.workspace = workspace;
 		this.violations = violations;
 	}

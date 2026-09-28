@@ -101,9 +101,28 @@ export class CompositeStateTypeRules {
 		return this.referenced_literal_type(node, source_file, seen);
 	}
 
-	/** Responsibilities: _allowed primitive unions classification_. **/
-	private is_boundary(node: ts.Node): boolean {
-		const parent = node.parent;
+	/** Responsibilities: _classification node inside type_. **/
+	private inside_type(node: ts.Node, type: ts.TypeNode): boolean {
+		let current = node;
+		while (!ts.isSourceFile(current)) {
+			if (current === type) {
+				return true;
+			}
+			current = current.parent;
+		}
+		return false;
+	}
+
+	/** Responsibilities: _classification function type boundary_. **/
+	private function_boundary(node: ts.Node, parent: ts.Node): boolean {
+		if (!ts.isFunctionLike(parent) || parent.type === undefined) {
+			return false;
+		}
+		return this.inside_type(node, parent.type);
+	}
+
+	/** Responsibilities: _classification union boundary parent_. **/
+	private boundary_parent(node: ts.Node, parent: ts.Node): boolean {
 		if (ts.isTypeAliasDeclaration(parent)) {
 			return true;
 		}
@@ -113,7 +132,19 @@ export class CompositeStateTypeRules {
 		if (ts.isPropertyDeclaration(parent) || ts.isPropertySignature(parent)) {
 			return true;
 		}
-		return ts.isFunctionLike(parent) && parent.type === node;
+		return this.function_boundary(node, parent);
+	}
+
+	/** Responsibilities: _allowed primitive unions classification_. **/
+	private is_boundary(node: ts.Node): boolean {
+		let current = node.parent;
+		while (!ts.isSourceFile(current)) {
+			if (this.boundary_parent(node, current)) {
+				return true;
+			}
+			current = current.parent;
+		}
+		return false;
 	}
 
 	/** Responsibilities: _combine allowed union checks_. **/

@@ -19,10 +19,7 @@ export class UnionContractBypass {
 			return '';
 		}
 		const type_name = node.typeName;
-		if (!ts.isIdentifier(type_name)) {
-			return '';
-		}
-		return type_name.text;
+		return type_name.getText(node.getSourceFile());
 	}
 
 	/** Responsibilities: _classification intersection adds project_. **/

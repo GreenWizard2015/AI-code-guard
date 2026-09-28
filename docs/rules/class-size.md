@@ -14,3 +14,8 @@ source lines and executable SLOC, excluding the class declaration signature. Nev
 padding. A class with an explicit base class, protocol, or interface is not required to meet the
 minimum public method count, but its size, maximum method count, and implementation rules still
 apply.
+
+```py
+class Everything:
+    responsibility: str = 'unrelated operations'
+```

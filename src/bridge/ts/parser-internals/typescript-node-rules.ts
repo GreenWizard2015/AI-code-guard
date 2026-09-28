@@ -1,7 +1,7 @@
-import { DynamicRuntimeUsage } from 'src/bridge/ts/parser-internals/dynamic-runtime-usage';
+import { DynamicRuntimeUsage } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-usage';
 import { TypeScriptTestNodeRules } from 'src/bridge/ts/parser-internals/typescript-test-node-rules';
 import { DeclarationPredicates } from 'src/bridge/ts/runner/declaration-predicates';
-import { ProxyRules } from 'src/bridge/ts/runner/proxy-rules';
+import { ProxyRules } from 'src/bridge/ts/parser-internals/proxy-rules/proxy-rules';
 import { TypeScriptAssignmentPredicates } from 'src/bridge/ts/parser-internals/typescript-assignment-predicates';
 import { TypeScriptTypeRules } from 'src/bridge/ts/parser-internals/typescript-type-rules';
 import { TypeScriptArrayStateRules } from 'src/bridge/ts/parser-internals/typescript-array-state-rules';
@@ -10,6 +10,7 @@ import { ValueRules } from 'src/bridge/ts/runner/value-rules';
 import { RestUnionContractRule } from 'src/bridge/ts/parser-internals/type-union-rules/rest-union-contract';
 import ts from 'typescript';
 import type { RuleContextData } from 'src/types';
+import { TypeScriptCallExpressionInspector } from 'src/typescript-call-expression-inspector';
 
 
 
@@ -29,9 +30,12 @@ export class TypeScriptNodeRules {
 	private readonly script_type_rules: TypeScriptNodeTypeRules;
 	private readonly array_state_rules = new TypeScriptArrayStateRules();
 	private readonly rest_union_contract = new RestUnionContractRule();
+	private readonly call_expression_inspector = new TypeScriptCallExpressionInspector();
 	private readonly class_rule_kinds = new Set([
 		ts.SyntaxKind.InterfaceDeclaration,
 		ts.SyntaxKind.MethodDeclaration,
+		ts.SyntaxKind.GetAccessor,
+		ts.SyntaxKind.SetAccessor,
 		ts.SyntaxKind.PropertyDeclaration,
 		ts.SyntaxKind.BinaryExpression,
 		ts.SyntaxKind.CallExpression,
@@ -41,6 +45,7 @@ export class TypeScriptNodeRules {
 		ts.SyntaxKind.Identifier,
 		ts.SyntaxKind.CallExpression,
 		ts.SyntaxKind.ObjectLiteralExpression,
+		ts.SyntaxKind.ElementAccessExpression,
 	]);
 	private readonly rule_ids = {
 		static_method: 'typescript-static-method',
@@ -59,7 +64,7 @@ export class TypeScriptNodeRules {
 	/** Responsibilities: _declaration rule identifiers collection_. **/
 	private declaration_rule_ids(node: ts.Node): string[] {
 		const rule_ids: string[] = [];
-if (ts.isInterfaceDeclaration(node) && node.members.length === 0) {
+		if (ts.isInterfaceDeclaration(node) && node.members.length === 0 && node.heritageClauses === undefined) {
 			rule_ids.push(this.rule_ids.empty_contract);
 		}
 		rule_ids.push(...this.static_rule_ids(node));
@@ -81,7 +86,7 @@ if (ts.isInterfaceDeclaration(node) && node.members.length === 0) {
 		if (!this.declaration_predicates.static_declaration(node)) {
 			return rule_ids;
 		}
-		if (ts.isMethodDeclaration(node)) {
+		if (ts.isMethodDeclaration(node) || ts.isGetAccessor(node) || ts.isSetAccessor(node)) {
 			rule_ids.push(this.rule_ids.static_method);
 		}
 		if (ts.isPropertyDeclaration(node)) {
@@ -108,14 +113,6 @@ if (ts.isInterfaceDeclaration(node) && node.members.length === 0) {
 			return false;
 		}
 		return ts.isTypePredicateNode(node.type);
-	}
-
-	/** Responsibilities: _identification bind invocation_. **/
-	private is_bind_call(node: ts.Node): boolean {
-if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
-			return false;
-		}
-		return node.expression.name.text === 'bind';
 	}
 
 	/** Responsibilities: _tuple-type rules addition_. **/
@@ -166,10 +163,10 @@ if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
 		if (ts.isFunctionLike(node) && this.is_type_guard(node)) {
 			context.append_rule(node, this.rule_ids.type_guard);
 		}
-		if (ts.isCallExpression(node) && this.is_bind_call(node)) {
+		if (this.call_expression_inspector.bind_call(node)) {
 			context.append_rule(node, 'typescript-bind');
 		}
-if (ts.isElementAccessExpression(node) || ts.isIfStatement(node)) {
+		if (ts.isElementAccessExpression(node) || ts.isCallExpression(node) || ts.isIfStatement(node)) {
 			this.array_state_rules.append(node, context);
 		}
 		this.script_type_rules.append_type_rules(node, context);

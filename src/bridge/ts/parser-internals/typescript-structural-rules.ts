@@ -7,6 +7,8 @@ import {
 } from 'src/bridge/ts/parser-internals/constants';
 import ts from 'typescript';
 import type { CallableShapeCounts, RuleAppender, RuleContextData } from 'src/types';
+import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
+import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
 
 /** Responsibilities: _classification TypeScript structural members_. **/
 export class TypeScriptStructuralRules {
@@ -16,6 +18,9 @@ export class TypeScriptStructuralRules {
 	]);
 	private readonly logical_chain = new TypeScriptLogicalChain();
 	private readonly operator_precedence = new TypeScriptOperatorPrecedence();
+	private readonly type_aliases = new TypeScriptTypeAliases();
+	private readonly callable_body = new TypeScriptCallableBody();
+	private readonly unbounded_type_names = new Set(['any', 'unknown', 'object', 'Object']);
 
 	/** Responsibilities: _classification type member storage_. **/
 	private is_data_member(member: ts.TypeElement): boolean {
@@ -70,11 +75,13 @@ export class TypeScriptStructuralRules {
 	private inside_callable_body(node: ts.Node): boolean {
 		let current: ts.Node | undefined = node.parent;
 		while (current !== undefined) {
-			if (ts.isFunctionLike(current)) {
-				if (!('body' in current) || current.body === undefined) {
-					return false;
-				}
-				return current.body.getStart() <= node.getStart();
+			const nested = this.callable_body.resolve(
+				current,
+				undefined,
+				body => body.getStart() <= node.getStart()
+			);
+			if (nested !== undefined) {
+				return nested;
 			}
 			current = current.parent;
 		}
@@ -92,10 +99,8 @@ export class TypeScriptStructuralRules {
 		if (!ts.isTypeReferenceNode(node)) {
 			return false;
 		}
-		if (node.typeName.getText() === 'object') {
-			return true;
-		}
-		return node.typeName.getText() === 'Object';
+		const type_name = node.typeName.getText();
+		return this.unbounded_type_names.has(this.type_aliases.resolve(type_name));
 	}
 
 	/** Responsibilities: _aggregation interface-shape rules type_. **/
@@ -119,6 +124,9 @@ export class TypeScriptStructuralRules {
 
 	/** Responsibilities: _aggregation type-level structural rules_. **/
 	public append_type_rules(node: ts.Node, context: RuleContextData): void {
+		if (node === context.source_file) {
+			this.type_aliases.collect(context.source_file);
+		}
 		const is_unbounded = this.is_unbounded_type(node);
 		if (is_unbounded && !this.inside_callable_body(node)) {
 			context.append_rule(node, UNBOUNDED_TYPE);

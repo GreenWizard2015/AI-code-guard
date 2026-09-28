@@ -36,6 +36,7 @@ export class PythonAstFileRuleCollector {
 	private readonly file_name: LintFileNameContract;
 	private readonly lines: string[];
 	private readonly project_class_names: ReadonlySet<string>;
+	private readonly project_protocol_names: ReadonlySet<string>;
 	private readonly project_type_names: ReadonlySet<string>;
 	private readonly append: PythonRuleAppender;
 
@@ -79,6 +80,7 @@ export class PythonAstFileRuleCollector {
 			classes: ast.classes,
 			functions: ast.functions,
 			project_class_names: this.project_class_names,
+			project_protocol_names: this.project_protocol_names,
 			project_type_names: this.project_type_names,
 			reference_aliases: ast.reference_aliases,
 			python_imports,
@@ -126,14 +128,16 @@ export class PythonAstFileRuleCollector {
 		const class_indexes = ast.classes
 			.filter(node => !node.type_contract && !node.protocol)
 			.map(node => node.start);
-if (!this.test_path_syntax.test_py(file) && class_indexes.length > 0) {
-			this.class_rules.append_python_classes(
-				this.violations,
+		if (!this.test_path_syntax.test_py(file)) {
+			this.class_rules.append_python_classes({
+				violations: this.violations,
 				file,
 				lines,
-				class_indexes,
-				ast.functions.length > 0,
-			);
+				parsed_indexes: class_indexes,
+				has_module_functions: ast.functions.length > 0,
+				has_implementation_classes: class_indexes.length > 0,
+				type_declarations: ast.type_declarations,
+			});
 		}
 		this.mix_collection.append_mix_violations(
 			this.violations,
@@ -155,6 +159,7 @@ if (!this.test_path_syntax.test_py(file) && class_indexes.length > 0) {
 		this.file_name = file_name;
 		this.lines = lines;
 		this.project_class_names = project_names.project_class_names;
+		this.project_protocol_names = project_names.project_protocol_names;
 		this.project_type_names = project_names.project_type_names;
 		this.append = append;
 	}

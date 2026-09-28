@@ -42,3 +42,13 @@ export function normalize_message(value: string): string {
 ```
 
 **Fix:** Split responsibilities into existing focused owners, or choose one ownership model for the module. Do not create a tiny wrapper module solely to move a function.
+
+```py
+class MessageSender:
+    def send(self, message: str) -> None:
+        pass
+
+
+def normalize_message(value: str) -> str:
+    return value.strip()
+```

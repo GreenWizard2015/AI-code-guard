@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any, Optional
 import ast
 
-from implementation.ast.annotation_resolver import AnnotationNames
+from implementation.references.protocols import PythonAnnotationResolverProtocol
+from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
 
 
 class PythonPropertyType:
@@ -28,12 +29,12 @@ class PythonPropertyType:
         self,
         aliases: dict[str, str],
         class_names: set[str],
-        annotation_resolver: AnnotationNames,
+        annotation_resolver: PythonAnnotationResolverProtocol,
     ) -> None:
         """Responsibilities: _initialization aliases known classes_."""
         self.aliases: Any = aliases
         self.class_names: Any = class_names
-        self.annotation_resolver: Any = annotation_resolver
+        self.annotation_resolver: PythonAnnotationResolverProtocol = annotation_resolver
 
     def annotation_type(self, annotation: ast.AST) -> str:
         """Responsibilities: _resolution normalization type name_."""
@@ -68,8 +69,8 @@ class PythonPropertyType:
             type_name: Any = arguments.get(value.id, "")
         if type_name:
             return type_name
-        return self.annotation_resolver.constructor_name(
-            value, self.class_names, self.aliases
+        return AnnotationNames.resolve_constructor(
+            self.annotation_resolver, value, self.class_names, self.aliases
         )
 
     def assignment_target(self, node: ast.AST) -> ast.AST:

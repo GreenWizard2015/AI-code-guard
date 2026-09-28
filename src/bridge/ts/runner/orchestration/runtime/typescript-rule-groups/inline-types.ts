@@ -13,6 +13,10 @@ export class InlineTypes {
 		ts.isMethodDeclaration,
 		ts.isArrowFunction,
 		ts.isFunctionExpression,
+		ts.isVariableDeclaration,
+		ts.isTypeAssertionExpression,
+		ts.isAsExpression,
+		ts.isSatisfiesExpression,
 	];
 	private readonly signature_parents: readonly ((node: ts.Node) => boolean)[] = [
 		ts.isParameter,
@@ -27,7 +31,7 @@ export class InlineTypes {
 
 	/** Responsibilities: _creation violation inline object_. **/
 	private object_violation(file: string, line: number, node: ts.Node): Violation[] {
-		if (!this.is_object_type(node)) {
+		if (!this.is_object_type(node) && !ts.isClassExpression(node)) {
 			return [];
 		}
 		const rule = new DiagnosticRule('typescript-inline-object-type');
@@ -75,17 +79,29 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 
 
 	/** Responsibilities: _classification node contains inline_. **/
+	private unwrapped_type(node: ts.TypeNode): ts.TypeNode {
+		if (ts.isParenthesizedTypeNode(node)) {
+			return this.unwrapped_type(node.type);
+		}
+		return node;
+	}
+
+	/** Responsibilities: _classification generic inline_. **/
 	private generic_type_node(node: ts.Node): boolean {
 		if (!ts.isTypeLiteralNode(node)) {
 			return false;
 		}
-		if (!ts.isTypeReferenceNode(node.parent)) {
+		let parent = node.parent;
+		while (ts.isParenthesizedTypeNode(parent)) {
+			parent = parent.parent;
+		}
+		if (!ts.isTypeReferenceNode(parent)) {
 			return false;
 		}
-		if (!node.parent.typeArguments) {
+		if (!parent.typeArguments) {
 			return false;
 		}
-		return node.parent.typeArguments.some(argument => argument === node);
+		return parent.typeArguments.some(argument => this.unwrapped_type(argument) === node);
 	}
 
 	/** Responsibilities: _classification union node inline_. **/
@@ -93,10 +109,19 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (!ts.isUnionTypeNode(node)) {
 			return false;
 		}
-		if (!this.signature_parents.some(check => check(node.parent))) {
+		if (!this.signature_parents.some(check => check(this.type_parent(node)))) {
 			return false;
 		}
 		return node.types.every(ts.isLiteralTypeNode);
+	}
+
+	/** Responsibilities: _classification type literal inline_. **/
+	private type_parent(node: ts.Node): ts.Node {
+		let parent = node.parent;
+		while (ts.isParenthesizedTypeNode(parent)) {
+			parent = parent.parent;
+		}
+		return parent;
 	}
 
 	/** Responsibilities: _classification type literal inline_. **/
@@ -104,7 +129,7 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (!ts.isTypeLiteralNode(node)) {
 			return false;
 		}
-		const has_type_parent = this.type_parent_checks.some(check => check(node.parent));
+		const has_type_parent = this.type_parent_checks.some(check => check(this.type_parent(node)));
 		if (!has_type_parent) {
 			return false;
 		}

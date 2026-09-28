@@ -1,5 +1,6 @@
 import type { AstArgumentUse, AstCallableNode, AstCallableReference, AstClassNode, AstReferenceAlias, AstTypedArgument, AstVisibility, CallableOwnershipResolver, NormalizedAstFile } from 'src/types';
 import type { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
+import type { Violation } from 'src/protocols';
 export type ParsedFile = { file: string; ast: NormalizedAstFile };
 export type CallableDefinition = {
 	file: string;
@@ -66,6 +67,15 @@ export type SharedCallableKind = 'function' | 'method';
 export type SharedParameterKind = 'basic' | 'reference';
 export type ParameterKindResult = { supported: boolean; value: SharedParameterKind };
 export type SharedParameterLanguage = 'python' | 'typescript' | 'unknown';
+export type ProjectTypeBoundaryInput = {
+	violations: Violation[];
+	file: string;
+	callables: readonly AstCallableNode[];
+	project_types: ReadonlySet<string>;
+	allowed_contracts: ReadonlySet<string>;
+	reference_aliases: readonly AstReferenceAlias[];
+	language: SharedParameterLanguage;
+};
 
 export type CallableLocation = {
 	readonly file: string;

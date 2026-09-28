@@ -119,6 +119,45 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		}
 	}
 
+	/** Responsibilities: _reporting design-shape metrics structural_. **/
+	private design_excluded(): boolean {
+		if (this.file_name.test()) {
+			return true;
+		}
+		if (this.node.type_contract) {
+			return true;
+		}
+		return this.node.protocol;
+	}
+
+	/** Responsibilities: _reporting size metrics exclusion_. **/
+	private sizes_excluded(): boolean {
+		if (this.file_name.test()) {
+			return true;
+		}
+		if (this.node.type_contract) {
+			return true;
+		}
+		if (this.node.protocol) {
+			return true;
+		}
+		return this.node.extends_external_class;
+	}
+
+	/** Responsibilities: _reporting short class metric_. **/
+	private append_short_class(): void {
+		if (this.node.is_data_class) {
+			return;
+		}
+		if (this.suppress_short_class || this.minimum_class_size >= MIN_CLASS_LINES) {
+			return;
+		}
+		const metric_violations = new MetricViolations();
+		this.violations.push(
+			metric_violations.metric_violation(this.file_name.value, this.node.start, this.minimum_class_size, 'short_class')
+		);
+	}
+
 	/** Responsibilities: _initialization class metric model_. **/
 	public constructor(
 		violations: Violation[],
@@ -136,11 +175,14 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 	/** Responsibilities: _reporting design-shape metrics structural_. **/
 	public report_design(): void {
 		this.append_interface_limit();
-if (this.file_name.test() || this.node.type_contract || this.node.protocol) {
+		if (this.design_excluded()) {
 			return;
 		}
 		this.append_mixin_violation();
-		if (this.is_mixin() || this.node.extends_external_class) {
+		if (this.is_mixin()) {
+			return;
+		}
+		if (this.node.extends_external_class) {
 			return;
 		}
 		this.append_stateless_info();
@@ -150,26 +192,23 @@ if (this.file_name.test() || this.node.type_contract || this.node.protocol) {
 
 	/** Responsibilities: _reporting class size method-count_. **/
 	public report_sizes(): void {
-		const metric_violations = new MetricViolations();
-
-		if (this.file_name.test() || this.node.type_contract) {
+		if (this.sizes_excluded()) {
 			return;
 		}
-		if (this.node.protocol || this.node.extends_external_class) {
-			return;
-		}
-		if ((!this.node.is_data_class) && (!this.suppress_short_class) && this.minimum_class_size < MIN_CLASS_LINES) {
-			this.violations.push(
-				metric_violations.metric_violation(this.file_name.value, this.node.start, this.minimum_class_size, 'short_class')
-			);
-		}
+		this.append_short_class();
 		this.append_class_sizes();
 	}
 
 	/** Responsibilities: _reporting maximum class size_. **/
 	public report_max_sizes(): void {
 		this.append_interface_limit();
-if (this.node.type_contract || this.node.protocol || this.node.extends_external_class) {
+		if (this.node.type_contract) {
+			return;
+		}
+		if (this.node.protocol) {
+			return;
+		}
+		if (this.node.extends_external_class) {
 			return;
 		}
 		this.append_class_sizes();

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linter Performance"
+  short_description: "Optimize bridge and test-runner performance safely"
+  default_prompt: "Use $linter-performance with the supplied absolute target path. Prioritize production linter execution speed; then optimize test-runner/fixture speed when in scope or when it affects lint development. Measure and report both separately, and never trade a linter regression for a test speedup. Follow the full baseline-to-verification algorithm, write every hypothesis and experiment (including rejected or inconclusive attempts) to linter-performance-log.md, use intermediate timers or an appropriate profiler when stage timings do not isolate the suspected hotspot, record instrumentation overhead, analyze time/space complexity using real input variables, and complete both the analysis-path and process/fixture-overhead optimization attempts while preserving the complete diagnostic fingerprint."

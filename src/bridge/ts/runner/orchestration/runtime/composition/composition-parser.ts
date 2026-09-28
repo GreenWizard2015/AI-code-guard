@@ -29,7 +29,7 @@ export class CompositionModel {
 			const builder = new TypeScriptCompositionModel(
 				source.absolute_path,
 				source.text,
-				source.typescript_ast.source_file
+				source.typescript_ast.source_file_node()
 			);
 			return builder.composition();
 		}

@@ -1,3 +1,5 @@
+import { PYTHON_TEST_SUFFIXES, TYPESCRIPT_TEST_SUFFIXES } from 'src/constants';
+
 /** Responsibilities: _classification lint paths tests_. **/
 export class LintFileName {
 	public readonly value: string;
@@ -11,18 +13,24 @@ export class LintFileName {
 		if (this.value.includes('/tests/')) {
 			return true;
 		}
-		return false;
+		if (this.value.startsWith('__tests__/')) {
+			return true;
+		}
+		return this.value.includes('/__tests__/');
 	}
 
 	/** Responsibilities: _file-name suffix classification_. **/
 	private is_test_suffix(): boolean {
-		if (this.value.endsWith('.test.ts')) {
+		const file_name = this.value.slice(this.value.lastIndexOf('/') + 1);
+		if (file_name.startsWith('test_')) {
+			if (file_name.endsWith('.py')) {
+				return true;
+			}
+		}
+		if (TYPESCRIPT_TEST_SUFFIXES.some(suffix => this.value.endsWith(suffix))) {
 			return true;
 		}
-		if (this.value.endsWith('.test.tsx')) {
-			return true;
-		}
-		return this.value.endsWith('_test.py');
+		return PYTHON_TEST_SUFFIXES.some(suffix => this.value.endsWith(suffix));
 	}
 
 	/** Responsibilities: _initialization normalization file path_. **/
@@ -39,7 +47,10 @@ export class LintFileName {
 		if (this.is_tests_directory()) {
 			return true;
 		}
-		return this.is_test_suffix();
+		if (this.is_test_suffix()) {
+			return true;
+		}
+		return false;
 	}
 
 	/** Responsibilities: _reporting file production source_. **/
@@ -47,14 +58,18 @@ export class LintFileName {
 		if (this.is_tests_directory()) {
 			return false;
 		}
-		return !this.is_test_suffix();
+		if (this.is_test_suffix()) {
+			return false;
+		}
+		return true;
 	}
 
 	/** Responsibilities: _reporting file Python test_. **/
 	public test_py(): boolean {
-		if (!this.is_tests_directory()) {
-			return false;
+		const file_name = this.value.slice(this.value.lastIndexOf('/') + 1);
+		if (file_name.startsWith('test_')) {
+			return file_name.endsWith('.py');
 		}
-		return this.value.endsWith('_test.py');
+		return PYTHON_TEST_SUFFIXES.some(suffix => this.value.endsWith(suffix));
 	}
 }

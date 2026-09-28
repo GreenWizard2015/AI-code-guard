@@ -8,3 +8,13 @@ def __init__(self, url: str):
 ```
 
 **Fix:** Validate and assign dependencies in the constructor; move work to `load()` or a factory.
+
+```ts
+class Document {
+	public readonly source: string;
+
+	public constructor(source: string) {
+		this.source = source;
+	}
+}
+```

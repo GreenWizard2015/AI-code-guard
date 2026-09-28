@@ -1,13 +1,13 @@
 import ts from 'typescript';
 
-import type { TypeScriptPropertyState } from 'src/model/typescript-property-state';
+import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
 
 import type { ExpressionUnwrapper, PropertyOwner } from 'src/types';
 
 /** Responsibilities: _object property owners resolution_, _property ownership state storage_. **/
 export class TypeScriptObjectPropertyCollector {
 	private readonly aliases: Map<string, string>;
-	private readonly property_state: TypeScriptPropertyState;
+	private readonly property_state: TypeScriptPropertyStateProtocol;
 	private readonly unwrap: ExpressionUnwrapper;
 	/** Responsibilities: _storage object property owner_. **/
 	private store_property(node: ts.VariableDeclaration, entry: PropertyOwner): void {
@@ -32,7 +32,7 @@ export class TypeScriptObjectPropertyCollector {
 	/** Responsibilities: _initialization aliases property state_, _expression unwrapping initialization_. **/
 	public constructor(
 		aliases: Map<string, string>,
-		property_state: TypeScriptPropertyState,
+		property_state: TypeScriptPropertyStateProtocol,
 		unwrap: ExpressionUnwrapper
 	) {
 		this.aliases = aliases;

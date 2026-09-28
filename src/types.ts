@@ -1,6 +1,11 @@
 import type ts from 'typescript';
 import type { ArgumentUse, TypedArgument } from 'src/model/types';
-import type { TypeScriptAstFile } from 'src/model/typescript-ast';
+import type {
+	LintProjectContext,
+	LintStageTimerProtocol,
+	TypeScriptAstFileProtocol,
+	Violation,
+} from 'src/protocols';
 
 export type CallableOwnershipResolver = (
 	class_node: AstClassNode,
@@ -51,6 +56,7 @@ export type AstClassField = {
 	value_name: string;
 	type: string;
 	type_kind: AstTypeKind;
+	class_variable: boolean;
 };
 export type AstPythonImportName = { name: string; alias: string };
 export type AstPythonImport = {
@@ -61,6 +67,7 @@ export type AstPythonImport = {
 type AstCallableIdentity = {
 	name: string;
 	owner: string;
+	nested: boolean;
 	start: number;
 	end: number;
 	argument_count: number;
@@ -74,19 +81,29 @@ type AstCallableAnalysis = {
 	typed_arguments: AstTypedArgument[];
 	untyped_parameters: string[];
 };
-type AstCallableFlags = {
-	decorators: string[];
-	is_accessor: boolean;
+type AstCallableTestFlags = {
 	exception_only: boolean;
-	has_self: boolean;
 	has_unittest_assertion: boolean;
+	unittest_assertion_alias: boolean;
 	unittest_exception_only: boolean;
 	test_exception_bypass: boolean;
 	unittest_ending_valid: boolean;
 	unittest_assertion_count: number;
+};
+type AstCallablePresentationFlags = {
+	decorators: string[];
+	is_accessor: boolean;
+	has_self: boolean;
 	visibility: AstVisibility;
 };
-export type AstCallableNode = AstCallableIdentity & AstCallableMetrics & AstCallableAnalysis & AstCallableFlags;
+/** Responsibilities: _callable analysis representation_. **/
+export interface AstCallableNode
+	extends
+	AstCallableIdentity,
+	AstCallableMetrics,
+	AstCallableAnalysis,
+	AstCallableTestFlags,
+	AstCallablePresentationFlags {}
 type AstClassIdentity = { name: string; start: number; end: number; methods: AstCallableNode[] };
 type AstClassInheritance = {
 	lines: number;
@@ -139,6 +156,30 @@ export type AstSourceSpan = {
 	end_line: number;
 	end_column: number;
 };
+export type PythonAstCacheReadOptions = {
+	texts: readonly string[];
+	files: readonly string[];
+	repo_root: string;
+	results: Map<number, NormalizedAstFile>;
+	stage_timer: LintStageTimerProtocol;
+	stage_prefix: string;
+};
+export type PythonAstCacheWriteOptions = {
+	texts: readonly string[];
+	files: readonly string[];
+	indexes: readonly number[];
+	parsed: readonly NormalizedAstFile[];
+	repo_root: string;
+	stage_timer: LintStageTimerProtocol;
+	stage_prefix: string;
+};
+export type PythonBatchAstOptions = {
+	texts: readonly string[];
+	stage_timer: LintStageTimerProtocol;
+	stage_prefix: string;
+	files: readonly string[];
+	repo_root: string;
+};
 type AstResponsibilityOwnerKind = 'class' | 'interface';
 type AstResponsibilityCallableKind = 'method' | 'function';
 export type AstResponsibilityKind = AstResponsibilityOwnerKind | AstResponsibilityCallableKind;
@@ -174,6 +215,7 @@ type NormalizedAstOptionalData = {
 	python_imports: AstPythonImport[];
 };
 type NormalizedAstOptionalMetadata = {
+	python_callable_count: FunctionCount;
 	python_main_guard: boolean;
 	docstring_spans: AstSourceSpan[];
 	responsibility_targets: AstResponsibilityTarget[];
@@ -245,7 +287,7 @@ export type LintSourceRecord = {
 	text: string;
 	normalized_ast: NormalizedAstFile;
 	language: AstLanguage;
-	typescript_ast: TypeScriptAstFile;
+	typescript_ast: TypeScriptAstFileProtocol;
 	typescript(): boolean;
 	python(): boolean;
 };
@@ -255,6 +297,22 @@ export type LintSourceRecordOptions = {
 	file_name: LintFileNameContract;
 	text: string;
 	normalized_ast: NormalizedAstFile;
+};
+export type ContextSourceRecordOptions = {
+	repo_root: string;
+	file: string;
+	text: string;
+	source_files: ReadonlyMap<string, ts.SourceFile>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
+	typescript_asts: ReadonlyMap<string, NormalizedAstFile>;
+};
+export type ContextSourceRecordsOptions = {
+	repo_root: string;
+	files: string[];
+	texts: ReadonlyMap<string, string>;
+	source_files: ReadonlyMap<string, ts.SourceFile>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
+	stage_timer: LintStageTimerProtocol;
 };
 export type TypeScriptTreeMetadata = {
 	attribute_accesses: LineDepth[];
@@ -294,12 +352,11 @@ export type CallableNodeOptions = {
 	end: number;
 };
 
-export type ClassLineRange = { start: number; end: number };
 export type ClassNodeOptions = {
 	node: ts.ClassLikeDeclaration;
 	fallback_name: string;
 	methods: AstCallableNode[];
-	range: ClassLineRange;
+	range: SourceRange;
 	interfaces: string[];
 };
 export type ClassNodeData = {
@@ -349,11 +406,63 @@ export type CallbackKind = 'none' | 'typed' | 'inline';
 export type FieldTypeData = { readonly type: string; readonly type_kind: AstTypeKind };
 export type ExpressionUnwrapper = (expression: ts.Expression) => ts.Expression[];
 export type PropertyOwner = { property_name: string; owner: string };
-export type ViolationOptions = {
-	file: string;
-	line: number;
-	message: string;
-	hint: string;
-	rule_id: string;
-	priority: number;
+export type MaxMethodMetricInput = {
+	violations: Violation[];
+	file_name: LintFileNameContract;
+	node: AstClassNode;
 };
+export type MixCallableNode = { name: string; start: number; end: number; argument_count: number };
+export type Visibility = 'public' | 'non-public';
+export type SourceIdentity = { absolute_path: string; relative_path: string; language: AstLanguage };
+export type CommentScanResult = { text: string; in_block_comment: boolean };
+export type SourceRange = { start: number; end: number };
+export type CommentSegment = {
+	text: string;
+	in_block_comment: boolean;
+	result: CommentScanResult;
+	complete: boolean;
+};
+export type ReportViolation = {
+	readonly file: string;
+	readonly line: number;
+	readonly message: string;
+	readonly hint: string;
+	readonly rule_id: string;
+	readonly priority: number;
+};
+export type ReferenceData = { referenced: Set<string>; unresolved: Violation[] };
+export type CliOptions = {
+	ignored_directories: string[];
+	entry_files: string[];
+	root: string;
+	timings: boolean;
+	batch_size: number;
+	policy: LintTaskPolicy;
+};
+export type LintTaskPolicy = 'top-category' | 'all';
+export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy };
+export type LintExecutionReport = { context: LintProjectContext; report: LintRunResult };
+export type LintStageDuration = { name: string; duration_ms: number };
+export type ProjectNames = {
+	project_class_names: ReadonlySet<string>;
+	project_protocol_names: ReadonlySet<string>;
+	project_interface_names: ReadonlySet<string>;
+	project_contract_names: ReadonlySet<string>;
+	project_type_names: ReadonlySet<string>;
+};
+export type TypeMemberEntry = { name: string; members: Record<string, string> };
+type LintRunFiles = {
+	repo_root: string;
+	files: string[];
+	ignored_files: ReadonlySet<string>;
+	ignored_directories: ReadonlySet<string>;
+	project_files: string[];
+};
+
+type LintRunContext = {
+	context: LintProjectContext;
+};
+
+export type LintRunState = LintRunFiles & ProjectNames & LintRunContext;
+export type LintRunResult = { files: string[]; violations: Violation[] };
+export type LintAnalysisStage = { state: LintRunState; stage_timer: LintStageTimerProtocol };

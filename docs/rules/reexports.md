@@ -38,3 +38,10 @@ import { ToolRegistry } from 'src/registry';
 
 Do not preserve an internal compatibility alias just to avoid updating callers.
 The rule also rejects type-only re-exports; import the type from its defining module instead.
+
+```py
+# feature.py
+from .client import Client
+
+__all__ = ['Client']
+```

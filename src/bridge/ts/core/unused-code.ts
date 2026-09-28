@@ -1,9 +1,9 @@
 import { TestPathSyntax } from 'src/test-path-syntax';
 import { relative } from 'node:path';
-import type { Violation } from 'src/protocols';
+import type { ProjectSourceScannerProtocol, Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import { ProjectSourceScanner } from 'src/bridge/ts/project-source-scanner';
-import type { ReferenceData } from 'src/bridge/ts/core/types';
+import type { ReferenceData } from 'src/types';
 import type { ProjectSourceOptions } from 'src/bridge/ts/runner/types';
 
 /** Responsibilities: _detection unresolved imports unused_. **/
@@ -14,7 +14,7 @@ export class UnusedCode {
 	/** Responsibilities: _creation violations unresolved project_. **/
 	private unresolved_import_violations(
 		root: string,
-		scanner: ProjectSourceScanner,
+		scanner: ProjectSourceScannerProtocol,
 		available: Set<string>,
 		importer: string
 	): Violation[] {
@@ -66,7 +66,7 @@ export class UnusedCode {
 	/** Responsibilities: _collection importer data discovered_. **/
 	private importer_reference_data(
 		root: string,
-		scanner: ProjectSourceScanner,
+		scanner: ProjectSourceScannerProtocol,
 		available: Set<string>,
 		importer: string
 	): ReferenceData {
@@ -78,7 +78,7 @@ export class UnusedCode {
 	/** Responsibilities: _collection unused unresolved-import violations_. **/
 	public collect_scanner_violations(
 		root: string,
-		scanner: ProjectSourceScanner,
+		scanner: ProjectSourceScannerProtocol,
 		files: string[],
 	): Violation[] {
 		const available = new Set(files);

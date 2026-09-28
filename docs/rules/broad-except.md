@@ -9,5 +9,14 @@ except Exception:
     recover()
 ```
 
-**Fix:** Catch only the expected exception at the I/O, network, process, or JSON boundary.
+TypeScript catches without a specific error boundary are also reported:
 
+```ts
+try {
+	run();
+} catch {
+	recover();
+}
+```
+
+**Fix:** Catch only the expected exception at the I/O, network, process, or JSON boundary.

@@ -7,7 +7,14 @@ import { JestSuiteCollector } from 'src/bridge/ts/runner/orchestration/runtime/t
 import type { JestSuite } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types';
 import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { MAX_CLASS_LINES, MAX_FUNCTION_LINES, MAX_JEST_TESTS, MIN_CLASS_LINES, MIN_FUNCTION_LINES } from 'src/constants';
+import {
+	MAX_CLASS_LINES,
+	MAX_FUNCTION_LINES,
+	MAX_JEST_TESTS,
+	MIN_CLASS_LINES,
+	MIN_FUNCTION_LINES,
+	TYPESCRIPT_TEST_SUFFIXES,
+} from 'src/constants';
 
 /** Responsibilities: _collection Jest test structure_. **/
 export class JestTestRules {
@@ -209,9 +216,6 @@ export class JestTestRules {
 
 	/** Responsibilities: _Jest test files identification_. **/
 	public jest_file(file: string): boolean {
-		if (file.endsWith('.test.ts')) {
-			return true;
-		}
-		return file.endsWith('.test.tsx');
+		return TYPESCRIPT_TEST_SUFFIXES.some(suffix => file.endsWith(suffix));
 	}
 }

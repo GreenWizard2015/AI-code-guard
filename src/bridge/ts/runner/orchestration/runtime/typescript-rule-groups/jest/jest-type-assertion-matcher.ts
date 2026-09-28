@@ -1,9 +1,11 @@
 import ts from 'typescript';
-import { JEST_ANY, JEST_EXPECT, JEST_INSTANCE, JEST_SHAPES } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import { JEST_ANY, JEST_INSTANCE, JEST_SHAPES } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
 
 /** Responsibilities: _Jest type assertions matching_, _instance matchers identification_. **/
 export class JestTypeAssertionMatcher {
 	private readonly shape_matchers = JEST_SHAPES;
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
 
 	/** Responsibilities: _Jest any matchers identification_. **/
 	private is_any_matcher(node: ts.CallExpression): boolean {
@@ -17,7 +19,10 @@ export class JestTypeAssertionMatcher {
 		if (!ts.isIdentifier(expected.expression.expression)) {
 			return false;
 		}
-		return expected.expression.expression.text === JEST_EXPECT && expected.expression.name.text === JEST_ANY;
+		if (!this.expect_aliases.receiver(expected.expression.expression, node)) {
+			return false;
+		}
+		return expected.expression.name.text === JEST_ANY;
 	}
 
 	/** Responsibilities: _Jest instance matchers identification_. **/

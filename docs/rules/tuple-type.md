@@ -17,3 +17,7 @@ interface ResolvedExport {
 ```
 
 The rule reports type syntax such as `readonly [file: string, name: string]` and `[string, number]`.
+
+```py
+resolved_export: tuple[str, str]
+```

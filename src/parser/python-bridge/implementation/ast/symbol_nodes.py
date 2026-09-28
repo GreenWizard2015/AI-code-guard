@@ -5,51 +5,16 @@ from functools import cached_property
 from typing import Any
 from implementation.ast.callable_arguments import CallableArguments
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
+from implementation.references.module_instance_collector import (
+    PythonModuleInstanceCollector,
+)
+from implementation.ast.type_declarations.type_declaration_collector import PythonTypeDeclarationCollector
 from implementation.types import JsonObject
 import ast
 
 
 class PythonAstSymbolNodes:
     """Responsibilities: _collection Python symbols classification_."""
-
-    def _type_declaration(self, node: ast.AST) -> list[JsonObject]:
-        """Responsibilities: _Python type declarations collection_."""
-        if type(node) is ast.ClassDef:
-            return [{"name": node.name, "line": node.lineno - 1}]
-        if type(node) is ast.AnnAssign:
-            target: Any = node.target
-            annotation: Any = node.annotation
-            if type(target) is ast.Name and type(annotation) is ast.Name:
-                if annotation.id == "TypeAlias":
-                    return [{"name": target.id, "line": node.lineno - 1}]
-        if type(node) is ast.Assign and len(node.targets) == 1:
-            target: Any = node.targets[0]
-            named_type = type(target) is ast.Name
-            if named_type and self.callable_arguments.structural_type(node.value):
-                return [{"name": target.id, "line": node.lineno - 1}]
-        return []
-
-    def _collect_module_instances(self) -> list[JsonObject]:
-        """Responsibilities: _module instances collection_."""
-        instances: Any = []
-        for node in self.tree.body:
-            value: Any = self._assignment_value(node)
-            if type(value) is ast.Constant and value.value is None:
-                continue
-            if type(value) is not ast.Call:
-                continue
-            if type(value.func) is not ast.Name:
-                continue
-            instances.append({"line": node.lineno - 1, "constructor": value.func.id})
-        return instances
-
-    def _assignment_value(self, node: ast.AST) -> ast.expr:
-        """Responsibilities: _assignment value identification_."""
-        if type(node) is ast.Assign:
-            return node.value
-        if type(node) is ast.AnnAssign:
-            return node.value
-        return ast.Constant(value=None)
 
     def _named_symbol(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _named symbol collection_."""
@@ -144,11 +109,12 @@ class PythonAstSymbolNodes:
         assignment: Any = self._parents.get(id(node))
         if type(assignment) is ast.AnnAssign:
             annotation: Any = assignment.annotation
-            is_named_annotation = type(annotation) is ast.Name
-            return is_named_annotation and annotation.id == "TypeAlias"
+            return self.type_declaration_collector.type_alias_annotation(annotation)
         if type(assignment) is not ast.Assign:
             return False
-        if node.id.isupper() or not self._is_module_scope(node):
+        if node.id.isupper():
+            return False
+        if not self._is_module_scope(node):
             return False
         is_single_target = len(assignment.targets) == 1
         if not is_single_target or assignment.targets[0] is not node:
@@ -171,6 +137,12 @@ class PythonAstSymbolNodes:
         self.tree: Any = tree
         self.node_index: Any = node_index
         self.callable_arguments: Any = CallableArguments(node_index)
+        self.type_declaration_collector: PythonTypeDeclarationCollector = PythonTypeDeclarationCollector(
+            tree, self.callable_arguments
+        )
+        self.module_instance_collector: PythonModuleInstanceCollector = (
+            PythonModuleInstanceCollector(tree)
+        )
 
     @cached_property
     def named_symbols(self) -> list[JsonObject]:
@@ -183,12 +155,9 @@ class PythonAstSymbolNodes:
     @cached_property
     def type_declarations(self) -> list[JsonObject]:
         """Responsibilities: _type declarations exposure collection_."""
-        declarations: list[JsonObject] = []
-        for node in self.node_index.nodes(self.tree):
-            declarations.extend(self._type_declaration(node))
-        return declarations
+        return self.type_declaration_collector.declarations(self.node_index.nodes(self.tree))
 
     @cached_property
     def module_instances(self) -> list[JsonObject]:
         """Responsibilities: _module instances exposure collection_."""
-        return self._collect_module_instances()
+        return self.module_instance_collector.collect()

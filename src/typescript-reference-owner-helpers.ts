@@ -31,7 +31,7 @@ export class TypeScriptReferenceOwnerHelpers {
 		if (ts.isCallExpression(expression)) {
 			return this.callbacks.call_owner(expression.expression, current_owner);
 		}
-		if (ts.isPropertyAccessExpression(expression)) {
+		if (ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression)) {
 			return this.callbacks.method_owner(expression, current_owner);
 		}
 		return '';

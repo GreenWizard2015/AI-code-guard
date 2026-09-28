@@ -10,3 +10,4 @@ JsonValue: TypeAlias = (
 )
 JsonObject: TypeAlias = dict[str, JsonValue]
 OperatorTypes: TypeAlias = set[type[ast.AST]]
+AstParentIndex: TypeAlias = dict[int, list[ast.AST]]

@@ -133,13 +133,11 @@ if (!this.has_export_modifier(statement) || !ts.isVariableStatement(statement)) 
 		statement: ts.Statement,
 		instances: Map<string, string>
 	): void {
-		const named_bindings_list = this.imported_named_bindings(statement);
-		if (named_bindings_list.length === 0) {
+		const imported_file = this.imported_file_path(source_file, statement);
+		if (!imported_file) {
 			return;
 		}
-		const named_bindings = named_bindings_list[0];
-		const imported_file = this.imported_file_path(source_file, statement);
-		if (imported_file) {
+		for (const named_bindings of this.imported_named_bindings(statement)) {
 			this.add_imported_bindings(named_bindings, imported_file, instances);
 		}
 	}

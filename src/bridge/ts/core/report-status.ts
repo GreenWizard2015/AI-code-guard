@@ -1,4 +1,4 @@
-import type { ReportViolation } from 'src/bridge/ts/core/types';
+import type { ReportViolation } from 'src/types';
 import { ViolationSummary } from 'src/bridge/ts/core/support/violation-summary';
 import type { ViolationPriorityCounts } from 'src/bridge/ts/core/support/types';
 

@@ -5,7 +5,7 @@ import { TypeScriptTypeDeclarations } from 'src/bridge/ts/parser/typescript-type
 import { TypeScriptTypeMembers } from 'src/bridge/ts/parser/typescript-type-members';
 import { TypeScriptResponsibilityTargets } from 'src/model/typescript-responsibility-targets';
 import ts from 'typescript';
-import { TypeScriptCallReferenceCollector } from 'src/parser/ts/typescript-call-references';
+import type { TypeScriptCallReferenceCollectorProtocol } from 'src/model/protocols';
 import type {
 	AstCallableNode,
 	AstClassNode,
@@ -21,7 +21,7 @@ import type {
 /** Responsibilities: _collection TypeScript syntax module_. **/
 export class TypeScriptAstMetadata {
 	private readonly source_file: ts.SourceFile;
-	private readonly call_reference_collector: TypeScriptCallReferenceCollector;
+	private readonly call_reference_collector: TypeScriptCallReferenceCollectorProtocol;
 	private readonly syntax = new Syntax();
 	private readonly import_issues = new TypeScriptImportIssues();
 	private readonly symbol_declaration = new TypeScriptSymbolDeclaration();
@@ -55,12 +55,21 @@ export class TypeScriptAstMetadata {
 	/** Responsibilities: _collection source spans module_. **/
 	private module_constant_spans(): AstSourceSpan[] {
 		const spans: AstSourceSpan[] = [];
-		for (const statement of this.source_file.statements) {
-if (!ts.isVariableStatement(statement) || (statement.declarationList.flags & ts.NodeFlags.Const) === 0) {
-				continue;
+		const collect = (statements: readonly ts.Statement[]): void => {
+			for (const statement of statements) {
+				if (ts.isVariableStatement(statement) && (statement.declarationList.flags & ts.NodeFlags.Const) !== 0) {
+					spans.push(this.statement_span(statement));
+					continue;
+				}
+				if (!ts.isModuleDeclaration(statement) || statement.body === undefined) {
+					continue;
+				}
+				if (ts.isModuleBlock(statement.body)) {
+					collect(statement.body.statements);
+				}
 			}
-			spans.push(this.statement_span(statement));
-		}
+		};
+		collect(this.source_file.statements);
 		return spans;
 	}
 
@@ -113,7 +122,7 @@ if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.p
 	/** Responsibilities: _initialization source text AST_. **/
 	public constructor(
 		source_file: ts.SourceFile,
-		call_reference_collector: TypeScriptCallReferenceCollector
+		call_reference_collector: TypeScriptCallReferenceCollectorProtocol
 	) {
 		this.source_file = source_file;
 		this.call_reference_collector = call_reference_collector;
@@ -156,6 +165,7 @@ if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.p
 			call_references: this.call_reference_collector.collect(),
 			private_accesses: [], repeated_branches: [], module_instances: [], coding_issues: [],
 			python_imports: [], python_main_guard: false, docstring_spans: [],
+			python_callable_count: { count: 0, first_line: 0 },
 			responsibility_targets: this.responsibility_targets.collect(),
 			named_symbols: tree.named_symbols,
 			type_declarations: tree.type_declarations,

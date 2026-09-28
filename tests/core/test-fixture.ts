@@ -1,7 +1,7 @@
 import { ClassReporting } from 'src/bridge/ts/core/support/class-reporting';
 import { TaskReporting } from 'src/bridge/ts/core/support/task-reporting';
 import { LintRunConfiguration } from 'src/bridge/ts/core/lint-run-factory';
-import type { LintRunResult } from 'src/bridge/ts/runtime/types';
+import type { LintRunResult } from 'src/types';
 import { mkdirSync } from 'node:fs';
 import { mkdtempSync } from 'node:fs';
 import { rmSync } from 'node:fs';
@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { ClassStructureReporter } from 'src/metrics/class-structure-reporter';
 import type { Violation } from 'src/protocols';
 import { LintFileName } from 'src/bridge/ts/core/context/file-name';
-import { LintStageTimer } from 'src/bridge/ts/core/stage-timing';
+import { LintStageTimer } from 'src/stage-timing';
 import type { AstCallableNode, AstClassNode, AstTypeKind, AstVisibility } from 'src/types';
 import { CodingRuleLinter } from 'src/bridge/ts/runner/orchestration/runtime/coding-rules';
 import { SourceFileAst } from 'src/bridge/ts/runner/orchestration/runtime/source-file-ast';
@@ -56,6 +56,7 @@ export class TestFixture {
 		return {
 			name: this.text_value(node.name),
 			owner: this.text_value(node.owner),
+			nested: false,
 			start: this.number_value(node.start, 0),
 			end: this.number_value(node.end, 0),
 			argument_count: this.number_value(node.argument_count, 0),
@@ -73,6 +74,7 @@ export class TestFixture {
 			exception_only: this.flag_value(node.exception_only),
 			has_self: this.flag_value(node.has_self),
 			has_unittest_assertion: this.flag_value(node.has_unittest_assertion),
+			unittest_assertion_alias: this.flag_value(node.unittest_assertion_alias),
 			unittest_exception_only: this.flag_value(node.unittest_exception_only),
 			test_exception_bypass: this.flag_value(node.test_exception_bypass),
 			unittest_ending_valid: this.flag_value(node.unittest_ending_valid),
@@ -106,7 +108,8 @@ export class TestFixture {
 				name: this.text_value(field.name),
 				value_name: this.text_value(field.value_name),
 				type: this.text_value(field.type),
-				 type_kind: this.type_kind_value(field.type_kind),
+					 type_kind: this.type_kind_value(field.type_kind),
+					class_variable: this.flag_value(field.class_variable),
 			})),
 			untyped_fields: [],
 			dependencies: lists.dependencies,

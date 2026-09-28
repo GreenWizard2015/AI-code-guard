@@ -8,3 +8,13 @@ def refresh(self):
 ```
 
 **Fix:** Return a new state value or use one explicit state-transition method.
+
+```ts
+class Cache {
+	private result: string | undefined;
+
+	public refresh(value: string): void {
+		this.result = value;
+	}
+}
+```

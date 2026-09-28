@@ -50,7 +50,10 @@ export class ProjectSourceScanner {
 		if (input.specifier.startsWith('.')) {
 			return true;
 		}
-return input.path.endsWith('.py') && input.python.python_import( this.root, input.specifier, input.files );
+		if (!input.path.endsWith('.py')) {
+			return false;
+		}
+		return input.python.python_import(this.root, input.specifier, input.files);
 	}
 
 	/** Responsibilities: _resolution import specifier project_. **/

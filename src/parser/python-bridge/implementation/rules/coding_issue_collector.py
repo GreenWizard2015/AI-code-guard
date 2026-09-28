@@ -3,14 +3,18 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any, Callable
 from implementation.ast.callable_statements import CallableStatements
-from implementation.rules.call_rules import CallRules
+from implementation.rules.call_analysis.call_rules import CallRules
 from implementation.rules.constructor_rules import ConstructorRules
-from implementation.rules.control_flow_issues import PythonControlFlowIssues
+from implementation.rules.python_syntax.decorator_rules import PythonDecoratorRules
+from implementation.rules.python_syntax.dynamic_type_rules import PythonDynamicTypeRules
+from implementation.rules.python_syntax.exception_rules import PythonExceptionRules
+from implementation.rules.python_syntax.exception_alias_state import PythonExceptionAliasState
+from implementation.rules.control_flow.control_flow_issues import PythonControlFlowIssues
 from implementation.rules.default_parameter_issues import PythonDefaultParameterIssues
-from implementation.rules.type_rules import TypeRules
+from implementation.rules.python_syntax.type_rules import TypeRules
 from implementation.rules.union_rules import UnionRules
 from implementation.rules.field_mutation_collector import PythonFieldMutationCollector
-from implementation.rules.proxy_callable_analyzer import PythonProxyCallableAnalyzer
+from implementation.rules.proxy_callable.proxy_callable_analyzer import PythonProxyCallableAnalyzer
 from implementation.rules.unnecessary_undefined_check import (
     PythonUnnecessaryUndefinedCheck,
 )
@@ -18,63 +22,44 @@ from implementation.rules.single_item_array_state.single_item_array_state import
     PythonSingleItemArrayStateRules,
 )
 import ast
+from time import perf_counter
 
 from implementation.rules.constants import SPECIAL_NAMES
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.types import JsonObject
 from implementation.references.unbounded_type_rules import PythonUnboundedTypeRules
+from implementation.references.test_assertions.subtest_aliases import PythonSubtestAliases
+from implementation.references.aliases.container_aliases import PythonContainerAliases
+from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
+from implementation.references.aliases.container_keys import PythonContainerKeys
 from implementation.rules.single_item_array_state.operator_precedence import (
     PythonOperatorPrecedence,
 )
+from coding_issue_timing import PythonCodingIssueTiming
+
+
+PythonRuleStage = Callable[[ast.AST], list[JsonObject]]
 
 
 class PythonCodingIssueCollector:
     """Responsibilities: _collection Python coding issues_."""
 
-    def _handler_issues(self, handler: ast.ExceptHandler) -> list[JsonObject]:
-        """Responsibilities: _exception-handler issues collection_."""
-        issues: list[JsonObject] = []
-        broad: Any = handler.type is None
-        if not broad and type(handler.type) is ast.Name:
-            broad = handler.type.id == "Exception"
-        if broad:
-            issues.append({"line": handler.lineno - 1, "kind": "broad-except"})
-        if type(handler.type) is ast.Tuple and len(handler.type.elts) > 1:
-            issues.append({"line": handler.lineno - 1, "kind": "python-multi-except"})
-        return issues
-
-    def _try_issues(self, node: ast.AST) -> list[JsonObject]:
-        """Responsibilities: _try-statement issues collection_."""
-        if type(node) is not ast.Try:
-            return []
-        issues: list[JsonObject] = []
-        for handler in node.handlers:
-            issues.extend(self._handler_issues(handler))
-        return issues
-
     def _shape_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _multiple-result-shape issues collection_."""
-        is_special: Any = False
-        if type(node) is ast.Name:
-            is_special: Any = node.id in SPECIAL_NAMES
-        else:
-            if type(node) is ast.Attribute:
-                is_special: Any = node.attr in SPECIAL_NAMES
-        if not is_special:
+        name = self._shape_name(node)
+        if name not in SPECIAL_NAMES:
             return []
         return [{"line": node.lineno - 1, "kind": "multiple-result-shapes"}]
 
-    def _dynamic_issues(self, node: ast.AST) -> list[JsonObject]:
-        """Responsibilities: _dynamic-type issues collection_."""
-        value: Any = ast.Constant(value=None)
-        if type(node) is ast.Assign:
-            value: Any = node.value
-        if type(node) is ast.AnnAssign and node.value is not None:
-            value: Any = node.value
-        if type(value) is ast.Call and type(value.func) is ast.Name:
-            if value.func.id == "type":
-                return [{"line": node.lineno - 1, "kind": "dynamic-type"}]
-        return []
+    def _shape_name(self, node: ast.AST) -> str:
+        """Responsibilities: _special result shape name_."""
+        if type(node) is ast.Name:
+            return node.id
+        if type(node) is ast.Attribute:
+            return node.attr
+        if type(node) is not ast.Subscript:
+            return ""
+        return self.container_keys.static_key(node.slice)
 
     def _match_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _switch issues collection_."""
@@ -87,7 +72,7 @@ class PythonCodingIssueCollector:
         if type(node) not in (ast.FunctionDef, ast.AsyncFunctionDef):
             return []
         for decorator in node.decorator_list:
-            if type(decorator) is ast.Name and decorator.id == "property":
+            if self.decorator_rules.property_decorator(decorator):
                 return [{"line": decorator.lineno - 1, "kind": "python-property"}]
         return []
 
@@ -99,19 +84,9 @@ class PythonCodingIssueCollector:
 
     def _subtest_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _subtest issues collection_."""
-        if type(node) not in (ast.With, ast.AsyncWith):
+        if not self.subtest_aliases.matches(node):
             return []
-        for item in node.items:
-            context: Any = item.context_expr
-            if type(context) is ast.Call:
-                context = context.func
-            if type(context) is not ast.Attribute:
-                continue
-            if context.attr != "subTest" or type(context.value) is not ast.Name:
-                continue
-            if context.value.id == "self":
-                return [{"line": node.lineno - 1, "kind": "python-test-subtest"}]
-        return []
+        return [{"line": node.lineno - 1, "kind": "python-test-subtest"}]
 
     @cached_property
     def _stages(self) -> list[Callable[..., list[JsonObject]]]:
@@ -120,10 +95,10 @@ class PythonCodingIssueCollector:
             self.constructor_rules.collect_constructor_issues,
             self.type_rules.collect_type_issues,
             self.type_rules.collect_generic_types,
-            self._try_issues,
+            self.exception_rules.try_statement_issues,
             self.call_rules.collect_call_issues,
             self._shape_issues,
-            self._dynamic_issues,
+            self.dynamic_type_rules.issues,
             self._match_issues,
             self._property_issues,
             self.call_rules.assertion_issues,
@@ -158,20 +133,24 @@ class PythonCodingIssueCollector:
         return {
             ast.Assign: assignments,
             ast.AnnAssign: assignments,
+            ast.Return: (1, 6),
+            ast.Expr: (1,),
+            ast.Return: (6,),
             ast.AugAssign: (16,),
             ast.Try: (3,),
+            ast.TryStar: (3,),
             ast.Call: (4, 11),
             ast.Name: (5,),
             ast.Attribute: (5, 11),
+            ast.Subscript: (5, 19),
             ast.Match: (7,),
             ast.Assert: (9,),
-            ast.Raise: (10,),
+            ast.Raise: (6, 10),
             ast.IfExp: (13,),
             ast.BoolOp: (13,),
-            ast.If: (14, 17),
+			ast.If: (13, 14, 17),
             ast.NamedExpr: (15,),
             ast.Compare: (18,),
-            ast.Subscript: (19,),
             ast.With: (20,),
             ast.AsyncWith: (20,),
         }
@@ -182,6 +161,35 @@ class PythonCodingIssueCollector:
         stage_types = self._callable_stage_types.copy()
         stage_types.update(self._statement_stage_types)
         return stage_types
+
+    def _timed_stage(self, stage: PythonRuleStage, node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _timed Python rule stage_."""
+        started = perf_counter()
+        issues = stage(node)
+        stage_name = f"rule.{stage.__name__}"
+        elapsed_ms = (perf_counter() - started) * 1000
+        previous_ms = self.timings.get(stage_name, 0.0)
+        self.timings[stage_name] = previous_ms + elapsed_ms
+        return issues
+
+    def _timed_precedence(self, node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _timed operator precedence stage_."""
+        started = perf_counter()
+        issues = self.operator_precedence.mixed_boolean_operator(node)
+        issues.extend(self.operator_precedence.mixed_arithmetic_operator(node))
+        elapsed_ms = (perf_counter() - started) * 1000
+        previous_ms = self.timings.get("rule.operator-precedence", 0.0)
+        self.timings["rule.operator-precedence"] = previous_ms + elapsed_ms
+        return issues
+
+    def _prepare(self) -> None:
+        """Responsibilities: _Python rule state preparation_."""
+        self.container_aliases.observe_all(self.node_index.nodes(self.tree))
+        self.field_mutations.prepare()
+        self.decorator_rules.configure_imports(self.tree)
+        self.dynamic_type_rules.configure_imports(self.tree)
+        self.exception_aliases.configure_imports(self.tree)
+        self.call_rules._configure()
 
     def __init__(
         self,
@@ -194,11 +202,20 @@ class PythonCodingIssueCollector:
         self.node_index: Any = node_index
         callable_statements: Any = CallableStatements()
         self.constructor_rules: Any = ConstructorRules()
-        self.type_rules: Any = TypeRules()
+        self.decorator_rules: PythonDecoratorRules = PythonDecoratorRules()
+        self.dynamic_type_rules: PythonDynamicTypeRules = PythonDynamicTypeRules()
+        self.exception_aliases: PythonExceptionAliasState = PythonExceptionAliasState()
+        self.exception_rules: PythonExceptionRules = PythonExceptionRules(self.exception_aliases)
+        self.type_rules: Any = TypeRules(tree, self.decorator_rules)
         self.call_rules: Any = CallRules(tree, node_index)
         self.union_rules: Any = UnionRules(tree, node_index)
-        self.field_mutations: Any = PythonFieldMutationCollector(tree, node_index)
+        self.field_mutations: PythonFieldMutationCollector = PythonFieldMutationCollector(tree, node_index)
         self.proxy_analyzer: Any = PythonProxyCallableAnalyzer(tree)
+        self.timing: PythonCodingIssueTiming = PythonCodingIssueTiming(
+            self.proxy_analyzer.analyze, self.collect_node
+        )
+        self.timings: dict[str, float] = self.timing.timings
+        self.subtest_aliases: PythonSubtestAliases = PythonSubtestAliases(tree, node_index)
         self.unnecessary_undefined_check: Any = PythonUnnecessaryUndefinedCheck(tree)
         self.array_state_rules: Any = PythonSingleItemArrayStateRules(tree, node_index)
         self.unbounded_type_rules: PythonUnboundedTypeRules = PythonUnboundedTypeRules(
@@ -213,24 +230,25 @@ class PythonCodingIssueCollector:
         self.operator_precedence: PythonOperatorPrecedence = PythonOperatorPrecedence(
             tree, source.splitlines(), node_index
         )
+        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
 
     def collect(self) -> list[JsonObject]:
         """Responsibilities: _collection Python coding issues_."""
+        self._prepare()
         target: Any = self.tree
         proxy_issues: list[JsonObject] = []
         issues: list[JsonObject] = self.unbounded_type_rules.issues()
         default_parameter = PythonDefaultParameterIssues(self.tree, self.node_index)
         issues.extend(default_parameter.issues())
-        for node in self.node_index.nodes(target):
-            proxy_issues.extend(self.proxy_analyzer.analyze(node))
-            issues.extend(self.collect_node(node))
+        nodes = self.node_index.nodes(target)
+        self.timing.collect(nodes, proxy_issues, issues)
         return proxy_issues + issues
 
     def collect_node(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection issues Python AST_."""
         issues: list[JsonObject] = []
         for index in self._stage_types.get(type(node), ()):
-            issues.extend(self._stages[index](node))
-        issues.extend(self.operator_precedence.mixed_boolean_operator(node))
-        issues.extend(self.operator_precedence.mixed_arithmetic_operator(node))
+            issues.extend(self._timed_stage(self._stages[index], node))
+        issues.extend(self._timed_precedence(node))
         return issues

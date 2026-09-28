@@ -5,6 +5,7 @@ import type {
 	CyrillicCommentText,
 	CyrillicQuoteState,
 } from 'src/bridge/ts/rules/types';
+import { StandaloneStringComments } from 'src/bridge/ts/rules/support/standalone-string-comments';
 
 /** Responsibilities: _Cyrillic text detection_. **/
 export class CyrillicTextRules {
@@ -57,9 +58,11 @@ export class CyrillicTextRules {
 		index: number,
 		state: CyrillicQuoteState,
 	): number {
-		if (state.triple && line.startsWith(state.delimiter.repeat(3), index)) {
-			state.active = false;
-			return index + 3;
+		if (state.triple) {
+			if (line.startsWith(state.delimiter.repeat(3), index)) {
+				state.active = false;
+				return index + 3;
+			}
 		}
 		const character = line.charAt(index);
 		if (!state.triple && character === '\\') {
@@ -164,18 +167,29 @@ export class CyrillicTextRules {
 	/** Responsibilities: _source comment violations collection_. **/
 	public source_violations(file: string, text: string, python: boolean): Violation[] {
 		let comments: CyrillicCommentText[];
+		const standalone_strings = new StandaloneStringComments(text);
 		if (python) {
-			comments = this.python_comments(text);
+			comments = [
+				...this.python_comments(text),
+				...standalone_strings.python_comments(),
+			];
 		} else {
-			comments = this.typescript_comments(text);
+			comments = [
+				...this.typescript_comments(text),
+				...standalone_strings.typescript_comments(),
+			];
 		}
 		return this.violations(file, comments);
 	}
 
-	/** Responsibilities: _Markdown text violations collection_. **/
-	public markdown_violations(file: string, text: string): Violation[] {
+	/** Responsibilities: _text file violations collection_. **/
+	public text_file_violations(file: string, text: string): Violation[] {
 		const comments = text.split('\n').map((line, index) => ({ line: index + 1, text: line }));
-		const violations = this.violations(file, comments);
-		return [...violations];
+		for (const comment of comments) {
+			if (this.cyrillic_pattern.test(comment.text)) {
+				return [this.rule.violation(file, comment.line)];
+			}
+		}
+		return [];
 	}
 }

@@ -1,4 +1,3 @@
-import { AnyTypes } from 'src/rules/typescript/any-types';
 import { ClassReporting } from 'src/bridge/ts/core/support/class-reporting';
 import { MethodOrder } from 'src/bridge/ts/rules/method-order';
 import { MetricViolations } from 'src/metric-violations';
@@ -11,10 +10,9 @@ import { ClassStructureReporter } from 'src/metrics/class-structure-reporter';
 import { SharedParameterAdapter } from 'src/metrics/shared-parameter-adapter';
 import { MethodContractRules } from 'src/metrics/method-contract-rules';
 import { PythonTestRuleCollector } from 'src/bridge/ts/runner/orchestration/runtime/python/python-test-rule-collector';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
+import { PythonTypeRuleCollector } from 'src/bridge/ts/runner/orchestration/runtime/python/python-type-rule-collector';
 import type { PythonRuleInput } from 'src/runner/types';
-import type { AstCallableNode, AstClassNode } from 'src/types';
-import type { Violation } from 'src/protocols';
+import type { AstClassNode } from 'src/types';
 
 
 
@@ -32,63 +30,9 @@ export class PythonRuleCollector {
 	private readonly syntax = new Syntax();
 	private readonly naming_support = new NamingSupport();
 	private readonly input: PythonRuleInput;
-	private readonly type_field_rule = new DiagnosticRule('type-field-count');
-	private readonly return_type_rule = new DiagnosticRule('explicit-return-type');
-	private readonly parameter_type_rule = new DiagnosticRule('python-explicit-parameter-type');
-	private readonly field_type_rule = new DiagnosticRule('python-explicit-field-type');
 	private readonly test_rules: PythonTestRuleCollector;
 	private readonly method_contract_rules = new MethodContractRules();
-
-	/** Responsibilities: _type-field count violations addition_. **/
-	private append_type_fields(): void {
-		const { violations, file_name, classes } = this.input;
-		for (const node of classes) {
-			if (node.type_contract !== true && node.protocol !== true) {
-				continue;
-			}
-		const count = node.fields.length;
-			if (count > 10) {
-				violations.push(this.type_field_rule.violation(file_name.value, node.start + 1, { count: String(count) }));
-			}
-		}
-	}
-
-	/** Responsibilities: _Python type violations addition_. **/
-	private append_python_types(): void {
-		const { violations, file_name, classes, functions } = this.input;
-		const callables = functions.concat(classes.flatMap(node => node.methods));
-		this.append_callable_types(violations, file_name.value, callables);
-		this.append_field_types(violations, file_name.value, classes);
-	}
-
-	/** Responsibilities: _callable type violations addition_. **/
-	private append_callable_types(
-		violations: Violation[], file: string, callables: readonly AstCallableNode[]
-	): void {
-		for (const callable of callables) {
-			if (!callable.return_type) {
-				violations.push(this.return_type_rule.violation(file, callable.start + 1));
-			}
-			for (const name of callable.untyped_parameters) {
-				violations.push(this.parameter_type_rule.violation(file, callable.start + 1, { name }));
-			}
-		}
-	}
-
-	/** Responsibilities: _field type violations addition_. **/
-	private append_field_types(
-		violations: Violation[], file: string, classes: readonly AstClassNode[]
-	): void {
-		for (const node of classes) {
-			let fields = node.untyped_fields;
-			if (fields === undefined) {
-				fields = [];
-			}
-			for (const field of fields) {
-				violations.push(this.field_type_rule.violation(file, field.line + 1, { name: field.name }));
-			}
-		}
-	}
+	private readonly type_rules: PythonTypeRuleCollector;
 
 	/** Responsibilities: _shared-parameter violations addition_. **/
 	private append_shared_rules(): void {
@@ -120,18 +64,6 @@ export class PythonRuleCollector {
 		}
 	}
 
-	/** Responsibilities: _type information violations addition_. **/
-	private append_type_infos(): void {
-		const { violations, file_name, classes, functions } = this.input;
-		const any_types = new AnyTypes();
-		any_types.append_any_info(
-			violations,
-			file_name.value,
-			functions.concat(classes.flatMap(node => node.methods)),
-			classes
-		);
-	}
-
 	/** Responsibilities: _method contract violations addition_. **/
 	private append_method_contracts(): void {
 		const { violations, file_name, classes } = this.input;
@@ -145,10 +77,8 @@ export class PythonRuleCollector {
 	/** Responsibilities: _Python metric violations addition_. **/
 	private append_metric_violations(): void {
 		const { classes } = this.input;
-		this.append_type_fields();
 		classes.forEach(node => this.append_class_metrics(node));
 		this.append_callable_metrics();
-		this.append_type_infos();
 		this.append_method_contracts();
 	}
 
@@ -198,19 +128,21 @@ export class PythonRuleCollector {
 	public constructor(input: PythonRuleInput) {
 		this.input = input;
 		this.test_rules = new PythonTestRuleCollector(input);
+		this.type_rules = new PythonTypeRuleCollector(input);
 	}
 
 	/** Responsibilities: _Python architecture violations addition_. **/
 	public append_architecture(): void {
-		const { violations, file_name, classes, operations } = this.input;
+		const { violations, file_name, classes, operations, python_imports } = this.input;
 		const file = file_name.value;
-		this.python_architecture.append_architecture_violations(
+		this.python_architecture.append_architecture_violations({
 			violations,
 			file,
-			operations.private_accesses,
-			operations.repeated_branches,
-			classes
-		);
+			accesses: operations.private_accesses,
+			branches: operations.repeated_branches,
+			classes,
+			imports: python_imports,
+		});
 		this.python_hacks.append_assignment_violations(violations, file, operations.callables);
 		this.metric_violations.append_depth_violations(violations, file, operations.attribute_accesses);
 		this.test_rules.append_shape();
@@ -221,8 +153,9 @@ export class PythonRuleCollector {
 
 	/** Responsibilities: _Python metric violations addition_. **/
 	public append_metrics(): void {
-		this.append_python_types();
+		this.type_rules.append_type_rules();
 		this.append_metric_violations();
+		this.type_rules.append_type_information();
 		this.append_shared_rules();
 	}
 }

@@ -4,6 +4,17 @@ export class PythonCodingLineRules {
 	private readonly python_only_reflections = new Set(['isinstance', 'callable']);
 	private readonly type_call = 'type(';
 
+	/** Responsibilities: _classification qualified decorator_. **/
+	private is_decorator(trimmed: string, name: string): boolean {
+		if (trimmed === `@${name}`) {
+			return true;
+		}
+		if (!trimmed.startsWith('@')) {
+			return false;
+		}
+		return trimmed.endsWith(`.${name}`);
+	}
+
 	/** Responsibilities: _reflection helper name mapping_. **/
 	private reflection_rule_name(name: string): string {
 		if (this.python_only_reflections.has(name)) {
@@ -61,10 +72,10 @@ export class PythonCodingLineRules {
 if (trimmed === 'except:' || trimmed.startsWith('except Exception:')) {
 			kinds.push('broad-except');
 		}
-		if (trimmed === '@staticmethod') {
+		if (this.is_decorator(trimmed, 'staticmethod')) {
 			kinds.push('python-static-method');
 		}
-		if (trimmed === '@classmethod') {
+		if (this.is_decorator(trimmed, 'classmethod')) {
 			kinds.push('python-class-method');
 		}
 		return kinds;

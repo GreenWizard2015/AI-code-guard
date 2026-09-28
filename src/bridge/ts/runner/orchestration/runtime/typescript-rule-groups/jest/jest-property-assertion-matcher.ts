@@ -1,12 +1,13 @@
 import ts from 'typescript';
-import { JEST_DEFINED, JEST_EXPECT, JEST_PROPERTY } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import { JEST_DEFINED, JEST_PROPERTY } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
 import { JestExpressionMatch } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-expression-match';
 
 /** Responsibilities: _Jest property assertions matching_, _received values resolution_. **/
 export class JestPropertyAssertionMatcher {
-	private readonly expected_name = JEST_EXPECT;
 	private readonly defined_name = JEST_DEFINED;
 	private readonly property_name = JEST_PROPERTY;
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
 
 	/** Responsibilities: _resolution nested Jest expect_. **/
 	private expect_call(node: ts.CallExpression): JestExpressionMatch {
@@ -20,7 +21,7 @@ export class JestPropertyAssertionMatcher {
 		if (!ts.isIdentifier(expect_call.expression)) {
 			return new JestExpressionMatch(node.expression, false);
 		}
-		if (expect_call.expression.text !== this.expected_name) {
+		if (!this.expect_aliases.receiver(expect_call.expression, node)) {
 			return new JestExpressionMatch(node.expression, false);
 		}
 		return new JestExpressionMatch(expect_call, true);

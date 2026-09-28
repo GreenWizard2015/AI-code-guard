@@ -9,3 +9,7 @@ class NetworkError(Exception): ...
 
 **Fix:** Move the `Error` class into its caller module, or group related exceptions in one
 focused module. Do not keep a one-use exception isolated in its own file.
+
+```ts
+export class NetworkError extends Error {}
+```

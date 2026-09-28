@@ -1,5 +1,5 @@
 import { TypeScriptCallReference } from 'src/bridge/ts/parser/typescript-call-reference-builder';
-import { TypeScriptCallExpressionInspector } from 'src/parser/ts/typescript-call-expression-inspector';
+import { TypeScriptCallExpressionInspector } from 'src/typescript-call-expression-inspector';
 import ts from 'typescript';
 
 import type { AstCallableReference } from 'src/types';
@@ -36,7 +36,7 @@ export class TypeScriptCallReferenceCollector {
 	private append_call_reference(node: ts.Node, owner: string = ''): void {
 		const expressions = this.expression_inspector.direct_value_expression(node);
 		if (expressions.length > 0) {
-			this.append_value_expression(expressions[0], owner);
+			this.append_reference(expressions[0], owner);
 			return;
 		}
 		this.append_nested_node(node, owner);
@@ -63,7 +63,7 @@ export class TypeScriptCallReferenceCollector {
 		const call_reference_builder = new TypeScriptCallReference();
 
 		this.append_nested_values(node, owner);
-if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expression)) {
+		if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expression)) {
 			this.references.push(call_reference_builder.call_reference(this.source_file, this.context, node.expression));
 		}
 	}
@@ -88,36 +88,38 @@ if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expre
 	private append_argument_values(arguments_list: readonly ts.Expression[], owner: string = ''): void {
 		for (const argument of arguments_list) {
 			if (ts.isSpreadElement(argument)) {
-				this.append_value_expression(argument.expression, owner);
+				this.append_reference(argument.expression, owner);
 				continue;
 			}
-			this.append_value_expression(argument, owner);
+			this.append_reference(argument, owner);
 		}
 	}
 
-	/** Responsibilities: _value expression collection traversal_. **/
-	private append_value_expression(expression: ts.Expression, owner: string = ''): void {
-		const call_reference_builder = new TypeScriptCallReference();
+	/** Responsibilities: _identification supported callable reference_. **/
+	private supported_reference(node: ts.Node): boolean {
+		if (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) {
+			return true;
+		}
+		if (!ts.isElementAccessExpression(node)) {
+			return false;
+		}
+		const argument = node.argumentExpression;
+		return ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument);
+	}
 
-		if (ts.isIdentifier(expression)) {
-			this.references.push(
-				call_reference_builder.call_reference(this.source_file, this.context, expression, {
-					current_owner: owner,
-					is_bound: false,
-					is_call: false,
-				})
-			);
+	/** Responsibilities: _collection supported callable reference_. **/
+	private append_reference(expression: ts.Expression, owner: string = ''): void {
+		if (!this.supported_reference(expression)) {
 			return;
 		}
-		if (ts.isPropertyAccessExpression(expression)) {
-			this.references.push(
-				call_reference_builder.call_reference(this.source_file, this.context, expression, {
-					current_owner: owner,
-					is_bound: false,
-					is_call: false,
-				})
-			);
-		}
+		const call_reference_builder = new TypeScriptCallReference();
+		this.references.push(
+			call_reference_builder.call_reference(this.source_file, this.context, expression, {
+				current_owner: owner,
+				is_bound: false,
+				is_call: false,
+			})
+		);
 	}
 
 	/** Responsibilities: _aggregation callable target invocation_. **/
@@ -127,7 +129,7 @@ if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expre
 			this.append_target(bound_expressions[0], 'bound', owner);
 			return;
 		}
-if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expression)) {
+		if (this.supported_reference(node.expression)) {
 			this.append_target(node.expression, 'call', owner);
 		}
 	}
@@ -146,7 +148,7 @@ if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expre
 		} else {
 			options.is_call = true;
 		}
-if (!ts.isIdentifier(expression) && !ts.isPropertyAccessExpression(expression)) {
+		if (!this.supported_reference(expression)) {
 			return;
 		}
 		this.references.push(call_reference_builder.call_reference(this.source_file, this.context, expression, options));

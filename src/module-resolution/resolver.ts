@@ -118,8 +118,10 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 	public module_symbol(file: string, module_name: string): string {
 		const base = resolve_path(dirname(file), module_name);
 		for (const candidate of this.module_candidates(base)) {
-			if (existsSync(candidate) && statSync(candidate).isFile()) {
-				return candidate;
+			if (existsSync(candidate)) {
+				if (statSync(candidate).isFile()) {
+					return candidate;
+				}
 			}
 		}
 		return '';

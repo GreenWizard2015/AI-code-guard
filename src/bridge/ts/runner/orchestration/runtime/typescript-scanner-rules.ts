@@ -10,6 +10,7 @@ import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestra
 
 /** Responsibilities: _TypeScript rule groups initialization_, _their violations addition_. **/
 export class TypeScriptScannerRules implements TypeScriptRuleGroupContract {
+	private readonly context: TypeScriptScannerRuleContext;
 	private readonly file_rules: TypeScriptFileRuleGroup;
 	private readonly ast_rules: TypeScriptAstRuleGroup;
 	private readonly script_rules: TypeScriptScriptRuleGroup;
@@ -17,8 +18,21 @@ export class TypeScriptScannerRules implements TypeScriptRuleGroupContract {
 	private readonly callable_rules: TypeScriptCallableRuleGroup;
 	private readonly shared_rules: TypeScriptSharedRuleGroup;
 
+	/** Responsibilities: _timed TypeScript rule-group execution_. **/
+	private append_timed(
+		name: string,
+		group: TypeScriptRuleGroupContract,
+		violations: Violation[]
+	): void {
+		this.context.stage_timer.measure(
+			`file-analysis.typescript.rule-groups.${name}`,
+			() => group.append(violations)
+		);
+	}
+
 	/** Responsibilities: _initialization TypeScript rule groups_. **/
 	public constructor(context: TypeScriptScannerRuleContext) {
+		this.context = context;
 		this.file_rules = new TypeScriptFileRuleGroup(context);
 		this.ast_rules = new TypeScriptAstRuleGroup(context);
 		this.script_rules = new TypeScriptScriptRuleGroup(context);
@@ -29,11 +43,11 @@ export class TypeScriptScannerRules implements TypeScriptRuleGroupContract {
 
 	/** Responsibilities: _aggregation violations every TypeScript_. **/
 	public append(violations: Violation[]): void {
-		this.file_rules.append(violations);
-		this.ast_rules.append(violations);
-		this.script_rules.append(violations);
-		this.class_rules.append(violations);
-		this.callable_rules.append(violations);
-		this.shared_rules.append(violations);
+		this.append_timed('file', this.file_rules, violations);
+		this.append_timed('ast', this.ast_rules, violations);
+		this.append_timed('script', this.script_rules, violations);
+		this.append_timed('class', this.class_rules, violations);
+		this.append_timed('callable', this.callable_rules, violations);
+		this.append_timed('shared', this.shared_rules, violations);
 	}
 }

@@ -6,5 +6,10 @@
 Promise<{ id: string }>
 ```
 
-**Fix:** Name the result shape first, then use `Promise<Result>`.
+Python generic arguments should also use named contracts:
 
+```py
+list[dict[str, str]]
+```
+
+**Fix:** Name the result shape first, then use `Promise<Result>`.

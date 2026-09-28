@@ -1,11 +1,23 @@
 import ts from 'typescript';
 import type { AstCallableReference } from 'src/types';
-import type { TypeScriptReferenceContext } from 'src/typescript-reference-context';
+import type { TypeScriptReferenceContextProtocol } from 'src/protocols';
 import type { CallReferenceOptions } from 'src/bridge/ts/parser/types';
 
 /** Responsibilities: _construction normalization TypeScript function_. **/
 export class TypeScriptCallReference {
 	private readonly method_kind = 'method' as const;
+
+	/** Responsibilities: _resolution accessed member name_. **/
+	private member_name(expression: ts.AccessExpression): string {
+		if (ts.isPropertyAccessExpression(expression)) {
+			return expression.name.text;
+		}
+		const argument = expression.argumentExpression;
+		if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
+			return argument.text;
+		}
+		return '';
+	}
 
 	/** Responsibilities: _optional owner caller addition_. **/
 	private add_reference_context(
@@ -40,7 +52,7 @@ export class TypeScriptCallReference {
 
 	/** Responsibilities: _construction normalization function reference_. **/
 	private function_reference(
-		context: TypeScriptReferenceContext,
+		context: TypeScriptReferenceContextProtocol,
 		expression: ts.Identifier,
 		line: number
 	): AstCallableReference {
@@ -57,13 +69,13 @@ export class TypeScriptCallReference {
 
 	/** Responsibilities: _construction normalization method reference_. **/
 	public method_reference(
-		context: TypeScriptReferenceContext,
-		expression: ts.PropertyAccessExpression,
+		context: TypeScriptReferenceContextProtocol,
+		expression: ts.AccessExpression,
 		line: number,
 		options: CallReferenceOptions
 	): AstCallableReference {
 		const reference: AstCallableReference = {
-			name: expression.name.text,
+			name: this.member_name(expression),
 			kind: this.method_kind,
 			owner: context.method_owner(expression, options.current_owner),
 			caller_owner: '',
@@ -78,7 +90,7 @@ export class TypeScriptCallReference {
 	/** Responsibilities: _construction normalization invocation reference_. **/
 	public call_reference(
 		source_file: ts.SourceFile,
-		context: TypeScriptReferenceContext,
+		context: TypeScriptReferenceContextProtocol,
 		expression: ts.Node,
 		...option_values: CallReferenceOptions[]
 	): AstCallableReference {
@@ -88,6 +100,9 @@ export class TypeScriptCallReference {
 			return this.function_reference(context, expression, line);
 		}
 		if (ts.isPropertyAccessExpression(expression)) {
+			return this.method_reference(context, expression, line, reference_options);
+		}
+		if (ts.isElementAccessExpression(expression) && this.member_name(expression).length > 0) {
 			return this.method_reference(context, expression, line, reference_options);
 		}
 		throw new Error('Unsupported TypeScript call reference expression.');

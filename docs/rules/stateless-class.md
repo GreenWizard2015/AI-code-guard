@@ -24,3 +24,9 @@ class MessageReader {
   public read(): Message { return this.source.read(this.options); }
 }
 ```
+
+```py
+class TextTools:
+    def trim(self, value: str) -> str:
+        return value.strip()
+```

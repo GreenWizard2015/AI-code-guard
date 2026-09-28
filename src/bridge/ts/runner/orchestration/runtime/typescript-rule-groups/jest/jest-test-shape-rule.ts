@@ -1,25 +1,50 @@
 import ts from 'typescript';
 import type { JestCallbackKind } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types';
 import { JestAssertionShapeRule } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-assertion-shape-rule';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _classification Jest callbacks expectations_. **/
 export class JestTestShapeRule {
-	private readonly expect_name = 'expect';
 	private readonly assertion_shape_rule = new JestAssertionShapeRule();
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+
+	/** Responsibilities: _unwrapping Jest assertion expression_. **/
+	private unwrapped_expression(expression: ts.Expression): ts.Expression {
+		let current = expression;
+		while (true) {
+			if (ts.isParenthesizedExpression(current) || ts.isNonNullExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isSatisfiesExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			return current;
+		}
+	}
 
 	/** Responsibilities: _classification expression directly invokes_. **/
-	private expect_expression(expression: ts.Expression): boolean {
-		if (ts.isAwaitExpression(expression)) {
-			return this.expect_expression(expression.expression);
+	private expect_expression(expression: ts.Expression, node: ts.Node): boolean {
+		const current = this.unwrapped_expression(expression);
+		if (ts.isAwaitExpression(current)) {
+			return this.expect_expression(current.expression, node);
 		}
-		if (ts.isCallExpression(expression)) {
-			if (ts.isIdentifier(expression.expression) && expression.expression.text === this.expect_name) {
-				return true;
+		if (ts.isCallExpression(current)) {
+			const callee = this.unwrapped_expression(current.expression);
+			if (ts.isIdentifier(callee)) {
+				if (this.expect_aliases.receiver(callee, current)) {
+					return true;
+				}
 			}
-			return this.expect_expression(expression.expression);
+			return this.expect_expression(current.expression, node);
 		}
-		if (ts.isPropertyAccessExpression(expression)) {
-			return this.expect_expression(expression.expression);
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.expect_expression(current.expression, node);
 		}
 		return false;
 	}
@@ -31,7 +56,7 @@ export class JestTestShapeRule {
 			return false;
 		}
 		return body.statements.some(statement =>
-			ts.isExpressionStatement(statement) && this.expect_expression(statement.expression)
+			ts.isExpressionStatement(statement) && this.expect_expression(statement.expression, statement.expression)
 		);
 	}
 
@@ -127,7 +152,11 @@ export class JestTestShapeRule {
 		const lines: number[] = [];
 		for (const test of tests) {
 			const assertions = this.assertion_shape_rule.collect_assertions(test);
-if (this.assertion_shape_rule.exception_only(assertions) || this.has_try_catch(test)) {
+			if (this.assertion_shape_rule.exception_only(assertions)) {
+				lines.push(this.line(source_file, test));
+				continue;
+			}
+			if (this.has_try_catch(test)) {
 				lines.push(this.line(source_file, test));
 			}
 		}

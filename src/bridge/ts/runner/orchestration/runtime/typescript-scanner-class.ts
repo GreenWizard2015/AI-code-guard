@@ -2,7 +2,7 @@ import { MixCollection } from 'src/bridge/ts/core/mix-collection';
 import { AstModel } from 'src/bridge/ts/core/ast-model';
 import { Syntax } from 'src/syntax';
 import type { LintFileNameContract, NormalizedAstFile } from 'src/types';
-import { TypeScriptAstFile } from 'src/model/typescript-ast';
+import type { TypeScriptAstFileProtocol } from 'src/protocols';
 import type { TypeScriptScannerOptions } from 'src/bridge/ts/runner/orchestration/runtime/types';
 import type { Violation } from 'src/protocols';
 import { TypeScriptScannerRules } from 'src/bridge/ts/runner/orchestration/runtime/typescript-scanner-rules';
@@ -11,7 +11,7 @@ import { TypeScriptScannerRules } from 'src/bridge/ts/runner/orchestration/runti
 export class TypeScriptScannerClass {
 	private readonly file_name: LintFileNameContract;
 	private readonly lines: string[];
-	private readonly ast_file: TypeScriptAstFile;
+	private readonly ast_file: TypeScriptAstFileProtocol;
 	private readonly ast: NormalizedAstFile;
 	private readonly rules: TypeScriptScannerRules;
 
@@ -43,10 +43,12 @@ export class TypeScriptScannerClass {
 			file_name: this.file_name,
 			project_class_names: options.project_class_names,
 			project_type_names: options.project_type_names,
+			project_interface_names: options.project_interface_names,
 			project_contract_names: options.project_contract_names,
 			lines: this.lines,
 			ast_file: this.ast_file,
 			ast: this.ast,
+			stage_timer: options.stage_timer,
 		});
 	}
 

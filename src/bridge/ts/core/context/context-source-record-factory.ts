@@ -2,15 +2,24 @@ import { relative } from 'node:path';
 import { extname } from 'node:path';
 import ts from 'typescript';
 import { LintFileName } from 'src/bridge/ts/core/context/file-name';
-import type { LintSourceRecord, LintRunStatistics, NormalizedAstFile } from 'src/types';
+import type {
+	ContextSourceRecordOptions,
+	ContextSourceRecordsOptions,
+	LintSourceRecord,
+	LintRunStatistics,
+	NormalizedAstFile,
+} from 'src/types';
 import { TypeScriptAstFile } from 'src/model/typescript-ast';
 import type { TypeScriptAstOptions } from 'src/model/types';
 import { TypeScriptLintSourceRecord } from 'src/bridge/ts/core/context/typescript-lint-source-record';
 import { PythonLintSourceRecord } from 'src/bridge/ts/core/context/python-lint-source-record';
+import { AstDiskCache } from 'src/bridge/ts/core/support/ast-disk-cache';
+import type { LintStageTimerProtocol } from 'src/protocols';
 
 /** Responsibilities: _classification source languages construction_. **/
 export class ContextSourceRecordSet {
 	private readonly typescript_extensions = ['.ts', '.tsx'];
+	private readonly disk_cache_enabled = process.env.NODE_ENV !== 'test';
 
 	/** Responsibilities: _TypeScript source paths classification_. **/
 	private typescript(file: string): boolean {
@@ -97,20 +106,6 @@ export class ContextSourceRecordSet {
 		return this.python_ast_for(python_file_asts, file);
 	}
 
-	/** Responsibilities: _construction TypeScript lint source_. **/
-	private typescript_source_record(
-		file: string,
-		relative_path: string,
-		file_name: LintFileName,
-		text: string,
-		typescript_ast: TypeScriptAstFile
-	): LintSourceRecord {
-		return new TypeScriptLintSourceRecord(
-			{ absolute_path: file, relative_path, file_name, text, normalized_ast: typescript_ast.normalized() },
-			typescript_ast
-		);
-	}
-
 	/** Responsibilities: _construction Python lint source_. **/
 	private python_source_record(
 		file: string,
@@ -128,44 +123,124 @@ export class ContextSourceRecordSet {
 		});
 	}
 
-	/** Responsibilities: _normalization source path construction_. **/
-	public source_record(
-		repo_root: string,
-		file: string,
-		text: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
-		python_file_asts: ReadonlyMap<string, NormalizedAstFile>
+	/** Responsibilities: _retrieval cached TypeScript ASTs_. **/
+	private cached_typescript_asts(
+		files: readonly string[],
+		disk_cache: AstDiskCache,
+		stage_timer: LintStageTimerProtocol
+	): Map<string, NormalizedAstFile> {
+		const cached = new Map<string, NormalizedAstFile>();
+		if (!this.disk_cache_enabled) {
+			return cached;
+		}
+		return stage_timer.measure(
+			'startup.project-context.typescript-ast-disk-cache-read',
+			() => {
+				for (const file of files) {
+					if (!this.typescript(file)) {
+						continue;
+					}
+					const entry = disk_cache.content(file);
+					if (entry.should_reparse()) {
+						continue;
+					}
+					const ast = entry.value();
+					if (entry.supports_language('typescript')) {
+						cached.set(file, ast);
+					}
+				}
+				return cached;
+			}
+		);
+	}
+
+	/** Responsibilities: _TypeScript AST cache persistence_. **/
+	private write_typescript_caches(
+		files: readonly string[],
+		records: readonly LintSourceRecord[],
+		disk_cache: AstDiskCache,
+		typescript_asts: ReadonlyMap<string, NormalizedAstFile>
+	): LintSourceRecord[] {
+		for (const [index, file] of files.entries()) {
+			if (!this.typescript(file)) {
+				continue;
+			}
+			if (typescript_asts.has(file)) {
+				continue;
+			}
+			const record = records[index];
+			if (record !== undefined) {
+				disk_cache.write(file, record.normalized_ast);
+			}
+		}
+		return [...records];
+	}
+
+	/** Responsibilities: _construction TypeScript lint source_. **/
+	private typescript_record(
+		options: ContextSourceRecordOptions,
+		relative_path: string,
+		file_name: LintFileName
 	): LintSourceRecord {
-		const relative_path = relative(repo_root, file).split('\\').join('/');
+		const typescript_ast = this.create_typescript_ast(
+			options.file,
+			options.text,
+			options.source_files
+		);
+		const cached = options.typescript_asts.get(options.file);
+		let normalized_ast: NormalizedAstFile;
+		if (cached === undefined) {
+			normalized_ast = typescript_ast.normalized();
+		} else {
+			normalized_ast = typescript_ast.reference_normalization(cached);
+		}
+		return new TypeScriptLintSourceRecord(
+			{
+				absolute_path: options.file,
+				relative_path,
+				file_name,
+				text: options.text,
+				normalized_ast,
+			},
+			typescript_ast
+		);
+	}
+
+	/** Responsibilities: _normalization source path construction_. **/
+	private source_record(options: ContextSourceRecordOptions): LintSourceRecord {
+		const relative_path = relative(options.repo_root, options.file).split('\\').join('/');
 		const file_name = new LintFileName(relative_path);
-		if (this.typescript(file)) {
-			const typescript_ast = this.create_typescript_ast(file, text, source_files);
-			return this.typescript_source_record(file, relative_path, file_name, text, typescript_ast);
+		if (this.typescript(options.file)) {
+			return this.typescript_record(options, relative_path, file_name);
 		}
 		return this.python_source_record(
-			file,
+			options.file,
 			relative_path,
 			file_name,
-			text,
-			this.python_ast_argument(file, python_file_asts)
+			options.text,
+			this.python_ast_argument(options.file, options.python_file_asts)
 		);
 	}
 
 	/** Responsibilities: _construction source records requested_. **/
-	public source_records(
-		repo_root: string,
-		files: string[],
-		texts: ReadonlyMap<string, string>,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
-		python_file_asts: ReadonlyMap<string, NormalizedAstFile>
-	): LintSourceRecord[] {
-		return files.map(file => this.source_record(
-			repo_root,
+	public source_records(options: ContextSourceRecordsOptions): LintSourceRecord[] {
+		const disk_cache = new AstDiskCache(options.repo_root);
+		const typescript_asts = this.cached_typescript_asts(options.files, disk_cache, options.stage_timer);
+		const records = options.files.map(file => this.source_record({
+			repo_root: options.repo_root,
 			file,
-			this.source_text(texts, file),
-			source_files,
-			python_file_asts
-		));
+			text: this.source_text(options.texts, file),
+			source_files: options.source_files,
+			python_file_asts: options.python_file_asts,
+			typescript_asts,
+		}));
+		if (!this.disk_cache_enabled) {
+			return records;
+		}
+		return options.stage_timer.measure(
+			'startup.project-context.typescript-ast-disk-cache-write',
+			() => this.write_typescript_caches(options.files, records, disk_cache, typescript_asts)
+		);
 	}
 
 	/** Responsibilities: _summary source reading parser_. **/

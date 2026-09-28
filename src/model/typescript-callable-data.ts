@@ -50,6 +50,7 @@ export class TypeScriptCallableData {
 		return {
 			name,
 			owner,
+			nested: false,
 			start,
 			end,
 			...this.node_metrics(node),
@@ -61,6 +62,7 @@ export class TypeScriptCallableData {
 			is_accessor: false,
 			has_self: false,
 			has_unittest_assertion: false,
+			unittest_assertion_alias: false,
 			unittest_exception_only: false,
 			test_exception_bypass: false,
 			unittest_ending_valid: false,

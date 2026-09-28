@@ -34,6 +34,9 @@ export class TypeScriptAliasPair {
 
 	/** Responsibilities: _retrieval sibling fields interface_. **/
 	private sibling_fields(node: ts.Node): readonly ts.Node[] {
+		if (ts.isInterfaceDeclaration(node) || ts.isClassLike(node) || ts.isTypeLiteralNode(node)) {
+			return node.members;
+		}
 		const parent = node.parent;
 		if (ts.isTypeLiteralNode(parent)) {
 			return parent.members;
@@ -101,6 +104,78 @@ export class TypeScriptAliasPair {
 		return fields;
 	}
 
+	/** Responsibilities: _interface heritage type retrieval_. **/
+	private heritage_types(node: ts.InterfaceDeclaration): readonly ts.ExpressionWithTypeArguments[] {
+		if (node.heritageClauses === undefined) {
+			return [];
+		}
+		for (const clause of node.heritageClauses) {
+			if (clause.token === ts.SyntaxKind.ExtendsKeyword) {
+				return clause.types;
+			}
+		}
+		return [];
+	}
+
+	/** Responsibilities: _named interface resolution_. **/
+	private named_interfaces(source: ts.SourceFile, name: string): readonly ts.InterfaceDeclaration[] {
+		const matches: ts.InterfaceDeclaration[] = [];
+		const visit = (node: ts.Node): void => {
+			if (ts.isInterfaceDeclaration(node) && node.name.text === name) {
+				matches.push(node);
+			}
+			ts.forEachChild(node, visit);
+		};
+		visit(source);
+		return matches;
+	}
+
+	/** Responsibilities: _inherited parent fields addition_. **/
+	private append_inherited_parent(
+		fields: Map<string, ts.Node>,
+		parent: ts.InterfaceDeclaration,
+		seen: Set<string>
+	): void {
+		for (const [name, field] of this.named_fields(parent)) {
+			fields.set(name, field);
+		}
+		for (const [name, field] of this.inherited_fields(parent, seen)) {
+			fields.set(name, field);
+		}
+	}
+
+	/** Responsibilities: _inherited interface fields collection_. **/
+	private inherited_fields(
+		node: ts.InterfaceDeclaration,
+		seen: Set<string>
+	): ReadonlyMap<string, ts.Node> {
+		const fields = new Map<string, ts.Node>();
+		if (seen.has(node.name.text)) {
+			return fields;
+		}
+		seen.add(node.name.text);
+		for (const heritage of this.heritage_types(node)) {
+			if (!ts.isIdentifier(heritage.expression)) {
+				continue;
+			}
+			for (const parent of this.named_interfaces(node.getSourceFile(), heritage.expression.text)) {
+				this.append_inherited_parent(fields, parent, seen);
+			}
+		}
+		return fields;
+	}
+
+	/** Responsibilities: _inherited alias pair detection_. **/
+	private inherited_alias_pair(node: ts.InterfaceDeclaration): boolean {
+		const fields = this.inherited_fields(node, new Set<string>());
+		for (const name of fields.keys()) {
+			if (this.has_matching_types(fields, this.alias_names(name))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Responsibilities: _reporting optional singular plural_. **/
 	public optional_field(node: ts.Node): boolean {
 		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
@@ -111,6 +186,9 @@ export class TypeScriptAliasPair {
 
 	/** Responsibilities: _reporting singular plural field_. **/
 	public alias_pair(node: ts.Node): boolean {
+		if (ts.isInterfaceDeclaration(node)) {
+			return this.inherited_alias_pair(node);
+		}
 		if (!this.optional_field(node)) {
 			return false;
 		}

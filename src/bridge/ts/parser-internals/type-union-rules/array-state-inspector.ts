@@ -1,70 +1,129 @@
 import ts from 'typescript';
+import { TypeScriptCallAliases } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-call-aliases';
+import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
 
 /** Responsibilities: _array result detection_. **/
 export class TypeScriptArrayStateInspector {
 	private readonly array_type_names = new Set(['Array', 'ReadonlyArray']);
-	/** Responsibilities: _resolution invocation function name_. **/
-	private call_name(call: ts.CallExpression): string {
-		if (ts.isIdentifier(call.expression)) {
-			return call.expression.text;
+	private readonly call_aliases = new TypeScriptCallAliases();
+	private readonly type_aliases = new TypeScriptTypeAliases();
+
+	/** Responsibilities: _invocation alias name_. **/
+	private invocation_name(
+		expression: ts.CallExpression,
+		aliases: ReadonlyMap<string, string>
+	): string {
+		const name = this.call_aliases.call_name(expression);
+		const resolved = aliases.get(name);
+		if (resolved !== undefined) {
+			return resolved;
 		}
-		if (ts.isPropertyAccessExpression(call.expression)) {
-			return call.expression.name.text;
-		}
-		return '';
+		return name;
 	}
 
-	/** Responsibilities: _aggregation methods named class_. **/
-	private append_class_methods(statement: ts.Statement, name: string, declarations: ts.FunctionLikeDeclaration[]): void {
-		if (!ts.isClassLike(statement)) {
-			return;
+	/** Responsibilities: _callable name lookup_. **/
+	private indexed_call_name(
+		expression: ts.Expression,
+	 aliases: ReadonlyMap<string, string>
+	): string {
+		expression = unwrap_transparent_expression(expression);
+		if (ts.isCallExpression(expression)) {
+			return this.invocation_name(expression, aliases);
 		}
-		for (const member of statement.members) {
-			if (ts.isMethodDeclaration(member) && member.name?.getText() === name) {
-				declarations.push(member);
-			}
+		if (!ts.isIdentifier(expression)) {
+			return '';
 		}
+		const name = aliases.get(expression.text);
+		if (name === undefined) {
+			return '';
+		}
+		return name;
 	}
 
-	/** Responsibilities: _aggregation top-level functions class_. **/
-	private append_statement_callables(statement: ts.Statement, name: string, declarations: ts.FunctionLikeDeclaration[]): void {
-		if (ts.isFunctionDeclaration(statement) && statement.name?.text === name) {
-			declarations.push(statement);
+	/** Responsibilities: _nested callable declaration collection_. **/
+	private append_nested_callables(
+		node: ts.Node,
+		name: string,
+		declarations: ts.FunctionLikeDeclaration[]
+	): void {
+		if (ts.isFunctionDeclaration(node) && node.name?.text === name) {
+			declarations.push(node);
 		}
-		if (!ts.isVariableStatement(statement)) {
-			this.append_class_methods(statement, name, declarations);
-			return;
-		}
-		for (const declaration of statement.declarationList.declarations) {
-			if (!ts.isIdentifier(declaration.name) || declaration.name.text !== name) {
-				continue;
+		if (ts.isClassLike(node)) {
+			for (const member of node.members) {
+				if (ts.isMethodDeclaration(member) && member.name?.getText() === name) {
+					declarations.push(member);
+				}
 			}
-			const initializer = declaration.initializer;
+		}
+		if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name) {
+			const initializer = node.initializer;
 			if (initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))) {
 				declarations.push(initializer);
 			}
 		}
+		ts.forEachChild(node, child => this.append_nested_callables(child, name, declarations));
 	}
 
 	/** Responsibilities: _collection callable declarations matching_. **/
 	private callable_declarations(source_file: ts.SourceFile, name: string): ts.FunctionLikeDeclaration[] {
 		const declarations: ts.FunctionLikeDeclaration[] = [];
-		for (const statement of source_file.statements) {
-			this.append_statement_callables(statement, name, declarations);
-		}
+		this.append_nested_callables(source_file, name, declarations);
 		return declarations;
+	}
+
+	/** Responsibilities: _classification callable output array_. **/
+	private array_type_reference(type: ts.TypeReferenceNode, source_file: ts.SourceFile): boolean {
+		let type_name = type.typeName;
+		while (ts.isQualifiedName(type_name)) {
+			type_name = type_name.right;
+		}
+		if (!ts.isIdentifier(type_name)) {
+			return false;
+		}
+		if (this.array_type_names.has(type_name.text)) {
+			return true;
+		}
+		this.type_aliases.collect(source_file);
+		const resolved = this.type_aliases.resolve(type_name.text);
+		return this.array_type_text(resolved, source_file, new Set<string>());
+	}
+
+	/** Responsibilities: _classification nested array type text_. **/
+	private array_type_text(text: string, source_file: ts.SourceFile, visited: Set<string>): boolean {
+		if (visited.has(text)) {
+			return false;
+		}
+		visited.add(text);
+		const normalized = text.replace(/^readonly\s+/u, '');
+		if (normalized.endsWith('[]') || normalized.startsWith('Array<') || normalized.startsWith('ReadonlyArray<')) {
+			return true;
+		}
+		const readonly_match = /^Readonly<(.+)>$/u.exec(normalized);
+		if (readonly_match !== null && this.array_type_text(readonly_match[1], source_file, visited)) {
+			return true;
+		}
+		const resolved = this.type_aliases.resolve(normalized);
+		return resolved !== normalized && this.array_type_text(resolved, source_file, visited);
 	}
 
 	/** Responsibilities: _classification callable output array_. **/
 	private array_return_type(callable: ts.FunctionLikeDeclaration): boolean {
 		const type = callable.type;
-		if (type === undefined || ts.isArrayTypeNode(type)) {
-			return type !== undefined;
-		}
-		if (!ts.isTypeReferenceNode(type) || !ts.isIdentifier(type.typeName)) {
+		if (type === undefined) {
 			return false;
 		}
-		return this.array_type_names.has(type.typeName.text);
+		if (ts.isArrayTypeNode(type)) {
+			return true;
+		}
+		if (ts.isTypeOperatorNode(type) && type.operator === ts.SyntaxKind.ReadonlyKeyword) {
+			return ts.isArrayTypeNode(type.type);
+		}
+		if (!ts.isTypeReferenceNode(type)) {
+			return false;
+		}
+		return this.array_type_reference(type, callable.getSourceFile());
 	}
 
 	/** Responsibilities: _collection expressions output callable_. **/
@@ -93,7 +152,7 @@ export class TypeScriptArrayStateInspector {
 			return false;
 		}
 		if (!ts.isBlock(body)) {
-			return ts.isArrayLiteralExpression(body) && body.elements.length <= 1;
+			return this.single_item_array(body);
 		}
 		const returns = this.returned_expressions(body);
 		if (returns.length === 0) {
@@ -104,18 +163,26 @@ export class TypeScriptArrayStateInspector {
 
 	/** Responsibilities: _classification single-item array expression_. **/
 	private single_item_array(expression: ts.Expression): boolean {
+		expression = unwrap_transparent_expression(expression);
 		if (!ts.isArrayLiteralExpression(expression)) {
 			return false;
 		}
 		return expression.elements.length <= 1;
 	}
 
-	/** Responsibilities: _reporting indexing access known_. **/
-	public single_item_access(node: ts.ElementAccessExpression, source_file: ts.SourceFile): boolean {
-		if (!ts.isCallExpression(node.expression)) {
+	/** Responsibilities: _single-item method detection_. **/
+	public single_item_method(node: ts.CallExpression, source_file: ts.SourceFile): boolean {
+		if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'at') {
 			return false;
 		}
-		const name = this.call_name(node.expression);
+		if (node.arguments.length !== 1) {
+			return false;
+		}
+		const argument = unwrap_transparent_expression(node.arguments[0]);
+		if (!ts.isNumericLiteral(argument) || argument.text !== '0') {
+			return false;
+		}
+		const name = this.indexed_call_name(node.expression.expression, this.call_aliases.names(source_file));
 		if (name.length === 0) {
 			return false;
 		}
@@ -124,11 +191,22 @@ export class TypeScriptArrayStateInspector {
 		);
 	}
 
-	/** Responsibilities: _reporting callable whose array_. **/
+	/** Responsibilities: _single-item callable detection_. **/
 	public single_item_callable(callable: ts.FunctionLikeDeclaration): boolean {
 		if (!this.array_return_type(callable)) {
 			return false;
 		}
 		return this.single_item_returns(callable);
+	}
+
+	/** Responsibilities: _single-item access detection_. **/
+	public single_item_access(node: ts.ElementAccessExpression, source_file: ts.SourceFile): boolean {
+		const name = this.indexed_call_name(node.expression, this.call_aliases.names(source_file));
+		if (name.length === 0) {
+			return false;
+		}
+		return this.callable_declarations(source_file, name).some(callable =>
+			this.single_item_callable(callable)
+		);
 	}
 }

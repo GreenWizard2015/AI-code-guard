@@ -4,7 +4,7 @@ import type {
 	LintSourceRecordOptions,
 	NormalizedAstFile,
 } from 'src/types';
-import type { TypeScriptAstFile } from 'src/model/typescript-ast';
+import type { TypeScriptAstFileProtocol } from 'src/protocols';
 
 /** Responsibilities: _storage normalization Python lint_, _language-specific accessors exposure_. **/
 export class PythonLintSourceRecord implements LintSourceRecord {
@@ -35,7 +35,7 @@ export class PythonLintSourceRecord implements LintSourceRecord {
 	}
 
 	/** Responsibilities: _unavailable TypeScript AST rejection_. **/
-	public get typescript_ast(): TypeScriptAstFile {
+	public get typescript_ast(): TypeScriptAstFileProtocol {
 		throw new Error('TypeScript AST is unavailable for Python source.');
 	}
 }

@@ -24,7 +24,22 @@ export class TypeScriptAstFile {
 	private readonly class_node_factory: TypeScriptClassNodes;
 
 	/** Responsibilities: _extraction callable nodes top-level_. **/
+	private namespace_function_nodes(statement: ts.Statement): AstCallableNode[] {
+		if (!ts.isModuleDeclaration(statement)) {
+			return [];
+		}
+		const body = statement.body;
+		if (body === undefined || !ts.isModuleBlock(body)) {
+			return [];
+		}
+		return body.statements.flatMap(child => this.function_nodes_for(child));
+	}
+
+	/** Responsibilities: _extraction callable nodes top-level_. **/
 	private function_nodes_for(statement: ts.Statement): AstCallableNode[] {
+		if (ts.isModuleDeclaration(statement)) {
+			return this.namespace_function_nodes(statement);
+		}
 		if (ts.isFunctionDeclaration(statement) && statement.name) {
 			return [this.callable_nodes.function_declaration_node(statement)];
 		}
@@ -73,6 +88,14 @@ export class TypeScriptAstFile {
 		this.metadata = new TypeScriptAstMetadata(this.source_file, this.call_reference_collector);
 	}
 
+	/** Responsibilities: _source TypeScript AST access_. **/
+	public source_file_node(): ts.SourceFile {
+		if (this.source_file.fileName.length === 0) {
+			throw new Error('TypeScript source file has no file name.');
+		}
+		return this.source_file.getSourceFile();
+	}
+
 	/** Responsibilities: _collection normalization class interface_. **/
 	public classes(): AstClassNode[] {
 		const class_nodes = [
@@ -99,6 +122,16 @@ export class TypeScriptAstFile {
 		const classes = this.classes();
 		const functions = this.functions();
 		const normalized = this.metadata.normalized(classes, functions);
+		this.normalized_cache.set('normalized', normalized);
+		return normalized;
+	}
+
+	/** Responsibilities: _refreshing context-dependent normalized references_. **/
+	public reference_normalization(cached: NormalizedAstFile): NormalizedAstFile {
+		const normalized = {
+			...cached,
+			call_references: this.call_reference_collector.collect(),
+		};
 		this.normalized_cache.set('normalized', normalized);
 		return normalized;
 	}

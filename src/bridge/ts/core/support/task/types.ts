@@ -1,4 +1,4 @@
-import type { ReportViolation } from 'src/bridge/ts/core/types';
+import type { ReportViolation } from 'src/types';
 
 export type TaskFileSelection = {
 	files: string[];

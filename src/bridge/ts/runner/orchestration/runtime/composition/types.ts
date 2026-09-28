@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from 'src/metrics/types';
 import type { CodeClass, ImportedSymbol } from 'src/types';
-import type { CallableMethodCounts } from 'src/bridge/ts/runner/orchestration/runtime/callable-method-counts';
+import type { CallableMethodCounts } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts';
 import type { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
 
 export type CallableUsageCollectorState = {

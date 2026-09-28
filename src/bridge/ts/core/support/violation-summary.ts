@@ -1,4 +1,4 @@
-import type { ReportViolation } from 'src/bridge/ts/core/types';
+import type { ReportViolation } from 'src/types';
 import type { ViolationPriorityCounts } from 'src/bridge/ts/core/support/types';
 
 /** Responsibilities: _priority violation count_, _failure status determination_. **/

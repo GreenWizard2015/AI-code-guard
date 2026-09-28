@@ -1,11 +1,10 @@
-import { TaskReporting } from 'src/bridge/ts/core/support/task-reporting';
-import type { CliOptions } from 'src/bridge/ts/core/types';
-import type { LintRunResult } from 'src/bridge/ts/runtime/types';
-import { LintStageTimer } from 'src/bridge/ts/core/stage-timing';
+import type { LintStageTimerProtocol, TaskReportingProtocol } from 'src/protocols';
+import type { CliOptions } from 'src/types';
+import type { LintRunResult } from 'src/types';
 
 /** Responsibilities: _lint results formatting_, _diagnostics and timings writing_. **/
 export class CliResultReporter {
-	private readonly task_reporting: TaskReporting;
+	private readonly task_reporting: TaskReportingProtocol;
 
 	/** Responsibilities: _diagnostic output writing_. **/
 	private write(report: LintRunResult, output: string): void {
@@ -17,7 +16,7 @@ export class CliResultReporter {
 	}
 
 	/** Responsibilities: _task reporting initialization_. **/
-	public constructor(task_reporting: TaskReporting) {
+	public constructor(task_reporting: TaskReportingProtocol) {
 		this.task_reporting = task_reporting;
 	}
 
@@ -35,7 +34,7 @@ export class CliResultReporter {
 	public report_with_timings(
 		report: LintRunResult,
 		options: CliOptions,
-		stage_timer: LintStageTimer,
+		stage_timer: LintStageTimerProtocol,
 	): void {
 		const task_options = { batch_size: options.batch_size, policy: options.policy };
 		const output = stage_timer.measure(

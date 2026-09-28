@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from collections.abc import Iterable
 from typing import Any
 
@@ -9,14 +10,6 @@ from implementation.types import JsonObject
 
 class PythonResponsibilityTargets:
     """Responsibilities: _collection Python responsibility targets_."""
-
-    def _parents(self) -> dict[ast.AST, ast.AST]:
-        """Responsibilities: _Python responsibility targets collection_."""
-        parents: dict[ast.AST, ast.AST] = {}
-        for node in ast.walk(self.tree):
-            for child in ast.iter_child_nodes(node):
-                parents[child] = node
-        return parents
 
     def _documentation(self, node: ast.AST) -> str:
         """Responsibilities: _Python documentation access_."""
@@ -52,11 +45,13 @@ class PythonResponsibilityTargets:
     def _append_callable_target(
         self,
         node: ast.AST,
-        parents: dict[ast.AST, ast.AST],
         targets: list[JsonObject],
     ) -> None:
         """Responsibilities: _aggregation Python callable responsibility_."""
-        parent = parents.get(node)
+        parents = self.node_index.parents(node)
+        parent: Any = None
+        if parents:
+            parent = parents[0]
         if type(parent) is ast.ClassDef:
             if not self._is_protocol(parent):
                 targets.append(
@@ -70,7 +65,6 @@ class PythonResponsibilityTargets:
     def _append_node_target(
         self,
         node: ast.AST,
-        parents: dict[ast.AST, ast.AST],
         targets: list[JsonObject],
     ) -> None:
         """Responsibilities: _Python responsibility targets collection_."""
@@ -81,22 +75,22 @@ class PythonResponsibilityTargets:
             )
             return
         if type(node) in (ast.FunctionDef, ast.AsyncFunctionDef):
-            self._append_callable_target(node, parents, targets)
+            self._append_callable_target(node, targets)
             return
         return
 
-    def __init__(self, tree: ast.Module) -> None:
+    def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexProtocol) -> None:
         """Responsibilities: _initialization Python responsibility target_."""
         self.tree: ast.Module = tree
+        self.node_index: PythonAstNodeIndexProtocol = node_index
 
     def collect(self) -> list[JsonObject]:
         """Responsibilities: _Python responsibility targets collection_."""
-        return self.collect_nodes(ast.walk(self.tree))
+        return self.collect_nodes(self.node_index.nodes(self.tree))
 
     def collect_nodes(self, nodes: Iterable[ast.AST]) -> list[JsonObject]:
         """Responsibilities: _Python responsibility targets collection_."""
-        parents = self._parents()
         targets: list[JsonObject] = []
         for node in nodes:
-            self._append_node_target(node, parents, targets)
+            self._append_node_target(node, targets)
         return targets

@@ -1,23 +1,18 @@
 import { PythonAstData } from 'src/bridge/ts/core/python-ast-parser';
-import ts from 'typescript';
+import type ts from 'typescript';
 
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import type { Violation } from 'src/protocols';
 import type { AstModuleInstance, NormalizedAstFile } from 'src/types';
-import { ImportedNames } from 'src/bridge/ts/runner/orchestration/runtime/imported-names';
 import { BUILTIN_CONSTRUCTORS } from 'src/bridge/ts/runner/orchestration/runtime/constants';
+import { TypeScriptSingletonCollector } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/collector';
+import { PythonClassVariableSingletons } from 'src/bridge/ts/runner/orchestration/runtime/python-class-variable-singletons';
+import { DiagnosticRule } from 'src/model/diagnostic-rule';
 
 /** Responsibilities: _detection singleton instances inspection_. **/
 export class SingletonCollector {
-	private readonly source_file: ts.SourceFile;
-
 	private readonly normalized_ast: NormalizedAstFile;
 
 	private readonly local_class_names: ReadonlySet<string>;
-
-	private readonly imported_names: ImportedNames;
-
-	private readonly visited = new Set<string>();
 
 	private readonly file: string;
 
@@ -25,14 +20,9 @@ export class SingletonCollector {
 
 	private readonly python_ast_parser = new PythonAstData();
 
-	/** Responsibilities: _Python singleton violations collection_. **/
-	private python(): Violation[] {
-		const instances = this.python_instances();
-		if (instances.length === 0) {
-			return [];
-		}
-		return this.python_violations(instances);
-	}
+	private readonly typescript: TypeScriptSingletonCollector;
+
+	private readonly class_variable_singletons: PythonClassVariableSingletons;
 
 	/** Responsibilities: _Python module instances collection_. **/
 	private python_instances(): AstModuleInstance[] {
@@ -43,10 +33,67 @@ export class SingletonCollector {
 		if (!ast.module_instances) {
 			return [];
 		}
+		const project_class_names = new Set([...this.local_class_names, ...this.imported_class_names()]);
+		const imported_module_names = this.imported_module_names();
 		return ast.module_instances
-			.filter(instance => /^[A-Z]\w*$/u.test(instance.constructor))
-			.filter(instance => this.local_class_names.has(instance.constructor))
+			.filter(instance => this.project_class_instance(instance, project_class_names, imported_module_names))
 			.filter(instance => !BUILTIN_CONSTRUCTORS.has(instance.constructor));
+	}
+
+	/** Responsibilities: _Python imported classes collection_. **/
+	private imported_class_names(): ReadonlySet<string> {
+		const names = new Set<string>();
+		for (const import_node of this.normalized_ast.python_imports) {
+			for (const imported of import_node.names) {
+				if (!/^[A-Z]\w*$/u.test(imported.name)) {
+					continue;
+				}
+				let name = imported.name;
+				if (imported.alias !== undefined) {
+					name = imported.alias;
+				}
+				names.add(name);
+			}
+		}
+		return names;
+	}
+
+	/** Responsibilities: _Python imported modules collection_. **/
+	private imported_module_names(): ReadonlySet<string> {
+		const names = new Set<string>();
+		for (const import_node of this.normalized_ast.python_imports) {
+			for (const imported of import_node.names) {
+				let name = imported.name;
+				if (imported.alias !== undefined) {
+					name = imported.alias;
+				}
+				if (import_node.module === imported.name || !/^[A-Z]\w*$/u.test(imported.name)) {
+					names.add(name);
+				}
+			}
+		}
+		return names;
+	}
+
+	/** Responsibilities: _Python class instance identification_. **/
+	private project_class_instance(
+		instance: AstModuleInstance,
+		class_names: ReadonlySet<string>,
+		module_names: ReadonlySet<string>,
+	): boolean {
+		if (class_names.has(instance.constructor)) {
+			return true;
+		}
+		const separator = instance.constructor.lastIndexOf('.');
+		if (separator < 0) {
+			return false;
+		}
+		const module_name = instance.constructor.slice(0, separator);
+		if (!module_names.has(module_name)) {
+			return false;
+		}
+		const class_name = instance.constructor.slice(separator + 1);
+		return /^[A-Z]\w*$/u.test(class_name);
 	}
 
 	/** Responsibilities: _Python singleton violations construction_. **/
@@ -59,112 +106,6 @@ export class SingletonCollector {
 		return violations;
 	}
 
-	/** Responsibilities: _inspection TypeScript variable declaration_. **/
-	private declaration(declaration: ts.VariableDeclaration): Violation[] {
-		const initializer = declaration.initializer;
-		if (!initializer) {
-			return [];
-		}
-		if (!this.is_singleton_initializer(initializer)) {
-			return [];
-		}
-		const line = this.source_file.getLineAndCharacterOfPosition(
-			declaration.getStart(this.source_file)
-		).line;
-		const rule = new DiagnosticRule('singleton');
-		return [rule.violation(this.file, line + 1)];
-	}
-
-	/** Responsibilities: _singleton initializers identification_. **/
-	private is_singleton_initializer(initializer: ts.Expression): boolean {
-		if (ts.isNewExpression(initializer)) {
-			return this.is_local_new(initializer);
-		}
-		return this.is_local_factory(initializer);
-	}
-
-	/** Responsibilities: _local constructor initializers identification_. **/
-	private is_local_new(initializer: ts.NewExpression): boolean {
-		const expression = initializer.expression;
-		if (!ts.isIdentifier(expression)) {
-			return false;
-		}
-		return this.is_project_constructor(expression.text);
-	}
-
-	/** Responsibilities: _constructors identification projection_. **/
-	private is_project_constructor(name: string): boolean {
-		if (BUILTIN_CONSTRUCTORS.has(name)) {
-			return false;
-		}
-		if (this.local_class_names.has(name)) {
-			return true;
-		}
-		return this.imported_names.name(name);
-	}
-
-	/** Responsibilities: _local factory initializers identification_. **/
-	private is_local_factory(initializer: ts.Expression): boolean {
-		if (!ts.isCallExpression(initializer)) {
-			return false;
-		}
-		if (initializer.arguments.length > 0) {
-			return false;
-		}
-		if (!ts.isIdentifier(initializer.expression)) {
-			return false;
-		}
-		this.visited.clear();
-		return this.returns_class_instance(initializer.expression.text);
-	}
-
-	/** Responsibilities: _identification factory functions output_. **/
-	private returns_class_instance(name: string): boolean {
-		if (this.visited.has(name)) {
-			return false;
-		}
-		this.visited.add(name);
-		const declaration = this.source_file.statements.find(
-			statement => ts.isFunctionDeclaration(statement) && statement.name?.text === name
-		);
-		if (declaration === undefined || (!ts.isFunctionDeclaration(declaration)) || (!declaration.body)) {
-			return false;
-		}
-		return this.scans_class_instance(declaration.body);
-	}
-
-	/** Responsibilities: _function body class scanning_. **/
-	private scans_class_instance(body: ts.Block): boolean {
-		let found = false;
-		const visit = (node: ts.Node): void => {
-			if (found) {
-				return;
-			}
-			if (this.instance_result(node)) {
-				found = true;
-				return;
-			}
-			ts.forEachChild(node, visit);
-		};
-		ts.forEachChild(body, visit);
-		return found;
-	}
-
-	/** Responsibilities: _class-instance expression identification_. **/
-	private instance_result(node: ts.Node): boolean {
-		if (ts.isNewExpression(node)) {
-			if (ts.isIdentifier(node.expression)) {
-				return this.local_class_names.has(node.expression.text);
-			}
-		}
-		if (ts.isCallExpression(node)) {
-			if (ts.isIdentifier(node.expression)) {
-				return this.returns_class_instance(node.expression.text);
-			}
-		}
-		return false;
-	}
-
 	/** Responsibilities: _singleton analysis state initialization_. **/
 	constructor(
 		file: string,
@@ -175,33 +116,25 @@ export class SingletonCollector {
 	) {
 		this.file = file;
 		this.text = text;
-		this.source_file = source_file;
 		this.normalized_ast = normalized_ast;
 		this.local_class_names = local_class_names;
-		this.imported_names = new ImportedNames(this.source_file);
+		this.typescript = new TypeScriptSingletonCollector(file, source_file, local_class_names);
+		this.class_variable_singletons = new PythonClassVariableSingletons(file, normalized_ast);
 	}
 
 	/** Responsibilities: _collection singleton violations language_. **/
-	public collect_violations(python: boolean): Violation[] {
-		if (python) {
-			return this.python();
-		}
-		return this.collect_typescript();
+	public collect_python(): Violation[] {
+		const instances = this.python_instances();
+		const module_violations = this.python_violations(instances);
+		const class_violations = this.class_variable_singletons.violations();
+		return [...module_violations, ...class_violations];
 	}
 
-	/** Responsibilities: _TypeScript singleton violations collection_. **/
-	public collect_typescript(): Violation[] {
-		const declarations = this.source_file.statements.filter(ts.isVariableStatement);
-		if (declarations.length === 0) {
-			return [];
+	/** Responsibilities: _language singleton violations collection_. **/
+	public collect_violations(python: boolean): Violation[] {
+		if (python) {
+			return this.collect_python();
 		}
-		return declarations.flatMap(statement => {
-			if (!ts.isVariableStatement(statement)) {
-				return [];
-			}
-			return statement.declarationList.declarations.flatMap(declaration =>
-				this.declaration(declaration)
-			);
-		});
+		return this.typescript.collect();
 	}
 }

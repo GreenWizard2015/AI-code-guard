@@ -8,6 +8,7 @@ import { MAX_TEST_ASSERTIONS } from 'src/constants';
 export class PythonTestRuleCollector {
 	private readonly input: PythonRuleInput;
 	private readonly assertion_rule = new DiagnosticRule('python-test-assert');
+	private readonly assertion_alias_rule = new DiagnosticRule('python-test-assertion-alias');
 	private readonly ending_rule = new DiagnosticRule('python-test-assert-ending');
 	private readonly grouping_rule = new DiagnosticRule('test-assertion-grouping');
 	private readonly complexity_rule = new DiagnosticRule('test-too-many-assertions');
@@ -72,6 +73,9 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 		}
 		if (method.unittest_exception_only === true) {
 			violations.push(this.exception_only_rule.violation(file, method.start + 1));
+		}
+		if (method.unittest_assertion_alias === true) {
+			violations.push(this.assertion_alias_rule.violation(file, method.start + 1));
 		}
 		this.append_grouping(violations, file, method, this.grouping_rule);
 	}

@@ -1,10 +1,32 @@
 import ts from 'typescript';
 import { MAX_TEST_ASSERTIONS } from 'src/constants';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _Jest expectation count reporting_. **/
 export class JestAssertionGroupingRule {
 	public readonly minimum_expectations = 3;
 	public readonly maximum_expectations = MAX_TEST_ASSERTIONS;
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+
+	/** Responsibilities: _unwrapping Jest expectation expression_. **/
+	private unwrapped_expression(expression: ts.Expression): ts.Expression {
+		let current = expression;
+		while (true) {
+			if (ts.isParenthesizedExpression(current) || ts.isNonNullExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isSatisfiesExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			return current;
+		}
+	}
 
 	/** Responsibilities: _Jest invocation position conversion_. **/
 	private line(source_file: ts.SourceFile, node: ts.CallExpression): number {
@@ -13,15 +35,12 @@ export class JestAssertionGroupingRule {
 		return character.line + 1;
 	}
 
-	/** Responsibilities: _Jest expectation invocation count_. **/
-	private expectation_count(body: ts.Block): number {
-		let count = 0;
-		for (const statement of body.statements) {
-if (ts.isExpressionStatement(statement) && this.expect_expression(statement.expression)) {
-				count += 1;
-			}
+	/** Responsibilities: _Jest expectation statement classification_. **/
+	private statement_expectation(statement: ts.Statement): boolean {
+		if (!ts.isExpressionStatement(statement)) {
+			return false;
 		}
-		return count;
+		return this.expect_expression(statement.expression, statement.expression);
 	}
 
 	/** Responsibilities: _classification Jest test exceeds_. **/
@@ -34,6 +53,38 @@ if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunction
 			return false;
 		}
 		return this.expectation_count(candidate.body) >= limit;
+	}
+
+	/** Responsibilities: _reporting expression directly invokes_. **/
+	private expect_expression(expression: ts.Expression, node: ts.Node): boolean {
+		const current = this.unwrapped_expression(expression);
+		if (ts.isAwaitExpression(current)) {
+			return this.expect_expression(current.expression, node);
+		}
+		if (ts.isCallExpression(current)) {
+			const callee = this.unwrapped_expression(current.expression);
+			if (ts.isIdentifier(callee)) {
+				if (this.expect_aliases.receiver(callee, current)) {
+					return true;
+				}
+			}
+			return this.expect_expression(current.expression, node);
+		}
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.expect_expression(current.expression, node);
+		}
+		return false;
+	}
+
+	/** Responsibilities: _Jest expectation invocation count_. **/
+	public expectation_count(body: ts.Block): number {
+		let count = 0;
+		for (const statement of body.statements) {
+			if (this.statement_expectation(statement)) {
+				count += 1;
+			}
+		}
+		return count;
 	}
 
 	/** Responsibilities: _collection lines Jest tests_. **/
@@ -49,23 +100,6 @@ if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunction
 			}
 		}
 		return lines;
-	}
-
-	/** Responsibilities: _reporting expression directly invokes_. **/
-	public expect_expression(expression: ts.Expression): boolean {
-		if (ts.isAwaitExpression(expression)) {
-			return this.expect_expression(expression.expression);
-		}
-		if (ts.isCallExpression(expression)) {
-if (ts.isIdentifier(expression.expression) && expression.expression.text === 'expect') {
-				return true;
-			}
-			return this.expect_expression(expression.expression);
-		}
-		if (ts.isPropertyAccessExpression(expression)) {
-			return this.expect_expression(expression.expression);
-		}
-		return false;
 	}
 
 }

@@ -18,3 +18,7 @@ append_mix_violations(violations, ast, FILE_PATH);
 
 The collector uses `file_name.is_test_py()` and `file_name.value`; it does not receive the same
 filename as both a string and a wrapper.
+
+```py
+return Resolver().resolve(input_value)
+```

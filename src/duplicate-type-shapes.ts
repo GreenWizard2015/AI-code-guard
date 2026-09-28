@@ -90,24 +90,28 @@ if (!ts.isPropertySignature(member) || member.name === undefined) {
 		return `${member.name.getText(source_file)}:${type}`;
 	}
 
+	/** Responsibilities: _nested TypeScript shape collection_. **/
+	private append_typescript_shape(
+		shapes: NamedShape[],
+		source_file: ts.SourceFile,
+		node: ts.Node
+	): void {
+		if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) {
+			const members = this.type_members(node);
+			const name = this.type_name(node);
+			if (name !== '' && members.length > 0) {
+				const fields = members.map(member => this.type_field(member, source_file)).filter(field => field !== '');
+				const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
+				shapes.push({ name, line, fields, base_names: this.type_base_names(node, source_file) });
+			}
+		}
+		node.forEachChild(child => this.append_typescript_shape(shapes, source_file, child));
+	}
+
 	/** Responsibilities: _collection normalization TypeScript interface_. **/
 	private typescript_shapes(source_file: ts.SourceFile): NamedShape[] {
 		const shapes: NamedShape[] = [];
-		for (const statement of source_file.statements) {
-			const members = this.type_members(statement);
-			const name = this.type_name(statement);
-			if (name === '' || members.length === 0) {
-				continue;
-			}
-			const fields = members.map(member => this.type_field(member, source_file)).filter(field => field !== '');
-			const line = source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line + 1;
-			shapes.push({
-				name,
-				line,
-				fields,
-				base_names: this.type_base_names(statement, source_file),
-			});
-		}
+		this.append_typescript_shape(shapes, source_file, source_file);
 		return shapes;
 	}
 

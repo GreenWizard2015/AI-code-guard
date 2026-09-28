@@ -23,3 +23,13 @@ interface ResponseContent {
 	content: Record<string, unknown>;
 }
 ```
+
+The same shape rule applies to Python classes:
+
+```py
+class JsonResponse:
+    content: dict[str, str]
+
+class TextResponse:
+    content: dict[str, str]
+```

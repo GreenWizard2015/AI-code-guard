@@ -55,31 +55,37 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 
 	/** Responsibilities: _construction symbol class method_. **/
 	private method_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (ts.isMethodDeclaration(node) && node.name) {
-			return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
-				is_module_constant: false,
-				visibility: this.declaration_visibility(node),
-				is_module_function: false,
-			})];
+		if (ts.isMethodDeclaration(node)) {
+			if (node.name) {
+				return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
+					is_module_constant: false,
+					visibility: this.declaration_visibility(node),
+					is_module_function: false,
+					})];
+			}
 		}
-if (ts.isMethodSignature(node) && node.name && ts.isInterfaceDeclaration(node.parent)) {
-		return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
-			is_module_constant: false,
-			visibility: this.default_visibility,
-			is_module_function: false,
-		})];
+		if (ts.isMethodSignature(node)) {
+			if (node.name && ts.isInterfaceDeclaration(node.parent)) {
+				return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
+					is_module_constant: false,
+					visibility: this.default_visibility,
+					is_module_function: false,
+					})];
+		}
 		}
 		return [];
 	}
 
 	/** Responsibilities: _construction symbol class field_. **/
 	private member_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-if ((ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) && node.name) {
-			return [this.named_symbol(node.name.getText(source_file), node, 'field', source_file, {
-				is_module_constant: false,
-				visibility: this.default_visibility,
-				is_module_function: false,
-			})];
+		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
+			if (node.name) {
+				return [this.named_symbol(node.name.getText(source_file), node, 'field', source_file, {
+					is_module_constant: false,
+					visibility: this.default_visibility,
+					is_module_function: false,
+					})];
+			}
 		}
 		if (ts.isParameter(node) && ts.isIdentifier(node.name)) {
 			return [this.named_symbol(node.name.text, node, 'variable', source_file, {
@@ -138,8 +144,10 @@ if ((ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) && node.nam
 
 	/** Responsibilities: _classification method visibility TypeScript_. **/
 	private declaration_visibility(node: ts.MethodDeclaration): AstVisibility {
-		if (node.name && ts.isPrivateIdentifier(node.name)) {
-			return 'private';
+		if (node.name) {
+			if (ts.isPrivateIdentifier(node.name)) {
+				return 'private';
+			}
 		}
 		if (ts.canHaveModifiers(node)) {
 			const modifiers = ts.getModifiers(node);

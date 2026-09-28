@@ -1,13 +1,12 @@
 import ts from 'typescript';
 
 import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { TypeScriptPropertyState } from 'src/model/typescript-property-state';
-import type { CallOwnerResolver } from 'src/model/protocols';
+import type { CallOwnerResolver, TypeScriptPropertyStateProtocol } from 'src/model/protocols';
 import type { DestructuredAlias } from 'src/model/types';
 
 /** Responsibilities: _resolution owners TypeScript object_. **/
 export class TypeScriptDestructuredAliasCollector {
-	private readonly property_state: TypeScriptPropertyState;
+	private readonly property_state: TypeScriptPropertyStateProtocol;
 	private readonly call_owner: CallOwnerResolver;
 	private readonly instances: TypeScriptInstanceStore;
 
@@ -58,7 +57,7 @@ if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.l
 
 	/** Responsibilities: _initialization instance owner collaborators_. **/
 	public constructor(
-		property_state: TypeScriptPropertyState,
+		property_state: TypeScriptPropertyStateProtocol,
 		call_owner: CallOwnerResolver,
 		instances: TypeScriptInstanceStore
 	) {

@@ -1,27 +1,52 @@
 import ts from 'typescript';
 
 import type { AstCallableNode, AstClassNode } from 'src/types';
-import type { CallableNodes } from 'src/model/typescript-callable-nodes';
+import type { TypeScriptClassCallableNodesProtocol } from 'src/model/protocols';
 import { TypeScriptClassMembers } from 'src/parser/ts/typescript-class-members';
 
-import type { ClassLineRange, ClassNodeData, ClassNodeOptions } from 'src/types';
+import type { ClassNodeData, ClassNodeOptions, SourceRange } from 'src/types';
 
 /** Responsibilities: _TypeScript class metrics construction_. **/
 export class TypeScriptClassNodes {
 	private readonly source_file: ts.SourceFile;
-	private readonly callable_nodes: CallableNodes;
+	private readonly callable_nodes: TypeScriptClassCallableNodesProtocol;
 	private readonly member_data: TypeScriptClassMembers;
 
-	/** Responsibilities: _class expressions extraction_. **/
-	private variable_class_nodes(statement: ts.VariableStatement): AstClassNode[] {
-		const classes: AstClassNode[] = [];
+	/** Responsibilities: _collection nested class nodes_. **/
+	private append_variable_nodes(statement: ts.VariableStatement, classes: AstClassNode[]): void {
 		for (const declaration of statement.declarationList.declarations) {
 			const initializer = declaration.initializer;
-if (initializer !== undefined && ts.isClassExpression(initializer)) {
-				classes.push(this.class_node(initializer, declaration.name.getText(this.source_file)));
+			if (initializer !== undefined && ts.isClassExpression(initializer)) {
+				this.append_class_nodes(initializer, classes, declaration.name.getText(this.source_file));
+				continue;
 			}
+			this.append_class_nodes(declaration, classes);
 		}
-		return classes;
+	}
+
+	/** Responsibilities: _collection nested class nodes_. **/
+	private append_class_nodes(node: ts.Node, classes: AstClassNode[], fallback_name = ''): void {
+		if (ts.isClassDeclaration(node)) {
+			classes.push(this.class_node(node));
+		} else if (ts.isClassExpression(node)) {
+			classes.push(this.class_node(node, fallback_name));
+		}
+		if (ts.isVariableStatement(node)) {
+			this.append_variable_nodes(node, classes);
+			return;
+		}
+		node.forEachChild(child => this.append_class_nodes(child, classes));
+	}
+
+	/** Responsibilities: _collection nested interface nodes_. **/
+	private append_interface_nodes(node: ts.Node, interfaces: AstClassNode[]): void {
+		if (ts.isInterfaceDeclaration(node)) {
+			interfaces.push({
+				...this.callable_nodes.interface_node({ source_file: this.source_file }, node),
+				fields: this.member_data.interface_fields(node),
+			});
+		}
+		node.forEachChild(child => this.append_interface_nodes(child, interfaces));
 	}
 
 	/** Responsibilities: _combine class data_. **/
@@ -46,7 +71,7 @@ if (initializer !== undefined && ts.isClassExpression(initializer)) {
 	}
 
 	/** Responsibilities: _class line range calculation_. **/
-	private class_line_range(node: ts.Node): ClassLineRange {
+	private class_line_range(node: ts.Node): SourceRange {
 		const start_position = node.getStart(this.source_file);
 		const end_position = Math.max(start_position, node.end - 1);
 		return {
@@ -158,7 +183,7 @@ if (clause.token !== ts.SyntaxKind.ExtendsKeyword || !clause.types[0]) {
 	}
 
 	/** Responsibilities: _class analyzers initialization_. **/
-	public constructor(source_file: ts.SourceFile, callable_nodes: CallableNodes) {
+	public constructor(source_file: ts.SourceFile, callable_nodes: TypeScriptClassCallableNodesProtocol) {
 		this.source_file = source_file;
 		this.callable_nodes = callable_nodes;
 		this.member_data = new TypeScriptClassMembers(source_file);
@@ -167,28 +192,14 @@ if (clause.token !== ts.SyntaxKind.ExtendsKeyword || !clause.types[0]) {
 	/** Responsibilities: _class metrics collection_. **/
 	public class_nodes(): AstClassNode[] {
 		const nodes: AstClassNode[] = [];
-		for (const statement of this.source_file.statements) {
-			if (ts.isClassDeclaration(statement)) {
-				nodes.push(this.class_node(statement));
-			}
-			if (ts.isVariableStatement(statement)) {
-				nodes.push(...this.variable_class_nodes(statement));
-			}
-		}
+		this.append_class_nodes(this.source_file, nodes);
 		return nodes;
 	}
 
 	/** Responsibilities: _interface metrics collection_. **/
 	public interface_nodes(): AstClassNode[] {
 		const nodes: AstClassNode[] = [];
-		for (const statement of this.source_file.statements) {
-			if (ts.isInterfaceDeclaration(statement)) {
-				nodes.push({
-					...this.callable_nodes.interface_node({ source_file: this.source_file }, statement),
-					fields: this.member_data.interface_fields(statement),
-				});
-			}
-		}
+		this.append_interface_nodes(this.source_file, nodes);
 		return nodes;
 	}
 }

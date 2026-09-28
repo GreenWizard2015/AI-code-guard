@@ -1,6 +1,7 @@
 import ts from 'typescript';
 
-import { AstPropertySources } from 'src/bridge/ts/rules/ast-property-sources';
+import { AstPropertySources } from 'src/bridge/ts/rules/ast-property-sources/ast-property-sources';
+import { static_property_name } from 'functions';
 
 /** Responsibilities: _resolution AST property states_. **/
 export class AstPropertyType {
@@ -13,20 +14,6 @@ export class AstPropertyType {
 	private readonly source_file: ts.SourceFile;
 	private readonly sources: AstPropertySources;
 	private readonly field_states = new Map<string, string>();
-
-	/** Responsibilities: _property name identification_. **/
-	private property_name(node: ts.PropertyName): string {
-		if (ts.isIdentifier(node)) {
-			return node.text;
-		}
-		if (ts.isStringLiteral(node)) {
-			return node.text;
-		}
-		if (ts.isNumericLiteral(node)) {
-			return node.text;
-		}
-		return '';
-	}
 
 	/** Responsibilities: _identification undefined type_. **/
 	private contains_undefined(type: ts.TypeNode): boolean {
@@ -48,7 +35,7 @@ export class AstPropertyType {
 			if (!ts.isPropertySignature(member)) {
 				continue;
 			}
-			if (this.property_name(member.name) !== property) {
+			if (static_property_name(member.name) !== property) {
 				continue;
 			}
 if (member.questionToken !== undefined || member.type === undefined) {
@@ -76,10 +63,7 @@ if (member.questionToken !== undefined || member.type === undefined) {
 
 	/** Responsibilities: _resolution referenced property state_. **/
 	private reference_state(type: ts.TypeReferenceNode, source: ts.SourceFile, property: string, seen: Set<string>): string {
-		if (!ts.isIdentifier(type.typeName)) {
-			return 'unknown';
-		}
-		const key = this.sources.type_key(source.fileName, type.typeName.text);
+		const key = this.sources.declaration_key(source.fileName, type.typeName.getText(source));
 		if (!this.reference_available(key, seen)) {
 			return 'unknown';
 		}
@@ -119,7 +103,7 @@ if (member.questionToken !== undefined || member.type === undefined) {
 			if (!ts.isPropertySignature(member)) {
 				continue;
 			}
-			if (this.property_name(member.name) === property) {
+			if (static_property_name(member.name) === property) {
 if (member.questionToken !== undefined || member.type === undefined) {
 					return 'optional';
 				}

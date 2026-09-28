@@ -20,8 +20,8 @@ export const RULE_DATA = {
 		priority: 0,
 	},
 	'cyrillic-comment': {
-		message: 'contains Cyrillic text in a comment or Markdown file',
-		hint: 'Use Latin script in comments and Markdown. Cyrillic is allowed inside source string literals.',
+		message: 'contains Cyrillic text in a comment or text file',
+		hint: 'Use English in comments, standalone multiline string comments, and text files. Cyrillic is allowed inside assigned or returned source string literals.',
 		priority: 2,
 	},
 	'assertion-outside-test': {
@@ -30,8 +30,18 @@ export const RULE_DATA = {
 		priority: 6,
 	},
 	'test-file-location': {
-		message: 'test file must be inside a tests directory',
-		hint: 'move the test file below a path containing /tests/. Do not: keep a test-suffixed file beside production modules.',
+		message: 'test file must be inside a root tests or __tests__ directory',
+		hint: 'move the test file below the project-root /tests/ or /__tests__/ path. Do not: keep a test-named file in a production directory or nested test directory.',
+		priority: 7,
+	},
+	'test-file-organization': {
+		message: 'test file is not organized below its source module',
+		hint: 'place the file under tests or __tests__, include the matching module path from the project root or src, and optionally use a unit or integration directory before the module or before the test file.',
+		priority: 7,
+	},
+	'test-targets': {
+		message: 'test imports do not identify a source root',
+		hint: 'Import at least one production module outside tests or __tests__. The common source root of those imports must match the test path. Target existence is not checked.',
 		priority: 7,
 	},
 	'explicit-return-type': {
@@ -92,6 +102,11 @@ export const RULE_DATA = {
 	'python-test-assert-ending': {
 		message: 'Python unittest assertions must be the final consecutive statements',
 		hint: 'Move every self.assert* call to the end of the unittest test method and keep assertions together at test level. Do not: put assertions inside conditions or execute code after the final assertion.',
+		priority: 6,
+	},
+	'python-test-assertion-alias': {
+		message: 'Python tests must not alias unittest assertions',
+		hint: 'Call self.assert* directly in the test method. Do not: store assertions in variables, tuples, lists, or mappings before calling them.',
 		priority: 6,
 	},
 	'python-explicit-parameter-type': {
@@ -238,6 +253,21 @@ export const RULE_DATA = {
 		message: 'avoid class methods',
 		hint: 'replace the class-level factory or operation with a module-level function. Do not: keep behavior on @classmethod.',
 		priority: 2,
+	},
+	'python-data-class-method': {
+		message: 'avoid logic methods in Python dataclasses',
+		hint: 'keep dataclasses as state; allow only special methods and __post_init__. Move logic into a normal class.',
+		priority: 6,
+	},
+	'python-abstract-class': {
+		message: 'replace Python abstract classes with Protocols or interfaces',
+		hint: 'use a structural Protocol or interface for the contract and a normal class for behavior. Do not: inherit from ABC or ABCMeta or use abstractmethod in a project class.',
+		priority: 7,
+	},
+	'project-type-boundary': {
+		message: 'use a Protocol or interface at project type boundaries',
+		hint: 'replace project implementation classes in parameters and results with a Protocol, interface, or focused value contract. Do not: expose a project class as a callable boundary type.',
+		priority: 5,
 	},
 	'python-property-setter': {
 		message: 'avoid Python property setters',
@@ -404,6 +434,11 @@ export const RULE_DATA = {
 		hint: 'replace calls guarded by &&, ||, ??, and, or with an explicit if branch. Do not: execute project behavior through short-circuit operators.',
 		priority: 2,
 	},
+	'early-return': {
+		message: 'prefer an early return before the alternate branch',
+		hint: 'replace if return ... else return ... with if return ... followed by return ...; remove the unnecessary else branch.',
+		priority: 2,
+	},
 	'typescript-logical-assignment': {
 		message: 'avoid logical assignment operators',
 		hint: 'use an explicit if condition followed by an assignment so the state transition is visible. Do not: hide initialization or mutation behind ??=, ||=, or &&=.',
@@ -547,12 +582,12 @@ export const RULE_DATA = {
 		hint: 'Assert the returned value or observable behavior. If there is no direct result, test the next public boundary, such as the server response instead of the request handler. Do not: test only that an internal call throws.',
 		priority: 6,
 	},
-	'bare-type-alias': {
+	'typescript-bare-type-alias': {
 		message: 'avoid bare type aliases',
 		hint: 'use the original type directly, or introduce a distinct interface, object shape, or wrapper with its own contract. Do not: rename one project type without adding behavior or structure.',
 		priority: 5,
 	},
-	'singular-plural-alias': {
+	'typescript-singular-plural-alias': {
 		message: 'optional singular/plural fields may be aliases',
 		hint: 'check whether the optional singular and plural fields encode one alias relationship, then resolve the defining type before storing both. Do not: treat duplicate optional representations as independent state.',
 		priority: 5,
@@ -767,7 +802,17 @@ export const RULE_DATA = {
 	'nested-class': {
 		message: 'nested classes are not allowed ({count})',
 		hint: 'Move each nested class to a focused top-level module or replace it with composition. Do not: hide a class inside another class or function.',
-		priority: 6,
+		priority: 8,
+	},
+	'nested-type': {
+		message: 'nested type declarations are not allowed ({count})',
+		hint: 'Move every type alias, interface, or enum to a top-level focused module. Do not: hide type declarations inside namespaces, classes, functions, or blocks.',
+		priority: 8,
+	},
+	'typescript-namespace-file': {
+		message: 'namespace file must contain one namespace and imports only outside it',
+		hint: 'Keep exactly one namespace declaration per file; move all other code inside it and leave only imports outside. Do not: place classes, functions, values, or additional namespaces beside it.',
+		priority: 7,
 	},
 	'contract-fields': {
 		message: '{kind} "{class_name}" must not declare field "{field_name}"',
@@ -941,6 +986,16 @@ export const RULE_DATA = {
 		message: 'file has too many functions (found {count})',
 		hint: 'Refactor related state and behavior into a focused class or module. Do not: add temporary wrappers only to hide the function count.',
 		priority: 3,
+	},
+	'functions-file-max-count': {
+		message: 'functions file has too many functions (found {count})',
+		hint: 'Keep root functions.ts and functions.py limited to five cohesive functions, or move each responsibility into its owning class or focused domain module. Do not: keep unrelated functions together or add wrappers only to hide the count.',
+		priority: 3,
+	},
+	'functions-file-type-declaration': {
+		message: 'functions file must not declare types',
+		hint: 'Keep functions.ts and functions.py limited to cohesive callable implementations; move every type description into its owning type module or class. Do not: declare classes, aliases, interfaces, enums, or structural type values here.',
+		priority: 7,
 	},
 	'module-constants-separation': {
 		message: 'module-level constants must move to {target} or a focused file',

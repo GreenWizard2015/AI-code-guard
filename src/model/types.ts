@@ -1,6 +1,6 @@
 import ts from 'typescript';
 import type { AstTypeKind, AstVisibility, ImportedFunction } from 'src/types';
-import type { TypeScriptPropertyState } from 'src/model/typescript-property-state';
+import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
 
 export type TypeScriptClassFieldContext = {
 	file: string;
@@ -17,7 +17,7 @@ export type DestructuredInstanceOptions = {
 	initializer: ts.Expression;
 	current_owner: string;
 	source_file: ts.SourceFile;
-	property_state: TypeScriptPropertyState;
+	property_state: TypeScriptPropertyStateProtocol;
 };
 export type TypeScriptSourceResolver = (file: string) => ts.SourceFile[];
 export type TypeScriptAstOptions = {

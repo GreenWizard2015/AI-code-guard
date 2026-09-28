@@ -1,14 +1,13 @@
 import { isAbsolute, resolve } from 'node:path';
 import { readFileSync, statSync } from 'node:fs';
-import type { ReportViolation } from 'src/bridge/ts/core/types';
-import { TaskWorkspace } from 'src/bridge/ts/core/support/task/task-workspace';
-import { TaskDocumentation } from 'src/bridge/ts/core/support/task/task-documentation';
+import type { ReportViolation } from 'src/types';
+import type { TaskDocumentationProtocol, TaskWorkspaceProtocol } from 'src/protocols';
 
 /** Responsibilities: _grouped lint violations formatting_. **/
 export class TaskIssueDocument {
 	private readonly root: string;
-	private readonly workspace: TaskWorkspace;
-	private readonly documentation: TaskDocumentation;
+	private readonly workspace: TaskWorkspaceProtocol;
+	private readonly documentation: TaskDocumentationProtocol;
 
 	/** Responsibilities: _source line formatting_. **/
 	private source_line(file: string, line: number): string {
@@ -137,7 +136,7 @@ export class TaskIssueDocument {
 	}
 
 	/** Responsibilities: _initialization workspace paths task_. **/
-	public constructor(root: string, workspace: TaskWorkspace, documentation: TaskDocumentation) {
+	public constructor(root: string, workspace: TaskWorkspaceProtocol, documentation: TaskDocumentationProtocol) {
 		this.root = root;
 		this.workspace = workspace;
 		this.documentation = documentation;

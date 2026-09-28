@@ -47,6 +47,33 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 		this.instance_collector.collect_parameters();
 	}
 
+	/** Responsibilities: _resolution accessed member name_. **/
+	private access_name(expression: ts.AccessExpression): string {
+		if (ts.isPropertyAccessExpression(expression)) {
+			return expression.name.text;
+		}
+		const argument = expression.argumentExpression;
+		if (!argument) {
+			return '';
+		}
+		if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
+			return argument.text;
+		}
+		return '';
+	}
+
+	/** Responsibilities: _resolution member owner_. **/
+	private member_owner(base_owner: string, name: string): string {
+		if (!base_owner || !name) {
+			return base_owner;
+		}
+		const owner = this.property_state.owner_for(base_owner, name);
+		if (owner) {
+			return owner;
+		}
+		return base_owner;
+	}
+
 	/** Responsibilities: _initialization source AST reference-resolution_. **/
 	public constructor(source_file: ts.SourceFile, ...resolvers: TypeScriptSourceResolver[]) {
 		this.source_file = source_file;
@@ -120,7 +147,7 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 
 	/** Responsibilities: _resolution owner type method_. **/
 	public method_owner(
-		expression: ts.PropertyAccessExpression,
+		expression: ts.AccessExpression,
 		current_owner: string = ''
 	): string {
 		let owner_name = '';
@@ -131,13 +158,10 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 			expression.expression,
 			owner_name
 		);
-		if (!base_owner) {
-			return '';
-		}
-		const owner = this.property_state.owner_for(base_owner, expression.name.text);
-		if (!owner) {
-			return base_owner;
-		}
-		return owner;
+		return this.member_owner(
+			base_owner,
+			this.access_name(expression)
+		);
 	}
+
 }

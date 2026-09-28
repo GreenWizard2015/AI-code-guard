@@ -26,6 +26,17 @@ class MissingUser implements UserLookup {
 }
 ```
 
+Python uses the same named-state boundary:
+
+```py
+class UserLookup(Protocol):
+    def is_found(self) -> bool: ...
+
+class FoundUser(UserLookup):
+    def is_found(self) -> bool:
+        return True
+```
+
 This applies to unions such as `Buffer | string` and intersections such as `Buffer & Metadata` at fields, parameters, and return boundaries. Wrap the representations behind a named interface and specialized classes. It also applies to object-state unions with a string or boolean discriminant.
 
 Literal unions, compiler unions, and primitive unions are also covered. A literal such as `'found'` may remain a field value on the interface, but the contract itself must not branch into a union type.

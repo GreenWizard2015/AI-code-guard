@@ -117,12 +117,10 @@ class PythonOperatorPrecedence:
             return False
         operators: OperatorTypes = set()
         self._append_operators(node, operators, boolean_group)
-        if (
-            boolean_group
-            and ast.Not in operators
-            and self._binary_operator_count(node) < 2
-        ):
-            return False
+        if boolean_group:
+            if ast.Not in operators:
+                if self._binary_operator_count(node) < 2:
+                    return False
         return len(operators) > 1
 
     def _binary_operator_count(self, node: ast.AST) -> int:
@@ -157,12 +155,14 @@ class PythonOperatorPrecedence:
 
     def mixed_boolean_operator(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection mixed boolean precedence_."""
-        if self._boolean_operator(node) and self._mixed(node, True):
-            return [{"line": node.lineno - 1, "kind": "mixed-boolean-precedence"}]
+        if self._boolean_operator(node):
+            if self._mixed(node, True):
+                return [{"line": node.lineno - 1, "kind": "mixed-boolean-precedence"}]
         return []
 
     def mixed_arithmetic_operator(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection mixed arithmetic precedence_."""
-        if self._arithmetic_operator(node) and self._mixed(node, False):
-            return [{"line": node.lineno - 1, "kind": "mixed-arithmetic-precedence"}]
+        if self._arithmetic_operator(node):
+            if self._mixed(node, False):
+                return [{"line": node.lineno - 1, "kind": "mixed-arithmetic-precedence"}]
         return []

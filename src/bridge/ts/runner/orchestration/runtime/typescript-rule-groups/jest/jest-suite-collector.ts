@@ -1,41 +1,75 @@
 import ts from 'typescript';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 import type { JestSuite } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types';
 
 /** Responsibilities: _discovery Jest suites tests_. **/
 export class JestSuiteCollector {
 	private readonly test_names = new Set(['test', 'it']);
+	private readonly modifier_names = new Set(['only', 'skip', 'concurrent', 'fails', 'todo', 'each']);
 	private readonly describe_name = 'describe';
+	private readonly describe_aliases = new TypeScriptExpressionAliases('describe');
+	private readonly test_aliases = new TypeScriptExpressionAliases('test');
+	private readonly it_aliases = new TypeScriptExpressionAliases('it');
+
+	/** Responsibilities: _unwrapping Jest invocation expression_. **/
+	private unwrapped_expression(expression: ts.Expression): ts.Expression {
+		let current = expression;
+		while (true) {
+			if (ts.isParenthesizedExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			return current;
+		}
+	}
+
+	/** Responsibilities: _Jest identifier names_. **/
+	private identifier_call_name(expression: ts.Identifier, node: ts.Node): string {
+		if (this.describe_aliases.receiver(expression, node)) {
+			return this.describe_name;
+		}
+		if (this.test_aliases.receiver(expression, node)) {
+			return 'test';
+		}
+		if (this.it_aliases.receiver(expression, node)) {
+			return 'it';
+		}
+		return expression.text;
+	}
+
+	/** Responsibilities: _Jest property names_. **/
+	private property_call_name(expression: ts.PropertyAccessExpression, node: ts.Node): string {
+		if (!this.modifier_names.has(expression.name.text)) {
+			return '';
+		}
+		const owner = this.unwrapped_expression(expression.expression);
+		return this.call_name(owner, node);
+	}
 
 	/** Responsibilities: _resolution Jest invocation expression_. **/
-	private call_name(expression: ts.Expression): string {
-		if (ts.isIdentifier(expression)) {
-			return expression.text;
+	private call_name(expression: ts.Expression, node: ts.Node): string {
+		const current = this.unwrapped_expression(expression);
+		if (ts.isIdentifier(current)) {
+			return this.identifier_call_name(current, node);
 		}
-		if (!ts.isPropertyAccessExpression(expression)) {
-			return '';
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.property_call_name(current, node);
 		}
-		if (!ts.isIdentifier(expression.name)) {
-			return '';
-		}
-		if (expression.name.text !== 'each') {
-			return '';
-		}
-		if (!ts.isIdentifier(expression.expression)) {
-			return '';
-		}
-		return expression.expression.text;
+		return '';
 	}
 
 	/** Responsibilities: _classification invocation usage Jest_. **/
 	private is_each_factory(node: ts.CallExpression): boolean {
-		if (!ts.isPropertyAccessExpression(node.expression)) {
+		const expression = this.unwrapped_expression(node.expression);
+		if (!ts.isPropertyAccessExpression(expression)) {
 			return false;
 		}
-		if (!ts.isIdentifier(node.expression.name)) {
-			return false;
-		}
-		return node.expression.name.text === 'each';
+		return expression.name.text === 'each';
 	}
 
 	/** Responsibilities: _classification invocation represents Jest_. **/
@@ -43,7 +77,7 @@ export class JestSuiteCollector {
 		if (this.is_each_factory(node)) {
 			return false;
 		}
-		const call_name = this.call_name(node.expression);
+		const call_name = this.call_name(node.expression, node);
 		if (call_name.length > 0 && this.test_names.has(call_name)) {
 			return true;
 		}
@@ -58,7 +92,7 @@ export class JestSuiteCollector {
 		const tests: ts.CallExpression[] = [];
 		const visit = (child: ts.Node): void => {
 				if (ts.isCallExpression(child)) {
-					if (this.call_name(child.expression) === this.describe_name) {
+					if (this.call_name(child.expression, child) === this.describe_name) {
 					return;
 					}
 			}
@@ -106,7 +140,7 @@ export class JestSuiteCollector {
 		const suites: JestSuite[] = [];
 		const visit = (node: ts.Node, nested: boolean): void => {
 			if (ts.isCallExpression(node)) {
-				if (this.call_name(node.expression) !== this.describe_name) {
+				if (this.call_name(node.expression, node) !== this.describe_name) {
 					ts.forEachChild(node, child => visit(child, nested));
 					return;
 				}

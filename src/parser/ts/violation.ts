@@ -1,4 +1,4 @@
-import type { ViolationOptions } from 'src/types';
+import type { ReportViolation } from 'src/types';
 
 /** Responsibilities: _diagnostic violation data storage_, _adjusted violation copies creation_. **/
 export class Violation {
@@ -10,7 +10,7 @@ export class Violation {
 	public readonly priority: number;
 
 	/** Responsibilities: _diagnostic violation initialization_. **/
-	public constructor(options: ViolationOptions) {
+	public constructor(options: ReportViolation) {
 		this.file = options.file;
 		this.line = options.line;
 		this.message = options.message;
@@ -25,7 +25,7 @@ export class Violation {
 	}
 
 	/** Responsibilities: _output violation construction details_. **/
-	public details(): ViolationOptions {
+	public details(): ReportViolation {
 		return {
 			file: this.file,
 			line: this.line,

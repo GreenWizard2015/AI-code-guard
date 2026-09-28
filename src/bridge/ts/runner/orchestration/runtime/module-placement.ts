@@ -28,7 +28,10 @@ export class ModulePlacementAnalyzer {
 				continue;
 			}
 			const importer_name = this.context.source_record(importer).file_name;
-			if (!importer_name.product() || importer_name.is_functions_file) {
+			if (!importer_name.product()) {
+				continue;
+			}
+			if (importer_name.is_functions_file) {
 				continue;
 			}
 			this.append_imports(result, importer);

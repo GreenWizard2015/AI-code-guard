@@ -5,10 +5,8 @@ import { SharedParameterAdapter } from 'src/metrics/shared-parameter-adapter';
 import { SharedParameterAnalyzer } from 'src/metrics/shared-parameter-analyzer';
 import type { AnalyzedCallable } from 'src/metrics/types';
 import { SharedParameterReporter } from 'src/metrics/shared-parameter-reporter';
-import type { Violation } from 'src/protocols';
-import type { LintProjectContext } from 'src/protocols';
+import type { LintProjectContext, LintStageTimerProtocol, Violation } from 'src/protocols';
 import { ModulePlacementAnalyzer } from 'src/bridge/ts/runner/orchestration/runtime/module-placement';
-import type { LintStageTimer } from 'src/bridge/ts/core/stage-timing';
 import { TestFrameworkConsistency } from 'src/bridge/ts/runner/orchestration/runtime/python/test-framework-consistency';
 
 /** Responsibilities: _execution project-wide class composition_. **/
@@ -75,7 +73,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time collection project-wide class-field_. **/
-	private class_fields_stage(stage_timer: LintStageTimer): Violation[] {
+	private class_fields_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const class_rules = new ClassRules();
 		return stage_timer.measure(
 			'global-analysis.class-fields',
@@ -87,7 +85,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time collection composition violations_. **/
-	private composition_stage(stage_timer: LintStageTimer): Violation[] {
+	private composition_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const composition = new Composition();
 		return stage_timer.measure(
 			'global-analysis.composition',
@@ -96,7 +94,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time collection callable usage_. **/
-	private callable_usage_stage(stage_timer: LintStageTimer): Violation[] {
+	private callable_usage_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const callable_usage = new CallableUsage();
 		return stage_timer.measure(
 			'global-analysis.callable-usage',
@@ -105,7 +103,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time shared-parameter analysis_. **/
-	private parameters_stage(stage_timer: LintStageTimer): Violation[] {
+	private parameters_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		return stage_timer.measure(
 			'global-analysis.shared-parameters',
 			() => this.parameter_violations()
@@ -113,7 +111,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time collection module-placement violations_. **/
-	private module_placement_stage(stage_timer: LintStageTimer): Violation[] {
+	private module_placement_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const module_placement = new ModulePlacementAnalyzer(
 			this.repo_root,
 			this.project_files,
@@ -127,7 +125,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _time collection Python test-framework_. **/
-	private test_framework_stage(stage_timer: LintStageTimer): Violation[] {
+	private test_framework_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		return stage_timer.measure(
 			'global-analysis.test-framework',
 			() => this.test_framework_consistency.violations(this.context)
@@ -150,7 +148,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _execution project-wide analysis stages_. **/
-	public collect(stage_timer: LintStageTimer): Violation[] {
+	public collect(stage_timer: LintStageTimerProtocol): Violation[] {
 		return [
 			...this.class_fields_stage(stage_timer),
 			...this.composition_stage(stage_timer),
@@ -162,7 +160,7 @@ export class GlobalViolationCollector {
 	}
 
 	/** Responsibilities: _collection project-wide violations retention_. **/
-	public collect_for(target_files: ReadonlySet<string>, stage_timer: LintStageTimer): Violation[] {
+	public collect_for(target_files: ReadonlySet<string>, stage_timer: LintStageTimerProtocol): Violation[] {
 		const violations = this.collect(stage_timer);
 		if (target_files.size === 0) {
 			return [];

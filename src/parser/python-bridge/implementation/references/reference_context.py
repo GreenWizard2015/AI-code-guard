@@ -1,14 +1,18 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Callable
 
 
 import ast
 
 from implementation.references.constants import UNKNOWN_OWNER_TYPES
+from implementation.references.call_return_state_adapter import PythonCallReturnStateAdapter
+from implementation.references.protocols import PythonCallReturnStateProtocol
 
 
 class PythonReferenceContext:
     """Responsibilities: _Python attribute result resolution_."""
+
+    call_return_state: PythonCallReturnStateProtocol
 
     def _call_owner(self, value: ast.Call, current_owner: str) -> str:
         """Responsibilities: _resolution owner output invocation_."""
@@ -34,21 +38,36 @@ class PythonReferenceContext:
         key: Any = function.attr
         if owner:
             key: Any = f"{owner}.{function.attr}"
-        return self.call_returns.get(key, "")
+        return self.call_return_state.value(key)
 
     def __init__(
         self,
         aliases: dict[str, str],
         instances: dict[str, str],
         properties: dict[str, str],
-        call_returns: dict[str, str],
+        call_return_state: PythonCallReturnStateProtocol,
     ) -> None:
         """Responsibilities: _initialization aliases instances properties_."""
         self.aliases: Any = aliases
         self.instances: Any = instances
         self.properties: Any = properties
-        self.call_returns: Any = call_returns
-        self.aliases: Any = aliases
+        self.call_return_state: PythonCallReturnStateProtocol = PythonCallReturnStateAdapter(
+            call_return_state
+        )
+        self.record_instance: Callable[[str, str], None] = self.instances.__setitem__
+        self.record_property: Callable[[str, str], None] = self.properties.__setitem__
+
+    def annotation_aliases(self) -> dict[str, str]:
+        """Responsibilities: _output annotation aliases_."""
+        return dict(self.aliases)
+
+    def instance_owner(self, name: str) -> str:
+        """Responsibilities: _resolution instance owner_."""
+        return self.instances.get(name, "")
+
+    def property_owner(self, key: str) -> str:
+        """Responsibilities: _resolution property owner_."""
+        return self.properties.get(key, "")
 
     def attribute_owner(self, value: ast.AST, current_owner: str) -> str:
         """Responsibilities: _resolution owner represented attribute_."""
@@ -73,7 +92,7 @@ class PythonReferenceContext:
         """Responsibilities: _resolution owner output callable_."""
         if type(function) is not ast.Name:
             return ""
-        owner: Any = self.call_returns.get(function.id, "")
+        owner: Any = self.call_return_state.value(function.id)
         if owner or not fallback_to_name:
             return owner
         return self.aliases.get(function.id, function.id)

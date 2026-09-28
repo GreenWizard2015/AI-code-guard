@@ -1,32 +1,27 @@
 import { ConstructorRules } from 'src/bridge/ts/runner/constructor-rules';
-import { ProxyRules } from 'src/bridge/ts/runner/proxy-rules';
+import { TypeScriptProxyExpressions } from 'src/bridge/ts/runner/proxy-expressions';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 import ts from 'typescript';
-
 
 /** Responsibilities: _classification TypeScript declarations static_. **/
 export class DeclarationPredicates {
 	private readonly static_kind = ts.SyntaxKind.StaticKeyword;
 	private readonly assignment_kind = ts.SyntaxKind.EqualsToken;
+	private readonly object_aliases = new TypeScriptExpressionAliases('Object');
+	private readonly reflect_aliases = new TypeScriptExpressionAliases('Reflect');
 
 	/** Responsibilities: _classification method declaration static_. **/
-	private has_static_method(node: ts.MethodDeclaration): boolean {
-		if (node.modifiers === undefined) {
+	private has_static_method(node: ts.HasModifiers): boolean {
+		const modifiers = ts.getModifiers(node);
+		if (modifiers === undefined) {
 			return false;
 		}
-		return node.modifiers.some(modifier => modifier.kind === this.static_kind);
-	}
-
-	/** Responsibilities: _classification property declaration static_. **/
-	private has_static_field(node: ts.PropertyDeclaration): boolean {
-		if (node.modifiers === undefined) {
-			return false;
-		}
-		return node.modifiers.some(modifier => modifier.kind === this.static_kind);
+		return modifiers.some(modifier => modifier.kind === this.static_kind);
 	}
 
 	/** Responsibilities: _classification assignment targets prototype_. **/
 	private has_prototype_target(node: ts.Node): boolean {
-		const proxy_rules = new ProxyRules();
+		const proxy_expressions = new TypeScriptProxyExpressions();
 
 if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== this.assignment_kind) {
 			return false;
@@ -34,7 +29,21 @@ if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== this.assignment_
 		if (!ts.isPropertyAccessExpression(node.left)) {
 			return false;
 		}
-		return proxy_rules.property_chain(node.left).includes('prototype');
+		return proxy_expressions.contains_property(node.left, 'prototype');
+	}
+
+	/** Responsibilities: _classification prototype mutation calls_. **/
+	private prototype_call(node: ts.Node): boolean {
+		if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+			return false;
+		}
+		if (node.expression.name.text !== 'setPrototypeOf') {
+			return false;
+		}
+		if (this.object_aliases.receiver(node.expression.expression, node)) {
+			return true;
+		}
+		return this.reflect_aliases.receiver(node.expression.expression, node);
 	}
 
 	/** Responsibilities: _reporting static method field_. **/
@@ -42,14 +51,27 @@ if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== this.assignment_
 		if (ts.isMethodDeclaration(node)) {
 			return this.has_static_method(node);
 		}
+		if (ts.isGetAccessor(node)) {
+			return this.has_static_method(node);
+		}
+		if (ts.isSetAccessor(node)) {
+			return this.has_static_method(node);
+		}
 		if (ts.isPropertyDeclaration(node)) {
-			return this.has_static_field(node);
+			const modifiers = ts.getModifiers(node);
+			if (modifiers === undefined) {
+				return false;
+			}
+			return modifiers.some(modifier => modifier.kind === this.static_kind);
 		}
 		return false;
 	}
 
 	/** Responsibilities: _reporting assignments prototype members_. **/
 	public prototype_assignment(node: ts.Node): boolean {
+		if (this.prototype_call(node)) {
+			return true;
+		}
 		if (!ts.isBinaryExpression(node)) {
 			return false;
 		}

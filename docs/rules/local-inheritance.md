@@ -7,3 +7,7 @@ class CachedClient(BaseClient): ...
 ```
 
 **Fix:** Prefer composition and dependency injection; implement a protocol when a shared contract is needed.
+
+```ts
+class CachedClient extends BaseClient {}
+```

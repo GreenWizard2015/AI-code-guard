@@ -7,11 +7,12 @@ export default {
   // The sources live in src/, while the tests retain the historical
   // tools/coding-lint/ import paths.
   moduleNameMapper: {
+    '^functions$': '<rootDir>/functions.ts',
     '^(.*/)?tools/coding-lint/(.*)$': '<rootDir>/src/$2',
     '^src/(.*)$': '<rootDir>/src/$1',
     '^tests/(.*)$': '<rootDir>/tests/$1',
   },
   testEnvironment: 'node',
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.spec.ts', '<rootDir>/__tests__/**/*.ts'],
   testTimeout: 10000,
 };

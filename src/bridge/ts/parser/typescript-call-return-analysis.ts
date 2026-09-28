@@ -37,8 +37,10 @@ if (ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) {
 			if (next.length === 0) {
 				return [current];
 			}
-			const unwrapped = next[0];
-			current = unwrapped;
+			for (const unwrapped of next) {
+				current = unwrapped;
+				break;
+			}
 		}
 	}
 

@@ -14,4 +14,12 @@ if (response.result !== undefined) {
 return response;
 ```
 
+Python response branching is covered too:
+
+```py
+if response.content is not None:
+    return response.content
+return response
+```
+
 **Fix:** Normalize the upstream response once at the transport boundary.

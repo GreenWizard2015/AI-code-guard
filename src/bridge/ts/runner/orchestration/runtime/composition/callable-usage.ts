@@ -5,8 +5,8 @@ import type { LintSourceRecord } from 'src/types';
 import type { AstClassNode } from 'src/types';
 import { PROPERTY_DECORATORS } from 'src/bridge/ts/runner/orchestration/runtime/composition/constants';
 import type { CallableIndexes, CallableUsageCollectorState } from 'src/bridge/ts/runner/orchestration/runtime/composition/types';
-import { LintStageTimer } from 'src/bridge/ts/core/stage-timing';
-import { CallableMethodCounts } from 'src/bridge/ts/runner/orchestration/runtime/callable-method-counts';
+import type { LintStageTimerProtocol } from 'src/protocols';
+import { CallableMethodCounts } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts';
 import { CallableViolationCollector } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-violation-collector';
 import { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
 
@@ -138,7 +138,7 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _source record preparation_. **/
 	private parsed_sources(
 		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): ParsedFile[] {
 		return stage_timer.measure(
 			'global-analysis.callable-usage.parsed-files',
@@ -152,7 +152,7 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _production source records selection_. **/
 	private production_sources(
 		parsed_files: ParsedFile[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): ParsedFile[] {
 		const test_path_syntax = new TestPathSyntax();
 		return stage_timer.measure(
@@ -164,7 +164,7 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _production callable definitions collection_. **/
 	private callable_definitions_for(
 		production_files: ParsedFile[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): CallableDefinition[] {
 		return stage_timer.measure(
 			'global-analysis.callable-usage.definitions',
@@ -186,7 +186,7 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _construction callable usage collector_. **/
 	private collector_state(
 		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): CallableUsageCollectorState {
 		const parsed_files = this.parsed_sources(sources, stage_timer);
 		stage_timer.measure(
@@ -213,7 +213,7 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _collection timed callable usage_. **/
 	public collect_timed_usage(
 		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimer
+		stage_timer: LintStageTimerProtocol
 	): Violation[] {
 		const state = stage_timer.measure(
 			'global-analysis.callable-usage.state',

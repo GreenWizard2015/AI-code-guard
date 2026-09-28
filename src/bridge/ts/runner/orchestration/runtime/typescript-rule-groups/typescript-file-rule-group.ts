@@ -26,15 +26,13 @@ export class TypeScriptFileRuleGroup implements TypeScriptRuleGroupContract {
 	/** Responsibilities: _aggregation class structure class_. **/
 	private append_class_rules(violations: Violation[]): void {
 		const class_indexes = this.class_indexes();
-		if (class_indexes.length > 0) {
-			this.class_rules.append_typescript_classes(
-				violations,
-				this.context.file_name.value,
-				this.context.lines,
-				this.context.ast_file.source_file,
-				class_indexes,
-			);
-		}
+		this.class_rules.append_typescript_classes(
+			violations,
+			this.context.file_name.value,
+			this.context.lines,
+			this.context.ast_file.source_file_node(),
+			class_indexes,
+		);
 	}
 
 	/** Responsibilities: _aggregation contract type-shape violations_. **/

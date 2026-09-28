@@ -8,3 +8,7 @@ ready && client.send(message);
 
 **Fix:** Use an explicit `if`; boolean-only logical expressions are allowed.
 
+```py
+if ready:
+    client.send(message)
+```

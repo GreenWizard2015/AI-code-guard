@@ -4,8 +4,9 @@ import { PythonClassFieldScanner } from 'src/bridge/ts/rules/python-class-field-
 import type { LintProjectContext, Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import { TypeScriptClassFieldRules } from 'src/model/typescript-class-field-rules';
+import { NestedTypeStructure } from 'src/bridge/ts/rules/nested-type-structure';
 import type { ClassFieldFiles, LintSourceRecord } from 'src/types';
-import type { ClassSummaryOptions } from 'src/bridge/ts/rules/types';
+import type { ClassSummaryOptions, PythonClassSummaryOptions } from 'src/bridge/ts/rules/types';
 import ts from 'typescript';
 
 
@@ -13,6 +14,7 @@ import ts from 'typescript';
 export class ClassRules {
 	private readonly exception_rule_id = 'exception-grouping';
 	private readonly top_rule_id = 'top-level-classes';
+	private readonly nested_type_structure = new NestedTypeStructure();
 
 	/** Responsibilities: _exception grouping addition_. **/
 	private append_exception_info(options: ClassSummaryOptions): void {
@@ -145,14 +147,23 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 
 	/** Responsibilities: _Python class diagnostics addition_. **/
 	public append_python_classes(
-		violations: Violation[],
-		file: string,
-		lines: string[],
-		parsed_indexes: number[],
-		has_module_functions: boolean,
+		options: PythonClassSummaryOptions,
 	): void {
+		const {
+			violations,
+			file,
+			lines,
+			parsed_indexes,
+			has_module_functions,
+			has_implementation_classes,
+			type_declarations,
+		} = options;
 		const class_structure = new ClassStructure();
 
+		this.nested_type_structure.append_python_types(violations, file, lines, type_declarations);
+		if (!has_implementation_classes) {
+			return;
+		}
 		class_structure.append_nested_class(violations, file, lines, true);
 		this.append_class_summary({ violations, file, lines, python: true, parsed_indexes, has_module_functions });
 	}
@@ -167,6 +178,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 	): void {
 		const class_structure = new ClassStructure();
 		class_structure.append_nested_class(violations, file, lines, false, source_file);
+		this.nested_type_structure.append_nested_types(violations, file, source_file);
 		this.append_class_summary({
 			violations,
 			file,

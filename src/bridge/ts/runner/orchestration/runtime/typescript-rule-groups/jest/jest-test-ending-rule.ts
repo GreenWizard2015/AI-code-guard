@@ -1,22 +1,27 @@
 import ts from 'typescript';
+import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _inspection Jest test callbacks_. **/
 export class JestTestEndingRule {
-	private readonly expect_name = 'expect';
+	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
 
 	/** Responsibilities: _classification expression directly invokes_. **/
-	private expect_expression(expression: ts.Expression): boolean {
-		if (ts.isAwaitExpression(expression)) {
-			return this.expect_expression(expression.expression);
+	private expect_expression(expression: ts.Expression, node: ts.Node): boolean {
+		const current = this.expect_aliases.unwrapped(expression);
+		if (ts.isAwaitExpression(current)) {
+			return this.expect_expression(current.expression, node);
 		}
-		if (ts.isCallExpression(expression)) {
-if (ts.isIdentifier(expression.expression) && expression.expression.text === this.expect_name) {
-				return true;
+		if (ts.isCallExpression(current)) {
+			const callee = this.expect_aliases.unwrapped(current.expression);
+			if (ts.isIdentifier(callee)) {
+				if (this.expect_aliases.receiver(callee, node)) {
+					return true;
+				}
 			}
-			return this.expect_expression(expression.expression);
+			return this.expect_expression(callee, node);
 		}
-		if (ts.isPropertyAccessExpression(expression)) {
-			return this.expect_expression(expression.expression);
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.expect_expression(current.expression, node);
 		}
 		return false;
 	}
@@ -26,12 +31,11 @@ if (ts.isIdentifier(expression.expression) && expression.expression.text === thi
 		const calls: ts.CallExpression[] = [];
 		const visit = (node: ts.Node): void => {
 			if (ts.isCallExpression(node)) {
-				let is_expect_call = false;
-				if (ts.isIdentifier(node.expression)) {
-					is_expect_call = node.expression.text === this.expect_name;
-				}
-				if (is_expect_call) {
-					calls.push(node);
+				const callee = this.expect_aliases.unwrapped(node.expression);
+				if (ts.isIdentifier(callee)) {
+					if (this.expect_aliases.receiver(callee, node)) {
+						calls.push(node);
+					}
 				}
 			}
 			ts.forEachChild(node, visit);
@@ -46,7 +50,7 @@ if (ts.isIdentifier(expression.expression) && expression.expression.text === thi
 		while (current.parent !== undefined && current.parent !== body) {
 			current = current.parent;
 		}
-		return ts.isExpressionStatement(current) && this.expect_expression(current.expression);
+		return ts.isExpressionStatement(current) && this.expect_expression(current.expression, current);
 	}
 
 	/** Responsibilities: _classification test body ends_. **/
@@ -57,12 +61,12 @@ if (ts.isIdentifier(expression.expression) && expression.expression.text === thi
 		let found_expect = false;
 		for (const statement of body.statements) {
 			if (!found_expect) {
-if (ts.isExpressionStatement(statement) && this.expect_expression(statement.expression)) {
+			if (ts.isExpressionStatement(statement) && this.expect_expression(statement.expression, statement)) {
 					found_expect = true;
 				}
 				continue;
 			}
-if (!ts.isExpressionStatement(statement) || !this.expect_expression(statement.expression)) {
+			if (!ts.isExpressionStatement(statement) || !this.expect_expression(statement.expression, statement)) {
 				return false;
 			}
 		}

@@ -1,7 +1,7 @@
 import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from 'src/metrics/types';
 import type { AstClassNode, CallableOwnershipResolver } from 'src/types';
 import { CallableOwnershipGraph } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership-graph';
-import type { TypeMemberEntry } from 'src/bridge/ts/runtime/types';
+import type { TypeMemberEntry } from 'src/types';
 
 /** Responsibilities: _classification callable ownership through_. **/
 export class CallableOwnership {
@@ -15,7 +15,10 @@ export class CallableOwnership {
 			}
 			const class_node = file.ast.classes.find(item => item.name === definition.node.owner);
 			if (class_node !== undefined) {
-return class_node.extends_external_class || this.external_protocol(class_node, definition.file, parsed_files);
+				if (class_node.extends_external_class) {
+					return true;
+				}
+				return this.external_protocol(class_node, definition.file, parsed_files);
 			}
 		}
 		return false;

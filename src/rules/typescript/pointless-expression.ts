@@ -10,7 +10,7 @@ export class PointlessExpression {
 		if (!first) {
 			return '';
 		}
-		if (!('name' in first)) {
+		if (!ts.isBindingElement(first)) {
 			return '';
 		}
 		return this.binding_name(first.name);

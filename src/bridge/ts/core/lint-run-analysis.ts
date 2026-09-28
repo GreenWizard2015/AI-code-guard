@@ -1,21 +1,21 @@
 import { relative } from 'node:path';
-import type { LintAnalysisStage, LintRunResult } from 'src/bridge/ts/runtime/types';
+import type { LintAnalysisStage, LintRunResult } from 'src/types';
 import { DirectoryRules } from 'src/bridge/ts/rules/support/directory-rules';
 import { FileLinter } from 'src/bridge/ts/runner/orchestration/runtime/file-lint';
 import { GlobalViolationCollector } from 'src/bridge/ts/runner/orchestration/runtime/global-violations';
-import { MarkdownFileDiscovery } from 'src/bridge/ts/core/markdown-file-discovery';
+import { TextFileDiscovery } from 'src/bridge/ts/core/markdown-file-discovery';
 import type { Violation } from 'src/protocols';
 
 /** Responsibilities: _directory analysis coordination_, _file analysis coordination_, _global analysis coordination_. **/
 export class LintRunAnalysis {
 	private readonly directory_rules = new DirectoryRules();
-	private readonly markdown_files = new MarkdownFileDiscovery();
+	private readonly text_files = new TextFileDiscovery();
 
-	/** Responsibilities: _Markdown violations collection_. **/
-	private collect_markdown(stage: LintAnalysisStage): Violation[] {
+	/** Responsibilities: _text violations collection_. **/
+	private collect_text(stage: LintAnalysisStage): Violation[] {
 		return stage.stage_timer.measure(
 			'markdown-analysis',
-			() => this.markdown_files.violations(
+			() => this.text_files.violations(
 				stage.state.repo_root,
 				stage.state.ignored_directories,
 			),
@@ -44,8 +44,10 @@ export class LintRunAnalysis {
 	public collect_file(stage: LintAnalysisStage): Violation[] {
 		const state = stage.state;
 		const file_linter = new FileLinter({
+			repo_root: state.repo_root,
 			project_class_names: state.project_class_names,
 			project_protocol_names: state.project_protocol_names,
+			project_interface_names: state.project_interface_names,
 			project_type_names: state.project_type_names,
 			project_contract_names: state.project_contract_names,
 			context: state.context,
@@ -75,10 +77,10 @@ export class LintRunAnalysis {
 		const directory_violations = stage.stage_timer.measure('directory-analysis', () => this.collect_directory(stage));
 		const file_violations = stage.stage_timer.measure('file-analysis', () => this.collect_file(stage));
 		const global_violations = stage.stage_timer.measure('global-analysis', () => this.collect_global(stage));
-		const markdown_violations = this.collect_markdown(stage);
+		const text_violations = this.collect_text(stage);
 		return {
 			files: stage.state.files,
-			violations: [...directory_violations, ...file_violations, ...global_violations, ...markdown_violations],
+			violations: [...directory_violations, ...file_violations, ...global_violations, ...text_violations],
 		};
 	}
 }

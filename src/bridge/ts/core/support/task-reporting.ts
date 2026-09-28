@@ -1,4 +1,4 @@
-import type { ReportViolation, LintTaskPolicy, TaskReportingOptions } from 'src/bridge/ts/core/types';
+import type { ReportViolation, LintTaskPolicy, TaskReportingOptions } from 'src/types';
 import { REPORTING_PROJECT_ROOT } from 'src/constants';
 import { ReportStatus } from 'src/bridge/ts/core/report-status';
 import { TaskFileSelector } from 'src/bridge/ts/core/support/task/task-file-selector';

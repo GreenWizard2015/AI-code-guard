@@ -1,4 +1,5 @@
 import { TypeScriptBooleanCall } from 'src/bridge/ts/parser-internals/typescript-boolean-call';
+import { TypeScriptVariableBinding } from 'src/bridge/ts/runner/typescript-variable-binding';
 import ts from 'typescript';
 import {
 	BOOLEAN_OPERATOR_KINDS,
@@ -8,6 +9,7 @@ import {
 /** Responsibilities: _resolution boolean properties declarations_. **/
 export class TypeScriptBooleanExpression {
 	private readonly boolean_call = new TypeScriptBooleanCall();
+	private readonly variable_bindings = new Map<ts.SourceFile, TypeScriptVariableBinding>();
 	private readonly comparison_operator_kinds = COMPARISON_OPERATOR_KINDS;
 	private readonly boolean_operator_kinds = BOOLEAN_OPERATOR_KINDS;
 
@@ -42,7 +44,7 @@ export class TypeScriptBooleanExpression {
 			return this.boolean_binary_expression(node, source_file);
 		}
 		if (ts.isIdentifier(node)) {
-			return this.boolean_binding(node.text, source_file);
+			return this.boolean_binding(node.text, source_file, node);
 		}
 		if (ts.isPropertyAccessExpression(node)) {
 			return this.boolean_property(node.name.text, source_file);
@@ -71,18 +73,17 @@ export class TypeScriptBooleanExpression {
 	}
 
 	/** Responsibilities: _classification binding resolution boolean_. **/
-	private boolean_binding(name: string, source_file: ts.SourceFile): boolean {
-		for (const statement of source_file.statements) {
-			if (!ts.isVariableStatement(statement)) {
-				continue;
-			}
-			for (const declaration of statement.declarationList.declarations) {
-				if (this.boolean_declaration(declaration, name, source_file)) {
-					return true;
-				}
-			}
+	private boolean_binding(name: string, source_file: ts.SourceFile, reference: ts.Node): boolean {
+		let bindings = this.variable_bindings.get(source_file);
+		if (bindings === undefined) {
+			bindings = new TypeScriptVariableBinding(source_file);
+			this.variable_bindings.set(source_file, bindings);
 		}
-		return false;
+		const declaration = bindings.declaration(name, reference);
+		if (!ts.isVariableDeclaration(declaration)) {
+			return false;
+		}
+		return this.boolean_declaration(declaration, name, source_file);
 	}
 
 	/** Responsibilities: _classification declaration establishes boolean_. **/

@@ -46,3 +46,13 @@ class Client {
 ```
 
 **Fix:** Move behavior into a focused collaborator and inject it through composition. Use a narrow interface or protocol for a shared contract instead of inheriting implementation.
+
+```py
+class LoggingMixin:
+    def log(self, message: str) -> None:
+        print(message)
+
+
+class Client(LoggingMixin):
+    pass
+```

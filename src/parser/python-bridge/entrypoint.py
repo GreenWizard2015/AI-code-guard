@@ -6,11 +6,13 @@ import json
 from typing import Any, BinaryIO, TextIO
 
 from implementation.ast.ast_bridge import PythonAstBridge
+from implementation.ast.protocols import PythonAstBridgeProtocol
 from implementation.ast.ast_parser import PythonAstTree
 from bridge_arguments import PythonBridgeArguments
+from bridge_batch_result import PythonBatchResult
 from bridge_input import PythonBridgeInput
 from bridge_output import PythonBridgeOutput
-from implementation.types import JsonObject, JsonValue
+from implementation.types import JsonObject
 
 
 class PythonBridgeEntrypoint:
@@ -39,21 +41,20 @@ class PythonBridgeEntrypoint:
 
     def _worker_batch(self, request: JsonObject, output_buffer: BinaryIO) -> None:
         """Responsibilities: _batch request parsing_."""
-        batch_id = request["batchId"]
+        batch = PythonBatchResult(request["batchId"])
         sources: dict[str, str] = request["sources"]
-        asts: dict[str, JsonValue] = {}
         for name, source in sources.items():
-            asts[name] = self.bridge.source_ast(source)
-        self._worker_write(output_buffer, {"batchId": batch_id, "asts": asts})
+            batch.add(name, self.bridge.source_ast_timed(source))
+        self._worker_write(output_buffer, batch.result())
 
     def __init__(
         self,
-        bridge: PythonAstBridge,
+        bridge: PythonAstBridgeProtocol,
         input_stream: TextIO,
         output_stream: TextIO,
     ) -> None:
         """Responsibilities: _initialization input output streams_."""
-        self.bridge: PythonAstBridge = bridge
+        self.bridge: PythonAstBridgeProtocol = bridge
         self.input_stream: TextIO = input_stream
         self.output_stream: TextIO = output_stream
         self.output: PythonBridgeOutput = PythonBridgeOutput(output_stream)

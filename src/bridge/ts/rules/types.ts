@@ -3,6 +3,7 @@ import type {
 	AstClassNode,
 	AstSourceSpan,
 	ImportedFunction,
+	NamedLine,
 	NormalizedAstFile,
 } from 'src/types';
 import type { Violation } from 'src/protocols';
@@ -42,6 +43,16 @@ export type ClassSummaryOptions = {
 	parsed_indexes: number[];
 	has_module_functions: boolean;
 };
+
+export type PythonClassSummaryOptions = {
+	violations: Violation[];
+	file: string;
+	lines: string[];
+	parsed_indexes: number[];
+	has_module_functions: boolean;
+	has_implementation_classes: boolean;
+	type_declarations: readonly NamedLine[];
+}
 
 export type CyrillicQuoteDelimiter = "'" | '"';
 

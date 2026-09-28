@@ -28,7 +28,9 @@ class PythonDefaultParameterIssues:
 
     def _is_primitive_default(self, value: ast.AST) -> bool:
         """Responsibilities: _primitive default values classification_."""
-        if self._empty_container(value) or self._signed_number(value):
+        if self._empty_container(value):
+            return True
+        if self._signed_number(value):
             return True
         if type(value) is not ast.Constant:
             return False

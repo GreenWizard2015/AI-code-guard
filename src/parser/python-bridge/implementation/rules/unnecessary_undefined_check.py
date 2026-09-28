@@ -1,9 +1,17 @@
 from __future__ import annotations
 from typing import Any
+from dataclasses import dataclass
 
 import ast
 from implementation.rules.undefined_check_state import UndefinedCheckState
 from implementation.types import JsonObject
+
+@dataclass(frozen=True)
+class AttributePath:
+    """Responsibilities: _attribute path state_."""
+
+    names: list[str]
+    base: ast.AST
 
 
 class PythonUnnecessaryUndefinedCheck:
@@ -23,18 +31,19 @@ class PythonUnnecessaryUndefinedCheck:
 
     def _union_annotation_none(self, annotation: ast.expr) -> bool:
         """Responsibilities: _classification union annotation includes_."""
-        if type(annotation) is not ast.BinOp or type(annotation.op) is not ast.BitOr:
+        if type(annotation) is not ast.BinOp:
             return False
-        return self._annotation_none(annotation.left) or self._annotation_none(
-            annotation.right
-        )
+        if type(annotation.op) is not ast.BitOr:
+            return False
+        if self._annotation_none(annotation.left):
+            return True
+        return self._annotation_none(annotation.right)
 
     def _subscript_annotation_none(self, annotation: ast.expr) -> bool:
         """Responsibilities: _classification generic annotation includes_."""
-        if (
-            type(annotation) is not ast.Subscript
-            or type(annotation.value) is not ast.Name
-        ):
+        if type(annotation) is not ast.Subscript:
+            return False
+        if type(annotation.value) is not ast.Name:
             return False
         if annotation.value.id not in {"Optional", "Union"}:
             return False
@@ -43,6 +52,15 @@ class PythonUnnecessaryUndefinedCheck:
             values = annotation.slice.elts
         return any(self._annotation_none(value) for value in values)
 
+    def _attribute_path(self, attribute: ast.Attribute) -> AttributePath:
+        """Responsibilities: _attribute path extraction_."""
+        path: list[str] = []
+        current: ast.AST = attribute
+        while type(current) is ast.Attribute:
+            path.append(current.attr)
+            current = current.value
+        return AttributePath(path, current)
+
     def _field_annotation(
         self,
         attribute: ast.Attribute,
@@ -50,15 +68,20 @@ class PythonUnnecessaryUndefinedCheck:
         fields: dict,
     ) -> ast.expr:
         """Responsibilities: _resolution annotation field referenced_."""
-        if type(attribute.value) is not ast.Name:
+        attribute_path = self._attribute_path(attribute)
+        path = attribute_path.names
+        current = attribute_path.base
+        if type(current) is not ast.Name:
             return ast.Constant(value=None)
-        annotation: Any = bindings.get(attribute.value.id)
-        if type(annotation) is not ast.Name:
-            return ast.Constant(value=None)
-        field: Any = fields.get(annotation.id, {}).get(attribute.attr)
-        if field is None:
-            return ast.Constant(value=None)
-        return field
+        annotation: Any = bindings.get(current.id)
+        for field_name in reversed(path):
+            if type(annotation) is not ast.Name:
+                return ast.Constant(value=None)
+            field: Any = fields.get(annotation.id, {}).get(field_name)
+            if field is None:
+                return ast.Constant(value=None)
+            annotation = field
+        return annotation
 
     def _is_none_comparison(self, node: ast.Compare) -> bool:
         """Responsibilities: _classification comparison against None_."""
@@ -91,13 +114,16 @@ class PythonUnnecessaryUndefinedCheck:
             node.left, self.state.bindings, self.state.fields
         )
         is_none_constant = type(annotation) is ast.Constant
-        if is_none_constant and annotation.value is None:
-            return False
+        if is_none_constant:
+            if annotation.value is None:
+                return False
         return not self._annotation_none(annotation)
 
     def collect_checks(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection unnecessary undefined-check diagnostics_."""
         is_comparison = type(node) is ast.Compare
-        if not is_comparison or not self.detected(node):
+        if not is_comparison:
+            return []
+        if not self.detected(node):
             return []
         return [{"line": node.lineno - 1, "kind": "unnecessary-undefined-check"}]

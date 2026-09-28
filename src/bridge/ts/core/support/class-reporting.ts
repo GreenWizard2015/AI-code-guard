@@ -2,7 +2,7 @@ import { CallableMetrics } from 'src/metrics/callable-metrics';
 import type { Violation } from 'src/protocols';
 import type { AstClassNode, LintFileNameContract } from 'src/types';
 import { MethodSpecializationReporter } from 'src/bridge/ts/core/support/class-specialization-reporter';
-import type { MaxMethodMetricInput } from 'src/bridge/ts/core/types';
+import type { MaxMethodMetricInput } from 'src/types';
 
 /** Responsibilities: _reporting callable metrics test_. **/
 export class ClassReporting {
