@@ -114,7 +114,9 @@ class PythonExceptionAliasState:
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(target, value, references_only=False)
+                self.assignment_aliases.target_values(
+                    target, value, references_only=False
+                )
             )
         for target, source in target_values.items():
             if self._multi_source(source):
@@ -139,9 +141,15 @@ class PythonExceptionAliasState:
         self.module_names: set[str] = {"builtins"}
         self.multi_exception_names: set[str] = set()
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
-        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
-        self.container_values: PythonContainerValues = PythonContainerValues(self.container_aliases)
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(
+            self.container_aliases
+        )
+        self.container_values: PythonContainerValues = PythonContainerValues(
+            self.container_aliases
+        )
 
     def configure_imports(self, tree: ast.AST) -> None:
         """Responsibilities: _exception alias configuration_."""

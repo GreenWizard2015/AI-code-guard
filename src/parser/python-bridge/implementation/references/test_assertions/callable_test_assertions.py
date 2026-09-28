@@ -3,8 +3,13 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.ast.protocols import PythonAstNodeIndexProtocol, PythonCallableStatementsProtocol
-from implementation.references.test_assertions.assertion_aliases import PythonTestAssertionAliases
+from implementation.ast.protocols import (
+    PythonAstNodeIndexProtocol,
+    PythonCallableStatementsProtocol,
+)
+from implementation.references.test_assertions.assertion_aliases import (
+    PythonTestAssertionAliases,
+)
 
 
 class PythonCallableTestAssertions:
@@ -67,7 +72,9 @@ class PythonCallableTestAssertions:
         """Responsibilities: _reporting callable contains unittest_."""
         return any(self._is_unittest_assertion(item) for item in self.node.body)
 
-    def valid_assertion_ending(self, callable_statements: PythonCallableStatementsProtocol) -> bool:
+    def valid_assertion_ending(
+        self, callable_statements: PythonCallableStatementsProtocol
+    ) -> bool:
         """Responsibilities: _validation test callable ends_."""
         body: Any = callable_statements.body_without_docstring(self.node.body)
         if not self.unittest_assertion_present():
@@ -84,7 +91,9 @@ class PythonCallableTestAssertions:
                 return False
         return found_assertion
 
-    def assertion_count(self, callable_statements: PythonCallableStatementsProtocol) -> int:
+    def assertion_count(
+        self, callable_statements: PythonCallableStatementsProtocol
+    ) -> int:
         """Responsibilities: _callable unittest assertion count_."""
         body: Any = callable_statements.body_without_docstring(self.node.body)
         count: Any = 0

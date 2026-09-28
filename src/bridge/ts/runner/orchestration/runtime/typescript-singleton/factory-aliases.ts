@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptFactoryArrayAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-aliases';
 import { TypeScriptFactoryObjectAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution TypeScript factory aliases_. **/
 export class TypeScriptFactoryAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly object_aliases: TypeScriptFactoryObjectAliases;
 	private readonly array_aliases: TypeScriptFactoryArrayAliases;
@@ -34,7 +35,7 @@ export class TypeScriptFactoryAliases {
 		if (declaration.initializer === undefined) {
 			return '';
 		}
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(declaration.name)) {
 			if (declaration.name.text === name) {
 				if (ts.isIdentifier(initializer)) {

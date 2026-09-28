@@ -1,9 +1,10 @@
 import ts from 'typescript';
-import { static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 import { TypeScriptStaticKeyAliases } from 'src/typescript-callable-aliases/static-key-aliases';
 
 /** Responsibilities: _callable type property collection_. **/
 export class TypeScriptCallableTypeProperties {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly callable_member_kinds = new Set([ts.SyntaxKind.MethodSignature]);
 	private readonly static_key_aliases = new TypeScriptStaticKeyAliases();
 
@@ -30,7 +31,7 @@ export class TypeScriptCallableTypeProperties {
 
 	/** Responsibilities: _typed property name resolution_. **/
 	public property_name(name: ts.PropertyName): string {
-		const literal_name = static_property_name(name);
+		const literal_name = this.expression_names.static_property_name(name);
 		if (literal_name !== '') {
 			return literal_name;
 		}

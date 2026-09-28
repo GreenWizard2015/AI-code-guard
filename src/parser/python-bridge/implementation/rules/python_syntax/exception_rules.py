@@ -59,7 +59,9 @@ class PythonExceptionRules:
             issues.append({"line": handler.lineno - 1, "kind": "broad-except"})
         if type(handler.type) is ast.Tuple:
             if len(handler.type.elts) > 1:
-                issues.append({"line": handler.lineno - 1, "kind": "python-multi-except"})
+                issues.append(
+                    {"line": handler.lineno - 1, "kind": "python-multi-except"}
+                )
         return issues
 
     def try_statement_issues(self, node: ast.AST) -> list[JsonObject]:

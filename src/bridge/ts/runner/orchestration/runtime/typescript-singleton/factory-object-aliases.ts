@@ -3,10 +3,11 @@ import { TypeScriptFactoryArrayAliases } from 'src/bridge/ts/runner/orchestratio
 import { TypeScriptFactoryObjectProperties } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-properties';
 import { TypeScriptFactoryObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources';
 import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { static_binding_name, unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution object factory aliases_. **/
 export class TypeScriptFactoryObjectAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly object_source_registry: FactoryObjectSourcesContract;
 	private readonly object_sources: Map<string, ts.ObjectLiteralExpression>;
@@ -52,7 +53,7 @@ export class TypeScriptFactoryObjectAliases {
 		initializer: ts.Expression,
 		name: string,
 	): string {
-		const expression = unwrap_transparent_expression(initializer);
+		const expression = this.expression_names.unwrap_transparent_expression(initializer);
 		if (ts.isIdentifier(expression)) {
 			const source = this.object_sources.get(expression.text);
 			if (source === undefined) {
@@ -79,7 +80,7 @@ export class TypeScriptFactoryObjectAliases {
 			if (!ts.isIdentifier(element.name) || element.name.text !== name) {
 				continue;
 			}
-			return this.properties.source(initializer, static_binding_name(element));
+			return this.properties.source(initializer, this.expression_names.static_binding_name(element));
 		}
 		return '';
 	}
@@ -106,7 +107,7 @@ export class TypeScriptFactoryObjectAliases {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		let source = unwrap_transparent_expression(initializer);
+		let source = this.expression_names.unwrap_transparent_expression(initializer);
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
 			if (object_source === undefined) {
@@ -128,7 +129,7 @@ export class TypeScriptFactoryObjectAliases {
 		property_name: string,
 		bodies: ts.FunctionLikeDeclarationBase[]
 	): void {
-		const source = unwrap_transparent_expression(receiver);
+		const source = this.expression_names.unwrap_transparent_expression(receiver);
 		if (!ts.isIdentifier(source)) {
 			return;
 		}

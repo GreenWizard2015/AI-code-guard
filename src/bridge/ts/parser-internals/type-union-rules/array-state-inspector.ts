@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptCallAliases } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-call-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
 
 /** Responsibilities: _array result detection_. **/
 export class TypeScriptArrayStateInspector {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly array_type_names = new Set(['Array', 'ReadonlyArray']);
 	private readonly call_aliases = new TypeScriptCallAliases();
 	private readonly type_aliases = new TypeScriptTypeAliases();
@@ -27,7 +28,7 @@ export class TypeScriptArrayStateInspector {
 		expression: ts.Expression,
 	 aliases: ReadonlyMap<string, string>
 	): string {
-		expression = unwrap_transparent_expression(expression);
+		expression = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isCallExpression(expression)) {
 			return this.invocation_name(expression, aliases);
 		}
@@ -163,7 +164,7 @@ export class TypeScriptArrayStateInspector {
 
 	/** Responsibilities: _classification single-item array expression_. **/
 	private single_item_array(expression: ts.Expression): boolean {
-		expression = unwrap_transparent_expression(expression);
+		expression = this.expression_names.unwrap_transparent_expression(expression);
 		if (!ts.isArrayLiteralExpression(expression)) {
 			return false;
 		}
@@ -178,7 +179,7 @@ export class TypeScriptArrayStateInspector {
 		if (node.arguments.length !== 1) {
 			return false;
 		}
-		const argument = unwrap_transparent_expression(node.arguments[0]);
+		const argument = this.expression_names.unwrap_transparent_expression(node.arguments[0]);
 		if (!ts.isNumericLiteral(argument) || argument.text !== '0') {
 			return false;
 		}

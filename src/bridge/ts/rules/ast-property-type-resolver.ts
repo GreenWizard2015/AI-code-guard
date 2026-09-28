@@ -1,10 +1,11 @@
 import ts from 'typescript';
 
 import { AstPropertySources } from 'src/bridge/ts/rules/ast-property-sources/ast-property-sources';
-import { static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution AST property states_. **/
 export class AstPropertyType {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly unbounded_kinds = new Set([
 		ts.SyntaxKind.AnyKeyword,
 		ts.SyntaxKind.UnknownKeyword,
@@ -35,7 +36,7 @@ export class AstPropertyType {
 			if (!ts.isPropertySignature(member)) {
 				continue;
 			}
-			if (static_property_name(member.name) !== property) {
+			if (this.expression_names.static_property_name(member.name) !== property) {
 				continue;
 			}
 if (member.questionToken !== undefined || member.type === undefined) {
@@ -103,7 +104,7 @@ if (member.questionToken !== undefined || member.type === undefined) {
 			if (!ts.isPropertySignature(member)) {
 				continue;
 			}
-			if (static_property_name(member.name) === property) {
+			if (this.expression_names.static_property_name(member.name) === property) {
 if (member.questionToken !== undefined || member.type === undefined) {
 					return 'optional';
 				}

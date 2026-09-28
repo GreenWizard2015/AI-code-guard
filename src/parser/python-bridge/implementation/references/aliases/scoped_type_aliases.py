@@ -65,21 +65,33 @@ class PythonScopedTypeAliases:
             if imported.asname is not None
         ]
 
+    def _assignment_values(self, node: ast.AST) -> dict[str, ast.AST]:
+        """Responsibilities: _assignment alias target collection_."""
+        if type(node) is ast.Assign and len(node.targets) == 1:
+            return self.reference_aliases.target_values(node.targets[0], node.value)
+        if type(node) is ast.AnnAssign and node.value is not None:
+            return self.reference_aliases.target_values(node.target, node.value)
+        return {}
+
+    def _assignment_record(
+        self, node: ast.AST, target: str, value: ast.AST
+    ) -> list[PythonTypeAliasRecord]:
+        """Responsibilities: _assignment alias record construction_."""
+        if type(value) not in (ast.Name, ast.Attribute):
+            return []
+        return [
+            PythonTypeAliasRecord(
+                target, ast.unparse(value), self._scope_owner(node), node.lineno
+            )
+        ]
+
     def _assignment_aliases(self, node: ast.AST) -> list[PythonTypeAliasRecord]:
         """Responsibilities: _assigned type alias collection_."""
-        target_values: dict[str, ast.AST] = {}
-        if type(node) is ast.Assign and len(node.targets) == 1:
-            target_values = self.reference_aliases.target_values(node.targets[0], node.value)
-        if type(node) is ast.AnnAssign and node.value is not None:
-            target_values = self.reference_aliases.target_values(node.target, node.value)
-        aliases: list[PythonTypeAliasRecord] = []
-        for target, value in target_values.items():
-            if type(value) not in (ast.Name, ast.Attribute):
-                continue
-            aliases.append(PythonTypeAliasRecord(
-                target, ast.unparse(value), self._scope_owner(node), node.lineno
-            ))
-        return aliases
+        return [
+            record
+            for target, value in self._assignment_values(node).items()
+            for record in self._assignment_record(node, target, value)
+        ]
 
     def _scope_target(self, name: str, scope: ast.AST, line: int) -> str:
         """Responsibilities: _scoped alias target lookup_."""

@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import type { FakeObjectProtocol } from 'src/protocols';
 import { ObjectDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-destructured-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution object literal aliases_. **/
 export class ObjectLiteralAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly fake_object: FakeObjectProtocol;
 	private readonly destructured_aliases: ObjectDestructuredAliases;
 	private readonly scope_aliases = new Map<ts.Node, ReadonlySet<string>>();
@@ -23,7 +24,7 @@ export class ObjectLiteralAliases {
 
 	/** Responsibilities: _fake object alias classification_. **/
 	private fake_object_expression(expression: ts.Expression): boolean {
-		const current = unwrap_transparent_expression(expression);
+		const current = this.expression_names.unwrap_transparent_expression(expression);
 		if (!ts.isObjectLiteralExpression(current)) {
 			return false;
 		}

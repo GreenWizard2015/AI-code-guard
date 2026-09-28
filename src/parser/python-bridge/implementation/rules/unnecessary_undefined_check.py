@@ -6,6 +6,7 @@ import ast
 from implementation.rules.undefined_check_state import UndefinedCheckState
 from implementation.types import JsonObject
 
+
 @dataclass(frozen=True)
 class AttributePath:
     """Responsibilities: _attribute path state_."""

@@ -97,7 +97,7 @@ class PythonBridgeTypeTest(unittest.TestCase):
         """Responsibilities: _builtin decorator aliases verification_."""
         tree = ast.parse(BUILTIN_DECORATOR_ALIAS_SOURCE)
         decorator_rules = PythonDecoratorRules()
-        decorator_rules.configure_imports(tree)
+        decorator_rules.aliases.observe_module(tree)
         type_rules = TypeRules(tree, decorator_rules)
         kinds = [
             issue["kind"]

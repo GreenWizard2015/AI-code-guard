@@ -111,8 +111,12 @@ class PythonTestAssertionAliases:
         self.node: Any = node
         self.node_index: PythonAstNodeIndexProtocol = node_index
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
-        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(
+            self.container_aliases
+        )
 
     def assertion_call(self, node: ast.Call) -> bool:
         """Responsibilities: _assertion reference classification_."""
@@ -135,7 +139,9 @@ class PythonTestAssertionAliases:
             resolved = self.container_aliases.values.container_value(function)
             if not resolved.found():
                 return False
-            return self._is_exception_reference(resolved.expression_node(), self._exception_aliases)
+            return self._is_exception_reference(
+                resolved.expression_node(), self._exception_aliases
+            )
         if type(function) is ast.Call:
             return self._is_exception_reference(function, self._exception_aliases)
         return function.attr.startswith("assertRaises")

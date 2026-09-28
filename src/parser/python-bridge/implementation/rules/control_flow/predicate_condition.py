@@ -26,17 +26,26 @@ class PythonPredicateCondition:
         return name.endswith(("_factory", "_target", "_type"))
 
     def _predicate_call(self, node: ast.AST) -> bool:
-        """Responsibilities: _call predicate classification_."""
+        """Responsibilities: _predicate invocation identification_."""
         if type(node) is not ast.Call:
             return True
         return self._predicate_name(node)
 
     def _contains_impure_call(self, node: ast.BoolOp) -> bool:
-        """Responsibilities: _impure call detection_."""
+        """Responsibilities: _impure invocation detection_."""
         for item in ast.walk(node):
             if not self._predicate_call(item):
                 return True
         return False
+
+    def _is_scope_parent(self, parent: ast.AST) -> bool:
+        """Responsibilities: _scope parent classification_."""
+        return type(parent) in (
+            ast.Module,
+            ast.FunctionDef,
+            ast.AsyncFunctionDef,
+            ast.ClassDef,
+        )
 
     def __init__(self) -> None:
         """Responsibilities: _predicate analysis setup_."""
@@ -60,16 +69,17 @@ class PythonPredicateCondition:
         assignment_values: set[int],
     ) -> list[JsonObject]:
         """Responsibilities: _conditional execution classification_."""
+        issue = [{"line": node.lineno - 1, "kind": "conditional-execution"}]
         if type(parent) is ast.Expr:
-            return [{"line": node.lineno - 1, "kind": "conditional-execution"}]
+            return issue
         if type(parent) is ast.BoolOp:
             return []
         if not self._contains_impure_call(node):
             return []
         if self.condition(node, parent):
-            return [{"line": node.lineno - 1, "kind": "conditional-execution"}]
+            return issue
         if id(node) in assignment_values:
-            return [{"line": node.lineno - 1, "kind": "conditional-execution"}]
-        if type(parent) in (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef):
+            return issue
+        if self._is_scope_parent(parent):
             return []
-        return [{"line": node.lineno - 1, "kind": "conditional-execution"}]
+        return issue

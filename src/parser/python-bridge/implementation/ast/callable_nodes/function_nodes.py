@@ -23,9 +23,7 @@ class PythonFunctionNodes:
 
     def _node(self, node: ast.AST) -> JsonObject:
         """Responsibilities: _normalization Python function node_."""
-        builder: Any = PythonCallableNode(
-            node, self.node_index, self.source_segments
-        )
+        builder: Any = PythonCallableNode(node, self.node_index, self.source_segments)
         builder.nested = self.function_selector.nested(node)
         return builder.result(
             self.callable_statements,
@@ -46,9 +44,13 @@ class PythonFunctionNodes:
         self.function_selector: PythonFunctionSelector = PythonFunctionSelector(
             tree, node_index
         )
-        self.callable_arguments: PythonCallableArgumentsProtocol = CallableArguments(node_index)
+        self.callable_arguments: PythonCallableArgumentsProtocol = CallableArguments(
+            node_index
+        )
         self.callable_metrics: PythonCallableMetricsProtocol = CallableMetrics()
-        self.callable_statements: PythonCallableStatementsProtocol = CallableStatements()
+        self.callable_statements: PythonCallableStatementsProtocol = (
+            CallableStatements()
+        )
 
     def function(self, node: ast.AST) -> bool:
         """Responsibilities: _classification Python function node_."""
@@ -76,4 +78,7 @@ class PythonFunctionNodes:
                 nodes.append(node)
         if not nodes:
             return {"count": 0, "first_line": 0}
-        return {"count": len(nodes), "first_line": min(node.lineno for node in nodes) - 1}
+        return {
+            "count": len(nodes),
+            "first_line": min(node.lineno for node in nodes) - 1,
+        }

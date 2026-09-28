@@ -3,10 +3,11 @@ import { ImportedNames } from 'src/bridge/ts/runner/orchestration/runtime/typesc
 import { TypeScriptClassAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/class-aliases';
 import { TypeScriptFactoryAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-aliases';
 import { BUILTIN_CONSTRUCTORS } from 'src/bridge/ts/runner/orchestration/runtime/constants';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _TypeScript singleton expression matching_. **/
 export class TypeScriptSingletonExpressions {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly imported_names: ImportedNames;
 	private readonly class_aliases: TypeScriptClassAliases;
@@ -47,7 +48,7 @@ export class TypeScriptSingletonExpressions {
 
 	/** Responsibilities: _local constructor identification_. **/
 	private local_new(initializer: ts.NewExpression): boolean {
-		const expression = unwrap_transparent_expression(initializer.expression);
+		const expression = this.expression_names.unwrap_transparent_expression(initializer.expression);
 		if (ts.isClassExpression(expression)) {
 			return true;
 		}
@@ -183,7 +184,7 @@ export class TypeScriptSingletonExpressions {
 	/** Responsibilities: _class-instance expression identification_. **/
 	private instance_result(node: ts.Node): boolean {
 		if (ts.isNewExpression(node)) {
-			const expression = unwrap_transparent_expression(node.expression);
+			const expression = this.expression_names.unwrap_transparent_expression(node.expression);
 			if (ts.isClassExpression(expression)) {
 				return true;
 			}

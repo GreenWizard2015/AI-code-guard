@@ -89,9 +89,13 @@ class PythonSysPathAliases:
         self.path_names: set[str] = set()
         self.path_mutating: frozenset[str] = SYS_PATH_MUTATING
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
         self.container_values: PythonContainerValues = self.container_aliases.values
-        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(
+            self.container_aliases
+        )
 
     def configure(self, tree: ast.Module) -> None:
         """Responsibilities: _sys.path alias configuration_."""

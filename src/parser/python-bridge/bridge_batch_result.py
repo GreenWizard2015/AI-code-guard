@@ -39,8 +39,7 @@ class PythonBatchResult:
     def result(self) -> JsonObject:
         """Responsibilities: _batch response serialization_."""
         asts: dict[str, JsonValue] = {
-            name: timed_result.ast_data()
-            for name, timed_result in self.results.items()
+            name: timed_result.ast_data() for name, timed_result in self.results.items()
         }
         return {
             "batchId": self.batch_id,

@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import type { FakeObjectProtocol } from 'src/protocols';
-import { static_binding_name, static_element_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _collection callable object bindings_. **/
 export class ObjectCallableBinding {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly fake_object: FakeObjectProtocol;
 
 	/** Responsibilities: _callable name alias_. **/
@@ -50,9 +51,9 @@ export class ObjectCallableBinding {
 		element: ts.BindingElement,
 		initializer: ts.ObjectLiteralExpression
 	): boolean {
-		const source_name = static_binding_name(element);
+		const source_name = this.expression_names.static_binding_name(element);
 		const property = initializer.properties.find(
-			candidate => static_element_name(candidate) === source_name
+			candidate => this.expression_names.static_element_name(candidate) === source_name
 		);
 		if (property === undefined) {
 			return false;

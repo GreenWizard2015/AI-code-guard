@@ -3,10 +3,18 @@ from __future__ import annotations
 import ast
 
 from implementation.references.aliases.protocols import PythonContainerValuesProtocol
-from implementation.rules.python_syntax.dynamic_import_call_target import PythonDynamicImportCallTarget
-from implementation.rules.python_syntax.dynamic_import_reference import PythonDynamicImportReference
-from implementation.rules.python_syntax.protocols import PythonDynamicImportReferenceProtocol
-from implementation.rules.python_syntax.dynamic_import_subscript_owner import PythonDynamicImportSubscriptOwner
+from implementation.rules.python_syntax.dynamic_import_call_target import (
+    PythonDynamicImportCallTarget,
+)
+from implementation.rules.python_syntax.dynamic_import_reference import (
+    PythonDynamicImportReference,
+)
+from implementation.rules.python_syntax.protocols import (
+    PythonDynamicImportReferenceProtocol,
+)
+from implementation.rules.python_syntax.dynamic_import_subscript_owner import (
+    PythonDynamicImportSubscriptOwner,
+)
 
 
 class PythonDynamicImportReferences:
@@ -19,7 +27,9 @@ class PythonDynamicImportReferences:
         if value.id in self.builtin_module_aliases:
             return PythonDynamicImportReference("module", "builtins")
         if value.id in self.function_aliases:
-            return PythonDynamicImportReference("function", self.function_aliases[value.id])
+            return PythonDynamicImportReference(
+                "function", self.function_aliases[value.id]
+            )
         return PythonDynamicImportReference("", "")
 
     def _attribute_reference(
@@ -40,7 +50,9 @@ class PythonDynamicImportReferences:
                 return PythonDynamicImportReference("function", "__import__")
         return PythonDynamicImportReference("", "")
 
-    def _subscript_reference(self, value: ast.Subscript) -> PythonDynamicImportReferenceProtocol:
+    def _subscript_reference(
+        self, value: ast.Subscript
+    ) -> PythonDynamicImportReferenceProtocol:
         """Responsibilities: _builtin mapping reference_."""
         owner = self._subscript_owner(value)
         if owner.module == "":
@@ -56,7 +68,9 @@ class PythonDynamicImportReferences:
             return PythonDynamicImportReference("function", name)
         return PythonDynamicImportReference("", "")
 
-    def _subscript_owner(self, value: ast.Subscript) -> PythonDynamicImportSubscriptOwner:
+    def _subscript_owner(
+        self, value: ast.Subscript
+    ) -> PythonDynamicImportSubscriptOwner:
         """Responsibilities: _builtin mapping owner_."""
         owner = value.value
         if type(owner) is not ast.Attribute:
@@ -65,7 +79,9 @@ class PythonDynamicImportReferences:
             return PythonDynamicImportSubscriptOwner("", "")
         if type(owner.value) is not ast.Name:
             return PythonDynamicImportSubscriptOwner("", "")
-        return PythonDynamicImportSubscriptOwner(owner.value.id, self.static_key(value.slice))
+        return PythonDynamicImportSubscriptOwner(
+            owner.value.id, self.static_key(value.slice)
+        )
 
     def _call_reference(
         self, value: ast.Call, seen: set[int]
@@ -89,11 +105,17 @@ class PythonDynamicImportReferences:
         """Responsibilities: _reflected callable target_."""
         function = self.reference(value.func, seen)
         if function.kind_value() != "function":
-            return PythonDynamicImportCallTarget(PythonDynamicImportReference("", ""), "")
+            return PythonDynamicImportCallTarget(
+                PythonDynamicImportReference("", ""), ""
+            )
         if function.name_value() != "getattr":
-            return PythonDynamicImportCallTarget(PythonDynamicImportReference("", ""), "")
+            return PythonDynamicImportCallTarget(
+                PythonDynamicImportReference("", ""), ""
+            )
         if len(value.args) < 2:
-            return PythonDynamicImportCallTarget(PythonDynamicImportReference("", ""), "")
+            return PythonDynamicImportCallTarget(
+                PythonDynamicImportReference("", ""), ""
+            )
         return PythonDynamicImportCallTarget(
             self.reference(value.args[0], seen),
             self.static_key(value.args[1]),
@@ -132,7 +154,9 @@ class PythonDynamicImportReferences:
             return ""
         return value.value
 
-    def reference(self, value: ast.AST, seen: set[int]) -> PythonDynamicImportReferenceProtocol:
+    def reference(
+        self, value: ast.AST, seen: set[int]
+    ) -> PythonDynamicImportReferenceProtocol:
         """Responsibilities: _dynamic import expression reference_."""
         if id(value) in seen:
             return PythonDynamicImportReference("", "")

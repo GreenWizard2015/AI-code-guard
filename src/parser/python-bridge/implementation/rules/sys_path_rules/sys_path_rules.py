@@ -3,7 +3,9 @@ from __future__ import annotations
 import ast
 
 from implementation.rules.sys_path_rules.sys_path_aliases import PythonSysPathAliases
-from implementation.rules.sys_path_rules.sys_path_references import PythonSysPathReferences
+from implementation.rules.sys_path_rules.sys_path_references import (
+    PythonSysPathReferences,
+)
 
 
 class PythonSysPathRules:

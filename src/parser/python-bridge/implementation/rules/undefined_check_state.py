@@ -128,7 +128,9 @@ class UndefinedCheckState:
         result: dict = {}
         for base in current.bases:
             if type(base) is ast.Name:
-                result.update(self._inherited_fields(base.id, next_seen, classes, own_fields))
+                result.update(
+                    self._inherited_fields(base.id, next_seen, classes, own_fields)
+                )
         result.update(own_fields.get(name, {}))
         return result
 

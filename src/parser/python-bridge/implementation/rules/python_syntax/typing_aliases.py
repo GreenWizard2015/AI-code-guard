@@ -32,7 +32,9 @@ class PythonTypingAliases:
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(target, value, references_only=False)
+                self.assignment_aliases.target_values(
+                    target, value, references_only=False
+                )
             )
         for target, source in target_values.items():
             name = self.expression_name(source)
@@ -59,7 +61,9 @@ class PythonTypingAliases:
         self.optional_names: set[str] = {"Optional"}
         self.union_names: set[str] = {"Union"}
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
 
     def expression_name(self, value: ast.AST) -> str:
         """Responsibilities: _resolution typing alias expression_."""

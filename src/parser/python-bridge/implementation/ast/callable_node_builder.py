@@ -12,7 +12,6 @@ from implementation.references.test_assertions.callable_test_assertions import (
     PythonCallableTestAssertions,
 )
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
-from implementation.ast.source_segments import SourceSegments
 from implementation.types import JsonObject
 import ast
 
@@ -73,7 +72,9 @@ class PythonCallableNode:
         characters: Any = self.source_segments.significant_characters(body)
         return max(1, characters)
 
-    def _test_data(self, callable_statements: PythonCallableStatementsProtocol) -> JsonObject:
+    def _test_data(
+        self, callable_statements: PythonCallableStatementsProtocol
+    ) -> JsonObject:
         """Responsibilities: _collection assertion test-ending metadata_."""
         return {
             "has_unittest_assertion": self.test_assertions.unittest_assertion_present(),
@@ -105,7 +106,9 @@ class PythonCallableNode:
             PythonCallableTestAssertions(node, node_index)
         )
 
-    def statements(self, callable_statements: PythonCallableStatementsProtocol) -> list[JsonObject]:
+    def statements(
+        self, callable_statements: PythonCallableStatementsProtocol
+    ) -> list[JsonObject]:
         """Responsibilities: _normalization statements callable body_."""
         statements: list[dict[str, Any]] = []
         for item in callable_statements.body_without_docstring(self.node.body):

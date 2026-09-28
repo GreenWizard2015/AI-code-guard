@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
 import type { TypeScriptExpressionAliasesProtocol } from 'src/protocols';
-import { static_binding_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _member variable alias resolution_. **/
 export class TypeScriptMemberVariableAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly binding_aliases = new TypeScriptBindingAliases();
 	private readonly target_aliases: TypeScriptExpressionAliasesProtocol;
 	private readonly add_alias: (
@@ -47,7 +48,7 @@ export class TypeScriptMemberVariableAliases {
 			if (!ts.isBindingElement(element) || !ts.isIdentifier(element.name)) {
 				continue;
 			}
-			const property_name = static_binding_name(element);
+			const property_name = this.expression_names.static_binding_name(element);
 			if (this.add_alias(aliases, element.name.text, property_name)) {
 				changed = true;
 			}

@@ -51,16 +51,14 @@ class PythonReferenceAliases:
         if len(value.elts) - star_index < remaining_targets:
             return {}
         value_index = len(value.elts) - remaining_targets
-        target_items = target.elts[:star_index] + target.elts[star_index + 1:]
+        target_items = target.elts[:star_index] + target.elts[star_index + 1 :]
         value_items = value.elts[:star_index] + value.elts[value_index:]
         target_values: dict[str, ast.AST] = {}
         for target_item, value_item in zip(target_items, value_items):
             target_values.update(self._assignment_values(target_item, value_item))
         return target_values
 
-    def _regular_values(
-        self, target: ast.AST, value: ast.AST
-    ) -> dict[str, ast.AST]:
+    def _regular_values(self, target: ast.AST, value: ast.AST) -> dict[str, ast.AST]:
         """Responsibilities: _regular assignment aliases_."""
         if len(target.elts) != len(value.elts):
             return {}
@@ -75,12 +73,13 @@ class PythonReferenceAliases:
         """Responsibilities: _uncached assignment aliases_."""
         if type(target) is ast.Name:
             return {target.id: value}
-        if type(target) not in (ast.Tuple, ast.List) or type(value) not in (ast.Tuple, ast.List):
+        if type(target) not in (ast.Tuple, ast.List) or type(value) not in (
+            ast.Tuple,
+            ast.List,
+        ):
             return {}
         starred = [
-            index
-            for index, item in enumerate(target.elts)
-            if type(item) is ast.Starred
+            index for index, item in enumerate(target.elts) if type(item) is ast.Starred
         ]
         if len(starred) > 1:
             return {}

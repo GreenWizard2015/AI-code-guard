@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import type { TypeScriptFactoryArrayAliasesProtocol, TypeScriptFactoryObjectPropertiesProtocol } from 'src/protocols';
-import { static_binding_name, unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution nested object expressions_. **/
 export class TypeScriptFactoryNestedObjectExpressions {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly object_sources: Map<string, ts.ObjectLiteralExpression>;
 	private readonly properties: TypeScriptFactoryObjectPropertiesProtocol;
 	private readonly array_aliases: TypeScriptFactoryArrayAliasesProtocol;
@@ -15,7 +16,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		const source = unwrap_transparent_expression(value);
+		const source = this.expression_names.unwrap_transparent_expression(value);
 		if (ts.isObjectLiteralExpression(source)) {
 			this.append(source, binding, name, expressions);
 		}
@@ -39,7 +40,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 			if (this.properties.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
 				continue;
 			}
-			const source = unwrap_transparent_expression(property.initializer);
+			const source = this.expression_names.unwrap_transparent_expression(property.initializer);
 			for (const expression of this.array_aliases.nested_expressions(binding, source, name).values()) {
 				expressions.set(name, expression);
 			}
@@ -54,7 +55,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		let source = unwrap_transparent_expression(expression);
+		let source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
 			if (object_source === undefined) {
@@ -95,7 +96,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
 		if (ts.isArrayBindingPattern(element.name)) {
-			const property_name = static_binding_name(element);
+			const property_name = this.expression_names.static_binding_name(element);
 			if (property_name !== '') {
 				this.append_array_property(initializer, property_name, element.name, name, expressions);
 			}
@@ -104,7 +105,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		if (!ts.isObjectBindingPattern(element.name)) {
 			return;
 		}
-		const property_name = static_binding_name(element);
+		const property_name = this.expression_names.static_binding_name(element);
 		if (property_name === '') {
 			return;
 		}
@@ -141,7 +142,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
 			return;
 		}
-		for (const expression of this.properties.expressions(initializer, static_binding_name(element)).values()) {
+		for (const expression of this.properties.expressions(initializer, this.expression_names.static_binding_name(element)).values()) {
 			expressions.set(name, expression);
 		}
 	}

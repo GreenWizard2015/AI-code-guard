@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _array alias resolution_. **/
 export class TypeScriptArrayDestructuredAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly names: Set<string>;
 	private readonly sources = new Map<string, ts.ArrayLiteralExpression>();
 	private readonly namespace_aliases: TypeScriptNamespaceAliases;
@@ -36,7 +37,7 @@ export class TypeScriptArrayDestructuredAliases {
 		if (source === undefined || ts.isSpreadElement(source)) {
 			return false;
 		}
-		const expression = unwrap_transparent_expression(source);
+		const expression = this.expression_names.unwrap_transparent_expression(source);
 		let target = '';
 		if (ts.isIdentifier(expression)) {
 			target = expression.text;
@@ -72,7 +73,7 @@ export class TypeScriptArrayDestructuredAliases {
 		if (declaration.initializer === undefined) {
 			return false;
 		}
-		let initializer = unwrap_transparent_expression(declaration.initializer);
+		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(initializer)) {
 			const source = this.sources.get(initializer.text);
 			if (source === undefined) {
@@ -91,7 +92,7 @@ export class TypeScriptArrayDestructuredAliases {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return;
 		}
-		let initializer = unwrap_transparent_expression(declaration.initializer);
+		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(initializer)) {
 			const source = this.sources.get(initializer.text);
 			if (source === undefined) {

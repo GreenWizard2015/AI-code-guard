@@ -4,8 +4,10 @@ import ast
 
 from implementation.ast.class_nodes.class_node_fields import PythonClassNodeFields
 from implementation.ast.callable_statements import CallableStatements
-from implementation.ast.protocols import PythonAstNodeIndexProtocol, PythonCallableStatementsProtocol
-from implementation.references.aliases.container_aliases import PythonContainerAliases
+from implementation.ast.protocols import (
+    PythonAstNodeIndexProtocol,
+    PythonCallableStatementsProtocol,
+)
 from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
 from implementation.types import JsonObject
 
@@ -111,7 +113,9 @@ class PythonClassNodeDetails:
         self.node: ast.ClassDef = node
         self.node_index: PythonAstNodeIndexProtocol = node_index
         self.callable_statements: PythonCallableStatementsProtocol = callable_statements
-        self.field_details: PythonClassNodeFields = PythonClassNodeFields(node, container_aliases)
+        self.field_details: PythonClassNodeFields = PythonClassNodeFields(
+            node, container_aliases
+        )
 
     def dependencies(self) -> list[str]:
         """Responsibilities: _collection class dependencies field_."""

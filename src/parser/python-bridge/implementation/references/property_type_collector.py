@@ -2,7 +2,10 @@ from __future__ import annotations
 
 
 from typing import Any, cast
-from implementation.ast.protocols import PythonAstNodeIndexProtocol, PythonPropertyTypeProtocol
+from implementation.ast.protocols import (
+    PythonAstNodeIndexProtocol,
+    PythonPropertyTypeProtocol,
+)
 import ast
 
 

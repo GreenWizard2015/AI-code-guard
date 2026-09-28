@@ -47,7 +47,9 @@ class PythonTypeFactoryNames:
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(target, value, references_only=False)
+                self.assignment_aliases.target_values(
+                    target, value, references_only=False
+                )
             )
         for target, source in target_values.items():
             name = self._expression_name(source)
@@ -69,7 +71,9 @@ class PythonTypeFactoryNames:
         self.factory_names: frozenset[str] = TYPE_FACTORIES
         self.aliases: set[str] = set()
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
 
     def configure(self, tree: ast.AST) -> None:
         """Responsibilities: _configuration factory import aliases_."""

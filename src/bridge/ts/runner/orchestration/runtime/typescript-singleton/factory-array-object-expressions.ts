@@ -1,8 +1,9 @@
 import ts from 'typescript';
-import { static_binding_name, static_property_name, unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _array object factory resolution_. **/
 export class TypeScriptFactoryArrayObjectExpressions {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly initializer: ts.ObjectLiteralExpression;
 	private readonly name: string;
 	private readonly nested_expressions: (
@@ -40,7 +41,7 @@ export class TypeScriptFactoryArrayObjectExpressions {
 
 	/** Responsibilities: _object property factory_. **/
 	private append_property(property: ts.PropertyAssignment, element: ts.BindingElement): void {
-		const source = unwrap_transparent_expression(property.initializer);
+		const source = this.expression_names.unwrap_transparent_expression(property.initializer);
 		if (ts.isIdentifier(element.name)) {
 			this.append_direct_property(source, element);
 			return;
@@ -73,10 +74,13 @@ export class TypeScriptFactoryArrayObjectExpressions {
 
 	/** Responsibilities: _object binding element_. **/
 	private append_element(element: ts.BindingElement): void {
-		const property_name = static_binding_name(element);
+		const property_name = this.expression_names.static_binding_name(element);
 		for (let index = this.initializer.properties.length - 1; index >= 0; index -= 1) {
 			const property = this.initializer.properties[index];
-			if (property.name === undefined || static_property_name(property.name) !== property_name) {
+			if (property.name === undefined) {
+				continue;
+			}
+			if (this.expression_names.static_property_name(property.name) !== property_name) {
 				continue;
 			}
 			if (ts.isPropertyAssignment(property)) {

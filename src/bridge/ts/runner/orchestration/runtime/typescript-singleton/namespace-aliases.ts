@@ -1,8 +1,9 @@
 import ts from 'typescript';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution namespace import aliases_. **/
 export class TypeScriptNamespaceAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 
 	/** Responsibilities: _resolution namespace member target_. **/
@@ -17,7 +18,7 @@ export class TypeScriptNamespaceAliases {
 		if (argument === undefined) {
 			return '';
 		}
-		const key = unwrap_transparent_expression(argument);
+		const key = this.expression_names.unwrap_transparent_expression(argument);
 		if (!ts.isStringLiteral(key) && !ts.isNoSubstitutionTemplateLiteral(key)) {
 			return '';
 		}
@@ -61,7 +62,7 @@ export class TypeScriptNamespaceAliases {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (!ts.isIdentifier(initializer)) {
 			return false;
 		}
@@ -100,7 +101,7 @@ export class TypeScriptNamespaceAliases {
 
 	/** Responsibilities: _resolution namespace property target_. **/
 	public target(initializer: ts.Expression): string {
-		const expression = unwrap_transparent_expression(initializer);
+		const expression = this.expression_names.unwrap_transparent_expression(initializer);
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
 			return '';
 		}

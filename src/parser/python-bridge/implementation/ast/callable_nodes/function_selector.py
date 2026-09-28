@@ -9,7 +9,9 @@ import ast
 class PythonFunctionSelector:
     """Responsibilities: _selection Python function declarations_."""
 
-    def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexProtocol) -> None:
+    def __init__(
+        self, tree: ast.Module, node_index: PythonAstNodeIndexProtocol
+    ) -> None:
         """Responsibilities: _initialization Python function selection_."""
         self.tree: ast.Module = tree
         self.node_index: PythonAstNodeIndexProtocol = node_index

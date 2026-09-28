@@ -3,10 +3,11 @@ import { TypeScriptFactoryArraySources } from 'src/bridge/ts/runner/orchestratio
 import { TypeScriptFactoryArrayObjectExpressions } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-object-expressions';
 import { TypeScriptFactoryObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources';
 import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution array factory aliases_. **/
 export class TypeScriptFactoryArrayAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly sources: TypeScriptFactoryArraySources;
 	private readonly object_sources: FactoryObjectSourcesContract;
 	private readonly source_file: ts.SourceFile;
@@ -83,7 +84,7 @@ export class TypeScriptFactoryArrayAliases {
 		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
 			return;
 		}
-		const expression = unwrap_transparent_expression(value);
+		const expression = this.expression_names.unwrap_transparent_expression(value);
 		if (ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) {
 			expressions.set(name, expression);
 		}
@@ -113,7 +114,7 @@ export class TypeScriptFactoryArrayAliases {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		const source = unwrap_transparent_expression(value);
+		const source = this.expression_names.unwrap_transparent_expression(value);
 		if (!ts.isArrayLiteralExpression(source)) {
 			return;
 		}

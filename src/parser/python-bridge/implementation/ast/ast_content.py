@@ -28,7 +28,9 @@ class PythonAstContent:
         private_access: Any = PythonPrivateAccessCollector(
             self.tree.tree, self.tree.node_index
         )
-        private_members: Any = self._timed("private-members", private_access.member_names)
+        private_members: Any = self._timed(
+            "private-members", private_access.member_names
+        )
         private_accesses: Any = self._timed(
             "private-accesses", lambda: private_access.accesses(private_members)
         )
@@ -46,11 +48,14 @@ class PythonAstContent:
             ),
             "parse_issues": [],
             "import_issues": self._timed(
-                "import-issues", lambda: self.tree.import_rules.import_issues(self.tree.tree)
+                "import-issues",
+                lambda: self.tree.import_rules.import_issues(self.tree.tree),
             ),
             "attribute_accesses": self._timed(
                 "attribute-accesses",
-                lambda: self.tree.structure_issues.deep_attribute_accesses(self.tree.tree),
+                lambda: self.tree.structure_issues.deep_attribute_accesses(
+                    self.tree.tree
+                ),
             ),
             "repeated_branches": self._timed(
                 "repeated-branches",
@@ -61,8 +66,8 @@ class PythonAstContent:
     def __init__(self, tree: PythonAstContentTreeProtocol) -> None:
         """Responsibilities: _initialization AST content_."""
         self.tree: PythonAstContentTreeProtocol = tree
-        self.responsibility_target_collector: PythonResponsibilityTargets = PythonResponsibilityTargets(
-            self.tree.tree, self.tree.node_index
+        self.responsibility_target_collector: PythonResponsibilityTargets = (
+            PythonResponsibilityTargets(self.tree.tree, self.tree.node_index)
         )
 
     def structure(self) -> JsonObject:
@@ -79,11 +84,16 @@ class PythonAstContent:
                 "call-references", self.tree.references.collect_references
             ),
             "python_imports": self._timed("python-imports", self.tree._import_nodes),
-            "python_main_guard": self._timed("main-guard", self.tree._main_guard_present),
-            "reference_aliases": self._timed(
-                "reference-aliases", lambda: self.tree.reference_aliases.collect(self.tree.tree)
+            "python_main_guard": self._timed(
+                "main-guard", self.tree._main_guard_present
             ),
-            "docstring_spans": self._timed("docstring-spans", self.tree._docstring_spans),
+            "reference_aliases": self._timed(
+                "reference-aliases",
+                lambda: self.tree.reference_aliases.collect(self.tree.tree),
+            ),
+            "docstring_spans": self._timed(
+                "docstring-spans", self.tree._docstring_spans
+            ),
             "responsibility_targets": self._timed(
                 "responsibility-targets",
                 self.responsibility_target_collector.collect,
@@ -94,7 +104,9 @@ class PythonAstContent:
     def symbols(self) -> JsonObject:
         """Responsibilities: _collection AST symbols_."""
         return {
-            "named_symbols": self._timed("named-symbols", lambda: self.tree.symbols.named_symbols),
+            "named_symbols": self._timed(
+                "named-symbols", lambda: self.tree.symbols.named_symbols
+            ),
             "type_declarations": self._timed(
                 "type-declarations", lambda: self.tree.symbols.type_declarations
             ),

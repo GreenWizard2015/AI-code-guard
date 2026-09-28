@@ -55,7 +55,9 @@ class PythonTupleTypeNames:
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(target, value, references_only=False)
+                self.assignment_aliases.target_values(
+                    target, value, references_only=False
+                )
             )
         for target, source in target_values.items():
             matches = self._expression_matches(source)
@@ -67,7 +69,9 @@ class PythonTupleTypeNames:
         """Responsibilities: _initialization tuple alias state_."""
         self.aliases: set[str] = {"Tuple", "tuple"}
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
 
     def configure(self, tree: ast.AST) -> None:
         """Responsibilities: _configuration tuple import aliases_."""

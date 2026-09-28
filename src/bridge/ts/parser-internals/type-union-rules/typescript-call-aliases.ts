@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _TypeScript invocation aliases_. **/
 export class TypeScriptCallAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly binding_aliases = new TypeScriptBindingAliases();
 	private readonly cache = new WeakMap<ts.SourceFile, ReadonlyMap<string, string>>();
 
@@ -42,7 +43,7 @@ export class TypeScriptCallAliases {
 	private append_alias(
 		aliases: Map<string, string>, name: string, initializer: ts.Expression
 	): boolean {
-		initializer = unwrap_transparent_expression(initializer);
+		initializer = this.expression_names.unwrap_transparent_expression(initializer);
 		if (aliases.has(name)) {
 			return false;
 		}
@@ -61,7 +62,7 @@ export class TypeScriptCallAliases {
 			new Set<string>(),
 			node.name,
 			node.initializer,
-			expression => unwrap_transparent_expression(expression),
+			expression => this.expression_names.unwrap_transparent_expression(expression),
 			(_alias_set, name, initializer) => this.append_alias(aliases, name, initializer)
 		);
 	}

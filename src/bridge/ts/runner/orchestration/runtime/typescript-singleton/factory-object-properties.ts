@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import type { TypeScriptFactoryArrayAliasesProtocol } from 'src/protocols';
 import { TypeScriptFactoryNestedObjectExpressions } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-nested-object-expressions';
-import { static_property_name, unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution factory object properties_. **/
 export class TypeScriptFactoryObjectProperties {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly object_sources: Map<string, ts.ObjectLiteralExpression>;
 	private readonly nested_expressions: TypeScriptFactoryNestedObjectExpressions;
 
@@ -31,7 +32,7 @@ export class TypeScriptFactoryObjectProperties {
 		if (this.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
 			return;
 		}
-		const expression = unwrap_transparent_expression(property.initializer);
+		const expression = this.expression_names.unwrap_transparent_expression(property.initializer);
 		if (ts.isArrowFunction(expression) || ts.isFunctionExpression(expression)) {
 			expressions.set(property_name, expression);
 		}
@@ -39,7 +40,7 @@ export class TypeScriptFactoryObjectProperties {
 
 	/** Responsibilities: _spread property source_. **/
 	private spread_source(expression: ts.Expression, property_name: string): string {
-		let source = unwrap_transparent_expression(expression);
+		let source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
 			if (object_source === undefined) {
@@ -76,7 +77,7 @@ export class TypeScriptFactoryObjectProperties {
 		property_name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		const source = unwrap_transparent_expression(expression);
+		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
 			if (object_source !== undefined) {
@@ -131,7 +132,7 @@ export class TypeScriptFactoryObjectProperties {
 		if (property.name === undefined) {
 			return '';
 		}
-		return static_property_name(property.name);
+		return this.expression_names.static_property_name(property.name);
 	}
 
 	/** Responsibilities: _factory property sources_. **/

@@ -102,10 +102,7 @@ class UnionRules:
             return False
         if self._type_alias_assignment(node):
             return True
-        return any(
-            self._nested_alias(child)
-            for child in ast.iter_child_nodes(node)
-        )
+        return any(self._nested_alias(child) for child in ast.iter_child_nodes(node))
 
     def _conditional_annotation_issue(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _reporting conditional composite annotations_."""
@@ -113,8 +110,7 @@ class UnionRules:
             return []
         branches = (node.body, node.orelse)
         if not any(
-            any(self._nested_alias(item) for item in branch)
-            for branch in branches
+            any(self._nested_alias(item) for item in branch) for branch in branches
         ):
             return []
         return [{"line": node.lineno - 1, "kind": "python-conditional-type-alias"}]

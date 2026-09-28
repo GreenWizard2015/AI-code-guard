@@ -5,7 +5,9 @@ from typing import Any
 import ast
 
 from implementation.rules.constants import IMPORT_SCOPE_TYPES
-from implementation.rules.python_syntax.dynamic_import_names import PythonDynamicImportNames
+from implementation.rules.python_syntax.dynamic_import_names import (
+    PythonDynamicImportNames,
+)
 from implementation.rules.sys_path_rules.sys_path_rules import PythonSysPathRules
 from implementation.types import JsonObject
 

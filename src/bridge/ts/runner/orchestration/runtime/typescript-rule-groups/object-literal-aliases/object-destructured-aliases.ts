@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import type { FakeObjectProtocol } from 'src/protocols';
-import { static_binding_name, static_element_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
 
 /** Responsibilities: _resolution destructured object aliases_. **/
 export class ObjectDestructuredAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly fake_object: FakeObjectProtocol;
 	private readonly expression_aliases = new TypeScriptExpressionAliases('');
 
@@ -69,9 +70,9 @@ export class ObjectDestructuredAliases {
 		element: ts.BindingElement,
 		initializer: ts.ObjectLiteralExpression
 	): boolean {
-		const source_name = static_binding_name(element);
+		const source_name = this.expression_names.static_binding_name(element);
 		const property = initializer.properties.find(
-			candidate => static_element_name(candidate) === source_name
+			candidate => this.expression_names.static_element_name(candidate) === source_name
 		);
 		if (property === undefined || !ts.isPropertyAssignment(property)) {
 			return false;

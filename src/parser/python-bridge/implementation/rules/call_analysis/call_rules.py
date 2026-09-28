@@ -6,7 +6,9 @@ import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.types import JsonObject
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
-from implementation.rules.call_analysis.call_classification import PythonCallClassification
+from implementation.rules.call_analysis.call_classification import (
+    PythonCallClassification,
+)
 from implementation.rules.call_analysis.call_reflection import PythonCallReflection
 
 

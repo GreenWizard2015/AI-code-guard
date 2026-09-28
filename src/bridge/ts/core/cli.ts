@@ -9,7 +9,11 @@ import type { LintRunResult } from "src/types";
 import { relative } from "node:path";
 import type { CliOptions, LintExecutionReport } from "src/types";
 import { LintStageTimer } from "src/stage-timing";
-import type { LintProjectContext, LintStageTimerProtocol, Violation } from "src/protocols";
+import type {
+	LintProjectContext,
+	LintStageTimerProtocol,
+	Violation,
+} from "src/protocols";
 
 /** Responsibilities: _CLI option parsing_. **/
 export class Cli {
@@ -78,7 +82,10 @@ export class Cli {
 	}
 
 	/** Responsibilities: _execution project lint execution_. **/
-	public run_project(options: CliOptions, stage_timer: LintStageTimerProtocol): void {
+	public run_project(
+		options: CliOptions,
+		stage_timer: LintStageTimerProtocol,
+	): void {
 		const { report } = this.lint_report(options, stage_timer);
 		const violations = report.violations;
 		const should_fail = this.should_fail(violations, stage_timer);

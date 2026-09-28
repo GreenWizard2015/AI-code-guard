@@ -2,10 +2,11 @@ import ts from 'typescript';
 import { FakeObject } from 'src/fake-object';
 import { ObjectCallableAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-aliases';
 import { ObjectLiteralAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _classification callable object expressions_. **/
 export class ObjectCallableExpression {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly fake_object = new FakeObject();
 	private readonly object_aliases = new ObjectLiteralAliases(this.fake_object);
 	private readonly callable_aliases = new ObjectCallableAliases(this.fake_object);
@@ -51,7 +52,7 @@ export class ObjectCallableExpression {
 		if (expression.argumentExpression === undefined) {
 			return -1;
 		}
-		const key = unwrap_transparent_expression(expression.argumentExpression);
+		const key = this.expression_names.unwrap_transparent_expression(expression.argumentExpression);
 		if (!ts.isNumericLiteral(key)) {
 			return -1;
 		}
@@ -67,7 +68,7 @@ export class ObjectCallableExpression {
 		if (index < 0) {
 			return false;
 		}
-		const target = unwrap_transparent_expression(expression.expression);
+		const target = this.expression_names.unwrap_transparent_expression(expression.expression);
 		if (!ts.isArrayLiteralExpression(target)) {
 			return false;
 		}
@@ -86,7 +87,7 @@ export class ObjectCallableExpression {
 		if (!ts.isSpreadAssignment(property)) {
 			return false;
 		}
-		const expression = unwrap_transparent_expression(property.expression);
+		const expression = this.expression_names.unwrap_transparent_expression(property.expression);
 		if (this.fake_object.fake_object(expression)) {
 			return true;
 		}
@@ -95,7 +96,7 @@ export class ObjectCallableExpression {
 
 	/** Responsibilities: _callable object expression_. **/
 	public matches(expression: ts.Expression, node: ts.Node): boolean {
-		const current = unwrap_transparent_expression(expression);
+		const current = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(current)) {
 			return this.object_aliases.contains(current, node);
 		}

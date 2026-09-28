@@ -13,7 +13,6 @@ import ast
 from implementation.ast.class_nodes.class_node_details import PythonClassNodeDetails
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.ast.source_segments import SourceSegments
-from implementation.references.aliases.container_aliases import PythonContainerAliases
 from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
 from implementation.types import JsonObject
 

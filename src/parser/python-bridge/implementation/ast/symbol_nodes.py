@@ -8,7 +8,9 @@ from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.references.module_instance_collector import (
     PythonModuleInstanceCollector,
 )
-from implementation.ast.type_declarations.type_declaration_collector import PythonTypeDeclarationCollector
+from implementation.ast.type_declarations.type_declaration_collector import (
+    PythonTypeDeclarationCollector,
+)
 from implementation.types import JsonObject
 import ast
 
@@ -137,8 +139,8 @@ class PythonAstSymbolNodes:
         self.tree: Any = tree
         self.node_index: Any = node_index
         self.callable_arguments: Any = CallableArguments(node_index)
-        self.type_declaration_collector: PythonTypeDeclarationCollector = PythonTypeDeclarationCollector(
-            tree, self.callable_arguments
+        self.type_declaration_collector: PythonTypeDeclarationCollector = (
+            PythonTypeDeclarationCollector(tree, self.callable_arguments)
         )
         self.module_instance_collector: PythonModuleInstanceCollector = (
             PythonModuleInstanceCollector(tree)
@@ -155,7 +157,9 @@ class PythonAstSymbolNodes:
     @cached_property
     def type_declarations(self) -> list[JsonObject]:
         """Responsibilities: _type declarations exposure collection_."""
-        return self.type_declaration_collector.declarations(self.node_index.nodes(self.tree))
+        return self.type_declaration_collector.declarations(
+            self.node_index.nodes(self.tree)
+        )
 
     @cached_property
     def module_instances(self) -> list[JsonObject]:

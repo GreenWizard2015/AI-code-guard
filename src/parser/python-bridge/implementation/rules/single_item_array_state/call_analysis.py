@@ -6,12 +6,9 @@ import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.references.aliases.protocols import PythonReferenceAliasesProtocol
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
-from implementation.rules.protocols import PythonArrayTypeInspectorProtocol, PythonReturnArrayAnalyzerProtocol
-from implementation.rules.single_item_array_state.array_type import (
-    PythonArrayTypeInspector,
-)
-from implementation.rules.single_item_array_state.return_analysis import (
-    PythonReturnArrayAnalyzer,
+from implementation.rules.protocols import (
+    PythonArrayTypeInspectorProtocol,
+    PythonReturnArrayAnalyzerProtocol,
 )
 
 
@@ -148,7 +145,9 @@ class PythonArrayCallAnalyzer:
         self.node_index: Any = node_index
         self.type_inspector: PythonArrayTypeInspectorProtocol = type_inspector
         self.return_analyzer: PythonReturnArrayAnalyzerProtocol = return_analyzer
-        self.assignment_aliases: PythonReferenceAliasesProtocol = PythonReferenceAliases()
+        self.assignment_aliases: PythonReferenceAliasesProtocol = (
+            PythonReferenceAliases()
+        )
         self.scope_types: Any = {
             ast.Module,
             ast.FunctionDef,

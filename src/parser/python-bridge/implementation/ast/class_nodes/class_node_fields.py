@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.constants import CLASS_BUILTIN_TYPES
-from implementation.references.aliases.container_aliases import PythonContainerAliases
 from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
 from implementation.types import JsonObject
 
@@ -116,7 +115,9 @@ class PythonClassNodeFields:
             return False
         return target.value.id in ("self", "cls")
 
-    def __init__(self, node: ast.ClassDef, container_aliases: PythonContainerAliasesProtocol) -> None:
+    def __init__(
+        self, node: ast.ClassDef, container_aliases: PythonContainerAliasesProtocol
+    ) -> None:
         """Responsibilities: _initialization class node usage_."""
         self.node: ast.ClassDef = node
         self.container_aliases: PythonContainerAliasesProtocol = container_aliases

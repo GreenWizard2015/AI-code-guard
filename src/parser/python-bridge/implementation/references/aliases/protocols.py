@@ -36,14 +36,21 @@ class PythonContainerAliasesProtocol(Protocol):
 
     def static_alias(self, name: str) -> str: ...
 
+
 class PythonContainerValuesProtocol(Protocol):
     """Responsibilities: _container value lookup contract_."""
 
-    def container_value(self, value: ast.Subscript) -> PythonContainerLookupProtocol: ...
+    def container_value(
+        self, value: ast.Subscript
+    ) -> PythonContainerLookupProtocol: ...
 
-    def attribute_value(self, value: ast.Attribute) -> PythonContainerLookupProtocol: ...
+    def attribute_value(
+        self, value: ast.Attribute
+    ) -> PythonContainerLookupProtocol: ...
 
-    def container_result(self, found: bool, expression: ast.AST) -> PythonContainerLookupProtocol: ...
+    def container_result(
+        self, found: bool, expression: ast.AST
+    ) -> PythonContainerLookupProtocol: ...
 
 
 class PythonReferenceAliasesProtocol(Protocol):
@@ -52,6 +59,7 @@ class PythonReferenceAliasesProtocol(Protocol):
     def collect(self, tree: ast.Module) -> list[JsonObject]: ...
 
     def resolved_name(self, name: str, names: frozenset[str]) -> str: ...
+
 
 __all__ = [
     "PythonContainerAliasesProtocol",

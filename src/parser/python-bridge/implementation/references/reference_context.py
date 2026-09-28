@@ -5,7 +5,9 @@ from typing import Any, Callable
 import ast
 
 from implementation.references.constants import UNKNOWN_OWNER_TYPES
-from implementation.references.call_return_state_adapter import PythonCallReturnStateAdapter
+from implementation.references.call_return_state_adapter import (
+    PythonCallReturnStateAdapter,
+)
 from implementation.references.protocols import PythonCallReturnStateProtocol
 
 
@@ -51,8 +53,8 @@ class PythonReferenceContext:
         self.aliases: Any = aliases
         self.instances: Any = instances
         self.properties: Any = properties
-        self.call_return_state: PythonCallReturnStateProtocol = PythonCallReturnStateAdapter(
-            call_return_state
+        self.call_return_state: PythonCallReturnStateProtocol = (
+            PythonCallReturnStateAdapter(call_return_state)
         )
         self.record_instance: Callable[[str, str], None] = self.instances.__setitem__
         self.record_property: Callable[[str, str], None] = self.properties.__setitem__

@@ -1,8 +1,9 @@
 import ts from 'typescript';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _factory object source registry_. **/
 export class TypeScriptFactoryObjectSources {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly sources = new Map<string, ts.ObjectLiteralExpression>();
 
@@ -50,7 +51,7 @@ export class TypeScriptFactoryObjectSources {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isObjectLiteralExpression(initializer)) {
 			return this.append_literal(declaration.name.text, initializer);
 		}
@@ -90,7 +91,7 @@ export class TypeScriptFactoryObjectSources {
 		visitor: (source: ts.ObjectLiteralExpression) => void,
 	): void {
 		this.register();
-		const source = unwrap_transparent_expression(expression);
+		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isObjectLiteralExpression(source)) {
 			visitor(source);
 			return;

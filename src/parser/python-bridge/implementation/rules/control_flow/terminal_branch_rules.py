@@ -57,4 +57,6 @@ class PythonTerminalBranchRules:
             return self.terminal_statement(statements[0])
         if not self.terminal_statement(statements[-1]):
             return False
-        return all(self._terminal_fallthrough(statement) for statement in statements[:-1])
+        return all(
+            self._terminal_fallthrough(statement) for statement in statements[:-1]
+        )

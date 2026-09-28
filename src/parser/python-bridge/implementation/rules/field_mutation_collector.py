@@ -128,7 +128,9 @@ class PythonFieldMutationCollector:
         """Responsibilities: _AST parent indexes initialization_."""
         self.tree: Any = tree
         self.node_index: Any = node_index
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
         self.container_keys: PythonContainerKeys = self.container_aliases.values.keys
         self.parents: dict[int, ast.AST] = {}
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
@@ -161,6 +163,9 @@ class PythonFieldMutationCollector:
             if method.name in {"__init__", "__post_init__"}:
                 return []
             aliases = self._method_self_aliases(method)
-            if any(self.field_target(target, aliases) for target in self._assignment_targets(node)):
+            if any(
+                self.field_target(target, aliases)
+                for target in self._assignment_targets(node)
+            ):
                 return [{"line": node.lineno - 1, "kind": "mutable-field-assignment"}]
         return []

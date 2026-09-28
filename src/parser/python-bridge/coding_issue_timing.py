@@ -76,4 +76,3 @@ class PythonCodingIssueTiming:
         for name, duration in self.timings.items():
             snapshot[name] = duration
         return snapshot
-

@@ -4,7 +4,9 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
-from implementation.references.aliases.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.references.aliases.scoped_type_aliases import (
+    PythonScopedTypeAliases,
+)
 from implementation.types import JsonObject
 
 
@@ -105,7 +107,9 @@ class PythonUnboundedTypeRules:
         """Responsibilities: _initialization Python tree reusable_."""
         self.tree: ast.AST = tree
         self.node_index: PythonAstNodeIndexProtocol = node_index
-        self.type_aliases: PythonScopedTypeAliases = PythonScopedTypeAliases(tree, node_index)
+        self.type_aliases: PythonScopedTypeAliases = PythonScopedTypeAliases(
+            tree, node_index
+        )
 
     def annotation_issues(self, annotation: ast.AST) -> list[JsonObject]:
         """Responsibilities: _reporting unbounded nodes contained_."""

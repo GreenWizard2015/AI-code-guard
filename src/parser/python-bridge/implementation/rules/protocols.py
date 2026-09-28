@@ -4,7 +4,6 @@ import ast
 from typing import Protocol
 
 
-
 class PythonReflectionNamesProtocol(Protocol):
     """Responsibilities: _Python reflection name resolution contract_."""
 
@@ -29,6 +28,24 @@ class PythonDecoratorRulesProtocol(Protocol):
     def observe(self, node: ast.AST) -> None: ...
 
     def kinds(self, node: ast.AST) -> set[str]: ...
+
+
+class PythonPropertyDecoratorProtocol(Protocol):
+    """Responsibilities: _property decorator classification contract_."""
+
+    def property_decorator(self, decorator: ast.AST) -> bool: ...
+
+
+class PythonContainerKeysProtocol(Protocol):
+    """Responsibilities: _container key extraction contract_."""
+
+    def static_key(self, value: ast.AST) -> str: ...
+
+
+class PythonSubtestAliasesProtocol(Protocol):
+    """Responsibilities: _subtest alias matching contract_."""
+
+    def matches(self, node: ast.AST) -> bool: ...
 
 
 class PythonTypingAliasesProtocol(Protocol):

@@ -19,7 +19,9 @@ class PythonTypeDeclarationCollector:
             return False
         function = value.func
         if type(function) is ast.Name:
-            return bool(self.aliases.resolved_name(function.id, frozenset({"TypeAliasType"})))
+            return bool(
+                self.aliases.resolved_name(function.id, frozenset({"TypeAliasType"}))
+            )
         if type(function) is not ast.Attribute or function.attr != "TypeAliasType":
             return False
         if type(function.value) is not ast.Name:
@@ -61,7 +63,9 @@ class PythonTypeDeclarationCollector:
                 return []
         return [{"name": ast.unparse(target), "line": node.lineno - 1}]
 
-    def __init__(self, tree: ast.Module, callable_arguments: PythonCallableArgumentsProtocol) -> None:
+    def __init__(
+        self, tree: ast.Module, callable_arguments: PythonCallableArgumentsProtocol
+    ) -> None:
         """Responsibilities: _initialization type declaration collector_."""
         self.tree: ast.Module = tree
         self.callable_arguments: PythonCallableArgumentsProtocol = callable_arguments
@@ -76,7 +80,9 @@ class PythonTypeDeclarationCollector:
     def type_alias_annotation(self, annotation: ast.AST) -> bool:
         """Responsibilities: _classification type alias annotation_."""
         if type(annotation) is ast.Name:
-            return bool(self.aliases.resolved_name(annotation.id, frozenset({"TypeAlias"})))
+            return bool(
+                self.aliases.resolved_name(annotation.id, frozenset({"TypeAlias"}))
+            )
         if type(annotation) is not ast.Attribute or annotation.attr != "TypeAlias":
             return False
         if type(annotation.value) is not ast.Name:

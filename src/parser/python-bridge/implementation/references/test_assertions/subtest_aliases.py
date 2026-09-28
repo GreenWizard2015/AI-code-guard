@@ -28,7 +28,9 @@ class PythonSubtestAliases:
         """Responsibilities: _resolution destructured subtest aliases_."""
         if type(node) is ast.Assign:
             if len(node.targets) == 1:
-                return self.assignment_aliases.target_values(node.targets[0], node.value)
+                return self.assignment_aliases.target_values(
+                    node.targets[0], node.value
+                )
         if type(node) is ast.AnnAssign:
             if node.value is not None:
                 return self.assignment_aliases.target_values(node.target, node.value)
@@ -93,7 +95,11 @@ class PythonSubtestAliases:
         return self._bound_getattr_subtest(value, receivers)
 
     def _record_name(
-        self, target: str, value: ast.Name, receivers: dict[str, str], subtests: set[str]
+        self,
+        target: str,
+        value: ast.Name,
+        receivers: dict[str, str],
+        subtests: set[str],
     ) -> None:
         """Responsibilities: _named alias recording_."""
         if value.id in subtests:
@@ -159,8 +165,12 @@ class PythonSubtestAliases:
         self.tree: ast.AST = tree
         self.node_index: PythonAstNodeIndexProtocol = node_index
         self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
-        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(
+            self.container_aliases
+        )
 
     def aliases_for(self, node: ast.AST) -> set[str]:
         """Responsibilities: _subtest alias output_."""

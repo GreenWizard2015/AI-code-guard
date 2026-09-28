@@ -78,7 +78,9 @@ class PythonProxyCallableAnalyzer:
     def __init__(self, tree: ast.AST) -> None:
         """Responsibilities: _proxy parent relationships_."""
         self.tree: Any = tree
-        self.receiver_aliases: PythonProxyReceiverAliases = PythonProxyReceiverAliases(tree)
+        self.receiver_aliases: PythonProxyReceiverAliases = PythonProxyReceiverAliases(
+            tree
+        )
         self.target_policy: PythonProxyTarget = PythonProxyTarget()
 
     def callable_name(self, node: ast.AST) -> str:

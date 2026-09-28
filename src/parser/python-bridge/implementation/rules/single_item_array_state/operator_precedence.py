@@ -164,5 +164,7 @@ class PythonOperatorPrecedence:
         """Responsibilities: _collection mixed arithmetic precedence_."""
         if self._arithmetic_operator(node):
             if self._mixed(node, False):
-                return [{"line": node.lineno - 1, "kind": "mixed-arithmetic-precedence"}]
+                return [
+                    {"line": node.lineno - 1, "kind": "mixed-arithmetic-precedence"}
+                ]
         return []

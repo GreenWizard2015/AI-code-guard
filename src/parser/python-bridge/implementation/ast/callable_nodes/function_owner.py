@@ -8,7 +8,9 @@ import ast
 class PythonFunctionOwner:
     """Responsibilities: _resolution Python function ownership_."""
 
-    def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexProtocol) -> None:
+    def __init__(
+        self, tree: ast.Module, node_index: PythonAstNodeIndexProtocol
+    ) -> None:
         """Responsibilities: _initialization Python function ownership_."""
         self.tree: ast.Module = tree
         self.node_index: PythonAstNodeIndexProtocol = node_index

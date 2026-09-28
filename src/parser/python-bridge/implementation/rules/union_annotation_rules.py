@@ -4,28 +4,18 @@ from typing import Any
 import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.rules.protocols import PythonTypingAliasesProtocol
+from implementation.rules.union_annotation_shapes import PythonUnionAnnotationShapes
 from implementation.types import JsonObject
 
 
 class UnionAnnotationRules:
     """Responsibilities: _classification Python unions detection_."""
 
-    def _subscript_name(self, value: ast.AST) -> str:
-        """Responsibilities: _identification subscript type name_."""
-        resolved = self.typing_aliases.expression_name(value)
-        if resolved:
-            return resolved
-        if type(value) is ast.Name:
-            return value.id
-        if type(value) is ast.Attribute:
-            return value.attr
-        return ""
-
     def _is_optional_type(self, value: ast.AST) -> bool:
         """Responsibilities: _optional annotation types identification_."""
         if type(value) is not ast.Subscript:
             return False
-        name: Any = self._subscript_name(value.value)
+        name: Any = self.shapes.subscript_name(value.value)
         if self.typing_aliases.matches_optional(name):
             return self._has_value_type([value.slice])
         if name != "Union" or type(value.slice) is not ast.Tuple:
@@ -57,59 +47,20 @@ class UnionAnnotationRules:
             return value.id in {"Never", "NoReturn", "undefined"}
         return False
 
-    def _union_types(self, node: ast.expr) -> list[ast.expr]:
-        """Responsibilities: _flatten union expression types_."""
-        if type(node) is not ast.BinOp:
-            return [node]
-        if type(node.op) is not ast.BitOr:
-            return [node]
-        return self._union_types(node.left) + self._union_types(node.right)
-
-    def _intersection_types(self, node: ast.expr) -> list[ast.expr]:
-        """Responsibilities: _flatten intersection expression types_."""
-        if type(node) is not ast.BinOp:
-            return [node]
-        if type(node.op) is not ast.BitAnd:
-            return [node]
-        return self._intersection_types(node.left) + self._intersection_types(
-            node.right
-        )
-
-    def _annotation_union_types(self, node: ast.AST) -> list[ast.AST]:
-        """Responsibilities: _annotation union members collection_."""
-        if type(node) is ast.BinOp and type(node.op) is ast.BitOr:
-            return self._union_types(node)
-        if type(node) is not ast.Subscript:
-            return [node]
-        if not self.typing_aliases.matches_union(self._subscript_name(node.value)):
-            return [node]
-        if type(node.slice) is ast.Tuple:
-            return list(node.slice.elts)
-        return [node.slice]
-
-    def _annotation_intersection_types(self, node: ast.AST) -> list[ast.AST]:
-        """Responsibilities: _annotation intersection members collection_."""
-        if type(node) is ast.BinOp and type(node.op) is ast.BitAnd:
-            return self._intersection_types(node)
-        return [node]
-
-    def _annotation_composite_types(self, node: ast.AST) -> list[ast.AST]:
-        """Responsibilities: _composite annotation members collection_."""
-        union_types: Any = self._annotation_union_types(node)
-        if len(union_types) > 1:
-            return union_types
-        return self._annotation_intersection_types(node)
-
-    def _composite_children(
-        self, node: ast.expr, candidates: list[ast.expr]
-    ) -> list[ast.expr]:
-        """Responsibilities: _nested composite candidates identification_."""
-        if type(node) is not ast.BinOp:
+    def _optional_union_issues(
+        self, node: ast.AST, values: list[ast.AST]
+    ) -> list[JsonObject]:
+        """Responsibilities: _optional union issue collection_."""
+        if len(values) != 2:
             return []
-        candidate_ids: Any = {id(item) for item in candidates}
-        return [
-            child for child in (node.left, node.right) if id(child) in candidate_ids
+        if not self._has_none(values):
+            return []
+        issues: list[JsonObject] = [
+            {"line": node.lineno - 1, "kind": "python-optional-union"}
         ]
+        if self._has_value_type(values):
+            issues.append({"line": node.lineno - 1, "kind": "nullable-domain-type"})
+        return issues
 
     def _issues_for_union(
         self, node: ast.AST, values: list[ast.AST]
@@ -118,14 +69,7 @@ class UnionAnnotationRules:
         issues: Any = []
         if len(values) > self.max_union_items:
             issues.append({"line": node.lineno - 1, "kind": "large-union"})
-        if len(values) == 2:
-            if self._has_none(values):
-                issues.append(
-                    {"line": node.lineno - 1, "kind": "python-optional-union"}
-                )
-            if self._has_none(values):
-                if self._has_value_type(values):
-                    issues.append({"line": node.lineno - 1, "kind": "nullable-domain-type"})
+        issues.extend(self._optional_union_issues(node, values))
         if len(values) > 1 and not any(
             self._is_nullish_type(value) for value in values
         ):
@@ -145,7 +89,7 @@ class UnionAnnotationRules:
         nested: Any = {
             id(child)
             for item in candidates
-            for child in self._composite_children(item, candidates)
+            for child in self.shapes._composite_children(item, candidates)
         }
         issues: list[dict[str, Any]] = []
         for candidate in candidates:
@@ -156,10 +100,10 @@ class UnionAnnotationRules:
 
     def _issues_for_candidate(self, candidate: ast.AST) -> list[JsonObject]:
         """Responsibilities: _candidate's violations collection_."""
-        values: Any = self._annotation_union_types(candidate)
+        values: Any = self.shapes.annotation_union_types(candidate)
         if len(values) > 1:
             return self._issues_for_union(candidate, values)
-        intersection: Any = self._annotation_intersection_types(candidate)
+        intersection: Any = self.shapes.annotation_intersection_types(candidate)
         return self._issues_for_intersection(candidate, intersection)
 
     def __init__(
@@ -172,11 +116,14 @@ class UnionAnnotationRules:
         self.max_union_items: Any = max_union_items
         self.node_index: Any = node_index
         self.typing_aliases: PythonTypingAliasesProtocol = typing_aliases
+        self.shapes: PythonUnionAnnotationShapes = PythonUnionAnnotationShapes(
+            typing_aliases
+        )
 
     def union(self, annotation: ast.AST) -> bool:
         """Responsibilities: _composite annotations identification_."""
         for item in self.node_index.nodes(annotation):
-            if len(self._annotation_composite_types(item)) > 1:
+            if len(self.shapes.annotation_composite_types(item)) > 1:
                 return True
         return False
 
@@ -193,6 +140,6 @@ class UnionAnnotationRules:
         candidates: Any = [
             item
             for item in self.node_index.nodes(annotation)
-            if len(self._annotation_composite_types(item)) > 1
+            if len(self.shapes.annotation_composite_types(item)) > 1
         ]
         return self._annotation_issues(candidates)

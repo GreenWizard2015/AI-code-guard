@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptFactoryArrayObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-array-object-sources';
 import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution factory array sources_. **/
 export class TypeScriptFactoryArraySources {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly array_sources = new Map<string, ts.ArrayLiteralExpression>();
 	public readonly binding_sources: TypeScriptFactoryArrayObjectSources;
@@ -32,7 +33,7 @@ export class TypeScriptFactoryArraySources {
 			values.push(element);
 			return;
 		}
-		const source = unwrap_transparent_expression(element.expression);
+		const source = this.expression_names.unwrap_transparent_expression(element.expression);
 		if (ts.isArrayLiteralExpression(source)) {
 			values.push(...this.elements(source));
 			return;
@@ -51,7 +52,7 @@ export class TypeScriptFactoryArraySources {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isArrayLiteralExpression(initializer)) {
 			return this.append_literal_source(declaration.name.text, initializer);
 		}
@@ -111,7 +112,7 @@ export class TypeScriptFactoryArraySources {
 		visitor: (values: readonly ts.Expression[]) => void,
 	): void {
 		this.register_array_sources();
-		const source = unwrap_transparent_expression(expression);
+		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isArrayLiteralExpression(source)) {
 			visitor(this.elements(source));
 			return;
@@ -144,7 +145,7 @@ export class TypeScriptFactoryArraySources {
 			return [];
 		}
 		this.register_array_sources();
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isArrayLiteralExpression(initializer)) {
 			return this.elements(initializer);
 		}

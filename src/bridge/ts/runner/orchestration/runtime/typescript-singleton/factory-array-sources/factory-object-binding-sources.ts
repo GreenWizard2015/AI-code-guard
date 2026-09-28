@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { static_binding_name, static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _factory object binding sources_. **/
 export class TypeScriptFactoryObjectBindingSources {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly object_sources: FactoryObjectSourcesContract;
 
 	/** Responsibilities: _direct binding source_. **/
@@ -22,7 +23,7 @@ export class TypeScriptFactoryObjectBindingSources {
 			if (element.name.text !== name) {
 				continue;
 			}
-			return this.property_source(initializer, static_binding_name(element));
+			return this.property_source(initializer, this.expression_names.static_binding_name(element));
 		}
 		return '';
 	}
@@ -35,7 +36,7 @@ export class TypeScriptFactoryObjectBindingSources {
 		array_source: (binding: ts.ArrayBindingPattern, value: ts.Expression, name: string) => string,
 	): string {
 		let result = '';
-		this.append_property_value(initializer, static_binding_name(element), (value) => {
+		this.append_property_value(initializer, this.expression_names.static_binding_name(element), (value) => {
 			if (ts.isObjectBindingPattern(element.name)) {
 				const binding = element.name;
 				this.object_sources.append(value, (source) => {
@@ -55,7 +56,10 @@ export class TypeScriptFactoryObjectBindingSources {
 		if (ts.isSpreadAssignment(property)) {
 			return this.spread_source(property.expression, property_name);
 		}
-		if (property.name === undefined || static_property_name(property.name) !== property_name) {
+		if (property.name === undefined) {
+			return '';
+		}
+		if (this.expression_names.static_property_name(property.name) !== property_name) {
 			return '';
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
@@ -76,7 +80,7 @@ export class TypeScriptFactoryObjectBindingSources {
 		if (property.name === undefined) {
 			return false;
 		}
-		if (static_property_name(property.name) !== property_name) {
+		if (this.expression_names.static_property_name(property.name) !== property_name) {
 			return false;
 		}
 		if (!ts.isPropertyAssignment(property)) {

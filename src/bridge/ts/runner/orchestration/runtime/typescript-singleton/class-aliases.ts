@@ -3,10 +3,11 @@ import { ImportedNames } from 'src/bridge/ts/runner/orchestration/runtime/typesc
 import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
 import { TypeScriptDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/destructured-aliases';
 import { TypeScriptArrayDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/array-destructured-aliases';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _class alias resolution_. **/
 export class TypeScriptClassAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly source_file: ts.SourceFile;
 	private readonly local_class_names: ReadonlySet<string>;
 	private readonly imported_names: ImportedNames;
@@ -58,7 +59,7 @@ export class TypeScriptClassAliases {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
-		const initializer = unwrap_transparent_expression(declaration.initializer);
+		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(initializer)) {
 			return this.append_class_alias(names, declaration.name.text, initializer.text);
 		}

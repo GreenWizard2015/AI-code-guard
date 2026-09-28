@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
-import { static_binding_name, static_property_name, unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _resolution destructured class aliases_. **/
 export class TypeScriptDestructuredAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly names: Set<string>;
 	private readonly object_sources = new Map<string, ts.ObjectLiteralExpression>();
 	private readonly namespace_aliases: TypeScriptNamespaceAliases;
@@ -28,7 +29,7 @@ export class TypeScriptDestructuredAliases {
 		property: ts.ObjectLiteralElementLike,
 		property_name: string
 	): string {
-		if (!property.name || static_property_name(property.name) !== property_name) {
+		if (!property.name || this.expression_names.static_property_name(property.name) !== property_name) {
 			return '';
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
@@ -42,7 +43,7 @@ export class TypeScriptDestructuredAliases {
 
 	/** Responsibilities: _resolution property value alias_. **/
 	private property_value_target(initializer: ts.Expression): string {
-		const value = unwrap_transparent_expression(initializer);
+		const value = this.expression_names.unwrap_transparent_expression(initializer);
 		if (ts.isIdentifier(value)) {
 			return value.text;
 		}
@@ -62,7 +63,7 @@ export class TypeScriptDestructuredAliases {
 
 	/** Responsibilities: _resolution spread property target_. **/
 	private spread_property_target(expression: ts.Expression, property_name: string): string {
-		let source = unwrap_transparent_expression(expression);
+		let source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(source)) {
 			const alias = this.object_sources.get(source.text);
 			if (alias === undefined) {
@@ -96,7 +97,7 @@ export class TypeScriptDestructuredAliases {
 		if (!ts.isIdentifier(element.name)) {
 			return '';
 		}
-		return static_binding_name(element);
+		return this.expression_names.static_binding_name(element);
 	}
 
 	/** Responsibilities: _collection object alias binding_. **/
@@ -140,7 +141,7 @@ export class TypeScriptDestructuredAliases {
 		if (declaration.initializer === undefined) {
 			return false;
 		}
-		let initializer = unwrap_transparent_expression(declaration.initializer);
+		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(initializer)) {
 			const source = this.object_sources.get(initializer.text);
 			if (source === undefined) {
@@ -159,7 +160,7 @@ export class TypeScriptDestructuredAliases {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return;
 		}
-		let initializer = unwrap_transparent_expression(declaration.initializer);
+		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(initializer)) {
 			const source = this.object_sources.get(initializer.text);
 			if (source === undefined) {

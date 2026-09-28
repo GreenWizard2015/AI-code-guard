@@ -28,7 +28,9 @@ class PythonCallReflection:
         """Responsibilities: _comprehension feature detection_."""
         if type(parent) is not ast.comprehension:
             return False
-        return any(item is target for condition in parent.ifs for item in ast.walk(condition))
+        return any(
+            item is target for condition in parent.ifs for item in ast.walk(condition)
+        )
 
     def _callable_feature(self, node: ast.Call) -> bool:
         """Responsibilities: _callable feature detection_."""
@@ -55,7 +57,9 @@ class PythonCallReflection:
 
     def __init__(self) -> None:
         """Responsibilities: _reflection classification setup_."""
-        self.reflection_names: PythonBuiltinReflectionNames = PythonBuiltinReflectionNames()
+        self.reflection_names: PythonBuiltinReflectionNames = (
+            PythonBuiltinReflectionNames()
+        )
         self.python_only_reflections: set[str] = {"isinstance", "callable"}
         self.parents: dict[int, ast.AST] = {}
 

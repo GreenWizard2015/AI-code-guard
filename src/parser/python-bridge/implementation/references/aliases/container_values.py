@@ -8,6 +8,7 @@ from implementation.references.aliases.protocols import (
     PythonContainerLookupProtocol,
 )
 
+
 class PythonContainerValues:
     """Responsibilities: _container value collection_."""
 
@@ -101,7 +102,9 @@ class PythonContainerValues:
             return nested
         return [resolved.expression_node()]
 
-    def _nested_attribute_value(self, value: ast.Attribute) -> PythonContainerLookupProtocol:
+    def _nested_attribute_value(
+        self, value: ast.Attribute
+    ) -> PythonContainerLookupProtocol:
         """Responsibilities: _nested attribute value resolution_."""
         if type(value.value) is ast.Subscript:
             resolved = self.container_value(value.value)
@@ -112,7 +115,9 @@ class PythonContainerValues:
         nested = self._lookup_item(resolved.expression_node(), value.attr)
         if nested.found():
             return nested
-        expression = ast.Attribute(value=resolved.expression_node(), attr=value.attr, ctx=ast.Load())
+        expression = ast.Attribute(
+            value=resolved.expression_node(), attr=value.attr, ctx=ast.Load()
+        )
         return self.container_result(True, expression)
 
     def __init__(self, state: PythonContainerAliasesProtocol) -> None:
@@ -120,7 +125,9 @@ class PythonContainerValues:
         self.state: PythonContainerAliasesProtocol = state
         self.keys: PythonContainerKeys = PythonContainerKeys(state)
 
-    def container_result(self, found: bool, expression: ast.AST) -> PythonContainerLookupProtocol:
+    def container_result(
+        self, found: bool, expression: ast.AST
+    ) -> PythonContainerLookupProtocol:
         """Responsibilities: _container lookup result creation_."""
         return SimpleNamespace(
             found=lambda: found,

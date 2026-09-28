@@ -19,7 +19,11 @@ class PythonProxyForwarding:
         vararg: Any = ""
         if self.arguments.vararg:
             vararg = self.arguments.vararg.arg
-        return {"positional": positional, "keyword_only": keyword_only, "vararg": vararg}
+        return {
+            "positional": positional,
+            "keyword_only": keyword_only,
+            "vararg": vararg,
+        }
 
     def _argument_root(self, node: ast.AST) -> str:
         """Responsibilities: _resolution root argument name_."""

@@ -9,7 +9,9 @@ from implementation.references.aliases.protocols import (
     PythonContainerLookupProtocol,
     PythonContainerValuesProtocol,
 )
-from implementation.rules.python_syntax.dynamic_type_references import PythonDynamicTypeReferences
+from implementation.rules.python_syntax.dynamic_type_references import (
+    PythonDynamicTypeReferences,
+)
 from implementation.types import JsonObject
 
 

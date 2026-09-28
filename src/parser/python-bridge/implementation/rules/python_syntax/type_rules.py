@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any
 import ast
 
-from implementation.rules.python_syntax.decorator_rules import PythonDecoratorRules
 from implementation.rules.protocols import PythonDecoratorRulesProtocol
 from implementation.rules.python_syntax.tuple_type_names import PythonTupleTypeNames
 from implementation.rules.python_syntax.type_factory_names import PythonTypeFactoryNames
@@ -102,7 +101,9 @@ class TypeRules:
             {"line": annotation.lineno - 1, "kind": "python-string-type-annotation"}
         ]
 
-    def __init__(self, tree: ast.AST, decorator_rules: PythonDecoratorRulesProtocol) -> None:
+    def __init__(
+        self, tree: ast.AST, decorator_rules: PythonDecoratorRulesProtocol
+    ) -> None:
         """Responsibilities: _configuration Python type loading_."""
         self.tree: ast.AST = tree
         self.type_factory_names: PythonTypeFactoryNames = PythonTypeFactoryNames()
@@ -115,7 +116,7 @@ class TypeRules:
         self.type_factory_names.observe(node)
         self.tuple_type_names.configure(self.tree)
         self.tuple_type_names.observe(node)
-        self.decorator_rules.observe(node)
+        self.decorator_rules.aliases.observe(node)
         issues: Any = self._class_type_issue(node) + self._assignment_type_issue(node)
         issues += self._tuple_type_issue(node)
         issues += self._string_annotation_issue(node)

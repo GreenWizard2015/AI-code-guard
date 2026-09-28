@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptFactoryObjectBindingSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-object-binding-sources';
 import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { unwrap_transparent_expression } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _array object binding sources_. **/
 export class TypeScriptFactoryArrayObjectSources {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly object_sources: FactoryObjectSourcesContract;
 	private readonly object_bindings: TypeScriptFactoryObjectBindingSources;
 	private readonly elements: (initializer: ts.ArrayLiteralExpression) => readonly ts.Expression[];
@@ -46,7 +47,7 @@ export class TypeScriptFactoryArrayObjectSources {
 		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
 			return '';
 		}
-		const source = unwrap_transparent_expression(value);
+		const source = this.expression_names.unwrap_transparent_expression(value);
 		if (ts.isIdentifier(source)) {
 			return source.text;
 		}
@@ -55,7 +56,7 @@ export class TypeScriptFactoryArrayObjectSources {
 
 	/** Responsibilities: _nested array source_. **/
 	private nested_source(binding: ts.ArrayBindingPattern, value: ts.Expression, name: string): string {
-		const source = unwrap_transparent_expression(value);
+		const source = this.expression_names.unwrap_transparent_expression(value);
 		if (!ts.isArrayLiteralExpression(source)) {
 			return '';
 		}

@@ -5,8 +5,12 @@ import ast
 from functools import cached_property
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.ast.source_segments import SourceSegments
-from implementation.rules.control_flow.predicate_condition import PythonPredicateCondition
-from implementation.rules.control_flow.terminal_branch_rules import PythonTerminalBranchRules
+from implementation.rules.control_flow.predicate_condition import (
+    PythonPredicateCondition,
+)
+from implementation.rules.control_flow.terminal_branch_rules import (
+    PythonTerminalBranchRules,
+)
 from implementation.types import JsonObject
 
 

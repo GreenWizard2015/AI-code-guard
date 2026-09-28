@@ -9,6 +9,7 @@ import ast
 from typing import Any, Optional
 
 from implementation.references.constants import REFERENCE_GENERICS, SEQUENCE_ANNOTATIONS
+from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
 
 
 class PythonInstanceCollector:
@@ -91,7 +92,9 @@ class PythonInstanceCollector:
         ]
         for argument in arguments:
             owner: Any = annotation_resolver.annotation_name(
-                argument.annotation, self.context.annotation_aliases(), REFERENCE_GENERICS
+                argument.annotation,
+                self.context.annotation_aliases(),
+                REFERENCE_GENERICS,
             )
             if not owner:
                 continue
@@ -157,7 +160,9 @@ class PythonInstanceCollector:
         self.tree: Any = tree
         self.context: PythonReferenceContextProtocol = context
 
-    def collect_instances(self, annotation_resolver: PythonAnnotationResolverProtocol) -> None:
+    def collect_instances(
+        self, annotation_resolver: PythonAnnotationResolverProtocol
+    ) -> None:
         """Responsibilities: _collection instances module class_."""
         self._collect_instances(self.tree, "", annotation_resolver)
 

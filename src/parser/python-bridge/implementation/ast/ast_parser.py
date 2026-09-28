@@ -9,14 +9,17 @@ from implementation.rules.import_rules import ImportRules
 from implementation.references.call_returns import CallReturns
 from implementation.references.call_return_state import PythonCallReturnState
 from implementation.rules.structure_issues import StructureIssues
-from implementation.ast.class_nodes.class_node_builder import PythonClassNode, PythonClassNodeOptions
+from implementation.ast.class_nodes.class_node_builder import (
+    PythonClassNode,
+    PythonClassNodeOptions,
+)
 from implementation.ast.callable_nodes.function_nodes import PythonFunctionNodes
 from implementation.rules.coding_issue_collector import PythonCodingIssueCollector
-from implementation.rules.private_access_collector import PythonPrivateAccessCollector
 from implementation.references.reference_collector import PythonReferenceCollector
 from implementation.ast.symbol_nodes import PythonAstSymbolNodes
-from implementation.ast.type_declarations.module_constant_spans import PythonModuleConstantSpans
-from implementation.ast.responsibility_targets import PythonResponsibilityTargets
+from implementation.ast.type_declarations.module_constant_spans import (
+    PythonModuleConstantSpans,
+)
 from implementation.ast.node_index import PythonAstNodeIndex
 from implementation.ast.source_segments import SourceSegments
 from implementation.ast.ast_content import PythonAstContent
@@ -37,21 +40,32 @@ class PythonAstTree:
     timings: dict[str, float]
     content_collector: PythonAstContent
 
+    def _class_node(
+        self, node: ast.ClassDef, container_aliases: PythonContainerAliases
+    ) -> JsonObject:
+        """Responsibilities: _class node construction_."""
+        builder: Any = PythonClassNode(
+            PythonClassNodeOptions(
+                node,
+                self.source,
+                self.node_index,
+                self.source_segments,
+                container_aliases,
+            )
+        )
+        return builder.result
+
     def _class_nodes(self) -> list[JsonObject]:
         """Responsibilities: _construction normalization class nodes_."""
-        nodes: Any = [node for node in self.node_index.nodes(self.tree) if type(node) is ast.ClassDef]
-        results: Any = []
+        nodes: Any = [
+            node
+            for node in self.node_index.nodes(self.tree)
+            if type(node) is ast.ClassDef
+        ]
         container_aliases = PythonContainerAliases()
         for statement in self.tree.body:
             container_aliases.observe(statement)
-        for node in nodes:
-            builder: Any = PythonClassNode(
-                PythonClassNodeOptions(
-                    node, self.source, self.node_index, self.source_segments, container_aliases
-                )
-            )
-            results.append(builder.result)
-        return results
+        return [self._class_node(node, container_aliases) for node in nodes]
 
     def _from_import_node(self, node: ast.ImportFrom) -> JsonObject:
         """Responsibilities: _normalization from-import statement its_."""

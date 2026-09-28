@@ -1,8 +1,9 @@
 import ts from 'typescript';
-import { static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _TypeScript object alias storage_. **/
 export class TypeScriptObjectAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly aliases = new Map<string, ts.ObjectLiteralExpression>();
 
 	/** Responsibilities: _named property value addition_. **/
@@ -12,7 +13,7 @@ export class TypeScriptObjectAliases {
 		values: ts.Expression[]
 	): boolean {
 		if (ts.isPropertyAssignment(property)) {
-			if (static_property_name(property.name) === property_name) {
+			if (this.expression_names.static_property_name(property.name) === property_name) {
 				values.push(property.initializer);
 			}
 			return true;
@@ -20,7 +21,7 @@ export class TypeScriptObjectAliases {
 		if (!ts.isShorthandPropertyAssignment(property)) {
 			return false;
 		}
-		if (static_property_name(property.name) === property_name) {
+		if (this.expression_names.static_property_name(property.name) === property_name) {
 			values.push(property.name);
 		}
 		return true;

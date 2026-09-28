@@ -5,7 +5,9 @@ import ast
 
 from implementation.references.aliases.container_aliases import PythonContainerAliases
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
-from implementation.rules.python_syntax.dynamic_import_references import PythonDynamicImportReferences
+from implementation.rules.python_syntax.dynamic_import_references import (
+    PythonDynamicImportReferences,
+)
 
 
 class PythonDynamicImportNames:
@@ -54,13 +56,17 @@ class PythonDynamicImportNames:
         self.module_aliases.pop(target.id, None)
         self.function_aliases.pop(target.id, None)
 
-    def _configure_assignment_targets(self, targets: list[ast.AST], value: ast.AST) -> None:
+    def _configure_assignment_targets(
+        self, targets: list[ast.AST], value: ast.AST
+    ) -> None:
         """Responsibilities: _configuration dynamic alias targets_."""
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             self._configure_container_target(target, value)
             target_values.update(
-                self.assignment_aliases.target_values(target, value, references_only=False)
+                self.assignment_aliases.target_values(
+                    target, value, references_only=False
+                )
             )
         self.container_aliases.assign(targets, value)
         for target, source in target_values.items():

@@ -1,9 +1,10 @@
 import ts from 'typescript';
 import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _static object value collection_. **/
 export class TypeScriptStaticObjectValues {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly expression_aliases = new TypeScriptExpressionAliases('');
 	private readonly literal_kinds = new Set([
 		ts.SyntaxKind.StringLiteral,
@@ -15,7 +16,7 @@ export class TypeScriptStaticObjectValues {
 
 	/** Responsibilities: _computed object property name_. **/
 	private computed_property_name(node: ts.ComputedPropertyName): string {
-		const static_name = static_property_name(node);
+		const static_name = this.expression_names.static_property_name(node);
 		if (static_name !== '') {
 			return static_name;
 		}
@@ -148,7 +149,7 @@ export class TypeScriptStaticObjectValues {
 		if (ts.isComputedPropertyName(node)) {
 			return this.computed_property_name(node);
 		}
-		return static_property_name(node);
+		return this.expression_names.static_property_name(node);
 	}
 
 	/** Responsibilities: _object property value addition_. **/

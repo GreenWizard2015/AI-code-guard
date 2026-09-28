@@ -32,7 +32,11 @@ class PythonPrivateVarsMapping:
         if type(function) is not ast.Attribute:
             return False
         return function.attr in {
-            "get", "pop", "setdefault", "__getitem__", "__delitem__"
+            "get",
+            "pop",
+            "setdefault",
+            "__getitem__",
+            "__delitem__",
         }
 
     def _vars_arguments(self, node: ast.AST) -> list[ast.AST]:

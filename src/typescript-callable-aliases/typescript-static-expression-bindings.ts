@@ -1,10 +1,11 @@
 import ts from 'typescript';
 import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 import { TypeScriptStaticArrayExpressionBindings } from 'src/typescript-callable-aliases/static-array/typescript-static-array-expression-bindings';
 
 /** Responsibilities: _destructured static expression aliases_. **/
 export class TypeScriptStaticExpressionBindings {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly expression_aliases = new TypeScriptExpressionAliases('');
 	private readonly object_sources = new Map<string, ts.ObjectLiteralExpression>();
 	private readonly append_value: (
@@ -47,7 +48,7 @@ export class TypeScriptStaticExpressionBindings {
 			if (!ts.isPropertyAssignment(candidate)) {
 				continue;
 			}
-			if (static_property_name(candidate.name) !== source_name) {
+			if (this.expression_names.static_property_name(candidate.name) !== source_name) {
 				continue;
 			}
 			if (!ts.isIdentifier(element.name)) {
@@ -69,7 +70,7 @@ export class TypeScriptStaticExpressionBindings {
 		}
 		let source_name = element.name.text;
 		if (element.propertyName !== undefined) {
-			source_name = static_property_name(element.propertyName);
+			source_name = this.expression_names.static_property_name(element.propertyName);
 		}
 		return this.append_property_value(values, element, source_name, source);
 	}

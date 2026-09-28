@@ -5,7 +5,11 @@ import ast
 from implementation.references.aliases.container_aliases import PythonContainerAliases
 from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
-from implementation.rules.constants import ALL_REFLECTION_CALLS, PRIVATE_ACCESS_CALLS, REFLECTION_CALLS
+from implementation.rules.constants import (
+    ALL_REFLECTION_CALLS,
+    PRIVATE_ACCESS_CALLS,
+    REFLECTION_CALLS,
+)
 
 
 class PythonBuiltinReflectionNames:
@@ -77,14 +81,18 @@ class PythonBuiltinReflectionNames:
             return ""
         return self._mapped_attribute_name(function, names)
 
-    def _mapped_subscript_name(self, function: ast.Subscript, names: frozenset[str]) -> str:
+    def _mapped_subscript_name(
+        self, function: ast.Subscript, names: frozenset[str]
+    ) -> str:
         """Responsibilities: _reflection subscript identity_."""
         resolved = self.container_aliases.values.container_value(function)
         if not resolved.found():
             return ""
         return self._mapped_function_name(resolved.expression_node(), names)
 
-    def _mapped_attribute_name(self, function: ast.Attribute, names: frozenset[str]) -> str:
+    def _mapped_attribute_name(
+        self, function: ast.Attribute, names: frozenset[str]
+    ) -> str:
         """Responsibilities: _reflection attribute identity_."""
         target = function.value
         if type(target) is not ast.Name:
@@ -110,17 +118,27 @@ class PythonBuiltinReflectionNames:
             self._configure_imported_modules(node)
         self.container_aliases.observe(node)
 
-    def _configure_assignment(self, node: ast.AST) -> None:
-        """Responsibilities: _reflection alias assignment_."""
+    def _assignment_values(self, node: ast.AST) -> dict[str, ast.AST]:
+        """Responsibilities: _reflection assignment target collection_."""
         target_values: dict[str, ast.AST] = {}
         if type(node) is ast.Assign:
             for target in node.targets:
-                target_values.update(self.reference_aliases.target_values(target, node.value, references_only=False))
-        if type(node) is ast.AnnAssign:
-            if node.value is None:
-                return
-            target_values.update(self.reference_aliases.target_values(node.target, node.value, references_only=False))
-        for target, value in target_values.items():
+                target_values.update(
+                    self.reference_aliases.target_values(
+                        target, node.value, references_only=False
+                    )
+                )
+        if type(node) is ast.AnnAssign and node.value is not None:
+            target_values.update(
+                self.reference_aliases.target_values(
+                    node.target, node.value, references_only=False
+                )
+            )
+        return target_values
+
+    def _configure_assignment(self, node: ast.AST) -> None:
+        """Responsibilities: _reflection alias assignment_."""
+        for target, value in self._assignment_values(node).items():
             name = self._builtin_name(value)
             if name:
                 self.aliases[target] = name
@@ -130,7 +148,9 @@ class PythonBuiltinReflectionNames:
         self.aliases: dict[str, str] = {}
         self.module_names: set[str] = {"builtins"}
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
 
     def configure(self, tree: ast.AST) -> None:
         """Responsibilities: _configuration builtin reflection imports_."""

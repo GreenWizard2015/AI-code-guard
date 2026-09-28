@@ -17,7 +17,6 @@ from implementation.references.reference_context import PythonReferenceContext
 from implementation.references.reference_state import PythonReferenceState
 from implementation.references.protocols import PythonCallReturnStateProtocol
 from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
-from implementation.ast.node_index import PythonAstNodeIndex
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.types import JsonObject
 import ast

@@ -140,9 +140,15 @@ class PythonPrivateAccessCollector:
         """Responsibilities: _initialization source tree node_."""
         self.tree: Any = tree
         self.node_index: Any = node_index
-        self.container_aliases: PythonContainerAliasesProtocol = PythonContainerAliases()
-        self.container_keys: PythonContainerKeys = PythonContainerKeys(self.container_aliases)
-        self.reflection_names: PythonBuiltinReflectionNames = PythonBuiltinReflectionNames()
+        self.container_aliases: PythonContainerAliasesProtocol = (
+            PythonContainerAliases()
+        )
+        self.container_keys: PythonContainerKeys = PythonContainerKeys(
+            self.container_aliases
+        )
+        self.reflection_names: PythonBuiltinReflectionNames = (
+            PythonBuiltinReflectionNames()
+        )
         self.private_vars_mapping: PythonPrivateVarsMapping = PythonPrivateVarsMapping(
             self.reflection_names,
             self.container_keys.string_value,

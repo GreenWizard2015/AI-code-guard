@@ -1,16 +1,17 @@
 import ts from 'typescript';
-import { static_binding_name, static_property_name } from 'functions';
+import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
 
 /** Responsibilities: _TypeScript binding alias resolution_. **/
 export class TypeScriptBindingAliases {
+	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly property_names = new WeakMap<ts.Node, string>();
 
 	/** Responsibilities: _destructured property name_. **/
 	private resolve_property_name(element: ts.Node): string {
 		if (ts.isBindingElement(element)) {
-			return static_binding_name(element);
+			return this.expression_names.static_binding_name(element);
 		}
-		return static_property_name(element);
+		return this.expression_names.static_property_name(element);
 	}
 
 	/** Responsibilities: _object property alias_. **/
