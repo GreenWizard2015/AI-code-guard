@@ -55,7 +55,6 @@ describe('coding-lint architecture and metrics rules', () => {
 				'class is too short',
 				'method is too short',
 				'function has too many arguments (found 6)',
-				'file has too many functions (found 19)',
 				'functions share class-like prefix "_Agent_" (2 functions)',
 				'functions share class-like prefix "_Worker_" (2 functions)',
 				'functions share class-like prefix "_Dispatcher_" (2 functions)',

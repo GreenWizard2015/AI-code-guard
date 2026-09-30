@@ -92,6 +92,15 @@ export class NamingValidation {
 		return this.valid_symbol_name(name, kind, is_module_constant, words);
 	}
 
+	/** Responsibilities: _creation numeric name violation_. **/
+	public numeric_name_violation(
+		file: string,
+		line: number,
+	): Violation {
+		const rule = new DiagnosticRule('numeric-name');
+		return rule.violation(file, line + 1);
+	}
+
 	/** Responsibilities: _creation naming violation invalid_. **/
 	public naming_violation(
 		file: string,

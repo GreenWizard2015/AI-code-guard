@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import type { CallableBodyKind } from 'src/typescript-callable-aliases/types';
 
 /** Responsibilities: _classification TypeScript callable bodies_. **/
 export class TypeScriptCallableBody {
@@ -33,24 +34,25 @@ export class TypeScriptCallableBody {
 		missing: T,
 		present: (body: ts.Node) => T
 	): T {
-		if (!this.supported_kinds.has(node.kind)) {
+		const kind = this.body_kind(node);
+		if (kind === 'unsupported') {
 			return missing;
 		}
-		if (ts.isArrowFunction(node)) {
-			return present(node.body);
-		}
-		if (ts.isFunctionExpression(node)) {
+		if (kind === 'expression' && (ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
 			return present(node.body);
 		}
 		return this.declaration_body(node, missing, present);
 	}
 
-	/** Responsibilities: _implemented callable classification_. **/
-	public implemented(node: ts.Node): boolean {
-		const result = this.resolve(node, false, () => true);
-		if (result) {
-			return true;
+	/** Responsibilities: _classification callable body kind_. **/
+	public body_kind(node: ts.Node): CallableBodyKind {
+		if (!this.supported_kinds.has(node.kind)) {
+			return 'unsupported';
 		}
-		return false;
+		if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+			return 'expression';
+		}
+		return 'declaration';
 	}
+
 }

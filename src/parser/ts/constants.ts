@@ -789,6 +789,11 @@ export const RULE_DATA = {
 		hint: 'use a normal snake_case name for module-level functions and public methods; use explicit private/protected visibility for class methods instead.',
 		priority: 2,
 	},
+	'numeric-name': {
+		message: 'symbol names must not contain numbers',
+		hint: 'replace numeric suffixes and embedded numbers with descriptive words. Do not: keep distinctions such as item1, item2, or version2 in symbol names.',
+		priority: 2,
+	},
 	'exception-grouping': {
 		message: 'exception class should be colocated with its caller',
 		hint: 'Move a one-use Error class into the caller module, or group related exception classes in one focused module. Do not: keep a one-use exception in an isolated file.',
@@ -962,7 +967,7 @@ export const RULE_DATA = {
 	},
 	'function-placement': {
 		message: 'module-level functions must be declared in the project-root functions file',
-		hint: 'FIRST move all functions to {project root}/functions.{ext}, then fix other problems.',
+		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. CLI/entrypoint startup code may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
 		priority: 7,
 	},
 	'shared-parameter-type': {
@@ -976,21 +981,6 @@ export const RULE_DATA = {
 			'multiple {noun} share parameter combination "{parameters}" ({support}). Candidates: {candidates}.',
 		hint: 'Create a named wrapper/options object for the parameter combination and update all callers. Do not: repeat the same positional contract.',
 		priority: 5,
-	},
-	'file-function-count-info': {
-		message: 'file has many functions (found {count})',
-		hint: 'Refactor related state and behavior into a focused class or module. Do not: add temporary wrappers only to hide the function count.',
-		priority: 1,
-	},
-	'file-function-count-warning': {
-		message: 'file has too many functions (found {count})',
-		hint: 'Refactor related state and behavior into a focused class or module. Do not: add temporary wrappers only to hide the function count.',
-		priority: 3,
-	},
-	'functions-file-max-count': {
-		message: 'functions file has too many functions (found {count})',
-		hint: 'Keep root functions.ts and functions.py limited to five cohesive functions, or move each responsibility into its owning class or focused domain module. Do not: keep unrelated functions together or add wrappers only to hide the count.',
-		priority: 3,
 	},
 	'functions-file-type-declaration': {
 		message: 'functions file must not declare types',

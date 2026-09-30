@@ -16,7 +16,7 @@
     "test:runner": "tsx test-runner.ts",
     "lint": "tsx src/bridge/ts/core/cli.ts --entry-file src/bridge/ts/core/cli.ts --entry-file test-runner.ts",
     "format": "pnpm format:ts && pnpm format:python",
-    "format:ts": "biome format --write test-runner.ts src/bridge/ts/core/cli.ts tests/core/test-runner.ts tests/core/quality-checks.ts tests/core/quality-check-definitions.ts",
+    "format:ts": "biome format --write test-runner.ts src/bridge/ts/core/cli.ts tests",
     "format:python": "python3 -m black src/parser/python-bridge",
     "type-check": "tsc --noEmit"
   },

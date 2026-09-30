@@ -12,9 +12,9 @@ export type ClassNodeInput = {
 };
 
 export type ViolationPriorityCounts = {
-	priority_1: number;
-	priority_2: number;
-	priority_3: number;
+	info: number;
+	warning: number;
+	critical: number;
 	files: number;
 	total: number;
 };

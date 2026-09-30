@@ -1,68 +1,20 @@
 import ts from 'typescript';
-import type { FunctionCount, LintSourceRecord } from 'src/types';
+import type { LintFileNameContract, LintSourceRecord, NamedLine } from 'src/types';
 import type { Violation } from 'src/protocols';
 import type { RemainingViolationOptions } from 'src/bridge/ts/runner/orchestration/runtime/types';
 import { PlacementSupport } from 'src/bridge/ts/runner/placement-support';
 import { Reexports } from 'src/bridge/ts/runner/orchestration/runtime/python/reexports';
-import { FileFunctionCountReporter } from 'src/bridge/ts/runner/orchestration/runtime/file-function-count-reporter';
+import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import { SourceFileAst } from 'src/bridge/ts/runner/orchestration/runtime/source-file-ast';
 import { CodingRuleLinter } from 'src/bridge/ts/runner/orchestration/runtime/coding-rules';
 import { SingletonCollector } from 'src/bridge/ts/runner/orchestration/runtime/singleton-collector';
 import { CyrillicTextRules } from 'src/bridge/ts/rules/support/cyrillic-text-rules';
-import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
 
 /** Responsibilities: _collection remaining file-level violations_. **/
 export class FileRemainingViolationCollector {
 	private readonly placement_support = new PlacementSupport();
 	private readonly reexports = new Reexports();
-	private readonly function_count_reporter = new FileFunctionCountReporter();
 	private readonly cyrillic_text_rules = new CyrillicTextRules();
-	private readonly callable_body = new TypeScriptCallableBody();
-
-	/** Responsibilities: _summary callable count first_. **/
-	private function_count(functions: readonly { start: number }[]): FunctionCount {
-		let first_line = 0;
-		if (functions[0] !== undefined) {
-			first_line = functions[0].start;
-		}
-		return { count: functions.length, first_line };
-	}
-
-	/** Responsibilities: _TypeScript callable count_. **/
-	private typescript_function_count(source: LintSourceRecord): FunctionCount {
-		let count = 0;
-		let first_line = 0;
-		const visit = (node: ts.Node): void => {
-			if (this.callable_body.implemented(node)) {
-				if (count === 0) {
-					first_line = source.typescript_ast.source_file_node().getLineAndCharacterOfPosition(node.getStart()).line;
-				}
-				count += 1;
-			}
-			ts.forEachChild(node, visit);
-		};
-		visit(source.typescript_ast.source_file_node());
-		return { count, first_line };
-	}
-
-	/** Responsibilities: _source function count selection_. **/
-	private source_function_count(source: LintSourceRecord): FunctionCount {
-		if (source.python()) {
-			if (source.file_name.is_functions_file) {
-				const python_count = source.normalized_ast.python_callable_count;
-				if (python_count !== undefined) {
-					return python_count;
-				}
-			}
-		}
-		if (!source.typescript()) {
-			return this.function_count(source.normalized_ast.functions);
-		}
-		if (!source.file_name.is_functions_file) {
-			return this.function_count(source.normalized_ast.functions);
-		}
-		return this.typescript_function_count(source);
-	}
 
 	/** Responsibilities: _collection singleton violations normalization_. **/
 	private collect_singletons(
@@ -132,23 +84,30 @@ export class FileRemainingViolationCollector {
 	private append_metrics(options: RemainingViolationOptions): void {
 		const language = options.python ? 'python' : 'typescript';
 		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.function-count`,
-			() => this.function_count_reporter.append(
-				options.violations,
-				options.file,
-				options.source.file_name,
-				this.source_function_count(options.source)
-			)
-		);
-		options.stage_timer.measure(
 			`file-analysis.${language}.post-remaining.type-declarations`,
-			() => this.function_count_reporter.append_type_declarations(
+			() => this.append_type_declarations(
 				options.violations,
 				options.file,
 				options.source.file_name,
 				options.source.normalized_ast.type_declarations
 			)
 		);
+	}
+
+	/** Responsibilities: _functions-file type declaration violations_. **/
+	private append_type_declarations(
+		violations: Violation[],
+		file: string,
+		file_name: LintFileNameContract,
+		declarations: readonly NamedLine[],
+	): void {
+		if (!file_name.is_functions_file || file_name.test()) {
+			return;
+		}
+		const rule = new DiagnosticRule('functions-file-type-declaration');
+		for (const declaration of declarations) {
+			violations.push(rule.violation(file, declaration.line + 1));
+		}
 	}
 
 	/** Responsibilities: _remaining common analysis_. **/

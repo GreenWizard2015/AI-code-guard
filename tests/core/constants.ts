@@ -558,7 +558,7 @@ export const critical_only_violations = [
 		line: 1,
 		message:
 			"module-level functions must be declared in the project-root functions file",
-		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems.",
+		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. CLI/entrypoint startup code may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
 		rule_id: "function-placement",
 		priority: 3 as const,
 	},

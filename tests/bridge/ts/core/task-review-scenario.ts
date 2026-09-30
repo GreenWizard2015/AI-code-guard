@@ -1,0 +1,88 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { TestFixture } from "tests/core/test-fixture";
+import type { ReportViolation } from "src/types";
+import type { ShortReviewResult, TaskDocuments } from "tests/bridge/ts/core/types";
+
+/** Responsibilities: _architecture review scenarios_. **/
+export class TaskReviewScenario {
+	/** Responsibilities: _construction report violation fixture_. **/
+	private violation(
+		file: string,
+		line: number,
+		rule_id: string,
+		priority: ReportViolation["priority"],
+	): ReportViolation {
+		return {
+			file,
+			line,
+			message: `${rule_id} message`,
+			hint: `${rule_id} hint`,
+			rule_id,
+			priority,
+		};
+	}
+
+	/** Responsibilities: _code problem review_. **/
+	public code_problem_result(): TaskDocuments {
+		const fixture = new TestFixture();
+		return fixture.with_temporary_files("task-code-problem-", { "a.ts": "const value = 1;\n" }, (root, reporting) => {
+			const review = join(root, ".ai-code-guard", "review");
+			mkdirSync(review, { recursive: true });
+			writeFileSync(join(review, "unfinished.md"), "unfinished review\n");
+			const output = reporting.format([this.violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "top-category",
+			});
+			return {
+				output,
+				issues: readFileSync(join(root, ".ai-code-guard", "issues.md"), "utf8"),
+				report: readFileSync(join(root, ".ai-code-guard", "report.md"), "utf8"),
+			};
+		});
+	}
+
+	/** Responsibilities: _empty lint report_. **/
+	public clean_result(): TaskDocuments {
+		const fixture = new TestFixture();
+		return fixture.with_temporary_files("task-clean-", {}, (root, reporting) => ({
+			output: reporting.format([], { batch_size: 10, policy: "top-category" }),
+			issues: "",
+			report: readFileSync(join(root, ".ai-code-guard", "report.md"), "utf8"),
+		}));
+	}
+
+	/** Responsibilities: _completed architecture review_. **/
+	public completed_review(): string {
+		const fixture = new TestFixture();
+		return fixture.with_temporary_files("task-review-code-", {}, (root, reporting) => {
+			const initial = reporting.format([], { batch_size: 10, policy: "top-category" });
+			const completion_match = initial.match(
+				/Architecture review completion code: [0-9a-f]{32} \d{4}-\d{2}-\d{2} \d{2}:\d{2}/u,
+			);
+			let completion_code = "";
+			if (completion_match !== null) {
+				completion_code = completion_match[0];
+			}
+			const review = join(root, ".ai-code-guard", "review");
+			mkdirSync(review, { recursive: true });
+			writeFileSync(join(review, "complete.md"), completion_code);
+			return reporting.format([], { batch_size: 10, policy: "top-category" });
+		});
+	}
+
+	/** Responsibilities: _short review_. **/
+	public short_review_result(): ShortReviewResult {
+		const fixture = new TestFixture();
+		return fixture.with_temporary_files("task-review-", {}, (root, reporting) => {
+			const review = join(root, ".ai-code-guard", "review");
+			mkdirSync(review, { recursive: true });
+			writeFileSync(join(review, "short.md"), "too short\n");
+			writeFileSync(join(review, "problem.md"), `${Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n")}\n`);
+			return {
+				output: reporting.format([], { batch_size: 10, policy: "top-category" }),
+				short_file_exists: existsSync(join(review, "short.md")),
+			};
+		});
+	}
+}

@@ -6,26 +6,37 @@ import type { QualityCheck } from "tests/core/types";
 export class QualityCheckDefinitions {
 	private readonly project_root: string;
 
+	/** Responsibilities: _recursive Python files collection_. **/
+	private python_files_in(directory: string): string[] {
+		const files: string[] = [];
+		for (const entry of readdirSync(directory, { withFileTypes: true })) {
+			const file = join(directory, entry.name);
+			if (entry.isDirectory()) {
+				files.push(...this.python_files_in(file));
+				continue;
+			}
+			if (entry.isFile() && entry.name.endsWith(".py")) {
+				files.push(file);
+			}
+		}
+		return files;
+	}
+
 	/** Responsibilities: _Python bridge files collection_. **/
 	private python_files(): string[] {
 		const bridge_directory = join(
 			this.project_root,
 			"src/parser/python-bridge",
 		);
-		const bridge_files = readdirSync(bridge_directory)
-			.filter((file) => file.endsWith(".py"))
-			.map((file) => join(bridge_directory, file));
-		return bridge_files.sort();
+		return this.python_files_in(bridge_directory).sort();
 	}
 
 	/** Responsibilities: _TypeScript quality-check files collection_. **/
 	private type_script_files(): string[] {
 		return [
 			join(this.project_root, "test-runner.ts"),
-			join(this.project_root, "tests/core/test-runner.ts"),
-			join(this.project_root, "tests/core/quality-checks.ts"),
-			join(this.project_root, "tests/core/quality-check-definitions.ts"),
 			join(this.project_root, "src/bridge/ts/core/cli.ts"),
+			join(this.project_root, "tests"),
 		];
 	}
 

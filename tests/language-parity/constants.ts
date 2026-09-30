@@ -67,11 +67,6 @@ export const PROJECT_CASES: ProjectCase[] = [
 		python: { 'sample.py': 'def read():\n    return 1' },
 	},
 	{
-		rule_id: 'file-function-count-info',
-		typescript: { 'sample.ts': Array.from({ length: 11 }, (_, index) => `function read_${index}() { return ${index}; }`).join('\n') },
-		python: { 'sample.py': Array.from({ length: 11 }, (_, index) => `def read_${index}():\n    return ${index}`).join('\n') },
-	},
-	{
 		rule_id: 'class-field-import',
 		typescript: { 'sample.ts': 'import { read } from "./reader";\nclass Service { public handler = read; }', 'reader.ts': 'export function read() { return 1; }' },
 		python: { 'sample.py': 'from .reader import read\n\nclass Service:\n    handler = read', 'reader.py': 'def read():\n    return 1' },

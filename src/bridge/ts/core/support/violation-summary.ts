@@ -24,9 +24,9 @@ export class ViolationSummary {
 	/** Responsibilities: _output counts grouped priority_. **/
 	public counts(): ViolationPriorityCounts {
 		return {
-			priority_1: this.count([...this.violations], 1),
-			priority_2: this.count([...this.violations], 2),
-			priority_3: this.count([...this.violations], 3),
+			info: this.count([...this.violations], 1),
+			warning: this.count([...this.violations], 2),
+			critical: this.count([...this.violations], 3),
 			files: new Set(this.violations.map(violation => violation.file)).size,
 			total: this.violations.length,
 		};

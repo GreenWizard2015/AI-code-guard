@@ -3,6 +3,7 @@ import { TestPathSyntax } from 'src/test-path-syntax';
 import type { Violation } from 'src/protocols';
 import { DiagnosticRule } from 'src/model/diagnostic-rule';
 import type { AstClassNode, NamedLine, NamedSymbol } from 'src/types';
+import { NUMERIC_NAME_PATTERN } from 'src/bridge/ts/rules/constants';
 
 /** Responsibilities: _classification declaration names visibility_. **/
 export class NamingSupport {
@@ -50,6 +51,48 @@ export class NamingSupport {
 		violations.push(
 			naming_validation.naming_violation(file, declaration.line, declaration.name, 'type', words.length)
 		);
+	}
+
+	/** Responsibilities: _numeric name violations_. **/
+	private append_numeric_name(
+		violations: Violation[],
+		file: string,
+		name: string,
+		line: number,
+		reported: Set<string>,
+	): void {
+		const key = `${line}:${name}`;
+		if (reported.has(key)) {
+			return;
+		}
+		const naming_validation = new NamingValidation();
+		if (!NUMERIC_NAME_PATTERN.test(name)) {
+			return;
+		}
+		reported.add(key);
+		violations.push(
+			naming_validation.numeric_name_violation(file, line),
+		);
+	}
+
+	/** Responsibilities: _numeric fields_. **/
+	private append_numeric_fields(
+		violations: Violation[],
+		file: string,
+		classes: AstClassNode[],
+		reported: Set<string>,
+	): void {
+		for (const class_node of classes) {
+			for (const field of class_node.fields) {
+				this.append_numeric_name(
+					violations,
+					file,
+					field.name,
+					field.line,
+					reported,
+				);
+			}
+		}
 	}
 
 	/** Responsibilities: _aggregation standard naming violations_. **/
@@ -110,7 +153,59 @@ if (!name.startsWith('_') || (name.startsWith('__') && name.endsWith('__'))) {
 		);
 	}
 
-	/** Responsibilities: _aggregation naming violations normalization_. **/
+	/** Responsibilities: _numeric symbols_. **/
+	private append_numeric_symbols(
+		violations: Violation[],
+		file: string,
+		symbols: NamedSymbol[],
+		reported: Set<string>,
+	): void {
+		for (const symbol of symbols) {
+			this.append_numeric_name(
+				violations,
+				file,
+				symbol.name,
+				symbol.line,
+				reported,
+			);
+		}
+	}
+
+	/** Responsibilities: _numeric declarations_. **/
+	private append_numeric_declarations(
+		violations: Violation[],
+		file: string,
+		declarations: NamedLine[],
+		reported: Set<string>,
+	): void {
+		for (const declaration of declarations) {
+			this.append_numeric_name(
+				violations,
+				file,
+				declaration.name,
+				declaration.line,
+				reported,
+			);
+		}
+	}
+
+	/** Responsibilities: _numeric names_. **/
+	private append_numeric_violations(
+		violations: Violation[],
+		file: string,
+		symbols: NamedSymbol[],
+		classes: AstClassNode[],
+		declarations: NamedLine[],
+	): void {
+		const reported = new Set<string>();
+		this.append_numeric_symbols(violations, file, symbols, reported);
+		this.append_numeric_declarations(violations, file, declarations, reported);
+		if (file.endsWith('.py')) {
+			this.append_numeric_fields(violations, file, classes, reported);
+		}
+	}
+
+	/** Responsibilities: _naming violations normalization_. **/
 	public append_naming_violations(
 		violations: Violation[],
 		file: string,
@@ -124,6 +219,7 @@ if (!name.startsWith('_') || (name.startsWith('__') && name.endsWith('__'))) {
 			return;
 		}
 		const declarations = this.source_declarations(type_declarations, classes);
+		this.append_numeric_violations(violations, file, symbols, classes, declarations);
 		for (const symbol of symbols) {
 			this.append_symbol_violations(violations, file, symbol, classes);
 		}
@@ -142,7 +238,7 @@ if (!name.startsWith('_') || (name.startsWith('__') && name.endsWith('__'))) {
 		const { name, kind, line } = symbol;
 		const is_module_function = symbol.is_module_function === true;
 		const visibility = symbol.visibility;
-if (this.external_method(kind, name, line, classes) || this.external_symbol_names.has(name)) {
+		if (this.external_method(kind, name, line, classes) || this.external_symbol_names.has(name)) {
 			return;
 		}
 		if (this.has_private_name(name, kind, is_module_function, visibility)) {

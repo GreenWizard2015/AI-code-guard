@@ -8,3 +8,6 @@ moved.
 
 FIRST move all functions to `{project root}/functions.{ext}`, then fix other problems. Class methods
 are not module-level functions and remain in the class that owns their state and behavior.
+
+CLI or entrypoint startup code may remain inline: use `if __name__ == '__main__':` in Python, or
+`(function () { ... })();` in TypeScript. The startup wrapper is not a free module-level function.

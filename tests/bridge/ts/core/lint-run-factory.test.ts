@@ -64,48 +64,6 @@ describe('lint run ignored directories', () => {
 		expect(context_files[0]).toMatch(/\/kept\.ts$/u);
 	});
 
-	test('counts functions nested in a namespace file', () => {
-		const source = [
-			...Array.from({ length: 6 }, (_, index) => `export function top_${index}(): number { return ${index}; }`),
-			'namespace HiddenFunctions {',
-			...Array.from({ length: 6 }, (_, index) => `    export function nested_${index}(): number { return ${index}; }`),
-			'}',
-		].join('\n');
-		const messages = fixture.with_temporary_files(
-			'webmcp-functions-count-',
-			{ 'functions.ts': source },
-			root => without_lint_file_override(() => with_factory(factory => {
-				const report = factory.lint_report(root, [], new LintStageTimer());
-				return report.report.violations
-					.filter(item => item.rule_id === 'functions-file-max-count')
-					.map(item => item.message);
-			}))
-		);
-
-		expect(messages).toEqual(['functions file has too many functions (found 12)']);
-	});
-
-	test('counts arrow functions nested in a namespace file', () => {
-		const source = [
-			...Array.from({ length: 6 }, (_, index) => `export function top_${index}(): number { return ${index}; }`),
-			'namespace HiddenFunctions {',
-			...Array.from({ length: 6 }, (_, index) => `    export const nested_${index} = (): number => ${index};`),
-			'}',
-		].join('\n');
-		const messages = fixture.with_temporary_files(
-			'webmcp-functions-arrow-count-',
-			{ 'functions.ts': source },
-			root => without_lint_file_override(() => with_factory(factory => {
-				const report = factory.lint_report(root, [], new LintStageTimer());
-				return report.report.violations
-					.filter(item => item.rule_id === 'functions-file-max-count')
-					.map(item => item.message);
-			}))
-		);
-
-		expect(messages).toEqual(['functions file has too many functions (found 12)']);
-	});
-
 	test('rejects type declarations in root functions files', () => {
 		const messages = fixture.with_temporary_files(
 			'webmcp-functions-types-',
