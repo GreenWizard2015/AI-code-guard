@@ -23,7 +23,7 @@ export class TypeScriptExpressionNames {
 		return expression;
 	}
 
-	/** Responsibilities: _asserted expression child access_. **/
+	/** Responsibilities: _assertion expression child_. **/
 	private asserted_child(expression: ts.Expression): ts.Expression {
 		if (ts.isAsExpression(expression)) {
 			return expression.expression;

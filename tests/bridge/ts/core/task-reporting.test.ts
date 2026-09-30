@@ -54,9 +54,9 @@ describe('coding-lint task reporting', () => {
 				class_problem: issue_document.includes('Problem: class-size message'),
 				unused_problem: issue_document.includes('Problem: unused-file message'),
 				line: issue_document.includes('- Line 1: const first = 1;'),
-				parse_report: report.includes('| `parse-error` | 3 | 2 |'),
+				parse_report: report.includes('| `parse-error` | 2 | 1 |'),
 				class_report: report.includes('| `class-size` | 1 | 1 |'),
-				unused_report: report.includes('| `unused-file` | 2 | 2 |'),
+				unused_report: report.includes('| `unused-file` | 1 | 1 |'),
 			};
 		});
 		expect(result).toEqual({
@@ -206,6 +206,18 @@ describe('coding-lint task reporting', () => {
 			priority_summary: false,
 		});
 	});
+
+	test('reports priority zero diagnostics as problems', () => {
+		const fixture = new TestFixture();
+		const report = fixture.with_temporary_files('task-informational-', reporting_files, (root, reporting) => {
+			reporting.format([violation('a.ts', 1, 'responsibilities-wording', 0)], {
+				batch_size: 10,
+				policy: 'top-category',
+			});
+			return readFileSync(join(root, '.ai-code-guard', 'report.md'), 'utf8');
+		});
+		expect(report).toContain('| `responsibilities-wording` | 1 | 1 |');
+});
 
 	test('prints the philosophy and report path when there are no issues', () => {
 		const fixture = new TestFixture();

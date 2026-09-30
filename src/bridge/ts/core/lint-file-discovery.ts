@@ -12,7 +12,7 @@ export class LintFileDiscovery {
 	private readonly default_target_files = DEFAULT_TARGET_FILES;
 	private readonly git_ignored_paths = new Map<string, GitIgnoredPaths>();
 
-	/** Responsibilities: _Git ignore filter retrieval_. **/
+	/** Responsibilities: _git ignore paths_. **/
 	private git_filter(repo_root: string): GitIgnoredPaths {
 		const existing = this.git_ignored_paths.get(repo_root);
 		if (existing !== undefined) {

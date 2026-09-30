@@ -19,6 +19,15 @@ describe('coding-lint collection', () => {
 		}).toEqual({ first: true, second: true, keys: ['files', 'violations'] });
 	});
 
+	test('reports syntax errors from incomplete Python files without crashing', () => {
+		const report = fixture.collect_fixture_report({ 'invalid.py': 'def broken(\n' });
+
+		expect(report.violations).toContainEqual(expect.objectContaining({
+			rule_id: 'parse-error',
+			file: expect.stringMatching(/invalid\.py$/u),
+		}));
+	});
+
 	test('uses sibling files as context when one file is selected', () => {
 		const violations = fixture.collect_fixture_violations(
 			{ 'base.ts': 'export class Base {}\n', 'child.ts': 'export class Child extends Base {}\n' },

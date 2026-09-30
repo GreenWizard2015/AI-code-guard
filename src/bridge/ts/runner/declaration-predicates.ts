@@ -32,7 +32,7 @@ if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== this.assignment_
 		return proxy_expressions.contains_property(node.left, 'prototype');
 	}
 
-	/** Responsibilities: _classification prototype mutation calls_. **/
+	/** Responsibilities: _prototype mutation detection_. **/
 	private prototype_call(node: ts.Node): boolean {
 		if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
 			return false;

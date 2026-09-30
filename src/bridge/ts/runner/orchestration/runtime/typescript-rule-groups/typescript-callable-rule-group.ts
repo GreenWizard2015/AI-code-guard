@@ -27,7 +27,7 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 		}
 	}
 
-	/** Responsibilities: _aggregation project type boundary violations_. **/
+	/** Responsibilities: _type boundary diagnostics_. **/
 	private append_boundary(violations: Violation[], callables: readonly AstCallableNode[]): void {
 		if (this.context.file_name.test()) {
 			return;

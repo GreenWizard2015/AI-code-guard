@@ -20,7 +20,7 @@ export class TaskViolationGroups {
 
 	/** Responsibilities: _output highest priority present_. **/
 	public top_priority(violations: readonly ReportViolation[]): number {
-		let result = 1;
+		let result = 0;
 		for (const violation of violations) {
 			if (violation.priority > result) {
 				result = violation.priority;

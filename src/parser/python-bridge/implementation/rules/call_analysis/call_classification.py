@@ -6,7 +6,7 @@ from implementation.references.aliases.protocols import PythonReferenceAliasesPr
 
 
 class PythonCallClassification:
-    """Responsibilities: _call kind classification_."""
+    """Responsibilities: _invocation category_."""
 
     def _test_function_parent(self, parent: ast.AST) -> bool:
         """Responsibilities: _test function classification_."""
@@ -15,7 +15,7 @@ class PythonCallClassification:
         return False
 
     def _named_call_kind(self, function: ast.Name) -> str:
-        """Responsibilities: _named call classification_."""
+        """Responsibilities: _named invocation category_."""
         if self.reference_aliases.target_ends_with(function.id, ".__init__"):
             return "python-direct-class-init"
         if self.reference_aliases.target_ends_with(function.id, ".__setattr__"):
@@ -23,7 +23,7 @@ class PythonCallClassification:
         return ""
 
     def _attribute_call_kind(self, function: ast.Attribute, node: ast.Call) -> str:
-        """Responsibilities: _attribute call classification_."""
+        """Responsibilities: _attribute invocation category_."""
         if type(function.value) is not ast.Name:
             return ""
         target = function.value
@@ -49,12 +49,12 @@ class PythonCallClassification:
         return ast.Constant(value=None)
 
     def __init__(self, aliases: PythonReferenceAliasesProtocol) -> None:
-        """Responsibilities: _call classification setup_."""
+        """Responsibilities: _classifier state_."""
         self.reference_aliases: PythonReferenceAliasesProtocol = aliases
         self.parents: dict[int, ast.AST] = {}
 
     def configure(self, tree: ast.AST, node_index: PythonAstNodeIndexProtocol) -> None:
-        """Responsibilities: _call parent indexing_."""
+        """Responsibilities: _parent index state_."""
         parents = {
             id(child): node
             for node in node_index.nodes(tree)
@@ -73,7 +73,7 @@ class PythonCallClassification:
         return False
 
     def kind(self, node: ast.AST) -> str:
-        """Responsibilities: _special call kind_."""
+        """Responsibilities: _special invocation category_."""
         if type(node) is not ast.Call:
             return ""
         if type(node.func) is ast.Name:

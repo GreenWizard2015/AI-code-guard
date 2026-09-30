@@ -55,7 +55,7 @@ export class TaskReporting {
 			batch = this.file_selector.select_all(violations, batch_size);
 		}
 		const output = this.format_batch(batch.violations);
-		const report_document = new TaskReportDocument(this.workspace, violations);
+		const report_document = new TaskReportDocument(this.workspace, batch.violations);
 		report_document.write();
 		return [output, `Report in file \`${this.workspace.report_file}\`.`].join('\n');
 	}

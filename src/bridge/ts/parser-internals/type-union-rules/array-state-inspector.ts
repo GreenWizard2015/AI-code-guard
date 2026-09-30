@@ -91,7 +91,7 @@ export class TypeScriptArrayStateInspector {
 		return this.array_type_text(resolved, source_file, new Set<string>());
 	}
 
-	/** Responsibilities: _classification nested array type text_. **/
+	/** Responsibilities: _nested array type_. **/
 	private array_type_text(text: string, source_file: ts.SourceFile, visited: Set<string>): boolean {
 		if (visited.has(text)) {
 			return false;

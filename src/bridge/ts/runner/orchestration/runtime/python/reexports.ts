@@ -148,7 +148,7 @@ export class Reexports {
 		return this.facade_lines(lines, reexport_names);
 	}
 
-	/** Responsibilities: _Python facade implementation scan_. **/
+	/** Responsibilities: _facade line structure_. **/
 	private facade_lines(lines: string[], reexport_names: ReexportNames): boolean {
 		let import_parentheses = 0;
 		for (const line of lines) {

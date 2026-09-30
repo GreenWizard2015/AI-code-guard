@@ -122,7 +122,7 @@ class PythonPrivateAccessCollector:
         return self.private_vars_mapping.vars_method(node, members)
 
     def _attribute_lines(self, node: ast.AST, members: set[str]) -> set[int]:
-        """Responsibilities: _direct private attribute access classification_."""
+        """Responsibilities: _private attribute lines_."""
         if type(node) is not ast.Attribute:
             return set()
         if node.attr not in members:

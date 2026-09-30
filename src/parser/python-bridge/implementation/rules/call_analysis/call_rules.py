@@ -13,16 +13,16 @@ from implementation.rules.call_analysis.call_reflection import PythonCallReflect
 
 
 class CallRules:
-    """Responsibilities: _call rule ownership_."""
+    """Responsibilities: _invocation rule ownership_."""
 
     def _configure(self) -> None:
-        """Responsibilities: _call rule setup_."""
+        """Responsibilities: _rule state setup_."""
         self.reference_aliases.collect(self.tree)
         self.call_classification.configure(self.tree, self.node_index)
         self.call_reflection.configure(self.tree, self.node_index)
 
     def __init__(self, tree: ast.AST, node_index: PythonAstNodeIndexProtocol) -> None:
-        """Responsibilities: _call rule setup_."""
+        """Responsibilities: _rule state setup_."""
         self.tree: Any = tree
         self.node_index: Any = node_index
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()

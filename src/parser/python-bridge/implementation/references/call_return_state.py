@@ -23,7 +23,7 @@ class PythonCallReturnState:
         self._values[key] = owner
 
     def state_cleanup(self) -> None:
-        """Responsibilities: _ownership state clearing_."""
+        """Responsibilities: _state cleanup_."""
         if not self._values:
             return
         self._values.clear()

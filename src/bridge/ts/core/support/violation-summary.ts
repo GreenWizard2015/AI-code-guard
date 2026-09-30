@@ -35,7 +35,7 @@ export class ViolationSummary {
 	/** Responsibilities: _reporting any failure-priority violation_. **/
 	public failures(): boolean {
 		for (const violation of this.violations) {
-			if (violation.priority >= 2) {
+			if (violation.priority === 0 || violation.priority >= 2) {
 				return true;
 			}
 		}

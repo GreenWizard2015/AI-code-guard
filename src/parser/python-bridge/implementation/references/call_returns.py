@@ -65,5 +65,5 @@ class CallReturns:
             self.collect_call_returns(child, context, current_owner)
 
     def return_state(self) -> PythonCallReturnStateProtocol:
-        """Responsibilities: _callable return state_."""
+        """Responsibilities: _result state contract_."""
         return self.call_return_state

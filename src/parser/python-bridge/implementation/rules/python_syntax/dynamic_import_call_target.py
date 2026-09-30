@@ -7,7 +7,7 @@ from implementation.rules.python_syntax.protocols import (
 
 @dataclass(frozen=True)
 class PythonDynamicImportCallTarget:
-    """Responsibilities: _dynamic import call target_."""
+    """Responsibilities: _dynamic import target_."""
 
     reference: PythonDynamicImportReferenceProtocol
     name: str

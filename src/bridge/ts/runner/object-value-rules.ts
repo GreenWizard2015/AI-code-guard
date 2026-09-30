@@ -32,7 +32,7 @@ export class ObjectValueRules {
 		return this.element_member_name(expression, source);
 	}
 
-	/** Responsibilities: _Object element member name resolution_. **/
+	/** Responsibilities: _object member names_. **/
 	private element_member_name(expression: ts.Expression, source: ts.Node): string {
 		if (!ts.isElementAccessExpression(expression)) {
 			return '';
@@ -43,7 +43,7 @@ export class ObjectValueRules {
 		return this.element_key_name(expression.argumentExpression, source);
 	}
 
-	/** Responsibilities: _Object element key name resolution_. **/
+	/** Responsibilities: _object element keys_. **/
 	private element_key_name(argument: ts.Expression, source: ts.Node): string {
 		const key = this.object_aliases.unwrapped(argument);
 		if (ts.isStringLiteral(key)) {

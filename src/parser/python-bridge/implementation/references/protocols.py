@@ -38,7 +38,7 @@ class PythonReferenceContextProtocol(Protocol):
 
 
 class PythonCallReturnStateProtocol(Protocol):
-    """Responsibilities: _callable return ownership_."""
+    """Responsibilities: _result ownership contract_."""
 
     def value(self, key: str) -> str: ...
     def store(self, key: str, owner: str) -> None: ...
@@ -56,7 +56,7 @@ class PythonReferenceBuilderProtocol(Protocol):
 
 
 class PythonCallReturnsProtocol(Protocol):
-    """Responsibilities: _callable return collection_."""
+    """Responsibilities: _result collection contract_."""
 
     def return_state(self) -> PythonCallReturnStateProtocol: ...
 

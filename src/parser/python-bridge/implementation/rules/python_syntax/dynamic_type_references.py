@@ -83,7 +83,7 @@ class PythonDynamicTypeReferences:
         container_aliases: PythonContainerAliasesProtocol,
         lookup_values: PythonContainerValuesProtocol,
     ) -> None:
-        """Responsibilities: _dynamic type reference state binding_."""
+        """Responsibilities: _dynamic type reference state_."""
         self.type_names: set[str] = type_names
         self.module_names: set[str] = module_names
         self.container_aliases: PythonContainerAliasesProtocol = container_aliases

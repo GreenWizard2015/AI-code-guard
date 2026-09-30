@@ -192,7 +192,7 @@ export class DynamicRuntimeMembers {
 		return this.dynamic_property(node);
 	}
 
-	/** Responsibilities: _dynamic call usage_. **/
+	/** Responsibilities: _dynamic member rule_. **/
 	public call(node: ts.CallExpression): boolean {
 		return this.dynamic_invocation(node.expression, node);
 	}

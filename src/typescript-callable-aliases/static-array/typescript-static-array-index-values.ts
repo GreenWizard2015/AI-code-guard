@@ -24,7 +24,7 @@ export class TypeScriptStaticArrayIndexValues {
 		return false;
 	}
 
-	/** Responsibilities: _selected static array value_. **/
+	/** Responsibilities: _array value index_. **/
 	private append_selected_value(
 		values: ts.Expression[],
 		value: ts.Expression,

@@ -401,7 +401,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
         self.assertEqual(len(issues), 1)
 
     def test_rejects_none_checks_for_deep_nested_required_fields(self) -> None:
-        """Responsibilities: _deep nested required-field checks verification_."""
+        """Responsibilities: _deep field state_."""
         source = (
             "class ValueHolder:\n"
             "    value: int\n"

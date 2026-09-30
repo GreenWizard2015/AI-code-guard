@@ -126,7 +126,7 @@ export class TypeScriptAstFile {
 		return normalized;
 	}
 
-	/** Responsibilities: _refreshing context-dependent normalized references_. **/
+	/** Responsibilities: _AST reference cache_. **/
 	public reference_normalization(cached: NormalizedAstFile): NormalizedAstFile {
 		const normalized = {
 			...cached,

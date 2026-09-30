@@ -127,7 +127,23 @@ describe('parsePythonAst', () => {
 			issue_count: parsed.parse_issues.length,
 			issue_line: parsed.parse_issues[0].line,
 			has_message: parsed.parse_issues[0].message.length > 0,
-		}).toEqual({ classes: [], functions: [], issue_count: 1, issue_line: 0, has_message: true });
+			module_constant_spans: parsed.module_constant_spans,
+			module_type_spans: parsed.module_type_spans,
+			module_protocol_spans: parsed.module_protocol_spans,
+			module_instances: parsed.module_instances,
+			type_members: parsed.type_members,
+		}).toEqual({
+			classes: [],
+			functions: [],
+			issue_count: 1,
+			issue_line: 0,
+			has_message: true,
+			module_constant_spans: [],
+			module_type_spans: [],
+			module_protocol_spans: [],
+			module_instances: [],
+			type_members: {},
+		});
 	});
 
 	test('recognizes documented annotation-only classes as type contracts', () => {

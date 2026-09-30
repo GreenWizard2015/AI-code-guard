@@ -11,7 +11,7 @@ export interface ResponsibilityWordingChecker {
 	valid(values: readonly string[]): boolean;
 }
 
-/** Responsibilities: _define factory object source operations_. **/
+	/** Responsibilities: _factory source contract_. **/
 export interface FactoryObjectSourcesContract {
 	values(): Map<string, ts.ObjectLiteralExpression>;
 	append(

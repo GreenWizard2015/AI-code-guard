@@ -58,7 +58,7 @@ export interface TypeScriptReferenceContextProtocol {
 	method_owner(expression: ts.AccessExpression, current_owner: string): string;
 }
 
-/** Responsibilities: _TypeScript normalized AST access_. **/
+/** Responsibilities: _AST file contract_. **/
 export interface TypeScriptAstFileProtocol {
 	source_file_node(): ts.SourceFile;
 	normalized(): NormalizedAstFile;
@@ -126,7 +126,7 @@ export interface TypeScriptTypeAliasesProtocol {
 	resolve(name: string): string;
 }
 
-/** Responsibilities: _TypeScript static object argument sources_. **/
+/** Responsibilities: _static object arguments contract_. **/
 export interface TypeScriptStaticObjectArgumentsProtocol {
 	append_declaration(node: ts.VariableDeclaration): boolean;
 	append_assignment(node: ts.BinaryExpression): boolean;

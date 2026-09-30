@@ -127,7 +127,7 @@ export class TypeScriptConditionalRules {
 		return !has_call;
 	}
 
-	/** Responsibilities: _return expression context_. **/
+	/** Responsibilities: _binary result context_. **/
 	private returned_expression(node: ts.BinaryExpression): boolean {
 		let current = node.parent;
 		while (ts.isParenthesizedExpression(current)) {
@@ -194,7 +194,7 @@ export class TypeScriptConditionalRules {
 		}
 	}
 
-	/** Responsibilities: _if block diagnostics_. **/
+	/** Responsibilities: _branch diagnostics_. **/
 	public append_if_block(node: ts.Node, append_rule: RuleAppender): void {
 		if (!ts.isIfStatement(node)) {
 			return;

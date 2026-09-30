@@ -39,6 +39,12 @@ describe('report status', () => {
 		expect(status.warnings()).toBe(false);
 	});
 
+	test('priority 0 fails', () => {
+		const fixture = new ReportStatusFixture();
+		const status = new ReportStatus([fixture.violation('a.ts', 0, 'priority 0')]);
+		expect(status.warnings()).toBe(true);
+	});
+
 	test('priorities 2 and 3 fail', () => {
 		const fixture = new ReportStatusFixture();
 		const priority_2_status = new ReportStatus([fixture.violation('a.ts', 2, 'priority 2')]);

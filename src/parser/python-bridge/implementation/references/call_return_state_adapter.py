@@ -27,7 +27,7 @@ class PythonCallReturnStateAdapter:
         self._source.store(key, owner)
 
     def state_cleanup(self) -> None:
-        """Responsibilities: _ownership state clearing_."""
+        """Responsibilities: _state cleanup_."""
         if type(self._source) is dict:
             source = cast(dict[str, str], self._source)
             source.clear()

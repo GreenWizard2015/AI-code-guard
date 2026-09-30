@@ -52,7 +52,7 @@ export interface TypeScriptCallableDataProtocol {
 	callable_node(options: CallableOptions): AstCallableNode;
 }
 
-/** Responsibilities: _call reference collection_. **/
+	/** Responsibilities: _reference contract_. **/
 export interface TypeScriptCallReferenceCollectorProtocol {
 	collect(): AstCallableReference[];
 }
