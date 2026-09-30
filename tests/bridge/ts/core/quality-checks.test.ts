@@ -109,5 +109,6 @@ describe("coding lint quality checks", () => {
 			.find((check) => check.label === "Coding lint");
 
 		expect(lint?.args.slice(0, 2)).toEqual(["--dir", PROJECT_ROOT]);
+		expect(lint?.args).toEqual(["--dir", PROJECT_ROOT, "lint"]);
 	});
 });

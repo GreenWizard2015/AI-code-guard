@@ -53,6 +53,7 @@ export class TestFixture {
 	/** Responsibilities: _construction AST callable fixture_. **/
 	private callable_node(node: FixtureCallableNode): AstCallableNode {
 		const lists = new FixtureLists(node);
+		const default_lines = this.number_value(node.end, 0) - this.number_value(node.start, 0);
 		return {
 			name: this.text_value(node.name),
 			owner: this.text_value(node.owner),
@@ -60,8 +61,8 @@ export class TestFixture {
 			start: this.number_value(node.start, 0),
 			end: this.number_value(node.end, 0),
 			argument_count: this.number_value(node.argument_count, 0),
-			lines: this.number_value(node.lines, (this.number_value(node.end, 0) - this.number_value(node.start, 0)) + 1),
-			sloc: this.number_value(node.sloc, (this.number_value(node.end, 0) - this.number_value(node.start, 0)) + 1),
+			lines: this.number_value(node.lines, default_lines + 1),
+			sloc: this.number_value(node.sloc, default_lines + 1),
 			characters: this.number_value(node.characters, 0),
 			statements: lists.statements,
 			parameter_types: lists.parameter_types,
@@ -87,13 +88,14 @@ export class TestFixture {
 	private class_node(node: FixtureClassNode): AstClassNode {
 		const lists = new FixtureLists({});
 		lists.constructor_lists(node);
+		const default_lines = this.number_value(node.end, 0) - this.number_value(node.start, 0);
 		return {
 			name: this.text_value(node.name),
 			start: this.number_value(node.start, 0),
 			end: this.number_value(node.end, 0),
 			methods: lists.methods.map(method => this.callable_node(method)),
-			lines: this.number_value(node.lines, (this.number_value(node.end, 0) - this.number_value(node.start, 0)) + 1),
-			sloc: this.number_value(node.sloc, (this.number_value(node.end, 0) - this.number_value(node.start, 0)) + 1),
+			lines: this.number_value(node.lines, default_lines + 1),
+			sloc: this.number_value(node.sloc, default_lines + 1),
 			interfaces: lists.interfaces,
 			base_class_name: this.text_value(node.base_class_name),
 			base_class_names: lists.base_class_names,

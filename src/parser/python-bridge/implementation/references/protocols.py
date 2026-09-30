@@ -13,7 +13,7 @@ class PythonAnnotationResolverProtocol(Protocol):
         self,
         annotation: ast.AST,
         aliases: dict[str, str],
-        generics: frozenset[str],
+        _generics: frozenset[str],
     ) -> str: ...
 
 

@@ -63,7 +63,7 @@ class PythonContainerAliases:
         if self._is_builtin_dictionary(value):
             self._builtin_dictionary_aliases.add(target.id)
             return
-            self._builtin_dictionary_aliases.discard(target.id)
+        self._builtin_dictionary_aliases.discard(target.id)
 
     def _observe_assignment(self, targets: list[ast.AST], value: ast.AST) -> None:
         """Responsibilities: _container assignment observation_."""
