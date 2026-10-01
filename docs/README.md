@@ -278,6 +278,9 @@ pnpm lint
 git diff --check
 ```
 
+`pnpm install` activates the versioned `.githooks/pre-commit` hook. Before every commit it runs
+`pnpm test:runner -- --headless`; a failing test, quality check, or lint check blocks the commit.
+
 Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
 
 When a file or class becomes too large, split it by ownership. Prefer focused classes that own shared data and operations over collections of unrelated free functions. Free functions belong only in the exact project-root `functions.*` file.

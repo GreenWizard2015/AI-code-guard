@@ -7,6 +7,7 @@
 		"ai-code-guard": "src/bridge/ts/core/cli.ts"
 	},
 	"scripts": {
+		"prepare": "git config core.hooksPath .githooks",
 		"coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/parser/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python",
 		"coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4 --coverage --coverageReporters=text",
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",

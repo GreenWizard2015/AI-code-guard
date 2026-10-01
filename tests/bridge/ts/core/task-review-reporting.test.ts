@@ -22,13 +22,13 @@ describe("coding-lint architecture review reporting", () => {
 		}).toEqual({ counts: true, priority_summary: false });
 	});
 
-		test("prints the philosophy and report path when there are no issues", () => {
-			const scenario = new TaskReviewScenario();
-			const result = scenario.clean_result();
-			const architecture_review = result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:");
-			const delegated_review = result.output.includes("delegate this review to a separate review agent");
-			const private_code = result.output.includes("Primary agent private completion code (do not delegate):");
-			const review_details = [architecture_review, delegated_review, private_code].every(Boolean);
+	test("prints the philosophy and report path when there are no issues", () => {
+		const scenario = new TaskReviewScenario();
+		const result = scenario.clean_result();
+		const architecture_review = result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:");
+		const delegated_review = result.output.includes("delegate this review to a separate review agent");
+		const private_code = result.output.includes("Primary agent private completion code (do not delegate):");
+		const review_details = [architecture_review, delegated_review, private_code].every(Boolean);
 		expect({
 			philosophy: result.output.includes("## Rule philosophy"),
 			architecture_review: review_details,
