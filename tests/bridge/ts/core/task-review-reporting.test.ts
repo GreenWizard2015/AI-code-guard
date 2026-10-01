@@ -22,21 +22,26 @@ describe("coding-lint architecture review reporting", () => {
 		}).toEqual({ counts: true, priority_summary: false });
 	});
 
-	test("prints the philosophy and report path when there are no issues", () => {
+	test("prints the review instruction path without exposing its contents", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.clean_result();
-		const architecture_review = result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:");
-		const delegated_review = result.output.includes("delegate this review to a separate review agent");
+		const instruction_path = result.output.includes("architecture-review-agent.md");
+		const review_path = result.output.includes(".ai-code-guard/review/*.md");
 		const private_code = result.output.includes("Primary agent private completion code (do not delegate):");
-		const review_details = [architecture_review, delegated_review, private_code].every(Boolean);
+		const instruction_hidden =
+			!result.output.includes("## Rule philosophy") && !result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:");
 		expect({
-			philosophy: result.output.includes("## Rule philosophy"),
-			architecture_review: review_details,
+			instruction_path,
+			review_path,
+			private_code,
+			instruction_hidden,
 			report_path: result.output.includes("Report in file `") && result.output.includes("report.md`"),
 			report: result.report.includes("| — | 0 | 0 |"),
 		}).toEqual({
-			philosophy: true,
-			architecture_review: true,
+			instruction_path: true,
+			review_path: true,
+			private_code: true,
+			instruction_hidden: true,
 			report_path: true,
 			report: true,
 		});

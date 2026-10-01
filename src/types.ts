@@ -1,6 +1,6 @@
-import type ts from "typescript";
 import type { ArgumentUse, TypedArgument } from "src/model/types";
 import type { LintProjectContext, LintStageTimerProtocol, TypeScriptAstFileProtocol, Violation } from "src/protocols";
+import type ts from "typescript";
 
 export type CallableOwnershipResolver = (class_node: AstClassNode, owner: string, method_name: string) => boolean;
 
@@ -427,11 +427,12 @@ export type CliOptions = {
 	entry_files: string[];
 	root: string;
 	timings: boolean;
+	skip_review: boolean;
 	batch_size: number;
 	policy: LintTaskPolicy;
 };
 export type LintTaskPolicy = "top-category" | "all";
-export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy };
+export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy; skip_review: boolean };
 export type LintExecutionReport = { context: LintProjectContext; report: LintRunResult };
 export type LintStageDuration = { name: string; duration_ms: number };
 export type ProjectNames = {

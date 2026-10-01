@@ -12,6 +12,7 @@ export class CommandLineOptions {
 			entry_files: [],
 			root: process.cwd(),
 			timings: false,
+			skip_review: false,
 			batch_size: 10,
 			policy: "top-category",
 		};
@@ -54,6 +55,19 @@ export class CommandLineOptions {
 		return false;
 	}
 
+	/** Responsibilities: _application boolean CLI option_. **/
+	private apply_boolean_option(options: CliOptions, option: string): boolean {
+		if (option === `${this.option_prefix}timings`) {
+			options.timings = true;
+			return true;
+		}
+		if (option === `${this.option_prefix}skip-review`) {
+			options.skip_review = true;
+			return true;
+		}
+		return false;
+	}
+
 	/** Responsibilities: _application CLI option reporting_. **/
 	public option_applied(options: CliOptions, option: string, value: string): boolean {
 		if (this.apply_directory_option(options, option, value)) {
@@ -67,8 +81,7 @@ export class CommandLineOptions {
 		const options = this.default_options();
 		for (let index = 0; index < arguments_list.length; index += 1) {
 			const option = arguments_list[index];
-			if (option === `${this.option_prefix}timings`) {
-				options.timings = true;
+			if (this.apply_boolean_option(options, option)) {
 				continue;
 			}
 			if (index === arguments_list.length - 1) {

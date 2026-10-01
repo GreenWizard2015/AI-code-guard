@@ -1,10 +1,9 @@
-import type { TaskDocumentationProtocol, TaskReviewProtocol, TaskWorkspaceProtocol } from "src/protocols";
 import { MAX_REVIEW_LINES, MIN_REVIEW_LINES } from "src/constants";
+import type { TaskReviewProtocol, TaskWorkspaceProtocol } from "src/protocols";
 
 /** Responsibilities: _task report formatting_. **/
 export class TaskCleanReport {
 	private readonly workspace: TaskWorkspaceProtocol;
-	private readonly documentation: TaskDocumentationProtocol;
 	private readonly review: TaskReviewProtocol;
 
 	/** Responsibilities: _short-file notice collection_. **/
@@ -19,24 +18,9 @@ export class TaskCleanReport {
 		return notices;
 	}
 
-	/** Responsibilities: _empty review reporting_. **/
-	private no_review_report(notices: readonly string[]): string {
-		return [
-			...notices,
-			"Total issues: 0.\nTotal files: 0.",
-			this.documentation.philosophy(),
-			this.review.primary_instruction(),
-		].join("\n\n");
-	}
-
 	/** Responsibilities: _initialization task workspace documentation_. **/
-	public constructor(
-		workspace: TaskWorkspaceProtocol,
-		documentation: TaskDocumentationProtocol,
-		review: TaskReviewProtocol,
-	) {
+	public constructor(workspace: TaskWorkspaceProtocol, review: TaskReviewProtocol) {
 		this.workspace = workspace;
-		this.documentation = documentation;
 		this.review = review;
 	}
 
@@ -66,15 +50,18 @@ export class TaskCleanReport {
 	}
 
 	/** Responsibilities: _empty-issue report formatting_. **/
-	public format(): string {
+	public format(skip_review: boolean): string {
 		this.workspace.clear_batch();
+		if (skip_review) {
+			return "Total issues: 0.\nTotal files: 0.";
+		}
 		if (this.review.completed()) {
 			return ["Total issues: 0.", "Total files: 0.", "Architecture review completion code verified."].join("\n");
 		}
 		const notices = this.short_file_notices();
 		const review_files = this.review.files();
 		if (review_files.length === 0) {
-			return this.no_review_report(notices);
+			return [...notices, "Total issues: 0.\nTotal files: 0.", this.review.primary_instruction()].join("\n\n");
 		}
 		const first = review_files[0];
 		return this.format_review(first, review_files.length, notices);

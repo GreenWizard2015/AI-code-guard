@@ -3,9 +3,9 @@ import "src/stage-timing";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
-import { TestFixture } from "tests/core/test-fixture";
 import type { ReportViolation, TaskReportingOptions } from "src/types";
 import type { TaskDocuments } from "tests/bridge/ts/core/types";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint task reporting", () => {
 	/** Responsibilities: _construction task-reporting violation fixture_. **/
@@ -58,6 +58,7 @@ describe("coding-lint task reporting", () => {
 			return reporting.format(reporting_violations, {
 				batch_size: 1,
 				policy: "top-category",
+				skip_review: false,
 			});
 		});
 		expect(issues).toContain("Total files: 1.");
@@ -67,6 +68,7 @@ describe("coding-lint task reporting", () => {
 		const result = documents("task-reporting-", reporting_files, reporting_violations, {
 			batch_size: 1,
 			policy: "top-category",
+			skip_review: false,
 		});
 		expect({
 			output: typeof result.output === "string",
@@ -96,7 +98,7 @@ describe("coding-lint task reporting", () => {
 			"task-reporting-",
 			reporting_files,
 			[violation("a.ts", 1, "parse-error", 3), violation("b.ts", 1, "parse-error", 3)],
-			{ batch_size: 10, policy: "all" },
+			{ batch_size: 10, policy: "all", skip_review: false },
 		).issues;
 		expect({
 			problem_count: document.match(/Problem: parse-error message/gu)?.length,
@@ -117,6 +119,7 @@ describe("coding-lint task reporting", () => {
 		const document = documents("task-reporting-", reporting_files, [violation("a.ts", 1, "parse-error", 3)], {
 			batch_size: 10,
 			policy: "all",
+			skip_review: false,
 		}).issues;
 		const file_section = document.indexOf("## ");
 		const source_line = document.indexOf("- Line 1: const first = 1;");
@@ -141,7 +144,7 @@ describe("coding-lint task reporting", () => {
 				{ ...violation("a.ts", 1, "naming", 3), message: "first name", hint: "rename the symbol" },
 				{ ...violation("b.ts", 1, "naming", 3), message: "second name", hint: "rename the symbol" },
 			],
-			{ batch_size: 10, policy: "all" },
+			{ batch_size: 10, policy: "all", skip_review: false },
 		).issues;
 		expect({
 			description: document.includes("Description:"),
@@ -154,5 +157,17 @@ describe("coding-lint task reporting", () => {
 			second_problem: 1,
 			shared_hint: 1,
 		});
+	});
+
+	test("skips the architecture review gate when requested", () => {
+		const fixture = new TestFixture();
+		const output = fixture.with_temporary_files("task-skip-review-", {}, (_root, reporting) =>
+			reporting.format([], { batch_size: 10, policy: "top-category", skip_review: true }),
+		);
+		expect({
+			counts: output.includes("Total issues: 0.\nTotal files: 0."),
+			instruction: output.includes("architecture-review-agent.md"),
+			report: output.includes("Report in file"),
+		}).toEqual({ counts: true, instruction: false, report: true });
 	});
 });

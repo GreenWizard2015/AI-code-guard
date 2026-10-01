@@ -3,9 +3,9 @@ import "src/stage-timing";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { TaskFileSelector } from "src/bridge/ts/core/support/task/task-file-selector";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
 import { RULE_DATA } from "src/parser/ts/constants";
-import { TaskFileSelector } from "src/bridge/ts/core/support/task/task-file-selector";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("architectural transformation priority", () => {
@@ -68,6 +68,7 @@ describe("architectural transformation priority", () => {
 				reporting.format([imports.violation("a-import.ts", 1, { specifier: "./missing" }), move], {
 					batch_size: 1,
 					policy,
+					skip_review: false,
 				});
 				const document = readFileSync(join(root, ".ai-code-guard/issues.md"), "utf8");
 				return { document, root };

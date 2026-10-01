@@ -1,15 +1,15 @@
 #!/usr/bin/env node
+import { relative } from "node:path";
 import { LintRunConfiguration } from "src/bridge/ts/core/lint-run-factory";
-import { CliResultReporter } from "src/bridge/ts/core/support/cli-result-reporter";
-import { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
 import { ReportStatus } from "src/bridge/ts/core/report-status";
 import { CommandLineOptions } from "src/bridge/ts/core/support/cli-options-parser";
+import { CliResultReporter } from "src/bridge/ts/core/support/cli-result-reporter";
+import { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
 import { UnusedCode } from "src/bridge/ts/core/unused-code";
-import type { LintRunResult } from "src/types";
-import { relative } from "node:path";
-import type { CliOptions, LintExecutionReport } from "src/types";
-import { LintStageTimer } from "src/stage-timing";
 import type { LintProjectContext, LintStageTimerProtocol } from "src/protocols";
+import { LintStageTimer } from "src/stage-timing";
+import type { LintRunResult } from "src/types";
+import type { CliOptions, LintExecutionReport } from "src/types";
 
 /** Responsibilities: _CLI option parsing_. **/
 export class Cli {
@@ -57,7 +57,8 @@ export class Cli {
 		const violations = report.violations;
 		const report_status = new ReportStatus(violations, report.files);
 		const should_fail = stage_timer.measure("process-result", () => report_status.warnings());
-		const result_reporter = new CliResultReporter(new TaskReporting(options.root));
+		const task_reporting = new TaskReporting(options.root);
+		const result_reporter = new CliResultReporter(task_reporting, task_reporting.workspace);
 		if (options.timings) {
 			result_reporter.report_with_timings(report, options, stage_timer);
 		} else {

@@ -1,33 +1,20 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { TaskDocumentationProtocol, TaskReviewCompletionCodeProtocol } from "src/protocols";
 import { TaskReviewCompletionCode } from "src/bridge/ts/core/support/task/task-review-completion-code";
+import type { TaskReviewCompletionCodeProtocol } from "src/protocols";
 
 /** Responsibilities: _discovery architecture review files_. **/
 export class TaskReview {
 	private readonly review_root: string;
-	private readonly documentation: TaskDocumentationProtocol;
+	private readonly instruction_file: string;
 	private readonly completion_code_service: TaskReviewCompletionCodeProtocol = new TaskReviewCompletionCode();
 	private readonly current_time = new Date();
 	public readonly completion_code = this.completion_code_service.completion_code(this.current_time);
 
-	/** Responsibilities: _output architecture review instruction_. **/
-	private delegated_instruction(): string {
-		const review_path = join(this.review_root, "*.md");
-		const instruction = this.documentation.architecture_review(
-			review_path,
-			"the primary agent's private completion code, which is not provided to the delegated reviewer",
-		);
-		if (this.completion_code_service.contains(instruction, this.current_time)) {
-			throw new Error("Architecture review instruction exposed the primary agent completion code.");
-		}
-		return instruction;
-	}
-
 	/** Responsibilities: _initialization review directory task_. **/
-	constructor(root: string, documentation: TaskDocumentationProtocol) {
+	constructor(root: string) {
 		this.review_root = join(resolve(root, ".ai-code-guard"), "review");
-		this.documentation = documentation;
+		this.instruction_file = join(resolve(root, ".ai-code-guard"), "architecture-review-agent.md");
 	}
 
 	/** Responsibilities: _review markdown files_. **/
@@ -56,9 +43,8 @@ export class TaskReview {
 	/** Responsibilities: _primary agent review assignment_. **/
 	public primary_instruction(): string {
 		return [
-			"BEGIN DELEGATED REVIEW TASK — pass only this section to the separate review agent.",
-			this.delegated_instruction(),
-			"END DELEGATED REVIEW TASK — keep the following primary-agent instruction private.",
+			`Architecture review instruction is in file \`${this.instruction_file}\`.`,
+			`Write review files to \`${this.review_root}/*.md\`.`,
 			`Primary agent private completion code (do not delegate): ${this.completion_code}`,
 		].join("\n\n");
 	}

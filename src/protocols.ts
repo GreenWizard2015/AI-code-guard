@@ -1,4 +1,4 @@
-import type ts from "typescript";
+import type { Violation as ViolationClass } from "src/parser/ts/violation";
 import type { RuleParameters } from "src/types";
 import type {
 	LintRunStatistics,
@@ -6,11 +6,11 @@ import type {
 	LintStageDuration,
 	NormalizedAstFile,
 	PythonBatchAstOptions,
-	TaskReportingOptions,
 	ReferenceData,
+	TaskReportingOptions,
 } from "src/types";
-import { Violation as ViolationClass } from "src/parser/ts/violation";
 import type { ReportViolation } from "src/types";
+import type ts from "typescript";
 
 export type ReferenceDataLoader = (file: string) => ReferenceData;
 export type EntryPointPredicate = (file: string) => boolean;
@@ -113,6 +113,7 @@ export interface TaskWorkspaceProtocol {
 	clear_batch(): void;
 	write_issues(content: string): void;
 	write_report(content: string): void;
+	write_lint_output(content: string): void;
 	rule_document_path(rule_id: string): string;
 }
 
@@ -122,6 +123,7 @@ export interface TaskDocumentationProtocol {
 	copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspaceProtocol): void;
 	philosophy(): string;
 	architecture_review(review_path: string, review_code: string): string;
+	agent_instruction(review_path: string): string;
 }
 
 /** Responsibilities: _task review operations_. **/

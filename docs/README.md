@@ -21,18 +21,6 @@ AI Code Guard focuses on structural problems that are easy to introduce during f
 
 The project intentionally favors focused classes, explicit interfaces, small ownership boundaries, and direct data flow. Some rules are opinionated and may be too strict for a conventional application. Treat the rule set as an architectural policy, not as a general-purpose formatter.
 
-## Rule philosophy
-
-AI Code Guard treats code structure as part of the domain contract. Its rules are intended to keep ownership, state transitions, and boundaries explicit across both TypeScript and Python:
-
-- Use concrete, named contracts. Prefer focused interfaces, protocols, and value types over `any`, `unknown`, broad nullable boundaries, tuples, dynamic types, and anonymous shapes.
-- Give every behavior a real owner. Use a cohesive class, module, or narrow boundary instead of procedural classes, namespace-shaped objects, singletons, mixins, proxy methods, or temporary instances.
-- Make lifecycle and mutation visible. Prefer composition and dependency injection; avoid hidden state transitions, reflection, dynamic attribute access, deep forwarding chains, and business work in constructors.
-- Let the file system express architecture. Keep one clear owner per file, separate constants, types, and protocols, keep facades to re-exports, and use static top-level imports.
-- Treat tests as behavior specifications. Tests should verify real results at a public boundary, use the declared framework shape, remain small and atomic, and avoid logging, type-only checks, and implementation-detail assertions.
-- Split responsibility when size, method count, parameter count, or nesting becomes excessive. Refactor the ownership boundary instead of hiding complexity behind wrappers or padding.
-- Fix the architectural cause before the local symptom. Rule exceptions, artificial code, and other ways of bypassing diagnostics are not considered valid fixes. Informational rules are review signals; critical rules protect contracts and architecture.
-
 ## Priority levels
 
 | Priority | General scope |
@@ -160,6 +148,10 @@ Available options:
     analyzed TypeScript and Python file. Nested entries include their
     percentage of the immediate parent duration.
 
+--skip-review
+    Skip the mandatory architecture-review request. Use this in CI when the
+    delegated review is handled by a separate workflow.
+
 --batch-size <number>
     Maximum number of files included in the generated task. The default is 10.
 
@@ -264,7 +256,10 @@ Each run creates `.ai-code-guard` in the project root. The selected task is
 written to `.ai-code-guard/issues.md`, and the referenced rule documents are
 copied to `.ai-code-guard/rules/`. The complete rule summary is written to
 `.ai-code-guard/report.md`. Review notes may be placed in
-`.ai-code-guard/review/`; after the code is clean, the linter presents one
+`.ai-code-guard/review/`; the architecture review agent instruction is copied
+to `.ai-code-guard/architecture-review-agent.md`. The primary agent must
+start a review subagent with read access to the project code and write access
+to `.ai-code-guard/review/`; after the code is clean, the linter presents one
 review note at a time.
 
 ## Development workflow

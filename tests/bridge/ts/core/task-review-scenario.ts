@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { TestFixture } from "tests/core/test-fixture";
 import type { ReportViolation } from "src/types";
 import type { ShortReviewResult, TaskDocuments } from "tests/bridge/ts/core/types";
+import { TestFixture } from "tests/core/test-fixture";
 
 /** Responsibilities: _architecture review scenarios_. **/
 export class TaskReviewScenario {
@@ -33,6 +33,7 @@ export class TaskReviewScenario {
 			const output = reporting.format([this.violation("a.ts", 1, "parse-error", 3)], {
 				batch_size: 10,
 				policy: "top-category",
+				skip_review: false,
 			});
 			return {
 				output,
@@ -46,7 +47,7 @@ export class TaskReviewScenario {
 	public clean_result(): TaskDocuments {
 		const fixture = new TestFixture();
 		return fixture.with_temporary_files("task-clean-", {}, (root, reporting) => ({
-			output: reporting.format([], { batch_size: 10, policy: "top-category" }),
+			output: reporting.format([], { batch_size: 10, policy: "top-category", skip_review: false }),
 			issues: "",
 			report: readFileSync(join(root, ".ai-code-guard", "report.md"), "utf8"),
 		}));
@@ -56,7 +57,7 @@ export class TaskReviewScenario {
 	public completed_review(): string {
 		const fixture = new TestFixture();
 		return fixture.with_temporary_files("task-review-code-", {}, (root, reporting) => {
-			const initial = reporting.format([], { batch_size: 10, policy: "top-category" });
+			const initial = reporting.format([], { batch_size: 10, policy: "top-category", skip_review: false });
 			const completion_match = initial.match(
 				/Primary agent private completion code \(do not delegate\): ([0-9a-f]{32})/u,
 			);
@@ -67,7 +68,7 @@ export class TaskReviewScenario {
 			const review = join(root, ".ai-code-guard", "review");
 			mkdirSync(review, { recursive: true });
 			writeFileSync(join(review, "complete.md"), completion_code);
-			return reporting.format([], { batch_size: 10, policy: "top-category" });
+			return reporting.format([], { batch_size: 10, policy: "top-category", skip_review: false });
 		});
 	}
 
@@ -83,7 +84,7 @@ export class TaskReviewScenario {
 				`${Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n")}\n`,
 			);
 			return {
-				output: reporting.format([], { batch_size: 10, policy: "top-category" }),
+				output: reporting.format([], { batch_size: 10, policy: "top-category", skip_review: false }),
 				short_file_exists: existsSync(join(review, "short.md")),
 			};
 		});

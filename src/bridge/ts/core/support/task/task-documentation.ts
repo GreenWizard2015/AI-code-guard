@@ -6,6 +6,8 @@ import type { TaskWorkspaceProtocol } from "src/protocols";
 /** Responsibilities: _rule documentation validation_, _rule documents copying_, _philosophy access projection_. **/
 export class TaskDocumentation {
 	private readonly documentation_root: string;
+	private readonly architecture_review_file: string;
+	private readonly agent_file: string;
 
 	/** Responsibilities: _rule document coverage validation_. **/
 	private validate_rule_documents(): void {
@@ -28,18 +30,73 @@ export class TaskDocumentation {
 		}
 	}
 
+	/** Responsibilities: _architecture review document reading_. **/
+	private read_architecture_review(): string {
+		if (!existsSync(this.architecture_review_file)) {
+			throw new Error(`Architecture review documentation is missing: ${this.architecture_review_file}`);
+		}
+		return readFileSync(this.architecture_review_file, "utf8");
+	}
+
+	/** Responsibilities: _agent instruction reading_. **/
+	private agent_document(): string {
+		if (!existsSync(this.agent_file)) {
+			throw new Error(`Architecture review agent documentation is missing: ${this.agent_file}`);
+		}
+		return readFileSync(this.agent_file, "utf8");
+	}
+
+	/** Responsibilities: _console review document position_. **/
+	private architecture_review_position(document: string): number {
+		if (!document.includes("{{REVIEW_PATH}}")) {
+			throw new Error(
+				`Architecture review documentation must contain {{REVIEW_PATH}}: ${this.architecture_review_file}`,
+			);
+		}
+		if (!document.includes("{{REVIEW_CODE}}")) {
+			throw new Error(
+				`Architecture review documentation must contain {{REVIEW_CODE}}: ${this.architecture_review_file}`,
+			);
+		}
+		const review_start = document.indexOf("# Console architecture review instructions");
+		if (review_start < 0) {
+			throw new Error(
+				`Architecture review documentation must contain # Console architecture review instructions: ${this.architecture_review_file}`,
+			);
+		}
+		return review_start;
+	}
+
+	/** Responsibilities: _agent review document position_. **/
+	private agent_position(document: string): number {
+		if (!document.includes("{{REVIEW_PATH}}")) {
+			throw new Error(`Architecture review agent documentation must contain {{REVIEW_PATH}}: ${this.agent_file}`);
+		}
+		const review_start = document.indexOf("# Architecture review subagent instructions");
+		if (review_start < 0) {
+			throw new Error(
+				`Architecture review agent documentation must contain # Architecture review subagent instructions: ${this.agent_file}`,
+			);
+		}
+		return review_start;
+	}
+
 	/** Responsibilities: _documentation root initialization_. **/
 	constructor(documentation_root: string) {
 		this.documentation_root = documentation_root;
+		this.architecture_review_file = join(documentation_root, "docs", "architecture-review.md");
+		this.agent_file = join(documentation_root, "docs", "architecture-review-agent.md");
 	}
 
 	/** Responsibilities: _rule document coverage validation_. **/
 	public validate(): void {
+		this.philosophy();
+		this.agent_instruction("{{REVIEW_PATH}}");
 		this.architecture_review("{{REVIEW_PATH}}", "{{REVIEW_CODE}}");
 		this.validate_rule_documents();
 	}
 
-	/** Responsibilities: _selection rule documents copying_. **/
+	/** Responsibilities: _task documentation copying_. **/
 	public copy_rule_documents(rule_ids: readonly string[], workspace: TaskWorkspaceProtocol): void {
 		for (const rule_id of rule_ids) {
 			const source = join(this.documentation_root, "docs", "rules", `${rule_id}.md`);
@@ -49,28 +106,32 @@ export class TaskDocumentation {
 
 	/** Responsibilities: _rule philosophy reading_. **/
 	public philosophy(): string {
-		const readme = readFileSync(join(this.documentation_root, "docs", "README.md"), "utf8");
-		const start = readme.indexOf("## Rule philosophy");
-		const end = readme.indexOf("\n## Requirements", start);
+		const document = this.agent_document();
+		const start = document.indexOf("## Rule philosophy");
+		const end = document.indexOf("\n# Architecture review subagent instructions", start);
 		if (start < 0 || end < 0) {
-			throw new Error("docs/README.md does not contain the Rule philosophy section.");
+			throw new Error(
+				`Architecture review agent documentation does not contain the Rule philosophy section: ${this.agent_file}`,
+			);
 		}
-		return readme.slice(start, end).trim();
+		return document.slice(start, end).trim();
 	}
 
 	/** Responsibilities: _architecture review documentation reading_. **/
 	public architecture_review(review_path: string, review_code: string): string {
-		const document_path = join(this.documentation_root, "docs", "architecture-review.md");
-		if (!existsSync(document_path)) {
-			throw new Error(`Architecture review documentation is missing: ${document_path}`);
-		}
-		const document = readFileSync(document_path, "utf8");
-		if (!document.includes("{{REVIEW_PATH}}")) {
-			throw new Error(`Architecture review documentation must contain {{REVIEW_PATH}}: ${document_path}`);
-		}
-		if (!document.includes("{{REVIEW_CODE}}")) {
-			throw new Error(`Architecture review documentation must contain {{REVIEW_CODE}}: ${document_path}`);
-		}
-		return document.replaceAll("{{REVIEW_PATH}}", review_path).replaceAll("{{REVIEW_CODE}}", review_code).trim();
+		const document = this.read_architecture_review();
+		const review_start = this.architecture_review_position(document);
+		return document
+			.slice(review_start)
+			.replaceAll("{{REVIEW_PATH}}", review_path)
+			.replaceAll("{{REVIEW_CODE}}", review_code)
+			.trim();
+	}
+
+	/** Responsibilities: _agent instruction reading_. **/
+	public agent_instruction(review_path: string): string {
+		const document = this.agent_document();
+		const review_start = this.agent_position(document);
+		return document.slice(review_start).replaceAll("{{REVIEW_PATH}}", review_path).trim();
 	}
 }
