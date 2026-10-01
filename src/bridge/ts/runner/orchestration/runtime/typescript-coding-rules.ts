@@ -14,7 +14,7 @@ export class TypeScriptCodingRules {
 	private recovered_violations(file: string, source: string): Violation[] {
 		const source_file = new TypeScriptAstFile(file, source).source_file;
 		const violations: Violation[] = [];
-		const context = new TypeScriptRuleContext(violations, file, source_file, new LintStageTimer());
+		const context = new TypeScriptRuleContext(violations, file, source_file, new LintStageTimer(), () => []);
 		context.append(source_file);
 		return violations;
 	}

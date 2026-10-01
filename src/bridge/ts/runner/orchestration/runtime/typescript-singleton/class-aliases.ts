@@ -53,7 +53,10 @@ export class TypeScriptClassAliases {
 
 	/** Responsibilities: _class alias assignment identification_. **/
 	private append_alias(names: Set<string>, declaration: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return false;
+		}
+		if (declaration.initializer === undefined) {
 			return false;
 		}
 		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);

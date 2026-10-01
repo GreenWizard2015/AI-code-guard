@@ -1,7 +1,8 @@
-import ts from "typescript";
+import { TypeScriptArrayCallableDeclarations } from "src/bridge/ts/parser-internals/type-union-rules/array-callable-declarations";
 import { TypeScriptCallAliases } from "src/bridge/ts/parser-internals/type-union-rules/typescript-call-aliases";
-import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 import { TypeScriptTypeAliases } from "src/typescript-aliases/type-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import ts from "typescript";
 
 /** Responsibilities: _array result detection_. **/
 export class TypeScriptArrayStateInspector {
@@ -9,6 +10,7 @@ export class TypeScriptArrayStateInspector {
 	private readonly array_type_names = new Set(["Array", "ReadonlyArray"]);
 	private readonly call_aliases = new TypeScriptCallAliases();
 	private readonly type_aliases = new TypeScriptTypeAliases();
+	private readonly callable_declarations = new TypeScriptArrayCallableDeclarations();
 
 	/** Responsibilities: _invocation alias name_. **/
 	private invocation_name(expression: ts.CallExpression, aliases: ReadonlyMap<string, string>): string {
@@ -22,46 +24,18 @@ export class TypeScriptArrayStateInspector {
 
 	/** Responsibilities: _callable name lookup_. **/
 	private indexed_call_name(expression: ts.Expression, aliases: ReadonlyMap<string, string>): string {
-		expression = this.expression_names.unwrap_transparent_expression(expression);
-		if (ts.isCallExpression(expression)) {
-			return this.invocation_name(expression, aliases);
+		const unwrapped_expression = this.expression_names.unwrap_transparent_expression(expression);
+		if (ts.isCallExpression(unwrapped_expression)) {
+			return this.invocation_name(unwrapped_expression, aliases);
 		}
-		if (!ts.isIdentifier(expression)) {
+		if (!ts.isIdentifier(unwrapped_expression)) {
 			return "";
 		}
-		const name = aliases.get(expression.text);
+		const name = aliases.get(unwrapped_expression.text);
 		if (name === undefined) {
 			return "";
 		}
 		return name;
-	}
-
-	/** Responsibilities: _nested callable declaration collection_. **/
-	private append_nested_callables(node: ts.Node, name: string, declarations: ts.FunctionLikeDeclaration[]): void {
-		if (ts.isFunctionDeclaration(node) && node.name?.text === name) {
-			declarations.push(node);
-		}
-		if (ts.isClassLike(node)) {
-			for (const member of node.members) {
-				if (ts.isMethodDeclaration(member) && member.name?.getText() === name) {
-					declarations.push(member);
-				}
-			}
-		}
-		if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name) {
-			const initializer = node.initializer;
-			if (initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))) {
-				declarations.push(initializer);
-			}
-		}
-		ts.forEachChild(node, (child) => this.append_nested_callables(child, name, declarations));
-	}
-
-	/** Responsibilities: _collection callable declarations matching_. **/
-	private callable_declarations(source_file: ts.SourceFile, name: string): ts.FunctionLikeDeclaration[] {
-		const declarations: ts.FunctionLikeDeclaration[] = [];
-		this.append_nested_callables(source_file, name, declarations);
-		return declarations;
 	}
 
 	/** Responsibilities: _classification callable output array_. **/
@@ -92,11 +66,13 @@ export class TypeScriptArrayStateInspector {
 			return true;
 		}
 		const readonly_match = /^Readonly<(.+)>$/u.exec(normalized);
-		if (readonly_match !== null && this.array_type_text(readonly_match[1], source_file, visited)) {
+		const has_readonly_match = readonly_match !== null;
+		if (has_readonly_match && this.array_type_text(readonly_match[1], source_file, visited)) {
 			return true;
 		}
 		const resolved = this.type_aliases.resolve(normalized);
-		return resolved !== normalized && this.array_type_text(resolved, source_file, visited);
+		const type_changed = resolved !== normalized;
+		return type_changed && this.array_type_text(resolved, source_file, visited);
 	}
 
 	/** Responsibilities: _classification callable output array_. **/
@@ -108,8 +84,10 @@ export class TypeScriptArrayStateInspector {
 		if (ts.isArrayTypeNode(type)) {
 			return true;
 		}
-		if (ts.isTypeOperatorNode(type) && type.operator === ts.SyntaxKind.ReadonlyKeyword) {
-			return ts.isArrayTypeNode(type.type);
+		if (ts.isTypeOperatorNode(type)) {
+			if (type.operator === ts.SyntaxKind.ReadonlyKeyword) {
+				return ts.isArrayTypeNode(type.type);
+			}
 		}
 		if (!ts.isTypeReferenceNode(type)) {
 			return false;
@@ -154,30 +132,42 @@ export class TypeScriptArrayStateInspector {
 
 	/** Responsibilities: _classification single-item array expression_. **/
 	private single_item_array(expression: ts.Expression): boolean {
-		expression = this.expression_names.unwrap_transparent_expression(expression);
-		if (!ts.isArrayLiteralExpression(expression)) {
+		const unwrapped_expression = this.expression_names.unwrap_transparent_expression(expression);
+		if (!ts.isArrayLiteralExpression(unwrapped_expression)) {
 			return false;
 		}
-		return expression.elements.length <= 1;
+		return unwrapped_expression.elements.length <= 1;
+	}
+
+	/** Responsibilities: _array access name_. **/
+	private at_access_name(node: ts.CallExpression, source_file: ts.SourceFile): string {
+		if (!ts.isPropertyAccessExpression(node.expression)) {
+			return "";
+		}
+		if (node.expression.name.text !== "at") {
+			return "";
+		}
+		if (node.arguments.length !== 1) {
+			return "";
+		}
+		const argument = this.expression_names.unwrap_transparent_expression(node.arguments[0]);
+		if (!ts.isNumericLiteral(argument)) {
+			return "";
+		}
+		if (argument.text !== "0") {
+			return "";
+		}
+		return this.indexed_call_name(node.expression.expression, this.call_aliases.names(source_file));
 	}
 
 	/** Responsibilities: _single-item method detection_. **/
 	public single_item_method(node: ts.CallExpression, source_file: ts.SourceFile): boolean {
-		if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== "at") {
-			return false;
-		}
-		if (node.arguments.length !== 1) {
-			return false;
-		}
-		const argument = this.expression_names.unwrap_transparent_expression(node.arguments[0]);
-		if (!ts.isNumericLiteral(argument) || argument.text !== "0") {
-			return false;
-		}
-		const name = this.indexed_call_name(node.expression.expression, this.call_aliases.names(source_file));
+		const name = this.at_access_name(node, source_file);
 		if (name.length === 0) {
 			return false;
 		}
-		return this.callable_declarations(source_file, name).some((callable) => this.single_item_callable(callable));
+		const callables = this.callable_declarations.collect(source_file, name);
+		return callables.some((callable) => this.single_item_callable(callable));
 	}
 
 	/** Responsibilities: _single-item callable detection_. **/
@@ -194,6 +184,7 @@ export class TypeScriptArrayStateInspector {
 		if (name.length === 0) {
 			return false;
 		}
-		return this.callable_declarations(source_file, name).some((callable) => this.single_item_callable(callable));
+		const callables = this.callable_declarations.collect(source_file, name);
+		return callables.some((callable) => this.single_item_callable(callable));
 	}
 }

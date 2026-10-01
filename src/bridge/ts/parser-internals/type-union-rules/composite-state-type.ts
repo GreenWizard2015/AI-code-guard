@@ -115,7 +115,10 @@ export class CompositeStateTypeRules {
 
 	/** Responsibilities: _classification function type boundary_. **/
 	private function_boundary(node: ts.Node, parent: ts.Node): boolean {
-		if (!ts.isFunctionLike(parent) || parent.type === undefined) {
+		if (!ts.isFunctionLike(parent)) {
+			return false;
+		}
+		if (parent.type === undefined) {
 			return false;
 		}
 		return this.inside_type(node, parent.type);

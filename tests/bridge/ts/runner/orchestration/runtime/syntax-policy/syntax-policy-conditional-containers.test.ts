@@ -68,6 +68,14 @@ describe("conditional execution container policy", () => {
 		expect(messages.filter((message) => message === "avoid conditional execution operators")).toHaveLength(1);
 	});
 
+	test("rejects non-null logical expressions passed to calls", () => {
+		const fixture = new TestFixture();
+		const messages = fixture.violation_messages({
+			"non-null-call-conditional.ts": "report((ready && load())!);",
+		});
+		expect(messages.filter((message) => message === "avoid conditional execution operators")).toHaveLength(1);
+	});
+
 	test("rejects logical expressions under satisfies assertions", () => {
 		const fixture = new TestFixture();
 		const messages = fixture.violation_messages({

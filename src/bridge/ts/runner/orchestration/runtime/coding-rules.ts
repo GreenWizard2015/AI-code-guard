@@ -12,6 +12,7 @@ import {
 } from "src/bridge/ts/runner/orchestration/runtime/constants";
 import { ResponsibilityRules } from "src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-rules";
 import { ResponsibilityWording } from "src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-wording";
+import ts from "typescript";
 
 import type { CodingRuleLinterContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
 import { LintStageTimer } from "src/stage-timing";
@@ -32,23 +33,33 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 		),
 	);
 
-	/** Responsibilities: _collection TypeScript syntax coding-rule_. **/
-	private collect_typescript_rules(source: CodingRuleSourceData): Violation[] {
+	/** Responsibilities: _TypeScript rules_. **/
+	private append_typescript_rules(
+		violations: Violation[],
+		source: CodingRuleSourceData,
+		source_file: ts.SourceFile,
+	): void {
 		const script_coding_rules = new TypeScriptCodingRules();
-
-		const violations: Violation[] = [];
-		if (!this.source_ast.typescript()) {
-			return violations;
-		}
-		const source_file = source.source_file;
-		if (!source_file) {
-			return violations;
-		}
-		const context = new TypeScriptRuleContext(violations, source.file, source_file, this.stage_timer);
+		const context = new TypeScriptRuleContext(
+			violations,
+			source.file,
+			source_file,
+			this.stage_timer,
+			source.source_resolver,
+		);
 		context.append(source_file);
 		if (this.syntax.syntax_issues(source_file).length > 0) {
 			script_coding_rules.append_recovered_rules(violations, source.file, source.text);
 		}
+	}
+
+	/** Responsibilities: _TypeScript syntax rules_. **/
+	private collect_typescript_rules(source: CodingRuleSourceData): Violation[] {
+		const violations: Violation[] = [];
+		if (!this.source_ast.typescript()) {
+			return violations;
+		}
+		this.append_typescript_rules(violations, source, source.source_file);
 		return violations;
 	}
 

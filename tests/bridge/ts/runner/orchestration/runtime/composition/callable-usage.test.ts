@@ -27,9 +27,12 @@ describe("coding-lint callable usage rule", () => {
 			private_method: messages.some((message) => message.includes('method "Service.privateOnce" is used')),
 			twice: messages.some((message) => message.includes('function "twice" is used')),
 			service_twice: messages.some((message) => message.includes('method "Service.twice" is used')),
-			info_only: existing_rule_violations.some(
-				(violation) => violation.message.includes('function "once"') && violation.priority !== 1,
-			),
+			info_only: existing_rule_violations.some((violation) => {
+				if (!violation.message.includes('function "once"')) {
+					return false;
+				}
+				return violation.priority !== 1;
+			}),
 		}).toEqual({
 			once: false,
 			test_only: true,

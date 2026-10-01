@@ -44,6 +44,15 @@ export class TaskReporting {
 		return this.format_with_policy(violations, options.batch_size, options.policy, options.skip_review);
 	}
 
+	/** Responsibilities: _review request status_. **/
+	public review_requested(violations: readonly ReportViolation[], skip_review: boolean): boolean {
+		const has_violations = violations.length > 0;
+		if (skip_review || has_violations) {
+			return false;
+		}
+		return !this.review.completed();
+	}
+
 	/** Responsibilities: _violations by policy selection_, _task documents writing_. **/
 	public format_with_policy(
 		violations: readonly ReportViolation[],

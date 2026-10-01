@@ -36,7 +36,10 @@ export class PlacementSupport {
 
 	/** Responsibilities: _extraction path parts importer_. **/
 	private boundary_path_parts(root: string, boundary: string, file: string): string[] {
-		if (boundary.length === 0 || !file.startsWith(`${boundary}/`)) {
+		if (boundary.length === 0) {
+			return this.path_parts(root, file);
+		}
+		if (!file.startsWith(`${boundary}/`)) {
 			return this.path_parts(root, file);
 		}
 		return relative(boundary, dirname(file)).split("/").filter(Boolean);
@@ -111,7 +114,10 @@ export class PlacementSupport {
 		const result: string[] = [];
 		for (let index = 0; ; index += 1) {
 			const part = paths[0][index];
-			if (part === undefined || paths.some((path) => path[index] !== part)) {
+			if (part === undefined) {
+				return result;
+			}
+			if (paths.some((path) => path[index] !== part)) {
 				return result;
 			}
 			result.push(part);
@@ -127,8 +133,10 @@ export class PlacementSupport {
 		}
 		const importer_parts = importers.map((file) => this.boundary_path_parts(root, boundary, file));
 		const common = this.common_parts(importer_parts);
-		if (target_parts.length > common.length && this.focused_folder_distinct(target_parts, common, importer_parts)) {
-			return false;
+		if (target_parts.length > common.length) {
+			if (this.focused_folder_distinct(target_parts, common, importer_parts)) {
+				return false;
+			}
 		}
 		if (importers.length === 1) {
 			return target_parts.join("/") !== importer_parts[0].join("/");

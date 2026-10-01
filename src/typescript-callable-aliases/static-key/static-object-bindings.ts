@@ -1,8 +1,8 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
-import { TypeScriptStaticObjectProperties } from "src/typescript-callable-aliases/static-object-property-resolver";
+import { TypeScriptStaticObjectProperties } from "src/typescript-callable-aliases/static-key/static-object-property-resolver";
 import { TypeScriptStaticObjectSources } from "src/typescript-callable-aliases/static-object-sources";
-import { TypeScriptStaticObjectArguments } from "src/typescript-callable-aliases/static-object-arguments";
+import { TypeScriptStaticObjectArguments } from "src/typescript-callable-aliases/static-key/static-object-arguments";
 
 /** Responsibilities: _static object alias collection_. **/
 export class TypeScriptStaticObjectBindings {
@@ -31,7 +31,10 @@ export class TypeScriptStaticObjectBindings {
 
 	/** Responsibilities: _named object source collection_. **/
 	public append_named_source(objects: Map<string, ts.ObjectLiteralExpression>, node: ts.VariableDeclaration): void {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return;
+		}
+		if (node.initializer === undefined) {
 			return;
 		}
 		this.append_source_value(objects, node.name.text, node.initializer);
@@ -60,7 +63,10 @@ export class TypeScriptStaticObjectBindings {
 
 	/** Responsibilities: _static object assignment arguments_. **/
 	public append_assignment(node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken || !ts.isIdentifier(node.left)) {
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.left)) {
 			return false;
 		}
 		return this.arguments_source.append_assignment(node);

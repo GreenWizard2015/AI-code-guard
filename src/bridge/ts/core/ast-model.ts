@@ -7,8 +7,10 @@ export class AstModel {
 	/** Responsibilities: _resolution class base-name value_. **/
 	private base_name_value(node: AstClassNode, key: (typeof this.base_name_precedence)[number]): string[] {
 		const value = node[key];
-		if (Array.isArray(value) && value.length > 0) {
-			return value;
+		if (Array.isArray(value)) {
+			if (value.length > 0) {
+				return value;
+			}
 		}
 		if (typeof value === "string" && value.length > 0) {
 			return [value];

@@ -75,8 +75,9 @@ class PythonPropertyTypeCollector:
             return [item]
         condition: Any = item.test
         is_type_checking = type(condition) is ast.Name
-        if is_type_checking and condition.id == "TYPE_CHECKING":
-            return item.body
+        if is_type_checking:
+            if condition.id == "TYPE_CHECKING":
+                return item.body
         return [item]
 
     def _append_class_item(self, item: ast.stmt, owner: str) -> None:

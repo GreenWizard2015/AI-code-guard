@@ -51,8 +51,9 @@ class ImportRules:
     ) -> None:
         """Responsibilities: _collection current import issues_."""
         self.dynamic_import_names.observe(node)
-        if type(node) in (ast.Import, ast.ImportFrom) and nested:
-            issues.append({"line": max(0, node.lineno - 1), "kind": "nested"})
+        if type(node) in (ast.Import, ast.ImportFrom):
+            if nested:
+                issues.append({"line": max(0, node.lineno - 1), "kind": "nested"})
         if type(node) is ast.ImportFrom and node.level > 0:
             issues.append({"line": max(0, node.lineno - 1), "kind": "relative"})
         if self._is_dynamic_import(node):

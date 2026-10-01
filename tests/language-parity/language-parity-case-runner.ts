@@ -22,6 +22,7 @@ export class LanguageParityCaseRunner {
 					{ file: `${item.rule_id}.ts`, text: item.typescript },
 					typescript_ast.normalized(),
 					typescript_ast.source_file,
+					() => [],
 				),
 			);
 			const python_linter = new CodingRuleLinter(
@@ -29,6 +30,7 @@ export class LanguageParityCaseRunner {
 					{ file: `${item.rule_id}.py`, text: item.python },
 					this.python_ast_data.source_ast(item.python),
 					python_ast.source_file,
+					() => [],
 				),
 			);
 			return this.matcher.pair(typescript_linter.lint(), python_linter.lint(), item.rule_id);

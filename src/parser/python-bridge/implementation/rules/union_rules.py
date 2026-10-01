@@ -79,22 +79,34 @@ class UnionRules:
             return False
         return type(value.op) in (ast.BitOr, ast.BitAnd)
 
-    def _type_alias_assignment(self, item: ast.AST) -> bool:
-        """Responsibilities: _classification assignment type-alias assignment_."""
-        if type(item) is ast.Assign:
-            if len(item.targets) != 1:
-                return False
-            target = item.targets[0]
-            if type(target) is not ast.Name:
-                return False
-            if not target.id[:1].isupper():
-                return False
-            return self._type_value(item.value)
-        if type(item) is not ast.AnnAssign or type(item.target) is not ast.Name:
+    def _regular_type_alias(self, item: ast.Assign) -> bool:
+        """Responsibilities: _regular type alias_."""
+        if len(item.targets) != 1:
             return False
-        if not item.target.id[:1].isupper() or item.value is None:
+        target = item.targets[0]
+        if type(target) is not ast.Name:
+            return False
+        if not target.id[:1].isupper():
             return False
         return self._type_value(item.value)
+
+    def _annotated_type_alias(self, item: ast.AnnAssign) -> bool:
+        """Responsibilities: _annotated type alias_."""
+        if type(item.target) is not ast.Name:
+            return False
+        if not item.target.id[:1].isupper():
+            return False
+        if item.value is None:
+            return False
+        return self._type_value(item.value)
+
+    def _type_alias_assignment(self, item: ast.AST) -> bool:
+        """Responsibilities: _assignment type alias_."""
+        if type(item) is ast.Assign:
+            return self._regular_type_alias(item)
+        if type(item) is ast.AnnAssign:
+            return self._annotated_type_alias(item)
+        return False
 
     def _nested_alias(self, node: ast.AST) -> bool:
         """Responsibilities: _nested branch aliases_."""

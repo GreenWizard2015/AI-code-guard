@@ -2,10 +2,12 @@ import ts from "typescript";
 import type { AstImportIssue } from "src/types";
 import type { LineOf } from "src/bridge/ts/parser/types";
 import { IMPORT_KINDS } from "src/bridge/ts/parser/constants";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _classification TypeScript relative nested_. **/
 export class TypeScriptImportIssues {
 	private readonly import_kinds = IMPORT_KINDS;
+	private readonly require_aliases = new TypeScriptExpressionAliases("require");
 
 	/** Responsibilities: _classification import usage relative_. **/
 	private is_relative_import(node: ts.Node): boolean {
@@ -62,7 +64,7 @@ export class TypeScriptImportIssues {
 			return true;
 		}
 		if (ts.isIdentifier(node.expression)) {
-			if (node.expression.text === "require") {
+			if (this.require_aliases.receiver(node.expression, node)) {
 				return true;
 			}
 		}

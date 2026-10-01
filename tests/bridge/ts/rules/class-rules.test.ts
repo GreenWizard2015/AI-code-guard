@@ -98,6 +98,7 @@ describe("coding-lint class rules", () => {
 				{ file: "tests/dom-kit/element.ts", text: source_text },
 				ast_file.normalized(),
 				ast_file.source_file,
+				() => [],
 			),
 		);
 		const violations = linter.lint();

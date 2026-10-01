@@ -1,4 +1,5 @@
-import { TypeScriptOperatorPrecedence } from "src/bridge/ts/parser-internals/typescript-operator-precedence";
+import { TypeScriptOperatorPrecedence } from "src/bridge/ts/parser-internals/operator-precedence/typescript-operator-precedence";
+import { TypeScriptArithmeticPrecedence } from "src/bridge/ts/parser-internals/operator-precedence/typescript-arithmetic-precedence";
 import { TypeScriptLogicalChain } from "src/bridge/ts/parser-internals/typescript-logical-chain";
 import { INDEX_SIGNATURE, INTERFACE_RULE_ID, UNBOUNDED_TYPE } from "src/bridge/ts/parser-internals/constants";
 import ts from "typescript";
@@ -11,6 +12,7 @@ export class TypeScriptStructuralRules {
 	private readonly data_member_kinds = new Set([ts.SyntaxKind.PropertySignature, ts.SyntaxKind.IndexSignature]);
 	private readonly logical_chain = new TypeScriptLogicalChain();
 	private readonly operator_precedence = new TypeScriptOperatorPrecedence();
+	private readonly arithmetic_precedence = new TypeScriptArithmeticPrecedence();
 	private readonly type_aliases = new TypeScriptTypeAliases();
 	private readonly callable_body = new TypeScriptCallableBody();
 	private readonly unbounded_type_names = new Set(["any", "unknown", "object", "Object"]);
@@ -136,7 +138,7 @@ export class TypeScriptStructuralRules {
 		if (this.operator_precedence.mixed_boolean_operator(node)) {
 			context.append_rule(node, "mixed-boolean-precedence");
 		}
-		if (this.operator_precedence.mixed_arithmetic_operator(node)) {
+		if (this.arithmetic_precedence.mixed_operator(node)) {
 			context.append_rule(node, "mixed-arithmetic-precedence");
 		}
 		this.append_type_rules(node, context);

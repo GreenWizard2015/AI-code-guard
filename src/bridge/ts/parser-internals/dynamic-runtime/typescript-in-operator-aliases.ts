@@ -1,6 +1,6 @@
-import ts from "typescript";
-import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
 import type { DynamicBindingNamesProtocol } from "src/protocols";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
+import ts from "typescript";
 
 /** Responsibilities: _TypeScript membership alias resolution_. **/
 export class TypeScriptInOperatorAliases {
@@ -9,7 +9,8 @@ export class TypeScriptInOperatorAliases {
 
 	/** Responsibilities: _collection declarations_. **/
 	private collect_declarations(node: ts.Node, declarations: ts.VariableDeclaration[], root: ts.Node): void {
-		if (node !== root && ts.isFunctionLike(node)) {
+		const is_nested_node = node !== root;
+		if (is_nested_node && ts.isFunctionLike(node)) {
 			return;
 		}
 		if (ts.isVariableDeclaration(node)) {
@@ -33,7 +34,8 @@ export class TypeScriptInOperatorAliases {
 		source_file: ts.SourceFile,
 		names: Set<string>,
 	): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		const missing_initializer = declaration.initializer === undefined;
+		if (!ts.isIdentifier(declaration.name) || missing_initializer) {
 			return false;
 		}
 		const alias_name = declaration.name.text;
@@ -45,7 +47,8 @@ export class TypeScriptInOperatorAliases {
 
 	/** Responsibilities: _chained membership alias_. **/
 	private append_chained_alias(declaration: ts.VariableDeclaration, names: Set<string>): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		const missing_initializer = declaration.initializer === undefined;
+		if (!ts.isIdentifier(declaration.name) || missing_initializer) {
 			return false;
 		}
 		const initializer = declaration.initializer;
@@ -65,7 +68,8 @@ export class TypeScriptInOperatorAliases {
 		names: Set<string>,
 		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>,
 	): boolean {
-		if (declaration.initializer === undefined || ts.isIdentifier(declaration.name)) {
+		const missing_initializer = declaration.initializer === undefined;
+		if (missing_initializer || ts.isIdentifier(declaration.name)) {
 			return false;
 		}
 		return this.binding_aliases.append_binding_aliases(
@@ -108,7 +112,8 @@ export class TypeScriptInOperatorAliases {
 		declaration: ts.VariableDeclaration,
 		object_aliases: Map<string, ts.ObjectLiteralExpression>,
 	): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		const missing_initializer = declaration.initializer === undefined;
+		if (!ts.isIdentifier(declaration.name) || missing_initializer) {
 			return false;
 		}
 		const value = this.object_value(declaration.initializer, object_aliases);

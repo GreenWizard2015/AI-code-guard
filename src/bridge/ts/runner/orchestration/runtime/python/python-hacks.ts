@@ -1,5 +1,5 @@
-import type { Violation } from "src/protocols";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
 import type { AstCallableNode, AstStatementNode } from "src/types";
 
 import type {
@@ -14,7 +14,10 @@ export class PythonHacks {
 
 	/** Responsibilities: _normalization assignment statement conversion_. **/
 	private assignment_candidate(statement: AstStatementNode): PythonAssignment[] {
-		if (statement.kind !== "assignment" || !statement.name) {
+		if (statement.kind !== "assignment") {
+			return [];
+		}
+		if (!statement.name) {
 			return [];
 		}
 		return [
@@ -51,7 +54,10 @@ export class PythonHacks {
 		if (candidates.length === 1) {
 			return candidates[0].name === name;
 		}
-		if (candidates[0].destructured || candidates[candidates.length - 1].name !== name) {
+		if (candidates[0].destructured) {
+			return false;
+		}
+		if (candidates[candidates.length - 1].name !== name) {
 			return false;
 		}
 		return candidates.slice(1).every((candidate) => candidate.simple_alias);

@@ -70,7 +70,10 @@ export class DynamicObjectMemberAliases {
 		if (ts.isPropertyAccessExpression(expression)) {
 			return expression.name.text;
 		}
-		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
+		if (!ts.isElementAccessExpression(expression)) {
+			return "";
+		}
+		if (expression.argumentExpression === undefined) {
 			return "";
 		}
 		return this.target_aliases.member_name(expression);
@@ -102,7 +105,10 @@ export class DynamicObjectMemberAliases {
 			if (!ts.isPropertyAccessExpression(value) && !ts.isElementAccessExpression(value)) {
 				return false;
 			}
-			return this.target_aliases.receiver(value.expression, source) && this.member_name(value) === member_name;
+			if (!this.target_aliases.receiver(value.expression, source)) {
+				return false;
+			}
+			return this.member_name(value) === member_name;
 		});
 	}
 }

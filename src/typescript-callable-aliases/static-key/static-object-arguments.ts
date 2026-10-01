@@ -12,7 +12,10 @@ export class TypeScriptStaticObjectArguments {
 
 	/** Responsibilities: _static array declaration collection_. **/
 	public append_declaration(node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		return this.array_collector.append_source(node);
@@ -20,7 +23,10 @@ export class TypeScriptStaticObjectArguments {
 
 	/** Responsibilities: _static array assignment collection_. **/
 	public append_assignment(node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken || !ts.isIdentifier(node.left)) {
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.left)) {
 			return false;
 		}
 		return this.array_collector.append_assignment(node.left.text, node.right);

@@ -59,7 +59,10 @@ export class TypeScriptNamespaceAliases {
 
 	/** Responsibilities: _namespace alias identification_. **/
 	private append_variable_alias(names: Set<string>, declaration: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return false;
+		}
+		if (declaration.initializer === undefined) {
 			return false;
 		}
 		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);

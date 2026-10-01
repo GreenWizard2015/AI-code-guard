@@ -1,8 +1,8 @@
-import ts from "typescript";
+import { StandaloneStringComments } from "src/bridge/ts/rules/support/standalone-string-comments";
+import type { CyrillicCommentText, CyrillicQuoteState } from "src/bridge/ts/rules/types";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
 import type { Violation } from "src/protocols";
-import type { CyrillicCommentText, CyrillicQuoteState } from "src/bridge/ts/rules/types";
-import { StandaloneStringComments } from "src/bridge/ts/rules/support/standalone-string-comments";
+import ts from "typescript";
 
 /** Responsibilities: _Cyrillic text detection_. **/
 export class CyrillicTextRules {
@@ -21,7 +21,9 @@ export class CyrillicTextRules {
 		text: string,
 		comments: CyrillicCommentText[],
 	): void {
-		if (token !== ts.SyntaxKind.SingleLineCommentTrivia && token !== ts.SyntaxKind.MultiLineCommentTrivia) {
+		if (token === ts.SyntaxKind.SingleLineCommentTrivia) {
+			// Continue with comment recording below.
+		} else if (token !== ts.SyntaxKind.MultiLineCommentTrivia) {
 			return;
 		}
 		const start = scanner.getTokenPos();
@@ -53,10 +55,13 @@ export class CyrillicTextRules {
 			}
 		}
 		const character = line.charAt(index);
-		if (!state.triple && character === "\\") {
+		if (state.triple) {
+			return index + 1;
+		}
+		if (character === "\\") {
 			return index + 2;
 		}
-		if (!state.triple && character === state.delimiter) {
+		if (character === state.delimiter) {
 			state.active = false;
 		}
 		return index + 1;
@@ -65,8 +70,10 @@ export class CyrillicTextRules {
 	/** Responsibilities: _Python quote start_. **/
 	private start_python_quote(line: string, index: number, state: CyrillicQuoteState): number {
 		const character = line.charAt(index);
-		if (character !== "'" && character !== '"') {
-			return 0;
+		if (character !== "'") {
+			if (character !== '"') {
+				return 0;
+			}
 		}
 		state.active = true;
 		state.delimiter = character;

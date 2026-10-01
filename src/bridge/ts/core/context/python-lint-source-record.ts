@@ -1,5 +1,5 @@
 import type { LintSourceRecord, LintFileNameContract, LintSourceRecordOptions, NormalizedAstFile } from "src/types";
-import type { TypeScriptAstFileProtocol } from "src/protocols";
+import type { SourceFileResolver, TypeScriptAstFileProtocol } from "src/protocols";
 
 /** Responsibilities: _storage normalization Python lint_, _language-specific accessors exposure_. **/
 export class PythonLintSourceRecord implements LintSourceRecord {
@@ -9,6 +9,7 @@ export class PythonLintSourceRecord implements LintSourceRecord {
 	public readonly text: string;
 	public readonly normalized_ast: NormalizedAstFile;
 	public readonly language = "python" as const;
+	public readonly source_resolver: SourceFileResolver;
 
 	/** Responsibilities: _initialization normalization Python lint_. **/
 	public constructor(options: LintSourceRecordOptions) {
@@ -17,6 +18,7 @@ export class PythonLintSourceRecord implements LintSourceRecord {
 		this.file_name = options.file_name;
 		this.text = options.text;
 		this.normalized_ast = options.normalized_ast;
+		this.source_resolver = () => [];
 	}
 
 	/** Responsibilities: _reporting this record not_. **/

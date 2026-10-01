@@ -6,3 +6,4 @@ coverage
 htmlcov
 __pycache__
 task.md
+lint-bypass-findings.md

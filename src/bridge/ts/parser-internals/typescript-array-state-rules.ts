@@ -108,11 +108,15 @@ export class TypeScriptArrayStateRules {
 
 	/** Responsibilities: _resolution undefined operand name_. **/
 	private undefined_operand_name(expression: ts.BinaryExpression): string {
-		if (ts.isIdentifier(expression.left) && expression.right.getText() === "undefined") {
-			return expression.left.text;
+		if (ts.isIdentifier(expression.left)) {
+			if (expression.right.getText() === "undefined") {
+				return expression.left.text;
+			}
 		}
-		if (ts.isIdentifier(expression.right) && expression.left.getText() === "undefined") {
-			return expression.right.text;
+		if (ts.isIdentifier(expression.right)) {
+			if (expression.left.getText() === "undefined") {
+				return expression.right.text;
+			}
 		}
 		return "";
 	}

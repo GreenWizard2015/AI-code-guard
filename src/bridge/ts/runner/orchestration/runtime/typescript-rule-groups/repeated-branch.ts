@@ -31,7 +31,10 @@ export class RepeatedBranch {
 				break;
 			}
 			const next: ts.Statement | undefined = current.elseStatement;
-			if (next === undefined || !ts.isIfStatement(next)) {
+			if (next === undefined) {
+				return branches;
+			}
+			if (!ts.isIfStatement(next)) {
 				break;
 			}
 			current = next;

@@ -33,4 +33,17 @@ describe("coding-lint rest union aliases", () => {
 
 		expect(violations.filter((item) => item.rule_id === "typescript-rest-union-contract")).toHaveLength(1);
 	});
+
+	test("resolves rest unions through imported aliases", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.collect_fixture_violations({
+			"types.ts": 'export type MetricViolationKind = "info" | "warning";\n',
+			"collector.ts": [
+				'import type { MetricViolationKind } from "./types";',
+				"export function collect_kinds(...kinds: MetricViolationKind[]): void {}",
+			].join("\n"),
+		});
+
+		expect(violations.filter((item) => item.rule_id === "typescript-rest-union-contract")).toHaveLength(1);
+	});
 });

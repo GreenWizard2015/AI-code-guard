@@ -133,6 +133,8 @@ class PythonReferenceAliases:
     def resolved_name(self, name: str, names: frozenset[str]) -> str:
         """Responsibilities: _known alias target_."""
         resolved = self._resolve(name)
-        if not names or resolved in names:
+        if not names:
+            return resolved
+        if resolved in names:
             return resolved
         return ""

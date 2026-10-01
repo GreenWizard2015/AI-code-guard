@@ -19,6 +19,18 @@ describe("coding-lint syntax policy - Python access", () => {
 		expect(messages).toContain("avoid direct object.__setattr__ calls");
 	});
 
+	test("rejects Python object setattr aliases through assigned receivers", () => {
+		const messages = test_fixture.violation_messages({
+			"object-setattr-receiver-alias.py": [
+				"setattr_owner = object",
+				"def update(value):",
+				'    setattr_owner.__setattr__(value, "name", "updated")',
+			].join("\n"),
+		});
+
+		expect(messages.filter((message) => message === "avoid direct object.__setattr__ calls")).toHaveLength(1);
+	});
+
 	test("rejects Python private member access from outside a class", () => {
 		const messages = test_fixture.violation_messages({
 			"private.py": [

@@ -35,11 +35,15 @@ export class PrivateMemberDeclarationNames {
 	/** Responsibilities: _private member name collection_. **/
 	public names(member: ts.ClassElement, source_file: ts.SourceFile): string[] {
 		const name = this.name(member, source_file);
-		if (this.private_identifier(member) && name !== "") {
-			return [name];
+		if (this.private_identifier(member)) {
+			if (name !== "") {
+				return [name];
+			}
 		}
-		if (this.has_private_modifier(member) && name !== "") {
-			return [name];
+		if (this.has_private_modifier(member)) {
+			if (name !== "") {
+				return [name];
+			}
 		}
 		return [];
 	}

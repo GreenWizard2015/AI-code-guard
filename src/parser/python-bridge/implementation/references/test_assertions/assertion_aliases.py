@@ -41,6 +41,11 @@ class PythonTestAssertionAliases:
 
     def _is_assertion_reference(self, value: ast.AST, aliases: set[str]) -> bool:
         """Responsibilities: _assertion method reference classification_."""
+        if type(value) is ast.Subscript:
+            resolved = self.container_aliases.values.container_value(value)
+            if not resolved.found():
+                return False
+            return self._is_assertion_reference(resolved.expression_node(), aliases)
         if type(value) is ast.Name:
             return value.id in aliases
         if self._getattr_reference(value, "assert"):
@@ -51,6 +56,11 @@ class PythonTestAssertionAliases:
 
     def _is_exception_reference(self, value: ast.AST, aliases: set[str]) -> bool:
         """Responsibilities: _exception method reference classification_."""
+        if type(value) is ast.Subscript:
+            resolved = self.container_aliases.values.container_value(value)
+            if not resolved.found():
+                return False
+            return self._is_exception_reference(resolved.expression_node(), aliases)
         if type(value) is ast.Name:
             return value.id in aliases
         if self._getattr_reference(value, "assertRaises"):
@@ -65,11 +75,13 @@ class PythonTestAssertionAliases:
         if type(node) is ast.Assign:
             for target in node.targets:
                 target_values.update(
-                    self.assignment_aliases.target_values(target, node.value)
+                    self.assignment_aliases.target_values(
+                        target, node.value, references_only=False
+                    )
                 )
         if type(node) is ast.AnnAssign and node.value is not None:
             target_values = self.assignment_aliases.target_values(
-                node.target, node.value
+                node.target, node.value, references_only=False
             )
         return target_values
 

@@ -53,7 +53,10 @@ export class TypeScriptModuleExports {
 			return [];
 		}
 		const bindings = statement.importClause?.namedBindings;
-		if (bindings === undefined || !ts.isNamedImports(bindings)) {
+		if (bindings === undefined) {
+			return [];
+		}
+		if (!ts.isNamedImports(bindings)) {
 			return [];
 		}
 		return [bindings];
@@ -73,8 +76,10 @@ export class TypeScriptModuleExports {
 
 	/** Responsibilities: _resolution named exported declaration_. **/
 	public exported_declaration(statement: ts.Statement, exported_name: string): ts.Node[] {
-		if (ts.isFunctionDeclaration(statement) && statement.name?.text === exported_name) {
-			return [statement];
+		if (ts.isFunctionDeclaration(statement)) {
+			if (statement.name?.text === exported_name) {
+				return [statement];
+			}
 		}
 		if (!ts.isVariableStatement(statement)) {
 			return [];

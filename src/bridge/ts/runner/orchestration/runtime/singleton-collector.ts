@@ -67,7 +67,11 @@ export class SingletonCollector {
 				if (imported.alias !== undefined) {
 					name = imported.alias;
 				}
-				if (import_node.module === imported.name || !/^[A-Z]\w*$/u.test(imported.name)) {
+				if (import_node.module === imported.name) {
+					names.add(name);
+					continue;
+				}
+				if (!/^[A-Z]\w*$/u.test(imported.name)) {
 					names.add(name);
 				}
 			}

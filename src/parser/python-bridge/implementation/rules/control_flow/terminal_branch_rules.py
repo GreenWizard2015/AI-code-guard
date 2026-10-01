@@ -27,7 +27,9 @@ class PythonTerminalBranchRules:
 
     def _terminal_fallthrough(self, node: ast.stmt) -> bool:
         """Responsibilities: _terminal fallthrough branch analysis_."""
-        if type(node) is not ast.If or node.orelse:
+        if type(node) is not ast.If:
+            return False
+        if node.orelse:
             return False
         return self.terminal_block(node.body)
 

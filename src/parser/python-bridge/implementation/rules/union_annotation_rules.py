@@ -70,17 +70,19 @@ class UnionAnnotationRules:
         if len(values) > self.max_union_items:
             issues.append({"line": node.lineno - 1, "kind": "large-union"})
         issues.extend(self._optional_union_issues(node, values))
-        if len(values) > 1 and not any(
-            self._is_nullish_type(value) for value in values
-        ):
-            issues.append({"line": node.lineno - 1, "kind": "composite-state-type"})
+        if len(values) > 1:
+            has_nullish_type = any(self._is_nullish_type(value) for value in values)
+            if not has_nullish_type:
+                issues.append({"line": node.lineno - 1, "kind": "composite-state-type"})
         return issues
 
     def _issues_for_intersection(
         self, node: ast.AST, values: list[ast.AST]
     ) -> list[JsonObject]:
         """Responsibilities: _intersection annotation violations collection_."""
-        if len(values) <= 1 or any(self._is_nullish_type(value) for value in values):
+        if len(values) <= 1:
+            return []
+        if any(self._is_nullish_type(value) for value in values):
             return []
         return [{"line": node.lineno - 1, "kind": "composite-state-type"}]
 

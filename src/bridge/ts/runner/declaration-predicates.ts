@@ -23,7 +23,10 @@ export class DeclarationPredicates {
 	private has_prototype_target(node: ts.Node): boolean {
 		const proxy_expressions = new TypeScriptProxyExpressions();
 
-		if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== this.assignment_kind) {
+		if (!ts.isBinaryExpression(node)) {
+			return false;
+		}
+		if (node.operatorToken.kind !== this.assignment_kind) {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(node.left)) {

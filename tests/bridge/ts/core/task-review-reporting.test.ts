@@ -22,6 +22,13 @@ describe("coding-lint architecture review reporting", () => {
 		}).toEqual({ counts: true, priority_summary: false });
 	});
 
+	test("requests a failing exit status while architecture review is pending", () => {
+		const fixture = new TaskReviewScenario();
+		const result = fixture.review_statuses();
+
+		expect(result).toEqual({ pending: true, skipped: false, completed: false });
+	});
+
 	test("prints the review instruction path without exposing its contents", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.clean_result();

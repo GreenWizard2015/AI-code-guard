@@ -29,10 +29,7 @@ export class DynamicRuntimeMemberExpressions {
 		if (!ts.isIdentifier(expression.expression)) {
 			return "";
 		}
-		if (expression.expression.text === "globalThis") {
-			return expression.name.text;
-		}
-		return "";
+		return expression.name.text;
 	}
 
 	/** Responsibilities: _dynamic member owners_. **/

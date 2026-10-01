@@ -64,6 +64,30 @@ describe("AST-detectable implementation hacks", () => {
 		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
 	});
 
+	test("detects default exports of imported TypeScript bindings", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.collect_fixture_violations({
+			"default-reexport.ts": ["import { Client } from './client';", "export default Client;"].join("\n"),
+			"client.ts": "export class Client {}",
+		});
+
+		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
+	});
+
+	test("detects exports of local aliases of imported TypeScript bindings", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.collect_fixture_violations({
+			"aliased-reexport.ts": [
+				"import { Client } from './client';",
+				"const client_alias = Client;",
+				"export { client_alias };",
+			].join("\n"),
+			"client.ts": "export class Client {}",
+		});
+
+		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
+	});
+
 	test("detects module-level functions outside the exact root file", () => {
 		const fixture = new TestFixture();
 

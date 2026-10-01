@@ -187,7 +187,10 @@ export class ValueRules {
 	/** Responsibilities: _reporting repeated typeof checks_. **/
 	public repeated_typeof(node: ts.TypeOfExpression): boolean {
 		let owner: ts.Node | undefined = node.parent;
-		while (owner !== undefined && !ts.isFunctionLike(owner)) {
+		while (owner !== undefined) {
+			if (ts.isFunctionLike(owner)) {
+				break;
+			}
 			owner = owner.parent;
 		}
 		if (owner === undefined) {

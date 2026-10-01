@@ -58,13 +58,14 @@ export class Cli {
 		const report_status = new ReportStatus(violations, report.files);
 		const should_fail = stage_timer.measure("process-result", () => report_status.warnings());
 		const task_reporting = new TaskReporting(options.root);
+		const review_requested = task_reporting.review_requested(violations, options.skip_review);
 		const result_reporter = new CliResultReporter(task_reporting, task_reporting.workspace);
 		if (options.timings) {
 			result_reporter.report_with_timings(report, options, stage_timer);
 		} else {
 			result_reporter.report(report, options);
 		}
-		if (should_fail) {
+		if (should_fail || review_requested) {
 			process.exitCode = 1;
 		}
 	}

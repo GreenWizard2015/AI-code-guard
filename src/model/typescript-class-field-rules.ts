@@ -54,7 +54,10 @@ export class TypeScriptClassFieldRules {
 		context: TypeScriptClassFieldContext,
 		violations: Violation[],
 	): void {
-		if (!ts.isPropertyDeclaration(member) || member.initializer === undefined) {
+		if (!ts.isPropertyDeclaration(member)) {
+			return;
+		}
+		if (member.initializer === undefined) {
 			return;
 		}
 		if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {

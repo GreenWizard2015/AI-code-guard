@@ -58,11 +58,16 @@ export class TypeScriptAstMetadata {
 		const spans: AstSourceSpan[] = [];
 		const collect = (statements: readonly ts.Statement[]): void => {
 			for (const statement of statements) {
-				if (ts.isVariableStatement(statement) && (statement.declarationList.flags & ts.NodeFlags.Const) !== 0) {
-					spans.push(this.statement_span(statement));
+				if (ts.isVariableStatement(statement)) {
+					if ((statement.declarationList.flags & ts.NodeFlags.Const) !== 0) {
+						spans.push(this.statement_span(statement));
+						continue;
+					}
+				}
+				if (!ts.isModuleDeclaration(statement)) {
 					continue;
 				}
-				if (!ts.isModuleDeclaration(statement) || statement.body === undefined) {
+				if (statement.body === undefined) {
 					continue;
 				}
 				if (ts.isModuleBlock(statement.body)) {

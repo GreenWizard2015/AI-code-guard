@@ -1,7 +1,7 @@
-import { MetricViolations } from "src/metric-violations";
-import type { Violation } from "src/protocols";
 import { MAX_CALLABLE_CHARACTERS, MAX_FUNCTION_ARGUMENTS, MAX_FUNCTION_LINES, MIN_FUNCTION_LINES } from "src/constants";
+import { MetricViolations } from "src/metric-violations";
 import type { CallableMetricNode } from "src/metrics/types";
+import type { Violation } from "src/protocols";
 import type { MetricViolationKind } from "src/types";
 
 /** Responsibilities: _reporting callable length SLOC_. **/
@@ -35,8 +35,10 @@ export class CallableMetrics {
 		if (this.minimum_size >= MIN_FUNCTION_LINES) {
 			return true;
 		}
-		if (this.is_method && this.node.visibility === "private") {
-			return false;
+		if (this.is_method) {
+			if (this.node.visibility === "private") {
+				return false;
+			}
 		}
 		if (this.characters <= 0) {
 			return false;

@@ -19,7 +19,10 @@ export class TypeScriptMemberVariableAliases {
 
 	/** Responsibilities: _property member alias_. **/
 	private property(aliases: Map<string, Set<string>>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(node.initializer)) {
@@ -31,25 +34,41 @@ export class TypeScriptMemberVariableAliases {
 		return this.add_alias(aliases, node.name.text, node.initializer.name.text);
 	}
 
+	/** Responsibilities: _binding member alias element_. **/
+	private append_binding_element(aliases: Map<string, Set<string>>, element: ts.BindingElement): boolean {
+		if (!ts.isIdentifier(element.name)) {
+			return false;
+		}
+		const property_name = this.expression_names.static_binding_name(element);
+		return this.add_alias(aliases, element.name.text, property_name);
+	}
+
+	/** Responsibilities: _binding member alias elements_. **/
+	private append_binding_elements(aliases: Map<string, Set<string>>, binding: ts.ObjectBindingPattern): boolean {
+		let changed = false;
+		for (const element of binding.elements) {
+			if (!ts.isBindingElement(element)) {
+				continue;
+			}
+			if (this.append_binding_element(aliases, element)) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
 	/** Responsibilities: _binding member aliases_. **/
 	private binding(aliases: Map<string, Set<string>>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isObjectBindingPattern(node.name) || node.initializer === undefined) {
+		if (!ts.isObjectBindingPattern(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		if (!this.target_aliases.receiver(node.initializer, node)) {
 			return false;
 		}
-		let changed = false;
-		for (const element of node.name.elements) {
-			if (!ts.isBindingElement(element) || !ts.isIdentifier(element.name)) {
-				continue;
-			}
-			const property_name = this.expression_names.static_binding_name(element);
-			if (this.add_alias(aliases, element.name.text, property_name)) {
-				changed = true;
-			}
-		}
-		return changed;
+		return this.append_binding_elements(aliases, node.name);
 	}
 
 	/** Responsibilities: _literal member aliases_. **/

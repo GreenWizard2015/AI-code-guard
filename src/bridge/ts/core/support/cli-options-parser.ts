@@ -36,15 +36,23 @@ export class CommandLineOptions {
 	}
 
 	/** Responsibilities: _application task report-related CLI_. **/
-	private apply_task_option(options: CliOptions, option: string, value: string): boolean {
+	private apply_batch_size(options: CliOptions, option: string, value: string): boolean {
 		if (option === `${this.option_prefix}batch-size`) {
 			const batch_size = Number(value);
-			if (!Number.isInteger(batch_size) || batch_size < 1) {
+			if (!Number.isInteger(batch_size)) {
+				throw new Error(`Invalid --batch-size value: ${value}`);
+			}
+			if (batch_size < 1) {
 				throw new Error(`Invalid --batch-size value: ${value}`);
 			}
 			options.batch_size = batch_size;
 			return true;
 		}
+		return false;
+	}
+
+	/** Responsibilities: _application task policy CLI_. **/
+	private apply_policy(options: CliOptions, option: string, value: string): boolean {
 		if (option === `${this.option_prefix}policy`) {
 			if (value !== "top-category" && value !== "all") {
 				throw new Error(`Invalid --policy value: ${value}`);
@@ -53,6 +61,14 @@ export class CommandLineOptions {
 			return true;
 		}
 		return false;
+	}
+
+	/** Responsibilities: _application task option dispatch_. **/
+	private apply_task_option(options: CliOptions, option: string, value: string): boolean {
+		if (this.apply_batch_size(options, option, value)) {
+			return true;
+		}
+		return this.apply_policy(options, option, value);
 	}
 
 	/** Responsibilities: _application boolean CLI option_. **/
@@ -88,8 +104,10 @@ export class CommandLineOptions {
 				continue;
 			}
 			const value = arguments_list[index + 1];
-			if (value !== undefined && this.option_applied(options, option, value)) {
-				index += 1;
+			if (value !== undefined) {
+				if (this.option_applied(options, option, value)) {
+					index += 1;
+				}
 			}
 		}
 		return options;

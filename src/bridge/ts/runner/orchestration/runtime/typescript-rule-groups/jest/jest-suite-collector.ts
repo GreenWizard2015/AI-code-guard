@@ -1,6 +1,7 @@
 import ts from "typescript";
 import type { CallableConsumer } from "src/protocols";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
 
 import type { JestSuite } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types";
 
@@ -12,6 +13,7 @@ export class JestSuiteCollector {
 	private readonly describe_aliases = new TypeScriptExpressionAliases("describe");
 	private readonly test_aliases = new TypeScriptExpressionAliases("test");
 	private readonly it_aliases = new TypeScriptExpressionAliases("it");
+	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
 
 	/** Responsibilities: _unwrapping Jest invocation expression_. **/
 	private unwrapped_expression(expression: ts.Expression): ts.Expression {
@@ -43,23 +45,38 @@ export class JestSuiteCollector {
 		return expression.text;
 	}
 
-	/** Responsibilities: _Jest property names_. **/
-	private property_call_name(expression: ts.PropertyAccessExpression, node: ts.Node): string {
-		if (!this.modifier_names.has(expression.name.text)) {
+	/** Responsibilities: _Jest computed modifier names_. **/
+	private element_call_name(expression: ts.ElementAccessExpression, node: ts.Node): string {
+		const argument = expression.argumentExpression;
+		if (argument === undefined) {
 			return "";
 		}
-		const owner = this.unwrapped_expression(expression.expression);
-		return this.call_name(owner, node);
+		const modifier = this.static_expression_values.value(argument, node);
+		return this.modifier_call_name(expression.expression, modifier, node);
+	}
+
+	/** Responsibilities: _Jest modifier invocation_. **/
+	private modifier_call_name(owner: ts.Expression, modifier: string, node: ts.Node): string {
+		if (!this.modifier_names.has(modifier)) {
+			return "";
+		}
+		return this.call_name(this.unwrapped_expression(owner), node);
 	}
 
 	/** Responsibilities: _resolution Jest invocation expression_. **/
 	private call_name(expression: ts.Expression, node: ts.Node): string {
 		const current = this.unwrapped_expression(expression);
+		if (ts.isCallExpression(current)) {
+			return this.call_name(current.expression, node);
+		}
 		if (ts.isIdentifier(current)) {
 			return this.identifier_call_name(current, node);
 		}
 		if (ts.isPropertyAccessExpression(current)) {
-			return this.property_call_name(current, node);
+			return this.modifier_call_name(current.expression, current.name.text, node);
+		}
+		if (ts.isElementAccessExpression(current)) {
+			return this.element_call_name(current, node);
 		}
 		return "";
 	}
@@ -79,8 +96,10 @@ export class JestSuiteCollector {
 			return false;
 		}
 		const call_name = this.call_name(node.expression, node);
-		if (call_name.length > 0 && this.test_names.has(call_name)) {
-			return true;
+		if (call_name.length > 0) {
+			if (this.test_names.has(call_name)) {
+				return true;
+			}
 		}
 		if (!ts.isCallExpression(node.expression)) {
 			return false;
@@ -112,8 +131,10 @@ export class JestSuiteCollector {
 		let body: ts.Block[] = [];
 		let tests: ts.CallExpression[] = [];
 		this.with_callback(node, (callback) => {
-			if (callback.body !== undefined && ts.isBlock(callback.body)) {
-				body = [callback.body];
+			if (callback.body !== undefined) {
+				if (ts.isBlock(callback.body)) {
+					body = [callback.body];
+				}
 			}
 			if (callback.body !== undefined) {
 				tests = this.direct_tests(callback.body);

@@ -28,12 +28,15 @@ export class LintStageTimer {
 		if (!stage_name.startsWith(`${parent_name}.`)) {
 			return false;
 		}
-		return !all_durations.some(
-			(intermediate) =>
-				intermediate.name !== stage_name &&
-				intermediate.name.startsWith(`${parent_name}.`) &&
-				stage_name.startsWith(`${intermediate.name}.`),
-		);
+		return !all_durations.some((intermediate) => {
+			if (intermediate.name === stage_name) {
+				return false;
+			}
+			if (!intermediate.name.startsWith(`${parent_name}.`)) {
+				return false;
+			}
+			return stage_name.startsWith(`${intermediate.name}.`);
+		});
 	}
 
 	/** Responsibilities: _collection direct child durations_. **/

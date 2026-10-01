@@ -16,7 +16,10 @@ export class TypeScriptCallbackAliases {
 		}
 		const initializers: ts.Expression[] = [];
 		for (const [index, element] of pattern.elements.entries()) {
-			if (index >= initializer.elements.length || !ts.isBindingElement(element)) {
+			if (index >= initializer.elements.length) {
+				continue;
+			}
+			if (!ts.isBindingElement(element)) {
 				continue;
 			}
 			initializers.push(...this.binding_initializers(element.name, initializer.elements[index], name));
@@ -30,11 +33,15 @@ export class TypeScriptCallbackAliases {
 			return [];
 		}
 		for (const property of initializer.properties) {
-			if (ts.isPropertyAssignment(property) && property.name.getText(this.source_file) === name) {
-				return [property.initializer];
+			if (ts.isPropertyAssignment(property)) {
+				if (property.name.getText(this.source_file) === name) {
+					return [property.initializer];
+				}
 			}
-			if (ts.isShorthandPropertyAssignment(property) && property.name.text === name) {
-				return [property.name];
+			if (ts.isShorthandPropertyAssignment(property)) {
+				if (property.name.text === name) {
+					return [property.name];
+				}
 			}
 		}
 		return [];
@@ -111,8 +118,10 @@ export class TypeScriptCallbackAliases {
 	public initializers(name: string): ts.Expression[] {
 		const initializers: ts.Expression[] = [];
 		const visit = (node: ts.Node): void => {
-			if (ts.isVariableDeclaration(node) && node.initializer !== undefined) {
-				initializers.push(...this.binding_initializers(node.name, node.initializer, name));
+			if (ts.isVariableDeclaration(node)) {
+				if (node.initializer !== undefined) {
+					initializers.push(...this.binding_initializers(node.name, node.initializer, name));
+				}
 			}
 			node.forEachChild(visit);
 		};

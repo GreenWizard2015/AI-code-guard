@@ -49,7 +49,10 @@ export class TypeScriptFactoryObjectSources {
 
 	/** Responsibilities: _object source declaration_. **/
 	private append_declaration(declaration: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return false;
+		}
+		if (declaration.initializer === undefined) {
 			return false;
 		}
 		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);

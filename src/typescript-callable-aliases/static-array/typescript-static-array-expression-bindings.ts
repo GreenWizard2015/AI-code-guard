@@ -92,7 +92,10 @@ export class TypeScriptStaticArrayExpressionBindings {
 
 	/** Responsibilities: _static array binding collection_. **/
 	public append_binding(values: Map<string, string>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isArrayBindingPattern(node.name) || node.initializer === undefined) {
+		if (!ts.isArrayBindingPattern(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		const source = this.array_values.values(node.initializer);

@@ -13,8 +13,11 @@ export class JestTypeAssertionMatcher {
 
 	/** Responsibilities: _Jest any matchers identification_. **/
 	private is_any_matcher(node: ts.CallExpression): boolean {
+		if (node.arguments.length === 0) {
+			return false;
+		}
 		const expected = node.arguments[0];
-		if (expected === undefined || !ts.isCallExpression(expected)) {
+		if (!ts.isCallExpression(expected)) {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(expected.expression)) {

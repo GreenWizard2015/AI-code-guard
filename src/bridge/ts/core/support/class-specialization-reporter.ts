@@ -71,8 +71,10 @@ export class MethodSpecializationReporter {
 
 	/** Responsibilities: _creation configuration public-method diagnostic_. **/
 	private public_method_rule(count: number, implements_interface: boolean): string {
-		if (implements_interface && count < 2) {
-			return "";
+		if (implements_interface) {
+			if (count < 2) {
+				return "";
+			}
 		}
 		if (count < 2) {
 			return "class-method-min-count";
@@ -98,15 +100,31 @@ export class MethodSpecializationReporter {
 		return this.node.name.endsWith("Mixin") || base_names.some((name) => name.endsWith("Mixin"));
 	}
 
+	/** Responsibilities: _base class name collection_. **/
+	private base_type_names(): readonly string[] {
+		let names: readonly string[] = [];
+		if (this.node.base_class_names !== undefined) {
+			names = this.node.base_class_names;
+		}
+		if (this.node.base_class_name !== undefined) {
+			if (this.node.base_class_name.length > 0) {
+				names = [this.node.base_class_name];
+			}
+		}
+		return names;
+	}
+
 	/** Responsibilities: _classification inherited class_. **/
 	private has_base_type(): boolean {
-		if (this.node.interfaces !== undefined && this.node.interfaces.length > 0) {
+		if (this.node.interfaces !== undefined) {
+			if (this.node.interfaces.length > 0) {
+				return true;
+			}
+		}
+		if (this.base_type_names().length > 0) {
 			return true;
 		}
-		if (this.node.base_class_name !== undefined && this.node.base_class_name.length > 0) {
-			return true;
-		}
-		return this.node.base_class_names !== undefined && this.node.base_class_names.length > 0;
+		return false;
 	}
 
 	/** Responsibilities: _initialization violation sink file_. **/

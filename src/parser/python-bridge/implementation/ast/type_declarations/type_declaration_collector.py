@@ -31,8 +31,9 @@ class PythonTypeDeclarationCollector:
     def _factory_in_value(self, value: ast.AST) -> bool:
         """Responsibilities: _classification nested TypeAliasType factory_."""
         for node in ast.walk(value):
-            if type(node) is ast.Call and self._type_alias_factory(node):
-                return True
+            if type(node) is ast.Call:
+                if self._type_alias_factory(node):
+                    return True
         return False
 
     def _annotated_declaration(self, node: ast.AnnAssign) -> list[JsonObject]:

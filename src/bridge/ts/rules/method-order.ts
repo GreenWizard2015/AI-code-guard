@@ -12,12 +12,14 @@ export class MethodOrder {
 	private public_order_violations(file: string, methods: AstCallableNode[], last_non_public: number): Violation[] {
 		const violations: Violation[] = [];
 		methods.forEach((method, index) => {
-			if (index < last_non_public && this.is_public(method)) {
-				violations.push(
-					this.order_violation(file, method.start, "method-order-public", {
-						name: method.name,
-					}),
-				);
+			if (index < last_non_public) {
+				if (this.is_public(method)) {
+					violations.push(
+						this.order_violation(file, method.start, "method-order-public", {
+							name: method.name,
+						}),
+					);
+				}
 			}
 		});
 		return violations;

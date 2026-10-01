@@ -181,7 +181,10 @@ export class TypeScriptTypedCallableBindings {
 		interfaces: Map<string, Set<string>>,
 		node: ts.VariableDeclaration,
 	): void {
-		if (!ts.isIdentifier(node.name) || node.type === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return;
+		}
+		if (node.type === undefined) {
 			return;
 		}
 		if (ts.isTypeReferenceNode(node.type)) {

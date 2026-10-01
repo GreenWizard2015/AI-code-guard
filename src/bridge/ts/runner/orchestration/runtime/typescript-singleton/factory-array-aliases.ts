@@ -81,7 +81,10 @@ export class TypeScriptFactoryArrayAliases {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
+		if (!ts.isIdentifier(element.name)) {
+			return;
+		}
+		if (element.name.text !== name) {
 			return;
 		}
 		const expression = this.expression_names.unwrap_transparent_expression(value);

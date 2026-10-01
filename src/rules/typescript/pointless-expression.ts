@@ -18,7 +18,10 @@ export class PointlessExpression {
 
 	/** Responsibilities: _argument names extraction _. **/
 	private constructor_argument_names(expression: ts.NewExpression): string[] {
-		if (!expression.arguments || expression.arguments.length !== this.single_argument) {
+		if (!expression.arguments) {
+			return [];
+		}
+		if (expression.arguments.length !== this.single_argument) {
 			return [];
 		}
 		const argument = expression.arguments[0];
@@ -30,7 +33,10 @@ export class PointlessExpression {
 
 	/** Responsibilities: _object shorthand names extraction_. **/
 	private object_shorthand_names(expression: ts.Expression): string[] {
-		if (!ts.isObjectLiteralExpression(expression) || expression.properties.length !== 1) {
+		if (!ts.isObjectLiteralExpression(expression)) {
+			return [];
+		}
+		if (expression.properties.length !== 1) {
 			return [];
 		}
 		const property = expression.properties[0];

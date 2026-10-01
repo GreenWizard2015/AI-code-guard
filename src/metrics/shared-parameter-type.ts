@@ -58,8 +58,10 @@ export class SharedParameterType {
 
 	/** Responsibilities: _excluded tooling types identification_. **/
 	private tooling_type(type: string): boolean {
-		if (this.language === "typescript" && type.startsWith("Json")) {
-			return true;
+		if (this.language === "typescript") {
+			if (type.startsWith("Json")) {
+				return true;
+			}
 		}
 		if (type.startsWith("ast.")) {
 			return true;
@@ -122,10 +124,18 @@ export class SharedParameterType {
 				key: JSON.stringify([kind, identity]),
 				identity,
 				kind,
-				project_type: kind === "reference" && this.project_reference(type),
+				project_type: this.is_project_reference(kind, type),
 				uses: this.use_count(argument, uses),
 			},
 		];
+	}
+
+	/** Responsibilities: _project parameter type classification_. **/
+	private is_project_reference(kind: SharedParameterKind, type: string): boolean {
+		if (kind !== "reference") {
+			return false;
+		}
+		return this.project_reference(type);
 	}
 
 	/** Responsibilities: _type context initialization_. **/

@@ -52,7 +52,9 @@ export class PythonCodingLineRules {
 		if (character.length === 0) {
 			return true;
 		}
-		if (character === "_" || character === "$") {
+		const is_underscore = character === "_";
+		const is_dollar = character === "$";
+		if (is_underscore || is_dollar) {
 			return false;
 		}
 		return !this.is_or_digit(character);
@@ -60,19 +62,26 @@ export class PythonCodingLineRules {
 
 	/** Responsibilities: _classification uppercase numeric identifier_. **/
 	private is_or_digit(character: string): boolean {
-		if (character >= "A" && character <= "Z") {
+		const uppercase_start = character >= "A";
+		const uppercase_end = character <= "Z";
+		if (uppercase_start && uppercase_end) {
 			return true;
 		}
-		if (character >= "a" && character <= "z") {
+		const lowercase_start = character >= "a";
+		const lowercase_end = character <= "z";
+		if (lowercase_start && lowercase_end) {
 			return true;
 		}
-		return character >= "0" && character <= "9";
+		const digit_start = character >= "0";
+		const digit_end = character <= "9";
+		return digit_start && digit_end;
 	}
 
 	/** Responsibilities: _collection rule kinds represented_. **/
 	public base_line_kinds(trimmed: string): string[] {
 		const kinds: string[] = [];
-		if (trimmed === "except:" || trimmed.startsWith("except Exception:")) {
+		const is_bare_except = trimmed === "except:";
+		if (is_bare_except || trimmed.startsWith("except Exception:")) {
 			kinds.push("broad-except");
 		}
 		if (this.is_decorator(trimmed, "staticmethod")) {

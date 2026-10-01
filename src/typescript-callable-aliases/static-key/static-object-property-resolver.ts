@@ -33,10 +33,18 @@ export class TypeScriptStaticObjectProperties {
 		if (!ts.isArrayLiteralExpression(current)) {
 			return false;
 		}
+		return this.append_array_elements(binding, current);
+	}
+
+	/** Responsibilities: _array binding elements_. **/
+	private append_array_elements(binding: ts.ArrayBindingPattern, initializer: ts.ArrayLiteralExpression): boolean {
 		let changed = false;
 		for (const [index, element] of binding.elements.entries()) {
-			const value = current.elements[index];
-			if (value === undefined || !ts.isBindingElement(element)) {
+			const value = initializer.elements[index];
+			if (value === undefined) {
+				continue;
+			}
+			if (!ts.isBindingElement(element)) {
 				continue;
 			}
 			if (this.append_array_element(element, value)) {

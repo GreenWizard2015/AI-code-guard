@@ -1,7 +1,7 @@
-import ts from "typescript";
-import type { Violation } from "src/protocols";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
 import { TypeScriptAstFile } from "src/model/typescript-ast";
+import type { Violation } from "src/protocols";
+import ts from "typescript";
 
 /** Responsibilities: _top-level nested Python lookup_. **/
 export class ClassStructure {
@@ -11,20 +11,31 @@ export class ClassStructure {
 	private indentation(line: string): number {
 		let index = 0;
 		while (index < line.length) {
-			if (line[index] !== " " && line[index] !== "\t") {
-				break;
+			if (line[index] === " ") {
+				index += 1;
+				continue;
 			}
-			index += 1;
+			if (line[index] === "\t") {
+				index += 1;
+				continue;
+			}
+			break;
 		}
 		return index;
 	}
 
 	/** Responsibilities: _class header terminator_. **/
 	private header_end(character: string): boolean {
-		if (character === ":" || character === "(") {
+		if (character === ":") {
 			return true;
 		}
-		return character === " " || character === "\t";
+		if (character === "(") {
+			return true;
+		}
+		if (character === " ") {
+			return true;
+		}
+		return character === "\t";
 	}
 
 	/** Responsibilities: _class header detection_. **/
@@ -117,7 +128,12 @@ export class ClassStructure {
 		if (python) {
 			return lines
 				.map((line, index) => ({ line, index }))
-				.filter((item) => this.indentation(item.line) === this.top_level_indentation && this.class_header(item.line))
+				.filter((item) => {
+					if (this.indentation(item.line) !== this.top_level_indentation) {
+						return false;
+					}
+					return this.class_header(item.line);
+				})
 				.map((item) => item.index);
 		}
 		const ast = new TypeScriptAstFile(file, lines.join("\n"));

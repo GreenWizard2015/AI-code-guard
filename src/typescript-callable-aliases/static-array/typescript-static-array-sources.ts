@@ -49,7 +49,10 @@ export class TypeScriptStaticArraySources {
 	/** Responsibilities: _numeric array alias collection_. **/
 	private append_numeric_source(name: string, current: ts.Expression): boolean {
 		const value = this.index_values.numeric_index(current);
-		if (value < 0 || this.numeric_sources.has(name)) {
+		if (value < 0) {
+			return false;
+		}
+		if (this.numeric_sources.has(name)) {
 			return false;
 		}
 		this.numeric_sources.set(name, value);
@@ -69,6 +72,30 @@ export class TypeScriptStaticArraySources {
 		return true;
 	}
 
+	/** Responsibilities: _numeric array assignment_. **/
+	private append_numeric_assignment(name: string, value: number): boolean {
+		if (value < 0) {
+			return false;
+		}
+		if (this.numeric_sources.get(name) === value) {
+			return false;
+		}
+		this.numeric_sources.set(name, value);
+		return true;
+	}
+
+	/** Responsibilities: _array value assignment_. **/
+	private append_array_assignment(name: string, values: readonly ts.Expression[]): boolean {
+		const existing = this.array_sources.get(name);
+		if (existing !== undefined) {
+			if (this.same_values(existing, values)) {
+				return false;
+			}
+		}
+		this.array_sources.set(name, values);
+		return true;
+	}
+
 	/** Responsibilities: _static array source dependencies_. **/
 	public constructor(array_sources: Map<string, readonly ts.Expression[]>, numeric_sources: Map<string, number>) {
 		this.array_sources = array_sources;
@@ -79,7 +106,10 @@ export class TypeScriptStaticArraySources {
 
 	/** Responsibilities: _array source declaration collection_. **/
 	public append_source(node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		const current = this.expression_aliases.unwrapped(node.initializer);
@@ -99,20 +129,11 @@ export class TypeScriptStaticArraySources {
 	public append_assignment(name: string, expression: ts.Expression): boolean {
 		const current = this.expression_aliases.unwrapped(expression);
 		const value = this.index_values.numeric_index(current);
-		if (value >= 0) {
-			if (this.numeric_sources.get(name) === value) {
-				return false;
-			}
-			this.numeric_sources.set(name, value);
+		if (this.append_numeric_assignment(name, value)) {
 			return true;
 		}
 		const values = this.array_values.values(current);
-		const existing = this.array_sources.get(name);
-		if (existing !== undefined && this.same_values(existing, values)) {
-			return false;
-		}
-		this.array_sources.set(name, values);
-		return true;
+		return this.append_array_assignment(name, values);
 	}
 
 	/** Responsibilities: _array rest source collection_. **/

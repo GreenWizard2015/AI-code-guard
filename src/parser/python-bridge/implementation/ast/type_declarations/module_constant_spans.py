@@ -4,6 +4,7 @@ from typing import Any
 
 import ast
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
+from implementation.types import JsonObject
 
 
 class PythonModuleConstantSpans:
@@ -141,7 +142,7 @@ class PythonModuleConstantSpans:
         self.tree: Any = tree
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()
 
-    def collect_spans(self) -> list[dict[str, int]]:
+    def collect_spans(self) -> list[JsonObject]:
         """Responsibilities: _collection source spans module_."""
         spans: list[dict[str, int]] = []
         for node in self._module_nodes(self.tree.body):
@@ -149,7 +150,7 @@ class PythonModuleConstantSpans:
                 spans.append(self._span(node))
         return spans
 
-    def collect_types(self) -> list[dict[str, int]]:
+    def collect_types(self) -> list[JsonObject]:
         """Responsibilities: _collection source spans module_."""
         spans: list[dict[str, int]] = []
         for node in self.tree.body:
@@ -157,7 +158,7 @@ class PythonModuleConstantSpans:
                 spans.append(self._span(node))
         return spans
 
-    def collect_protocols(self) -> list[dict[str, int]]:
+    def collect_protocols(self) -> list[JsonObject]:
         """Responsibilities: _collection source spans module_."""
         spans: list[dict[str, int]] = []
         for node in self.tree.body:

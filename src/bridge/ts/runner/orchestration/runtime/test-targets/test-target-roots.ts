@@ -39,8 +39,11 @@ export class TestTargetRoots {
 		if (specifier.startsWith(".")) {
 			return this.python_relative_path(file, specifier);
 		}
-		const root = specifier.split(".")[0];
-		if (root === undefined || PYTHON_EXTERNAL_MODULES.has(root)) {
+		const root = specifier.split(".", 1).join("");
+		if (root.length === 0) {
+			return "";
+		}
+		if (PYTHON_EXTERNAL_MODULES.has(root)) {
 			return "";
 		}
 		if (this.test_file_organization.source_directory(["tools", root])) {

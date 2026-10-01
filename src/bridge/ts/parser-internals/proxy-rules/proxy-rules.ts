@@ -52,6 +52,22 @@ export class ProxyRules {
 		return this.this_aliases.member(expression, call);
 	}
 
+	/** Responsibilities: _proxy lambda target_. **/
+	private proxy_lambda_target(node: ts.Node): boolean {
+		const parent = node.parent;
+		if (!ts.isPropertyAssignment(parent)) {
+			return false;
+		}
+		if (parent.initializer !== node) {
+			return false;
+		}
+		const calls = this.proxy_call.proxy_call(node);
+		if (calls.length === 0) {
+			return false;
+		}
+		return this.this_call(calls[0]);
+	}
+
 	/** Responsibilities: _callable declaration forwarding_. **/
 	public proxy_callable(node: ts.Node): boolean {
 		const calls = this.proxy_call.proxy_call(node);
@@ -72,16 +88,7 @@ export class ProxyRules {
 		if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) {
 			return false;
 		}
-		const parent = node.parent;
-		if (!ts.isPropertyAssignment(parent) || parent.initializer !== node) {
-			return false;
-		}
-		const calls = this.proxy_call.proxy_call(node);
-		if (calls.length === 0) {
-			return false;
-		}
-		const call = calls[0];
-		if (!this.this_call(call)) {
+		if (!this.proxy_lambda_target(node)) {
 			return false;
 		}
 		return this.proxy_callable(node);

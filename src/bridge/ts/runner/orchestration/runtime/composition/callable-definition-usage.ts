@@ -1,17 +1,17 @@
 import { CallableOwnership } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership";
-import { DiagnosticRule } from "src/model/diagnostic-rule";
-import type { Violation } from "src/protocols";
-import { MIN_USAGE_FILES } from "src/constants";
 import { CallableReferenceMatcher } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-reference-matcher";
+import type { UsageData } from "src/bridge/ts/runner/orchestration/runtime/composition/types";
+import { MIN_USAGE_FILES } from "src/constants";
+import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
 import type {
+	CallableClassIndex,
 	CallableDefinition,
 	CallableDefinitionUsageOptions,
-	CallableClassIndex,
 	CallableProjectIndex,
 	ParsedFile,
 } from "src/metrics/types";
-import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
-import type { UsageData } from "src/bridge/ts/runner/orchestration/runtime/composition/types";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
 import type { CallableOwnershipResolver } from "src/types";
 
 /** Responsibilities: _detection local external usage_. **/
@@ -53,8 +53,13 @@ export class CallableDefinitionUsage {
 	/** Responsibilities: _creation usage violation local_. **/
 	private usage_violation(used_locally: boolean, external_files: Set<string>): Violation[] {
 		const count = external_files.size;
-		if (count >= MIN_USAGE_FILES || (count === 0 && used_locally)) {
+		if (count >= MIN_USAGE_FILES) {
 			return [];
+		}
+		if (count === 0) {
+			if (used_locally) {
+				return [];
+			}
 		}
 		const rule = new DiagnosticRule("unused-callable");
 		return [

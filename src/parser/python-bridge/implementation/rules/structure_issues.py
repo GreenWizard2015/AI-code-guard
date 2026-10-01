@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 from typing import Any, Optional
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
+from implementation.types import JsonObject
 
 
 class StructureIssues:
@@ -29,19 +30,23 @@ class StructureIssues:
 
     def _comparison_name(self, node: ast.AST) -> str:
         """Responsibilities: _normalization comparison expression branch_."""
-        is_comparison = type(node) is ast.Compare
-        if not is_comparison or len(node.ops) != 1:
-            return ""
-        is_name_comparison = type(node.ops[0]) is ast.Eq
-        if not is_name_comparison:
-            return ""
-        if len(node.comparators) != 1:
+        if not self._simple_comparison(node):
             return ""
         operands: list[ast.AST] = [node.left, node.comparators[0]]
         names = [operand.id for operand in operands if type(operand) is ast.Name]
         if len(names) != 1:
             return ""
         return names[0]
+
+    def _simple_comparison(self, node: ast.AST) -> bool:
+        """Responsibilities: _classification simple equality comparison_."""
+        if type(node) is not ast.Compare:
+            return False
+        if len(node.ops) != 1:
+            return False
+        if type(node.ops[0]) is not ast.Eq:
+            return False
+        return len(node.comparators) == 1
 
     def _branch_chain(self, node: ast.If) -> list[str]:
         """Responsibilities: _condition normalization_."""
@@ -63,7 +68,7 @@ class StructureIssues:
         self.node_index: Any = node_index
         self.max_attribute_depth: Any = 4
 
-    def repeated_branches(self, tree: ast.Module) -> list[dict[str, int]]:
+    def repeated_branches(self, tree: ast.Module) -> list[JsonObject]:
         """Responsibilities: _reporting repeated branch conditions_."""
         result: list[dict[str, int]] = []
         for node in self.node_index.nodes(tree):
@@ -76,7 +81,7 @@ class StructureIssues:
                     result.append({"line": node.lineno - 1})
         return result
 
-    def deep_attribute_accesses(self, tree: ast.Module) -> list[dict[str, int]]:
+    def deep_attribute_accesses(self, tree: ast.Module) -> list[JsonObject]:
         """Responsibilities: _reporting attribute chains exceeding_."""
         nested: Any = self._nested_attributes(tree)
         accesses: list[dict[str, int]] = []

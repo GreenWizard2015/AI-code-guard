@@ -115,8 +115,10 @@ export class TypeScriptAliasPair {
 	private named_interfaces(source: ts.SourceFile, name: string): readonly ts.InterfaceDeclaration[] {
 		const matches: ts.InterfaceDeclaration[] = [];
 		const visit = (node: ts.Node): void => {
-			if (ts.isInterfaceDeclaration(node) && node.name.text === name) {
-				matches.push(node);
+			if (ts.isInterfaceDeclaration(node)) {
+				if (node.name.text === name) {
+					matches.push(node);
+				}
 			}
 			ts.forEachChild(node, visit);
 		};

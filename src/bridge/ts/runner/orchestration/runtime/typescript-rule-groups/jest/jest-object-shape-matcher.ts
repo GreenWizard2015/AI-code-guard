@@ -31,11 +31,17 @@ export class JestObjectShapeMatcher {
 
 	/** Responsibilities: _classification expression object shape_. **/
 	private is_shape_object(node: ts.Expression, context: ts.Node): boolean {
-		if (!ts.isObjectLiteralExpression(node) || node.properties.length === 0) {
+		if (!ts.isObjectLiteralExpression(node)) {
+			return false;
+		}
+		if (node.properties.length === 0) {
 			return false;
 		}
 		for (const property of node.properties) {
-			if (!ts.isPropertyAssignment(property) || !this.is_any_value(property.initializer, context)) {
+			if (!ts.isPropertyAssignment(property)) {
+				return false;
+			}
+			if (!this.is_any_value(property.initializer, context)) {
 				return false;
 			}
 		}
@@ -44,8 +50,11 @@ export class JestObjectShapeMatcher {
 
 	/** Responsibilities: _objectContaining invocation matching_. **/
 	private object_containing_shape(node: ts.CallExpression): JestExpressionMatch {
+		if (node.arguments.length === 0) {
+			return new JestExpressionMatch(node.expression, false);
+		}
 		const expected = node.arguments[0];
-		if (expected === undefined || !ts.isCallExpression(expected)) {
+		if (!ts.isCallExpression(expected)) {
 			return new JestExpressionMatch(node.expression, false);
 		}
 		if (!this.is_object_containing(expected, node)) {

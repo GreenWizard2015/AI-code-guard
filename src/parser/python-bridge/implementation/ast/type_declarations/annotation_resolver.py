@@ -70,10 +70,11 @@ class AnnotationNames:
         if type(annotation) is ast.Name:
             return aliases.get(annotation.id, annotation.id)
         is_string_constant = type(annotation) is ast.Constant
-        if is_string_constant and type(annotation.value) is str:
-            return self._string_annotation_name(
-                annotation.value, aliases, transparent_generics
-            )
+        if is_string_constant:
+            if type(annotation.value) is str:
+                return self._string_annotation_name(
+                    annotation.value, aliases, transparent_generics
+                )
         if type(annotation) is ast.BinOp:
             return self._union_annotation_name(
                 annotation, aliases, transparent_generics

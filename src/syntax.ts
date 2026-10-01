@@ -28,7 +28,10 @@ export class Syntax {
 	/** Responsibilities: _source-file syntax issue access_. **/
 	public syntax_issues(source_file: ts.SourceFile): readonly ts.DiagnosticWithLocation[] {
 		const descriptor = Object.getOwnPropertyDescriptor(source_file, "parseDiagnostics");
-		if (descriptor === undefined || !Array.isArray(descriptor.value)) {
+		if (descriptor === undefined) {
+			return [];
+		}
+		if (!Array.isArray(descriptor.value)) {
 			return [];
 		}
 		return descriptor.value;

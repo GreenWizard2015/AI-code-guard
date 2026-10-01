@@ -24,7 +24,10 @@ export class TypeScriptCallableFeatureDetection {
 		if (ts.isPropertyAccessExpression(expression)) {
 			return expression.name.text;
 		}
-		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
+		if (!ts.isElementAccessExpression(expression)) {
+			return "";
+		}
+		if (expression.argumentExpression === undefined) {
 			return "";
 		}
 		return this.static_expression_values.value(expression.argumentExpression, node);

@@ -68,6 +68,22 @@ describe("Jest test rules", () => {
 		expect(violations.filter((violation) => violation.rule_id === "typescript-jest-max-count")).toHaveLength(1);
 	});
 
+	test("applies Jest rules to computed modifier calls", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.collect_fixture_violations({
+			"tests/computed-modifiers.test.ts": [
+				'describe["skip"]("suite", () => {',
+				"  test('case', () => {",
+				"    expect(true).toBe(true);",
+				"    do_cleanup();",
+				"  });",
+				"});",
+			].join("\n"),
+		});
+
+		expect(violations.filter((violation) => violation.rule_id === "typescript-jest-test-ending")).toHaveLength(1);
+	});
+
 	test("rejects an expect assertion inside a Jest test condition", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.collect_fixture_violations({
@@ -135,6 +151,18 @@ describe("Jest test rules", () => {
 				"describe('suite', () => {",
 				"  const check = test;",
 				"  check('one', () => { const value_only = value; });",
+				"});",
+			].join("\n"),
+		});
+		expect(violations.filter((violation) => violation.rule_id === "typescript-jest-test-expect")).toHaveLength(1);
+	});
+
+	test("applies Jest rules through describe.each call chains", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.collect_fixture_violations({
+			"tests/data-driven.test.ts": [
+				"describe.each([[1]])('suite', () => {",
+				"  test('missing assertion', () => { const value = 1; void value; });",
 				"});",
 			].join("\n"),
 		});

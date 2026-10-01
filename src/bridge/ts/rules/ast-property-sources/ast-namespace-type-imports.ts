@@ -19,7 +19,10 @@ export class AstNamespaceTypeImports {
 				continue;
 			}
 			const bindings = statement.importClause?.namedBindings;
-			if (bindings === undefined || !ts.isNamespaceImport(bindings)) {
+			if (bindings === undefined) {
+				continue;
+			}
+			if (!ts.isNamespaceImport(bindings)) {
 				continue;
 			}
 			if (bindings.name.text === namespace) {

@@ -11,6 +11,7 @@ import { DuplicateTypeShapes } from "src/duplicate-type-shapes";
 
 import type { Rule } from "src/protocols";
 import type { RuleAppender, RuleContextData } from "src/types";
+import type { SourceFileResolver } from "src/protocols";
 
 /** Responsibilities: _TypeScript rule state retention_, _AST nodes rules dispatch_. **/
 export class TypeScriptRuleContext {
@@ -20,6 +21,7 @@ export class TypeScriptRuleContext {
 	public readonly source_file: ts.SourceFile;
 	public readonly test_file: boolean;
 	public readonly class_fields = new TypeScriptClassFieldRules();
+	public readonly source_resolver: SourceFileResolver;
 	private readonly script_bare_alias = new TypeScriptBareAlias();
 	private readonly script_node_rules = new TypeScriptNodeRules();
 	private readonly unnecessary_undefined_check: UnnecessaryUndefinedCheck;
@@ -108,11 +110,18 @@ export class TypeScriptRuleContext {
 	}
 
 	/** Responsibilities: _rule state initialization_, _wire rule appenders_. **/
-	constructor(violations: Violation[], file: string, source_file: ts.SourceFile, stage_timer: LintStageTimerProtocol) {
+	constructor(
+		violations: Violation[],
+		file: string,
+		source_file: ts.SourceFile,
+		stage_timer: LintStageTimerProtocol,
+		source_resolver: SourceFileResolver,
+	) {
 		this.violations = violations;
 		this.file = file;
 		this.source_file = source_file;
 		this.stage_timer = stage_timer;
+		this.source_resolver = source_resolver;
 		this.test_file = this.test_path_syntax.test_file(file);
 		this.append_rule = (node, rule_id) => this.append_known_rule(node, rule_id);
 		this.unnecessary_undefined_check = new UnnecessaryUndefinedCheck(source_file, this.append_rule);

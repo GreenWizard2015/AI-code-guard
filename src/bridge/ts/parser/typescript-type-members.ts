@@ -22,7 +22,10 @@ export class TypeScriptTypeMembers {
 
 	/** Responsibilities: _resolution type member name_. **/
 	private member_name(member: ts.TypeElement): string {
-		if (member.name === undefined || !ts.isIdentifier(member.name)) {
+		if (member.name === undefined) {
+			return "";
+		}
+		if (!ts.isIdentifier(member.name)) {
 			return "";
 		}
 		return member.name.text;

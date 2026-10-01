@@ -49,6 +49,7 @@ export class FileRemainingViolationCollector {
 			{ file: options.file, text: options.text },
 			options.source.normalized_ast,
 			this.source_file(options.source, options.file, options.text),
+			options.source.source_resolver,
 		);
 		const coding_rule_linter = new CodingRuleLinter(source_ast, options.stage_timer);
 		options.violations.push(...coding_rule_linter.lint());

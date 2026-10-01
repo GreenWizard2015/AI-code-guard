@@ -42,7 +42,10 @@ export class TypeScriptFactoryArrayObjectSources {
 
 	/** Responsibilities: _direct array source_. **/
 	private direct_source(element: ts.BindingElement, value: ts.Expression, name: string): string {
-		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
+		if (!ts.isIdentifier(element.name)) {
+			return "";
+		}
+		if (element.name.text !== name) {
 			return "";
 		}
 		const source = this.expression_names.unwrap_transparent_expression(value);

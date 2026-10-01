@@ -1,13 +1,13 @@
-import { AstDiskCache } from "src/bridge/ts/core/support/ast-disk-cache";
 import { AstCacheHit } from "src/bridge/ts/core/support/ast-cache-hit";
 import { AstCacheMiss } from "src/bridge/ts/core/support/ast-cache-miss";
+import { AstDiskCache } from "src/bridge/ts/core/support/ast-disk-cache";
 import type { AstCacheEntry } from "src/bridge/ts/core/support/protocols";
 import type { PythonAstBatchParser } from "src/protocols";
 import type {
 	NormalizedAstFile,
-	PythonBatchAstOptions,
 	PythonAstCacheReadOptions,
 	PythonAstCacheWriteOptions,
+	PythonBatchAstOptions,
 } from "src/types";
 
 /** Responsibilities: _Python AST caching_. **/
@@ -29,7 +29,8 @@ export class PythonAstBatchCache {
 
 	/** Responsibilities: _persistent AST cache retrieval_. **/
 	private read_disk_results(options: PythonAstCacheReadOptions): void {
-		if (!this.disk_cache_enabled || options.repo_root.length === 0) {
+		const empty_repo_root = options.repo_root.length === 0;
+		if (!this.disk_cache_enabled || empty_repo_root) {
 			return;
 		}
 		const disk_cache = new AstDiskCache(options.repo_root);
@@ -77,7 +78,9 @@ export class PythonAstBatchCache {
 	/** Responsibilities: _uncached source validation_. **/
 	private missing_batch_texts(texts: readonly string[], indexes: readonly number[]): string[] {
 		return indexes.map((index) => {
-			if (index < 0 || index >= texts.length) {
+			const negative_index = index < 0;
+			const past_end = index >= texts.length;
+			if (negative_index || past_end) {
 				throw new Error("Python AST batch source is missing.");
 			}
 			return texts[index];
@@ -92,9 +95,9 @@ export class PythonAstBatchCache {
 		results: Map<number, NormalizedAstFile>,
 	): void {
 		for (const [index, text_index] of indexes.entries()) {
-			const text_in_range = text_index >= 0 && text_index < texts.length;
-			const ast_in_range = index >= 0 && index < parsed.length;
-			if (!text_in_range || !ast_in_range) {
+			const text_valid = text_index >= 0 && text_index < texts.length;
+			const ast_valid = index >= 0 && index < parsed.length;
+			if (!text_valid || !ast_valid) {
 				throw new Error("Python AST bridge returned an incomplete batch.");
 			}
 			const text = texts[text_index];
@@ -120,7 +123,8 @@ export class PythonAstBatchCache {
 
 	/** Responsibilities: _persistent AST cache storage_. **/
 	private write_disk_results(options: PythonAstCacheWriteOptions): void {
-		if (!this.disk_cache_enabled || options.repo_root.length === 0) {
+		const empty_repo_root = options.repo_root.length === 0;
+		if (!this.disk_cache_enabled || empty_repo_root) {
 			return;
 		}
 		const disk_cache = new AstDiskCache(options.repo_root);
@@ -140,7 +144,10 @@ export class PythonAstBatchCache {
 	): void {
 		const file = options.files[text_index];
 		const ast = options.parsed[index];
-		if (file === undefined || ast === undefined || options.texts[text_index] === undefined) {
+		const missing_file = file === undefined;
+		const missing_ast = ast === undefined;
+		const missing_text = options.texts[text_index] === undefined;
+		if (missing_file || missing_ast || missing_text) {
 			return;
 		}
 		disk_cache.write(file, ast);

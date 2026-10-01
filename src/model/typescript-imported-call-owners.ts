@@ -1,6 +1,6 @@
+import { readFileSync } from "node:fs";
 import { TypeScriptCallReturnAnalysis } from "src/bridge/ts/parser/typescript-call-return-analysis";
 import { TypeScriptModuleExports } from "src/bridge/ts/parser/typescript-module-exports";
-import { readFileSync } from "node:fs";
 
 import ts from "typescript";
 
@@ -79,7 +79,10 @@ export class TypeScriptImportedCallOwners {
 		for (const statement of this.source_file.statements) {
 			const bindings = script_module_exports.named_imports(statement);
 			const file = script_module_exports.imported_file(this.source_file, statement);
-			if (bindings.length === 0 || !file) {
+			if (bindings.length === 0) {
+				continue;
+			}
+			if (!file) {
 				continue;
 			}
 			this.append_imported_bindings(bindings[0], file);

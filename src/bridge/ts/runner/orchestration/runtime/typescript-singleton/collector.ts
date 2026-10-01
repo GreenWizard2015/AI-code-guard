@@ -30,9 +30,11 @@ export class TypeScriptSingletonCollector {
 			if (ts.isFunctionLike(node) || ts.isClassLike(node)) {
 				return;
 			}
-			if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
-				if (ts.isIdentifier(node.left)) {
-					assignments.push(node);
+			if (ts.isBinaryExpression(node)) {
+				if (node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+					if (ts.isIdentifier(node.left)) {
+						assignments.push(node);
+					}
 				}
 			}
 			ts.forEachChild(node, visit);

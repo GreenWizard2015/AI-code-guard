@@ -14,8 +14,10 @@ export class JestTestSize {
 		let size = 0;
 		for (const test of suite.tests) {
 			this.suite_collector.with_callback(test, (callback) => {
-				if (callback.body !== undefined && ts.isBlock(callback.body)) {
-					size += this.body(source_file, [callback.body]);
+				if (callback.body !== undefined) {
+					if (ts.isBlock(callback.body)) {
+						size += this.body(source_file, [callback.body]);
+					}
 				}
 			});
 		}

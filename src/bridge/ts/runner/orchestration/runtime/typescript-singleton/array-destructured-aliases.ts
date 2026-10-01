@@ -24,6 +24,14 @@ export class TypeScriptArrayDestructuredAliases {
 		return true;
 	}
 
+	/** Responsibilities: _array alias target_. **/
+	private alias_target(expression: ts.Expression): string {
+		if (ts.isIdentifier(expression)) {
+			return expression.text;
+		}
+		return this.namespace_aliases.target(expression);
+	}
+
 	/** Responsibilities: _collection array alias binding_. **/
 	private append_array_alias(
 		initializer: ts.ArrayLiteralExpression,
@@ -34,16 +42,14 @@ export class TypeScriptArrayDestructuredAliases {
 			return false;
 		}
 		const source = initializer.elements[index];
-		if (source === undefined || ts.isSpreadElement(source)) {
+		if (source === undefined) {
+			return false;
+		}
+		if (ts.isSpreadElement(source)) {
 			return false;
 		}
 		const expression = this.expression_names.unwrap_transparent_expression(source);
-		let target = "";
-		if (ts.isIdentifier(expression)) {
-			target = expression.text;
-		} else {
-			target = this.namespace_aliases.target(expression);
-		}
+		const target = this.alias_target(expression);
 		return this.append_name_alias(element.name.text, target);
 	}
 
@@ -86,7 +92,10 @@ export class TypeScriptArrayDestructuredAliases {
 
 	/** Responsibilities: _collection array source registration_. **/
 	private register_source(declaration: ts.VariableDeclaration): void {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return;
+		}
+		if (declaration.initializer === undefined) {
 			return;
 		}
 		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);

@@ -99,8 +99,10 @@ export class TypeScriptCallReference {
 		if (ts.isPropertyAccessExpression(expression)) {
 			return this.method_reference(context, expression, line, reference_options);
 		}
-		if (ts.isElementAccessExpression(expression) && this.member_name(expression).length > 0) {
-			return this.method_reference(context, expression, line, reference_options);
+		if (ts.isElementAccessExpression(expression)) {
+			if (this.member_name(expression).length > 0) {
+				return this.method_reference(context, expression, line, reference_options);
+			}
 		}
 		throw new Error("Unsupported TypeScript call reference expression.");
 	}

@@ -23,23 +23,48 @@ export class TypeScriptDeclarationTable implements TypeScriptDeclarations {
 
 	/** Responsibilities: _classification statement declares requested_. **/
 	private declaration_name(statement: ts.Statement, name: string): boolean {
-		if (ts.isClassDeclaration(statement) || ts.isFunctionDeclaration(statement)) {
-			return statement.name?.text === name;
+		if (this.named_callable(statement, name)) {
+			return true;
 		}
-		if (this.declaration_kinds.has(statement.kind)) {
-			if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) {
-				return statement.name.text === name;
-			}
-			if (ts.isEnumDeclaration(statement)) {
-				return statement.name.text === name;
-			}
+		if (this.named_type(statement, name)) {
+			return true;
 		}
+		return this.named_variable(statement, name);
+	}
+
+	/** Responsibilities: _classification named callable_. **/
+	private named_callable(statement: ts.Statement, name: string): boolean {
+		if (!ts.isClassDeclaration(statement) && !ts.isFunctionDeclaration(statement)) {
+			return false;
+		}
+		return statement.name?.text === name;
+	}
+
+	/** Responsibilities: _classification named type_. **/
+	private named_type(statement: ts.Statement, name: string): boolean {
+		if (!this.declaration_kinds.has(statement.kind)) {
+			return false;
+		}
+		if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) {
+			return statement.name.text === name;
+		}
+		if (ts.isEnumDeclaration(statement)) {
+			return statement.name.text === name;
+		}
+		return false;
+	}
+
+	/** Responsibilities: _classification named variable_. **/
+	private named_variable(statement: ts.Statement, name: string): boolean {
 		if (!ts.isVariableStatement(statement)) {
 			return false;
 		}
-		return statement.declarationList.declarations.some(
-			(declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === name,
-		);
+		return statement.declarationList.declarations.some((declaration) => {
+			if (!ts.isIdentifier(declaration.name)) {
+				return false;
+			}
+			return declaration.name.text === name;
+		});
 	}
 
 	/** Responsibilities: _resolution named declaration source_. **/

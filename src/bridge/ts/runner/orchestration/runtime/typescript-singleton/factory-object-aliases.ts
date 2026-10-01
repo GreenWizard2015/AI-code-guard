@@ -73,7 +73,10 @@ export class TypeScriptFactoryObjectAliases {
 			if (!ts.isBindingElement(element)) {
 				continue;
 			}
-			if (!ts.isIdentifier(element.name) || element.name.text !== name) {
+			if (!ts.isIdentifier(element.name)) {
+				continue;
+			}
+			if (element.name.text !== name) {
 				continue;
 			}
 			return this.properties.source(initializer, this.expression_names.static_binding_name(element));

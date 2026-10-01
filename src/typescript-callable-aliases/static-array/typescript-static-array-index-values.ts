@@ -71,7 +71,10 @@ export class TypeScriptStaticArrayIndexValues {
 			return -1;
 		}
 		const value = this.index_operations.resolve(expression.operatorToken.kind, left, right);
-		if (!Number.isInteger(value) || value < 0) {
+		if (!Number.isInteger(value)) {
+			return -1;
+		}
+		if (value < 0) {
 			return -1;
 		}
 		return value;

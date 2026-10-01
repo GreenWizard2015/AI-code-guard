@@ -98,7 +98,10 @@ export class TypeScriptStaticExpressionOperations {
 	/** Responsibilities: _identifier static value resolution_. **/
 	private append_identifier(values: Map<string, string>, name: string, current: ts.Identifier): boolean {
 		const value = values.get(current.text);
-		if (value === undefined || values.has(name)) {
+		if (value === undefined) {
+			return false;
+		}
+		if (values.has(name)) {
 			return false;
 		}
 		values.set(name, value);

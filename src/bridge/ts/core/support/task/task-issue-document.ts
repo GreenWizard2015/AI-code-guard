@@ -1,7 +1,7 @@
-import { isAbsolute, resolve } from "node:path";
 import { readFileSync, statSync } from "node:fs";
-import type { ReportViolation } from "src/types";
+import { isAbsolute, resolve } from "node:path";
 import type { TaskDocumentationProtocol, TaskWorkspaceProtocol } from "src/protocols";
+import type { ReportViolation } from "src/types";
 
 /** Responsibilities: _grouped lint violations formatting_. **/
 export class TaskIssueDocument {
@@ -17,7 +17,9 @@ export class TaskIssueDocument {
 		}
 		const source = readFileSync(absolute_file, "utf8").split(/\r?\n/u);
 		const index = line - 1;
-		if (index < 0 || index >= source.length) {
+		const before_start = index < 0;
+		const after_end = index >= source.length;
+		if (before_start || after_end) {
 			return "";
 		}
 		return source[index].trim();
@@ -73,10 +75,12 @@ export class TaskIssueDocument {
 			lines.push("", `## ${file}`);
 			for (const violation of file_violations.sort((left, right) => left.line - right.line)) {
 				lines.push(`- Line ${violation.line}: ${this.source_line(file, violation.line)}`);
-				if (single_violation || messages.size > 1) {
+				const has_multiple_messages = messages.size > 1;
+				const has_multiple_hints = hints.size > 1;
+				if (single_violation || has_multiple_messages) {
 					lines.push(`Problem: ${violation.message}`);
 				}
-				if (single_violation || hints.size > 1) {
+				if (single_violation || has_multiple_hints) {
 					lines.push(`Hint: ${violation.hint}`);
 				}
 			}
@@ -103,10 +107,13 @@ export class TaskIssueDocument {
 		const messages = new Set(violations.map((violation) => violation.message));
 		const hints = [...new Set(violations.map((violation) => violation.hint))];
 		const problem_lines: string[] = [];
-		if (violations.length > 1 && messages.size === 1) {
+		const has_multiple_violations = violations.length > 1;
+		const has_one_message = messages.size === 1;
+		const has_one_hint = hints.length === 1;
+		if (has_multiple_violations && has_one_message) {
 			problem_lines.push(`Problem: ${first.message}`);
 		}
-		if (violations.length > 1 && hints.length === 1) {
+		if (has_multiple_violations && has_one_hint) {
 			problem_lines.push(`Hint: ${hints[0]}`);
 		}
 		return problem_lines;

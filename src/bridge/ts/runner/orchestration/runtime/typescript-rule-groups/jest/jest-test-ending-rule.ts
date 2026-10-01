@@ -75,7 +75,10 @@ export class JestTestEndingRule {
 
 	/** Responsibilities: _valid Jest callback classification_. **/
 	private is_valid_callback(callback: ts.FunctionLikeDeclaration): boolean {
-		if (callback.body === undefined || !ts.isBlock(callback.body)) {
+		if (callback.body === undefined) {
+			return true;
+		}
+		if (!ts.isBlock(callback.body)) {
 			return true;
 		}
 		return this.has_valid_ending(callback.body);

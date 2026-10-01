@@ -12,8 +12,9 @@ class PythonProxyForwarding:
     def _parameter_parts(self) -> JsonObject:
         """Responsibilities: _normalization proxy parameter groups_."""
         positional_arguments: Any = [*self.arguments.posonlyargs, *self.arguments.args]
-        if positional_arguments and positional_arguments[0].arg in {"self", "cls"}:
-            positional_arguments: Any = positional_arguments[1:]
+        if positional_arguments:
+            if positional_arguments[0].arg in {"self", "cls"}:
+                positional_arguments: Any = positional_arguments[1:]
         positional: Any = [argument.arg for argument in positional_arguments]
         keyword_only: Any = [argument.arg for argument in self.arguments.kwonlyargs]
         vararg: Any = ""

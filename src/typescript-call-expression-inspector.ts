@@ -75,7 +75,10 @@ export class TypeScriptCallExpressionInspector {
 		if (ts.isPropertyAccessExpression(current)) {
 			return current.name.text === this.bind_method_name;
 		}
-		if (!ts.isElementAccessExpression(current) || current.argumentExpression === undefined) {
+		if (!ts.isElementAccessExpression(current)) {
+			return false;
+		}
+		if (current.argumentExpression === undefined) {
 			return false;
 		}
 		return this.static_expression_values.value(current.argumentExpression, node) === this.bind_method_name;
@@ -115,7 +118,10 @@ export class TypeScriptCallExpressionInspector {
 
 	/** Responsibilities: _Function bind invocation_. **/
 	private function_bind_call(expression: ts.Expression): boolean {
-		if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== "call") {
+		if (!ts.isPropertyAccessExpression(expression)) {
+			return false;
+		}
+		if (expression.name.text !== "call") {
 			return false;
 		}
 		return this.static_member_chain(expression.expression).join(".") === "Function.prototype.bind";
@@ -149,7 +155,10 @@ export class TypeScriptCallExpressionInspector {
 	/** Responsibilities: _resolution target callable expression_. **/
 	public bind_target(node: ts.CallExpression): ts.Node[] {
 		const expression = node.expression;
-		if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== this.bind_method_name) {
+		if (!ts.isPropertyAccessExpression(expression)) {
+			return [];
+		}
+		if (expression.name.text !== this.bind_method_name) {
 			return [];
 		}
 		if (!this.has_bind_context(node)) {

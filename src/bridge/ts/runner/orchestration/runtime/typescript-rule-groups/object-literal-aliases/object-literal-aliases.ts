@@ -42,7 +42,10 @@ export class ObjectLiteralAliases {
 
 	/** Responsibilities: _object alias extension_. **/
 	private append_alias(aliases: Set<string>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		if (aliases.has(node.name.text)) {

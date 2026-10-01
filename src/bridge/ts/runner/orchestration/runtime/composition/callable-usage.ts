@@ -1,17 +1,17 @@
-import { TestPathSyntax } from "src/test-path-syntax";
-import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from "src/metrics/types";
-import type { Violation } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
-import type { AstClassNode } from "src/types";
+import { CallableMethodCounts } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts";
+import { CallableViolationCollector } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-violation-collector";
 import { PROPERTY_DECORATORS } from "src/bridge/ts/runner/orchestration/runtime/composition/constants";
 import type {
 	CallableIndexes,
 	CallableUsageCollectorState,
 } from "src/bridge/ts/runner/orchestration/runtime/composition/types";
-import type { LintStageTimerProtocol } from "src/protocols";
-import { CallableMethodCounts } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts";
-import { CallableViolationCollector } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-violation-collector";
 import { CallableReferenceIndex } from "src/metrics/callable-reference-index";
+import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from "src/metrics/types";
+import type { Violation } from "src/protocols";
+import type { LintStageTimerProtocol } from "src/protocols";
+import { TestPathSyntax } from "src/test-path-syntax";
+import type { LintSourceRecord } from "src/types";
+import type { AstClassNode } from "src/types";
 
 /** Responsibilities: _collection callable usage construction_. **/
 export class CallableUsage {
@@ -54,8 +54,10 @@ export class CallableUsage {
 				field_map[field.name] = field.type;
 			}
 		}
-		if (Object.keys(field_map).length > 0 && !project_types.has(class_node.name)) {
-			project_types.set(class_node.name, field_map);
+		if (Object.keys(field_map).length > 0) {
+			if (!project_types.has(class_node.name)) {
+				project_types.set(class_node.name, field_map);
+			}
 		}
 	}
 
@@ -100,14 +102,28 @@ export class CallableUsage {
 	}
 
 	/** Responsibilities: _identification analyzable callable method_. **/
-	private is_callable_method(item: CallableDefinition): boolean {
-		if (item.file.startsWith("tools/coding-lint/") || item.node.visibility === "private") {
+	private non_callable_method(item: CallableDefinition): boolean {
+		if (item.file.startsWith("tools/coding-lint/")) {
 			return false;
 		}
-		if (item.node.is_accessor || item.node.name === "constructor") {
+		if (item.node.visibility === "private") {
+			return false;
+		}
+		if (item.node.is_accessor) {
+			return false;
+		}
+		if (item.node.name === "constructor") {
 			return false;
 		}
 		if (item.node.name.startsWith("__") && item.node.name.endsWith("__")) {
+			return false;
+		}
+		return true;
+	}
+
+	/** Responsibilities: _identification property-decorated callable_. **/
+	private is_callable_method(item: CallableDefinition): boolean {
+		if (!this.non_callable_method(item)) {
 			return false;
 		}
 		const decorators = item.node.decorators;

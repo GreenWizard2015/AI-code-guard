@@ -267,6 +267,7 @@ export class TestFixture {
 					{ file: source.relative_path, text: source.text },
 					ast_file.normalized(),
 					ast_file.source_file,
+					() => [],
 				);
 				const source_linter = new CodingRuleLinter(source_ast);
 				const shared_linter = new CodingRuleLinter(source_ast);

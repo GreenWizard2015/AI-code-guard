@@ -60,6 +60,21 @@ export class TypeScriptTypeDeclarations {
 		return [{ name: element.name.text, target: element.propertyName.text }];
 	}
 
+	/** Responsibilities: _collection import declaration aliases_. **/
+	private statement_reference_aliases(statement: ts.Statement): AstReferenceAlias[] {
+		if (!ts.isImportDeclaration(statement)) {
+			return [];
+		}
+		const bindings = statement.importClause?.namedBindings;
+		if (bindings === undefined) {
+			return [];
+		}
+		if (!ts.isNamedImports(bindings)) {
+			return [];
+		}
+		return bindings.elements.flatMap((element) => this.reference_alias(element));
+	}
+
 	/** Responsibilities: _extraction normalization declaration lines_. **/
 	public declaration_for(node: ts.Node, source_file: ts.SourceFile): NamedLine[] {
 		const name = this.type_declaration_name(node);
@@ -78,17 +93,7 @@ export class TypeScriptTypeDeclarations {
 	public collect_reference_aliases(source_file: ts.SourceFile): AstReferenceAlias[] {
 		const aliases: AstReferenceAlias[] = [];
 		for (const statement of source_file.statements) {
-			if (!ts.isImportDeclaration(statement)) {
-				continue;
-			}
-			const bindings = statement.importClause?.namedBindings;
-			if (bindings === undefined || !ts.isNamedImports(bindings)) {
-				continue;
-			}
-			for (const element of bindings.elements) {
-				const alias = this.reference_alias(element);
-				aliases.push(...alias);
-			}
+			aliases.push(...this.statement_reference_aliases(statement));
 		}
 		return aliases;
 	}

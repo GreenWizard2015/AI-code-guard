@@ -38,8 +38,10 @@ export class TypeScriptBoundaryRuleAppender {
 				context.append_rule(node, SETATTR);
 			}
 		}
-		if (ts.isUnionTypeNode(node) && node.types.length > this.max_union_types) {
-			context.append_rule(node, LARGE_UNION);
+		if (ts.isUnionTypeNode(node)) {
+			if (node.types.length > this.max_union_types) {
+				context.append_rule(node, LARGE_UNION);
+			}
 		}
 	}
 

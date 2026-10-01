@@ -49,7 +49,10 @@ export class TypeScriptCallAliases {
 
 	/** Responsibilities: _destructured alias collection_. **/
 	private append_pattern_alias(aliases: Map<string, string>, node: ts.VariableDeclaration): boolean {
-		if (node.initializer === undefined || ts.isIdentifier(node.name)) {
+		if (node.initializer === undefined) {
+			return false;
+		}
+		if (ts.isIdentifier(node.name)) {
 			return false;
 		}
 		return this.binding_aliases.append_binding_aliases(
@@ -65,8 +68,10 @@ export class TypeScriptCallAliases {
 	private append_scope_aliases(aliases: Map<string, string>, node: ts.Node): boolean {
 		let changed = false;
 		if (ts.isVariableDeclaration(node)) {
-			if (ts.isIdentifier(node.name) && node.initializer !== undefined) {
-				changed = this.append_alias(aliases, node.name.text, node.initializer);
+			if (ts.isIdentifier(node.name)) {
+				if (node.initializer !== undefined) {
+					changed = this.append_alias(aliases, node.name.text, node.initializer);
+				}
 			}
 			if (this.append_pattern_alias(aliases, node)) {
 				changed = true;

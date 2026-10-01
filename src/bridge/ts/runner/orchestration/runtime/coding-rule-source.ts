@@ -6,7 +6,7 @@ import type {
 	ParseLanguage,
 	PreparedCodingRuleSourceOptions,
 } from "src/types";
-import type { CodingRuleSourceData } from "src/protocols";
+import type { CodingRuleSourceData, SourceFileResolver } from "src/protocols";
 
 /** Responsibilities: _coding-rule source data storage_, _source language exposure parsing_. **/
 export class CodingRuleSource {
@@ -14,6 +14,7 @@ export class CodingRuleSource {
 	public readonly text: string;
 	public readonly normalized_ast: NormalizedAstFile;
 	public readonly source_file: ts.SourceFile;
+	public readonly source_resolver: SourceFileResolver;
 
 	/** Responsibilities: _source text initialization_, _initialization normalization TypeScript ASTs_. **/
 	public constructor(options: CodingRuleSourceOptions, prepared: PreparedCodingRuleSourceOptions) {
@@ -21,6 +22,7 @@ export class CodingRuleSource {
 		this.text = options.text;
 		this.normalized_ast = prepared.normalized_ast;
 		this.source_file = prepared.source_file;
+		this.source_resolver = prepared.source_resolver;
 	}
 
 	/** Responsibilities: _exposure normalization Python AST_. **/
@@ -35,6 +37,7 @@ export class CodingRuleSource {
 			text: this.text,
 			normalized_ast: this.normalized_ast,
 			source_file: this.source_file,
+			source_resolver: this.source_resolver,
 		};
 	}
 

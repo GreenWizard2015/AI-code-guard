@@ -84,7 +84,10 @@ export class TypeScriptObjectAliases {
 
 	/** Responsibilities: _object variable addition_. **/
 	private append_variable(node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		return this.append_value(node.name.text, node.initializer);
@@ -92,7 +95,10 @@ export class TypeScriptObjectAliases {
 
 	/** Responsibilities: _object assignment addition_. **/
 	private append_assignment(node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken || !ts.isIdentifier(node.left)) {
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.left)) {
 			return false;
 		}
 		return this.append_value(node.left.text, node.right);
@@ -111,8 +117,10 @@ export class TypeScriptObjectAliases {
 
 	/** Responsibilities: _object alias declaration collection_. **/
 	private collect_declarations(node: ts.Node, root: ts.Node, declarations: ts.Node[]): void {
-		if (node !== root && ts.isFunctionLike(node)) {
-			return;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return;
+			}
 		}
 		if (ts.isVariableDeclaration(node)) {
 			declarations.push(node);

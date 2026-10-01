@@ -1,5 +1,11 @@
 import type { ArgumentUse, TypedArgument } from "src/model/types";
-import type { LintProjectContext, LintStageTimerProtocol, TypeScriptAstFileProtocol, Violation } from "src/protocols";
+import type {
+	LintProjectContext,
+	LintStageTimerProtocol,
+	SourceFileResolver,
+	TypeScriptAstFileProtocol,
+	Violation,
+} from "src/protocols";
 import type ts from "typescript";
 
 export type CallableOwnershipResolver = (class_node: AstClassNode, owner: string, method_name: string) => boolean;
@@ -233,6 +239,7 @@ export type PreparedCodingRuleSourceOptions = {
 	text: string;
 	normalized_ast: NormalizedAstFile;
 	source_file: ts.SourceFile;
+	source_resolver: SourceFileResolver;
 };
 export type Assignment = {
 	line: number;
@@ -251,6 +258,7 @@ export type ClassFieldRules = {
 export type RuleContextData = {
 	file: string;
 	source_file: ts.SourceFile;
+	source_resolver: SourceFileResolver;
 	test_file: boolean;
 	class_fields: ClassFieldRules;
 	append_rule: RuleAppender;
@@ -279,6 +287,7 @@ export type LintSourceRecord = {
 	normalized_ast: NormalizedAstFile;
 	language: AstLanguage;
 	typescript_ast: TypeScriptAstFileProtocol;
+	source_resolver: SourceFileResolver;
 	typescript(): boolean;
 	python(): boolean;
 };
@@ -288,6 +297,14 @@ export type LintSourceRecordOptions = {
 	file_name: LintFileNameContract;
 	text: string;
 	normalized_ast: NormalizedAstFile;
+};
+export type TypeScriptLintSourceRecordOptions = {
+	absolute_path: string;
+	relative_path: string;
+	file_name: LintFileNameContract;
+	text: string;
+	normalized_ast: NormalizedAstFile;
+	source_resolver: SourceFileResolver;
 };
 export type ContextSourceRecordOptions = {
 	repo_root: string;

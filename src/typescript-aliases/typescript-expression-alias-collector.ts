@@ -43,7 +43,10 @@ export class TypeScriptExpressionAliasCollector {
 
 	/** Responsibilities: _assignment alias collection_. **/
 	private append_assignment_alias(aliases: Set<string>, node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken || !ts.isIdentifier(node.left)) {
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.left)) {
 			return false;
 		}
 		return this.owner.append_alias(aliases, node.left.text, node.right);
@@ -61,8 +64,10 @@ export class TypeScriptExpressionAliasCollector {
 		root: ts.Node,
 		object_aliases: TypeScriptObjectAliasesProtocol,
 	): boolean {
-		if (node !== root && ts.isFunctionLike(node)) {
-			return false;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return false;
+			}
 		}
 		let changed = false;
 		if (ts.isVariableDeclaration(node)) {

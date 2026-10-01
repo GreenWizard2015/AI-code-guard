@@ -1,6 +1,6 @@
-import ts from "typescript";
 import type { FakeObjectProtocol } from "src/protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import ts from "typescript";
 
 /** Responsibilities: _collection callable object bindings_. **/
 export class ObjectCallableBinding {
@@ -91,6 +91,30 @@ export class ObjectCallableBinding {
 		return this.append_nested(aliases, element.name, value);
 	}
 
+	/** Responsibilities: _array binding element matching_. **/
+	private append_binding_element(
+		aliases: Set<string>,
+		binding: ts.ArrayBindingPattern,
+		initializer: ts.ArrayLiteralExpression,
+		index: number,
+	): boolean {
+		const element = binding.elements[index];
+		if (element === undefined) {
+			return false;
+		}
+		const value = initializer.elements[index];
+		if (value === undefined) {
+			return false;
+		}
+		if (value.kind === ts.SyntaxKind.OmittedExpression) {
+			return false;
+		}
+		if (ts.isSpreadElement(value)) {
+			return false;
+		}
+		return this.append_array_element(aliases, element, value);
+	}
+
 	/** Responsibilities: _callable array elements_. **/
 	private append_array_elements(
 		aliases: Set<string>,
@@ -99,15 +123,7 @@ export class ObjectCallableBinding {
 	): boolean {
 		let changed = false;
 		for (let index = 0; index < binding.elements.length; index += 1) {
-			const element = binding.elements[index];
-			const value = initializer.elements[index];
-			if (element === undefined || value === undefined) {
-				continue;
-			}
-			if (value.kind === ts.SyntaxKind.OmittedExpression || ts.isSpreadElement(value)) {
-				continue;
-			}
-			if (this.append_array_element(aliases, element, value)) {
+			if (this.append_binding_element(aliases, binding, initializer, index)) {
 				changed = true;
 			}
 		}
@@ -117,7 +133,10 @@ export class ObjectCallableBinding {
 	/** Responsibilities: _callable object binding_. **/
 	private append_object_binding(aliases: Set<string>, node: ts.VariableDeclaration): boolean {
 		const initializer = node.initializer;
-		if (!ts.isObjectBindingPattern(node.name) || initializer === undefined) {
+		if (!ts.isObjectBindingPattern(node.name)) {
+			return false;
+		}
+		if (initializer === undefined) {
 			return false;
 		}
 		if (!ts.isObjectLiteralExpression(initializer)) {
@@ -129,7 +148,10 @@ export class ObjectCallableBinding {
 	/** Responsibilities: _callable array binding_. **/
 	private append_array_binding(aliases: Set<string>, node: ts.VariableDeclaration): boolean {
 		const initializer = node.initializer;
-		if (!ts.isArrayBindingPattern(node.name) || initializer === undefined) {
+		if (!ts.isArrayBindingPattern(node.name)) {
+			return false;
+		}
+		if (initializer === undefined) {
 			return false;
 		}
 		if (!ts.isArrayLiteralExpression(initializer)) {
@@ -140,10 +162,16 @@ export class ObjectCallableBinding {
 
 	/** Responsibilities: _callable named alias_. **/
 	private append_named_binding(aliases: Set<string>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
 			return false;
 		}
-		if (!ts.isIdentifier(node.initializer) || !aliases.has(node.initializer.text)) {
+		if (node.initializer === undefined) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.initializer)) {
+			return false;
+		}
+		if (!aliases.has(node.initializer.text)) {
 			return false;
 		}
 		if (aliases.has(node.name.text)) {

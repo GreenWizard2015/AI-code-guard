@@ -1,6 +1,6 @@
-import type { AstCallableReference, CallableOwnershipResolver } from "src/types";
-import type { CallableMatcherContext, ParsedFile } from "src/metrics/types";
 import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
+import type { CallableMatcherContext, ParsedFile } from "src/metrics/types";
+import type { AstCallableReference, CallableOwnershipResolver } from "src/types";
 
 /** Responsibilities: _callable references definitions matching_. **/
 export class CallableReferenceMatcher {
@@ -12,11 +12,17 @@ export class CallableReferenceMatcher {
 	/** Responsibilities: _classification reference matches requested_. **/
 	private matches_reference(reference: AstCallableReference, method_count: number): boolean {
 		const { definition } = this.context;
-		if (definition.kind !== reference.kind || definition.node.name !== reference.name) {
+		if (definition.kind !== reference.kind) {
 			return false;
 		}
-		if (definition.kind === "function" || reference.dynamic) {
-			return definition.kind === "function" || method_count === 1;
+		if (definition.node.name !== reference.name) {
+			return false;
+		}
+		if (definition.kind === "function") {
+			return true;
+		}
+		if (reference.dynamic) {
+			return method_count === 1;
 		}
 		return this.matches_owned_method(reference, method_count);
 	}
@@ -33,7 +39,10 @@ export class CallableReferenceMatcher {
 		if (this.matches_definition_class(owner, reference.name)) {
 			return true;
 		}
-		return method_count === 1 && !this.has_known_owner(owner);
+		if (method_count !== 1) {
+			return false;
+		}
+		return !this.has_known_owner(owner);
 	}
 
 	/** Responsibilities: _classification definition class contains_. **/

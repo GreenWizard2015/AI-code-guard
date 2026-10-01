@@ -21,7 +21,10 @@ export class ModuleDeclarationsRule {
 
 	/** Responsibilities: _aggregation constants-file violation misplaced_. **/
 	private append_constants_violation(violations: Violation[], file: string, spans: readonly AstSourceSpan[]): void {
-		if (spans.length === 0 || this.constants_files.has(basename(file))) {
+		if (spans.length === 0) {
+			return;
+		}
+		if (this.constants_files.has(basename(file))) {
 			return;
 		}
 		const extension = file.endsWith(".py") ? "py" : "ts";
@@ -42,7 +45,13 @@ export class ModuleDeclarationsRule {
 
 	/** Responsibilities: _aggregation violation directing content_. **/
 	private append_move_violation(violations: Violation[], file: string, spans: readonly AstSourceSpan[]): void {
-		if (spans.length === 0 || basename(file) === "types.ts" || basename(file) === "types.py") {
+		if (spans.length === 0) {
+			return;
+		}
+		if (basename(file) === "types.ts") {
+			return;
+		}
+		if (basename(file) === "types.py") {
 			return;
 		}
 		const extension = file.endsWith(".py") ? "py" : "ts";
@@ -56,7 +65,10 @@ export class ModuleDeclarationsRule {
 
 	/** Responsibilities: _aggregation protocol placement violation_. **/
 	private append_protocol_violation(violations: Violation[], file: string, spans: readonly AstSourceSpan[]): void {
-		if (spans.length === 0 || ["protocols.ts", "protocols.py"].includes(basename(file))) {
+		if (spans.length === 0) {
+			return;
+		}
+		if (["protocols.ts", "protocols.py"].includes(basename(file))) {
 			return;
 		}
 		const extension = file.endsWith(".py") ? "py" : "ts";
@@ -95,7 +107,10 @@ export class ModuleDeclarationsRule {
 			return;
 		}
 		const file_name = basename(file);
-		if (file_name === "types.ts" || file_name === "types.py") {
+		if (file_name === "types.ts") {
+			return;
+		}
+		if (file_name === "types.py") {
 			return;
 		}
 		if (["protocols.ts", "protocols.py"].includes(file_name)) {

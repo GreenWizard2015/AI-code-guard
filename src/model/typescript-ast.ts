@@ -25,7 +25,10 @@ export class TypeScriptAstFile {
 			return [];
 		}
 		const body = statement.body;
-		if (body === undefined || !ts.isModuleBlock(body)) {
+		if (body === undefined) {
+			return [];
+		}
+		if (!ts.isModuleBlock(body)) {
 			return [];
 		}
 		return body.statements.flatMap((child) => this.function_nodes_for(child));

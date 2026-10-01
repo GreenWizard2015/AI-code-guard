@@ -34,7 +34,10 @@ export class JestAssertionShapeRule {
 			return false;
 		}
 		const parent = current.parent;
-		if (parent === undefined || !ts.isCallExpression(parent)) {
+		if (parent === undefined) {
+			return false;
+		}
+		if (!ts.isCallExpression(parent)) {
 			return false;
 		}
 		assertions.push(parent);
@@ -55,8 +58,10 @@ export class JestAssertionShapeRule {
 
 	/** Responsibilities: _Jest assertion parent traversal_. **/
 	private next_assertion_parent(node: ts.Node): ts.Node {
-		if (this.property_chain_parent(node) && node.parent !== undefined) {
-			return node.parent;
+		if (this.property_chain_parent(node)) {
+			if (node.parent !== undefined) {
+				return node.parent;
+			}
 		}
 		return this.assertion_wrapper_parent(node);
 	}
@@ -64,7 +69,10 @@ export class JestAssertionShapeRule {
 	/** Responsibilities: _Jest assertion wrapper parent_. **/
 	private assertion_wrapper_parent(node: ts.Node): ts.Node {
 		const parent = node.parent;
-		if (parent === undefined || !this.is_assertion_wrapper(parent)) {
+		if (parent === undefined) {
+			return node;
+		}
+		if (!this.is_assertion_wrapper(parent)) {
 			return node;
 		}
 		return parent;

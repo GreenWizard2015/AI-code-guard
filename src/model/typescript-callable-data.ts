@@ -21,8 +21,10 @@ export class TypeScriptCallableData {
 
 	/** Responsibilities: _normalization callable visibility preservation_. **/
 	private callable_visibility(name: string, visibility: AstVisibility): AstVisibility {
-		if (visibility === "public" && name.startsWith("_")) {
-			return "private";
+		if (visibility === "public") {
+			if (name.startsWith("_")) {
+				return "private";
+			}
 		}
 		return visibility;
 	}

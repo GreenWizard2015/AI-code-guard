@@ -55,7 +55,10 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const export_clause = statement.exportClause;
-		if (export_clause === undefined || !ts.isNamedExports(export_clause)) {
+		if (export_clause === undefined) {
+			return { file: "", name: "" };
+		}
+		if (!ts.isNamedExports(export_clause)) {
 			return { file: "", name: "" };
 		}
 		for (const element of export_clause.elements) {
@@ -74,7 +77,10 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const module_specifier = statement.moduleSpecifier;
-		if (module_specifier === undefined || !ts.isStringLiteral(module_specifier)) {
+		if (module_specifier === undefined) {
+			return { file: "", name: "" };
+		}
+		if (!ts.isStringLiteral(module_specifier)) {
 			return { file: "", name: "" };
 		}
 		const imported_file = this.module_paths.module_symbol(file, module_specifier.text);
@@ -91,7 +97,10 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		name: string,
 		visited: Set<string>,
 	): ResolvedTypeScriptExport {
-		if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBindings)) {
+		if (clause.namedBindings === undefined) {
+			return { file: "", name: "" };
+		}
+		if (!ts.isNamedImports(clause.namedBindings)) {
 			return { file: "", name: "" };
 		}
 		for (const binding of clause.namedBindings.elements) {
@@ -140,7 +149,10 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		for (const statement of source_file.statements) {
-			if (!ts.isExportDeclaration(statement) || statement.exportClause !== undefined) {
+			if (!ts.isExportDeclaration(statement)) {
+				continue;
+			}
+			if (statement.exportClause !== undefined) {
 				continue;
 			}
 			const resolved = this.star_statement(file, statement, name, visited);

@@ -43,12 +43,15 @@ export class CallableOwnership {
 			return false;
 		}
 		return parsed_files.some((file) =>
-			file.ast.classes.some(
-				(class_node) =>
-					class_node.protocol &&
-					class_node.name === owner &&
-					class_node.methods.some((method) => method.name === method_name),
-			),
+			file.ast.classes.some((class_node) => {
+				if (!class_node.protocol) {
+					return false;
+				}
+				if (class_node.name !== owner) {
+					return false;
+				}
+				return class_node.methods.some((method) => method.name === method_name);
+			}),
 		);
 	}
 

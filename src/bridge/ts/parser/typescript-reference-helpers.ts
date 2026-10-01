@@ -45,8 +45,10 @@ export class TypeScriptReferenceHelpers {
 	/** Responsibilities: _resolution parameter's declared owner_. **/
 	public parameter_owner(node: ts.ParameterDeclaration, aliases: Map<string, string>): string {
 		const initializer = node.initializer;
-		if (initializer !== undefined && ts.isNewExpression(initializer)) {
-			return this.new_expression_owner(initializer, aliases);
+		if (initializer !== undefined) {
+			if (ts.isNewExpression(initializer)) {
+				return this.new_expression_owner(initializer, aliases);
+			}
 		}
 		if (node.type === undefined) {
 			return "";

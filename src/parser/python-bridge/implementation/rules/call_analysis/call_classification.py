@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
-from implementation.references.aliases.protocols import PythonReferenceAliasesProtocol
+from implementation.references.aliases.protocols import (
+    PythonContainerAliasesProtocol,
+    PythonContainerValuesProtocol,
+    PythonReferenceAliasesProtocol,
+)
 
 
 class PythonCallClassification:
@@ -33,10 +37,22 @@ class PythonCallClassification:
                     return "assertion-in-test-function"
                 return "assertion-outside-test"
         if function.attr == "__setattr__":
-            if target.id == "object":
+            if self.reference_aliases.target_ends_with(target.id, "object"):
                 return "python-object-setattr"
         if function.attr == "__init__":
             return "python-direct-class-init"
+        return ""
+
+    def _subscript_call_kind(self, function: ast.Subscript, node: ast.Call) -> str:
+        """Responsibilities: _indexed callable category_."""
+        resolved = self.container_values.container_value(function)
+        if not resolved.found():
+            return ""
+        expression = resolved.expression_node()
+        if type(expression) is ast.Name:
+            return self._named_call_kind(expression)
+        if type(expression) is ast.Attribute:
+            return self._attribute_call_kind(expression, node)
         return ""
 
     def _temporary_target(self, node: ast.AST) -> ast.AST:
@@ -48,9 +64,16 @@ class PythonCallClassification:
             return node.value
         return ast.Constant(value=None)
 
-    def __init__(self, aliases: PythonReferenceAliasesProtocol) -> None:
+    def __init__(
+        self,
+        aliases: PythonReferenceAliasesProtocol,
+        container_aliases: PythonContainerAliasesProtocol,
+        container_values: PythonContainerValuesProtocol,
+    ) -> None:
         """Responsibilities: _classifier state_."""
         self.reference_aliases: PythonReferenceAliasesProtocol = aliases
+        self.container_aliases: PythonContainerAliasesProtocol = container_aliases
+        self.container_values: PythonContainerValuesProtocol = container_values
         self.parents: dict[int, ast.AST] = {}
 
     def configure(self, tree: ast.AST, node_index: PythonAstNodeIndexProtocol) -> None:
@@ -78,6 +101,8 @@ class PythonCallClassification:
             return ""
         if type(node.func) is ast.Name:
             return self._named_call_kind(node.func)
+        if type(node.func) is ast.Subscript:
+            return self._subscript_call_kind(node.func, node)
         if type(node.func) is not ast.Attribute:
             return ""
         return self._attribute_call_kind(node.func, node)

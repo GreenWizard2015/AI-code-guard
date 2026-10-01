@@ -106,4 +106,18 @@ describe("dynamic runtime alias policy", () => {
 
 		expect(messages.filter((message) => message === "avoid reflective and dynamic runtime APIs")).toHaveLength(1);
 	});
+
+	test("rejects dynamic access through typed string aliases", () => {
+		const test_fixture = new TestFixture();
+		const messages = test_fixture.violation_messages({
+			"dynamic-runtime-string-alias.ts": [
+				"declare const target: object;",
+				"declare const typed_key: string;",
+				"const key_alias = typed_key;",
+				"target[key_alias];",
+			].join("\n"),
+		});
+
+		expect(messages.filter((message) => message === "avoid reflective and dynamic runtime APIs")).toHaveLength(1);
+	});
 });

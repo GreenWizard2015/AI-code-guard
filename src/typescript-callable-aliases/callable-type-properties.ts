@@ -8,6 +8,16 @@ export class TypeScriptCallableTypeProperties {
 	private readonly callable_member_kinds = new Set([ts.SyntaxKind.MethodSignature]);
 	private readonly static_key_aliases = new TypeScriptStaticKeyAliases();
 
+	/** Responsibilities: _typed function property extension_. **/
+	private append_function_property(properties: Set<string>, name: string, member: ts.PropertySignature): void {
+		if (member.type === undefined) {
+			return;
+		}
+		if (ts.isFunctionTypeNode(member.type)) {
+			properties.add(name);
+		}
+	}
+
 	/** Responsibilities: _typed callable property extension_. **/
 	private append_property(properties: Set<string>, member: ts.TypeElement): void {
 		if (member.name === undefined) {
@@ -24,9 +34,7 @@ export class TypeScriptCallableTypeProperties {
 		if (!ts.isPropertySignature(member)) {
 			return;
 		}
-		if (member.type !== undefined && ts.isFunctionTypeNode(member.type)) {
-			properties.add(name);
-		}
+		this.append_function_property(properties, name, member);
 	}
 
 	/** Responsibilities: _typed property name resolution_. **/
@@ -63,7 +71,10 @@ export class TypeScriptCallableTypeProperties {
 	public class_properties(node: ts.ClassDeclaration): Set<string> {
 		const properties = new Set<string>();
 		for (const member of node.members) {
-			if (!ts.isMethodDeclaration(member) || member.name === undefined) {
+			if (!ts.isMethodDeclaration(member)) {
+				continue;
+			}
+			if (member.name === undefined) {
 				continue;
 			}
 			const name = this.property_name(member.name);

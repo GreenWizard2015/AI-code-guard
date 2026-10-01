@@ -35,7 +35,10 @@ export class AnyTypes {
 		}
 		const subject = `parameter "${name}"`;
 		this.append_info(violations, file, callable, subject, resolved_type);
-		if (!file.endsWith(".py") && resolved_type === "unknown") {
+		if (file.endsWith(".py")) {
+			return;
+		}
+		if (resolved_type === "unknown") {
 			const rule = new DiagnosticRule("typescript-unknown-parameter-type");
 			violations.push(rule.violation(file, callable.start + 1, { name }));
 		}

@@ -72,6 +72,24 @@ describe("coding-lint test assertion grouping", () => {
 		expect(violations.filter((item) => item.rule_id === "python-test-assertion-alias")).toHaveLength(1);
 	});
 
+	test("rejects destructured unittest assertion aliases from mappings", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.collect_fixture_violations({
+			"tests/destructured_assertion_test.py": [
+				"import unittest",
+				"",
+				"class TestResult(unittest.TestCase):",
+				"    def test_fields(self):",
+				'        checks = {"equal": self.assertEqual}',
+				'        check, ignored = (checks["equal"], None)',
+				"        check(1, 1)",
+				"        self.assertIsNotNone(object())",
+			].join("\n"),
+		});
+
+		expect(violations.filter((item) => item.rule_id === "python-test-assertion-alias")).toHaveLength(1);
+	});
+
 	test("rejects unittest assertion aliases through static key names", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.collect_fixture_violations({

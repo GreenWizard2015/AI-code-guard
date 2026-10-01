@@ -73,7 +73,10 @@ export class UnnecessaryUndefinedCheck {
 
 	/** Responsibilities: _known field lookup_. **/
 	private required_field(expression: ts.Expression, name: string): boolean {
-		if (!ts.isIdentifier(expression) || name === "") {
+		if (!ts.isIdentifier(expression)) {
+			return false;
+		}
+		if (name === "") {
 			return false;
 		}
 		if (!this.resolver.known_field(expression.text, name)) {

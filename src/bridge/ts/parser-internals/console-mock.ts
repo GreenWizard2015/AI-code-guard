@@ -36,7 +36,10 @@ export class ConsoleMock {
 		if (ts.isPropertyAccessExpression(expression)) {
 			return expression.name.text;
 		}
-		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
+		if (!ts.isElementAccessExpression(expression)) {
+			return "";
+		}
+		if (expression.argumentExpression === undefined) {
 			return "";
 		}
 		const key = this.expression_aliases.unwrapped(expression.argumentExpression);
@@ -131,19 +134,18 @@ export class ConsoleMock {
 			return node.text === "console";
 		}
 		if (ts.isPropertyAccessExpression(node)) {
-			if (ts.isIdentifier(node.expression) && node.expression.text === "globalThis" && node.name.text === "console") {
-				return true;
-			}
 			const values = this.object_aliases(source).property_values(node.expression, node.name.text);
 			return values.some((value) => this.console_expression(value, source));
 		}
-		if (!ts.isElementAccessExpression(node) || !ts.isIdentifier(node.expression)) {
+		if (!ts.isElementAccessExpression(node)) {
 			return false;
 		}
-		if (node.expression.text !== "globalThis" || node.argumentExpression === undefined) {
+		if (node.argumentExpression === undefined) {
 			return false;
 		}
-		return this.static_expression_values.value(node.argumentExpression, source) === "console";
+		const property_name = this.static_expression_values.value(node.argumentExpression, source);
+		const values = this.object_aliases(source).property_values(node.expression, property_name);
+		return values.some((value) => this.console_expression(value, source));
 	}
 
 	/** Responsibilities: _reporting node defines console_. **/

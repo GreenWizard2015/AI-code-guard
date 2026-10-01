@@ -65,7 +65,10 @@ export class NestedTypeStructure {
 					line = lines[declaration.line];
 				}
 				const code = line.slice(this.indentation(line));
-				return this.indentation(line) > 0 && !code.startsWith("class ");
+				if (this.indentation(line) === 0) {
+					return false;
+				}
+				return !code.startsWith("class ");
 			})
 			.map((declaration) => declaration.line);
 	}

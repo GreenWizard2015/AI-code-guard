@@ -15,6 +15,14 @@ describe("coding-lint syntax and policy rules", () => {
 		expect(messages.filter((message) => message === "avoid nested imports")).toHaveLength(1);
 	});
 
+	test("rejects dynamic imports through a local require alias", () => {
+		const test_fixture = new TestFixture();
+		const messages = test_fixture.violation_messages({
+			"require-alias.ts": ["const load = require;", "load(module_name);"].join("\n"),
+		});
+		expect(messages.filter((message) => message === "avoid dynamic imports")).toHaveLength(1);
+	});
+
 	test("rejects imports after module code", () => {
 		const test_fixture = new TestFixture();
 

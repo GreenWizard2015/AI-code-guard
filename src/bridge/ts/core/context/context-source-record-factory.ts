@@ -169,6 +169,7 @@ export class ContextSourceRecordSet {
 		relative_path: string,
 		file_name: LintFileName,
 	): LintSourceRecord {
+		const source_resolver = this.source_resolver(options.source_files);
 		const typescript_ast = this.create_typescript_ast(options.file, options.text, options.source_files);
 		const cached = options.typescript_asts.get(options.file);
 		let normalized_ast: NormalizedAstFile;
@@ -184,6 +185,7 @@ export class ContextSourceRecordSet {
 				file_name,
 				text: options.text,
 				normalized_ast,
+				source_resolver,
 			},
 			typescript_ast,
 		);

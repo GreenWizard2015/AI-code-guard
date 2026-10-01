@@ -53,30 +53,36 @@ class TypeRules:
             return [{"line": node.lineno - 1, "kind": "python-type-factory"}]
         return []
 
-    def _generic_type_issue(self, argument: ast.arg) -> list[JsonObject]:
-        """Responsibilities: _reporting nested generic parameter_."""
-        if argument.annotation is None:
-            return []
-        if not self._nested_generic(argument.annotation):
+    def _generic_annotation_issue(self, annotation: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _reporting nested generic annotation_."""
+        if not self._nested_generic(annotation):
             return []
         return [
             {
-                "line": argument.annotation.lineno - 1,
+                "line": annotation.lineno - 1,
                 "kind": "inline-generic-type",
             }
         ]
 
-    def _tuple_type_issue(self, node: ast.AST) -> list[JsonObject]:
-        """Responsibilities: _reporting tuple annotations parameters_."""
+    def _tuple_annotations(self, node: ast.AST) -> list[ast.AST]:
+        """Responsibilities: _collection tuple annotations_."""
         annotations: list[ast.AST] = []
-        if type(node) is ast.arg and node.annotation is not None:
-            annotations.append(node.annotation)
+        if type(node) is ast.arg:
+            if node.annotation is not None:
+                annotations.append(node.annotation)
         is_function = type(node) in (ast.FunctionDef, ast.AsyncFunctionDef)
-        if is_function and node.returns is not None:
-            annotations.append(node.returns)
+        if is_function:
+            if node.returns is not None:
+                annotations.append(node.returns)
         is_annotated = type(node) is ast.AnnAssign
-        if is_annotated and node.annotation is not None:
-            annotations.append(node.annotation)
+        if is_annotated:
+            if node.annotation is not None:
+                annotations.append(node.annotation)
+        return annotations
+
+    def _tuple_type_issue(self, node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _reporting tuple annotations_."""
+        annotations = self._tuple_annotations(node)
         for annotation in annotations:
             if self.tuple_type_names.annotation(annotation):
                 return [{"line": annotation.lineno - 1, "kind": "tuple-type"}]
@@ -100,6 +106,19 @@ class TypeRules:
         return [
             {"line": annotation.lineno - 1, "kind": "python-string-type-annotation"}
         ]
+
+    def _function_arguments(self, node: ast.AST) -> list[ast.arg]:
+        """Responsibilities: _collection function annotations_."""
+        arguments: Any = [
+            *node.args.posonlyargs,
+            *node.args.args,
+            *node.args.kwonlyargs,
+        ]
+        if node.args.vararg:
+            arguments.append(node.args.vararg)
+        if node.args.kwarg:
+            arguments.append(node.args.kwarg)
+        return arguments
 
     def __init__(
         self, tree: ast.AST, decorator_rules: PythonDecoratorRulesProtocol
@@ -127,17 +146,11 @@ class TypeRules:
         """Responsibilities: _collection nested generic issues_."""
         if type(node) not in (ast.FunctionDef, ast.AsyncFunctionDef):
             return []
-        arguments: Any = [
-            *node.args.posonlyargs,
-            *node.args.args,
-            *node.args.kwonlyargs,
-        ]
-        if node.args.vararg:
-            arguments.append(node.args.vararg)
-        if node.args.kwarg:
-            arguments.append(node.args.kwarg)
+        arguments = self._function_arguments(node)
         issues: list[dict[str, Any]] = []
         for argument in arguments:
-            issue: Any = self._generic_type_issue(argument)
-            issues.extend(issue)
+            if argument.annotation is not None:
+                issues.extend(self._generic_annotation_issue(argument.annotation))
+        if node.returns is not None:
+            issues.extend(self._generic_annotation_issue(node.returns))
         return issues

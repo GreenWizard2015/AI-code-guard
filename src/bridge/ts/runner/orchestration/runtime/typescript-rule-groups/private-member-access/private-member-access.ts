@@ -1,15 +1,15 @@
-import ts from "typescript";
-import type { Violation } from "src/protocols";
-import { DiagnosticRule } from "src/model/diagnostic-rule";
-import { TypeScriptReferenceContext } from "src/typescript-reference-context";
-import { PrivateMemberKeys } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-keys";
-import { PrivateMemberDeclarationNames } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-declaration-names";
 import type {
-	PrivateMembers,
-	PrivateWalkOptions,
 	PrivateAccessOptions,
 	PrivateElementAccessOptions,
+	PrivateMembers,
+	PrivateWalkOptions,
 } from "src/bridge/ts/runner/orchestration/runtime/types";
+import { PrivateMemberDeclarationNames } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-declaration-names";
+import { PrivateMemberKeys } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-keys";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import { TypeScriptReferenceContext } from "src/typescript-reference-context";
+import ts from "typescript";
 
 /** Responsibilities: _indexing private class members_. **/
 export class PrivateMemberAccess {
@@ -39,7 +39,7 @@ export class PrivateMemberAccess {
 	/** Responsibilities: _current node preservation_. **/
 	private walk_nodes(options: PrivateWalkOptions): void {
 		const { violations, file, source_file, members, context } = options;
-		const visit = (node: ts.Node, current_owner: string = ""): void => {
+		const visit = (node: ts.Node, current_owner = ""): void => {
 			const owner = this.node_owner(node, current_owner);
 			if (ts.isPropertyAccessExpression(node)) {
 				this.append_violation(violations, file, {
@@ -64,7 +64,7 @@ export class PrivateMemberAccess {
 	}
 
 	/** Responsibilities: _owner traversal enters update_. **/
-	private node_owner(node: ts.Node, current_owner: string = ""): string {
+	private node_owner(node: ts.Node, current_owner = ""): string {
 		if (ts.isClassLike(node)) {
 			if (node.name) {
 				return node.name.text;
@@ -106,10 +106,13 @@ export class PrivateMemberAccess {
 	private external_private_access(
 		members: PrivateMembers,
 		name: string,
-		target_owner: string = "",
-		current_owner: string = "",
+		target_owner = "",
+		current_owner = "",
 	): boolean {
-		if (!target_owner || target_owner === current_owner) {
+		if (!target_owner) {
+			return false;
+		}
+		if (target_owner === current_owner) {
 			return false;
 		}
 		const private_members = members.get(target_owner);

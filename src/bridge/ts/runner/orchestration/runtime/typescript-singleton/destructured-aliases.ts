@@ -1,6 +1,6 @@
-import ts from "typescript";
 import { TypeScriptNamespaceAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import ts from "typescript";
 
 /** Responsibilities: _resolution destructured class aliases_. **/
 export class TypeScriptDestructuredAliases {
@@ -26,7 +26,10 @@ export class TypeScriptDestructuredAliases {
 
 	/** Responsibilities: _resolution object property target_. **/
 	private direct_property_target(property: ts.ObjectLiteralElementLike, property_name: string): string {
-		if (!property.name || this.expression_names.static_property_name(property.name) !== property_name) {
+		if (!property.name) {
+			return "";
+		}
+		if (this.expression_names.static_property_name(property.name) !== property_name) {
 			return "";
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
@@ -142,7 +145,10 @@ export class TypeScriptDestructuredAliases {
 
 	/** Responsibilities: _collection object source registration_. **/
 	private register_object_source(declaration: ts.VariableDeclaration): void {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return;
+		}
+		if (declaration.initializer === undefined) {
 			return;
 		}
 		let initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);

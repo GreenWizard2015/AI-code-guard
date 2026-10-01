@@ -84,7 +84,10 @@ export class CallableBodyMetrics {
 	/** Responsibilities: _classification callable body only_. **/
 	public exception_only(node: ts.SignatureDeclarationBase): boolean {
 		return this.callable_body.resolve(node, false, (body) => {
-			if (!ts.isBlock(body) || body.statements.length !== 1) {
+			if (!ts.isBlock(body)) {
+				return false;
+			}
+			if (body.statements.length !== 1) {
 				return false;
 			}
 			return ts.isThrowStatement(body.statements[0]);

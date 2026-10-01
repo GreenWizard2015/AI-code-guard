@@ -168,6 +168,9 @@ export class ObjectLiteralReturns {
 		}
 		const callables = this.containing_function(node);
 		const callable = callables[0];
-		return callable?.type !== undefined && this.contains_contract_type(callable.type, contract_names);
+		if (callable?.type === undefined) {
+			return false;
+		}
+		return this.contains_contract_type(callable.type, contract_names);
 	}
 }

@@ -24,7 +24,7 @@ class CallableArguments:
                     counts[item.id] += 1
         return [{"name": name, "count": count} for name, count in counts.items()]
 
-    def _typed_argument(self, argument: ast.arg) -> list[dict[str, str]]:
+    def _typed_argument(self, argument: ast.arg) -> list[JsonObject]:
         """Responsibilities: _normalization typed callable argument_."""
         annotation: Any = argument.annotation
         if annotation is None:
@@ -38,7 +38,7 @@ class CallableArguments:
             kind: Any = "generic"
         return [{"name": argument.arg, "type": ast.unparse(annotation), "kind": kind}]
 
-    def _typed_arguments(self, arguments: list[ast.arg]) -> list[dict[str, str]]:
+    def _typed_arguments(self, arguments: list[ast.arg]) -> list[JsonObject]:
         """Responsibilities: _normalization typed callable arguments_."""
         if not arguments:
             return []

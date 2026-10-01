@@ -135,7 +135,7 @@ class PythonAstTree:
             "end_column": end_column,
         }
 
-    def _docstring_spans(self) -> list[dict[str, int]]:
+    def _docstring_spans(self) -> list[JsonObject]:
         """Responsibilities: _collection source spans module_."""
         spans: list[dict[str, int]] = []
         owners: Any = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)

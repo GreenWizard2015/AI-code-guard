@@ -51,7 +51,10 @@ export class DirectoryStructureRules {
 			if (!entry.isFile()) {
 				return false;
 			}
-			return basename(entry.name) !== "__init__.py" && !this.special_file_names.has(entry.name);
+			if (basename(entry.name) === "__init__.py") {
+				return false;
+			}
+			return !this.special_file_names.has(entry.name);
 		}).length;
 	}
 

@@ -1,5 +1,5 @@
-import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import ts from "typescript";
 
 /** Responsibilities: _static array alias collection_. **/
 export class TypeScriptStaticArrayAliases {
@@ -15,7 +15,8 @@ export class TypeScriptStaticArrayAliases {
 	/** Responsibilities: _literal array value_. **/
 	private append_literal(values: Map<string, string>, name: string, current: ts.Expression): boolean {
 		const value = current.getText().replace(/^['"`]|['"`]$/g, "");
-		if (values.has(name) || value.length === 0) {
+		const empty_value = value.length === 0;
+		if (values.has(name) || empty_value) {
 			return false;
 		}
 		values.set(name, value);
@@ -25,7 +26,8 @@ export class TypeScriptStaticArrayAliases {
 	/** Responsibilities: _aliased array value_. **/
 	private append_alias(values: Map<string, string>, name: string, current: ts.Identifier): boolean {
 		const value = values.get(current.text);
-		if (value === undefined || values.has(name)) {
+		const missing_value = value === undefined;
+		if (missing_value || values.has(name)) {
 			return false;
 		}
 		values.set(name, value);
@@ -57,7 +59,10 @@ export class TypeScriptStaticArrayAliases {
 		let changed = false;
 		for (const [index, value] of initializer.entries()) {
 			const element = binding.elements[index];
-			if (element === undefined || !ts.isBindingElement(element)) {
+			if (element === undefined) {
+				continue;
+			}
+			if (!ts.isBindingElement(element)) {
 				continue;
 			}
 			if (this.append_array_element(element, value)) {
@@ -127,7 +132,8 @@ export class TypeScriptStaticArrayAliases {
 	/** Responsibilities: _aliased array source_. **/
 	private append_alias_source(name: string, value: ts.Identifier): boolean {
 		const array = this.arrays.get(value.text);
-		if (array === undefined || this.arrays.has(name)) {
+		const missing_array = array === undefined;
+		if (missing_array || this.arrays.has(name)) {
 			return false;
 		}
 		this.arrays.set(name, array);
@@ -160,7 +166,10 @@ export class TypeScriptStaticArrayAliases {
 
 	/** Responsibilities: _array source collection_. **/
 	public append_source(node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		const current = this.expression_aliases.unwrapped(node.initializer);
@@ -175,7 +184,10 @@ export class TypeScriptStaticArrayAliases {
 
 	/** Responsibilities: _array declaration collection_. **/
 	public append_declaration(node: ts.VariableDeclaration): boolean {
-		if (!ts.isArrayBindingPattern(node.name) || node.initializer === undefined) {
+		if (!ts.isArrayBindingPattern(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		const initializer = this.expression_aliases.unwrapped(node.initializer);

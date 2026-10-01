@@ -90,14 +90,14 @@ export class TypeScriptStaticExpressionBindings {
 		return changed;
 	}
 
-	/** Responsibilities: _static object binding values_. **/
-	private append_object_binding(values: Map<string, string>, node: ts.VariableDeclaration): boolean {
-		if (!ts.isObjectBindingPattern(node.name) || node.initializer === undefined) {
-			return false;
-		}
-		const current = this.expression_aliases.unwrapped(node.initializer);
+	/** Responsibilities: _static object binding source_. **/
+	private append_binding_source(
+		values: Map<string, string>,
+		binding: ts.ObjectBindingPattern,
+		current: ts.Expression,
+	): boolean {
 		if (ts.isObjectLiteralExpression(current)) {
-			return this.append_object_elements(values, node.name, current);
+			return this.append_object_elements(values, binding, current);
 		}
 		if (!ts.isIdentifier(current)) {
 			return false;
@@ -106,7 +106,19 @@ export class TypeScriptStaticExpressionBindings {
 		if (source === undefined) {
 			return false;
 		}
-		return this.append_object_elements(values, node.name, source);
+		return this.append_object_elements(values, binding, source);
+	}
+
+	/** Responsibilities: _static object binding values_. **/
+	private append_object_binding(values: Map<string, string>, node: ts.VariableDeclaration): boolean {
+		if (!ts.isObjectBindingPattern(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
+			return false;
+		}
+		const current = this.expression_aliases.unwrapped(node.initializer);
+		return this.append_binding_source(values, node.name, current);
 	}
 
 	/** Responsibilities: _static binding dependencies_. **/
@@ -117,7 +129,10 @@ export class TypeScriptStaticExpressionBindings {
 
 	/** Responsibilities: _static object source collection_. **/
 	public append_source(node: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(node.name) || node.initializer === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
 			return false;
 		}
 		const current = this.expression_aliases.unwrapped(node.initializer);

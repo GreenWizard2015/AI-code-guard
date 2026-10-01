@@ -6,6 +6,8 @@ import ast
 from implementation.ast.protocols import PythonAstNodeIndexProtocol
 from implementation.types import JsonObject
 from implementation.references.aliases.reference_aliases import PythonReferenceAliases
+from implementation.references.aliases.container_aliases import PythonContainerAliases
+from implementation.references.aliases.protocols import PythonContainerAliasesProtocol
 from implementation.rules.call_analysis.call_classification import (
     PythonCallClassification,
 )
@@ -18,6 +20,7 @@ class CallRules:
     def _configure(self) -> None:
         """Responsibilities: _rule state setup_."""
         self.reference_aliases.collect(self.tree)
+        self.container_aliases.observe_all(self.node_index.nodes(self.tree))
         self.call_classification.configure(self.tree, self.node_index)
         self.call_reflection.configure(self.tree, self.node_index)
 
@@ -26,8 +29,12 @@ class CallRules:
         self.tree: Any = tree
         self.node_index: Any = node_index
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()
+        container_aliases = PythonContainerAliases()
+        self.container_aliases: PythonContainerAliasesProtocol = container_aliases
         self.call_classification: PythonCallClassification = PythonCallClassification(
-            self.reference_aliases
+            self.reference_aliases,
+            self.container_aliases,
+            container_aliases.values,
         )
         self.call_reflection: PythonCallReflection = PythonCallReflection()
 

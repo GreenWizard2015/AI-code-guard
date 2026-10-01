@@ -15,12 +15,18 @@ describe("coding-lint module constants", () => {
 		const violations = fixture.collect_fixture_violations(OVERSIZED_MODULE_FILES);
 
 		expect({
-			typescript: violations.filter(
-				(item) => item.rule_id === "module-constants-separation" && item.file.endsWith("service.ts"),
-			).length,
-			python: violations.filter(
-				(item) => item.rule_id === "module-constants-separation" && item.file.endsWith("service.py"),
-			).length,
+			typescript: violations.filter((item) => {
+				if (item.rule_id !== "module-constants-separation") {
+					return false;
+				}
+				return item.file.endsWith("service.ts");
+			}).length,
+			python: violations.filter((item) => {
+				if (item.rule_id !== "module-constants-separation") {
+					return false;
+				}
+				return item.file.endsWith("service.py");
+			}).length,
 		}).toEqual({ typescript: 1, python: 1 });
 	});
 
@@ -50,13 +56,24 @@ describe("coding-lint module constants", () => {
 		const violations = fixture.collect_fixture_violations(UNLIMITED_CONSTANT_FILES);
 
 		expect({
-			typescript_content: violations.filter(
-				(item) => item.rule_id === "constants-file-content" && item.file.endsWith("constants.ts"),
-			).length,
-			python_content: violations.filter(
-				(item) => item.rule_id === "constants-file-content" && item.file.endsWith("constants.py"),
-			).length,
-			typescript_max: violations.some((item) => item.file.endsWith("constants.ts") && item.rule_id === "file-max-size"),
+			typescript_content: violations.filter((item) => {
+				if (item.rule_id !== "constants-file-content") {
+					return false;
+				}
+				return item.file.endsWith("constants.ts");
+			}).length,
+			python_content: violations.filter((item) => {
+				if (item.rule_id !== "constants-file-content") {
+					return false;
+				}
+				return item.file.endsWith("constants.py");
+			}).length,
+			typescript_max: violations.some((item) => {
+				if (!item.file.endsWith("constants.ts")) {
+					return false;
+				}
+				return item.rule_id === "file-max-size";
+			}),
 		}).toEqual({ typescript_content: 3, python_content: 3, typescript_max: false });
 	});
 

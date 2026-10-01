@@ -114,12 +114,18 @@ class PythonAstSymbolNodes:
             return self.type_declaration_collector.type_alias_annotation(annotation)
         if type(assignment) is not ast.Assign:
             return False
+        return self._assignment_alias(node, assignment)
+
+    def _assignment_alias(self, node: ast.Name, assignment: ast.Assign) -> bool:
+        """Responsibilities: _assignment type alias_."""
         if node.id.isupper():
             return False
         if not self._is_module_scope(node):
             return False
         is_single_target = len(assignment.targets) == 1
-        if not is_single_target or assignment.targets[0] is not node:
+        if not is_single_target:
+            return False
+        if assignment.targets[0] is not node:
             return False
         return self.callable_arguments.structural_type(assignment.value)
 

@@ -102,7 +102,10 @@ export class TypeScriptNodeRules {
 
 	/** Responsibilities: _TypeScript type guards identification_. **/
 	private is_type_guard(node: ts.Node): boolean {
-		if (!ts.isFunctionLike(node) || node.type === undefined) {
+		if (!ts.isFunctionLike(node)) {
+			return false;
+		}
+		if (node.type === undefined) {
 			return false;
 		}
 		return ts.isTypePredicateNode(node.type);

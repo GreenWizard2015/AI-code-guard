@@ -1,6 +1,6 @@
+import type { Assignment, AssignmentDetails } from "src/bridge/ts/runner/orchestration/runtime/types";
 import { PointlessExpression } from "src/rules/typescript/pointless-expression";
 import ts from "typescript";
-import type { Assignment, AssignmentDetails } from "src/bridge/ts/runner/orchestration/runtime/types";
 
 /** Responsibilities: _normalization assignments identification logical_. **/
 export class TypeScriptAssignmentAnalysis {
@@ -31,7 +31,10 @@ export class TypeScriptAssignmentAnalysis {
 	/** Responsibilities: _extraction assignment details variable_. **/
 	private assignment_details(declaration: ts.VariableDeclaration): AssignmentDetails[] {
 		const name = this.pointless_expression.binding_name(declaration.name);
-		if (!name || declaration.initializer === undefined) {
+		if (!name) {
+			return [];
+		}
+		if (declaration.initializer === undefined) {
 			return [];
 		}
 		return [
@@ -46,7 +49,10 @@ export class TypeScriptAssignmentAnalysis {
 
 	/** Responsibilities: _extraction variable declarations assignment_. **/
 	private assignment_declaration(statement: ts.Statement): ts.VariableDeclaration[] {
-		if (!ts.isVariableStatement(statement) || statement.declarationList.declarations.length !== 1) {
+		if (!ts.isVariableStatement(statement)) {
+			return [];
+		}
+		if (statement.declarationList.declarations.length !== 1) {
 			return [];
 		}
 		for (const declaration of statement.declarationList.declarations) {
@@ -59,7 +65,10 @@ export class TypeScriptAssignmentAnalysis {
 
 	/** Responsibilities: _classification final assignment not_. **/
 	private reject_last_assignment(last: Assignment, returned_name: string): boolean {
-		if (last.name !== returned_name || last.destructured) {
+		if (last.name !== returned_name) {
+			return true;
+		}
+		if (last.destructured) {
 			return true;
 		}
 		return this.function_initializer_kinds.has(last.initializer.kind);
@@ -91,8 +100,10 @@ export class TypeScriptAssignmentAnalysis {
 	private contains_identifier(node: ts.Node, name: string): boolean {
 		let found = false;
 		const visit = (child: ts.Node): void => {
-			if (ts.isIdentifier(child) && child.text === name) {
-				found = true;
+			if (ts.isIdentifier(child)) {
+				if (child.text === name) {
+					found = true;
+				}
 			}
 			if (!found) {
 				ts.forEachChild(child, visit);

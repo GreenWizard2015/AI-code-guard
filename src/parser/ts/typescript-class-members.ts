@@ -42,8 +42,10 @@ export class TypeScriptClassMembers {
 
 	/** Responsibilities: _resolution identifier initializer name_. **/
 	private identifier_initializer_name(member: ts.PropertyDeclaration): string {
-		if (member.initializer !== undefined && ts.isIdentifier(member.initializer)) {
-			return member.initializer.text;
+		if (member.initializer !== undefined) {
+			if (ts.isIdentifier(member.initializer)) {
+				return member.initializer.text;
+			}
 		}
 		return "";
 	}
@@ -87,24 +89,33 @@ export class TypeScriptClassMembers {
 		];
 	}
 
+	/** Responsibilities: _interface field type data_. **/
+	private interface_field_data(member: ts.PropertySignature): FieldTypeData {
+		if (member.type === undefined) {
+			return { type: "", type_kind: "basic" };
+		}
+		return {
+			type: member.type.getText(this.source_file),
+			type_kind: this.type_kind(member.type),
+		};
+	}
+
 	/** Responsibilities: _normalization interface property field_. **/
 	private interface_field(member: ts.TypeElement): AstClassField[] {
-		if (!ts.isPropertySignature(member) || member.name === undefined) {
+		if (!ts.isPropertySignature(member)) {
 			return [];
 		}
-		let type_kind_value: AstTypeKind = "basic";
-		let type = "";
-		if (member.type !== undefined) {
-			type_kind_value = this.type_kind(member.type);
-			type = member.type.getText(this.source_file);
+		if (member.name === undefined) {
+			return [];
 		}
+		const type_data = this.interface_field_data(member);
 		return [
 			{
 				line: this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
 				name: member.name.getText(this.source_file),
 				value_name: "",
-				type,
-				type_kind: type_kind_value,
+				type: type_data.type,
+				type_kind: type_data.type_kind,
 				class_variable: false,
 			},
 		];

@@ -195,6 +195,18 @@ describe("coding-lint Python-specific rules", () => {
 		expect(messages).toContain("avoid direct object.__setattr__ calls");
 	});
 
+	test("rejects object attribute mutation through a mapping callable", () => {
+		const test_fixture = new TestFixture();
+
+		const messages = test_fixture.violation_messages({
+			"mapped-object-setattr.py": [
+				'def update(value):\n    setters = {"set": object.__setattr__}\n    setters["set"](value, "name", "updated")',
+			].join("\n"),
+		});
+
+		expect(messages).toContain("avoid direct object.__setattr__ calls");
+	});
+
 	test("reports instance field writes outside constructors", () => {
 		const test_fixture = new TestFixture();
 

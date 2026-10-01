@@ -35,7 +35,10 @@ export class TypeScriptLogicalChain {
 		while (ts.isParenthesizedExpression(parent)) {
 			parent = parent.parent;
 		}
-		return ts.isVariableDeclaration(parent) && parent.initializer === node;
+		if (!ts.isVariableDeclaration(parent)) {
+			return false;
+		}
+		return parent.initializer === node;
 	}
 
 	/** Responsibilities: _classification logical expression nested_. **/

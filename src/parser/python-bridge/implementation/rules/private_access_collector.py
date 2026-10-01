@@ -9,6 +9,7 @@ from implementation.references.aliases.protocols import PythonContainerAliasesPr
 from implementation.references.aliases.container_keys import PythonContainerKeys
 from implementation.references.private_vars_mapping import PythonPrivateVarsMapping
 from implementation.rules.builtin_reflection import PythonBuiltinReflectionNames
+from implementation.types import JsonObject
 
 
 class PythonPrivateAccessCollector:
@@ -163,7 +164,7 @@ class PythonPrivateAccessCollector:
                 result.update(self._class_members(node))
         return result
 
-    def accesses(self, members: set[str]) -> list[dict[str, int]]:
+    def accesses(self, members: set[str]) -> list[JsonObject]:
         """Responsibilities: _collection private access diagnostics_."""
         self.container_aliases.observe_all(self.node_index.nodes(self.tree))
         self.reflection_names.configure(self.tree)

@@ -43,7 +43,10 @@ export class SharedParameterAnalyzer {
 	private append_callable(nodes: Map<string, MutableParameterNode>, callable: AnalyzedCallable): void {
 		const parameter_keys = new Set<string>();
 		for (const parameter of callable.parameters) {
-			if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
+			if (parameter.uses < MIN_ARGUMENT_USES) {
+				continue;
+			}
+			if (parameter_keys.has(parameter.key)) {
 				continue;
 			}
 			parameter_keys.add(parameter.key);

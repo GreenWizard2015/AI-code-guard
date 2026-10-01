@@ -15,6 +15,46 @@ export class DynamicBindingNames {
 		ts.forEachChild(node, (child) => this.append_key_names(child, names));
 	}
 
+	/** Responsibilities: _string alias value_. **/
+	private append_alias_value(names: Set<string>, name: string, initializer: ts.Expression): boolean {
+		if (!ts.isIdentifier(initializer)) {
+			return false;
+		}
+		if (!names.has(initializer.text)) {
+			return false;
+		}
+		if (names.has(name)) {
+			return false;
+		}
+		names.add(name);
+		return true;
+	}
+
+	/** Responsibilities: _string alias addition_. **/
+	private append_string_alias(node: ts.Node, names: Set<string>): boolean {
+		if (!ts.isVariableDeclaration(node)) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.initializer === undefined) {
+			return false;
+		}
+		return this.append_alias_value(names, node.name.text, node.initializer);
+	}
+
+	/** Responsibilities: _string alias collection_. **/
+	private append_string_aliases(node: ts.Node, names: Set<string>): boolean {
+		let changed = this.append_string_alias(node, names);
+		ts.forEachChild(node, (child) => {
+			if (this.append_string_aliases(child, names)) {
+				changed = true;
+			}
+		});
+		return changed;
+	}
+
 	/** Responsibilities: _resolution name bound string-valued_. **/
 	private string_binding_name(node: ts.Node): string {
 		if (ts.isParameter(node) || ts.isVariableDeclaration(node)) {
@@ -51,6 +91,10 @@ export class DynamicBindingNames {
 		}
 		const names = new Set<string>();
 		this.append_key_names(source_file, names);
+		let changed = true;
+		while (changed) {
+			changed = this.append_string_aliases(source_file, names);
+		}
 		this.string_key_cache.set(source_file, names);
 		return names;
 	}

@@ -155,12 +155,18 @@ describe("coding-lint method and type rules", () => {
 
 		expect({
 			count: violations.filter((item) => item.rule_id === "assertion-outside-test").length,
-			production: violations.some(
-				(item) => item.rule_id === "assertion-outside-test" && item.file.endsWith("src/production.ts"),
-			),
-			test_file: violations.some(
-				(item) => item.rule_id === "assertion-outside-test" && item.file.endsWith("tests/assertions.ts"),
-			),
+			production: violations.some((item) => {
+				if (item.rule_id !== "assertion-outside-test") {
+					return false;
+				}
+				return item.file.endsWith("src/production.ts");
+			}),
+			test_file: violations.some((item) => {
+				if (item.rule_id !== "assertion-outside-test") {
+					return false;
+				}
+				return item.file.endsWith("tests/assertions.ts");
+			}),
 		}).toEqual({ count: 1, production: false, test_file: true });
 	});
 
@@ -175,12 +181,18 @@ describe("coding-lint method and type rules", () => {
 
 		expect({
 			count: violations.filter((item) => item.rule_id === "assertion-outside-test").length,
-			production: violations.some(
-				(item) => item.rule_id === "assertion-outside-test" && item.file.endsWith("production.py"),
-			),
-			test_file: violations.some(
-				(item) => item.rule_id === "assertion-outside-test" && item.file.endsWith("tests/assertions_test.py"),
-			),
+			production: violations.some((item) => {
+				if (item.rule_id !== "assertion-outside-test") {
+					return false;
+				}
+				return item.file.endsWith("production.py");
+			}),
+			test_file: violations.some((item) => {
+				if (item.rule_id !== "assertion-outside-test") {
+					return false;
+				}
+				return item.file.endsWith("tests/assertions_test.py");
+			}),
 		}).toEqual({ count: 1, production: false, test_file: true });
 	});
 

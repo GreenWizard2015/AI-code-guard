@@ -25,7 +25,10 @@ export class TestFileOrganization {
 		let length = 0;
 		while (length < segments.length) {
 			const segment = segments[length];
-			if (segment === undefined || !this.test_scope_directories.has(segment)) {
+			if (segment === undefined) {
+				break;
+			}
+			if (!this.test_scope_directories.has(segment)) {
 				break;
 			}
 			length += 1;
@@ -39,7 +42,10 @@ export class TestFileOrganization {
 		while (length < segments.length) {
 			const index = segments.length - length - 1;
 			const segment = segments[index];
-			if (segment === undefined || !this.test_scope_directories.has(segment)) {
+			if (segment === undefined) {
+				break;
+			}
+			if (!this.test_scope_directories.has(segment)) {
 				break;
 			}
 			length += 1;

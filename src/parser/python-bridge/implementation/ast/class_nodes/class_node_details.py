@@ -27,8 +27,9 @@ class PythonClassNodeDetails:
         body: list[ast.stmt] = []
         for item in self.node.body:
             is_string_expression = type(item) is ast.Expr
-            if is_string_expression and type(item.value) is ast.Constant:
-                is_string_expression = type(item.value.value) is str
+            if is_string_expression:
+                if type(item.value) is ast.Constant:
+                    is_string_expression = type(item.value.value) is str
             if is_string_expression:
                 continue
             body.append(item)

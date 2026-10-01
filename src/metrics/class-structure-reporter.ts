@@ -1,9 +1,9 @@
+import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
 import { MetricViolations } from "src/metric-violations";
+import { ProceduralClassName } from "src/metrics/procedural-class-name";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
 import type { Violation } from "src/protocols";
-import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
 import type { AstClassNode, LintFileNameContract } from "src/types";
-import { ProceduralClassName } from "src/metrics/procedural-class-name";
 
 /** Responsibilities: _reporting class mixins state_. **/
 export class ClassStructureReporter {
@@ -148,7 +148,10 @@ export class ClassStructureReporter {
 		if (this.node.is_data_class) {
 			return;
 		}
-		if (this.suppress_short_class || this.minimum_class_size >= MIN_CLASS_LINES) {
+		if (this.suppress_short_class) {
+			return;
+		}
+		if (this.minimum_class_size >= MIN_CLASS_LINES) {
 			return;
 		}
 		const metric_violations = new MetricViolations();

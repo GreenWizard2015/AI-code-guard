@@ -116,7 +116,10 @@ export class TypeScriptDeclarations {
 
 	/** Responsibilities: _creation class-like-prefix violation declaration_. **/
 	private group_violation(file: string, prefix: string, group: NamedDeclaration[]): Violation[] {
-		if (group.length < 2 || group.every((declaration) => declaration.has_self)) {
+		if (group.length < 2) {
+			return [];
+		}
+		if (group.every((declaration) => declaration.has_self)) {
 			return [];
 		}
 		const class_name = prefix.slice(1, -1);

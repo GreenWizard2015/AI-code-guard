@@ -13,7 +13,10 @@ export class TypeScriptObjectCallableAliases {
 
 	/** Responsibilities: _callable alias name extension_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
-		if (name.length === 0 || aliases.has(name)) {
+		if (name.length === 0) {
+			return false;
+		}
+		if (aliases.has(name)) {
 			return false;
 		}
 		aliases.add(name);
@@ -152,8 +155,10 @@ export class TypeScriptObjectCallableAliases {
 		if (ts.isVariableDeclaration(node) && this.append_variable(aliases, objects, interfaces, node)) {
 			changed = true;
 		}
-		if (node !== root && ts.isFunctionLike(node)) {
-			return changed;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return changed;
+			}
 		}
 		node.forEachChild((child) => {
 			if (this.append_node(aliases, objects, interfaces, child, root)) {

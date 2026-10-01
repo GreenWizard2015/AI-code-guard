@@ -80,7 +80,10 @@ export class DuplicateTypeShapes {
 
 	/** Responsibilities: _normalization TypeScript type member_. **/
 	private type_field(member: ts.TypeElement, source_file: ts.SourceFile): string {
-		if (!ts.isPropertySignature(member) || member.name === undefined) {
+		if (!ts.isPropertySignature(member)) {
+			return "";
+		}
+		if (member.name === undefined) {
 			return "";
 		}
 		let type = "";

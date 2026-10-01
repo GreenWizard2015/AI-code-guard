@@ -53,6 +53,27 @@ export class TaskReviewScenario {
 		}));
 	}
 
+	/** Responsibilities: _review status scenarios_. **/
+	public review_statuses(): { pending: boolean; skipped: boolean; completed: boolean } {
+		const fixture = new TestFixture();
+		return fixture.with_temporary_files("task-review-status-", {}, (root, reporting) => {
+			const pending = reporting.review_requested([], false);
+			const skipped = reporting.review_requested([], true);
+			const review = join(root, ".ai-code-guard", "review");
+			mkdirSync(review, { recursive: true });
+			const initial = reporting.format([], { batch_size: 10, policy: "top-category", skip_review: false });
+			const completion_match = initial.match(
+				/Primary agent private completion code \(do not delegate\): ([0-9a-f]{32})/u,
+			);
+			let completion_code = "";
+			if (completion_match !== null) {
+				completion_code = completion_match[1];
+			}
+			writeFileSync(join(review, "complete.md"), completion_code);
+			return { pending, skipped, completed: reporting.review_requested([], false) };
+		});
+	}
+
 	/** Responsibilities: _completed architecture review_. **/
 	public completed_review(): string {
 		const fixture = new TestFixture();

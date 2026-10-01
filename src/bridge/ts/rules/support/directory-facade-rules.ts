@@ -1,6 +1,6 @@
 import { basename, dirname, relative } from "node:path";
-import type { Violation } from "src/protocols";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
 import type { NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _identification facade files direct_. **/
@@ -12,7 +12,14 @@ export class DirectoryFacadeRules {
 	private direct_source_files(files: string[], directory: string): string[] {
 		const source_files: string[] = [];
 		for (const file of files) {
-			if (dirname(file) === directory && (file.endsWith(".ts") || file.endsWith(".py"))) {
+			if (dirname(file) !== directory) {
+				continue;
+			}
+			if (file.endsWith(".ts")) {
+				source_files.push(file);
+				continue;
+			}
+			if (file.endsWith(".py")) {
 				source_files.push(file);
 			}
 		}
@@ -22,7 +29,10 @@ export class DirectoryFacadeRules {
 	/** Responsibilities: _selection facade-like files directory_. **/
 	private facade_files(files: string[], directory: string): string[] {
 		const source_files = this.direct_source_files(files, directory);
-		if (source_files.length === 0 || !source_files.every((file) => this.facade_file_names.has(basename(file)))) {
+		if (source_files.length === 0) {
+			return [];
+		}
+		if (!source_files.every((file) => this.facade_file_names.has(basename(file)))) {
 			return [];
 		}
 		return source_files;
@@ -36,12 +46,26 @@ export class DirectoryFacadeRules {
 		return [this.facade_rule.violation(relative(repo_root, file), 1)];
 	}
 
-	/** Responsibilities: _reporting normalization AST contains_. **/
-	public declarations(ast: NormalizedAstFile): boolean {
-		if (ast.classes.length > 0 || ast.functions.length > 0 || ast.type_declarations.length > 0) {
+	/** Responsibilities: _named declaration detection_. **/
+	private has_named_declarations(ast: NormalizedAstFile): boolean {
+		if (ast.classes.length > 0) {
 			return true;
 		}
-		if (ast.named_symbols.length > 0 || ast.module_instances?.length) {
+		if (ast.functions.length > 0) {
+			return true;
+		}
+		if (ast.type_declarations.length > 0) {
+			return true;
+		}
+		return ast.named_symbols.length > 0;
+	}
+
+	/** Responsibilities: _reporting normalization AST contains_. **/
+	public declarations(ast: NormalizedAstFile): boolean {
+		if (this.has_named_declarations(ast)) {
+			return true;
+		}
+		if (ast.module_instances.length > 0) {
 			return true;
 		}
 		return ast.module_constant_spans.length > 0;

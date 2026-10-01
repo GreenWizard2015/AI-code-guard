@@ -3,6 +3,7 @@ import { TypeScriptAssignmentPredicates } from "src/bridge/ts/parser-internals/t
 import { TypeScriptAssignmentValuePredicates } from "src/bridge/ts/parser-internals/typescript-assignment-value-predicates";
 import { TypeScriptBooleanExpression } from "src/bridge/ts/parser-internals/typescript-boolean-expression";
 import { TypeScriptBooleanCall } from "src/bridge/ts/parser-internals/typescript-boolean-call";
+import { TypeScriptExpressionContainers } from "src/bridge/ts/parser-internals/typescript-expression-containers";
 import type { RuleAppender } from "src/types";
 import {
 	CONDITIONAL_EXECUTION,
@@ -18,25 +19,7 @@ export class TypeScriptConditionalRules {
 	private readonly assignment_value_predicates = new TypeScriptAssignmentValuePredicates();
 	private readonly boolean_expression = new TypeScriptBooleanExpression();
 	private readonly boolean_call = new TypeScriptBooleanCall();
-
-	/** Responsibilities: _conditional binary parent classification_. **/
-	private binary_parent(container: ts.Node, current: ts.Node): boolean {
-		if (!ts.isBinaryExpression(container)) {
-			return false;
-		}
-		if (container.left === current) {
-			return true;
-		}
-		return container.right === current;
-	}
-
-	/** Responsibilities: _conditional expression parent classification_. **/
-	private nested_conditional_parent(container: ts.Node, current: ts.Node): boolean {
-		if (ts.isParenthesizedExpression(container)) {
-			return true;
-		}
-		return this.binary_parent(container, current);
-	}
+	private readonly expression_containers = new TypeScriptExpressionContainers();
 
 	/** Responsibilities: _conditional statement parent classification_. **/
 	private branch_condition_parent(container: ts.Node, current: ts.Node): boolean {
@@ -71,6 +54,9 @@ export class TypeScriptConditionalRules {
 
 	/** Responsibilities: _conditional statement parent classification_. **/
 	private statement_condition_parent(container: ts.Node, current: ts.Node): boolean {
+		if (ts.isExpressionStatement(container)) {
+			return container.expression === current;
+		}
 		if (this.branch_condition_parent(container, current)) {
 			return true;
 		}
@@ -82,7 +68,7 @@ export class TypeScriptConditionalRules {
 		let current: ts.Node = node;
 		while (current.parent !== undefined) {
 			const container = current.parent;
-			if (this.nested_conditional_parent(container, current)) {
+			if (this.expression_containers.contains(container, current)) {
 				current = container;
 				continue;
 			}

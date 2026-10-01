@@ -81,8 +81,10 @@ export class TypeScriptMemberBinding {
 
 	/** Responsibilities: _scope member aliases_. **/
 	private visit(aliases: Map<string, Set<string>>, node: ts.Node, root: ts.Node): boolean {
-		if (node !== root && ts.isFunctionLike(node)) {
-			return false;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return false;
+			}
 		}
 		let changed = false;
 		if (ts.isVariableDeclaration(node)) {

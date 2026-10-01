@@ -6,10 +6,11 @@ from implementation.references.protocols import (
     PythonReferenceContextProtocol,
 )
 import ast
-from typing import Any, Optional
+from typing import Any
 
 from implementation.references.constants import REFERENCE_GENERICS, SEQUENCE_ANNOTATIONS
 from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
+from implementation.types import AssignmentParts
 
 
 class PythonInstanceCollector:
@@ -39,10 +40,13 @@ class PythonInstanceCollector:
         if type(node.target) is ast.Name:
             self.context.record_instance(node.target.id, element.id)
             return
-        if type(node.target) is ast.Attribute and owner:
-            self.context.record_property(f"{owner}.{node.target.attr}", element.id)
+        if type(node.target) is not ast.Attribute:
+            return
+        if not owner:
+            return
+        self.context.record_property(f"{owner}.{node.target.attr}", element.id)
 
-    def _assignment_parts(self, node: ast.AST) -> dict[str, Optional[ast.AST]]:
+    def _assignment_parts(self, node: ast.AST) -> AssignmentParts:
         """Responsibilities: _normalization target value parts_."""
         if type(node) is ast.Assign:
             if len(node.targets) == 1:
@@ -113,7 +117,9 @@ class PythonInstanceCollector:
         if type(target) is ast.Name:
             self.context.record_instance(target.id, instance_type)
             return
-        if type(target) is not ast.Attribute or not owner:
+        if type(target) is not ast.Attribute:
+            return
+        if not owner:
             return
         property_key: Any = f"{owner}.{target.attr}"
         if not self.context.property_owner(property_key):
@@ -142,12 +148,13 @@ class PythonInstanceCollector:
         if type(current) is ast.ClassDef:
             current_owner: Any = current.name
         for_target = type(current) is ast.For
-        if for_target and type(current.target) is ast.Name:
-            iterable_owner: Any = self.context.attribute_owner(
-                current.iter, current_owner
-            )
-            if iterable_owner:
-                self.context.record_instance(current.target.id, iterable_owner)
+        if for_target:
+            if type(current.target) is ast.Name:
+                iterable_owner: Any = self.context.attribute_owner(
+                    current.iter, current_owner
+                )
+                if iterable_owner:
+                    self.context.record_instance(current.target.id, iterable_owner)
         for child in ast.iter_child_nodes(current):
             self._collect_for_aliases(child, current_owner)
 

@@ -20,7 +20,10 @@ export class TypeScriptTypeAliases {
 		if (ts.isArrayTypeNode(statement.type)) {
 			return statement.type.getText(source_file);
 		}
-		if (ts.isTypeOperatorNode(statement.type) && statement.type.operator === ts.SyntaxKind.ReadonlyKeyword) {
+		if (!ts.isTypeOperatorNode(statement.type)) {
+			return "";
+		}
+		if (statement.type.operator === ts.SyntaxKind.ReadonlyKeyword) {
 			return statement.type.getText(source_file);
 		}
 		return "";

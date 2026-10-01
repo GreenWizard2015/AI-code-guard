@@ -69,4 +69,22 @@ describe("TypeScript module declaration naming", () => {
 			),
 		).toEqual([]);
 	});
+
+	test("checks destructured module constants", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.collect_fixture_violations({
+			"constants.ts": [
+				"const SOURCE = { badValue: 1 };",
+				"const { badValue } = SOURCE;",
+				"const [anotherBadValue] = [badValue];",
+			].join("\n"),
+		});
+		const constant_violations = violations.filter(
+			(violation) => violation.rule_id === "typescript-module-constant-case",
+		);
+		expect(constant_violations.map((violation) => violation.message)).toEqual([
+			'module-level constant "badValue" must use UPPER_SNAKE_CASE',
+			'module-level constant "anotherBadValue" must use UPPER_SNAKE_CASE',
+		]);
+	});
 });

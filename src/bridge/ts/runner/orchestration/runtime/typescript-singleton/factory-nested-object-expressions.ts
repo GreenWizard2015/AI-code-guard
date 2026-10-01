@@ -37,13 +37,35 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
 		for (const property of initializer.properties) {
-			if (this.properties.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
+			if (this.properties.property_key(property) !== property_name) {
+				continue;
+			}
+			if (!ts.isPropertyAssignment(property)) {
 				continue;
 			}
 			const source = this.expression_names.unwrap_transparent_expression(property.initializer);
 			for (const expression of this.array_aliases.nested_expressions(binding, source, name).values()) {
 				expressions.set(name, expression);
 			}
+		}
+	}
+
+	/** Responsibilities: _spread object properties_. **/
+	private append_spread_properties(
+		source: ts.ObjectLiteralExpression,
+		property_name: string,
+		binding: ts.ObjectBindingPattern,
+		name: string,
+		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
+	): void {
+		for (const property of source.properties) {
+			if (this.properties.property_key(property) !== property_name) {
+				continue;
+			}
+			if (!ts.isPropertyAssignment(property)) {
+				continue;
+			}
+			this.append_value(property.initializer, binding, name, expressions);
 		}
 	}
 
@@ -55,22 +77,16 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		let source = this.expression_names.unwrap_transparent_expression(expression);
+		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
-			if (object_source === undefined) {
-				return;
+			if (object_source !== undefined) {
+				this.append_spread_properties(object_source, property_name, binding, name, expressions);
 			}
-			source = object_source;
-		}
-		if (!ts.isObjectLiteralExpression(source)) {
 			return;
 		}
-		for (const property of source.properties) {
-			if (this.properties.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
-				continue;
-			}
-			this.append_value(property.initializer, binding, name, expressions);
+		if (ts.isObjectLiteralExpression(source)) {
+			this.append_spread_properties(source, property_name, binding, name, expressions);
 		}
 	}
 
@@ -139,7 +155,10 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
+		if (!ts.isIdentifier(element.name)) {
+			return;
+		}
+		if (element.name.text !== name) {
 			return;
 		}
 		for (const expression of this.properties
@@ -157,7 +176,10 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): boolean {
-		if (this.properties.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
+		if (this.properties.property_key(property) !== property_name) {
+			return false;
+		}
+		if (!ts.isPropertyAssignment(property)) {
 			return false;
 		}
 		this.append_value(property.initializer, binding, name, expressions);

@@ -18,7 +18,10 @@ export class TestTargetImports {
 			return [];
 		}
 		const expression = statement.moduleReference.expression;
-		if (expression === undefined || !ts.isStringLiteral(expression)) {
+		if (expression === undefined) {
+			return [];
+		}
+		if (!ts.isStringLiteral(expression)) {
 			return [];
 		}
 		return [expression.text];

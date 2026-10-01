@@ -13,4 +13,8 @@ export type NamedSymbolOptions = {
 	visibility: AstVisibility;
 	is_module_function: boolean;
 };
+export type ModuleSymbolFlags = {
+	is_module_constant: boolean;
+	is_module_variable: boolean;
+};
 export type TypeMember = { name: string; type: string };

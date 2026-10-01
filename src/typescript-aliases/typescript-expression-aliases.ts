@@ -7,27 +7,6 @@ export class TypeScriptExpressionAliases {
 	private readonly collector: TypeScriptExpressionAliasCollector;
 	private readonly scope_aliases = new WeakMap<ts.Node, ReadonlySet<string>>();
 
-	/** Responsibilities: _globalThis target classification_. **/
-	private matches_global_target(expression: ts.Expression): boolean {
-		if (ts.isElementAccessExpression(expression)) {
-			if (!ts.isIdentifier(expression.expression) || expression.expression.text !== "globalThis") {
-				return false;
-			}
-			const argument = expression.argumentExpression;
-			if (!ts.isStringLiteral(argument) && !ts.isNoSubstitutionTemplateLiteral(argument)) {
-				return false;
-			}
-			return argument.text === this.target_name;
-		}
-		if (!ts.isPropertyAccessExpression(expression)) {
-			return false;
-		}
-		if (!ts.isIdentifier(expression.expression) || expression.expression.text !== "globalThis") {
-			return false;
-		}
-		return expression.name.text === this.target_name;
-	}
-
 	/** Responsibilities: _alias target classification_. **/
 	private matches_target(expression: ts.Expression): boolean {
 		if (this.target_name === "*") {
@@ -37,7 +16,7 @@ export class TypeScriptExpressionAliases {
 			return expression.kind === ts.SyntaxKind.ThisKeyword;
 		}
 		if (!ts.isIdentifier(expression)) {
-			return this.matches_global_target(expression);
+			return false;
 		}
 		return expression.text === this.target_name;
 	}

@@ -115,7 +115,10 @@ export class Declarations {
 	): void {
 		const groups = this.declaration_groups_from(functions, python_imports);
 		for (const [prefix, group] of groups) {
-			if (group.length < 2 || group.every((declaration) => declaration.has_self)) {
+			if (group.length < 2) {
+				continue;
+			}
+			if (group.every((declaration) => declaration.has_self)) {
 				continue;
 			}
 			violations.push(this.create_declaration_violation(file, prefix, group));

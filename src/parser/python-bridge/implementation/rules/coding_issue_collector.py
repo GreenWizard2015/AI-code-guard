@@ -54,7 +54,7 @@ class PythonCodingIssueCollector:
     """Responsibilities: _collection Python coding issues_."""
 
     @cached_property
-    def _stages(self) -> list[Callable[..., list[JsonObject]]]:
+    def _stages(self) -> list[PythonRuleStage]:
         """Responsibilities: _exposure ordered Python rule_."""
         return [
             self.constructor_rules.collect_constructor_issues,

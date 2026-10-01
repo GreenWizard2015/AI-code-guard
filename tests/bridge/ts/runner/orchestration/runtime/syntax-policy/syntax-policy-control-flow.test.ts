@@ -76,6 +76,26 @@ describe("coding-lint syntax and policy rules", () => {
 		expect(messages.filter((message) => message === "avoid conditional execution operators")).toHaveLength(1);
 	});
 
+	test("rejects logical execution nested in a call argument", () => {
+		const test_fixture = new TestFixture();
+		const messages = test_fixture.violation_messages({
+			"nested-call-argument.ts": "report(enabled && run());",
+		});
+		expect(messages.filter((message) => message === "avoid conditional execution operators")).toHaveLength(1);
+	});
+
+	test("rejects logical execution nested in returned object properties", () => {
+		const test_fixture = new TestFixture();
+		const messages = test_fixture.violation_messages({
+			"returned-object-property.ts": [
+				"function build(enabled: boolean, run: () => string): { result: string } {",
+				"return { result: enabled && run() };",
+				"}",
+			].join("\n"),
+		});
+		expect(messages.filter((message) => message === "avoid conditional execution operators")).toHaveLength(1);
+	});
+
 	test("rejects conditional execution in call arguments and lambdas", () => {
 		const test_fixture = new TestFixture();
 		const messages = test_fixture.violation_messages({

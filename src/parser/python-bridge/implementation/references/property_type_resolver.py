@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 
-from typing import Any, Optional
+from typing import Any
 import ast
 
 from implementation.references.protocols import PythonAnnotationResolverProtocol
 from implementation.ast.type_declarations.annotation_resolver import AnnotationNames
+from implementation.types import AssignmentParts
 
 
 class PythonPropertyType:
     """Responsibilities: _resolution Python property annotations_."""
 
-    def _assignment_parts(self, node: ast.AST) -> dict[str, Optional[ast.AST]]:
+    def _assignment_parts(self, node: ast.AST) -> AssignmentParts:
         """Responsibilities: _normalization target annotation value_."""
         if type(node) is ast.AnnAssign:
             return {"annotation": node.annotation, "value": node.value}
@@ -65,7 +66,9 @@ class PythonPropertyType:
         annotation: Any = parts["annotation"]
         value: Any = parts["value"]
         type_name: Any = self.annotation_type(annotation)
-        if not type_name and type(value) is ast.Name:
+        if type_name:
+            return type_name
+        if type(value) is ast.Name:
             type_name: Any = arguments.get(value.id, "")
         if type_name:
             return type_name

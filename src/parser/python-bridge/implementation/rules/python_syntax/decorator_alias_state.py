@@ -68,7 +68,10 @@ class PythonDecoratorAliasState:
         self._configure_alias_set(self.property_names, target, name)
         self.property_setter_names.discard(target)
         is_setter = type(source) is ast.Attribute and source.attr == "setter"
-        if is_setter or name in self.property_setter_names:
+        if is_setter:
+            self.property_setter_names.add(target)
+            return
+        if name in self.property_setter_names:
             self.property_setter_names.add(target)
 
     def _configure_assignment(self, node: ast.AST) -> None:

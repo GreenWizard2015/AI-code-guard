@@ -23,6 +23,14 @@ describe("coding-lint syntax policy architecture - type contracts", () => {
 		expect(test_messages).not.toContain("avoid inline object types in generic arguments");
 	});
 
+	test("rejects nested generic return annotations in Python", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.collect_fixture_violations({
+			"generic-return.py": ["def read_rows(source: str) -> list[dict[str, str]]:", "    return []"].join("\n"),
+		});
+		expect(violations.filter((violation) => violation.rule_id === "inline-generic-type")).toHaveLength(1);
+	});
+
 	test("ignores references to interfaces and protocols", () => {
 		const test_fixture = new TestFixture();
 

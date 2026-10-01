@@ -225,6 +225,7 @@ export type CodingRuleSourceData = {
 	text: string;
 	normalized_ast: NormalizedAstFile;
 	source_file: ts.SourceFile;
+	source_resolver: SourceFileResolver;
 };
 
 /** Responsibilities: _coding source snapshot access_. **/

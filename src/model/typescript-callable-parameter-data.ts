@@ -23,7 +23,10 @@ export class CallableParameterData {
 
 	/** Responsibilities: _collection generic names declared_. **/
 	private append_function_templates(names: Set<string>, current: ts.Node): void {
-		if (!ts.isFunctionLike(current) || current.typeParameters === undefined) {
+		if (!ts.isFunctionLike(current)) {
+			return;
+		}
+		if (current.typeParameters === undefined) {
 			return;
 		}
 		for (const parameter of current.typeParameters) {

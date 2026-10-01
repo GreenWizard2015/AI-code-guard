@@ -64,8 +64,10 @@ export class TypeScriptResponsibilityTargets {
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
 	private append_method(targets: AstResponsibilityTarget[], node: ts.Node, container: ResponsibilityContainer): void {
-		if (container.kind === ResponsibilityContainerKind.Interface && ts.isMethodSignature(node)) {
-			return;
+		if (container.kind === ResponsibilityContainerKind.Interface) {
+			if (ts.isMethodSignature(node)) {
+				return;
+			}
 		}
 		const name = this.method_name(node);
 		if (!name) {
@@ -140,9 +142,11 @@ export class TypeScriptResponsibilityTargets {
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
 	private visit(node: ts.Node, targets: AstResponsibilityTarget[], container: ResponsibilityContainer): void {
-		if (container.kind !== ResponsibilityContainerKind.Root && this.method_kinds.has(node.kind)) {
-			this.append_method(targets, node, container);
-			return;
+		if (container.kind !== ResponsibilityContainerKind.Root) {
+			if (this.method_kinds.has(node.kind)) {
+				this.append_method(targets, node, container);
+				return;
+			}
 		}
 		if (this.append_declaration(node, targets)) {
 			return;

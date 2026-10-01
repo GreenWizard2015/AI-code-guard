@@ -47,8 +47,12 @@ export class TypeScriptVariableBinding {
 	private declarations(source_file: ts.SourceFile, name: string): ts.VariableDeclaration[] {
 		const result: ts.VariableDeclaration[] = [];
 		const visit = (node: ts.Node): void => {
-			if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name) {
-				result.push(node);
+			if (ts.isVariableDeclaration(node)) {
+				if (ts.isIdentifier(node.name)) {
+					if (node.name.text === name) {
+						result.push(node);
+					}
+				}
 			}
 			ts.forEachChild(node, visit);
 		};
@@ -74,7 +78,10 @@ export class TypeScriptVariableBinding {
 		if (scope_index < selected_scope) {
 			return true;
 		}
-		return !ts.isVariableDeclaration(selected) || declaration.pos > selected.pos;
+		if (!ts.isVariableDeclaration(selected)) {
+			return true;
+		}
+		return declaration.pos > selected.pos;
 	}
 
 	/** Responsibilities: _selection visible variable declaration_. **/
@@ -128,7 +135,10 @@ export class TypeScriptVariableBinding {
 	/** Responsibilities: _classification visible primitive binding_. **/
 	public primitive(name: string, reference: ts.Node): boolean {
 		const declaration = this.declaration(name, reference);
-		if (!ts.isVariableDeclaration(declaration) || declaration.type === undefined) {
+		if (!ts.isVariableDeclaration(declaration)) {
+			return false;
+		}
+		if (declaration.type === undefined) {
 			return false;
 		}
 		return this.type_node(declaration.type).primitive();

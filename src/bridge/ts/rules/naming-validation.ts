@@ -1,13 +1,13 @@
-import type { Violation } from "src/protocols";
-import { DiagnosticRule } from "src/model/diagnostic-rule";
-import type { ViolationContent } from "src/bridge/ts/rules/types";
-import type { NamedSymbol } from "src/types";
 import {
 	MAX_NAME_WORDS,
 	PASCAL_CASE_PATTERN,
 	SNAKE_CASE_PATTERN,
 	UPPER_CASE_PATTERN,
 } from "src/bridge/ts/rules/constants";
+import type { ViolationContent } from "src/bridge/ts/rules/types";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { NamedSymbol } from "src/types";
 
 /** Responsibilities: _validation symbol names cases_. **/
 export class NamingValidation {
@@ -22,7 +22,8 @@ export class NamingValidation {
 		if (!this.valid_case_name(name)) {
 			return false;
 		}
-		if (is_snake_case && kind === "constant" && is_module_constant) {
+		const is_constant = kind === "constant";
+		if (is_snake_case && is_constant && is_module_constant) {
 			return false;
 		}
 		return words.length <= this.max_name_words;
@@ -57,15 +58,18 @@ export class NamingValidation {
 		if (kind === "field") {
 			return true;
 		}
-		if (kind === "method" && /^__.*__$/u.test(name)) {
+		const is_method = kind === "method";
+		if (is_method && /^__.*__$/u.test(name)) {
 			return true;
 		}
-		return kind === "method" && visibility === "private";
+		const is_private = visibility === "private";
+		return is_method && is_private;
 	}
 
 	/** Responsibilities: _construction naming violation message_. **/
 	private naming_content(name: string, kind: string, word_count: number): ViolationContent {
-		if (kind === "type" || kind === "type_alias") {
+		const is_type = kind === "type" || kind === "type_alias";
+		if (is_type) {
 			let label = "type alias";
 			if (kind === "type") {
 				label = "type";
@@ -103,7 +107,8 @@ export class NamingValidation {
 		if (/^_+$/u.test(name)) {
 			return true;
 		}
-		if (kind === "type_alias" || kind === "type") {
+		const is_type = kind === "type_alias" || kind === "type";
+		if (is_type) {
 			return this.pascal_case_pattern.test(name);
 		}
 		return this.valid_symbol_name(name, kind, is_module_constant, words);

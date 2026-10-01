@@ -7,7 +7,10 @@ export class TypeScriptCallableAliases {
 
 	/** Responsibilities: _callable alias name extension_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
-		if (name.length === 0 || aliases.has(name)) {
+		if (name.length === 0) {
+			return false;
+		}
+		if (aliases.has(name)) {
 			return false;
 		}
 		aliases.add(name);
@@ -75,7 +78,10 @@ export class TypeScriptCallableAliases {
 		for (let index = 0; index < binding.elements.length; index += 1) {
 			const element = binding.elements[index];
 			const value = values.elements[index];
-			if (!ts.isBindingElement(element) || value === undefined) {
+			if (!ts.isBindingElement(element)) {
+				continue;
+			}
+			if (value === undefined) {
 				continue;
 			}
 			if (ts.isIdentifier(element.name) && this.append_assignment(aliases, element.name.text, value)) {
@@ -131,7 +137,10 @@ export class TypeScriptCallableAliases {
 
 	/** Responsibilities: _callable assignment node collection_. **/
 	private append_assignment_node(aliases: Set<string>, node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node) || node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+		if (!ts.isBinaryExpression(node)) {
+			return false;
+		}
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
 			return false;
 		}
 		if (!ts.isIdentifier(node.left)) {
@@ -151,8 +160,10 @@ export class TypeScriptCallableAliases {
 		if (this.append_assignment_node(aliases, node)) {
 			changed = true;
 		}
-		if (node !== root && ts.isFunctionLike(node)) {
-			return changed;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return changed;
+			}
 		}
 		node.forEachChild((child) => {
 			if (this.append_node(aliases, child, root, arrays)) {

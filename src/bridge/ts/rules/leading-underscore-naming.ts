@@ -1,5 +1,5 @@
-import type { Violation } from "src/protocols";
 import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
 import type { NamedLine, NamedSymbol } from "src/types";
 
 /** Responsibilities: _leading underscore validation_, _leading underscore diagnostics_. **/
@@ -15,20 +15,28 @@ export class LeadingUnderscoreNaming {
 		if (!name.startsWith("_")) {
 			return true;
 		}
-		if (/^_+$/u.test(name) || kind === "field") {
+		if (/^_+$/u.test(name)) {
 			return true;
 		}
-		if (kind === "method" && /^__.*__$/u.test(name)) {
+		if (kind === "field") {
 			return true;
 		}
-		return kind === "method" && visibility === "private";
+		if (kind === "method") {
+			if (/^__.*__$/u.test(name)) {
+				return true;
+			}
+			return visibility === "private";
+		}
+		return false;
 	}
 
 	/** Responsibilities: _leading underscore diagnostic creation_. **/
 	public violation(file: string, symbol: NamedSymbol): Violation {
 		let label: string = symbol.kind;
-		if (symbol.kind === "function" && symbol.is_module_function) {
-			label = "module function";
+		if (symbol.kind === "function") {
+			if (symbol.is_module_function) {
+				label = "module function";
+			}
 		}
 		if (symbol.kind === "method") {
 			label = `${symbol.visibility} method`;

@@ -29,7 +29,10 @@ export class TypeScriptFactoryObjectProperties {
 		property_name: string,
 		expressions: Map<string, ts.FunctionLikeDeclarationBase>,
 	): void {
-		if (this.property_key(property) !== property_name || !ts.isPropertyAssignment(property)) {
+		if (this.property_key(property) !== property_name) {
+			return;
+		}
+		if (!ts.isPropertyAssignment(property)) {
 			return;
 		}
 		const expression = this.expression_names.unwrap_transparent_expression(property.initializer);

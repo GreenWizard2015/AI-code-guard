@@ -39,7 +39,10 @@ export class TypeOperations {
 		node: ts.Node,
 	): void {
 		const operation = this.type_operation(node);
-		if (operation.length === 0 || !this.contains_project_type(node, operation)) {
+		if (operation.length === 0) {
+			return;
+		}
+		if (!this.contains_project_type(node, operation)) {
 			return;
 		}
 		this.append_operation_violation(violations, file, source_file, node, operation);
@@ -87,8 +90,12 @@ export class TypeOperations {
 	private contains_project_type(node: ts.Node, operation: string): boolean {
 		let found = false;
 		const visit = (child: ts.Node): void => {
-			if (ts.isIdentifier(child) && child.text !== operation && /^[A-Z_]/u.test(child.text)) {
-				found = true;
+			if (ts.isIdentifier(child)) {
+				if (child.text !== operation) {
+					if (/^[A-Z_]/u.test(child.text)) {
+						found = true;
+					}
+				}
 			}
 			ts.forEachChild(child, visit);
 		};

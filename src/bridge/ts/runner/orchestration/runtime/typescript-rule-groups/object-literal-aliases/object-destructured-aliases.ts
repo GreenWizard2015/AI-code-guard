@@ -70,7 +70,10 @@ export class ObjectDestructuredAliases {
 		const property = initializer.properties.find(
 			(candidate) => this.expression_names.static_element_name(candidate) === source_name,
 		);
-		if (property === undefined || !ts.isPropertyAssignment(property)) {
+		if (property === undefined) {
+			return false;
+		}
+		if (!ts.isPropertyAssignment(property)) {
 			return false;
 		}
 		return this.append_nested(aliases, element.name, property.initializer);
@@ -94,6 +97,30 @@ export class ObjectDestructuredAliases {
 		return changed;
 	}
 
+	/** Responsibilities: _array alias element_. **/
+	private append_array_element(
+		aliases: Set<string>,
+		binding: ts.ArrayBindingPattern,
+		initializer: ts.ArrayLiteralExpression,
+		index: number,
+	): boolean {
+		const element = binding.elements[index];
+		if (element === undefined) {
+			return false;
+		}
+		const value = initializer.elements[index];
+		if (value === undefined) {
+			return false;
+		}
+		if (ts.isSpreadElement(value)) {
+			return false;
+		}
+		if (!ts.isBindingElement(element)) {
+			return false;
+		}
+		return this.append_nested(aliases, element.name, value);
+	}
+
 	/** Responsibilities: _array alias elements_. **/
 	private append_array_elements(
 		aliases: Set<string>,
@@ -102,12 +129,7 @@ export class ObjectDestructuredAliases {
 	): boolean {
 		let changed = false;
 		for (let index = 0; index < binding.elements.length; index += 1) {
-			const element = binding.elements[index];
-			const value = initializer.elements[index];
-			if (element === undefined || value === undefined || ts.isSpreadElement(value)) {
-				continue;
-			}
-			if (ts.isBindingElement(element) && this.append_nested(aliases, element.name, value)) {
+			if (this.append_array_element(aliases, binding, initializer, index)) {
 				changed = true;
 			}
 		}

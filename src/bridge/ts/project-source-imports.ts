@@ -28,8 +28,10 @@ export class ProjectSourceImports {
 			if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
 				specifier = node.moduleSpecifier;
 			}
-			if (specifier !== undefined && ts.isStringLiteral(specifier)) {
-				imports.push(specifier.text);
+			if (specifier !== undefined) {
+				if (ts.isStringLiteral(specifier)) {
+					imports.push(specifier.text);
+				}
 			}
 		});
 		return imports;

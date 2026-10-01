@@ -50,7 +50,10 @@ export class TypeScriptFactoryArraySources {
 
 	/** Responsibilities: _array source registration_. **/
 	private append_source(declaration: ts.VariableDeclaration): boolean {
-		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isIdentifier(declaration.name)) {
+			return false;
+		}
+		if (declaration.initializer === undefined) {
 			return false;
 		}
 		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
@@ -75,7 +78,10 @@ export class TypeScriptFactoryArraySources {
 	/** Responsibilities: _register array alias_. **/
 	private append_alias_source(name: string, alias: string): boolean {
 		const source = this.array_sources.get(alias);
-		if (source === undefined || this.array_sources.has(name)) {
+		if (source === undefined) {
+			return false;
+		}
+		if (this.array_sources.has(name)) {
 			return false;
 		}
 		this.array_sources.set(name, source);
@@ -93,6 +99,22 @@ export class TypeScriptFactoryArraySources {
 				}
 			}
 		}
+	}
+
+	/** Responsibilities: _binding initializer values_. **/
+	private values_from_initializer(initializer: ts.Expression): readonly ts.Expression[] {
+		const source = this.expression_names.unwrap_transparent_expression(initializer);
+		if (ts.isArrayLiteralExpression(source)) {
+			return this.elements(source);
+		}
+		if (!ts.isIdentifier(source)) {
+			return [];
+		}
+		const array_source = this.array_sources.get(source.text);
+		if (array_source === undefined) {
+			return [];
+		}
+		return this.elements(array_source);
 	}
 
 	/** Responsibilities: _initialization factory array sources_. **/
@@ -135,22 +157,14 @@ export class TypeScriptFactoryArraySources {
 
 	/** Responsibilities: _binding array values_. **/
 	public values(declaration: ts.VariableDeclaration): readonly ts.Expression[] {
-		if (!ts.isArrayBindingPattern(declaration.name) || declaration.initializer === undefined) {
+		if (!ts.isArrayBindingPattern(declaration.name)) {
+			return [];
+		}
+		if (declaration.initializer === undefined) {
 			return [];
 		}
 		this.register_array_sources();
-		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
-		if (ts.isArrayLiteralExpression(initializer)) {
-			return this.elements(initializer);
-		}
-		if (!ts.isIdentifier(initializer)) {
-			return [];
-		}
-		const source = this.array_sources.get(initializer.text);
-		if (source === undefined) {
-			return [];
-		}
-		return this.elements(source);
+		return this.values_from_initializer(declaration.initializer);
 	}
 
 	/** Responsibilities: _array literal elements_. **/

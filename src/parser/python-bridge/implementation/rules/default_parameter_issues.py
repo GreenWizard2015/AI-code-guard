@@ -20,7 +20,9 @@ class PythonDefaultParameterIssues:
     def _signed_number(self, value: ast.AST) -> bool:
         """Responsibilities: _signed numeric defaults identification_."""
         is_signed_number = type(value) is ast.UnaryOp
-        if not is_signed_number or type(value.op) not in (ast.UAdd, ast.USub):
+        if not is_signed_number:
+            return False
+        if type(value.op) not in (ast.UAdd, ast.USub):
             return False
         if type(value.operand) is not ast.Constant:
             return False

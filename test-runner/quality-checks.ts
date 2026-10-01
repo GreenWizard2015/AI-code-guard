@@ -22,8 +22,10 @@ export class QualityCheckProcess {
 	private run_command(check: QualityCheck, skip_review: boolean): void {
 		process.stdout.write(`🔎 Checking ${check.label}...\n`);
 		let args = check.args;
-		if (skip_review && check.supports_skip_review === true) {
-			args = [...check.args, "--", "--skip-review"];
+		if (skip_review) {
+			if (check.supports_skip_review === true) {
+				args = [...check.args, "--", "--skip-review"];
+			}
 		}
 		const result = spawnSync(check.command, [...args], {
 			env: check.environment,

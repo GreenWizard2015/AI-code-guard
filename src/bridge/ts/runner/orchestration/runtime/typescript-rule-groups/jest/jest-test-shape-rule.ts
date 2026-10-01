@@ -1,7 +1,7 @@
-import ts from "typescript";
-import type { JestCallbackKind } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types";
 import { JestAssertionShapeRule } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-assertion-shape-rule";
+import type { JestCallbackKind } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import ts from "typescript";
 
 /** Responsibilities: _classification Jest callbacks expectations_. **/
 export class JestTestShapeRule {
@@ -52,7 +52,10 @@ export class JestTestShapeRule {
 	/** Responsibilities: _detection direct expect invocation_. **/
 	private contains_direct_expect(callback: ts.FunctionLikeDeclaration): boolean {
 		const body = callback.body;
-		if (body === undefined || !ts.isBlock(body)) {
+		if (body === undefined) {
+			return false;
+		}
+		if (!ts.isBlock(body)) {
 			return false;
 		}
 		return body.statements.some(
@@ -71,11 +74,13 @@ export class JestTestShapeRule {
 	/** Responsibilities: _classification callback shape passed_. **/
 	private callback_kind(node: ts.CallExpression): JestCallbackKind {
 		const candidate = node.arguments[node.arguments.length - 1];
-		if (candidate !== undefined && ts.isArrowFunction(candidate)) {
-			return "arrow";
-		}
-		if (candidate !== undefined && ts.isFunctionExpression(candidate)) {
-			return "function";
+		if (candidate !== undefined) {
+			if (ts.isArrowFunction(candidate)) {
+				return "arrow";
+			}
+			if (ts.isFunctionExpression(candidate)) {
+				return "function";
+			}
 		}
 		return "other";
 	}
@@ -86,7 +91,10 @@ export class JestTestShapeRule {
 		if (this.callback_kind(node) !== "arrow") {
 			return false;
 		}
-		if (candidate === undefined || !ts.isArrowFunction(candidate)) {
+		if (candidate === undefined) {
+			return false;
+		}
+		if (!ts.isArrowFunction(candidate)) {
 			return false;
 		}
 		return !this.contains_direct_expect(candidate);
@@ -99,7 +107,11 @@ export class JestTestShapeRule {
 			if (found) {
 				return;
 			}
-			if (ts.isTryStatement(child) && child.catchClause !== undefined) {
+			if (!ts.isTryStatement(child)) {
+				ts.forEachChild(child, visit);
+				return;
+			}
+			if (child.catchClause !== undefined) {
 				found = true;
 				return;
 			}

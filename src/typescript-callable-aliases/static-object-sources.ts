@@ -18,7 +18,10 @@ export class TypeScriptStaticObjectSources {
 		if (direct !== "") {
 			return direct;
 		}
-		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
+		if (!ts.isElementAccessExpression(expression)) {
+			return "";
+		}
+		if (expression.argumentExpression === undefined) {
 			return "";
 		}
 		return this.static_values.value(expression.argumentExpression, node);
@@ -194,7 +197,10 @@ export class TypeScriptStaticObjectSources {
 			return false;
 		}
 		const properties: ts.ObjectLiteralElementLike[] = [];
-		if (!this.append_properties(properties, initializer) || properties.length === 0) {
+		if (!this.append_properties(properties, initializer)) {
+			return false;
+		}
+		if (properties.length === 0) {
 			return false;
 		}
 		objects.set(name, ts.factory.createObjectLiteralExpression(properties));

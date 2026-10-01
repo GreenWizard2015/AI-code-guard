@@ -1,14 +1,44 @@
-import ts from "typescript";
+import type { ModuleSymbolFlags, NamedSymbolOptions } from "src/bridge/ts/parser/types";
 import type { AstVisibility, NamedSymbol, NamedSymbolKind } from "src/types";
-import type { NamedSymbolOptions } from "src/bridge/ts/parser/types";
+import { TypeScriptImportSymbols } from "src/bridge/ts/parser/typescript-import-symbols";
+import ts from "typescript";
 
 /** Responsibilities: _classification TypeScript declarations construction_. **/
 export class TypeScriptSymbolDeclaration {
 	private readonly default_visibility: AstVisibility = "public";
+	private readonly import_symbols = new TypeScriptImportSymbols();
+
+	/** Responsibilities: _module symbol flags_. **/
+	private module_flags(kind: NamedSymbolKind, is_module_scope: boolean): ModuleSymbolFlags {
+		if (!is_module_scope) {
+			return { is_module_constant: false, is_module_variable: false };
+		}
+		if (kind === "constant") {
+			return { is_module_constant: true, is_module_variable: false };
+		}
+		if (kind === "variable") {
+			return { is_module_constant: false, is_module_variable: true };
+		}
+		return { is_module_constant: false, is_module_variable: false };
+	}
+
+	/** Responsibilities: _construction symbols variable declarations_. **/
+	private binding_names(name: ts.BindingName): ts.Identifier[] {
+		if (ts.isIdentifier(name)) {
+			return [name];
+		}
+		const names: ts.Identifier[] = [];
+		for (const element of name.elements) {
+			if (ts.isBindingElement(element)) {
+				names.push(...this.binding_names(element.name));
+			}
+		}
+		return names;
+	}
 
 	/** Responsibilities: _construction symbols variable declarations_. **/
 	private variable_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
+		if (!ts.isVariableDeclaration(node)) {
 			return [];
 		}
 		let kind: NamedSymbolKind = "variable";
@@ -18,14 +48,13 @@ export class TypeScriptSymbolDeclaration {
 			}
 		}
 		const is_module_scope = this.is_module_scope(node);
-		return [
-			this.named_symbol(node.name.text, node, kind, source_file, {
-				is_module_constant: kind === "constant" && is_module_scope,
-				is_module_variable: kind === "variable" && is_module_scope,
+		return this.binding_names(node.name).map((name) =>
+			this.named_symbol(name.text, name, kind, source_file, {
+				...this.module_flags(kind, is_module_scope),
 				visibility: this.default_visibility,
 				is_module_function: false,
 			}),
-		];
+		);
 	}
 
 	/** Responsibilities: _construction symbols named declarations_. **/
@@ -173,6 +202,9 @@ export class TypeScriptSymbolDeclaration {
 
 	/** Responsibilities: _classification AST declaration normalization_. **/
 	public declaration_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
+		if (this.import_symbols.import_node(node)) {
+			return this.import_symbols.symbol(node, source_file);
+		}
 		const declaration = this.named_declaration(node, source_file);
 		if (declaration.length > 0) {
 			return declaration;

@@ -16,9 +16,11 @@ export class TypeScriptClassNodes {
 	private append_variable_nodes(statement: ts.VariableStatement, classes: AstClassNode[]): void {
 		for (const declaration of statement.declarationList.declarations) {
 			const initializer = declaration.initializer;
-			if (initializer !== undefined && ts.isClassExpression(initializer)) {
-				this.append_class_nodes(initializer, classes, declaration.name.getText(this.source_file));
-				continue;
+			if (initializer !== undefined) {
+				if (ts.isClassExpression(initializer)) {
+					this.append_class_nodes(initializer, classes, declaration.name.getText(this.source_file));
+					continue;
+				}
 			}
 			this.append_class_nodes(declaration, classes);
 		}
@@ -135,7 +137,10 @@ export class TypeScriptClassNodes {
 			return "";
 		}
 		for (const clause of clauses) {
-			if (clause.token !== ts.SyntaxKind.ExtendsKeyword || !clause.types[0]) {
+			if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+				continue;
+			}
+			if (!clause.types[0]) {
 				continue;
 			}
 			return clause.types[0].expression.getText(this.source_file);

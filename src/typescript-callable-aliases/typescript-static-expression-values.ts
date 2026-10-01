@@ -10,7 +10,10 @@ export class TypeScriptStaticExpressionValues {
 
 	/** Responsibilities: _static value declaration_. **/
 	private append_declaration(values: Map<string, string>, node: ts.VariableDeclaration): boolean {
-		if (node.initializer === undefined || !ts.isIdentifier(node.name)) {
+		if (node.initializer === undefined) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.name)) {
 			return false;
 		}
 		return this.operations.append(values, node.name.text, node.initializer);
@@ -18,7 +21,10 @@ export class TypeScriptStaticExpressionValues {
 
 	/** Responsibilities: _static value assignment_. **/
 	private append_assignment(values: Map<string, string>, node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken || !ts.isIdentifier(node.left)) {
+		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+			return false;
+		}
+		if (!ts.isIdentifier(node.left)) {
 			return false;
 		}
 		return this.operations.append(values, node.left.text, node.right);
@@ -52,8 +58,10 @@ export class TypeScriptStaticExpressionValues {
 
 	/** Responsibilities: _static value declaration collection_. **/
 	private append_node(values: Map<string, string>, node: ts.Node, root: ts.Node): boolean {
-		if (node !== root && ts.isFunctionLike(node)) {
-			return false;
+		if (node !== root) {
+			if (ts.isFunctionLike(node)) {
+				return false;
+			}
 		}
 		let changed = this.append_declaration_node(values, node);
 		if (this.append_assignment_node(values, node)) {

@@ -27,9 +27,11 @@ export class TypeScriptBlockInstanceCapture {
 			if (found) {
 				return;
 			}
-			if (ts.isIdentifier(child) && child.text === name) {
-				found = true;
-				return;
+			if (ts.isIdentifier(child)) {
+				if (child.text === name) {
+					found = true;
+					return;
+				}
 			}
 			ts.forEachChild(child, visit);
 		};
@@ -43,7 +45,10 @@ export class TypeScriptBlockInstanceCapture {
 			return false;
 		}
 		const parent = node.parent;
-		if (!ts.isBinaryExpression(parent) || parent.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+		if (!ts.isBinaryExpression(parent)) {
+			return false;
+		}
+		if (parent.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
 			return false;
 		}
 		if (!ts.isIdentifier(parent.left)) {
@@ -60,11 +65,15 @@ export class TypeScriptBlockInstanceCapture {
 		if (ts.isFunctionExpression(node)) {
 			return this.escaping_body(node, node.body, name, names);
 		}
-		if (ts.isFunctionDeclaration(node) && node.body !== undefined) {
-			return this.escaping_body(node, node.body, name, names);
+		if (ts.isFunctionDeclaration(node)) {
+			if (node.body !== undefined) {
+				return this.escaping_body(node, node.body, name, names);
+			}
 		}
-		if (ts.isMethodDeclaration(node) && node.body !== undefined) {
-			return this.escaping_body(node, node.body, name, names);
+		if (ts.isMethodDeclaration(node)) {
+			if (node.body !== undefined) {
+				return this.escaping_body(node, node.body, name, names);
+			}
 		}
 		return false;
 	}

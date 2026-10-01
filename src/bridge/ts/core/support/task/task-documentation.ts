@@ -10,17 +10,20 @@ export class TaskDocumentation {
 	private readonly agent_file: string;
 
 	/** Responsibilities: _rule document coverage validation_. **/
-	private validate_rule_documents(): void {
-		const documentation_directory = join(this.documentation_root, "docs", "rules");
-		const rule_ids = new Set(Object.keys(RULE_DATA));
-		for (const rule_id of rule_ids) {
-			const documentation_file = join(documentation_directory, `${rule_id}.md`);
-			if (!existsSync(documentation_file)) {
-				throw new Error(`Rule "${rule_id}" is missing documentation: ${documentation_file}`);
-			}
+	private validate_rule_document(documentation_directory: string, rule_id: string): void {
+		const documentation_file = join(documentation_directory, `${rule_id}.md`);
+		if (!existsSync(documentation_file)) {
+			throw new Error(`Rule "${rule_id}" is missing documentation: ${documentation_file}`);
 		}
+	}
+
+	/** Responsibilities: _rule document name validation_. **/
+	private validate_rule_names(documentation_directory: string, rule_ids: ReadonlySet<string>): void {
 		for (const file of readdirSync(documentation_directory)) {
-			if (!file.endsWith(".md") || file === "README.md") {
+			if (!file.endsWith(".md")) {
+				continue;
+			}
+			if (file === "README.md") {
 				continue;
 			}
 			const rule_id = file.slice(0, -".md".length);
@@ -28,6 +31,16 @@ export class TaskDocumentation {
 				throw new Error(`Documentation "${file}" has no matching rule in RULE_DATA.`);
 			}
 		}
+	}
+
+	/** Responsibilities: _rule document coverage validation_. **/
+	private validate_rule_documents(): void {
+		const documentation_directory = join(this.documentation_root, "docs", "rules");
+		const rule_ids = new Set(Object.keys(RULE_DATA));
+		for (const rule_id of rule_ids) {
+			this.validate_rule_document(documentation_directory, rule_id);
+		}
+		this.validate_rule_names(documentation_directory, rule_ids);
 	}
 
 	/** Responsibilities: _architecture review document reading_. **/
