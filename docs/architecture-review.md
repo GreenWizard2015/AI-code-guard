@@ -16,6 +16,8 @@ No issues marker: {{REVIEW_CODE}}
 
 This line is the explicit no-problems confirmation; do not invent or alter the code. The delegated review agent must never receive this code or its value.
 
+If any functions.ts, functions.tsx, or functions.py file exists, inspect every function and move it into its appropriate owning class or focused domain module; when no existing class is appropriate, create a real domain/state/lifecycle-owning class. Do not leave a catch-all functions file, namespace-shaped class, or wrapper-only class.
+
 Do not record minor or speculative concerns, but do not omit a confirmed architectural defect merely because a lint rule already reports it or fails to report it.
 
 This review is a mandatory linter completion gate. The primary agent MUST complete the delegated review before reporting success.
