@@ -8,9 +8,7 @@ describe("coding-lint architecture review reporting", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.code_problem_result();
 		expect({
-			review_request: result.output.includes(
-				"ZERO LINT ISSUES IS NOT COMPLETION:",
-			),
+			review_request: result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:"),
 			code_problem: result.issues.includes("Problem: parse-error message"),
 		}).toEqual({ review_request: false, code_problem: true });
 	});
@@ -27,15 +25,14 @@ describe("coding-lint architecture review reporting", () => {
 	test("prints the philosophy and report path when there are no issues", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.clean_result();
-		const architecture_review = result.output.includes(
-			"ZERO LINT ISSUES IS NOT COMPLETION:",
-		);
-		const function_review = result.output.includes(
-			"If any functions.ts, functions.tsx, or functions.py file exists",
-		);
+		const architecture_review = result.output.includes("ZERO LINT ISSUES IS NOT COMPLETION:");
+		const function_review = result.output.includes("If any functions.ts, functions.tsx, or functions.py file exists");
+		const delegated_review = result.output.includes("delegate this review to a separate review agent");
+		const private_code = result.output.includes("Primary agent private completion code (do not delegate):");
+		const review_details = [architecture_review, function_review, delegated_review, private_code].every(Boolean);
 		expect({
 			philosophy: result.output.includes("## Rule philosophy"),
-			architecture_review: architecture_review && function_review,
+			architecture_review: review_details,
 			report_path: result.output.includes("Report in file `") && result.output.includes("report.md`"),
 			report: result.report.includes("| — | 0 | 0 |"),
 		}).toEqual({
@@ -50,9 +47,7 @@ describe("coding-lint architecture review reporting", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.completed_review();
 		expect({
-			verified: result.includes(
-				"Architecture review completion code verified.",
-			),
+			verified: result.includes("Architecture review completion code verified."),
 			request_stopped: !result.includes("ZERO LINT ISSUES IS NOT COMPLETION:"),
 			no_markdown_check: !result.includes("too short"),
 		}).toEqual({
@@ -66,11 +61,9 @@ describe("coding-lint architecture review reporting", () => {
 		const scenario = new TaskReviewScenario();
 		const result = scenario.short_review_result();
 		expect({
-			output: [
-				"too short",
-				"Add concrete architectural details",
-				"Total issues: 2.",
-			].every((value) => result.output.includes(value)),
+			output: ["too short", "Add concrete architectural details", "Total issues: 2."].every((value) =>
+				result.output.includes(value),
+			),
 			short_file_exists: result.short_file_exists,
 		}).toEqual({ output: true, short_file_exists: true });
 	});

@@ -30,10 +30,7 @@ export class QualityCheckProcess {
 	}
 
 	/** Responsibilities: _validation result quality command_. **/
-	private assert_command(
-		command: string,
-		result: ReturnType<typeof spawnSync>,
-	): void {
+	private assert_command(command: string, result: ReturnType<typeof spawnSync>): void {
 		let status = 1;
 		if (result.status !== null) {
 			status = result.status;
@@ -42,9 +39,7 @@ export class QualityCheckProcess {
 			this.assert_success(status);
 			return;
 		}
-		process.stderr.write(
-			`Failed to start ${command}: ${result.error.message}\n`,
-		);
+		process.stderr.write(`Failed to start ${command}: ${result.error.message}\n`);
 		process.exit(1);
 	}
 

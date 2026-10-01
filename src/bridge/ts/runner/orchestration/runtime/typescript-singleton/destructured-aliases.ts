@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptNamespaceAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution destructured class aliases_. **/
 export class TypeScriptDestructuredAliases {
@@ -11,7 +11,7 @@ export class TypeScriptDestructuredAliases {
 
 	/** Responsibilities: _collection class alias name_. **/
 	private append_name_alias(name: string, target: string): boolean {
-		if (target === '') {
+		if (target === "") {
 			return false;
 		}
 		if (!this.names.has(target)) {
@@ -25,18 +25,15 @@ export class TypeScriptDestructuredAliases {
 	}
 
 	/** Responsibilities: _resolution object property target_. **/
-	private direct_property_target(
-		property: ts.ObjectLiteralElementLike,
-		property_name: string
-	): string {
+	private direct_property_target(property: ts.ObjectLiteralElementLike, property_name: string): string {
 		if (!property.name || this.expression_names.static_property_name(property.name) !== property_name) {
-			return '';
+			return "";
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
 			return property.name.text;
 		}
 		if (!ts.isPropertyAssignment(property)) {
-			return '';
+			return "";
 		}
 		return this.property_value_target(property.initializer);
 	}
@@ -51,10 +48,7 @@ export class TypeScriptDestructuredAliases {
 	}
 
 	/** Responsibilities: _resolution object property source_. **/
-	private property_target(
-		property: ts.ObjectLiteralElementLike,
-		property_name: string
-	): string {
+	private property_target(property: ts.ObjectLiteralElementLike, property_name: string): string {
 		if (ts.isSpreadAssignment(property)) {
 			return this.spread_property_target(property.expression, property_name);
 		}
@@ -67,53 +61,47 @@ export class TypeScriptDestructuredAliases {
 		if (ts.isIdentifier(source)) {
 			const alias = this.object_sources.get(source.text);
 			if (alias === undefined) {
-				return '';
+				return "";
 			}
 			source = alias;
 		}
 		if (!ts.isObjectLiteralExpression(source)) {
-			return '';
+			return "";
 		}
 		return this.object_property_target(source, property_name);
 	}
 
 	/** Responsibilities: _resolution object property target_. **/
-	private object_property_target(
-		initializer: ts.ObjectLiteralExpression,
-		property_name: string
-	): string {
+	private object_property_target(initializer: ts.ObjectLiteralExpression, property_name: string): string {
 		for (let index = initializer.properties.length - 1; index >= 0; index -= 1) {
 			const property = initializer.properties[index];
 			const target = this.property_target(property, property_name);
-			if (target !== '') {
+			if (target !== "") {
 				return target;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution binding property name_. **/
 	private binding_property_name(element: ts.BindingElement): string {
 		if (!ts.isIdentifier(element.name)) {
-			return '';
+			return "";
 		}
 		return this.expression_names.static_binding_name(element);
 	}
 
 	/** Responsibilities: _collection object alias binding_. **/
-	private append_object_alias(
-		initializer: ts.ObjectLiteralExpression,
-		element: ts.BindingElement
-	): boolean {
+	private append_object_alias(initializer: ts.ObjectLiteralExpression, element: ts.BindingElement): boolean {
 		const property_name = this.binding_property_name(element);
-		if (property_name === '') {
+		if (property_name === "") {
 			return false;
 		}
 		if (!ts.isIdentifier(element.name)) {
 			return false;
 		}
 		let target = this.object_property_target(initializer, property_name);
-		if (target === '' && element.initializer !== undefined) {
+		if (target === "" && element.initializer !== undefined) {
 			target = this.property_value_target(element.initializer);
 		}
 		return this.append_name_alias(element.name.text, target);
@@ -134,10 +122,7 @@ export class TypeScriptDestructuredAliases {
 	}
 
 	/** Responsibilities: _collection object source aliases_. **/
-	private append_object_source(
-		declaration: ts.VariableDeclaration,
-		elements: readonly ts.BindingElement[],
-	): boolean {
+	private append_object_source(declaration: ts.VariableDeclaration, elements: readonly ts.BindingElement[]): boolean {
 		if (declaration.initializer === undefined) {
 			return false;
 		}

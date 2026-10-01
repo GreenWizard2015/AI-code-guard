@@ -1,7 +1,12 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { CodingRuleSourceOptions, NormalizedAstFile, ParseLanguage, PreparedCodingRuleSourceOptions } from 'src/types';
-import type { CodingRuleSourceData } from 'src/protocols';
+import type {
+	CodingRuleSourceOptions,
+	NormalizedAstFile,
+	ParseLanguage,
+	PreparedCodingRuleSourceOptions,
+} from "src/types";
+import type { CodingRuleSourceData } from "src/protocols";
 
 /** Responsibilities: _coding-rule source data storage_, _source language exposure parsing_. **/
 export class CodingRuleSource {
@@ -35,9 +40,9 @@ export class CodingRuleSource {
 
 	/** Responsibilities: _source language classification_. **/
 	public language(): ParseLanguage {
-		if (this.file.endsWith('.py')) {
-			return 'python';
+		if (this.file.endsWith(".py")) {
+			return "python";
 		}
-		return 'typescript';
+		return "typescript";
 	}
 }

@@ -1,18 +1,15 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
-import { TypeScriptStaticArrayExpressionBindings } from 'src/typescript-callable-aliases/static-array/typescript-static-array-expression-bindings';
+import ts from "typescript";
+import type { MapValueAppender } from "src/protocols";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import { TypeScriptStaticArrayExpressionBindings } from "src/typescript-callable-aliases/static-array/typescript-static-array-expression-bindings";
 
 /** Responsibilities: _destructured static expression aliases_. **/
 export class TypeScriptStaticExpressionBindings {
 	private readonly expression_names = new TypeScriptExpressionNames();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly object_sources = new Map<string, ts.ObjectLiteralExpression>();
-	private readonly append_value: (
-		values: Map<string, string>,
-		name: string,
-		initializer: ts.Expression
-	) => boolean;
+	private readonly append_value: MapValueAppender;
 	private readonly array_bindings: TypeScriptStaticArrayExpressionBindings;
 
 	/** Responsibilities: _static object source literal_. **/
@@ -42,7 +39,7 @@ export class TypeScriptStaticExpressionBindings {
 		values: Map<string, string>,
 		element: ts.BindingElement,
 		source_name: string,
-		source: ts.ObjectLiteralExpression
+		source: ts.ObjectLiteralExpression,
 	): boolean {
 		for (const candidate of source.properties) {
 			if (!ts.isPropertyAssignment(candidate)) {
@@ -63,7 +60,7 @@ export class TypeScriptStaticExpressionBindings {
 	private append_object_element(
 		values: Map<string, string>,
 		element: ts.BindingElement,
-		source: ts.ObjectLiteralExpression
+		source: ts.ObjectLiteralExpression,
 	): boolean {
 		if (!ts.isIdentifier(element.name) || element.dotDotDotToken) {
 			return false;
@@ -79,7 +76,7 @@ export class TypeScriptStaticExpressionBindings {
 	private append_object_elements(
 		values: Map<string, string>,
 		binding: ts.ObjectBindingPattern,
-		source: ts.ObjectLiteralExpression
+		source: ts.ObjectLiteralExpression,
 	): boolean {
 		let changed = false;
 		for (const element of binding.elements) {
@@ -113,9 +110,7 @@ export class TypeScriptStaticExpressionBindings {
 	}
 
 	/** Responsibilities: _static binding dependencies_. **/
-	public constructor(
-		append_value: (values: Map<string, string>, name: string, initializer: ts.Expression) => boolean
-	) {
+	public constructor(append_value: MapValueAppender) {
 		this.append_value = append_value;
 		this.array_bindings = new TypeScriptStaticArrayExpressionBindings(append_value);
 	}

@@ -1,4 +1,4 @@
-import type { CallableDefinition } from 'src/metrics/types';
+import type { CallableDefinition } from "src/metrics/types";
 
 /** Responsibilities: _named method definition count_. **/
 export class CallableMethodCounts {
@@ -6,7 +6,7 @@ export class CallableMethodCounts {
 
 	/** Responsibilities: _aggregation method definition its_. **/
 	public append(definition: CallableDefinition): void {
-		if (definition.kind !== 'method') {
+		if (definition.kind !== "method") {
 			return;
 		}
 		const name = definition.node.name;

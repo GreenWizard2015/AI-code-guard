@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _static index operations_. **/
 export class TypeScriptStaticArrayIndexOperations {

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _classification allowed TypeScript constructor_. **/
 export class ConstructorRules {
@@ -13,7 +13,7 @@ export class ConstructorRules {
 		if (!ts.isVariableStatement(statement)) {
 			return false;
 		}
-		return statement.declarationList.declarations.every(item => {
+		return statement.declarationList.declarations.every((item) => {
 			if (item.initializer === undefined) {
 				return true;
 			}

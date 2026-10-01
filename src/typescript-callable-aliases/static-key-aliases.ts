@@ -1,14 +1,14 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticArrayAliases } from 'src/typescript-callable-aliases/static-array-aliases';
-import { TypeScriptStaticObjectBindings } from 'src/typescript-callable-aliases/static-object-bindings';
-import { TypeScriptStaticObjectValues } from 'src/typescript-callable-aliases/static-object-values';
-import type { StaticKeyCollectionState } from 'src/typescript-callable-aliases/types';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticArrayAliases } from "src/typescript-callable-aliases/static-array-aliases";
+import { TypeScriptStaticObjectBindings } from "src/typescript-callable-aliases/static-object-bindings";
+import { TypeScriptStaticObjectValues } from "src/typescript-callable-aliases/static-object-values";
+import type { StaticKeyCollectionState } from "src/typescript-callable-aliases/types";
 
 /** Responsibilities: _static key alias resolution_. **/
 export class TypeScriptStaticKeyAliases {
 	private readonly object_bindings = new TypeScriptStaticObjectBindings();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly static_key_kinds = new Set([
 		ts.SyntaxKind.StringLiteral,
 		ts.SyntaxKind.NoSubstitutionTemplateLiteral,
@@ -17,7 +17,7 @@ export class TypeScriptStaticKeyAliases {
 
 	/** Responsibilities: _static literal key extension_. **/
 	private append_literal(values: Map<string, string>, name: string, current: ts.Expression): boolean {
-		const value = current.getText().replace(/^['"`]|['"`]$/g, '');
+		const value = current.getText().replace(/^['"`]|['"`]$/g, "");
 		if (values.has(name)) {
 			return false;
 		}
@@ -58,7 +58,7 @@ export class TypeScriptStaticKeyAliases {
 		values: Map<string, string>,
 		objects: Map<string, ts.ObjectLiteralExpression>,
 		arrays: Map<string, readonly ts.Expression[]>,
-		node: ts.Node
+		node: ts.Node,
 	): boolean {
 		if (!ts.isVariableDeclaration(node) || node.initializer === undefined) {
 			return false;
@@ -105,7 +105,7 @@ export class TypeScriptStaticKeyAliases {
 		objects: Map<string, ts.ObjectLiteralExpression>,
 		arrays: Map<string, readonly ts.Expression[]>,
 		node: ts.Node,
-		root: ts.Node
+		root: ts.Node,
 	): boolean {
 		let changed = this.append_declaration(values, objects, arrays, node);
 		if (this.append_assignment(values, node)) {
@@ -113,10 +113,10 @@ export class TypeScriptStaticKeyAliases {
 		}
 		if (node !== root) {
 			if (ts.isFunctionLike(node)) {
-			return changed;
+				return changed;
 			}
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_node(values, objects, arrays, child, root)) {
 				changed = true;
 			}
@@ -151,14 +151,10 @@ export class TypeScriptStaticKeyAliases {
 	}
 
 	/** Responsibilities: _static object property lookup_. **/
-	private object_property_value(
-		object: ts.Expression,
-		property_name: string,
-		node: ts.Node
-	): string {
+	private object_property_value(object: ts.Expression, property_name: string, node: ts.Node): string {
 		const object_expression = this.expression_aliases.unwrapped(object);
 		if (!ts.isIdentifier(object_expression)) {
-			return '';
+			return "";
 		}
 		for (const scope of this.scopes(node)) {
 			const state = this.collect_state(scope);
@@ -167,12 +163,9 @@ export class TypeScriptStaticKeyAliases {
 				continue;
 			}
 			const value_resolver = new TypeScriptStaticObjectValues(state.values, state.objects);
-			return value_resolver.property_value(
-				source,
-				property_name
-			);
+			return value_resolver.property_value(source, property_name);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _static key alias values_. **/
@@ -190,11 +183,11 @@ export class TypeScriptStaticKeyAliases {
 	public value(expression: ts.Expression, node: ts.Node): string {
 		const current = this.expression_aliases.unwrapped(expression);
 		if (!ts.isIdentifier(current)) {
-			return '';
+			return "";
 		}
 		const value = this.values(node).get(current.text);
 		if (value === undefined) {
-			return '';
+			return "";
 		}
 		return value;
 	}
@@ -206,10 +199,10 @@ export class TypeScriptStaticKeyAliases {
 			return this.object_property_value(current.expression, current.name.text, node);
 		}
 		if (!ts.isElementAccessExpression(current)) {
-			return '';
+			return "";
 		}
 		if (current.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		const property_name = this.value(current.argumentExpression, node);
 		return this.object_property_value(current.expression, property_name, node);

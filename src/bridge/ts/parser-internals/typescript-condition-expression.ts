@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _unwrapping conditional expression wrappers_. **/
 export class TypeScriptConditionExpression {
@@ -21,7 +21,7 @@ export class TypeScriptConditionExpression {
 	}
 
 	/** Responsibilities: _conditional wrapper configuration_. **/
-	public constructor(boolean_wrapper_name = 'Boolean') {
+	public constructor(boolean_wrapper_name = "Boolean") {
 		this.boolean_wrapper_name = boolean_wrapper_name;
 	}
 

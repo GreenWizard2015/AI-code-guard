@@ -1,7 +1,7 @@
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type { ClassGraph, CodeClass } from 'src/types';
-import { MAX_COMPOSITION_DEPTH } from 'src/bridge/ts/runner/orchestration/runtime/composition/constants';
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { ClassGraph, CodeClass } from "src/types";
+import { MAX_COMPOSITION_DEPTH } from "src/bridge/ts/runner/orchestration/runtime/composition/constants";
 
 /** Responsibilities: _class dependency graph traversal_. **/
 export class CompositionAnalyzer {
@@ -43,11 +43,11 @@ export class CompositionAnalyzer {
 		if (chain.length <= MAX_COMPOSITION_DEPTH) {
 			return [];
 		}
-		const rule = new DiagnosticRule('composition-depth');
+		const rule = new DiagnosticRule("composition-depth");
 		return [
 			rule.violation(this.relative_file(current.file), current.line + 1, {
 				depth: String(chain.length),
-				chain: chain.join(' -> '),
+				chain: chain.join(" -> "),
 			}),
 		];
 	}

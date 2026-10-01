@@ -1,7 +1,7 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import { AstPropertySources } from 'src/bridge/ts/rules/ast-property-sources/ast-property-sources';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import { AstPropertySources } from "src/bridge/ts/rules/ast-property-sources/ast-property-sources";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution AST property states_. **/
 export class AstPropertyType {
@@ -27,7 +27,7 @@ export class AstPropertyType {
 		if (!ts.isUnionTypeNode(type)) {
 			return false;
 		}
-		return type.types.some(item => this.contains_undefined(item));
+		return type.types.some((item) => this.contains_undefined(item));
 	}
 
 	/** Responsibilities: _resolution literal property state_. **/
@@ -39,23 +39,28 @@ export class AstPropertyType {
 			if (this.expression_names.static_property_name(member.name) !== property) {
 				continue;
 			}
-if (member.questionToken !== undefined || member.type === undefined) {
-				return 'optional';
+			if (member.questionToken !== undefined || member.type === undefined) {
+				return "optional";
 			}
-			return this.contains_undefined(member.type) ? 'optional' : 'required';
+			return this.contains_undefined(member.type) ? "optional" : "required";
 		}
-		return 'unknown';
+		return "unknown";
 	}
 
 	/** Responsibilities: _resolution intersection property state_. **/
-	private intersection_state(type: ts.IntersectionTypeNode, source: ts.SourceFile, property: string, seen: Set<string>): string {
-		let found = 'unknown';
+	private intersection_state(
+		type: ts.IntersectionTypeNode,
+		source: ts.SourceFile,
+		property: string,
+		seen: Set<string>,
+	): string {
+		let found = "unknown";
 		for (const item of type.types) {
 			const state = this.type_state(item, source, property, seen);
-			if (state === 'required') {
+			if (state === "required") {
 				return state;
 			}
-			if (state === 'optional') {
+			if (state === "optional") {
 				found = state;
 			}
 		}
@@ -63,15 +68,20 @@ if (member.questionToken !== undefined || member.type === undefined) {
 	}
 
 	/** Responsibilities: _resolution referenced property state_. **/
-	private reference_state(type: ts.TypeReferenceNode, source: ts.SourceFile, property: string, seen: Set<string>): string {
+	private reference_state(
+		type: ts.TypeReferenceNode,
+		source: ts.SourceFile,
+		property: string,
+		seen: Set<string>,
+	): string {
 		const key = this.sources.declaration_key(source.fileName, type.typeName.getText(source));
 		if (!this.reference_available(key, seen)) {
-			return 'unknown';
+			return "unknown";
 		}
 		seen.add(key);
 		const declaration_node = this.sources.declaration(key);
 		if (declaration_node === undefined) {
-			return 'unknown';
+			return "unknown";
 		}
 		return this.declaration_state(declaration_node, property, seen);
 	}
@@ -93,7 +103,7 @@ if (member.questionToken !== undefined || member.type === undefined) {
 			return this.type_state(declaration_node.type, declaration_node.getSourceFile(), property, seen);
 		}
 		if (!ts.isInterfaceDeclaration(declaration_node)) {
-			return 'unknown';
+			return "unknown";
 		}
 		return this.interface_state(declaration_node, property);
 	}
@@ -105,13 +115,13 @@ if (member.questionToken !== undefined || member.type === undefined) {
 				continue;
 			}
 			if (this.expression_names.static_property_name(member.name) === property) {
-if (member.questionToken !== undefined || member.type === undefined) {
-					return 'optional';
+				if (member.questionToken !== undefined || member.type === undefined) {
+					return "optional";
 				}
-				return this.contains_undefined(member.type) ? 'optional' : 'required';
+				return this.contains_undefined(member.type) ? "optional" : "required";
 			}
 		}
-		return 'unknown';
+		return "unknown";
 	}
 
 	/** Responsibilities: _resolution type property state_. **/
@@ -126,7 +136,7 @@ if (member.questionToken !== undefined || member.type === undefined) {
 			return this.intersection_state(type, source, property, seen);
 		}
 		if (!ts.isTypeReferenceNode(type)) {
-			return 'unknown';
+			return "unknown";
 		}
 		return this.reference_state(type, source, property, seen);
 	}
@@ -152,11 +162,11 @@ if (member.questionToken !== undefined || member.type === undefined) {
 
 	/** Responsibilities: _fields identification requirement_. **/
 	public required_field(base: string, property: string): boolean {
-		return this.field_state(base, property) === 'required';
+		return this.field_state(base, property) === "required";
 	}
 
 	/** Responsibilities: _known fields identification_. **/
 	public known_field(base: string, property: string): boolean {
-		return this.field_state(base, property) !== 'unknown';
+		return this.field_state(base, property) !== "unknown";
 	}
 }

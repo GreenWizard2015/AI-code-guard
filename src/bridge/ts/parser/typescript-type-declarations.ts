@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { AstReferenceAlias, NamedLine } from 'src/types';
+import ts from "typescript";
+import type { AstReferenceAlias, NamedLine } from "src/types";
 
 /** Responsibilities: _extraction TypeScript declaration names_. **/
 export class TypeScriptTypeDeclarations {
@@ -13,17 +13,17 @@ export class TypeScriptTypeDeclarations {
 	private class_name(node: ts.Node): string {
 		if (ts.isClassDeclaration(node)) {
 			if (node.name === undefined) {
-				return '';
+				return "";
 			}
 			return node.name.text;
 		}
 		if (ts.isClassExpression(node)) {
 			if (node.name === undefined) {
-				return '';
+				return "";
 			}
 			return node.name.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution named declaration name_. **/
@@ -37,7 +37,7 @@ export class TypeScriptTypeDeclarations {
 		if (ts.isEnumDeclaration(node)) {
 			return node.name.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution type alias interface_. **/
@@ -49,7 +49,7 @@ export class TypeScriptTypeDeclarations {
 		if (this.declaration_kinds.has(node.kind)) {
 			return this.declaration_name(node);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _normalization import specifier reference_. **/
@@ -66,10 +66,12 @@ export class TypeScriptTypeDeclarations {
 		if (!name) {
 			return [];
 		}
-		return [{
-			name,
-			line: source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line,
-		}];
+		return [
+			{
+				name,
+				line: source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line,
+			},
+		];
 	}
 
 	/** Responsibilities: _collection imported reference aliases_. **/

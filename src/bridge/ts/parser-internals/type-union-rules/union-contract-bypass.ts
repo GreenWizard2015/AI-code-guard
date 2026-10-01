@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _detection union contracts bypassed_. **/
 export class UnionContractBypass {
@@ -16,7 +16,7 @@ export class UnionContractBypass {
 	private reference_name(node: ts.TypeNode): string {
 		node = this.unparenthesized(node);
 		if (!ts.isTypeReferenceNode(node)) {
-			return '';
+			return "";
 		}
 		const type_name = node.typeName;
 		return type_name.getText(node.getSourceFile());
@@ -24,10 +24,10 @@ export class UnionContractBypass {
 
 	/** Responsibilities: _classification intersection adds project_. **/
 	private has_added_contract(node: ts.IntersectionTypeNode, name: string): boolean {
-		if (!node.types.some(type => this.reference_name(type) === name)) {
+		if (!node.types.some((type) => this.reference_name(type) === name)) {
 			return false;
 		}
-		return node.types.some(type => ts.isTypeLiteralNode(type));
+		return node.types.some((type) => ts.isTypeLiteralNode(type));
 	}
 
 	/** Responsibilities: _reporting node union containing_. **/
@@ -40,13 +40,17 @@ export class UnionContractBypass {
 
 	/** Responsibilities: _reporting intersection bypasses union_. **/
 	public bypass(node: ts.Node): boolean {
-		if ((!this.union(node)) || (!ts.isUnionTypeNode(node)) || node.types.length !== 2) {
+		if (!this.union(node)) {
 			return false;
 		}
-		const base = node.types.find(type => this.reference_name(type).length > 0);
-		const branch = node.types
-			.map(type => this.unparenthesized(type))
-			.find(type => ts.isIntersectionTypeNode(type));
+		if (!ts.isUnionTypeNode(node)) {
+			return false;
+		}
+		if (node.types.length !== 2) {
+			return false;
+		}
+		const base = node.types.find((type) => this.reference_name(type).length > 0);
+		const branch = node.types.map((type) => this.unparenthesized(type)).find((type) => ts.isIntersectionTypeNode(type));
 		if (base === undefined || branch === undefined) {
 			return false;
 		}

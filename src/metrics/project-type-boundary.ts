@@ -1,15 +1,12 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type {
-	AstCallableNode,
-	AstTypedArgument,
-} from 'src/types';
-import { SharedParameterType } from 'src/metrics/shared-parameter-type';
-import type { ProjectTypeBoundaryInput } from 'src/metrics/types';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { AstCallableNode, AstTypedArgument } from "src/types";
+import { SharedParameterType } from "src/metrics/shared-parameter-type";
+import type { ProjectTypeBoundaryInput } from "src/metrics/types";
 
 /** Responsibilities: _project boundary reporting_. **/
 export class ProjectTypeBoundary {
-	private readonly rule = new DiagnosticRule('project-type-boundary');
+	private readonly rule = new DiagnosticRule("project-type-boundary");
 	private readonly violations: Violation[];
 	private readonly file: string;
 	private readonly callables: readonly AstCallableNode[];
@@ -36,22 +33,16 @@ export class ProjectTypeBoundary {
 		this.violations = input.violations;
 		this.file = input.file;
 		this.callables = input.callables;
-		const forbidden_types = new Set(
-			[...input.project_types].filter(type => !input.allowed_contracts.has(type))
-		);
-		this.type_classifier = new SharedParameterType(
-			input.reference_aliases,
-			forbidden_types,
-			input.language
-		);
+		const forbidden_types = new Set([...input.project_types].filter((type) => !input.allowed_contracts.has(type)));
+		this.type_classifier = new SharedParameterType(input.reference_aliases, forbidden_types, input.language);
 	}
 
 	/** Responsibilities: _classification project boundary callable_. **/
 	public violates(callable: AstCallableNode): boolean {
-		if (callable.owner !== '' && callable.visibility !== 'public') {
+		if (callable.owner !== "" && callable.visibility !== "public") {
 			return false;
 		}
-		if (this.typed_arguments(callable).some(argument => this.forbidden_type(argument.type))) {
+		if (this.typed_arguments(callable).some((argument) => this.forbidden_type(argument.type))) {
 			return true;
 		}
 		return this.forbidden_type(callable.return_type);

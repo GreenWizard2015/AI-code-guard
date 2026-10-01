@@ -1,4 +1,4 @@
-import type { ClassNodeInput } from 'src/bridge/ts/core/support/types';
+import type { ClassNodeInput } from "src/bridge/ts/core/support/types";
 
 /** Responsibilities: _exposure normalization class metrics_. **/
 export class ClassNode {
@@ -7,7 +7,7 @@ export class ClassNode {
 	/** Responsibilities: _classification any base class_. **/
 	private has_exception_base(): boolean {
 		for (const base_name of this.base_names()) {
-			const parts = base_name.split('.');
+			const parts = base_name.split(".");
 			const name = parts[parts.length - 1];
 			if (this.is_exception_base(name)) {
 				return true;
@@ -18,10 +18,10 @@ export class ClassNode {
 
 	/** Responsibilities: _classification base class name_. **/
 	private is_exception_base(name: string): boolean {
-if (name === 'Error' || name === 'Exception' || name === 'BaseException') {
+		if (name === "Error" || name === "Exception" || name === "BaseException") {
 			return true;
 		}
-		return name.endsWith('Error');
+		return name.endsWith("Error");
 	}
 
 	/** Responsibilities: _combination direct inherited class_. **/
@@ -57,10 +57,10 @@ if (name === 'Error' || name === 'Exception' || name === 'BaseException') {
 
 	/** Responsibilities: _reporting class inherits exception_. **/
 	public exception(): boolean {
-		if (this.value.name.endsWith('Error')) {
+		if (this.value.name.endsWith("Error")) {
 			return true;
 		}
-		if (this.value.name.endsWith('Exception')) {
+		if (this.value.name.endsWith("Exception")) {
 			return true;
 		}
 		return this.has_exception_base();

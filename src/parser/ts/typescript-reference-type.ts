@@ -1,6 +1,6 @@
-import type ts from 'typescript';
+import type ts from "typescript";
 
-import { TypeScriptTypeNode } from 'src/model/typescript-type-node';
+import { TypeScriptTypeNode } from "src/model/typescript-type-node";
 
 /** Responsibilities: _resolution TypeScript reference names_. **/
 export class TypeScriptReferenceType {
@@ -15,7 +15,7 @@ export class TypeScriptReferenceType {
 				return owner;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution owner name nested_. **/
@@ -42,7 +42,7 @@ export class TypeScriptReferenceType {
 				return name;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _initialization wrapped TypeScript reference_. **/
@@ -58,7 +58,7 @@ export class TypeScriptReferenceType {
 		}
 		const details = this.type_node.details();
 		if (!details.reference_name) {
-			return '';
+			return "";
 		}
 		const argument_owner = this.first_owner(details.reference_arguments);
 		if (argument_owner) {
@@ -75,7 +75,7 @@ export class TypeScriptReferenceType {
 		}
 		const name = this.type_node.details().reference_name;
 		if (!name) {
-			return '';
+			return "";
 		}
 		const alias = aliases.get(name);
 		if (alias !== undefined) {

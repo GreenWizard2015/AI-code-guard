@@ -1,8 +1,8 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { AstCallableNode, AstClassNode } from 'src/types';
-import { GENERIC_TYPES } from 'src/rules/typescript/constants';
-import type { TypeScriptTypeAliasesProtocol } from 'src/protocols';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { AstCallableNode, AstClassNode } from "src/types";
+import { GENERIC_TYPES } from "src/rules/typescript/constants";
+import type { TypeScriptTypeAliasesProtocol } from "src/protocols";
 
 /** Responsibilities: _reporting any-typed parameters output_. **/
 export class AnyTypes {
@@ -10,11 +10,7 @@ export class AnyTypes {
 	private readonly type_aliases: TypeScriptTypeAliasesProtocol;
 
 	/** Responsibilities: _aggregation any diagnostics callable_. **/
-	private append_parameter_infos(
-		violations: Violation[],
-		file: string,
-		callable: AstCallableNode
-	): void {
+	private append_parameter_infos(violations: Violation[], file: string, callable: AstCallableNode): void {
 		let typed_arguments = callable.typed_arguments;
 		if (typed_arguments === undefined) {
 			typed_arguments = [];
@@ -26,27 +22,27 @@ export class AnyTypes {
 
 	/** Responsibilities: _aggregation any diagnostic parameter_. **/
 	private append_parameter_info(
-		violations: Violation[], file: string, callable: AstCallableNode, name: string, type: string
+		violations: Violation[],
+		file: string,
+		callable: AstCallableNode,
+		name: string,
+		type: string,
 	): void {
-		const is_receiver = name === 'self' || name === 'cls' || name === '_';
+		const is_receiver = name === "self" || name === "cls" || name === "_";
 		const resolved_type = this.type_aliases.resolve(type);
 		if (!this.generic_types.has(resolved_type) || is_receiver) {
 			return;
 		}
 		const subject = `parameter "${name}"`;
 		this.append_info(violations, file, callable, subject, resolved_type);
-		if (!file.endsWith('.py') && resolved_type === 'unknown') {
-			const rule = new DiagnosticRule('typescript-unknown-parameter-type');
+		if (!file.endsWith(".py") && resolved_type === "unknown") {
+			const rule = new DiagnosticRule("typescript-unknown-parameter-type");
 			violations.push(rule.violation(file, callable.start + 1, { name }));
 		}
 	}
 
 	/** Responsibilities: _aggregation any diagnostic callable_. **/
-	private append_return_info(
-		violations: Violation[],
-		file: string,
-		callable: AstCallableNode
-	): void {
+	private append_return_info(violations: Violation[], file: string, callable: AstCallableNode): void {
 		const return_type = callable.return_type;
 		if (!return_type) {
 			return;
@@ -55,7 +51,7 @@ export class AnyTypes {
 		if (!this.generic_types.has(resolved_type)) {
 			return;
 		}
-		this.append_info(violations, file, callable, 'return type', resolved_type);
+		this.append_info(violations, file, callable, "return type", resolved_type);
 	}
 
 	/** Responsibilities: _aggregation normalization any diagnostic_. **/
@@ -64,10 +60,10 @@ export class AnyTypes {
 		file: string,
 		callable: AstCallableNode,
 		subject: string,
-		type: string
+		type: string,
 	): void {
 		const line = callable.start + 1;
-		const rule = new DiagnosticRule('type-info');
+		const rule = new DiagnosticRule("type-info");
 		violations.push(rule.violation(file, line, { subject, type }));
 	}
 
@@ -77,7 +73,7 @@ export class AnyTypes {
 		if (!this.generic_types.has(resolved_type)) {
 			return;
 		}
-		const rule = new DiagnosticRule('type-warning');
+		const rule = new DiagnosticRule("type-warning");
 		violations.push(rule.violation(file, line, { subject: `field "${name}"`, type: resolved_type }));
 	}
 

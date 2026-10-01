@@ -1,5 +1,5 @@
-import type ts from 'typescript';
-import type { RuleParameters } from 'src/types';
+import type ts from "typescript";
+import type { RuleParameters } from "src/types";
 import type {
 	LintRunStatistics,
 	LintSourceRecord,
@@ -7,9 +7,52 @@ import type {
 	NormalizedAstFile,
 	PythonBatchAstOptions,
 	TaskReportingOptions,
-} from 'src/types';
-import { Violation as ViolationClass } from 'src/parser/ts/violation';
-import type { ReportViolation } from 'src/types';
+	ReferenceData,
+} from "src/types";
+import { Violation as ViolationClass } from "src/parser/ts/violation";
+import type { ReportViolation } from "src/types";
+
+export type ReferenceDataLoader = (file: string) => ReferenceData;
+export type EntryPointPredicate = (file: string) => boolean;
+export type TypeScriptNodeVisitor = (body: ts.Node) => void;
+export type ModulePathResolver = (file: string, specifier: string) => string;
+export type NestedFactoryExpressionsResolver = (
+	binding: ts.ArrayBindingPattern,
+	initializer: ts.Expression,
+	name: string,
+) => ReadonlyMap<string, ts.FunctionLikeDeclarationBase>;
+export type ObjectSourceVisitor = (source: ts.ObjectLiteralExpression) => void;
+export type ArraySourceResolver = (binding: ts.ArrayBindingPattern, value: ts.Expression, name: string) => string;
+export type ExpressionVisitor = (value: ts.Expression) => void;
+export type BindingAliasAppender = (binding: ts.BindingName, initializer: ts.Expression) => boolean;
+export type ExpressionNormalizer = (expression: ts.Expression) => ts.Expression;
+export type AliasAppender = (name: string, initializer: ts.Expression) => boolean;
+export type MemberAliasAppender = (aliases: Map<string, Set<string>>, name: string, property: string) => boolean;
+export type MemberValueAppender = (
+	aliases: Map<string, Set<string>>,
+	name: string,
+	initializer: ts.Expression,
+	node: ts.Node,
+) => boolean;
+export type ExpressionUnwrapper = (expression: ts.Expression) => ts.Expression;
+export type StaticArraySourceAppender = (values: ts.Expression[], expression: ts.Expression) => boolean;
+export type StaticObjectBranchAppender = (expression: ts.Expression) => boolean;
+export type StaticObjectValueAppender = (value: ts.Expression) => boolean;
+export type SourceFileResolver = (file: string) => ts.SourceFile[];
+export type PythonAstBatchParser = (texts: readonly string[]) => NormalizedAstFile[];
+export type ArrayElementsResolver = (initializer: ts.ArrayLiteralExpression) => readonly ts.Expression[];
+export type SourceLineResolver = (position: number) => number;
+export type Operation<T> = () => T;
+export type SpreadValueAppender = (expression: ts.Expression) => boolean;
+export type StaticValueResolver = (expression: ts.Expression, node: ts.Node) => string;
+export type MapValueAppender = (values: Map<string, string>, name: string, initializer: ts.Expression) => boolean;
+export type NodeBodyResolver<T> = (body: ts.Node) => T;
+export type StatementPredicate = (statement: ts.Statement) => boolean;
+export type NameRelationsResolver = (name: string) => string[];
+export type ObjectSourceAppender = (expression: ts.Expression, visitor: ObjectSourceVisitor) => void;
+export type CallableConsumer = (callback: ts.FunctionLikeDeclaration) => void;
+export type NodeVisitor = (node: ts.Node) => void;
+export type ArrayValuesVisitor = (values: readonly ts.Expression[]) => void;
 
 /** Responsibilities: _define diagnostic violation contract_. **/
 export interface Violation extends ViolationClass {
@@ -42,7 +85,7 @@ export interface PythonAstDataProtocol {
 /** Responsibilities: _lint stage measurement_. **/
 export interface LintStageTimerProtocol {
 	add_duration(stage_name: string, elapsed: number): void;
-	measure<T>(stage_name: string, operation: () => T): T;
+	measure<T>(stage_name: string, operation: Operation<T>): T;
 	durations(): readonly LintStageDuration[];
 	format(): string;
 }
@@ -86,8 +129,14 @@ export interface TaskReviewProtocol {
 	files(): string[];
 	line_count(file: string): number;
 	text(file: string): string;
-	instruction(): string;
+	primary_instruction(): string;
 	completed(): boolean;
+}
+
+/** Responsibilities: _architecture review completion code_. **/
+export interface TaskReviewCompletionCodeProtocol {
+	completion_code(timestamp: Date): string;
+	contains(text: string, current_time: Date): boolean;
 }
 
 /** Responsibilities: _project source scanning_. **/
@@ -130,10 +179,7 @@ export interface TypeScriptTypeAliasesProtocol {
 export interface TypeScriptStaticObjectArgumentsProtocol {
 	append_declaration(node: ts.VariableDeclaration): boolean;
 	append_assignment(node: ts.BinaryExpression): boolean;
-	append_spread(
-		element: ts.SpreadElement,
-		append_value: (expression: ts.Expression) => boolean
-	): boolean;
+	append_spread(element: ts.SpreadElement, append_value: SpreadValueAppender): boolean;
 }
 
 /** Responsibilities: _TypeScript object property collection_. **/

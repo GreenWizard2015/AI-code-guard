@@ -1,12 +1,12 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticObjectProperties } from 'src/typescript-callable-aliases/static-object-property-resolver';
-import { TypeScriptStaticObjectSources } from 'src/typescript-callable-aliases/static-object-sources';
-import { TypeScriptStaticObjectArguments } from 'src/typescript-callable-aliases/static-object-arguments';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticObjectProperties } from "src/typescript-callable-aliases/static-object-property-resolver";
+import { TypeScriptStaticObjectSources } from "src/typescript-callable-aliases/static-object-sources";
+import { TypeScriptStaticObjectArguments } from "src/typescript-callable-aliases/static-object-arguments";
 
 /** Responsibilities: _static object alias collection_. **/
 export class TypeScriptStaticObjectBindings {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly arguments_source = new TypeScriptStaticObjectArguments();
 	private readonly source_collector = new TypeScriptStaticObjectSources(this.arguments_source);
 
@@ -14,7 +14,7 @@ export class TypeScriptStaticObjectBindings {
 	private append_source_value(
 		objects: Map<string, ts.ObjectLiteralExpression>,
 		name: string,
-		initializer: ts.Expression
+		initializer: ts.Expression,
 	): void {
 		if (this.source_collector.append_source(objects, name, initializer)) {
 			return;
@@ -41,7 +41,7 @@ export class TypeScriptStaticObjectBindings {
 	public append(
 		values: Map<string, string>,
 		objects: Map<string, ts.ObjectLiteralExpression>,
-		node: ts.VariableDeclaration
+		node: ts.VariableDeclaration,
 	): boolean {
 		let changed = this.arguments_source.append_declaration(node);
 		if (ts.isIdentifier(node.name)) {

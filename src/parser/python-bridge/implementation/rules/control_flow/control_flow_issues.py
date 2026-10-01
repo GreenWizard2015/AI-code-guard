@@ -17,7 +17,7 @@ from implementation.types import JsonObject
 class PythonControlFlowIssues:
     """Responsibilities: _detection Python control-flow policy_."""
 
-    _MAX_CHAIN_CHARS: int = 100
+    MAX_CHAIN_CHARS: int = 100
 
     def _if_expression_issues(self, node: ast.IfExp) -> list[JsonObject]:
         """Responsibilities: _ternary-expression violations detection_."""
@@ -97,7 +97,7 @@ class PythonControlFlowIssues:
         source_segment = self._source_segment(node)
         short_expression = (
             self.source_metrics.significant_characters(source_segment)
-            < self._MAX_CHAIN_CHARS
+            < self.MAX_CHAIN_CHARS
         )
         if not short_chain:
             return False

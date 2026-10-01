@@ -1,10 +1,10 @@
-import { TypeScriptReferenceHelpers } from 'src/bridge/ts/parser/typescript-reference-helpers';
-import { TypeScriptDestructuredAliasCollector } from 'src/model/typescript-destructured-alias-collector';
-import type { DestructuredAlias } from 'src/model/types';
-import ts from 'typescript';
+import { TypeScriptReferenceHelpers } from "src/bridge/ts/parser/typescript-reference-helpers";
+import { TypeScriptDestructuredAliasCollector } from "src/model/typescript-destructured-alias-collector";
+import type { DestructuredAlias } from "src/model/types";
+import ts from "typescript";
 
-import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { CallOwnerResolver } from 'src/model/protocols';
+import type { TypeScriptInstanceStore } from "src/model/protocols";
+import type { CallOwnerResolver } from "src/model/protocols";
 /** Responsibilities: _collection TypeScript property ownership_. **/
 export class TypeScriptPropertyState {
 	private readonly aliases: Map<string, string>;
@@ -40,10 +40,7 @@ export class TypeScriptPropertyState {
 	}
 
 	/** Responsibilities: _inspection initialization property declaration_. **/
-	private append_initialized(
-		node: ts.Node,
-		owner: string
-	): void {
+	private append_initialized(node: ts.Node, owner: string): void {
 		if (!ts.isPropertyDeclaration(node) && !ts.isParameter(node)) {
 			return;
 		}
@@ -60,11 +57,7 @@ export class TypeScriptPropertyState {
 	}
 
 	/** Responsibilities: _resolution property ownership invocation_. **/
-	private append_call_initializer(
-		name: string,
-		initializer: ts.CallExpression,
-		owner: string
-	): void {
+	private append_call_initializer(name: string, initializer: ts.CallExpression, owner: string): void {
 		const call_owner = this.call_owner.call_owner(initializer.expression, owner);
 		if (call_owner) {
 			this.properties.set(`${owner}.${name}`, call_owner);
@@ -88,7 +81,7 @@ export class TypeScriptPropertyState {
 			this.append_initialized(node, owner);
 			return;
 		}
-if (ts.isGetAccessorDeclaration(node) || ts.isPropertySignature(node)) {
+		if (ts.isGetAccessorDeclaration(node) || ts.isPropertySignature(node)) {
 			if (node.type !== undefined) {
 				this.append_named(node.name, owner, node.type);
 			}
@@ -100,25 +93,17 @@ if (ts.isGetAccessorDeclaration(node) || ts.isPropertySignature(node)) {
 	}
 
 	/** Responsibilities: _initialization aliases invocation ownership_. **/
-	public constructor(
-		aliases: Map<string, string>,
-		call_owner: CallOwnerResolver,
-		instances: TypeScriptInstanceStore
-	) {
+	public constructor(aliases: Map<string, string>, call_owner: CallOwnerResolver, instances: TypeScriptInstanceStore) {
 		this.aliases = aliases;
 		this.call_owner = call_owner;
 		this.instances = instances;
-		this.destructured_alias_collector = new TypeScriptDestructuredAliasCollector(
-			this,
-			call_owner,
-			instances
-		);
+		this.destructured_alias_collector = new TypeScriptDestructuredAliasCollector(this, call_owner, instances);
 	}
 
 	/** Responsibilities: _TypeScript tree traversal_. **/
-	public append_tree(node: ts.Node, owner: string = ''): void {
+	public append_tree(node: ts.Node, owner: string = ""): void {
 		let current_owner = owner;
-if (ts.isClassLike(node) && node.name) {
+		if (ts.isClassLike(node) && node.name) {
 			current_owner = node.name.text;
 		} else if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) {
 			current_owner = node.name.text;
@@ -126,16 +111,16 @@ if (ts.isClassLike(node) && node.name) {
 		if (current_owner) {
 			this.append(node, current_owner);
 		}
-		ts.forEachChild(node, child => this.append_tree(child, current_owner));
+		ts.forEachChild(node, (child) => this.append_tree(child, current_owner));
 	}
 
 	/** Responsibilities: _retrieval recorded owner object_. **/
 	public owner_for(owner: string, property: string): string {
-			const property_owner = this.properties.get(`${owner}.${property}`);
-			if (property_owner !== undefined) {
-				return property_owner;
-			}
-			return '';
+		const property_owner = this.properties.get(`${owner}.${property}`);
+		if (property_owner !== undefined) {
+			return property_owner;
+		}
+		return "";
 	}
 
 	/** Responsibilities: _resolution instance owner named_. **/
@@ -157,13 +142,8 @@ if (ts.isClassLike(node) && node.name) {
 		pattern: ts.ObjectBindingPattern,
 		source_file: ts.SourceFile,
 		initializer: ts.Expression,
-		current_owner: string = ''
+		current_owner: string = "",
 	): readonly DestructuredAlias[] {
-		return [...this.destructured_alias_collector.collect(
-			pattern,
-			source_file,
-			initializer,
-			current_owner
-		)];
+		return [...this.destructured_alias_collector.collect(pattern, source_file, initializer, current_owner)];
 	}
 }

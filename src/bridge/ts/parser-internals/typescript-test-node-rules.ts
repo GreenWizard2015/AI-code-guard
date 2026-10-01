@@ -1,12 +1,12 @@
-import ts from 'typescript';
-import { ConsoleMock } from 'src/bridge/ts/parser-internals/console-mock';
-import type { RuleContextData } from 'src/types';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { ConsoleMock } from "src/bridge/ts/parser-internals/console-mock";
+import type { RuleContextData } from "src/types";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _classification Jest test callbacks_. **/
 export class TypeScriptTestNodeRules {
 	private readonly console_mock = new ConsoleMock();
-	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+	private readonly expect_aliases = new TypeScriptExpressionAliases("expect");
 
 	/** Responsibilities: _unwrapping expect callee_. **/
 	private unwrapped_expression(expression: ts.Expression): ts.Expression {
@@ -26,12 +26,18 @@ export class TypeScriptTestNodeRules {
 
 	/** Responsibilities: _aggregation expectation diagnostics test_. **/
 	private append_expect(node: ts.Node, context: RuleContextData): void {
-		if ((!context.test_file) || (!ts.isCallExpression(node)) || this.inside_test_callback(node)) {
+		if (!context.test_file) {
+			return;
+		}
+		if (!ts.isCallExpression(node)) {
+			return;
+		}
+		if (this.inside_test_callback(node)) {
 			return;
 		}
 		const expression = this.unwrapped_expression(node.expression);
 		if (this.expect_aliases.receiver(expression, node)) {
-			context.append_rule(node, 'assertion-outside-test');
+			context.append_rule(node, "assertion-outside-test");
 		}
 	}
 
@@ -39,7 +45,7 @@ export class TypeScriptTestNodeRules {
 	private inside_test_callback(node: ts.Node): boolean {
 		let current = node.parent;
 		while (current !== undefined) {
-if (ts.isFunctionLike(current) && this.is_test_callback(current)) {
+			if (ts.isFunctionLike(current) && this.is_test_callback(current)) {
 				return true;
 			}
 			current = current.parent;
@@ -60,7 +66,7 @@ if (ts.isFunctionLike(current) && this.is_test_callback(current)) {
 		if (!this.is_test_expression(expression)) {
 			return false;
 		}
-		return parent.arguments.some(argument => {
+		return parent.arguments.some((argument) => {
 			const same_position = argument.pos === node.pos && argument.end === node.end;
 			return same_position;
 		});
@@ -69,25 +75,25 @@ if (ts.isFunctionLike(current) && this.is_test_callback(current)) {
 	/** Responsibilities: _classification expression Jest test_. **/
 	private is_test_expression(expression: ts.Expression): boolean {
 		if (ts.isIdentifier(expression)) {
-			return expression.text === 'test';
+			return expression.text === "test";
 		}
-if (!ts.isPropertyAccessExpression(expression) || !ts.isIdentifier(expression.expression)) {
+		if (!ts.isPropertyAccessExpression(expression) || !ts.isIdentifier(expression.expression)) {
 			return false;
 		}
-		if (expression.expression.text !== 'test') {
+		if (expression.expression.text !== "test") {
 			return false;
 		}
-		return expression.name.text === 'each';
+		return expression.name.text === "each";
 	}
 
 	/** Responsibilities: _aggregation console-mock console-use diagnostics_. **/
 	private append_console_rule(node: ts.Node, context: RuleContextData): void {
 		if (this.console_mock.console_mock(node)) {
-			context.append_rule(node, 'typescript-console-mock-in-test');
+			context.append_rule(node, "typescript-console-mock-in-test");
 			return;
 		}
 		if (this.console_mock.console_usage(node)) {
-			context.append_rule(node, 'typescript-console-in-test');
+			context.append_rule(node, "typescript-console-in-test");
 		}
 	}
 

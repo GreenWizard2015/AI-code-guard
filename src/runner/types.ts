@@ -1,4 +1,4 @@
-import type { Violation } from 'src/protocols';
+import type { Violation } from "src/protocols";
 import type {
 	LineDepth,
 	AstCallableNode,
@@ -8,7 +8,7 @@ import type {
 	AstReferenceAlias,
 	LintFileNameContract,
 	NamedSymbol,
-} from 'src/types';
+} from "src/types";
 
 export type PythonOperationInput = {
 	callables: AstCallableNode[];
@@ -43,10 +43,6 @@ type PythonRuleOptions = {
 	suppress_short_class: boolean;
 };
 
-export type PythonRuleInput =
-	PythonRuleDiagnostics
-	& PythonRuleAstInput
-	& PythonRuleProjectNames
-	& PythonRuleOptions;
+export type PythonRuleInput = PythonRuleDiagnostics & PythonRuleAstInput & PythonRuleProjectNames & PythonRuleOptions;
 
 export type PythonRuleAppender = (input: PythonRuleInput) => void;

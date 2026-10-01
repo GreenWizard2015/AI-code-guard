@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _inspection Jest test callbacks_. **/
 export class JestTestEndingRule {
-	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+	private readonly expect_aliases = new TypeScriptExpressionAliases("expect");
 
 	/** Responsibilities: _classification expression directly invokes_. **/
 	private expect_expression(expression: ts.Expression, node: ts.Node): boolean {
@@ -55,13 +55,13 @@ export class JestTestEndingRule {
 
 	/** Responsibilities: _classification test body ends_. **/
 	private has_valid_ending(body: ts.Block): boolean {
-		if (this.expect_calls(body).some(call => !this.is_direct_expect(call, body))) {
+		if (this.expect_calls(body).some((call) => !this.is_direct_expect(call, body))) {
 			return false;
 		}
 		let found_expect = false;
 		for (const statement of body.statements) {
 			if (!found_expect) {
-			if (ts.isExpressionStatement(statement) && this.expect_expression(statement.expression, statement)) {
+				if (ts.isExpressionStatement(statement) && this.expect_expression(statement.expression, statement)) {
 					found_expect = true;
 				}
 				continue;
@@ -84,7 +84,7 @@ export class JestTestEndingRule {
 	/** Responsibilities: _classification Jest invocation usage_. **/
 	private has_invalid_callback(node: ts.CallExpression): boolean {
 		const candidate = node.arguments[node.arguments.length - 1];
-if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunctionExpression(candidate))) {
+		if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunctionExpression(candidate))) {
 			return false;
 		}
 		return !this.is_valid_callback(candidate);

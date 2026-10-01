@@ -1,13 +1,13 @@
-import ts from 'typescript';
-import type { FakeObjectProtocol } from 'src/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import type { FakeObjectProtocol } from "src/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _resolution destructured object aliases_. **/
 export class ObjectDestructuredAliases {
 	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly fake_object: FakeObjectProtocol;
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 
 	/** Responsibilities: _enclosing callable scope lookup_. **/
 	private enclosing_scope(node: ts.Node): ts.Node {
@@ -23,7 +23,7 @@ export class ObjectDestructuredAliases {
 
 	/** Responsibilities: _object alias name_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
-		if (name === '') {
+		if (name === "") {
 			return false;
 		}
 		if (aliases.has(name)) {
@@ -46,11 +46,7 @@ export class ObjectDestructuredAliases {
 	}
 
 	/** Responsibilities: _nested object aliases_. **/
-	private append_nested(
-		aliases: Set<string>,
-		binding: ts.BindingName,
-		value: ts.Expression
-	): boolean {
+	private append_nested(aliases: Set<string>, binding: ts.BindingName, value: ts.Expression): boolean {
 		const current = this.expression_aliases.unwrapped(value);
 		if (ts.isIdentifier(binding)) {
 			return this.append_value(aliases, binding.text, current);
@@ -68,11 +64,11 @@ export class ObjectDestructuredAliases {
 	private append_element(
 		aliases: Set<string>,
 		element: ts.BindingElement,
-		initializer: ts.ObjectLiteralExpression
+		initializer: ts.ObjectLiteralExpression,
 	): boolean {
 		const source_name = this.expression_names.static_binding_name(element);
 		const property = initializer.properties.find(
-			candidate => this.expression_names.static_element_name(candidate) === source_name
+			(candidate) => this.expression_names.static_element_name(candidate) === source_name,
 		);
 		if (property === undefined || !ts.isPropertyAssignment(property)) {
 			return false;
@@ -84,7 +80,7 @@ export class ObjectDestructuredAliases {
 	private append_object_elements(
 		aliases: Set<string>,
 		binding: ts.ObjectBindingPattern,
-		initializer: ts.ObjectLiteralExpression
+		initializer: ts.ObjectLiteralExpression,
 	): boolean {
 		let changed = false;
 		for (const element of binding.elements) {
@@ -102,7 +98,7 @@ export class ObjectDestructuredAliases {
 	private append_array_elements(
 		aliases: Set<string>,
 		binding: ts.ArrayBindingPattern,
-		initializer: ts.ArrayLiteralExpression
+		initializer: ts.ArrayLiteralExpression,
 	): boolean {
 		let changed = false;
 		for (let index = 0; index < binding.elements.length; index += 1) {
@@ -139,7 +135,7 @@ export class ObjectDestructuredAliases {
 		if (ts.isVariableDeclaration(node) && this.append_binding(aliases, node)) {
 			changed = true;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_scope(aliases, child)) {
 				changed = true;
 			}

@@ -1,16 +1,16 @@
-import { TypeScriptBareAlias } from 'src/bridge/ts/parser/typescript-bare-alias';
-import { TypeScriptNodeRules } from 'src/bridge/ts/parser-internals/typescript-node-rules';
-import ts from 'typescript';
+import { TypeScriptBareAlias } from "src/bridge/ts/parser/typescript-bare-alias";
+import { TypeScriptNodeRules } from "src/bridge/ts/parser-internals/typescript-node-rules";
+import ts from "typescript";
 
-import { RULES_BY_ID } from 'src/model/constants';
-import type { LintStageTimerProtocol, Violation } from 'src/protocols';
-import { TypeScriptClassFieldRules } from 'src/model/typescript-class-field-rules';
-import { UnnecessaryUndefinedCheck } from 'src/bridge/ts/rules/unnecessary-undefined-check';
-import { TestPathSyntax } from 'src/test-path-syntax';
-import { DuplicateTypeShapes } from 'src/duplicate-type-shapes';
+import { RULES_BY_ID } from "src/model/constants";
+import type { LintStageTimerProtocol, Violation } from "src/protocols";
+import { TypeScriptClassFieldRules } from "src/model/typescript-class-field-rules";
+import { UnnecessaryUndefinedCheck } from "src/bridge/ts/rules/unnecessary-undefined-check";
+import { TestPathSyntax } from "src/test-path-syntax";
+import { DuplicateTypeShapes } from "src/duplicate-type-shapes";
 
-import type { Rule } from 'src/protocols';
-import type { RuleAppender, RuleContextData } from 'src/types';
+import type { Rule } from "src/protocols";
+import type { RuleAppender, RuleContextData } from "src/types";
 
 /** Responsibilities: _TypeScript rule state retention_, _AST nodes rules dispatch_. **/
 export class TypeScriptRuleContext {
@@ -28,20 +28,14 @@ export class TypeScriptRuleContext {
 
 	public readonly append_rule: RuleAppender;
 
-	/** Responsibilities: _aggregation rule violation AST_. **/
-	private append_rule_violation(rule: Rule, node: ts.Node): void {
-		const line =
-			this.source_file.getLineAndCharacterOfPosition(node.getStart(this.source_file)).line + 1;
-		this.violations.push(rule.violation(this.file, line, {}));
-	}
-
 	/** Responsibilities: _resolution aggregation known rule_. **/
 	private append_known_rule(node: ts.Node, rule_id: string): void {
 		const rule = RULES_BY_ID.get(rule_id);
 		if (rule === undefined) {
 			return;
 		}
-		this.append_rule_violation(rule, node);
+		const line = this.source_file.getLineAndCharacterOfPosition(node.getStart(this.source_file)).line + 1;
+		this.violations.push(rule.violation(this.file, line, {}));
 	}
 
 	/** Responsibilities: _namespace declaration recursive collection_. **/
@@ -69,7 +63,8 @@ export class TypeScriptRuleContext {
 				continue;
 			}
 			if (!ts.isModuleDeclaration(statement)) {
-				this.append_rule_violation(rule, statement);
+				const line = this.source_file.getLineAndCharacterOfPosition(statement.getStart(this.source_file)).line + 1;
+				this.violations.push(rule.violation(this.file, line, {}));
 				return;
 			}
 		}
@@ -81,12 +76,13 @@ export class TypeScriptRuleContext {
 		if (namespaces.length === 0) {
 			return;
 		}
-		const rule = RULES_BY_ID.get('typescript-namespace-file');
+		const rule = RULES_BY_ID.get("typescript-namespace-file");
 		if (rule === undefined) {
 			return;
 		}
 		if (namespaces.length > 1) {
-			this.append_rule_violation(rule, namespaces[1]);
+			const line = this.source_file.getLineAndCharacterOfPosition(namespaces[1].getStart(this.source_file)).line + 1;
+			this.violations.push(rule.violation(this.file, line, {}));
 			return;
 		}
 		this.append_ns_rule(rule);
@@ -95,13 +91,11 @@ export class TypeScriptRuleContext {
 	/** Responsibilities: _duplicate type shape violations_. **/
 	private append_duplicates(): void {
 		for (const duplicate of this.duplicate_type_shapes.typescript(this.source_file)) {
-			const rule = RULES_BY_ID.get('duplicate-type-shape');
+			const rule = RULES_BY_ID.get("duplicate-type-shape");
 			if (rule === undefined) {
 				continue;
 			}
-			this.violations.push(
-				rule.violation(this.file, duplicate.line, { names: duplicate.names.join(', ') })
-			);
+			this.violations.push(rule.violation(this.file, duplicate.line, { names: duplicate.names.join(", ") }));
 		}
 	}
 
@@ -114,12 +108,7 @@ export class TypeScriptRuleContext {
 	}
 
 	/** Responsibilities: _rule state initialization_, _wire rule appenders_. **/
-	constructor(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile,
-		stage_timer: LintStageTimerProtocol
-	) {
+	constructor(violations: Violation[], file: string, source_file: ts.SourceFile, stage_timer: LintStageTimerProtocol) {
 		this.violations = violations;
 		this.file = file;
 		this.source_file = source_file;
@@ -135,7 +124,7 @@ export class TypeScriptRuleContext {
 		if (ts.isConstructorDeclaration(node)) {
 			child_inside_constructor = true;
 		}
-		ts.forEachChild(node, child => this.append_node_tree(child, child_inside_constructor));
+		ts.forEachChild(node, (child) => this.append_node_tree(child, child_inside_constructor));
 	}
 
 	/** Responsibilities: _node rules application_, _source tree traversal_. **/
@@ -144,20 +133,15 @@ export class TypeScriptRuleContext {
 			this.append_node_tree(node, inside_constructor);
 			return;
 		}
-		this.stage_timer.measure(
-			'file-analysis.typescript.coding-rules.root-rules',
-			() => {
-				this.append_namespace_rule();
-				this.script_bare_alias.append_bare_aliases(this.violations, this.file, this.source_file);
-			}
+		this.stage_timer.measure("file-analysis.typescript.coding-rules.root-rules", () => {
+			this.append_namespace_rule();
+			this.script_bare_alias.append_bare_aliases(this.violations, this.file, this.source_file);
+		});
+		this.stage_timer.measure("file-analysis.typescript.coding-rules.duplicate-type-shape", () =>
+			this.append_duplicates(),
 		);
-		this.stage_timer.measure(
-			'file-analysis.typescript.coding-rules.duplicate-type-shape',
-			() => this.append_duplicates()
-		);
-		this.stage_timer.measure(
-			'file-analysis.typescript.coding-rules.node-rules',
-			() => this.append_node_tree(node, inside_constructor)
+		this.stage_timer.measure("file-analysis.typescript.coding-rules.node-rules", () =>
+			this.append_node_tree(node, inside_constructor),
 		);
 	}
 }

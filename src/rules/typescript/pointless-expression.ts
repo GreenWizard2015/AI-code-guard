@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _extraction names pointless expression_. **/
 export class PointlessExpression {
@@ -8,17 +8,17 @@ export class PointlessExpression {
 	private first_binding_name(name: ts.BindingPattern): string {
 		const first = name.elements[0];
 		if (!first) {
-			return '';
+			return "";
 		}
 		if (!ts.isBindingElement(first)) {
-			return '';
+			return "";
 		}
 		return this.binding_name(first.name);
 	}
 
 	/** Responsibilities: _argument names extraction _. **/
 	private constructor_argument_names(expression: ts.NewExpression): string[] {
-if (!expression.arguments || expression.arguments.length !== this.single_argument) {
+		if (!expression.arguments || expression.arguments.length !== this.single_argument) {
 			return [];
 		}
 		const argument = expression.arguments[0];
@@ -30,7 +30,7 @@ if (!expression.arguments || expression.arguments.length !== this.single_argumen
 
 	/** Responsibilities: _object shorthand names extraction_. **/
 	private object_shorthand_names(expression: ts.Expression): string[] {
-if (!ts.isObjectLiteralExpression(expression) || expression.properties.length !== 1) {
+		if (!ts.isObjectLiteralExpression(expression) || expression.properties.length !== 1) {
 			return [];
 		}
 		const property = expression.properties[0];

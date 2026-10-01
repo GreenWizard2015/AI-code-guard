@@ -1,12 +1,12 @@
-import { PythonAstData } from 'src/bridge/ts/core/python-ast-parser';
-import type ts from 'typescript';
+import { PythonAstData } from "src/bridge/ts/core/python-ast-parser";
+import type ts from "typescript";
 
-import type { Violation } from 'src/protocols';
-import type { AstModuleInstance, NormalizedAstFile } from 'src/types';
-import { BUILTIN_CONSTRUCTORS } from 'src/bridge/ts/runner/orchestration/runtime/constants';
-import { TypeScriptSingletonCollector } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/collector';
-import { PythonClassVariableSingletons } from 'src/bridge/ts/runner/orchestration/runtime/python-class-variable-singletons';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
+import type { Violation } from "src/protocols";
+import type { AstModuleInstance, NormalizedAstFile } from "src/types";
+import { BUILTIN_CONSTRUCTORS } from "src/bridge/ts/runner/orchestration/runtime/constants";
+import { TypeScriptSingletonCollector } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/collector";
+import { PythonClassVariableSingletons } from "src/bridge/ts/runner/orchestration/runtime/python-class-variable-singletons";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
 
 /** Responsibilities: _detection singleton instances inspection_. **/
 export class SingletonCollector {
@@ -36,8 +36,8 @@ export class SingletonCollector {
 		const project_class_names = new Set([...this.local_class_names, ...this.imported_class_names()]);
 		const imported_module_names = this.imported_module_names();
 		return ast.module_instances
-			.filter(instance => this.project_class_instance(instance, project_class_names, imported_module_names))
-			.filter(instance => !BUILTIN_CONSTRUCTORS.has(instance.constructor));
+			.filter((instance) => this.project_class_instance(instance, project_class_names, imported_module_names))
+			.filter((instance) => !BUILTIN_CONSTRUCTORS.has(instance.constructor));
 	}
 
 	/** Responsibilities: _Python imported classes collection_. **/
@@ -84,7 +84,7 @@ export class SingletonCollector {
 		if (class_names.has(instance.constructor)) {
 			return true;
 		}
-		const separator = instance.constructor.lastIndexOf('.');
+		const separator = instance.constructor.lastIndexOf(".");
 		if (separator < 0) {
 			return false;
 		}
@@ -100,7 +100,7 @@ export class SingletonCollector {
 	private python_violations(instances: AstModuleInstance[]): Violation[] {
 		const violations: Violation[] = [];
 		for (const instance of instances) {
-			const rule = new DiagnosticRule('singleton');
+			const rule = new DiagnosticRule("singleton");
 			violations.push(rule.violation(this.file, instance.line + 1));
 		}
 		return violations;
@@ -112,7 +112,7 @@ export class SingletonCollector {
 		text: string,
 		local_class_names: ReadonlySet<string>,
 		normalized_ast: NormalizedAstFile,
-		source_file: ts.SourceFile
+		source_file: ts.SourceFile,
 	) {
 		this.file = file;
 		this.text = text;

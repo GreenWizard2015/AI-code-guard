@@ -1,8 +1,8 @@
-import ts from 'typescript';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import { TypeScriptSingletonExpressions } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/expressions';
-import { TypeScriptBlockInstanceCapture } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/block-instance-capture';
+import ts from "typescript";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import { TypeScriptSingletonExpressions } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/expressions";
+import { TypeScriptBlockInstanceCapture } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/block-instance-capture";
 
 /** Responsibilities: _TypeScript singleton declaration collection_. **/
 export class TypeScriptSingletonCollector {
@@ -45,52 +45,42 @@ export class TypeScriptSingletonCollector {
 
 	/** Responsibilities: _variable singleton violations_. **/
 	private variable_violations(declarations: readonly ts.VariableDeclaration[]): Violation[] {
-		const rule = new DiagnosticRule('singleton');
-		return declarations.flatMap(declaration => {
+		const rule = new DiagnosticRule("singleton");
+		return declarations.flatMap((declaration) => {
 			if (!this.expressions.variable(declaration)) {
 				return [];
 			}
-			const line = this.source_file.getLineAndCharacterOfPosition(
-				declaration.getStart(this.source_file)
-			).line;
+			const line = this.source_file.getLineAndCharacterOfPosition(declaration.getStart(this.source_file)).line;
 			return [rule.violation(this.file, line + 1)];
 		});
 	}
 
 	/** Responsibilities: _assignment singleton violations_. **/
 	private assignment_violations(assignments: readonly ts.BinaryExpression[]): Violation[] {
-		const rule = new DiagnosticRule('singleton');
-		return assignments.flatMap(assignment => {
+		const rule = new DiagnosticRule("singleton");
+		return assignments.flatMap((assignment) => {
 			if (!this.expressions.initializer(assignment.right)) {
 				return [];
 			}
-			const line = this.source_file.getLineAndCharacterOfPosition(
-				assignment.getStart(this.source_file)
-			).line;
+			const line = this.source_file.getLineAndCharacterOfPosition(assignment.getStart(this.source_file)).line;
 			return [rule.violation(this.file, line + 1)];
 		});
 	}
 
 	/** Responsibilities: _module export singleton violations_. **/
 	private export_violations(): Violation[] {
-		const rule = new DiagnosticRule('singleton');
-		return this.source_file.statements.flatMap(statement => {
+		const rule = new DiagnosticRule("singleton");
+		return this.source_file.statements.flatMap((statement) => {
 			if (!ts.isExportAssignment(statement) || !this.expressions.initializer(statement.expression)) {
 				return [];
 			}
-			const line = this.source_file.getLineAndCharacterOfPosition(
-				statement.getStart(this.source_file)
-			).line;
+			const line = this.source_file.getLineAndCharacterOfPosition(statement.getStart(this.source_file)).line;
 			return [rule.violation(this.file, line + 1)];
 		});
 	}
 
 	/** Responsibilities: _TypeScript singleton collector initialization_. **/
-	public constructor(
-		file: string,
-		source_file: ts.SourceFile,
-		local_class_names: ReadonlySet<string>,
-	) {
+	public constructor(file: string, source_file: ts.SourceFile, local_class_names: ReadonlySet<string>) {
 		this.file = file;
 		this.source_file = source_file;
 		this.expressions = new TypeScriptSingletonExpressions(source_file, local_class_names);
@@ -100,18 +90,14 @@ export class TypeScriptSingletonCollector {
 	/** Responsibilities: _module variable declarations exposure_. **/
 	public variables(): ts.VariableDeclaration[] {
 		const declarations = this.module_variables(this.source_file.statements);
-		const initialized = declarations.filter(declaration => declaration.initializer !== undefined);
-		return initialized.sort((first, second) =>
-			first.getStart(this.source_file) - second.getStart(this.source_file),
-		);
+		const initialized = declarations.filter((declaration) => declaration.initializer !== undefined);
+		return initialized.sort((first, second) => first.getStart(this.source_file) - second.getStart(this.source_file));
 	}
 
 	/** Responsibilities: _TypeScript singleton violations collection_. **/
 	public collect(): Violation[] {
 		const variable_violations = this.variable_violations(this.variables());
-		const assignment_violations = this.assignment_violations(
-			this.module_assignments(this.source_file.statements),
-		);
+		const assignment_violations = this.assignment_violations(this.module_assignments(this.source_file.statements));
 		const export_violations = this.export_violations();
 		return [...variable_violations, ...assignment_violations, ...export_violations].sort(
 			(first, second) => first.line - second.line,

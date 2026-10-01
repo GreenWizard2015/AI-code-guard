@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { ImportedNames } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/imported-names';
-import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
-import { TypeScriptDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/destructured-aliases';
-import { TypeScriptArrayDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/array-destructured-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { ImportedNames } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/imported-names";
+import { TypeScriptNamespaceAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases";
+import { TypeScriptDestructuredAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/destructured-aliases";
+import { TypeScriptArrayDestructuredAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/array-destructured-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _class alias resolution_. **/
 export class TypeScriptClassAliases {
@@ -38,7 +38,7 @@ export class TypeScriptClassAliases {
 
 	/** Responsibilities: _collection class alias reference_. **/
 	private append_class_alias(names: Set<string>, name: string, target: string): boolean {
-		if (target === '') {
+		if (target === "") {
 			return false;
 		}
 		if (!names.has(target)) {
@@ -52,10 +52,7 @@ export class TypeScriptClassAliases {
 	}
 
 	/** Responsibilities: _class alias assignment identification_. **/
-	private append_alias(
-		names: Set<string>,
-		declaration: ts.VariableDeclaration
-	): boolean {
+	private append_alias(names: Set<string>, declaration: ts.VariableDeclaration): boolean {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
@@ -64,7 +61,7 @@ export class TypeScriptClassAliases {
 			return this.append_class_alias(names, declaration.name.text, initializer.text);
 		}
 		const target = this.namespace_aliases.target(initializer);
-		if (target === '') {
+		if (target === "") {
 			return false;
 		}
 		names.add(target);
@@ -101,12 +98,7 @@ export class TypeScriptClassAliases {
 		while (changed) {
 			changed = false;
 			for (const declaration of declarations) {
-				if (this.append_declaration_alias(
-					names,
-					declaration,
-					destructured_aliases,
-					array_destructured_aliases,
-				)) {
+				if (this.append_declaration_alias(names, declaration, destructured_aliases, array_destructured_aliases)) {
 					changed = true;
 				}
 			}
@@ -130,12 +122,7 @@ export class TypeScriptClassAliases {
 		const declarations = this.module_variables(this.source_file.statements);
 		const destructured_aliases = new TypeScriptDestructuredAliases(names, this.source_file);
 		const array_destructured_aliases = new TypeScriptArrayDestructuredAliases(names, this.source_file);
-		this.append_declaration_aliases(
-			names,
-			declarations,
-			destructured_aliases,
-			array_destructured_aliases,
-		);
+		this.append_declaration_aliases(names, declarations, destructured_aliases, array_destructured_aliases);
 		return names;
 	}
 
@@ -147,6 +134,6 @@ export class TypeScriptClassAliases {
 	/** Responsibilities: _classification qualified class access_. **/
 	public access(expression: ts.Expression): boolean {
 		const target = this.namespace_aliases.target(expression);
-		return target !== '';
+		return target !== "";
 	}
 }

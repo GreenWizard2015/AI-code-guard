@@ -1,26 +1,26 @@
-import { existsSync } from 'node:fs';
-import { readFileSync } from 'node:fs';
-import { statSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { resolve as resolve_path } from 'node:path';
-import ts from 'typescript';
-import { TypeScriptDeclarationTable } from 'src/module-resolution/declaration-resolver';
-import { TypeScriptExportLinksTable } from 'src/module-resolution/export-link-resolver';
-import type { TypeScriptDeclarations, TypeScriptExportLinks } from 'src/module-resolution/protocols';
-import type { RecursiveExportResolver, ResolvedTypeScriptExport } from 'src/module-resolution/types';
+import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { statSync } from "node:fs";
+import { dirname } from "node:path";
+import { resolve as resolve_path } from "node:path";
+import ts from "typescript";
+import { TypeScriptDeclarationTable } from "src/module-resolution/declaration-resolver";
+import { TypeScriptExportLinksTable } from "src/module-resolution/export-link-resolver";
+import type { TypeScriptDeclarations, TypeScriptExportLinks } from "src/module-resolution/protocols";
+import type { RecursiveExportResolver, ResolvedTypeScriptExport } from "src/module-resolution/types";
 
 /** Responsibilities: _resolution TypeScript modules local_. **/
 export class TypeScriptModuleExports implements RecursiveExportResolver {
 	private readonly declarations: TypeScriptDeclarations;
-	private readonly source_extensions = ['.ts', '.tsx'];
+	private readonly source_extensions = [".ts", ".tsx"];
 	private readonly links: TypeScriptExportLinks;
 
 	/** Responsibilities: _file candidates module generation_. **/
 	private module_candidates(base: string): string[] {
 		return [
 			base,
-			...this.source_extensions.map(extension => `${base}${extension}`),
-			...this.source_extensions.map(extension => resolve_path(base, `index${extension}`)),
+			...this.source_extensions.map((extension) => `${base}${extension}`),
+			...this.source_extensions.map((extension) => resolve_path(base, `index${extension}`)),
 		];
 	}
 
@@ -29,7 +29,7 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 		file: string,
 		name: string,
 		source_file: ts.SourceFile,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const direct = this.declarations.direct_declaration(file, source_file, name, true);
 		if (direct.file.length > 0) {
@@ -47,7 +47,7 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 		file: string,
 		name: string,
 		source_file: ts.SourceFile,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const named = this.links.named_export(file, source_file, name, visited);
 		if (named.file.length > 0) {
@@ -63,22 +63,13 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 	}
 
 	/** Responsibilities: _resolution source file import_. **/
-	public file_for(
-		file: string,
-		name: string,
-		visited: Set<string>
-	): ResolvedTypeScriptExport {
+	public file_for(file: string, name: string, visited: Set<string>): ResolvedTypeScriptExport {
 		const visit_key = `${file}:${name}`;
 		if (visited.has(visit_key)) {
-			return { file: '', name: '' };
+			return { file: "", name: "" };
 		}
 		visited.add(visit_key);
-		const source_file = ts.createSourceFile(
-			file,
-			readFileSync(file, 'utf8'),
-			ts.ScriptTarget.Latest,
-			true
-		);
+		const source_file = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true);
 		const local = this.local_export(file, name, source_file, visited);
 		if (local.file.length > 0) {
 			return local;
@@ -91,7 +82,7 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 		file: string,
 		source_file: ts.SourceFile,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const direct = this.declarations.direct_declaration(file, source_file, name, false);
 		if (direct.file.length > 0) {
@@ -106,7 +97,7 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 				return resolved;
 			}
 		}
-		return { file: '', name: '' };
+		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _resolution named export recursively_. **/
@@ -124,6 +115,6 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 				}
 			}
 		}
-		return '';
+		return "";
 	}
 }

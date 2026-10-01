@@ -1,8 +1,8 @@
-import type { CallableLocation, SharedParameterCandidate, SharedParameterNode } from 'src/metrics/types';
+import type { CallableLocation, SharedParameterCandidate, SharedParameterNode } from "src/metrics/types";
 
 /** Responsibilities: _order shared-parameter locations nodes_. **/
 export class SharedParameterOrder {
-	private readonly reference_kind = 'reference' as const;
+	private readonly reference_kind = "reference" as const;
 
 	/** Responsibilities: _two text values comparison_. **/
 	private compare_text(left: string, right: string): number {
@@ -41,15 +41,12 @@ export class SharedParameterOrder {
 	/** Responsibilities: _output locations shared two_. **/
 	public intersect_locations(
 		left: readonly CallableLocation[],
-		right: readonly CallableLocation[]
+		right: readonly CallableLocation[],
 	): CallableLocation[] {
 		const intersection: CallableLocation[] = [];
 		let right_index = 0;
 		for (const location of left) {
-			while (
-				right_index < right.length &&
-				this.compare_locations(right[right_index], location) < 0
-			) {
+			while (right_index < right.length && this.compare_locations(right[right_index], location) < 0) {
 				right_index += 1;
 			}
 			if (right_index >= right.length) {
@@ -72,10 +69,7 @@ export class SharedParameterOrder {
 	}
 
 	/** Responsibilities: _shared-parameter candidates their comparison_. **/
-	public compare_candidates(
-		left: SharedParameterCandidate,
-		right: SharedParameterCandidate
-	): number {
+	public compare_candidates(left: SharedParameterCandidate, right: SharedParameterCandidate): number {
 		if (left.nodes.length !== right.nodes.length) {
 			return left.nodes.length - right.nodes.length;
 		}

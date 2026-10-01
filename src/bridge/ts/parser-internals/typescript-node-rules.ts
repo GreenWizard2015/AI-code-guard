@@ -1,23 +1,16 @@
-import { DynamicRuntimeUsage } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-usage';
-import { TypeScriptTestNodeRules } from 'src/bridge/ts/parser-internals/typescript-test-node-rules';
-import { DeclarationPredicates } from 'src/bridge/ts/runner/declaration-predicates';
-import { ProxyRules } from 'src/bridge/ts/parser-internals/proxy-rules/proxy-rules';
-import { TypeScriptAssignmentPredicates } from 'src/bridge/ts/parser-internals/typescript-assignment-predicates';
-import { TypeScriptTypeRules } from 'src/bridge/ts/parser-internals/typescript-type-rules';
-import { TypeScriptArrayStateRules } from 'src/bridge/ts/parser-internals/typescript-array-state-rules';
-import type { TypeScriptNodeTypeRules } from 'src/bridge/ts/parser-internals/protocols';
-import { ValueRules } from 'src/bridge/ts/runner/value-rules';
-import { RestUnionContractRule } from 'src/bridge/ts/parser-internals/type-union-rules/rest-union-contract';
-import ts from 'typescript';
-import type { RuleContextData } from 'src/types';
-import { TypeScriptCallExpressionInspector } from 'src/typescript-call-expression-inspector';
-
-
-
-
-
-
-
+import { DynamicRuntimeUsage } from "src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-usage";
+import { TypeScriptTestNodeRules } from "src/bridge/ts/parser-internals/typescript-test-node-rules";
+import { DeclarationPredicates } from "src/bridge/ts/runner/declaration-predicates";
+import { ProxyRules } from "src/bridge/ts/parser-internals/proxy-rules/proxy-rules";
+import { TypeScriptAssignmentPredicates } from "src/bridge/ts/parser-internals/typescript-assignment-predicates";
+import { TypeScriptTypeRules } from "src/bridge/ts/parser-internals/typescript-type-rules";
+import { TypeScriptArrayStateRules } from "src/bridge/ts/parser-internals/typescript-array-state-rules";
+import type { TypeScriptNodeTypeRules } from "src/bridge/ts/parser-internals/protocols";
+import { ValueRules } from "src/bridge/ts/runner/value-rules";
+import { RestUnionContractRule } from "src/bridge/ts/parser-internals/type-union-rules/rest-union-contract";
+import ts from "typescript";
+import type { RuleContextData } from "src/types";
+import { TypeScriptCallExpressionInspector } from "src/typescript-call-expression-inspector";
 
 /** Responsibilities: _inspection TypeScript nodes classification_. **/
 export class TypeScriptNodeRules {
@@ -48,17 +41,17 @@ export class TypeScriptNodeRules {
 		ts.SyntaxKind.ElementAccessExpression,
 	]);
 	private readonly rule_ids = {
-		static_method: 'typescript-static-method',
-		static_field: 'typescript-static-field',
-		prototype_assignment: 'typescript-prototype-assignment',
-		dynamic_type: 'dynamic-type',
-		temporary_instance_method: 'temporary-instance-method-call',
-		complex_constructor: 'complex-constructor',
-		empty_contract: 'empty-contract',
-		explicit_visibility: 'typescript-explicit-visibility',
-		mutable_field: 'typescript-mutable-field',
-		proxy_callable: 'proxy-callable',
-		type_guard: 'typescript-type-guard',
+		static_method: "typescript-static-method",
+		static_field: "typescript-static-field",
+		prototype_assignment: "typescript-prototype-assignment",
+		dynamic_type: "dynamic-type",
+		temporary_instance_method: "temporary-instance-method-call",
+		complex_constructor: "complex-constructor",
+		empty_contract: "empty-contract",
+		explicit_visibility: "typescript-explicit-visibility",
+		mutable_field: "typescript-mutable-field",
+		proxy_callable: "proxy-callable",
+		type_guard: "typescript-type-guard",
 	};
 
 	/** Responsibilities: _declaration rule identifiers collection_. **/
@@ -118,7 +111,7 @@ export class TypeScriptNodeRules {
 	/** Responsibilities: _tuple-type rules addition_. **/
 	private append_tuple_rule(node: ts.Node, context: RuleContextData): void {
 		if (ts.isTupleTypeNode(node)) {
-			context.append_rule(node, 'tuple-type');
+			context.append_rule(node, "tuple-type");
 		}
 	}
 
@@ -132,23 +125,19 @@ export class TypeScriptNodeRules {
 	/** Responsibilities: _proxy-lambda rules addition_. **/
 	private append_proxy_lambda(node: ts.Node, context: RuleContextData): void {
 		if (!context.test_file && this.proxy_rules.proxy_lambda(node)) {
-			context.append_rule(node, 'proxy-lambda');
+			context.append_rule(node, "proxy-lambda");
 		}
 	}
 
 	/** Responsibilities: _context-sensitive rules addition_. **/
-	private append_context_rules(
-		node: ts.Node,
-		inside_constructor: boolean,
-		context: RuleContextData
-	): void {
+	private append_context_rules(node: ts.Node, inside_constructor: boolean, context: RuleContextData): void {
 		if (ts.isTupleTypeNode(node)) {
 			this.append_tuple_rule(node, context);
 		}
 		if (ts.isBinaryExpression(node)) {
 			this.append_mutable_rule(node, inside_constructor, context);
 		}
-if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
+		if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
 			this.append_proxy_rule(node, context);
 		}
 		if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
@@ -164,7 +153,7 @@ if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
 			context.append_rule(node, this.rule_ids.type_guard);
 		}
 		if (this.call_expression_inspector.bind_call(node)) {
-			context.append_rule(node, 'typescript-bind');
+			context.append_rule(node, "typescript-bind");
 		}
 		if (ts.isElementAccessExpression(node) || ts.isCallExpression(node) || ts.isIfStatement(node)) {
 			this.array_state_rules.append(node, context);
@@ -178,11 +167,7 @@ if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
 	}
 
 	/** Responsibilities: _aggregation rules TypeScript node_. **/
-	public append_node_rules(
-		node: ts.Node,
-		inside_constructor: boolean,
-		context: RuleContextData
-	): void {
+	public append_node_rules(node: ts.Node, inside_constructor: boolean, context: RuleContextData): void {
 		if (this.class_rule_kinds.has(node.kind)) {
 			this.append_class_rules(node, context);
 		}
@@ -209,13 +194,9 @@ if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {
 	}
 
 	/** Responsibilities: _mutable-field rules addition_. **/
-	public append_mutable_rule(
-		node: ts.Node,
-		inside_constructor: boolean,
-		context: RuleContextData
-	): void {
+	public append_mutable_rule(node: ts.Node, inside_constructor: boolean, context: RuleContextData): void {
 		if (this.script_assignment_predicates.field_assignment(node, context.test_file, inside_constructor)) {
-			context.append_rule(node, 'mutable-field-assignment');
+			context.append_rule(node, "mutable-field-assignment");
 		}
 	}
 }

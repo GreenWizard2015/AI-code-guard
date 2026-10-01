@@ -1,25 +1,25 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
-import type { TypeScriptStaticObjectArgumentsProtocol } from 'src/protocols';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
+import type { StaticObjectBranchAppender, TypeScriptStaticObjectArgumentsProtocol } from "src/protocols";
 
 /** Responsibilities: _static object source collection_. **/
 export class TypeScriptStaticObjectSources {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
-	private readonly object_aliases = new TypeScriptExpressionAliases('Object');
-	private readonly object_member_aliases = new TypeScriptMemberAliases('Object', () => '');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
+	private readonly object_aliases = new TypeScriptExpressionAliases("Object");
+	private readonly object_member_aliases = new TypeScriptMemberAliases("Object", () => "");
 	private readonly static_values = new TypeScriptStaticExpressionValues();
 	private readonly arguments_source: TypeScriptStaticObjectArgumentsProtocol;
 
 	/** Responsibilities: _static object member names_. **/
 	private member_name(expression: ts.Expression, node: ts.Node): string {
 		const direct = this.object_aliases.member_name(expression);
-		if (direct !== '') {
+		if (direct !== "") {
 			return direct;
 		}
 		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		return this.static_values.value(expression.argumentExpression, node);
 	}
@@ -41,7 +41,7 @@ export class TypeScriptStaticObjectSources {
 	/** Responsibilities: _Object.assign invocation classification_. **/
 	private is_object_assign(expression: ts.CallExpression): boolean {
 		if (ts.isIdentifier(expression.expression)) {
-			return this.object_member_aliases.property(expression.expression, expression, 'assign');
+			return this.object_member_aliases.property(expression.expression, expression, "assign");
 		}
 		const member = expression.expression;
 		if (!ts.isPropertyAccessExpression(member)) {
@@ -49,24 +49,18 @@ export class TypeScriptStaticObjectSources {
 				return false;
 			}
 		}
-		if (this.member_name(member, expression) !== 'assign') {
+		if (this.member_name(member, expression) !== "assign") {
 			return false;
 		}
 		return this.object_aliases.receiver(member.expression, expression);
 	}
 
 	/** Responsibilities: _Object.assign argument source_. **/
-	private append_argument_source(
-		properties: ts.ObjectLiteralElementLike[],
-		argument: ts.Expression
-	): boolean {
+	private append_argument_source(properties: ts.ObjectLiteralElementLike[], argument: ts.Expression): boolean {
 		if (!ts.isSpreadElement(argument)) {
 			return this.append_properties(properties, argument);
 		}
-		return this.arguments_source.append_spread(
-			argument,
-			value => this.append_properties(properties, value)
-		);
+		return this.arguments_source.append_spread(argument, (value) => this.append_properties(properties, value));
 	}
 
 	/** Responsibilities: _Object.assign source branches_. **/
@@ -96,7 +90,10 @@ export class TypeScriptStaticObjectSources {
 	}
 
 	/** Responsibilities: _conditional object branches_. **/
-	private append_conditional_source(properties: ts.ObjectLiteralElementLike[], initializer: ts.ConditionalExpression): boolean {
+	private append_conditional_source(
+		properties: ts.ObjectLiteralElementLike[],
+		initializer: ts.ConditionalExpression,
+	): boolean {
 		let found = this.append_properties(properties, initializer.whenTrue);
 		if (this.append_properties(properties, initializer.whenFalse)) {
 			found = true;
@@ -107,7 +104,7 @@ export class TypeScriptStaticObjectSources {
 	/** Responsibilities: _conditional binding branches_. **/
 	private append_conditional_binding(
 		initializer: ts.ConditionalExpression,
-		append_branch: (expression: ts.Expression) => boolean
+		append_branch: StaticObjectBranchAppender,
 	): boolean {
 		let found = append_branch(initializer.whenTrue);
 		if (append_branch(initializer.whenFalse)) {
@@ -117,10 +114,7 @@ export class TypeScriptStaticObjectSources {
 	}
 
 	/** Responsibilities: _binary binding branches_. **/
-	private append_binary_binding(
-		initializer: ts.BinaryExpression,
-		append_branch: (expression: ts.Expression) => boolean
-	): boolean {
+	private append_binary_binding(initializer: ts.BinaryExpression, append_branch: StaticObjectBranchAppender): boolean {
 		if (!this.is_branch_operator(initializer.operatorToken.kind)) {
 			return false;
 		}
@@ -132,10 +126,7 @@ export class TypeScriptStaticObjectSources {
 	}
 
 	/** Responsibilities: _Object.assign binding branches_. **/
-	private append_call_binding(
-		initializer: ts.CallExpression,
-		append_branch: (expression: ts.Expression) => boolean
-	): boolean {
+	private append_call_binding(initializer: ts.CallExpression, append_branch: StaticObjectBranchAppender): boolean {
 		if (!this.is_object_assign(initializer)) {
 			return false;
 		}
@@ -179,10 +170,7 @@ export class TypeScriptStaticObjectSources {
 	}
 
 	/** Responsibilities: _expression binding branches_. **/
-	public append_binding(
-		initializer: ts.Expression,
-		append_branch: (expression: ts.Expression) => boolean
-	): boolean {
+	public append_binding(initializer: ts.Expression, append_branch: StaticObjectBranchAppender): boolean {
 		const current = this.expression_aliases.unwrapped(initializer);
 		if (ts.isConditionalExpression(current)) {
 			return this.append_conditional_binding(current, append_branch);
@@ -200,7 +188,7 @@ export class TypeScriptStaticObjectSources {
 	public append_source(
 		objects: Map<string, ts.ObjectLiteralExpression>,
 		name: string,
-		initializer: ts.Expression
+		initializer: ts.Expression,
 	): boolean {
 		if (objects.has(name)) {
 			return false;

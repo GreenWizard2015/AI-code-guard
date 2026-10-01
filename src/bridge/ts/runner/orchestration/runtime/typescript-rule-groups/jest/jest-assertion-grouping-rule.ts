@@ -1,12 +1,12 @@
-import ts from 'typescript';
-import { MAX_TEST_ASSERTIONS } from 'src/constants';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { MAX_TEST_ASSERTIONS } from "src/constants";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _Jest expectation count reporting_. **/
 export class JestAssertionGroupingRule {
 	public readonly minimum_expectations = 3;
 	public readonly maximum_expectations = MAX_TEST_ASSERTIONS;
-	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+	private readonly expect_aliases = new TypeScriptExpressionAliases("expect");
 
 	/** Responsibilities: _unwrapping Jest expectation expression_. **/
 	private unwrapped_expression(expression: ts.Expression): ts.Expression {
@@ -46,7 +46,7 @@ export class JestAssertionGroupingRule {
 	/** Responsibilities: _classification Jest test exceeds_. **/
 	private exceeds_expectation_limit(test: ts.CallExpression, limit: number): boolean {
 		const candidate = test.arguments[test.arguments.length - 1];
-if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunctionExpression(candidate))) {
+		if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunctionExpression(candidate))) {
 			return false;
 		}
 		if (!ts.isBlock(candidate.body)) {
@@ -88,11 +88,7 @@ if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunction
 	}
 
 	/** Responsibilities: _collection lines Jest tests_. **/
-	public expectation_lines(
-		source_file: ts.SourceFile,
-		tests: ts.CallExpression[],
-		limit: number
-	): number[] {
+	public expectation_lines(source_file: ts.SourceFile, tests: ts.CallExpression[], limit: number): number[] {
 		const lines: number[] = [];
 		for (const test of tests) {
 			if (this.exceeds_expectation_limit(test, limit)) {
@@ -101,5 +97,4 @@ if (candidate === undefined || (!ts.isArrowFunction(candidate) && !ts.isFunction
 		}
 		return lines;
 	}
-
 }

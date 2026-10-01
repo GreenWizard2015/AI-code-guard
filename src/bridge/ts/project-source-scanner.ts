@@ -1,12 +1,8 @@
-import { ProjectSourceDiscovery } from 'src/bridge/ts/project-source-discovery';
-import { ProjectSourceImports } from 'src/bridge/ts/project-source-imports';
-import { ProjectSourcePython } from 'src/project-source-python';
-import { ProjectSourceEntry } from 'src/bridge/ts/runner/orchestration/runtime/project-source-entry';
-import type {
-	UnresolvedSpecifierInput,
-	ProjectContextState,
-	ProjectSourceOptions,
-} from 'src/bridge/ts/runner/types';
+import { ProjectSourceDiscovery } from "src/bridge/ts/project-source-discovery";
+import { ProjectSourceImports } from "src/bridge/ts/project-source-imports";
+import { ProjectSourcePython } from "src/project-source-python";
+import { ProjectSourceEntry } from "src/bridge/ts/runner/orchestration/runtime/project-source-entry";
+import type { UnresolvedSpecifierInput, ProjectContextState, ProjectSourceOptions } from "src/bridge/ts/runner/types";
 
 /** Responsibilities: _discovery project files resolution_. **/
 export class ProjectSourceScanner {
@@ -47,10 +43,10 @@ export class ProjectSourceScanner {
 
 	/** Responsibilities: _classification import specifier project-relative_. **/
 	private should_check_specifier(input: UnresolvedSpecifierInput): boolean {
-		if (input.specifier.startsWith('.')) {
+		if (input.specifier.startsWith(".")) {
 			return true;
 		}
-		if (!input.path.endsWith('.py')) {
+		if (!input.path.endsWith(".py")) {
 			return false;
 		}
 		return input.python.python_import(this.root, input.specifier, input.files);
@@ -81,15 +77,10 @@ export class ProjectSourceScanner {
 				input.file,
 				input.specifier,
 				input.files,
-				this.context_state.value
+				this.context_state.value,
 			);
 		}
-		return this.project_source_imports.specifier_path(
-			this.root,
-			input.file,
-			input.specifier,
-			input.files,
-		);
+		return this.project_source_imports.specifier_path(this.root, input.file, input.specifier, input.files);
 	}
 
 	/** Responsibilities: _initialization project root file_. **/
@@ -121,7 +112,9 @@ export class ProjectSourceScanner {
 		const unresolved: string[] = [];
 		const path = this.project_source_entry.relative_path(file);
 		for (const specifier of this.import_specifiers(file)) {
-			unresolved.push(...this.unresolved_specifier({ file, path, specifier, files, python: this.project_source_python }));
+			unresolved.push(
+				...this.unresolved_specifier({ file, path, specifier, files, python: this.project_source_python }),
+			);
 		}
 		return unresolved;
 	}

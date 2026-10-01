@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _TypeScript object alias storage_. **/
 export class TypeScriptObjectAliases {
@@ -10,7 +10,7 @@ export class TypeScriptObjectAliases {
 	private append_named_value(
 		property: ts.ObjectLiteralElementLike,
 		property_name: string,
-		values: ts.Expression[]
+		values: ts.Expression[],
 	): boolean {
 		if (ts.isPropertyAssignment(property)) {
 			if (this.expression_names.static_property_name(property.name) === property_name) {
@@ -32,7 +32,7 @@ export class TypeScriptObjectAliases {
 		property: ts.ObjectLiteralElementLike,
 		property_name: string,
 		values: ts.Expression[],
-		seen: Set<ts.ObjectLiteralExpression>
+		seen: Set<ts.ObjectLiteralExpression>,
 	): void {
 		if (!ts.isSpreadAssignment(property)) {
 			return;
@@ -48,7 +48,7 @@ export class TypeScriptObjectAliases {
 		property: ts.ObjectLiteralElementLike,
 		property_name: string,
 		values: ts.Expression[],
-		seen: Set<ts.ObjectLiteralExpression>
+		seen: Set<ts.ObjectLiteralExpression>,
 	): void {
 		if (this.append_named_value(property, property_name, values)) {
 			return;
@@ -61,7 +61,7 @@ export class TypeScriptObjectAliases {
 		object: ts.ObjectLiteralExpression,
 		property_name: string,
 		values: ts.Expression[],
-		seen: Set<ts.ObjectLiteralExpression>
+		seen: Set<ts.ObjectLiteralExpression>,
 	): void {
 		if (seen.has(object)) {
 			return;
@@ -120,7 +120,7 @@ export class TypeScriptObjectAliases {
 		if (ts.isBinaryExpression(node)) {
 			declarations.push(node);
 		}
-		node.forEachChild(child => this.collect_declarations(child, root, declarations));
+		node.forEachChild((child) => this.collect_declarations(child, root, declarations));
 	}
 
 	/** Responsibilities: _object aliases collection_. **/

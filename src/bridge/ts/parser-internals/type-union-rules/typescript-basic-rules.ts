@@ -1,11 +1,11 @@
-import { DeclarationPredicates } from 'src/bridge/ts/runner/declaration-predicates';
-import { TypeScriptAssignmentValuePredicates } from 'src/bridge/ts/parser-internals/typescript-assignment-value-predicates';
-import { TypeScriptAliasPair } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-alias-pair';
-import { DynamicRuntimeUsage } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-usage';
-import { TypeScriptCallableFeatureDetection } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-callable-feature-detection';
-import { TypeScriptCallableReturnRules } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-callable-return-rules';
-import { ValueRules } from 'src/bridge/ts/runner/value-rules';
-import ts from 'typescript';
+import { DeclarationPredicates } from "src/bridge/ts/runner/declaration-predicates";
+import { TypeScriptAssignmentValuePredicates } from "src/bridge/ts/parser-internals/typescript-assignment-value-predicates";
+import { TypeScriptAliasPair } from "src/bridge/ts/parser-internals/type-union-rules/typescript-alias-pair";
+import { DynamicRuntimeUsage } from "src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-usage";
+import { TypeScriptCallableFeatureDetection } from "src/bridge/ts/parser-internals/type-union-rules/typescript-callable-feature-detection";
+import { TypeScriptCallableReturnRules } from "src/bridge/ts/parser-internals/type-union-rules/typescript-callable-return-rules";
+import { ValueRules } from "src/bridge/ts/runner/value-rules";
+import ts from "typescript";
 import {
 	BROAD_CATCH,
 	COMPLEX_DEFAULT,
@@ -15,8 +15,8 @@ import {
 	TYPE_ASSERTION,
 	TYPEOF,
 	OVERLOAD,
-} from 'src/bridge/ts/parser-internals/constants';
-import type { RuleAppender } from 'src/types';
+} from "src/bridge/ts/parser-internals/constants";
+import type { RuleAppender } from "src/types";
 
 /** Responsibilities: _inspection TypeScript nodes validation_. **/
 export class TypeScriptBasicRules {
@@ -68,20 +68,20 @@ export class TypeScriptBasicRules {
 			if (node.body !== undefined) {
 				return false;
 			}
-			return this.function_statements(node).some(statement =>
-				ts.isFunctionDeclaration(statement) && statement !== node && this.same_name(node, statement)
+			return this.function_statements(node).some(
+				(statement) => ts.isFunctionDeclaration(statement) && statement !== node && this.same_name(node, statement),
 			);
 		}
 		if (!ts.isMethodDeclaration(node) || node.body !== undefined) {
 			if (!ts.isMethodSignature(node)) {
 				return false;
 			}
-			return this.interface_members(node).some(member =>
-				ts.isMethodSignature(member) && this.same_name(node, member) && member !== node
+			return this.interface_members(node).some(
+				(member) => ts.isMethodSignature(member) && this.same_name(node, member) && member !== node,
 			);
 		}
-		return this.class_members(node).some(member =>
-			ts.isMethodDeclaration(member) && member.body !== undefined && this.same_name(node, member)
+		return this.class_members(node).some(
+			(member) => ts.isMethodDeclaration(member) && member.body !== undefined && this.same_name(node, member),
 		);
 	}
 
@@ -109,7 +109,7 @@ export class TypeScriptBasicRules {
 			missing = this.callable_return_rules.missing(node);
 		}
 		if (missing) {
-			append_rule(node, 'explicit-return-type');
+			append_rule(node, "explicit-return-type");
 		}
 	}
 
@@ -117,25 +117,25 @@ export class TypeScriptBasicRules {
 	private append_membership_rule(node: ts.Node, append_rule: RuleAppender): void {
 		if (ts.isIfStatement(node)) {
 			if (this.dynamic_runtime_usage.in_operator(node, node.getSourceFile())) {
-				append_rule(node, 'typescript-in-operator');
+				append_rule(node, "typescript-in-operator");
 			}
 			return;
 		}
 		if (ts.isBinaryExpression(node) && this.dynamic_runtime_usage.in_operator(node, node.getSourceFile())) {
-			append_rule(node, 'typescript-in-operator');
+			append_rule(node, "typescript-in-operator");
 		}
 	}
 
 	/** Responsibilities: _prototype member classification_. **/
 	private prototype_member(expression: ts.Expression): boolean {
 		if (ts.isPropertyAccessExpression(expression)) {
-			return expression.name.text === 'prototype';
+			return expression.name.text === "prototype";
 		}
 		if (!ts.isElementAccessExpression(expression)) {
 			return false;
 		}
 		const argument = expression.argumentExpression;
-		return ts.isStringLiteral(argument) && argument.text === 'prototype';
+		return ts.isStringLiteral(argument) && argument.text === "prototype";
 	}
 
 	/** Responsibilities: _prototype check classification_. **/
@@ -143,7 +143,7 @@ export class TypeScriptBasicRules {
 		if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
 			return false;
 		}
-		if (node.expression.name.text !== 'isPrototypeOf') {
+		if (node.expression.name.text !== "isPrototypeOf") {
 			return false;
 		}
 		return this.prototype_member(node.expression.expression);
@@ -182,7 +182,7 @@ export class TypeScriptBasicRules {
 		if (!ts.isAsExpression(node)) {
 			return;
 		}
-		if (node.type.getText(node.getSourceFile()) === 'const') {
+		if (node.type.getText(node.getSourceFile()) === "const") {
 			return;
 		}
 		append_rule(node, TYPE_ASSERTION);
@@ -206,7 +206,7 @@ export class TypeScriptBasicRules {
 			append_rule(node, OVERLOAD);
 		}
 		if (this.callable_feature_detection.feature_detection(node)) {
-			append_rule(node, 'python-callable');
+			append_rule(node, "python-callable");
 		}
 		this.append_return_rule(node, append_rule);
 		this.append_membership_rule(node, append_rule);

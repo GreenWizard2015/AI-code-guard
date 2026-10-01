@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _TypeScript expression names_. **/
 export class TypeScriptExpressionNames {
@@ -54,11 +54,11 @@ export class TypeScriptExpressionNames {
 	/** Responsibilities: _expression reader initialization_. **/
 	constructor() {
 		this.transparent_expression_readers = new Map([
-			[ts.SyntaxKind.ParenthesizedExpression, expression => this.parenthesized_child(expression)],
-			[ts.SyntaxKind.NonNullExpression, expression => this.non_null_child(expression)],
-			[ts.SyntaxKind.AsExpression, expression => this.asserted_child(expression)],
-			[ts.SyntaxKind.TypeAssertionExpression, expression => this.asserted_child(expression)],
-			[ts.SyntaxKind.SatisfiesExpression, expression => this.satisfied_child(expression)],
+			[ts.SyntaxKind.ParenthesizedExpression, (expression) => this.parenthesized_child(expression)],
+			[ts.SyntaxKind.NonNullExpression, (expression) => this.non_null_child(expression)],
+			[ts.SyntaxKind.AsExpression, (expression) => this.asserted_child(expression)],
+			[ts.SyntaxKind.TypeAssertionExpression, (expression) => this.asserted_child(expression)],
+			[ts.SyntaxKind.SatisfiesExpression, (expression) => this.satisfied_child(expression)],
 		]);
 	}
 
@@ -82,7 +82,7 @@ export class TypeScriptExpressionNames {
 			if (ts.isNoSubstitutionTemplateLiteral(expression)) {
 				return expression.text;
 			}
-			return '';
+			return "";
 		}
 		if (ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNumericLiteral(node)) {
 			return node.text;
@@ -90,14 +90,14 @@ export class TypeScriptExpressionNames {
 		if (ts.isNoSubstitutionTemplateLiteral(node)) {
 			return node.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _static binding names_. **/
 	public static_binding_name(element: ts.BindingElement): string {
 		if (element.propertyName !== undefined) {
 			const property_name = this.static_property_name(element.propertyName);
-			if (property_name !== '') {
+			if (property_name !== "") {
 				return property_name;
 			}
 		}
@@ -107,7 +107,7 @@ export class TypeScriptExpressionNames {
 	/** Responsibilities: _static element names_. **/
 	public static_element_name(element: ts.ObjectLiteralElementLike): string {
 		if (element.name === undefined) {
-			return '';
+			return "";
 		}
 		return this.static_property_name(element.name);
 	}

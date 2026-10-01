@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
+import ts from "typescript";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
 
 /** Responsibilities: _dynamic runtime member expressions_. **/
 export class DynamicRuntimeMemberExpressions {
@@ -24,15 +24,15 @@ export class DynamicRuntimeMemberExpressions {
 			return expression.text;
 		}
 		if (!ts.isPropertyAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		if (!ts.isIdentifier(expression.expression)) {
-			return '';
+			return "";
 		}
-		if (expression.expression.text === 'globalThis') {
+		if (expression.expression.text === "globalThis") {
 			return expression.name.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _dynamic member owners_. **/

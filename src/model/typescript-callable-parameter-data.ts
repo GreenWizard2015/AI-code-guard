@@ -1,7 +1,7 @@
-import { Syntax } from 'src/syntax';
-import ts from 'typescript';
+import { Syntax } from "src/syntax";
+import ts from "typescript";
 
-import type { TypedArgument, CallableTypeData } from 'src/model/types';
+import type { TypedArgument, CallableTypeData } from "src/model/types";
 
 /** Responsibilities: _extraction TypeScript callable templates_. **/
 export class CallableParameterData {
@@ -9,17 +9,14 @@ export class CallableParameterData {
 	private readonly syntax = new Syntax();
 
 	/** Responsibilities: _normalization typed parameter argument_. **/
-	private typed_argument(
-		parameter: ts.ParameterDeclaration,
-		template_names: ReadonlySet<string>
-	): TypedArgument[] {
+	private typed_argument(parameter: ts.ParameterDeclaration, template_names: ReadonlySet<string>): TypedArgument[] {
 		if (!parameter.type || !ts.isIdentifier(parameter.name)) {
 			return [];
 		}
 		const type = parameter.type.getText(this.source_file);
 		let kind = this.syntax.type_kind(parameter.type);
 		if (template_names.has(type)) {
-			kind = 'template';
+			kind = "template";
 		}
 		return [{ name: parameter.name.text, type, kind }];
 	}
@@ -36,7 +33,7 @@ export class CallableParameterData {
 
 	/** Responsibilities: _collection generic names declared_. **/
 	private append_class_templates(names: Set<string>, current: ts.Node): void {
-		if ((!ts.isClassDeclaration(current)) && (!ts.isClassExpression(current))) {
+		if (!ts.isClassDeclaration(current) && !ts.isClassExpression(current)) {
 			return;
 		}
 		if (current.typeParameters === undefined) {
@@ -87,7 +84,7 @@ export class CallableParameterData {
 
 	/** Responsibilities: _construction parameter output type_. **/
 	public type_data(node: ts.SignatureDeclarationBase): CallableTypeData {
-		let return_type = '';
+		let return_type = "";
 		if (node.type !== undefined) {
 			return_type = node.type.getText(this.source_file);
 		}

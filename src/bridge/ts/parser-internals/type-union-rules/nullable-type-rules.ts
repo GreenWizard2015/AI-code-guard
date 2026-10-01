@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _classification nullish nullable TypeScript_. **/
 export class NullableTypeRules {
@@ -55,10 +55,10 @@ export class NullableTypeRules {
 		if (!this.is_nullable_parent(parent)) {
 			return false;
 		}
-		if (!node.types.some(type => this.nullish_type(type))) {
+		if (!node.types.some((type) => this.nullish_type(type))) {
 			return false;
 		}
-		return node.types.some(type => !this.nullish_type(type));
+		return node.types.some((type) => !this.nullish_type(type));
 	}
 
 	/** Responsibilities: _classification parent node allows_. **/
@@ -86,7 +86,7 @@ export class NullableTypeRules {
 		if (!ts.isIdentifier(node.typeName)) {
 			return false;
 		}
-		return node.typeName.text === 'undefined';
+		return node.typeName.text === "undefined";
 	}
 
 	/** Responsibilities: _reporting node permitted nullable_. **/

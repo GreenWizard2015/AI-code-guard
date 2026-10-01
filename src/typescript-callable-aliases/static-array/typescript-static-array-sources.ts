@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticArrayIndexValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-index-values';
-import { TypeScriptStaticArrayValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticArrayIndexValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-index-values";
+import { TypeScriptStaticArrayValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver";
 
 /** Responsibilities: _static array source resolution_. **/
 export class TypeScriptStaticArraySources {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly array_sources: Map<string, readonly ts.Expression[]>;
 	private readonly numeric_sources: Map<string, number>;
 	private readonly index_values: TypeScriptStaticArrayIndexValues;
@@ -70,10 +70,7 @@ export class TypeScriptStaticArraySources {
 	}
 
 	/** Responsibilities: _static array source dependencies_. **/
-	public constructor(
-		array_sources: Map<string, readonly ts.Expression[]>,
-		numeric_sources: Map<string, number>
-	) {
+	public constructor(array_sources: Map<string, readonly ts.Expression[]>, numeric_sources: Map<string, number>) {
 		this.array_sources = array_sources;
 		this.numeric_sources = numeric_sources;
 		this.index_values = new TypeScriptStaticArrayIndexValues(this.numeric_sources);
@@ -126,5 +123,4 @@ export class TypeScriptStaticArraySources {
 		this.array_sources.set(name, values);
 		return true;
 	}
-
 }

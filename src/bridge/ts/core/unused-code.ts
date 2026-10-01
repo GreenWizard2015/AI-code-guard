@@ -1,36 +1,33 @@
-import { TestPathSyntax } from 'src/test-path-syntax';
-import { relative } from 'node:path';
-import type { ProjectSourceScannerProtocol, Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { ProjectSourceScanner } from 'src/bridge/ts/project-source-scanner';
-import type { ReferenceData } from 'src/types';
-import type { ProjectSourceOptions } from 'src/bridge/ts/runner/types';
+import { TestPathSyntax } from "src/test-path-syntax";
+import { relative } from "node:path";
+import type { EntryPointPredicate, ProjectSourceScannerProtocol, ReferenceDataLoader, Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { ProjectSourceScanner } from "src/bridge/ts/project-source-scanner";
+import type { ReferenceData } from "src/types";
+import type { ProjectSourceOptions } from "src/bridge/ts/runner/types";
 
 /** Responsibilities: _detection unresolved imports unused_. **/
 export class UnusedCode {
-	private readonly missing_import_rule = new DiagnosticRule('missing-import');
-	private readonly unused_file_rule = new DiagnosticRule('unused-file');
+	private readonly missing_import_rule = new DiagnosticRule("missing-import");
+	private readonly unused_file_rule = new DiagnosticRule("unused-file");
 
 	/** Responsibilities: _creation violations unresolved project_. **/
 	private unresolved_import_violations(
 		root: string,
 		scanner: ProjectSourceScannerProtocol,
 		available: Set<string>,
-		importer: string
+		importer: string,
 	): Violation[] {
-		const file = relative(root, importer).split('\\').join('/');
+		const file = relative(root, importer).split("\\").join("/");
 		const specifiers = scanner.unresolved_relative_imports(importer, available);
 		if (specifiers.length === 0) {
 			return [];
 		}
-		return specifiers.map(specifier => this.missing_import_rule.violation(file, 0, { specifier }));
+		return specifiers.map((specifier) => this.missing_import_rule.violation(file, 0, { specifier }));
 	}
 
 	/** Responsibilities: _collection source imports resolution_. **/
-	private reference_data(
-		files: string[],
-		importer_data: (file: string) => ReferenceData
-	): ReferenceData {
+	private reference_data(files: string[], importer_data: ReferenceDataLoader): ReferenceData {
 		const referenced = new Set<string>();
 		const unresolved: Violation[] = [];
 		for (const importer of files) {
@@ -46,21 +43,25 @@ export class UnusedCode {
 	/** Responsibilities: _creation violations files project_. **/
 	private unused_file_violations(
 		root: string,
-		entry: (file: string) => boolean,
+		entry: EntryPointPredicate,
 		files: string[],
-		referenced: Set<string>
+		referenced: Set<string>,
 	): Violation[] {
 		const test_path_syntax = new TestPathSyntax();
 
-		const candidates = files.filter(
-			file => (!entry(file)) && (!test_path_syntax.test_file(relative(root, file))) && (!referenced.has(file))
-		);
+		const candidates = files.filter((file) => {
+			if (entry(file)) {
+				return false;
+			}
+			if (test_path_syntax.test_file(relative(root, file))) {
+				return false;
+			}
+			return !referenced.has(file);
+		});
 		if (candidates.length === 0) {
 			return [];
 		}
-		return candidates.map(file =>
-			this.unused_file_rule.violation(relative(root, file).split('\\').join('/'), 0)
-		);
+		return candidates.map((file) => this.unused_file_rule.violation(relative(root, file).split("\\").join("/"), 0));
 	}
 
 	/** Responsibilities: _collection importer data discovered_. **/
@@ -68,7 +69,7 @@ export class UnusedCode {
 		root: string,
 		scanner: ProjectSourceScannerProtocol,
 		available: Set<string>,
-		importer: string
+		importer: string,
 	): ReferenceData {
 		const unresolved = this.unresolved_import_violations(root, scanner, available, importer);
 		const referenced = scanner.resolved_imports(importer, available);
@@ -76,19 +77,11 @@ export class UnusedCode {
 	}
 
 	/** Responsibilities: _collection unused unresolved-import violations_. **/
-	public collect_scanner_violations(
-		root: string,
-		scanner: ProjectSourceScannerProtocol,
-		files: string[],
-	): Violation[] {
+	public collect_scanner_violations(root: string, scanner: ProjectSourceScannerProtocol, files: string[]): Violation[] {
 		const available = new Set(files);
-		const importer_data = (file: string): ReferenceData =>
-			this.importer_reference_data(root, scanner, available, file);
+		const importer_data = (file: string): ReferenceData => this.importer_reference_data(root, scanner, available, file);
 		const { referenced, unresolved } = this.reference_data(files, importer_data);
-		return [
-			...unresolved,
-			...this.unused_file_violations(root, file => scanner.entry(file), files, referenced),
-		];
+		return [...unresolved, ...this.unused_file_violations(root, (file) => scanner.entry(file), files, referenced)];
 	}
 
 	/** Responsibilities: _reporting unused scanning projection_. **/

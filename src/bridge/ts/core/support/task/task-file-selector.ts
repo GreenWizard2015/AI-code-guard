@@ -1,7 +1,7 @@
-import { isAbsolute, resolve } from 'node:path';
-import type { ReportViolation } from 'src/types';
-import { TaskViolationGroups } from 'src/bridge/ts/core/support/task/task-violation-groups';
-import type { TaskFileSelection } from 'src/bridge/ts/core/support/task/types';
+import { isAbsolute, resolve } from "node:path";
+import type { ReportViolation } from "src/types";
+import { TaskViolationGroups } from "src/bridge/ts/core/support/task/task-violation-groups";
+import type { TaskFileSelection } from "src/bridge/ts/core/support/task/types";
 
 /** Responsibilities: _selection task violations category_. **/
 export class TaskFileSelector {
@@ -18,7 +18,7 @@ export class TaskFileSelector {
 	/** Responsibilities: _selection largest grouped rule_. **/
 	private largest_rule_group(groups: ReadonlyMap<string, ReportViolation[]>): ReportViolation[] {
 		let selected: ReportViolation[] = [];
-		let selected_rule = '';
+		let selected_rule = "";
 		for (const [rule_id, group] of groups) {
 			if (group.length > selected.length || (group.length === selected.length && rule_id < selected_rule)) {
 				selected = group;
@@ -34,7 +34,7 @@ export class TaskFileSelector {
 		counts: ReadonlyMap<string, number>,
 		batch_size: number,
 	): string[] {
-		const files = new Set(category.map(violation => this.absolute_file(violation.file)));
+		const files = new Set(category.map((violation) => this.absolute_file(violation.file)));
 		return [...files]
 			.sort((left, right) => {
 				const left_count = counts.get(left);
@@ -52,10 +52,7 @@ export class TaskFileSelector {
 	}
 
 	/** Responsibilities: _selection highest-impact violations task_. **/
-	private selected_violations(
-		violations: readonly ReportViolation[],
-		files: readonly string[],
-	): ReportViolation[] {
+	private selected_violations(violations: readonly ReportViolation[], files: readonly string[]): ReportViolation[] {
 		const selected_files = new Set(files);
 		const result: ReportViolation[] = [];
 		for (const violation of violations) {
@@ -72,10 +69,7 @@ export class TaskFileSelector {
 	}
 
 	/** Responsibilities: _selection top rule category_. **/
-	public select_top_category(
-		violations: readonly ReportViolation[],
-		batch_size: number,
-	): TaskFileSelection {
+	public select_top_category(violations: readonly ReportViolation[], batch_size: number): TaskFileSelection {
 		const violation_groups = new TaskViolationGroups(this.root);
 		const priority = violation_groups.top_priority(violations);
 		const top_violations = violation_groups.at_priority(violations, priority);
@@ -86,10 +80,7 @@ export class TaskFileSelector {
 	}
 
 	/** Responsibilities: _selection violations preservation grouped_. **/
-	public select_all(
-		violations: readonly ReportViolation[],
-		batch_size: number,
-	): TaskFileSelection {
+	public select_all(violations: readonly ReportViolation[], batch_size: number): TaskFileSelection {
 		const violation_groups = new TaskViolationGroups(this.root);
 		const priority = violation_groups.top_priority(violations);
 		const top_violations = violation_groups.at_priority(violations, priority);

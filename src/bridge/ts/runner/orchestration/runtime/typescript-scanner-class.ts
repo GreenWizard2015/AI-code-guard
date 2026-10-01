@@ -1,11 +1,11 @@
-import { MixCollection } from 'src/bridge/ts/core/mix-collection';
-import { AstModel } from 'src/bridge/ts/core/ast-model';
-import { Syntax } from 'src/syntax';
-import type { LintFileNameContract, NormalizedAstFile } from 'src/types';
-import type { TypeScriptAstFileProtocol } from 'src/protocols';
-import type { TypeScriptScannerOptions } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { Violation } from 'src/protocols';
-import { TypeScriptScannerRules } from 'src/bridge/ts/runner/orchestration/runtime/typescript-scanner-rules';
+import { MixCollection } from "src/bridge/ts/core/mix-collection";
+import { AstModel } from "src/bridge/ts/core/ast-model";
+import { Syntax } from "src/syntax";
+import type { LintFileNameContract, NormalizedAstFile } from "src/types";
+import type { TypeScriptAstFileProtocol } from "src/protocols";
+import type { TypeScriptScannerOptions } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { Violation } from "src/protocols";
+import { TypeScriptScannerRules } from "src/bridge/ts/runner/orchestration/runtime/typescript-scanner-rules";
 
 /** Responsibilities: _TypeScript AST state preparation_, _TypeScript rule groups execution_. **/
 export class TypeScriptScannerClass {
@@ -16,17 +16,6 @@ export class TypeScriptScannerClass {
 	private readonly rules: TypeScriptScannerRules;
 
 	public readonly violations: Violation[] = [];
-
-	/** Responsibilities: _mixed-module violations addition_. **/
-	private append_mixed_rules(): void {
-		const mix_collection = new MixCollection();
-		mix_collection.append_mix_violations(
-			this.violations,
-			this.ast.classes,
-			this.ast.functions,
-			this.file_name
-		);
-	}
 
 	/** Responsibilities: _scanner state initialization_, _rule collaborators preparation_. **/
 	public constructor(options: TypeScriptScannerOptions) {
@@ -61,7 +50,7 @@ export class TypeScriptScannerClass {
 	/** Responsibilities: _mixed-module analysis execution_. **/
 	public scan_mixed_module(): void {
 		this.violations.length = 0;
-		this.append_mixed_rules();
+		const mix_collection = new MixCollection();
+		mix_collection.append_mix_violations(this.violations, this.ast.classes, this.ast.functions, this.file_name);
 	}
-
 }

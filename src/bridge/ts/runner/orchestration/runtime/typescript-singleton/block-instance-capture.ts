@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _TypeScript block instance ownership_. **/
 export class TypeScriptBlockInstanceCapture {
@@ -17,7 +17,7 @@ export class TypeScriptBlockInstanceCapture {
 			declarations.push(...node.declarations);
 			return;
 		}
-		ts.forEachChild(node, child => this.append_variable_declarations(child, declarations));
+		ts.forEachChild(node, (child) => this.append_variable_declarations(child, declarations));
 	}
 
 	/** Responsibilities: _name occurrence_. **/
@@ -70,12 +70,7 @@ export class TypeScriptBlockInstanceCapture {
 	}
 
 	/** Responsibilities: _function body scope_. **/
-	private escaping_body(
-		function_node: ts.Node,
-		body: ts.Node,
-		name: string,
-		names: ReadonlySet<string>,
-	): boolean {
+	private escaping_body(function_node: ts.Node, body: ts.Node, name: string, names: ReadonlySet<string>): boolean {
 		if (!this.references_name(body, name)) {
 			return false;
 		}
@@ -137,18 +132,14 @@ export class TypeScriptBlockInstanceCapture {
 	}
 
 	/** Responsibilities: _block instance variables_. **/
-	public escaped_variables(
-		block: ts.Block,
-		names: ReadonlySet<string>,
-	): ts.VariableDeclaration[] {
+	public escaped_variables(block: ts.Block, names: ReadonlySet<string>): ts.VariableDeclaration[] {
 		const declarations: ts.VariableDeclaration[] = [];
 		this.append_variable_declarations(block, declarations);
-		return declarations.filter(declaration => {
+		return declarations.filter((declaration) => {
 			if (declaration.initializer === undefined) {
 				return false;
 			}
 			return this.escaping_block_variable(block, declaration, names);
 		});
 	}
-
 }

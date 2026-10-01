@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _static expression operation resolution_. **/
 export class TypeScriptStaticExpressionOperations {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly literal_kinds = new Set([
 		ts.SyntaxKind.StringLiteral,
 		ts.SyntaxKind.NoSubstitutionTemplateLiteral,
@@ -19,7 +19,7 @@ export class TypeScriptStaticExpressionOperations {
 			return false;
 		}
 		const value = this.literal_part(values, current);
-		if (value === '') {
+		if (value === "") {
 			return false;
 		}
 		values.set(name, value);
@@ -30,17 +30,17 @@ export class TypeScriptStaticExpressionOperations {
 	private literal_part(values: ReadonlyMap<string, string>, expression: ts.Expression): string {
 		const current = this.expression_aliases.unwrapped(expression);
 		if (this.literal_kinds.has(current.kind)) {
-			return current.getText().replace(/^['"`]|['"`]$/g, '');
+			return current.getText().replace(/^['"`]|['"`]$/g, "");
 		}
 		if (ts.isTemplateExpression(current)) {
 			return this.template_value(values, current);
 		}
 		if (!ts.isIdentifier(current)) {
-			return '';
+			return "";
 		}
 		const value = values.get(current.text);
 		if (value === undefined) {
-			return '';
+			return "";
 		}
 		return value;
 	}
@@ -50,8 +50,8 @@ export class TypeScriptStaticExpressionOperations {
 		let value = expression.head.text;
 		for (const span of expression.templateSpans) {
 			const part = this.literal_part(values, span.expression);
-			if (part === '') {
-				return '';
+			if (part === "") {
+				return "";
 			}
 			value += part + span.literal.text;
 		}
@@ -59,12 +59,7 @@ export class TypeScriptStaticExpressionOperations {
 	}
 
 	/** Responsibilities: _alternative static value resolution_. **/
-	private append_branch(
-		values: Map<string, string>,
-		name: string,
-		left: ts.Expression,
-		right: ts.Expression
-	): boolean {
+	private append_branch(values: Map<string, string>, name: string, left: ts.Expression, right: ts.Expression): boolean {
 		let changed = this.append(values, name, left);
 		if (this.append(values, name, right)) {
 			changed = true;
@@ -79,7 +74,7 @@ export class TypeScriptStaticExpressionOperations {
 		}
 		const left = this.literal_part(values, expression.left);
 		const right = this.literal_part(values, expression.right);
-		if (left === '' || right === '') {
+		if (left === "" || right === "") {
 			return false;
 		}
 		values.set(name, left + right);
@@ -114,10 +109,10 @@ export class TypeScriptStaticExpressionOperations {
 	public literal(values: ReadonlyMap<string, string>, expression: ts.Expression): string {
 		const current = this.expression_aliases.unwrapped(expression);
 		if (this.literal_kinds.has(current.kind)) {
-			return current.getText().replace(/^['"`]|['"`]$/g, '');
+			return current.getText().replace(/^['"`]|['"`]$/g, "");
 		}
 		if (!ts.isTemplateExpression(current)) {
-			return '';
+			return "";
 		}
 		return this.template_value(values, current);
 	}

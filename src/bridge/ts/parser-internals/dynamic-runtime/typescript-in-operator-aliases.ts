@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
-import type { DynamicBindingNamesProtocol } from 'src/protocols';
+import ts from "typescript";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
+import type { DynamicBindingNamesProtocol } from "src/protocols";
 
 /** Responsibilities: _TypeScript membership alias resolution_. **/
 export class TypeScriptInOperatorAliases {
@@ -8,18 +8,14 @@ export class TypeScriptInOperatorAliases {
 	private readonly binding_names: DynamicBindingNamesProtocol;
 
 	/** Responsibilities: _collection declarations_. **/
-	private collect_declarations(
-		node: ts.Node,
-		declarations: ts.VariableDeclaration[],
-		root: ts.Node
-	): void {
+	private collect_declarations(node: ts.Node, declarations: ts.VariableDeclaration[], root: ts.Node): void {
 		if (node !== root && ts.isFunctionLike(node)) {
 			return;
 		}
 		if (ts.isVariableDeclaration(node)) {
 			declarations.push(node);
 		}
-		ts.forEachChild(node, child => this.collect_declarations(child, declarations, root));
+		ts.forEachChild(node, (child) => this.collect_declarations(child, declarations, root));
 	}
 
 	/** Responsibilities: _membership alias addition_. **/
@@ -35,7 +31,7 @@ export class TypeScriptInOperatorAliases {
 	private append_direct_alias(
 		declaration: ts.VariableDeclaration,
 		source_file: ts.SourceFile,
-		names: Set<string>
+		names: Set<string>,
 	): boolean {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
@@ -48,10 +44,7 @@ export class TypeScriptInOperatorAliases {
 	}
 
 	/** Responsibilities: _chained membership alias_. **/
-	private append_chained_alias(
-		declaration: ts.VariableDeclaration,
-		names: Set<string>
-	): boolean {
+	private append_chained_alias(declaration: ts.VariableDeclaration, names: Set<string>): boolean {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
 		}
@@ -70,7 +63,7 @@ export class TypeScriptInOperatorAliases {
 		declaration: ts.VariableDeclaration,
 		source_file: ts.SourceFile,
 		names: Set<string>,
-		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>
+		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>,
 	): boolean {
 		if (declaration.initializer === undefined || ts.isIdentifier(declaration.name)) {
 			return false;
@@ -79,8 +72,8 @@ export class TypeScriptInOperatorAliases {
 			new Set<string>(),
 			declaration.name,
 			declaration.initializer,
-			expression => this.object_value(expression, object_aliases),
-			(_alias_set, name, initializer) => {
+			(expression) => this.object_value(expression, object_aliases),
+			(name, initializer) => {
 				if (this.invalid(initializer, source_file)) {
 					return this.add_name(names, name);
 				}
@@ -95,7 +88,7 @@ export class TypeScriptInOperatorAliases {
 	/** Responsibilities: _object alias value_. **/
 	private object_value(
 		expression: ts.Expression,
-		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>
+		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>,
 	): ts.Expression {
 		const seen = new Set<string>();
 		let value = expression;
@@ -113,7 +106,7 @@ export class TypeScriptInOperatorAliases {
 	/** Responsibilities: _object alias addition_. **/
 	private append_object_alias(
 		declaration: ts.VariableDeclaration,
-		object_aliases: Map<string, ts.ObjectLiteralExpression>
+		object_aliases: Map<string, ts.ObjectLiteralExpression>,
 	): boolean {
 		if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
 			return false;
@@ -131,7 +124,7 @@ export class TypeScriptInOperatorAliases {
 		declaration: ts.VariableDeclaration,
 		source_file: ts.SourceFile,
 		names: Set<string>,
-		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>
+		object_aliases: ReadonlyMap<string, ts.ObjectLiteralExpression>,
 	): boolean {
 		if (this.append_direct_alias(declaration, source_file, names)) {
 			return true;
@@ -143,10 +136,7 @@ export class TypeScriptInOperatorAliases {
 	}
 
 	/** Responsibilities: _membership alias resolution_. **/
-	private resolve(
-		declarations: ts.VariableDeclaration[],
-		source_file: ts.SourceFile
-	): ReadonlySet<string> {
+	private resolve(declarations: ts.VariableDeclaration[], source_file: ts.SourceFile): ReadonlySet<string> {
 		const names = new Set<string>();
 		const object_aliases = new Map<string, ts.ObjectLiteralExpression>();
 		let changed = true;

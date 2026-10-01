@@ -1,31 +1,32 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { createHash } from 'node:crypto';
-import type { TaskDocumentationProtocol } from 'src/protocols';
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
+import type { TaskDocumentationProtocol, TaskReviewCompletionCodeProtocol } from "src/protocols";
+import { TaskReviewCompletionCode } from "src/bridge/ts/core/support/task/task-review-completion-code";
 
 /** Responsibilities: _discovery architecture review files_. **/
 export class TaskReview {
 	private readonly review_root: string;
 	private readonly documentation: TaskDocumentationProtocol;
-	private readonly review_code = this.completion_code(new Date());
+	private readonly completion_code_service: TaskReviewCompletionCodeProtocol = new TaskReviewCompletionCode();
+	private readonly current_time = new Date();
+	public readonly completion_code = this.completion_code_service.completion_code(this.current_time);
 
-	/** Responsibilities: _review completion code creation_. **/
-	private completion_code(timestamp: Date): string {
-		const minute = [
-			timestamp.getFullYear().toString().padStart(4, '0'),
-			(timestamp.getMonth() + 1).toString().padStart(2, '0'),
-			timestamp.getDate().toString().padStart(2, '0'),
-			timestamp.getHours().toString().padStart(2, '0'),
-			timestamp.getMinutes().toString().padStart(2, '0'),
-		].join('');
-		const display = `${minute.slice(0, 4)}-${minute.slice(4, 6)}-${minute.slice(6, 8)} ${minute.slice(8, 10)}:${minute.slice(10, 12)}`;
-		const hash = createHash('md5').update(minute).digest('hex');
-		return `Architecture review completion code: ${hash} ${display}`;
+	/** Responsibilities: _output architecture review instruction_. **/
+	private delegated_instruction(): string {
+		const review_path = join(this.review_root, "*.md");
+		const instruction = this.documentation.architecture_review(
+			review_path,
+			"the primary agent's private completion code, which is not provided to the delegated reviewer",
+		);
+		if (this.completion_code_service.contains(instruction, this.current_time)) {
+			throw new Error("Architecture review instruction exposed the primary agent completion code.");
+		}
+		return instruction;
 	}
 
 	/** Responsibilities: _initialization review directory task_. **/
 	constructor(root: string, documentation: TaskDocumentationProtocol) {
-		this.review_root = join(resolve(root, '.ai-code-guard'), 'review');
+		this.review_root = join(resolve(root, ".ai-code-guard"), "review");
 		this.documentation = documentation;
 	}
 
@@ -34,35 +35,43 @@ export class TaskReview {
 		if (!existsSync(this.review_root)) {
 			return [];
 		}
-		return readdirSync(this.review_root)
-			.filter(file => file.endsWith('.md'))
-			.sort()
-			.map(file => join(this.review_root, file));
+		const entries = readdirSync(this.review_root, { withFileTypes: true });
+		const markdown_files = entries.filter((file) => file.isFile() && file.name.endsWith(".md"));
+		const ordered_files = markdown_files.sort((left, right) => left.name.localeCompare(right.name));
+		const review_paths = ordered_files.map((file) => join(this.review_root, file.name));
+		const existing_paths = review_paths.filter((file) => existsSync(file));
+		return existing_paths;
 	}
 
 	/** Responsibilities: _review file line count_. **/
 	public line_count(file: string): number {
-		return readFileSync(file, 'utf8').split(/\r?\n/u).length;
+		return readFileSync(file, "utf8").split(/\r?\n/u).length;
 	}
 
 	/** Responsibilities: _review file text reading_. **/
 	public text(file: string): string {
-		return readFileSync(file, 'utf8').trim();
+		return readFileSync(file, "utf8").trim();
 	}
 
-	/** Responsibilities: _output architecture review instruction_. **/
-	public instruction(): string {
-		const review_path = `${this.review_root}/*.md`;
-		const instruction = this.documentation.architecture_review(review_path, this.review_code);
-		if (!instruction.includes(this.review_code)) {
-			throw new Error('Architecture review instruction omitted its completion code.');
-		}
-		return instruction;
+	/** Responsibilities: _primary agent review assignment_. **/
+	public primary_instruction(): string {
+		return [
+			"BEGIN DELEGATED REVIEW TASK — pass only this section to the separate review agent.",
+			this.delegated_instruction(),
+			"END DELEGATED REVIEW TASK — keep the following primary-agent instruction private.",
+			`Primary agent private completion code (do not delegate): ${this.completion_code}`,
+		].join("\n\n");
 	}
 
 	/** Responsibilities: _architecture review completion verification_. **/
 	public completed(): boolean {
-		return this.files().some(file => this.text(file).includes(this.review_code));
+		const review_files = this.files();
+		if (review_files.length === 0) {
+			return false;
+		}
+		const completed_files = review_files.filter((file) =>
+			this.completion_code_service.contains(this.text(file), this.current_time),
+		);
+		return completed_files.length > 0;
 	}
-
 }

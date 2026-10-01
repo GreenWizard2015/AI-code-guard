@@ -1,15 +1,15 @@
-import { TestPathSyntax } from 'src/test-path-syntax';
-import { TypeScriptImportedFunctionAliases } from 'src/typescript-imported-function-aliases';
-import { relative } from 'node:path';
-import ts from 'typescript';
+import { TestPathSyntax } from "src/test-path-syntax";
+import { TypeScriptImportedFunctionAliases } from "src/typescript-imported-function-aliases";
+import { relative } from "node:path";
+import ts from "typescript";
 
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import { SourceText } from 'src/rules/typescript/default-source-loader';
-import { TypeScriptAstFile } from 'src/model/typescript-ast';
-import type { FieldAssignment, TypeScriptClassFieldContext } from 'src/model/types';
-import { VISIBILITY_MODIFIERS } from 'src/model/constants';
-import type { LintProjectContext } from 'src/protocols';
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import { SourceText } from "src/rules/typescript/default-source-loader";
+import { TypeScriptAstFile } from "src/model/typescript-ast";
+import type { FieldAssignment, TypeScriptClassFieldContext } from "src/model/types";
+import { VISIBILITY_MODIFIERS } from "src/model/constants";
+import type { LintProjectContext } from "src/protocols";
 
 /** Responsibilities: _fields and violations inspection_. **/
 export class TypeScriptClassFieldRules {
@@ -33,20 +33,17 @@ export class TypeScriptClassFieldRules {
 		const functions = new Map<string, Set<string>>();
 		for (const file of files) {
 			const ast = new TypeScriptAstFile(file, this.source_loader.source_text(file));
-			functions.set(file, new Set(ast.functions().map(node => node.name)));
+			functions.set(file, new Set(ast.functions().map((node) => node.name)));
 		}
 		return functions;
 	}
 
 	/** Responsibilities: _index contextual functions_. **/
-	private context_functions(
-		files: readonly string[],
-		context: LintProjectContext
-	): Map<string, Set<string>> {
+	private context_functions(files: readonly string[], context: LintProjectContext): Map<string, Set<string>> {
 		const functions = new Map<string, Set<string>>();
 		for (const file of files) {
 			const source = context.source_record(file);
-			functions.set(file, new Set(source.normalized_ast.functions.map(node => node.name)));
+			functions.set(file, new Set(source.normalized_ast.functions.map((node) => node.name)));
 		}
 		return functions;
 	}
@@ -55,12 +52,12 @@ export class TypeScriptClassFieldRules {
 	private append_member_violation(
 		member: ts.ClassElement,
 		context: TypeScriptClassFieldContext,
-		violations: Violation[]
+		violations: Violation[],
 	): void {
-if (!ts.isPropertyDeclaration(member) || member.initializer === undefined) {
+		if (!ts.isPropertyDeclaration(member) || member.initializer === undefined) {
 			return;
 		}
-if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
+		if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 			return;
 		}
 		const assignment: FieldAssignment = {
@@ -76,7 +73,7 @@ if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 	private append_members(
 		members: readonly ts.ClassElement[],
 		context: TypeScriptClassFieldContext,
-		violations: Violation[]
+		violations: Violation[],
 	): void {
 		for (const member of members) {
 			this.append_member_violation(member, context, violations);
@@ -89,7 +86,7 @@ if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 		if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
 			this.append_members(node.members, context, violations);
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			violations.push(...this.collect_node(child, context));
 		});
 		return violations;
@@ -99,11 +96,11 @@ if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 	private field_violation(
 		member: ts.ClassElement,
 		assignment: FieldAssignment,
-		context: TypeScriptClassFieldContext
+		context: TypeScriptClassFieldContext,
 	): Violation {
 		const position = member.getStart(context.source_file);
 		const line = context.source_file.getLineAndCharacterOfPosition(position).line + 1;
-		const rule = new DiagnosticRule('class-field-import');
+		const rule = new DiagnosticRule("class-field-import");
 		return rule.violation(context.relative_file, line, {
 			field: assignment.field,
 			name: assignment.name,
@@ -113,7 +110,7 @@ if (!ts.isIdentifier(member.name) || !ts.isIdentifier(member.initializer)) {
 	/** Responsibilities: _imported field functions resolution_. **/
 	private references_imported_function(assignment: FieldAssignment, context: TypeScriptClassFieldContext): boolean {
 		const imported = context.imports.get(assignment.name);
-if (imported === undefined || imported.source_file === context.file) {
+		if (imported === undefined || imported.source_file === context.file) {
 			return false;
 		}
 		const source_functions = context.functions.get(imported.source_file);
@@ -128,7 +125,7 @@ if (imported === undefined || imported.source_file === context.file) {
 		file: string,
 		repo_root: string,
 		source_file: ts.SourceFile,
-		functions: Map<string, Set<string>>
+		functions: Map<string, Set<string>>,
 	): Violation[] {
 		const imported_function_aliases = new TypeScriptImportedFunctionAliases();
 		if (source_file.statements.length === 0) {
@@ -136,7 +133,7 @@ if (imported === undefined || imported.source_file === context.file) {
 		}
 		const field_context: TypeScriptClassFieldContext = {
 			file,
-			relative_file: relative(repo_root, file).split('\\').join('/'),
+			relative_file: relative(repo_root, file).split("\\").join("/"),
 			source_file: source_file,
 			imports: imported_function_aliases.imported_function_aliases(source_file),
 			functions,
@@ -185,7 +182,7 @@ if (imported === undefined || imported.source_file === context.file) {
 		if (modifiers.length === 0) {
 			return true;
 		}
-		return !modifiers.some(modifier => VISIBILITY_MODIFIERS.includes(modifier.kind));
+		return !modifiers.some((modifier) => VISIBILITY_MODIFIERS.includes(modifier.kind));
 	}
 
 	/** Responsibilities: _report mutable fields_. **/
@@ -200,41 +197,29 @@ if (imported === undefined || imported.source_file === context.file) {
 		if (modifiers.length === 0) {
 			return true;
 		}
-		return !modifiers.some(modifier => modifier.kind === ts.SyntaxKind.ReadonlyKeyword);
+		return !modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword);
 	}
 
 	/** Responsibilities: _source field violations collection_. **/
-	public collect_fields(
-		files: string[],
-		repo_root: string
-	): Violation[] {
-		const source_files = files.filter(file => file.endsWith('.ts') || file.endsWith('.tsx'));
+	public collect_fields(files: string[], repo_root: string): Violation[] {
+		const source_files = files.filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
 		const functions = this.file_functions(source_files);
-		return source_files.flatMap(file => {
+		return source_files.flatMap((file) => {
 			const ast = new TypeScriptAstFile(file, this.source_loader.source_text(file));
 			return this.source_fields(file, repo_root, ast.source_file, functions);
 		});
 	}
 
 	/** Responsibilities: _contextual field violations collection_. **/
-	public context_fields(
-		files: string[],
-		repo_root: string,
-		context: LintProjectContext
-	): Violation[] {
-		const source_files = files.filter(file => file.endsWith('.ts') || file.endsWith('.tsx'));
+	public context_fields(files: string[], repo_root: string, context: LintProjectContext): Violation[] {
+		const source_files = files.filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
 		const functions = this.context_functions(source_files, context);
-		return source_files.flatMap(file => {
+		return source_files.flatMap((file) => {
 			const source = context.source_record(file);
 			if (!source.typescript()) {
 				return [];
 			}
-			return this.source_fields(
-				file,
-				repo_root,
-				source.typescript_ast.source_file_node(),
-				functions
-			);
+			return this.source_fields(file, repo_root, source.typescript_ast.source_file_node(), functions);
 		});
 	}
 }

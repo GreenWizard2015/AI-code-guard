@@ -1,6 +1,6 @@
-import { TestTargetImports } from 'src/bridge/ts/runner/orchestration/runtime/test-targets/test-target-imports';
-import { TestTargetRoots } from 'src/bridge/ts/runner/orchestration/runtime/test-targets/test-target-roots';
-import type { TestFileOrganizationProtocol } from 'src/protocols';
+import { TestTargetImports } from "src/bridge/ts/runner/orchestration/runtime/test-targets/test-target-imports";
+import { TestTargetRoots } from "src/bridge/ts/runner/orchestration/runtime/test-targets/test-target-roots";
+import type { TestFileOrganizationProtocol } from "src/protocols";
 
 /** Responsibilities: _test target validation_. **/
 export class TestTargets {
@@ -8,9 +8,9 @@ export class TestTargets {
 
 	/** Responsibilities: _test module import detection_. **/
 	private test_import(specifier: string): boolean {
-		const segments = specifier.replaceAll('\\', '/').split('/').filter(Boolean);
+		const segments = specifier.replaceAll("\\", "/").split("/").filter(Boolean);
 		for (const segment of segments) {
-			if (segment === 'tests' || segment === '__tests__') {
+			if (segment === "tests" || segment === "__tests__") {
 				return true;
 			}
 		}

@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { CallableBodyMetrics } from 'src/model/typescript-callable-body-metrics';
-import { MAX_CALLABLE_CHARACTERS } from 'src/constants';
+import ts from "typescript";
+import { CallableBodyMetrics } from "src/model/typescript-callable-body-metrics";
+import { MAX_CALLABLE_CHARACTERS } from "src/constants";
 
 /** Responsibilities: _measurement logical expression chains_. **/
 export class TypeScriptLogicalChain {

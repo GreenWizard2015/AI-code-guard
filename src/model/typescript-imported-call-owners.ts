@@ -1,10 +1,10 @@
-import { TypeScriptCallReturnAnalysis } from 'src/bridge/ts/parser/typescript-call-return-analysis';
-import { TypeScriptModuleExports } from 'src/bridge/ts/parser/typescript-module-exports';
-import { readFileSync } from 'node:fs';
+import { TypeScriptCallReturnAnalysis } from "src/bridge/ts/parser/typescript-call-return-analysis";
+import { TypeScriptModuleExports } from "src/bridge/ts/parser/typescript-module-exports";
+import { readFileSync } from "node:fs";
 
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { TypeScriptSourceResolver } from 'src/model/types';
+import type { TypeScriptSourceResolver } from "src/model/types";
 
 /** Responsibilities: _resolution imported callable owners_. **/
 export class TypeScriptImportedCallOwners {
@@ -18,19 +18,11 @@ export class TypeScriptImportedCallOwners {
 		if (sources.length > 0) {
 			return sources[0];
 		}
-		return ts.createSourceFile(
-			imported_file,
-			readFileSync(imported_file, 'utf8'),
-			ts.ScriptTarget.Latest,
-			true
-		);
+		return ts.createSourceFile(imported_file, readFileSync(imported_file, "utf8"), ts.ScriptTarget.Latest, true);
 	}
 
 	/** Responsibilities: _resolution owner imported callable_. **/
-	private imported_call_owner(
-		source_file: ts.SourceFile,
-		exported_name: string
-	): string {
+	private imported_call_owner(source_file: ts.SourceFile, exported_name: string): string {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 		const script_module_exports = new TypeScriptModuleExports();
 
@@ -38,17 +30,12 @@ export class TypeScriptImportedCallOwners {
 			if (!script_module_exports.export(statement)) {
 				continue;
 			}
-			const owner = this.exported_owner(
-				statement,
-				exported_name,
-				call_return_analysis,
-				script_module_exports
-			);
+			const owner = this.exported_owner(statement, exported_name, call_return_analysis, script_module_exports);
 			if (owner) {
 				return owner;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution exported callable owner_. **/
@@ -56,20 +43,17 @@ export class TypeScriptImportedCallOwners {
 		statement: ts.Statement,
 		exported_name: string,
 		analysis: TypeScriptCallReturnAnalysis,
-		module_exports: TypeScriptModuleExports
+		module_exports: TypeScriptModuleExports,
 	): string {
 		const return_types = module_exports.exported_return_type(statement, exported_name);
 		if (return_types.length === 0) {
-			return '';
+			return "";
 		}
 		return analysis.reference_owner(return_types[0]);
 	}
 
 	/** Responsibilities: _resolution owners named bindings_. **/
-	private imported_binding_owner(
-		source_file: ts.SourceFile,
-		binding: ts.ImportSpecifier
-	): string {
+	private imported_binding_owner(source_file: ts.SourceFile, binding: ts.ImportSpecifier): string {
 		let exported_name = binding.propertyName?.text;
 		if (exported_name === undefined) {
 			exported_name = binding.name.text;

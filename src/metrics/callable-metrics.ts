@@ -1,14 +1,8 @@
-import { MetricViolations } from 'src/metric-violations';
-import type { Violation } from 'src/protocols';
-import {
-	MAX_CALLABLE_CHARACTERS,
-	MAX_FUNCTION_ARGUMENTS,
-	MAX_FUNCTION_LINES,
-	MIN_FUNCTION_LINES,
-} from 'src/constants';
-import type { CallableMetricNode } from 'src/metrics/types';
-import type { MetricViolationKind } from 'src/types';
-
+import { MetricViolations } from "src/metric-violations";
+import type { Violation } from "src/protocols";
+import { MAX_CALLABLE_CHARACTERS, MAX_FUNCTION_ARGUMENTS, MAX_FUNCTION_LINES, MIN_FUNCTION_LINES } from "src/constants";
+import type { CallableMetricNode } from "src/metrics/types";
+import type { MetricViolationKind } from "src/types";
 
 /** Responsibilities: _reporting callable length SLOC_. **/
 export class CallableMetrics {
@@ -21,7 +15,7 @@ export class CallableMetrics {
 
 	/** Responsibilities: _aggregation short long callable_. **/
 	private append_length_violations(): void {
-if (this.node.name === 'constructor' || this.node.name === '__init__') {
+		if (this.node.name === "constructor" || this.node.name === "__init__") {
 			return;
 		}
 		const is_allowed = this.length_allowed();
@@ -41,7 +35,7 @@ if (this.node.name === 'constructor' || this.node.name === '__init__') {
 		if (this.minimum_size >= MIN_FUNCTION_LINES) {
 			return true;
 		}
-		if (this.is_method && this.node.visibility === 'private') {
+		if (this.is_method && this.node.visibility === "private") {
 			return false;
 		}
 		if (this.characters <= 0) {
@@ -54,9 +48,9 @@ if (this.node.name === 'constructor' || this.node.name === '__init__') {
 	private append_short_violation(): void {
 		const metric_violations = new MetricViolations();
 
-		let kind: MetricViolationKind = 'short_function';
+		let kind: MetricViolationKind = "short_function";
 		if (this.is_method) {
-			kind = 'short_method';
+			kind = "short_method";
 		}
 		this.violations.push(metric_violations.metric_violation(this.file, this.node.start, this.minimum_size, kind));
 	}
@@ -65,9 +59,9 @@ if (this.node.name === 'constructor' || this.node.name === '__init__') {
 	private append_long_violation(): void {
 		const metric_violations = new MetricViolations();
 
-		let kind: MetricViolationKind = 'long_function';
+		let kind: MetricViolationKind = "long_function";
 		if (this.is_method) {
-			kind = 'long_method';
+			kind = "long_method";
 		}
 		this.violations.push(metric_violations.metric_violation(this.file, this.node.start, this.minimum_size, kind));
 	}
@@ -84,7 +78,7 @@ if (this.node.name === 'constructor' || this.node.name === '__init__') {
 
 	/** Responsibilities: _aggregation maximum length violations_. **/
 	public append_maximum_length(): void {
-if (this.node.name === 'constructor' || this.node.name === '__init__') {
+		if (this.node.name === "constructor" || this.node.name === "__init__") {
 			return;
 		}
 		if (this.minimum_size > MAX_FUNCTION_LINES) {
@@ -106,7 +100,7 @@ if (this.node.name === 'constructor' || this.node.name === '__init__') {
 			return;
 		}
 		this.violations.push(
-			metric_violations.metric_violation(this.file, this.node.start, this.node.argument_count, 'arguments')
+			metric_violations.metric_violation(this.file, this.node.start, this.node.argument_count, "arguments"),
 		);
 	}
 }

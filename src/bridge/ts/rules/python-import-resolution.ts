@@ -1,25 +1,25 @@
-import { existsSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { join } from 'node:path';
-import type { AstPythonImport, AstPythonImportName } from 'src/types';
-import type { ImportedFunction } from 'src/types';
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
+import { join } from "node:path";
+import type { AstPythonImport, AstPythonImportName } from "src/types";
+import type { ImportedFunction } from "src/types";
 
 /** Responsibilities: _resolution Python import sources_. **/
 export class PythonImportResolution {
-	private readonly python_suffix = '.py';
-	private readonly package_file = '__init__.py';
+	private readonly python_suffix = ".py";
+	private readonly package_file = "__init__.py";
 
 	/** Responsibilities: _resolution Python module name_. **/
 	private import_source(file: string, module_name: string): string {
 		const level = this.relative_import_level(module_name);
 		if (level === 0) {
-			return '';
+			return "";
 		}
 		const base = this.relative_import_base(file, level);
 		const module = module_name.slice(level);
 		let module_path = base;
 		if (module.length > 0) {
-			module_path = join(base, ...module.split('.'));
+			module_path = join(base, ...module.split("."));
 		}
 		return this.import_file(module_path);
 	}
@@ -34,13 +34,13 @@ export class PythonImportResolution {
 		if (existsSync(package_path)) {
 			return package_path;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _relative leading-dot count_. **/
 	private relative_import_level(module_name: string): number {
 		let level = 0;
-		while (module_name[level] === '.') {
+		while (module_name[level] === ".") {
 			level += 1;
 		}
 		return level;
@@ -59,7 +59,7 @@ export class PythonImportResolution {
 	public append_import_names(
 		imports: Map<string, ImportedFunction>,
 		names: AstPythonImportName[],
-		source_file: string
+		source_file: string,
 	): void {
 		for (const name of names) {
 			let alias = name.name;
@@ -71,10 +71,7 @@ export class PythonImportResolution {
 	}
 
 	/** Responsibilities: _collection resolution Python imports_. **/
-	public collect_imports(
-		file: string,
-		python_imports: AstPythonImport[]
-	): Map<string, ImportedFunction> {
+	public collect_imports(file: string, python_imports: AstPythonImport[]): Map<string, ImportedFunction> {
 		const imports = new Map<string, ImportedFunction>();
 		for (const item of python_imports) {
 			const source_file = this.import_source(file, item.module);

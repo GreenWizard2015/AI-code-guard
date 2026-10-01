@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import { TypeScriptFactoryArrayAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-aliases';
-import { TypeScriptFactoryObjectAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptFactoryArrayAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-aliases";
+import { TypeScriptFactoryObjectAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution TypeScript factory aliases_. **/
 export class TypeScriptFactoryAliases {
@@ -33,7 +33,7 @@ export class TypeScriptFactoryAliases {
 	/** Responsibilities: _factory source identification_. **/
 	private source_for(declaration: ts.VariableDeclaration, name: string): string {
 		if (declaration.initializer === undefined) {
-			return '';
+			return "";
 		}
 		const initializer = this.expression_names.unwrap_transparent_expression(declaration.initializer);
 		if (ts.isIdentifier(declaration.name)) {
@@ -44,7 +44,7 @@ export class TypeScriptFactoryAliases {
 			}
 		}
 		const object_source = this.object_aliases.source(declaration, name);
-		if (object_source !== '') {
+		if (object_source !== "") {
 			return object_source;
 		}
 		return this.array_aliases.source(declaration, name);
@@ -56,7 +56,7 @@ export class TypeScriptFactoryAliases {
 			if (!ts.isIdentifier(declaration.name)) {
 				continue;
 			}
-			if (this.source_for(declaration, declaration.name.text) !== '') {
+			if (this.source_for(declaration, declaration.name.text) !== "") {
 				names.add(declaration.name.text);
 			}
 		}
@@ -101,7 +101,7 @@ export class TypeScriptFactoryAliases {
 		const sources: string[] = [];
 		for (const declaration of this.variable_declarations()) {
 			const source = this.source_for(declaration, name);
-			if (source !== '') {
+			if (source !== "") {
 				sources.push(source);
 			}
 		}

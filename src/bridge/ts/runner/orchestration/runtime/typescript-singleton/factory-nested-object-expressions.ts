@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { TypeScriptFactoryArrayAliasesProtocol, TypeScriptFactoryObjectPropertiesProtocol } from 'src/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { TypeScriptFactoryArrayAliasesProtocol, TypeScriptFactoryObjectPropertiesProtocol } from "src/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution nested object expressions_. **/
 export class TypeScriptFactoryNestedObjectExpressions {
@@ -97,7 +97,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 	): void {
 		if (ts.isArrayBindingPattern(element.name)) {
 			const property_name = this.expression_names.static_binding_name(element);
-			if (property_name !== '') {
+			if (property_name !== "") {
 				this.append_array_property(initializer, property_name, element.name, name, expressions);
 			}
 			return;
@@ -106,7 +106,7 @@ export class TypeScriptFactoryNestedObjectExpressions {
 			return;
 		}
 		const property_name = this.expression_names.static_binding_name(element);
-		if (property_name === '') {
+		if (property_name === "") {
 			return;
 		}
 		this.append_nested_properties(initializer, element.name, property_name, name, expressions);
@@ -142,7 +142,9 @@ export class TypeScriptFactoryNestedObjectExpressions {
 		if (!ts.isIdentifier(element.name) || element.name.text !== name) {
 			return;
 		}
-		for (const expression of this.properties.expressions(initializer, this.expression_names.static_binding_name(element)).values()) {
+		for (const expression of this.properties
+			.expressions(initializer, this.expression_names.static_binding_name(element))
+			.values()) {
 			expressions.set(name, expression);
 		}
 	}

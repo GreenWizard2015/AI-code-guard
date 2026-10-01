@@ -1,16 +1,17 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import type { CallableConsumer } from "src/protocols";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
-import type { JestSuite } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types';
+import type { JestSuite } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/types";
 
 /** Responsibilities: _discovery Jest suites tests_. **/
 export class JestSuiteCollector {
-	private readonly test_names = new Set(['test', 'it']);
-	private readonly modifier_names = new Set(['only', 'skip', 'concurrent', 'fails', 'todo', 'each']);
-	private readonly describe_name = 'describe';
-	private readonly describe_aliases = new TypeScriptExpressionAliases('describe');
-	private readonly test_aliases = new TypeScriptExpressionAliases('test');
-	private readonly it_aliases = new TypeScriptExpressionAliases('it');
+	private readonly test_names = new Set(["test", "it"]);
+	private readonly modifier_names = new Set(["only", "skip", "concurrent", "fails", "todo", "each"]);
+	private readonly describe_name = "describe";
+	private readonly describe_aliases = new TypeScriptExpressionAliases("describe");
+	private readonly test_aliases = new TypeScriptExpressionAliases("test");
+	private readonly it_aliases = new TypeScriptExpressionAliases("it");
 
 	/** Responsibilities: _unwrapping Jest invocation expression_. **/
 	private unwrapped_expression(expression: ts.Expression): ts.Expression {
@@ -34,10 +35,10 @@ export class JestSuiteCollector {
 			return this.describe_name;
 		}
 		if (this.test_aliases.receiver(expression, node)) {
-			return 'test';
+			return "test";
 		}
 		if (this.it_aliases.receiver(expression, node)) {
-			return 'it';
+			return "it";
 		}
 		return expression.text;
 	}
@@ -45,7 +46,7 @@ export class JestSuiteCollector {
 	/** Responsibilities: _Jest property names_. **/
 	private property_call_name(expression: ts.PropertyAccessExpression, node: ts.Node): string {
 		if (!this.modifier_names.has(expression.name.text)) {
-			return '';
+			return "";
 		}
 		const owner = this.unwrapped_expression(expression.expression);
 		return this.call_name(owner, node);
@@ -60,7 +61,7 @@ export class JestSuiteCollector {
 		if (ts.isPropertyAccessExpression(current)) {
 			return this.property_call_name(current, node);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _classification invocation usage Jest_. **/
@@ -69,7 +70,7 @@ export class JestSuiteCollector {
 		if (!ts.isPropertyAccessExpression(expression)) {
 			return false;
 		}
-		return expression.name.text === 'each';
+		return expression.name.text === "each";
 	}
 
 	/** Responsibilities: _classification invocation represents Jest_. **/
@@ -91,10 +92,10 @@ export class JestSuiteCollector {
 	private direct_tests(node: ts.Node): ts.CallExpression[] {
 		const tests: ts.CallExpression[] = [];
 		const visit = (child: ts.Node): void => {
-				if (ts.isCallExpression(child)) {
-					if (this.call_name(child.expression, child) === this.describe_name) {
+			if (ts.isCallExpression(child)) {
+				if (this.call_name(child.expression, child) === this.describe_name) {
 					return;
-					}
+				}
 			}
 			if (ts.isCallExpression(child) && this.is_test_call(child)) {
 				tests.push(child);
@@ -110,7 +111,7 @@ export class JestSuiteCollector {
 	private suite_from_call(node: ts.CallExpression, nested: boolean): JestSuite {
 		let body: ts.Block[] = [];
 		let tests: ts.CallExpression[] = [];
-		this.with_callback(node, callback => {
+		this.with_callback(node, (callback) => {
 			if (callback.body !== undefined && ts.isBlock(callback.body)) {
 				body = [callback.body];
 			}
@@ -122,10 +123,7 @@ export class JestSuiteCollector {
 	}
 
 	/** Responsibilities: _execution callback each discovered_. **/
-	public with_callback(
-		node: ts.CallExpression,
-		consumer: (callback: ts.FunctionLikeDeclaration) => void
-	): void {
+	public with_callback(node: ts.CallExpression, consumer: CallableConsumer): void {
 		const candidate = node.arguments[node.arguments.length - 1];
 		if (candidate === undefined) {
 			return;
@@ -141,20 +139,20 @@ export class JestSuiteCollector {
 		const visit = (node: ts.Node, nested: boolean): void => {
 			if (ts.isCallExpression(node)) {
 				if (this.call_name(node.expression, node) !== this.describe_name) {
-					ts.forEachChild(node, child => visit(child, nested));
+					ts.forEachChild(node, (child) => visit(child, nested));
 					return;
 				}
 				suites.push(this.suite_from_call(node, nested));
-					this.with_callback(node, callback => {
-						if (callback.body !== undefined) {
-							ts.forEachChild(callback.body, child => visit(child, true));
-						}
-					});
+				this.with_callback(node, (callback) => {
+					if (callback.body !== undefined) {
+						ts.forEachChild(callback.body, (child) => visit(child, true));
+					}
+				});
 				return;
 			}
-			ts.forEachChild(node, child => visit(child, nested));
+			ts.forEachChild(node, (child) => visit(child, nested));
 		};
-		ts.forEachChild(source_file, child => visit(child, false));
+		ts.forEachChild(source_file, (child) => visit(child, false));
 		return suites;
 	}
 }

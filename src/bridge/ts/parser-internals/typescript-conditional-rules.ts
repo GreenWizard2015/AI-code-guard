@@ -1,16 +1,16 @@
-import ts from 'typescript';
-import { TypeScriptAssignmentPredicates } from 'src/bridge/ts/parser-internals/typescript-assignment-predicates';
-import { TypeScriptAssignmentValuePredicates } from 'src/bridge/ts/parser-internals/typescript-assignment-value-predicates';
-import { TypeScriptBooleanExpression } from 'src/bridge/ts/parser-internals/typescript-boolean-expression';
-import { TypeScriptBooleanCall } from 'src/bridge/ts/parser-internals/typescript-boolean-call';
-import type { RuleAppender } from 'src/types';
+import ts from "typescript";
+import { TypeScriptAssignmentPredicates } from "src/bridge/ts/parser-internals/typescript-assignment-predicates";
+import { TypeScriptAssignmentValuePredicates } from "src/bridge/ts/parser-internals/typescript-assignment-value-predicates";
+import { TypeScriptBooleanExpression } from "src/bridge/ts/parser-internals/typescript-boolean-expression";
+import { TypeScriptBooleanCall } from "src/bridge/ts/parser-internals/typescript-boolean-call";
+import type { RuleAppender } from "src/types";
 import {
 	CONDITIONAL_EXECUTION,
 	LOGICAL_ASSIGNMENT,
 	SWITCH,
 	TERNARY,
 	TS_BLOCK,
-} from 'src/bridge/ts/parser-internals/constants';
+} from "src/bridge/ts/parser-internals/constants";
 
 /** Responsibilities: _classification TypeScript conditional rules_. **/
 export class TypeScriptConditionalRules {

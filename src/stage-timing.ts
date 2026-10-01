@@ -1,5 +1,6 @@
-import { performance } from 'node:perf_hooks';
-import type { LintStageDuration } from 'src/types';
+import { performance } from "node:perf_hooks";
+import type { LintStageDuration } from "src/types";
+import type { Operation } from "src/protocols";
 
 /** Responsibilities: _measurement lint stages retention_. **/
 export class LintStageTimer {
@@ -9,9 +10,9 @@ export class LintStageTimer {
 	private parent_percentage(
 		stage: LintStageDuration,
 		parent_name: string,
-		all_durations: readonly LintStageDuration[]
+		all_durations: readonly LintStageDuration[],
 	): number {
-		const parent = all_durations.find(item => item.name === parent_name);
+		const parent = all_durations.find((item) => item.name === parent_name);
 		if (parent === undefined || parent.duration_ms === 0) {
 			return 0;
 		}
@@ -22,22 +23,23 @@ export class LintStageTimer {
 	private is_direct_child(
 		stage_name: string,
 		parent_name: string,
-		all_durations: readonly LintStageDuration[]
+		all_durations: readonly LintStageDuration[],
 	): boolean {
 		if (!stage_name.startsWith(`${parent_name}.`)) {
 			return false;
 		}
-		return !all_durations.some(intermediate =>
-			intermediate.name !== stage_name &&
-			intermediate.name.startsWith(`${parent_name}.`) &&
-			stage_name.startsWith(`${intermediate.name}.`)
+		return !all_durations.some(
+			(intermediate) =>
+				intermediate.name !== stage_name &&
+				intermediate.name.startsWith(`${parent_name}.`) &&
+				stage_name.startsWith(`${intermediate.name}.`),
 		);
 	}
 
 	/** Responsibilities: _collection direct child durations_. **/
 	private direct_children(
 		parent_name: string,
-		all_durations: readonly LintStageDuration[]
+		all_durations: readonly LintStageDuration[],
 	): readonly LintStageDuration[] {
 		const children: LintStageDuration[] = [];
 		for (const stage of all_durations) {
@@ -54,7 +56,7 @@ export class LintStageTimer {
 		parent_name: string,
 		stage: LintStageDuration,
 		all_durations: readonly LintStageDuration[],
-		indent: string
+		indent: string,
 	): void {
 		const name = stage.name.slice(parent_name.length + 1);
 		const percentage = this.parent_percentage(stage, parent_name, all_durations);
@@ -74,7 +76,7 @@ export class LintStageTimer {
 	}
 
 	/** Responsibilities: _measurement synchronous lint operation_. **/
-	public measure<T>(stage_name: string, operation: () => T): T {
+	public measure<T>(stage_name: string, operation: Operation<T>): T {
 		const start_time = performance.now();
 		try {
 			return operation();
@@ -94,14 +96,14 @@ export class LintStageTimer {
 	/** Responsibilities: _measurement stages parent-relative formatting_. **/
 	public format(): string {
 		const all_durations = this.durations();
-		const top_level_durations = all_durations.filter(stage => !stage.name.includes('.'));
-		const lines = ['Stage durations:'];
+		const top_level_durations = all_durations.filter((stage) => !stage.name.includes("."));
+		const lines = ["Stage durations:"];
 		for (const stage of top_level_durations) {
 			lines.push(`- ${stage.name}: ${stage.duration_ms.toFixed(2)} ms`);
 			for (const child of this.direct_children(stage.name, all_durations)) {
-				this.append_stage(lines, stage.name, child, all_durations, '  ');
+				this.append_stage(lines, stage.name, child, all_durations, "  ");
 			}
 		}
-		return lines.join('\n');
+		return lines.join("\n");
 	}
 }

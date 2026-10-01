@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptFactoryArrayAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-aliases';
-import { TypeScriptFactoryObjectProperties } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-properties';
-import { TypeScriptFactoryObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources';
-import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptFactoryArrayAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-aliases";
+import { TypeScriptFactoryObjectProperties } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-properties";
+import { TypeScriptFactoryObjectSources } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources";
+import type { FactoryObjectSourcesContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution object factory aliases_. **/
 export class TypeScriptFactoryObjectAliases {
@@ -48,23 +48,19 @@ export class TypeScriptFactoryObjectAliases {
 	}
 
 	/** Responsibilities: _factory binding source_. **/
-	private binding_source(
-		binding: ts.ObjectBindingPattern,
-		initializer: ts.Expression,
-		name: string,
-	): string {
+	private binding_source(binding: ts.ObjectBindingPattern, initializer: ts.Expression, name: string): string {
 		const expression = this.expression_names.unwrap_transparent_expression(initializer);
 		if (ts.isIdentifier(expression)) {
 			const source = this.object_sources.get(expression.text);
 			if (source === undefined) {
-				return '';
+				return "";
 			}
 			return this.literal_binding_source(binding, source, name);
 		}
 		if (ts.isObjectLiteralExpression(expression)) {
 			return this.literal_binding_source(binding, expression, name);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _literal binding source_. **/
@@ -82,7 +78,7 @@ export class TypeScriptFactoryObjectAliases {
 			}
 			return this.properties.source(initializer, this.expression_names.static_binding_name(element));
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _factory property name_. **/
@@ -91,13 +87,13 @@ export class TypeScriptFactoryObjectAliases {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		const argument = expression.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
-		return argument.getText().replace(/^['"`]|['"`]$/g, '');
+		return argument.getText().replace(/^['"`]|['"`]$/g, "");
 	}
 
 	/** Responsibilities: _binding expression collection_. **/
@@ -127,7 +123,7 @@ export class TypeScriptFactoryObjectAliases {
 	private append_bodies(
 		receiver: ts.Expression,
 		property_name: string,
-		bodies: ts.FunctionLikeDeclarationBase[]
+		bodies: ts.FunctionLikeDeclarationBase[],
 	): void {
 		const source = this.expression_names.unwrap_transparent_expression(receiver);
 		if (!ts.isIdentifier(source)) {
@@ -146,7 +142,7 @@ export class TypeScriptFactoryObjectAliases {
 	private append_property_bodies(
 		expression: ts.Expression,
 		property_name: string,
-		bodies: ts.FunctionLikeDeclarationBase[]
+		bodies: ts.FunctionLikeDeclarationBase[],
 	): void {
 		let receiver: ts.Expression;
 		if (ts.isPropertyAccessExpression(expression)) {
@@ -202,10 +198,10 @@ export class TypeScriptFactoryObjectAliases {
 	/** Responsibilities: _resolution object factory source_. **/
 	public source(declaration: ts.VariableDeclaration, name: string): string {
 		if (!ts.isObjectBindingPattern(declaration.name)) {
-			return '';
+			return "";
 		}
 		if (declaration.initializer === undefined) {
-			return '';
+			return "";
 		}
 		return this.binding_source(declaration.name, declaration.initializer, name);
 	}
@@ -213,7 +209,7 @@ export class TypeScriptFactoryObjectAliases {
 	/** Responsibilities: _object factory property bodies_. **/
 	public property_bodies(expression: ts.Expression): readonly ts.FunctionLikeDeclarationBase[] {
 		const property_name = this.property_name(expression);
-		if (property_name === '') {
+		if (property_name === "") {
 			return [];
 		}
 		const bodies: ts.FunctionLikeDeclarationBase[] = [];

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _test import collection_. **/
 export class TestTargetImports {
@@ -45,8 +45,8 @@ export class TestTargetImports {
 
 	/** Responsibilities: _TypeScript import collection_. **/
 	public typescript(): string[] {
-		const source = ts.createSourceFile('test.ts', this.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-		return source.statements.flatMap(statement => [
+		const source = ts.createSourceFile("test.ts", this.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+		return source.statements.flatMap((statement) => [
 			...this.declaration_imports(statement),
 			...this.equals_imports(statement),
 		]);
@@ -54,6 +54,6 @@ export class TestTargetImports {
 
 	/** Responsibilities: _Python import collection_. **/
 	public python(): string[] {
-		return this.text.split(/\r?\n/).flatMap(line => this.python_line_imports(line));
+		return this.text.split(/\r?\n/).flatMap((line) => this.python_line_imports(line));
 	}
 }

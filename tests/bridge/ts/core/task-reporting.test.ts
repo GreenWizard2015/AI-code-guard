@@ -54,16 +54,12 @@ describe("coding-lint task reporting", () => {
 
 	test("selects max project priority for files", () => {
 		const fixture = new TestFixture();
-		const issues = fixture.with_temporary_files(
-			"task-reporting-",
-			reporting_files,
-			(_root, reporting) => {
-				return reporting.format(reporting_violations, {
-					batch_size: 1,
-					policy: "top-category",
-				});
-			},
-		);
+		const issues = fixture.with_temporary_files("task-reporting-", reporting_files, (_root, reporting) => {
+			return reporting.format(reporting_violations, {
+				batch_size: 1,
+				policy: "top-category",
+			});
+		});
 		expect(issues).toContain("Total files: 1.");
 	});
 
@@ -73,9 +69,9 @@ describe("coding-lint task reporting", () => {
 			policy: "top-category",
 		});
 		expect({
-		output: typeof result.output === "string",
-		file: result.issues.includes("## "),
-		parse_report: result.report.includes("| `parse-error` | 2 | 1 |"),
+			output: typeof result.output === "string",
+			file: result.issues.includes("## "),
+			parse_report: result.report.includes("| `parse-error` | 2 | 1 |"),
 			parse_problem: result.issues.includes("Problem: parse-error message"),
 			class_problem: result.issues.includes("Problem: class-size message"),
 			unused_problem: result.issues.includes("Problem: unused-file message"),
@@ -96,10 +92,12 @@ describe("coding-lint task reporting", () => {
 	});
 
 	test("shares identical problems and hints across files", () => {
-		const document = documents("task-reporting-", reporting_files, [
-			violation("a.ts", 1, "parse-error", 3),
-			violation("b.ts", 1, "parse-error", 3),
-		], { batch_size: 10, policy: "all" }).issues;
+		const document = documents(
+			"task-reporting-",
+			reporting_files,
+			[violation("a.ts", 1, "parse-error", 3), violation("b.ts", 1, "parse-error", 3)],
+			{ batch_size: 10, policy: "all" },
+		).issues;
 		expect({
 			problem_count: document.match(/Problem: parse-error message/gu)?.length,
 			hint_count: document.match(/Hint: parse-error hint/gu)?.length,
@@ -116,18 +114,16 @@ describe("coding-lint task reporting", () => {
 	});
 
 	test("writes a single problem and hint beside its source line", () => {
-		const document = documents("task-reporting-", reporting_files, [
-			violation("a.ts", 1, "parse-error", 3),
-		], { batch_size: 10, policy: "all" }).issues;
+		const document = documents("task-reporting-", reporting_files, [violation("a.ts", 1, "parse-error", 3)], {
+			batch_size: 10,
+			policy: "all",
+		}).issues;
 		const file_section = document.indexOf("## ");
 		const source_line = document.indexOf("- Line 1: const first = 1;");
 		expect({
-			description_problem:
-				document.indexOf("Problem: parse-error message") < file_section,
-			description_hint:
-				document.indexOf("Hint: parse-error hint") < file_section,
-			line_problem:
-				document.indexOf("Problem: parse-error message") > source_line,
+			description_problem: document.indexOf("Problem: parse-error message") < file_section,
+			description_hint: document.indexOf("Hint: parse-error hint") < file_section,
+			line_problem: document.indexOf("Problem: parse-error message") > source_line,
 			line_hint: document.indexOf("Hint: parse-error hint") > source_line,
 		}).toEqual({
 			description_problem: false,
@@ -138,10 +134,15 @@ describe("coding-lint task reporting", () => {
 	});
 
 	test("keeps unique problems and writes a shared hint once", () => {
-		const document = documents("task-reporting-", reporting_files, [
-			{ ...violation("a.ts", 1, "naming", 3), message: "first name", hint: "rename the symbol" },
-			{ ...violation("b.ts", 1, "naming", 3), message: "second name", hint: "rename the symbol" },
-		], { batch_size: 10, policy: "all" }).issues;
+		const document = documents(
+			"task-reporting-",
+			reporting_files,
+			[
+				{ ...violation("a.ts", 1, "naming", 3), message: "first name", hint: "rename the symbol" },
+				{ ...violation("b.ts", 1, "naming", 3), message: "second name", hint: "rename the symbol" },
+			],
+			{ batch_size: 10, policy: "all" },
+		).issues;
 		expect({
 			description: document.includes("Description:"),
 			first_problem: document.split("Problem: first name").length - 1,
@@ -154,5 +155,4 @@ describe("coding-lint task reporting", () => {
 			shared_hint: 1,
 		});
 	});
-
 });

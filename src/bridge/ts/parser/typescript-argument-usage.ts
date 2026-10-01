@@ -1,4 +1,5 @@
-import ts from 'typescript';
+import ts from "typescript";
+import type { TypeScriptNodeVisitor } from "src/protocols";
 
 /** Responsibilities: _TypeScript callable argument count_. **/
 export class TypeScriptArgumentUsage {
@@ -9,7 +10,13 @@ export class TypeScriptArgumentUsage {
 
 	/** Responsibilities: _increment usage identifier refers_. **/
 	private increment_usage(counts: Map<string, number>, node: ts.Node): void {
-		if ((!ts.isIdentifier(node)) || (!counts.has(node.text)) || this.is_property_name(node)) {
+		if (!ts.isIdentifier(node)) {
+			return;
+		}
+		if (!counts.has(node.text)) {
+			return;
+		}
+		if (this.is_property_name(node)) {
 			return;
 		}
 		const count = counts.get(node.text);
@@ -33,7 +40,7 @@ export class TypeScriptArgumentUsage {
 	}
 
 	/** Responsibilities: _block-bodied callable preservation traversal_. **/
-	private visit_body(node: ts.SignatureDeclarationBase, visit: (body: ts.Node) => void): void {
+	private visit_body(node: ts.SignatureDeclarationBase, visit: TypeScriptNodeVisitor): void {
 		if (ts.isFunctionDeclaration(node)) {
 			if (node.body !== undefined) {
 				visit(node.body);
@@ -51,22 +58,28 @@ export class TypeScriptArgumentUsage {
 	}
 
 	/** Responsibilities: _accessor bodies exposure traversal_. **/
-	private visit_accessor_body(node: ts.SignatureDeclarationBase, visit: (body: ts.Node) => void): void {
-if (!ts.isGetAccessorDeclaration(node) && !ts.isSetAccessorDeclaration(node)) {
-			return;
-		}
-			if (node.body !== undefined) {
-				visit(node.body);
-			}
-		}
-
-	/** Responsibilities: _traversal function accessor dispatch_. **/
-	private visit_callable_body(node: ts.SignatureDeclarationBase, visit: (body: ts.Node) => void): void {
-		if ((!ts.isConstructorDeclaration(node)) && (!ts.isFunctionExpression(node)) && (!ts.isArrowFunction(node))) {
+	private visit_accessor_body(node: ts.SignatureDeclarationBase, visit: TypeScriptNodeVisitor): void {
+		if (!ts.isGetAccessorDeclaration(node) && !ts.isSetAccessorDeclaration(node)) {
 			return;
 		}
 		if (node.body !== undefined) {
 			visit(node.body);
+		}
+	}
+
+	/** Responsibilities: _traversal function accessor dispatch_. **/
+	private visit_callable_body(node: ts.SignatureDeclarationBase, visit: TypeScriptNodeVisitor): void {
+		if (ts.isConstructorDeclaration(node)) {
+			if (node.body !== undefined) {
+				visit(node.body);
+			}
+			return;
+		}
+		if (ts.isFunctionExpression(node) || ts.isArrowFunction(node)) {
+			if (node.body !== undefined) {
+				visit(node.body);
+			}
+			return;
 		}
 	}
 
@@ -82,9 +95,7 @@ if (!ts.isGetAccessorDeclaration(node) && !ts.isSetAccessorDeclaration(node)) {
 	}
 
 	/** Responsibilities: _callable parameter reference count_. **/
-	public collect_argument_usage(
-		node: ts.SignatureDeclarationBase
-	): { name: string; count: number }[] {
+	public collect_argument_usage(node: ts.SignatureDeclarationBase): { name: string; count: number }[] {
 		const counts = this.initial_counts(node);
 		if (!ts.isFunctionLike(node)) {
 			return [...counts].map(([name, count]) => ({ name, count }));

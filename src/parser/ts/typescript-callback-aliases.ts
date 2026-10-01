@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { CallbackKind } from 'src/types';
+import ts from "typescript";
+import type { CallbackKind } from "src/types";
 
 /** Responsibilities: _resolution TypeScript callback aliases_. **/
 export class TypeScriptCallbackAliases {
@@ -9,7 +9,7 @@ export class TypeScriptCallbackAliases {
 	private array_pattern_initializers(
 		pattern: ts.ArrayBindingPattern,
 		initializer: ts.Expression,
-		name: string
+		name: string,
 	): ts.Expression[] {
 		if (!ts.isArrayLiteralExpression(initializer)) {
 			return [];
@@ -44,7 +44,7 @@ export class TypeScriptCallbackAliases {
 	private object_pattern_initializers(
 		pattern: ts.ObjectBindingPattern,
 		initializer: ts.Expression,
-		name: string
+		name: string,
 	): ts.Expression[] {
 		const initializers: ts.Expression[] = [];
 		for (const element of pattern.elements) {
@@ -63,11 +63,7 @@ export class TypeScriptCallbackAliases {
 	}
 
 	/** Responsibilities: _collection binding initializers_. **/
-	private binding_initializers(
-		pattern: ts.BindingName,
-		initializer: ts.Expression,
-		name: string
-	): ts.Expression[] {
+	private binding_initializers(pattern: ts.BindingName, initializer: ts.Expression, name: string): ts.Expression[] {
 		if (ts.isIdentifier(pattern)) {
 			if (pattern.text === name) {
 				return [initializer];
@@ -83,27 +79,27 @@ export class TypeScriptCallbackAliases {
 	/** Responsibilities: _classification callback initializer_. **/
 	private initializer_kind(initializer: ts.Expression, seen: Set<string>): CallbackKind {
 		if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) {
-			return 'inline';
+			return "inline";
 		}
 		if (ts.isIdentifier(initializer)) {
 			return this.alias_kind(initializer.text, seen);
 		}
-		return 'none';
+		return "none";
 	}
 
 	/** Responsibilities: _resolution callback alias kind_. **/
 	private alias_kind(name: string, seen: Set<string>): CallbackKind {
 		if (seen.has(name)) {
-			return 'none';
+			return "none";
 		}
 		seen.add(name);
 		for (const initializer of this.initializers(name)) {
 			const kind = this.initializer_kind(initializer, seen);
-			if (kind !== 'none') {
+			if (kind !== "none") {
 				return kind;
 			}
 		}
-		return 'none';
+		return "none";
 	}
 
 	/** Responsibilities: _initialization source file_. **/

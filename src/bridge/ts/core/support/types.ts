@@ -1,4 +1,4 @@
-import type { AstCallableNode } from 'src/types';
+import type { AstCallableNode } from "src/types";
 
 export type ClassNodeInput = {
 	name: string;

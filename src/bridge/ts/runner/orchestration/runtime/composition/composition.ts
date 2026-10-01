@@ -1,14 +1,13 @@
-import { CompositionModel } from 'src/bridge/ts/runner/orchestration/runtime/composition/composition-parser';
-import type { Violation } from 'src/protocols';
-import type { LintSourceRecord } from 'src/types';
-import type { ClassGraph } from 'src/types';
-import { CompositionAnalyzer } from 'src/bridge/ts/runner/orchestration/runtime/composition/composition-analyzer';
-
+import { CompositionModel } from "src/bridge/ts/runner/orchestration/runtime/composition/composition-parser";
+import type { Violation } from "src/protocols";
+import type { LintSourceRecord } from "src/types";
+import type { ClassGraph } from "src/types";
+import { CompositionAnalyzer } from "src/bridge/ts/runner/orchestration/runtime/composition/composition-analyzer";
 
 /** Responsibilities: _class composition graphs construction_, _composition violations collection_. **/
 export class Composition {
 	public readonly MAX_COMPOSITION_DEPTH = 3;
-	private readonly supported_extensions = ['.py', '.ts', '.tsx'];
+	private readonly supported_extensions = [".py", ".ts", ".tsx"];
 
 	/** Responsibilities: _supported source languages identification_. **/
 	private source_supported(source: LintSourceRecord): boolean {

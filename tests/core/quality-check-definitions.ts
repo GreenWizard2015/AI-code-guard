@@ -24,10 +24,7 @@ export class QualityCheckDefinitions {
 
 	/** Responsibilities: _Python bridge files collection_. **/
 	private python_files(): string[] {
-		const bridge_directory = join(
-			this.project_root,
-			"src/parser/python-bridge",
-		);
+		const bridge_directory = join(this.project_root, "src/parser/python-bridge");
 		return this.python_files_in(bridge_directory).sort();
 	}
 
@@ -62,10 +59,7 @@ export class QualityCheckDefinitions {
 
 	/** Responsibilities: _define Python type checks_. **/
 	private python_type_check(): QualityCheck {
-		const bridge_directory = join(
-			this.project_root,
-			"src/parser/python-bridge",
-		);
+		const bridge_directory = join(this.project_root, "src/parser/python-bridge");
 		return {
 			label: "Python type checking",
 			command: "python3",
@@ -87,15 +81,7 @@ export class QualityCheckDefinitions {
 		return {
 			label: "Ruff Python linting",
 			command: "python3",
-			args: [
-				"-m",
-				"ruff",
-				"check",
-				"--isolated",
-				"--select",
-				"E4,E7,E9,F",
-				directory,
-			],
+			args: ["-m", "ruff", "check", "--isolated", "--select", "E4,E7,E9,F", directory],
 			environment: process.env,
 		};
 	}
@@ -105,25 +91,14 @@ export class QualityCheckDefinitions {
 		return {
 			label: "Python unused functions and classes",
 			command: "vulture",
-			args: [
-				...files,
-				join(this.project_root, "tests"),
-				"--exclude",
-				"node_modules",
-				"--min-confidence",
-				"80",
-			],
+			args: [...files, join(this.project_root, "tests"), "--exclude", "node_modules", "--min-confidence", "80"],
 			environment: process.env,
 		};
 	}
 
 	/** Responsibilities: _Python static checks assembly_. **/
 	private python_static_checks(files: string[]): QualityCheck[] {
-		return [
-			this.python_unused_check(files),
-			this.python_type_check(),
-			this.python_unused_checkers(files),
-		];
+		return [this.python_unused_check(files), this.python_type_check(), this.python_unused_checkers(files)];
 	}
 
 	/** Responsibilities: _quality-check definitions initialization_. **/
@@ -138,15 +113,7 @@ export class QualityCheckDefinitions {
 			{
 				label: "TypeScript formatting",
 				command: "pnpm",
-				args: [
-					"--dir",
-					this.project_root,
-					"exec",
-					"biome",
-					"format",
-					"--write",
-					...files,
-				],
+				args: ["--dir", this.project_root, "exec", "biome", "format", "--write", ...files],
 				environment: process.env,
 			},
 			{

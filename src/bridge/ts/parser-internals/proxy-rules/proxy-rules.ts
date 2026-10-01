@@ -1,26 +1,26 @@
-import { ProxyCall } from 'src/bridge/ts/parser-internals/proxy-rules/proxy-call';
-import { ProxyArgumentMatcher } from 'src/bridge/ts/parser-internals/proxy-rules/proxy-argument-matcher';
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
+import { ProxyCall } from "src/bridge/ts/parser-internals/proxy-rules/proxy-call";
+import { ProxyArgumentMatcher } from "src/bridge/ts/parser-internals/proxy-rules/proxy-argument-matcher";
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
 
 /** Responsibilities: _TypeScript proxy callable classification_. **/
 export class ProxyRules {
 	private readonly proxy_call = new ProxyCall();
 	private readonly argument_matcher = new ProxyArgumentMatcher();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
-	private readonly this_aliases = new TypeScriptMemberAliases('this', () => '');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
+	private readonly this_aliases = new TypeScriptMemberAliases("this", () => "");
 
 	/** Responsibilities: _parameter name collection_. **/
 	private parameter_names(node: ts.Node): string[] {
 		if (!ts.isFunctionLike(node)) {
 			return [];
 		}
-		const identifiers = node.parameters.map(parameter => parameter.name).filter(ts.isIdentifier);
+		const identifiers = node.parameters.map((parameter) => parameter.name).filter(ts.isIdentifier);
 		if (identifiers.length !== node.parameters.length) {
 			return [];
 		}
-		return identifiers.map(identifier => identifier.text);
+		return identifiers.map((identifier) => identifier.text);
 	}
 
 	/** Responsibilities: _callable target expression_. **/
@@ -34,7 +34,7 @@ export class ProxyRules {
 		if (ts.isPropertyAccessExpression(call)) {
 			return call;
 		}
-		throw new Error('Unsupported proxy call expression.');
+		throw new Error("Unsupported proxy call expression.");
 	}
 
 	/** Responsibilities: _this-target classification_. **/

@@ -1,10 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticArrayIndexOperations } from 'src/typescript-callable-aliases/static-array/typescript-static-array-index-operations';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticArrayIndexOperations } from "src/typescript-callable-aliases/static-array/typescript-static-array-index-operations";
+import type { StaticArraySourceAppender } from "src/protocols";
 
 /** Responsibilities: _static array indexed values_. **/
 export class TypeScriptStaticArrayIndexValues {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly numeric_sources: Map<string, number>;
 	private readonly index_operations = new TypeScriptStaticArrayIndexOperations();
 
@@ -13,7 +14,7 @@ export class TypeScriptStaticArrayIndexValues {
 		values: ts.Expression[],
 		index: number,
 		source: readonly ts.Expression[],
-		append_source: (values: ts.Expression[], expression: ts.Expression) => boolean
+		append_source: StaticArraySourceAppender,
 	): boolean {
 		for (const [current_index, value] of source.entries()) {
 			if (current_index !== index) {
@@ -28,7 +29,7 @@ export class TypeScriptStaticArrayIndexValues {
 	private append_selected_value(
 		values: ts.Expression[],
 		value: ts.Expression,
-		append_source: (values: ts.Expression[], expression: ts.Expression) => boolean
+		append_source: StaticArraySourceAppender,
 	): boolean {
 		if (ts.isArrayLiteralExpression(value)) {
 			return append_source(values, value);
@@ -125,7 +126,7 @@ export class TypeScriptStaticArrayIndexValues {
 	public append(
 		values: ts.Expression[],
 		expression: ts.ElementAccessExpression,
-		append_source: (values: ts.Expression[], expression: ts.Expression) => boolean
+		append_source: StaticArraySourceAppender,
 	): boolean {
 		const argument = expression.argumentExpression;
 		if (argument === undefined) {

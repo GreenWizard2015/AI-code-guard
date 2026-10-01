@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution namespace import aliases_. **/
 export class TypeScriptNamespaceAliases {
@@ -12,15 +12,15 @@ export class TypeScriptNamespaceAliases {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		const argument = expression.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
 		const key = this.expression_names.unwrap_transparent_expression(argument);
 		if (!ts.isStringLiteral(key) && !ts.isNoSubstitutionTemplateLiteral(key)) {
-			return '';
+			return "";
 		}
 		return key.text;
 	}
@@ -103,12 +103,11 @@ export class TypeScriptNamespaceAliases {
 	public target(initializer: ts.Expression): string {
 		const expression = this.expression_names.unwrap_transparent_expression(initializer);
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		if (!ts.isIdentifier(expression.expression) || !this.names().has(expression.expression.text)) {
-			return '';
+			return "";
 		}
 		return this.member_target(expression);
 	}
-
 }

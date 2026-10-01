@@ -1,15 +1,12 @@
-import ts from 'typescript';
-import { TypeScriptImportedFunctionAliases } from 'src/typescript-imported-function-aliases';
+import ts from "typescript";
+import { TypeScriptImportedFunctionAliases } from "src/typescript-imported-function-aliases";
 
 /** Responsibilities: _inspection TypeScript exports imports_. **/
 export class TypeScriptModuleExports {
 	private readonly import_resolver = new TypeScriptImportedFunctionAliases();
 
 	/** Responsibilities: _resolution exported variable declaration_. **/
-	private exported_variable(
-		statement: ts.VariableStatement,
-		exported_name: string
-	): ts.VariableDeclaration[] {
+	private exported_variable(statement: ts.VariableStatement, exported_name: string): ts.VariableDeclaration[] {
 		for (const declaration of statement.declarationList.declarations) {
 			if (declaration.name.getText(statement.getSourceFile()) === exported_name) {
 				return [declaration];
@@ -27,13 +24,11 @@ export class TypeScriptModuleExports {
 		if (modifiers === undefined) {
 			return [];
 		}
-		return modifiers.filter(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword);
+		return modifiers.filter((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
 	}
 
 	/** Responsibilities: _resolution declaration's explicit output_. **/
-	private declaration_return_type(
-		declaration: ts.Node
-	): ts.TypeNode[] {
+	private declaration_return_type(declaration: ts.Node): ts.TypeNode[] {
 		if (ts.isFunctionDeclaration(declaration)) {
 			if (declaration.type === undefined) {
 				return [];
@@ -44,7 +39,7 @@ export class TypeScriptModuleExports {
 			return [];
 		}
 		const initializer = declaration.initializer;
-if (initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))) {
+		if (initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))) {
 			if (initializer.type !== undefined) {
 				return [initializer.type];
 			}
@@ -66,22 +61,19 @@ if (initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(i
 
 	/** Responsibilities: _resolution source file path_. **/
 	public imported_file(source_file: ts.SourceFile, statement: ts.Statement): string {
-if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-			return '';
+		if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+			return "";
 		}
 		const file = this.import_resolver.import_file(source_file, statement.moduleSpecifier.text);
 		if (file !== undefined) {
 			return file;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution named exported declaration_. **/
-	public exported_declaration(
-		statement: ts.Statement,
-		exported_name: string
-	): ts.Node[] {
-if (ts.isFunctionDeclaration(statement) && statement.name?.text === exported_name) {
+	public exported_declaration(statement: ts.Statement, exported_name: string): ts.Node[] {
+		if (ts.isFunctionDeclaration(statement) && statement.name?.text === exported_name) {
 			return [statement];
 		}
 		if (!ts.isVariableStatement(statement)) {
@@ -91,10 +83,7 @@ if (ts.isFunctionDeclaration(statement) && statement.name?.text === exported_nam
 	}
 
 	/** Responsibilities: _resolution output type named_. **/
-	public exported_return_type(
-		statement: ts.Statement,
-		exported_name: string
-	): ts.TypeNode[] {
+	public exported_return_type(statement: ts.Statement, exported_name: string): ts.TypeNode[] {
 		const declaration = this.exported_declaration(statement, exported_name);
 		if (declaration.length === 0) {
 			return [];

@@ -1,29 +1,14 @@
-import { ClassRules } from 'src/bridge/ts/rules/class-rules';
-import { Declarations } from 'src/bridge/ts/runner/orchestration/runtime/python/declarations';
-import { DirectoryCommentSegments } from 'src/bridge/ts/core/support/directory-comment-segments';
-import { ImportsRules } from 'src/bridge/ts/rules/imports-rules';
-import { MixCollection } from 'src/bridge/ts/core/mix-collection';
-import { TestPathSyntax } from 'src/test-path-syntax';
-import type { Violation } from 'src/protocols';
-import { MIN_FILE_LINES } from 'src/constants';
-import type {
-	PythonOperationInput,
-	PythonRuleAppender,
-	PythonRuleInput,
-} from 'src/runner/types';
-import type {
-	AstClassNode,
-	AstSourceSpan,
-	LintFileNameContract,
-	NormalizedAstFile,
-} from 'src/types';
-import type { PythonProjectNames } from 'src/bridge/ts/runner/orchestration/runtime/python/types';
-
-
-
-
-
-
+import { ClassRules } from "src/bridge/ts/rules/class-rules";
+import { Declarations } from "src/bridge/ts/runner/orchestration/runtime/python/declarations";
+import { DirectoryCommentSegments } from "src/bridge/ts/core/support/directory-comment-segments";
+import { ImportsRules } from "src/bridge/ts/rules/imports-rules";
+import { MixCollection } from "src/bridge/ts/core/mix-collection";
+import { TestPathSyntax } from "src/test-path-syntax";
+import type { Violation } from "src/protocols";
+import { MIN_FILE_LINES } from "src/constants";
+import type { PythonOperationInput, PythonRuleAppender, PythonRuleInput } from "src/runner/types";
+import type { AstClassNode, AstSourceSpan, LintFileNameContract, NormalizedAstFile } from "src/types";
+import type { PythonProjectNames } from "src/bridge/ts/runner/orchestration/runtime/python/types";
 
 /** Responsibilities: _collection Python file-level import_. **/
 export class PythonAstFileRuleCollector {
@@ -45,7 +30,7 @@ export class PythonAstFileRuleCollector {
 	/** Responsibilities: _construction Python operation inputs_. **/
 	private operations(): PythonOperationInput {
 		const source = this.ast;
-		const methods = source.classes.flatMap(node => node.methods);
+		const methods = source.classes.flatMap((node) => node.methods);
 		let private_accesses: { line: number }[] = [];
 		if (source.private_accesses !== undefined) {
 			private_accesses = source.private_accesses;
@@ -68,7 +53,7 @@ export class PythonAstFileRuleCollector {
 	/** Responsibilities: _Python rule input assembly_. **/
 	private input(): PythonRuleInput {
 		const ast = this.ast;
-		const classes = ast.classes.filter(node => !node.type_contract && !node.protocol);
+		const classes = ast.classes.filter((node) => !node.type_contract && !node.protocol);
 		const suppress_short_class = this.short_class_suppressed(classes);
 		let python_imports = ast.python_imports;
 		if (python_imports === undefined) {
@@ -103,12 +88,12 @@ export class PythonAstFileRuleCollector {
 	private suppress_short_class(
 		directory_comment_segments: DirectoryCommentSegments,
 		classes: AstClassNode[],
-		docstring_spans: AstSourceSpan[]
+		docstring_spans: AstSourceSpan[],
 	): boolean {
 		if (classes.length < 2) {
 			return false;
 		}
-		return directory_comment_segments.count_code_lines(this.lines.join('\n'), true, docstring_spans) < MIN_FILE_LINES;
+		return directory_comment_segments.count_code_lines(this.lines.join("\n"), true, docstring_spans) < MIN_FILE_LINES;
 	}
 
 	/** Responsibilities: _aggregation import declaration violations_. **/
@@ -125,9 +110,7 @@ export class PythonAstFileRuleCollector {
 	private append_class_basics(file: string, lines: string[]): void {
 		const ast = this.ast;
 		const file_name = this.file_name;
-		const class_indexes = ast.classes
-			.filter(node => !node.type_contract && !node.protocol)
-			.map(node => node.start);
+		const class_indexes = ast.classes.filter((node) => !node.type_contract && !node.protocol).map((node) => node.start);
 		if (!this.test_path_syntax.test_py(file)) {
 			this.class_rules.append_python_classes({
 				violations: this.violations,
@@ -139,12 +122,7 @@ export class PythonAstFileRuleCollector {
 				type_declarations: ast.type_declarations,
 			});
 		}
-		this.mix_collection.append_mix_violations(
-			this.violations,
-			ast.classes,
-			ast.functions,
-			file_name
-		);
+		this.mix_collection.append_mix_violations(this.violations, ast.classes, ast.functions, file_name);
 	}
 
 	/** Responsibilities: _initialization Python source data_. **/
@@ -153,7 +131,7 @@ export class PythonAstFileRuleCollector {
 		file_name: LintFileNameContract,
 		lines: string[],
 		project_names: PythonProjectNames,
-		append: PythonRuleAppender
+		append: PythonRuleAppender,
 	) {
 		this.ast = ast;
 		this.file_name = file_name;

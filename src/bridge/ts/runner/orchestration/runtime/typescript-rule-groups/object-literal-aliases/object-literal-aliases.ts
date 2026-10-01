@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import type { FakeObjectProtocol } from 'src/protocols';
-import { ObjectDestructuredAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-destructured-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { FakeObjectProtocol } from "src/protocols";
+import { ObjectDestructuredAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-destructured-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution object literal aliases_. **/
 export class ObjectLiteralAliases {
@@ -64,7 +64,7 @@ export class ObjectLiteralAliases {
 		if (ts.isVariableDeclaration(node) && this.append_alias(aliases, node)) {
 			changed = true;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_scope_aliases(aliases, child)) {
 				changed = true;
 			}

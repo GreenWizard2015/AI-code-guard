@@ -1,10 +1,10 @@
-import ts from 'typescript';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
+import ts from "typescript";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
 
 /** Responsibilities: _dictionary contract reporting_. **/
 export class DictionaryReturns {
-	private readonly dictionary_rule_id = 'typescript-dictionary-return';
+	private readonly dictionary_rule_id = "typescript-dictionary-return";
 
 	/** Responsibilities: _classification type member represents_. **/
 	private is_behavior_member(member: ts.TypeElement): boolean {
@@ -39,16 +39,13 @@ export class DictionaryReturns {
 		if (!ts.isTypeAliasDeclaration(statement) || !ts.isTypeLiteralNode(statement.type)) {
 			return;
 		}
-		if (statement.type.members.some(member => this.is_behavior_member(member))) {
+		if (statement.type.members.some((member) => this.is_behavior_member(member))) {
 			types.add(statement.name.text);
 		}
 	}
 
 	/** Responsibilities: _classification dictionary type reference_. **/
-	private type_reference_dictionary(
-		type: ts.TypeReferenceNode,
-		types: ReadonlySet<string>
-	): boolean {
+	private type_reference_dictionary(type: ts.TypeReferenceNode, types: ReadonlySet<string>): boolean {
 		if (types.has(this.type_reference_name(type.typeName))) {
 			return true;
 		}
@@ -56,7 +53,7 @@ export class DictionaryReturns {
 		if (arguments_ === undefined) {
 			return false;
 		}
-		return arguments_.some(argument => this.type_contains_dictionary(argument, types));
+		return arguments_.some((argument) => this.type_contains_dictionary(argument, types));
 	}
 
 	/** Responsibilities: _classification wrapped dictionary type_. **/
@@ -68,7 +65,7 @@ export class DictionaryReturns {
 			return this.type_contains_dictionary(type.elementType, types);
 		}
 		if (ts.isUnionTypeNode(type) || ts.isIntersectionTypeNode(type)) {
-			return type.types.some(item => this.type_contains_dictionary(item, types));
+			return type.types.some((item) => this.type_contains_dictionary(item, types));
 		}
 		if (ts.isTypeOperatorNode(type) || ts.isParenthesizedTypeNode(type)) {
 			return this.type_contains_dictionary(type.type, types);
@@ -81,7 +78,7 @@ export class DictionaryReturns {
 		if (ts.isTypeAliasDeclaration(node)) {
 			aliases.push(node);
 		}
-		node.forEachChild(child => this.collect_type_aliases(child, aliases));
+		node.forEachChild((child) => this.collect_type_aliases(child, aliases));
 	}
 
 	/** Responsibilities: _source alias declaration collection_. **/
@@ -97,13 +94,12 @@ export class DictionaryReturns {
 		file: string,
 		source_file: ts.SourceFile,
 		types: Set<string>,
-		node: ts.Node
+		node: ts.Node,
 	): void {
 		if (!this.is_dictionary_return(node, types)) {
 			return;
 		}
-		const line =
-			source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
+		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
 		const rule = new DiagnosticRule(this.dictionary_rule_id);
 		violations.push(rule.violation(file, line));
 	}
@@ -136,11 +132,7 @@ export class DictionaryReturns {
 	}
 
 	/** Responsibilities: _collection dictionary result violations_. **/
-	public dictionary_return_info(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	public dictionary_return_info(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		const types = this.dictionary_types(source_file);
 		const visit = (node: ts.Node): void => {
 			this.append_dictionary_return(violations, file, source_file, types, node);

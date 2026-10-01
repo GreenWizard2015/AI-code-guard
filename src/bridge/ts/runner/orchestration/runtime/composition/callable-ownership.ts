@@ -1,11 +1,11 @@
-import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from 'src/metrics/types';
-import type { AstClassNode, CallableOwnershipResolver } from 'src/types';
-import { CallableOwnershipGraph } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership-graph';
-import type { TypeMemberEntry } from 'src/types';
+import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from "src/metrics/types";
+import type { AstClassNode, CallableOwnershipResolver } from "src/types";
+import { CallableOwnershipGraph } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership-graph";
+import type { TypeMemberEntry } from "src/types";
 
 /** Responsibilities: _classification callable ownership through_. **/
 export class CallableOwnership {
-	private readonly external_method_kind = 'method' as const;
+	private readonly external_method_kind = "method" as const;
 
 	/** Responsibilities: _classification callable belongs externally_. **/
 	private external_definition_class(definition: CallableDefinition, parsed_files: ParsedFile[]): boolean {
@@ -13,7 +13,7 @@ export class CallableOwnership {
 			if (file.file !== definition.file) {
 				continue;
 			}
-			const class_node = file.ast.classes.find(item => item.name === definition.node.owner);
+			const class_node = file.ast.classes.find((item) => item.name === definition.node.owner);
 			if (class_node !== undefined) {
 				if (class_node.extends_external_class) {
 					return true;
@@ -30,9 +30,11 @@ export class CallableOwnership {
 		if (interfaces === undefined) {
 			return false;
 		}
-		return interfaces.some(interface_name => parsed_files.some(file =>
-			file.file !== definition_file && file.ast.type_members?.[interface_name] !== undefined
-		));
+		return interfaces.some((interface_name) =>
+			parsed_files.some(
+				(file) => file.file !== definition_file && file.ast.type_members?.[interface_name] !== undefined,
+			),
+		);
 	}
 
 	/** Responsibilities: _classification project protocol defines_. **/
@@ -40,22 +42,30 @@ export class CallableOwnership {
 		if (owner.length === 0) {
 			return false;
 		}
-		return parsed_files.some(file => file.ast.classes.some(class_node =>
-			class_node.protocol && class_node.name === owner &&
-			class_node.methods.some(method => method.name === method_name)
-		));
+		return parsed_files.some((file) =>
+			file.ast.classes.some(
+				(class_node) =>
+					class_node.protocol &&
+					class_node.name === owner &&
+					class_node.methods.some((method) => method.name === method_name),
+			),
+		);
 	}
 
 	/** Responsibilities: _reporting callable method externally_. **/
 	public external_method(definition: CallableDefinition, parsed_files: ParsedFile[]): boolean {
-if (definition.kind !== this.external_method_kind || definition.node.owner === undefined) {
+		if (definition.kind !== this.external_method_kind || definition.node.owner === undefined) {
 			return false;
 		}
 		return this.external_definition_class(definition, parsed_files);
 	}
 
 	/** Responsibilities: _construction callable ownership resolver_. **/
-	public ownership_resolver(parsed_files: ParsedFile[], project_types: CallableProjectIndex, class_nodes: CallableClassIndex): CallableOwnershipResolver {
+	public ownership_resolver(
+		parsed_files: ParsedFile[],
+		project_types: CallableProjectIndex,
+		class_nodes: CallableClassIndex,
+	): CallableOwnershipResolver {
 		const entries: TypeMemberEntry[] = [];
 		for (const file of parsed_files) {
 			if (file.ast.type_members !== undefined) {

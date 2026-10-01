@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { AstTypeKind, AstVisibility, ImportedFunction } from 'src/types';
-import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
+import ts from "typescript";
+import type { AstTypeKind, AstVisibility, ImportedFunction } from "src/types";
+import type { TypeScriptPropertyStateProtocol } from "src/model/protocols";
 
 export type TypeScriptClassFieldContext = {
 	file: string;
@@ -26,9 +26,9 @@ export type TypeScriptAstOptions = {
 };
 /** Responsibilities: _kind TypeScript traversal representation_. **/
 export enum ResponsibilityContainerKind {
-	Class = 'class',
-	Interface = 'interface',
-	Root = 'root',
+	Class = "class",
+	Interface = "interface",
+	Root = "root",
 }
 export type ResponsibilityContainer = { kind: ResponsibilityContainerKind; line: number };
 export type SourceLineRange = { start: number; end: number };

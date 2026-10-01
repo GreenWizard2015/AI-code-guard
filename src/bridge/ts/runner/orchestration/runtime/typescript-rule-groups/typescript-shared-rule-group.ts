@@ -1,7 +1,7 @@
-import { SharedParameterAdapter } from 'src/metrics/shared-parameter-adapter';
-import type { Violation } from 'src/protocols';
-import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types';
+import { SharedParameterAdapter } from "src/metrics/shared-parameter-adapter";
+import type { Violation } from "src/protocols";
+import type { TypeScriptScannerRuleContext } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { TypeScriptRuleGroupContract } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types";
 
 /** Responsibilities: _application shared-parameter analysis TypeScript_. **/
 export class TypeScriptSharedRuleGroup implements TypeScriptRuleGroupContract {
@@ -24,11 +24,11 @@ export class TypeScriptSharedRuleGroup implements TypeScriptRuleGroupContract {
 			}
 			const adapter = new SharedParameterAdapter({
 				file,
-				kind: 'method',
+				kind: "method",
 				nodes: node.methods,
 				project_types: this.context.project_type_names,
 				reference_aliases: this.context.ast.reference_aliases,
-				language: 'typescript',
+				language: "typescript",
 			});
 			violations.push(...adapter.violations());
 		}

@@ -1,8 +1,8 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
+import type { TypeScriptPropertyStateProtocol } from "src/model/protocols";
 
-import type { ExpressionUnwrapper, PropertyOwner } from 'src/types';
+import type { ExpressionUnwrapper, PropertyOwner } from "src/types";
 
 /** Responsibilities: _object property owners resolution_, _property ownership state storage_. **/
 export class TypeScriptObjectPropertyCollector {
@@ -33,7 +33,7 @@ export class TypeScriptObjectPropertyCollector {
 	public constructor(
 		aliases: Map<string, string>,
 		property_state: TypeScriptPropertyStateProtocol,
-		unwrap: ExpressionUnwrapper
+		unwrap: ExpressionUnwrapper,
 	) {
 		this.aliases = aliases;
 		this.property_state = property_state;
@@ -41,11 +41,8 @@ export class TypeScriptObjectPropertyCollector {
 	}
 
 	/** Responsibilities: _resolution owners object property_. **/
-	public owner_for(
-		node: ts.VariableDeclaration,
-		property: ts.ObjectLiteralElementLike
-	): PropertyOwner[] {
-if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) {
+	public owner_for(node: ts.VariableDeclaration, property: ts.ObjectLiteralElementLike): PropertyOwner[] {
+		if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) {
 			return [];
 		}
 		const values = this.unwrap(property.initializer);
@@ -56,7 +53,7 @@ if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) {
 		if (ts.isIdentifier(value)) {
 			return [{ property_name: property.name.text, owner: this.property_state.instance_owner(value.text, node) }];
 		}
-if (!ts.isNewExpression(value) || !ts.isIdentifier(value.expression)) {
+		if (!ts.isNewExpression(value) || !ts.isIdentifier(value.expression)) {
 			return [];
 		}
 		return this.new_owner(value, property.name.text);
@@ -64,7 +61,7 @@ if (!ts.isNewExpression(value) || !ts.isIdentifier(value.expression)) {
 
 	/** Responsibilities: _aggregation owners object initializer_. **/
 	public appended(node: ts.VariableDeclaration, initializer: ts.Expression): boolean {
-if (!ts.isObjectLiteralExpression(initializer) || !ts.isIdentifier(node.name)) {
+		if (!ts.isObjectLiteralExpression(initializer) || !ts.isIdentifier(node.name)) {
 			return false;
 		}
 		for (const property of initializer.properties) {

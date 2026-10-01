@@ -1,16 +1,14 @@
-import { join } from 'node:path';
-import { TEST_SCOPE_DIRECTORIES } from 'src/constants';
-import { TestPathSyntax } from 'src/test-path-syntax';
-import type { TestPathChecker } from 'src/bridge/ts/core/context/protocols';
+import { join } from "node:path";
+import { TEST_SCOPE_DIRECTORIES } from "src/constants";
+import { TestPathSyntax } from "src/test-path-syntax";
+import type { TestPathChecker } from "src/bridge/ts/core/context/protocols";
 
 /** Responsibilities: _validation test module paths_. **/
 export class TestFileOrganization {
 	private readonly project_root: string;
 	private readonly path_checker: TestPathChecker;
 	private readonly test_path_syntax = new TestPathSyntax();
-	private readonly test_scope_directories: ReadonlySet<string> = new Set(
-		Object.values(TEST_SCOPE_DIRECTORIES).flat(),
-	);
+	private readonly test_scope_directories: ReadonlySet<string> = new Set(Object.values(TEST_SCOPE_DIRECTORIES).flat());
 
 	/** Responsibilities: _source module prefix_. **/
 	private module_prefix(segments: string[], start: number, end: number): boolean {
@@ -67,11 +65,11 @@ export class TestFileOrganization {
 
 	/** Responsibilities: _validation runner test filename_. **/
 	private supported_test_file(file: string, root: string): boolean {
-		if (root === '__tests__') {
-			if (file.endsWith('.ts')) {
+		if (root === "__tests__") {
+			if (file.endsWith(".ts")) {
 				return true;
 			}
-			return file.endsWith('.tsx');
+			return file.endsWith(".tsx");
 		}
 		return this.test_path_syntax.test_file_name(file);
 	}
@@ -81,9 +79,9 @@ export class TestFileOrganization {
 		if (segments.length < 3) {
 			return false;
 		}
-		const root = segments.slice(0, 1).join('/');
-		if (root !== 'tests') {
-			if (root !== '__tests__') {
+		const root = segments.slice(0, 1).join("/");
+		if (root !== "tests") {
+			if (root !== "__tests__") {
 				return false;
 			}
 		}
@@ -111,13 +109,16 @@ export class TestFileOrganization {
 		if (this.path_checker.directory(root_path)) {
 			return true;
 		}
-		const source_path = join(this.project_root, 'src', ...segments);
+		const source_path = join(this.project_root, "src", ...segments);
 		return this.path_checker.directory(source_path);
 	}
 
 	/** Responsibilities: _test module path candidates_. **/
 	public module_paths(file: string): string[][] {
-		const segments = file.replaceAll('\\', '/').split('/').filter(segment => segment.length > 0);
+		const segments = file
+			.replaceAll("\\", "/")
+			.split("/")
+			.filter((segment) => segment.length > 0);
 		if (segments.length < 3) {
 			return [[]];
 		}
@@ -137,7 +138,11 @@ export class TestFileOrganization {
 		if (!this.test_path_syntax.test_file(file, true)) {
 			return false;
 		}
-		const segments = file.split('\\').join('/').split('/').filter(segment => segment.length > 0);
+		const segments = file
+			.split("\\")
+			.join("/")
+			.split("/")
+			.filter((segment) => segment.length > 0);
 		if (!this.valid_structure(file, segments)) {
 			return false;
 		}

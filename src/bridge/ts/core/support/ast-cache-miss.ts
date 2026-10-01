@@ -1,5 +1,5 @@
-import type { AstCacheEntry } from 'src/bridge/ts/core/support/protocols';
-import type { AstLanguage, NormalizedAstFile } from 'src/types';
+import type { AstCacheEntry } from "src/bridge/ts/core/support/protocols";
+import type { NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _missing AST ownership_, _cache miss language rejection_. **/
 export class AstCacheMiss implements AstCacheEntry {
@@ -33,7 +33,7 @@ export class AstCacheMiss implements AstCacheEntry {
 	}
 
 	/** Responsibilities: _missing AST language rejection_. **/
-	public supports_language(_language: AstLanguage): boolean {
+	public supports_language(): boolean {
 		return false;
 	}
 }

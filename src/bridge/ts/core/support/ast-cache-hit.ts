@@ -1,5 +1,5 @@
-import type { AstCacheEntry } from 'src/bridge/ts/core/support/protocols';
-import type { AstLanguage, NormalizedAstFile } from 'src/types';
+import type { AstCacheEntry } from "src/bridge/ts/core/support/protocols";
+import type { AstLanguage, NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _cached AST ownership_, _cached language matching_. **/
 export class AstCacheHit implements AstCacheEntry {
@@ -58,15 +58,15 @@ export class AstCacheHit implements AstCacheEntry {
 	/** Responsibilities: _cached AST value_. **/
 	public value(): NormalizedAstFile {
 		if (!this.complete()) {
-			throw new Error('AST cache entry is invalid.');
+			throw new Error("AST cache entry is invalid.");
 		}
 		return this.cached_ast;
 	}
 
 	/** Responsibilities: _cache shape_. **/
 	public complete(): boolean {
-		if (this.cached_ast.language !== 'python') {
-			if (this.cached_ast.language !== 'typescript') {
+		if (this.cached_ast.language !== "python") {
+			if (this.cached_ast.language !== "typescript") {
 				return false;
 			}
 		}

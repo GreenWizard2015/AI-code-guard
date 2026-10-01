@@ -1,9 +1,9 @@
-import { ClassRules } from 'src/bridge/ts/rules/class-rules';
-import { ContractFields } from 'src/bridge/ts/rules/contract-fields';
-import { MixCollection } from 'src/bridge/ts/core/mix-collection';
-import type { Violation } from 'src/protocols';
-import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types';
+import { ClassRules } from "src/bridge/ts/rules/class-rules";
+import { ContractFields } from "src/bridge/ts/rules/contract-fields";
+import { MixCollection } from "src/bridge/ts/core/mix-collection";
+import type { Violation } from "src/protocols";
+import type { TypeScriptScannerRuleContext } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { TypeScriptRuleGroupContract } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types";
 
 /** Responsibilities: _coordination TypeScript class contract_. **/
 export class TypeScriptFileRuleGroup implements TypeScriptRuleGroupContract {
@@ -41,7 +41,7 @@ export class TypeScriptFileRuleGroup implements TypeScriptRuleGroupContract {
 			violations,
 			this.context.file_name.value,
 			this.context.ast.classes,
-			'interface',
+			"interface",
 		);
 	}
 

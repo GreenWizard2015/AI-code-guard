@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import type { AstImportIssue } from 'src/types';
-import type { LineOf } from 'src/bridge/ts/parser/types';
-import { IMPORT_KINDS } from 'src/bridge/ts/parser/constants';
+import ts from "typescript";
+import type { AstImportIssue } from "src/types";
+import type { LineOf } from "src/bridge/ts/parser/types";
+import { IMPORT_KINDS } from "src/bridge/ts/parser/constants";
 
 /** Responsibilities: _classification TypeScript relative nested_. **/
 export class TypeScriptImportIssues {
@@ -10,7 +10,7 @@ export class TypeScriptImportIssues {
 	/** Responsibilities: _classification import usage relative_. **/
 	private is_relative_import(node: ts.Node): boolean {
 		let module_name: string | undefined;
-if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+		if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
 			module_name = node.moduleSpecifier.text;
 		} else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
 			const expression = node.moduleReference.expression;
@@ -18,31 +18,26 @@ if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
 				module_name = expression.text;
 			}
 		}
-		if (module_name === '.' || module_name === '..') {
+		if (module_name === "." || module_name === "..") {
 			return true;
 		}
 		if (module_name === undefined) {
 			return false;
 		}
-return module_name.startsWith('./') || module_name.startsWith('../');
+		return module_name.startsWith("./") || module_name.startsWith("../");
 	}
 
 	/** Responsibilities: _creation normalization import issues_. **/
-	private create_import_issues(
-		line: number,
-		dynamic: boolean,
-		nested: boolean,
-		relative: boolean
-	): AstImportIssue[] {
+	private create_import_issues(line: number, dynamic: boolean, nested: boolean, relative: boolean): AstImportIssue[] {
 		const issues: AstImportIssue[] = [];
 		if (dynamic) {
-			issues.push({ line, kind: 'dynamic' });
+			issues.push({ line, kind: "dynamic" });
 		}
 		if (nested) {
-			issues.push({ line, kind: 'nested' });
+			issues.push({ line, kind: "nested" });
 		}
 		if (relative) {
-			issues.push({ line, kind: 'relative' });
+			issues.push({ line, kind: "relative" });
 		}
 		return issues;
 	}
@@ -67,7 +62,7 @@ return module_name.startsWith('./') || module_name.startsWith('../');
 			return true;
 		}
 		if (ts.isIdentifier(node.expression)) {
-			if (node.expression.text === 'require') {
+			if (node.expression.text === "require") {
 				return true;
 			}
 		}
@@ -83,7 +78,7 @@ return module_name.startsWith('./') || module_name.startsWith('../');
 				if (imports_closed) {
 					issues.push({
 						line: line_of(statement.getStart(source_file)),
-						kind: 'late',
+						kind: "late",
 					});
 				}
 				continue;
@@ -93,13 +88,8 @@ return module_name.startsWith('./') || module_name.startsWith('../');
 		return issues;
 	}
 
-
 	/** Responsibilities: _collection import issues represented_. **/
-	public node_import_issues(
-		node: ts.Node,
-		source_file: ts.SourceFile,
-		line_of: LineOf
-	): AstImportIssue[] {
+	public node_import_issues(node: ts.Node, source_file: ts.SourceFile, line_of: LineOf): AstImportIssue[] {
 		const line = line_of(node.getStart(source_file));
 		const dynamic = this.is_dynamic_import(node);
 		const nested = this.is_nested_import(node);

@@ -1,11 +1,16 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import { CallableBodyMetrics } from 'src/model/typescript-callable-body-metrics';
-import { CallableParameterData } from 'src/model/typescript-callable-parameter-data';
-import { TypeScriptArgumentUsage } from 'src/bridge/ts/parser/typescript-argument-usage';
-import type { AstCallableNode, AstVisibility, CallableMetricComponents, CallableNodeOptions, CallableOptions } from 'src/types';
-import type { SourceLineRange, CallableNodeMetrics } from 'src/model/types';
-
+import { CallableBodyMetrics } from "src/model/typescript-callable-body-metrics";
+import { CallableParameterData } from "src/model/typescript-callable-parameter-data";
+import { TypeScriptArgumentUsage } from "src/bridge/ts/parser/typescript-argument-usage";
+import type {
+	AstCallableNode,
+	AstVisibility,
+	CallableMetricComponents,
+	CallableNodeOptions,
+	CallableOptions,
+} from "src/types";
+import type { SourceLineRange, CallableNodeMetrics } from "src/model/types";
 
 /** Responsibilities: _construction normalization callable identity_. **/
 export class TypeScriptCallableData {
@@ -16,8 +21,8 @@ export class TypeScriptCallableData {
 
 	/** Responsibilities: _normalization callable visibility preservation_. **/
 	private callable_visibility(name: string, visibility: AstVisibility): AstVisibility {
-		if (visibility === 'public' && name.startsWith('_')) {
-			return 'private';
+		if (visibility === "public" && name.startsWith("_")) {
+			return "private";
 		}
 		return visibility;
 	}
@@ -34,9 +39,7 @@ export class TypeScriptCallableData {
 	}
 
 	/** Responsibilities: _line SLOC character assembly_. **/
-	private node_metrics(
-		node: ts.SignatureDeclarationBase
-	): CallableNodeMetrics {
+	private node_metrics(node: ts.SignatureDeclarationBase): CallableNodeMetrics {
 		return {
 			...this.metric_components(node),
 			argument_count: node.parameters.length,

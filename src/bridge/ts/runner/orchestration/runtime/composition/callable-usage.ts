@@ -1,14 +1,17 @@
-import { TestPathSyntax } from 'src/test-path-syntax';
-import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from 'src/metrics/types';
-import type { Violation } from 'src/protocols';
-import type { LintSourceRecord } from 'src/types';
-import type { AstClassNode } from 'src/types';
-import { PROPERTY_DECORATORS } from 'src/bridge/ts/runner/orchestration/runtime/composition/constants';
-import type { CallableIndexes, CallableUsageCollectorState } from 'src/bridge/ts/runner/orchestration/runtime/composition/types';
-import type { LintStageTimerProtocol } from 'src/protocols';
-import { CallableMethodCounts } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts';
-import { CallableViolationCollector } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-violation-collector';
-import { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
+import { TestPathSyntax } from "src/test-path-syntax";
+import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from "src/metrics/types";
+import type { Violation } from "src/protocols";
+import type { LintSourceRecord } from "src/types";
+import type { AstClassNode } from "src/types";
+import { PROPERTY_DECORATORS } from "src/bridge/ts/runner/orchestration/runtime/composition/constants";
+import type {
+	CallableIndexes,
+	CallableUsageCollectorState,
+} from "src/bridge/ts/runner/orchestration/runtime/composition/types";
+import type { LintStageTimerProtocol } from "src/protocols";
+import { CallableMethodCounts } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-method-counts";
+import { CallableViolationCollector } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-violation-collector";
+import { CallableReferenceIndex } from "src/metrics/callable-reference-index";
 
 /** Responsibilities: _collection callable usage construction_. **/
 export class CallableUsage {
@@ -16,14 +19,10 @@ export class CallableUsage {
 
 	/** Responsibilities: _mark externally inherited classes_. **/
 	private mark_external_bases(parsed_files: ParsedFile[]): void {
-		const class_names = new Set(
-			parsed_files.flatMap(file => file.ast.classes.map(class_node => class_node.name))
-		);
+		const class_names = new Set(parsed_files.flatMap((file) => file.ast.classes.map((class_node) => class_node.name)));
 		for (const file of parsed_files) {
 			for (const class_node of file.ast.classes) {
-				class_node.extends_external_class = this.base_names_for(class_node).some(
-					base => !class_names.has(base)
-				);
+				class_node.extends_external_class = this.base_names_for(class_node).some((base) => !class_names.has(base));
 			}
 		}
 	}
@@ -39,7 +38,7 @@ export class CallableUsage {
 			}
 		}
 		for (const class_node of file.ast.classes) {
-				this.class_type_index(class_node, project_types);
+			this.class_type_index(class_node, project_types);
 		}
 	}
 
@@ -55,16 +54,13 @@ export class CallableUsage {
 				field_map[field.name] = field.type;
 			}
 		}
-if (Object.keys(field_map).length > 0 && !project_types.has(class_node.name)) {
+		if (Object.keys(field_map).length > 0 && !project_types.has(class_node.name)) {
 			project_types.set(class_node.name, field_map);
 		}
 	}
 
 	/** Responsibilities: _callable analysis indexes construction_. **/
-	private build_indexes(
-		parsed_files: ParsedFile[],
-		production_files: ParsedFile[]
-	): CallableIndexes {
+	private build_indexes(parsed_files: ParsedFile[], production_files: ParsedFile[]): CallableIndexes {
 		const project_types: CallableProjectIndex = new Map();
 		const class_nodes: CallableClassIndex = new Map();
 		for (const file of parsed_files) {
@@ -86,91 +82,82 @@ if (Object.keys(field_map).length > 0 && !project_types.has(class_node.name)) {
 
 	/** Responsibilities: _collection callable definitions file_. **/
 	private callable_definitions(file: ParsedFile): CallableDefinition[] {
-		const functions = file.ast.functions.map(node => ({
+		const functions = file.ast.functions.map((node) => ({
 			file: file.file,
-			kind: 'function' as const,
+			kind: "function" as const,
 			node,
 		}));
 		const methods = file.ast.classes
-			.filter(class_node => !class_node.type_contract && !class_node.protocol)
-			.flatMap(class_node =>
-				class_node.methods.map(node => ({
+			.filter((class_node) => !class_node.type_contract && !class_node.protocol)
+			.flatMap((class_node) =>
+				class_node.methods.map((node) => ({
 					file: file.file,
-					kind: 'method' as const,
+					kind: "method" as const,
 					node,
-				}))
+				})),
 			);
 		return [...functions, ...methods];
 	}
 
 	/** Responsibilities: _identification analyzable callable method_. **/
 	private is_callable_method(item: CallableDefinition): boolean {
-if (item.file.startsWith('tools/coding-lint/') || item.node.visibility === 'private') {
+		if (item.file.startsWith("tools/coding-lint/") || item.node.visibility === "private") {
 			return false;
 		}
-		if (item.node.is_accessor || item.node.name === 'constructor') {
+		if (item.node.is_accessor || item.node.name === "constructor") {
 			return false;
 		}
-if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
+		if (item.node.name.startsWith("__") && item.node.name.endsWith("__")) {
 			return false;
 		}
 		const decorators = item.node.decorators;
 		if (decorators === undefined) {
 			return true;
 		}
-		return !decorators.some(name => this.property_decorators.has(name));
+		return !decorators.some((name) => this.property_decorators.has(name));
 	}
 
 	/** Responsibilities: _identification analyzable callable definition_. **/
 	private is_callable_definition(item: CallableDefinition): boolean {
-		if (item.kind === 'function') {
-		if (item.file.startsWith('tools/coding-lint/')) {
-			return false;
-		}
-		if (item.node.visibility === 'private') {
-			return false;
-		}
-		return !item.node.is_accessor;
+		if (item.kind === "function") {
+			if (item.file.startsWith("tools/coding-lint/")) {
+				return false;
+			}
+			if (item.node.visibility === "private") {
+				return false;
+			}
+			return !item.node.is_accessor;
 		}
 		return this.is_callable_method(item);
 	}
 
 	/** Responsibilities: _source record preparation_. **/
-	private parsed_sources(
-		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimerProtocol
-	): ParsedFile[] {
-		return stage_timer.measure(
-			'global-analysis.callable-usage.parsed-files',
-			() => sources.map(source => ({
+	private parsed_sources(sources: readonly LintSourceRecord[], stage_timer: LintStageTimerProtocol): ParsedFile[] {
+		return stage_timer.measure("global-analysis.callable-usage.parsed-files", () =>
+			sources.map((source) => ({
 				file: source.relative_path,
 				ast: source.normalized_ast,
-			}))
+			})),
 		);
 	}
 
 	/** Responsibilities: _production source records selection_. **/
-	private production_sources(
-		parsed_files: ParsedFile[],
-		stage_timer: LintStageTimerProtocol
-	): ParsedFile[] {
+	private production_sources(parsed_files: ParsedFile[], stage_timer: LintStageTimerProtocol): ParsedFile[] {
 		const test_path_syntax = new TestPathSyntax();
-		return stage_timer.measure(
-			'global-analysis.callable-usage.production-files',
-			() => parsed_files.filter(file => !test_path_syntax.test_file(file.file))
+		return stage_timer.measure("global-analysis.callable-usage.production-files", () =>
+			parsed_files.filter((file) => !test_path_syntax.test_file(file.file)),
 		);
 	}
 
 	/** Responsibilities: _production callable definitions collection_. **/
 	private callable_definitions_for(
 		production_files: ParsedFile[],
-		stage_timer: LintStageTimerProtocol
+		stage_timer: LintStageTimerProtocol,
 	): CallableDefinition[] {
-		return stage_timer.measure(
-			'global-analysis.callable-usage.definitions',
-			() => production_files
-				.flatMap(file => this.callable_definitions(file))
-				.filter(definition => this.is_callable_definition(definition))
+		return stage_timer.measure("global-analysis.callable-usage.definitions", () =>
+			production_files
+				.flatMap((file) => this.callable_definitions(file))
+				.filter((definition) => this.is_callable_definition(definition)),
 		);
 	}
 
@@ -186,17 +173,13 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	/** Responsibilities: _construction callable usage collector_. **/
 	private collector_state(
 		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimerProtocol
+		stage_timer: LintStageTimerProtocol,
 	): CallableUsageCollectorState {
 		const parsed_files = this.parsed_sources(sources, stage_timer);
-		stage_timer.measure(
-			'global-analysis.callable-usage.external-bases',
-			() => this.mark_external_bases(parsed_files)
-		);
+		stage_timer.measure("global-analysis.callable-usage.external-bases", () => this.mark_external_bases(parsed_files));
 		const production_files = this.production_sources(parsed_files, stage_timer);
-		const indexes = stage_timer.measure(
-			'global-analysis.callable-usage.indexes',
-			() => this.build_indexes(parsed_files, production_files)
+		const indexes = stage_timer.measure("global-analysis.callable-usage.indexes", () =>
+			this.build_indexes(parsed_files, production_files),
 		);
 		const definitions = this.callable_definitions_for(production_files, stage_timer);
 		return {
@@ -211,19 +194,12 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 	}
 
 	/** Responsibilities: _collection timed callable usage_. **/
-	public collect_timed_usage(
-		sources: readonly LintSourceRecord[],
-		stage_timer: LintStageTimerProtocol
-	): Violation[] {
-		const state = stage_timer.measure(
-			'global-analysis.callable-usage.state',
-			() => this.collector_state(sources, stage_timer)
+	public collect_timed_usage(sources: readonly LintSourceRecord[], stage_timer: LintStageTimerProtocol): Violation[] {
+		const state = stage_timer.measure("global-analysis.callable-usage.state", () =>
+			this.collector_state(sources, stage_timer),
 		);
 		const collector = new CallableViolationCollector(state);
-		return stage_timer.measure(
-			'global-analysis.callable-usage.violation-collection',
-			() => collector.collect_all()
-		);
+		return stage_timer.measure("global-analysis.callable-usage.violation-collection", () => collector.collect_all());
 	}
 
 	/** Responsibilities: _class base names exposure_. **/
@@ -236,5 +212,4 @@ if (item.node.name.startsWith('__') && item.node.name.endsWith('__')) {
 		}
 		return [];
 	}
-
 }

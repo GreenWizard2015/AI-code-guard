@@ -1,4 +1,4 @@
-import type { AstVisibility } from 'src/types';
+import type { AstVisibility } from "src/types";
 
 export type LineOf = (position: number) => number;
 
@@ -9,6 +9,7 @@ export type CallReferenceOptions = {
 };
 export type NamedSymbolOptions = {
 	is_module_constant: boolean;
+	is_module_variable: boolean;
 	visibility: AstVisibility;
 	is_module_function: boolean;
 };

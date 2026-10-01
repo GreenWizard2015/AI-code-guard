@@ -1,15 +1,12 @@
-import ts from 'typescript';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type {
-	CyrillicCommentText,
-	CyrillicQuoteState,
-} from 'src/bridge/ts/rules/types';
-import { StandaloneStringComments } from 'src/bridge/ts/rules/support/standalone-string-comments';
+import ts from "typescript";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { CyrillicCommentText, CyrillicQuoteState } from "src/bridge/ts/rules/types";
+import { StandaloneStringComments } from "src/bridge/ts/rules/support/standalone-string-comments";
 
 /** Responsibilities: _Cyrillic text detection_. **/
 export class CyrillicTextRules {
-	private readonly rule = new DiagnosticRule('cyrillic-comment');
+	private readonly rule = new DiagnosticRule("cyrillic-comment");
 	private readonly cyrillic_pattern = /[\u0400-\u04ff]/u;
 	private readonly empty_quote: CyrillicQuoteState = {
 		active: false,
@@ -30,19 +27,14 @@ export class CyrillicTextRules {
 		const start = scanner.getTokenPos();
 		const end = scanner.getTextPos();
 		comments.push({
-			line: text.slice(0, start).split('\n').length,
+			line: text.slice(0, start).split("\n").length,
 			text: text.slice(start, end),
 		});
 	}
 
 	/** Responsibilities: _TypeScript comment extraction_. **/
 	private typescript_comments(text: string): CyrillicCommentText[] {
-		const scanner = ts.createScanner(
-			ts.ScriptTarget.Latest,
-			false,
-			ts.LanguageVariant.Standard,
-			text,
-		);
+		const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, text);
 		const comments: CyrillicCommentText[] = [];
 		let token = scanner.scan();
 		while (token !== ts.SyntaxKind.EndOfFileToken) {
@@ -53,11 +45,7 @@ export class CyrillicTextRules {
 	}
 
 	/** Responsibilities: _Python quote advancement_. **/
-	private advance_python_quote(
-		line: string,
-		index: number,
-		state: CyrillicQuoteState,
-	): number {
+	private advance_python_quote(line: string, index: number, state: CyrillicQuoteState): number {
 		if (state.triple) {
 			if (line.startsWith(state.delimiter.repeat(3), index)) {
 				state.active = false;
@@ -65,7 +53,7 @@ export class CyrillicTextRules {
 			}
 		}
 		const character = line.charAt(index);
-		if (!state.triple && character === '\\') {
+		if (!state.triple && character === "\\") {
 			return index + 2;
 		}
 		if (!state.triple && character === state.delimiter) {
@@ -75,11 +63,7 @@ export class CyrillicTextRules {
 	}
 
 	/** Responsibilities: _Python quote start_. **/
-	private start_python_quote(
-		line: string,
-		index: number,
-		state: CyrillicQuoteState,
-	): number {
+	private start_python_quote(line: string, index: number, state: CyrillicQuoteState): number {
 		const character = line.charAt(index);
 		if (character !== "'" && character !== '"') {
 			return 0;
@@ -100,7 +84,7 @@ export class CyrillicTextRules {
 		index: number,
 		comments: CyrillicCommentText[],
 	): boolean {
-		if (line.charAt(index) !== '#') {
+		if (line.charAt(index) !== "#") {
 			return false;
 		}
 		comments.push({ line: line_number, text: line.slice(index) });
@@ -108,11 +92,7 @@ export class CyrillicTextRules {
 	}
 
 	/** Responsibilities: _Python line token advancement_. **/
-	private advance_python_line(
-		line: string,
-		index: number,
-		state: CyrillicQuoteState,
-	): number {
+	private advance_python_line(line: string, index: number, state: CyrillicQuoteState): number {
 		if (state.active) {
 			return this.advance_python_quote(line, index, state);
 		}
@@ -124,11 +104,7 @@ export class CyrillicTextRules {
 	}
 
 	/** Responsibilities: _Python comment line scanning_. **/
-	private python_line_comments(
-		line: string,
-		line_number: number,
-		state: CyrillicQuoteState,
-	): CyrillicCommentText[] {
+	private python_line_comments(line: string, line_number: number, state: CyrillicQuoteState): CyrillicCommentText[] {
 		const comments: CyrillicCommentText[] = [];
 		let index = 0;
 		while (index < line.length) {
@@ -144,7 +120,7 @@ export class CyrillicTextRules {
 	private python_comments(text: string): CyrillicCommentText[] {
 		const comments: CyrillicCommentText[] = [];
 		const state = { ...this.empty_quote };
-		for (const [index, line] of text.split('\n').entries()) {
+		for (const [index, line] of text.split("\n").entries()) {
 			comments.push(...this.python_line_comments(line, index + 1, state));
 		}
 		return comments;
@@ -169,22 +145,16 @@ export class CyrillicTextRules {
 		let comments: CyrillicCommentText[];
 		const standalone_strings = new StandaloneStringComments(text);
 		if (python) {
-			comments = [
-				...this.python_comments(text),
-				...standalone_strings.python_comments(),
-			];
+			comments = [...this.python_comments(text), ...standalone_strings.python_comments()];
 		} else {
-			comments = [
-				...this.typescript_comments(text),
-				...standalone_strings.typescript_comments(),
-			];
+			comments = [...this.typescript_comments(text), ...standalone_strings.typescript_comments()];
 		}
 		return this.violations(file, comments);
 	}
 
 	/** Responsibilities: _text file violations collection_. **/
 	public text_file_violations(file: string, text: string): Violation[] {
-		const comments = text.split('\n').map((line, index) => ({ line: index + 1, text: line }));
+		const comments = text.split("\n").map((line, index) => ({ line: index + 1, text: line }));
 		for (const comment of comments) {
 			if (this.cyrillic_pattern.test(comment.text)) {
 				return [this.rule.violation(file, comment.line)];

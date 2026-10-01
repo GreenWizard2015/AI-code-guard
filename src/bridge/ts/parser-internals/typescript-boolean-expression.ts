@@ -1,10 +1,7 @@
-import { TypeScriptBooleanCall } from 'src/bridge/ts/parser-internals/typescript-boolean-call';
-import { TypeScriptVariableBinding } from 'src/bridge/ts/runner/typescript-variable-binding';
-import ts from 'typescript';
-import {
-	BOOLEAN_OPERATOR_KINDS,
-	COMPARISON_OPERATOR_KINDS,
-} from 'src/bridge/ts/parser-internals/constants';
+import { TypeScriptBooleanCall } from "src/bridge/ts/parser-internals/typescript-boolean-call";
+import { TypeScriptVariableBinding } from "src/bridge/ts/runner/typescript-variable-binding";
+import ts from "typescript";
+import { BOOLEAN_OPERATOR_KINDS, COMPARISON_OPERATOR_KINDS } from "src/bridge/ts/parser-internals/constants";
 
 /** Responsibilities: _resolution boolean properties declarations_. **/
 export class TypeScriptBooleanExpression {
@@ -56,10 +53,7 @@ export class TypeScriptBooleanExpression {
 	}
 
 	/** Responsibilities: _classification binary expression boolean_. **/
-	private boolean_binary_expression(
-		node: ts.BinaryExpression,
-		source_file: ts.SourceFile
-	): boolean {
+	private boolean_binary_expression(node: ts.BinaryExpression, source_file: ts.SourceFile): boolean {
 		if (this.comparison_operator_kinds.includes(node.operatorToken.kind)) {
 			return true;
 		}
@@ -87,11 +81,7 @@ export class TypeScriptBooleanExpression {
 	}
 
 	/** Responsibilities: _classification declaration establishes boolean_. **/
-	private boolean_declaration(
-		declaration: ts.VariableDeclaration,
-		name: string,
-		source_file: ts.SourceFile
-	): boolean {
+	private boolean_declaration(declaration: ts.VariableDeclaration, name: string, source_file: ts.SourceFile): boolean {
 		if (!ts.isIdentifier(declaration.name)) {
 			return false;
 		}
@@ -138,5 +128,4 @@ export class TypeScriptBooleanExpression {
 		}
 		return kind === ts.SyntaxKind.QuestionQuestionToken;
 	}
-
 }

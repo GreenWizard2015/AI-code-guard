@@ -1,12 +1,11 @@
-import { Syntax } from 'src/syntax';
-import ts from 'typescript';
+import { Syntax } from "src/syntax";
+import ts from "typescript";
 
-import type { AstClassField, AstTypeKind } from 'src/types';
-import { TypeScriptTypeNode } from 'src/model/typescript-type-node';
-import { TypeScriptCallbackAliases } from 'src/parser/ts/typescript-callback-aliases';
+import type { AstClassField, AstTypeKind } from "src/types";
+import { TypeScriptTypeNode } from "src/model/typescript-type-node";
+import { TypeScriptCallbackAliases } from "src/parser/ts/typescript-callback-aliases";
 
-
-import type { CallbackCounts, CallbackKind, FieldTypeData } from 'src/types';
+import type { CallbackCounts, CallbackKind, FieldTypeData } from "src/types";
 
 /** Responsibilities: _classification TypeScript class interface_. **/
 export class TypeScriptClassMembers {
@@ -16,18 +15,18 @@ export class TypeScriptClassMembers {
 	/** Responsibilities: _callback initializer classification_. **/
 	private callback_initializer_kind(initializer: ts.Expression): CallbackKind {
 		if (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) {
-			return 'inline';
+			return "inline";
 		}
 		if (ts.isIdentifier(initializer)) {
 			return this.callback_aliases.kind(initializer.text);
 		}
-		return 'none';
+		return "none";
 	}
 
 	/** Responsibilities: _classification callback shape class_. **/
 	private callback_kind(member: ts.ClassElement): CallbackKind {
 		if (!ts.isPropertyDeclaration(member)) {
-			return 'none';
+			return "none";
 		}
 		if (member.initializer !== undefined) {
 			return this.callback_initializer_kind(member.initializer);
@@ -35,24 +34,24 @@ export class TypeScriptClassMembers {
 		if (member.type !== undefined) {
 			const type_node = new TypeScriptTypeNode(member.type);
 			if (type_node.details().is_function) {
-				return 'typed';
+				return "typed";
 			}
 		}
-		return 'none';
+		return "none";
 	}
 
 	/** Responsibilities: _resolution identifier initializer name_. **/
 	private identifier_initializer_name(member: ts.PropertyDeclaration): string {
-if (member.initializer !== undefined && ts.isIdentifier(member.initializer)) {
+		if (member.initializer !== undefined && ts.isIdentifier(member.initializer)) {
 			return member.initializer.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution field type type-kind_. **/
 	private field_type_data(member: ts.PropertyDeclaration): FieldTypeData {
 		if (member.type === undefined) {
-			return { type: '', type_kind: 'basic' };
+			return { type: "", type_kind: "basic" };
 		}
 		return {
 			type: member.type.getText(this.source_file),
@@ -67,48 +66,48 @@ if (member.initializer !== undefined && ts.isIdentifier(member.initializer)) {
 		if (type_kind !== undefined) {
 			return type_kind;
 		}
-		return 'basic';
+		return "basic";
 	}
 
 	/** Responsibilities: _normalization class property field_. **/
 	private class_field(member: ts.ClassElement): AstClassField[] {
-if (!ts.isPropertyDeclaration(member) || !ts.isIdentifier(member.name)) {
+		if (!ts.isPropertyDeclaration(member) || !ts.isIdentifier(member.name)) {
 			return [];
 		}
 		const type_data = this.field_type_data(member);
-		return [{
-			line:
-				this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
-			name: member.name.getText(this.source_file),
-			value_name: this.identifier_initializer_name(member),
-			type: type_data.type,
-			type_kind: type_data.type_kind,
-			class_variable: false,
-		}];
+		return [
+			{
+				line: this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
+				name: member.name.getText(this.source_file),
+				value_name: this.identifier_initializer_name(member),
+				type: type_data.type,
+				type_kind: type_data.type_kind,
+				class_variable: false,
+			},
+		];
 	}
 
 	/** Responsibilities: _normalization interface property field_. **/
 	private interface_field(member: ts.TypeElement): AstClassField[] {
-if (!ts.isPropertySignature(member) || member.name === undefined) {
+		if (!ts.isPropertySignature(member) || member.name === undefined) {
 			return [];
 		}
-		let type_kind_value: AstTypeKind = 'basic';
+		let type_kind_value: AstTypeKind = "basic";
+		let type = "";
 		if (member.type !== undefined) {
 			type_kind_value = this.type_kind(member.type);
-		}
-		let type = '';
-		if (member.type !== undefined) {
 			type = member.type.getText(this.source_file);
 		}
-		return [{
-			line:
-				this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
-			name: member.name.getText(this.source_file),
-			value_name: '',
-			type,
-			type_kind: type_kind_value,
-			class_variable: false,
-		}];
+		return [
+			{
+				line: this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
+				name: member.name.getText(this.source_file),
+				value_name: "",
+				type,
+				type_kind: type_kind_value,
+				class_variable: false,
+			},
+		];
 	}
 
 	/** Responsibilities: _initialization source file usage_. **/
@@ -123,11 +122,11 @@ if (!ts.isPropertySignature(member) || member.name === undefined) {
 		let inline = 0;
 		for (const member of node.members) {
 			const kind = this.callback_kind(member);
-			if (kind === 'none') {
+			if (kind === "none") {
 				continue;
 			}
 			total += 1;
-			if (kind === 'inline') {
+			if (kind === "inline") {
 				inline += 1;
 			}
 		}

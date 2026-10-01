@@ -1,6 +1,7 @@
-import ts from 'typescript';
-import { TypeScriptStaticArraySources } from 'src/typescript-callable-aliases/static-array/typescript-static-array-sources';
-import { TypeScriptStaticArrayValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver';
+import ts from "typescript";
+import type { MapValueAppender } from "src/protocols";
+import { TypeScriptStaticArraySources } from "src/typescript-callable-aliases/static-array/typescript-static-array-sources";
+import { TypeScriptStaticArrayValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver";
 
 /** Responsibilities: _destructured static array aliases_. **/
 export class TypeScriptStaticArrayExpressionBindings {
@@ -8,17 +9,13 @@ export class TypeScriptStaticArrayExpressionBindings {
 	private readonly numeric_sources = new Map<string, number>();
 	private readonly sources: TypeScriptStaticArraySources;
 	private readonly array_values: TypeScriptStaticArrayValues;
-	private readonly append_value: (
-		values: Map<string, string>,
-		name: string,
-		initializer: ts.Expression
-	) => boolean;
+	private readonly append_value: MapValueAppender;
 
 	/** Responsibilities: _static array binding element_. **/
 	private append_array_element(
 		values: Map<string, string>,
 		element: ts.ArrayBindingElement,
-		value: ts.Expression
+		value: ts.Expression,
 	): boolean {
 		if (!ts.isBindingElement(element) || element.dotDotDotToken) {
 			return false;
@@ -36,7 +33,7 @@ export class TypeScriptStaticArrayExpressionBindings {
 	private append_rest_source(
 		element: ts.ArrayBindingElement,
 		index: number,
-		source: readonly ts.Expression[]
+		source: readonly ts.Expression[],
 	): boolean {
 		if (!ts.isBindingElement(element)) {
 			return false;
@@ -59,11 +56,7 @@ export class TypeScriptStaticArrayExpressionBindings {
 	}
 
 	/** Responsibilities: _nested static array aliases_. **/
-	private append_nested(
-		values: Map<string, string>,
-		binding: ts.ArrayBindingPattern,
-		value: ts.Expression
-	): boolean {
+	private append_nested(values: Map<string, string>, binding: ts.ArrayBindingPattern, value: ts.Expression): boolean {
 		const current = value;
 		if (!ts.isArrayLiteralExpression(current)) {
 			return false;
@@ -75,7 +68,7 @@ export class TypeScriptStaticArrayExpressionBindings {
 	private append_values(
 		values: Map<string, string>,
 		binding: ts.ArrayBindingPattern,
-		source: readonly ts.Expression[]
+		source: readonly ts.Expression[],
 	): boolean {
 		let changed = this.append_rest_sources(binding, source);
 		for (let index = 0; index < binding.elements.length; index += 1) {
@@ -91,9 +84,7 @@ export class TypeScriptStaticArrayExpressionBindings {
 	}
 
 	/** Responsibilities: _static array alias dependencies_. **/
-	public constructor(
-		append_value: (values: Map<string, string>, name: string, initializer: ts.Expression) => boolean
-	) {
+	public constructor(append_value: MapValueAppender) {
 		this.sources = new TypeScriptStaticArraySources(this.array_sources, this.numeric_sources);
 		this.array_values = new TypeScriptStaticArrayValues(this.array_sources, this.numeric_sources);
 		this.append_value = append_value;

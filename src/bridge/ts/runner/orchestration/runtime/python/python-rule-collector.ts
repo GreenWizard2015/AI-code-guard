@@ -1,26 +1,18 @@
-import { ClassReporting } from 'src/bridge/ts/core/support/class-reporting';
-import { MethodOrder } from 'src/bridge/ts/rules/method-order';
-import { MetricViolations } from 'src/metric-violations';
-import { NamingSupport } from 'src/bridge/ts/rules/naming-support';
-import { PythonArchitecture } from 'src/bridge/ts/runner/orchestration/runtime/python/python-architecture';
-import { PythonHacks } from 'src/bridge/ts/runner/orchestration/runtime/python/python-hacks';
-import { Syntax } from 'src/syntax';
-import { CallableMetrics } from 'src/metrics/callable-metrics';
-import { ClassStructureReporter } from 'src/metrics/class-structure-reporter';
-import { SharedParameterAdapter } from 'src/metrics/shared-parameter-adapter';
-import { MethodContractRules } from 'src/metrics/method-contract-rules';
-import { PythonTestRuleCollector } from 'src/bridge/ts/runner/orchestration/runtime/python/python-test-rule-collector';
-import { PythonTypeRuleCollector } from 'src/bridge/ts/runner/orchestration/runtime/python/python-type-rule-collector';
-import type { PythonRuleInput } from 'src/runner/types';
-import type { AstClassNode } from 'src/types';
-
-
-
-
-
-
-
-
+import { ClassReporting } from "src/bridge/ts/core/support/class-reporting";
+import { MethodOrder } from "src/bridge/ts/rules/method-order";
+import { MetricViolations } from "src/metric-violations";
+import { NamingSupport } from "src/bridge/ts/rules/naming-support";
+import { PythonArchitecture } from "src/bridge/ts/runner/orchestration/runtime/python/python-architecture";
+import { PythonHacks } from "src/bridge/ts/runner/orchestration/runtime/python/python-hacks";
+import { Syntax } from "src/syntax";
+import { CallableMetrics } from "src/metrics/callable-metrics";
+import { ClassStructureReporter } from "src/metrics/class-structure-reporter";
+import { SharedParameterAdapter } from "src/metrics/shared-parameter-adapter";
+import { MethodContractRules } from "src/metrics/method-contract-rules";
+import { PythonTestRuleCollector } from "src/bridge/ts/runner/orchestration/runtime/python/python-test-rule-collector";
+import { PythonTypeRuleCollector } from "src/bridge/ts/runner/orchestration/runtime/python/python-type-rule-collector";
+import type { PythonRuleInput } from "src/runner/types";
+import type { AstClassNode } from "src/types";
 
 /** Responsibilities: _collection Python architecture rules_. **/
 export class PythonRuleCollector {
@@ -43,11 +35,11 @@ export class PythonRuleCollector {
 		for (const node of classes) {
 			const adapter = new SharedParameterAdapter({
 				file: file_name.value,
-				kind: 'method',
+				kind: "method",
 				nodes: node.methods,
 				project_types: project_type_names,
 				reference_aliases: this.input.reference_aliases,
-				language: 'python',
+				language: "python",
 			});
 			violations.push(...adapter.violations());
 		}
@@ -70,14 +62,14 @@ export class PythonRuleCollector {
 		this.method_contract_rules.append(
 			violations,
 			file_name.value,
-			classes.flatMap(node => node.methods)
+			classes.flatMap((node) => node.methods),
 		);
 	}
 
 	/** Responsibilities: _Python metric violations addition_. **/
 	private append_metric_violations(): void {
 		const { classes } = this.input;
-		classes.forEach(node => this.append_class_metrics(node));
+		classes.forEach((node) => this.append_class_metrics(node));
 		this.append_callable_metrics();
 		this.append_method_contracts();
 	}
@@ -99,16 +91,11 @@ export class PythonRuleCollector {
 	private append_production_limits(
 		class_reporting: ClassReporting,
 		method_order: MethodOrder,
-		node: AstClassNode
+		node: AstClassNode,
 	): void {
 		const { violations, file_name } = this.input;
 		class_reporting.report_class_methods(violations, file_name, node);
-		const structure = new ClassStructureReporter(
-			violations,
-			file_name,
-			node,
-			this.input.suppress_short_class
-		);
+		const structure = new ClassStructureReporter(violations, file_name, node, this.input.suppress_short_class);
 		structure.report_design();
 		structure.report_sizes();
 		if (!node.extends_external_class) {
@@ -147,7 +134,7 @@ export class PythonRuleCollector {
 		this.metric_violations.append_depth_violations(violations, file, operations.attribute_accesses);
 		this.test_rules.append_shape();
 		this.test_rules.append_assertions();
-		this.syntax.append_parse_issues(violations, file, operations.parse_issues, 'python');
+		this.syntax.append_parse_issues(violations, file, operations.parse_issues, "python");
 		this.naming_support.append_naming_violations(violations, file, operations.named_symbols, classes, []);
 	}
 

@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _calculation TypeScript statement complexity_. **/
 export class TypeScriptStatementSloc {
@@ -41,12 +41,7 @@ export class TypeScriptStatementSloc {
 		if (statement.finallyBlock) {
 			finally_sloc = this.statement_list_sloc(statement.finallyBlock.statements);
 		}
-		return (
-			this.statement_cost +
-			this.statement_list_sloc(statement.tryBlock.statements) +
-			catch_sloc +
-			finally_sloc
-		);
+		return this.statement_cost + this.statement_list_sloc(statement.tryBlock.statements) + catch_sloc + finally_sloc;
 	}
 
 	/** Responsibilities: _classification loop statements contribute_. **/
@@ -79,7 +74,7 @@ export class TypeScriptStatementSloc {
 		if (ts.isBlock(statement) || ts.isIfStatement(statement)) {
 			return true;
 		}
-return ts.isSwitchStatement(statement) || ts.isTryStatement(statement);
+		return ts.isSwitchStatement(statement) || ts.isTryStatement(statement);
 	}
 
 	/** Responsibilities: _calculation compound SLOC statement_. **/

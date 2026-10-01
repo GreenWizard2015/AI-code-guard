@@ -1,10 +1,10 @@
-import { TypeScriptStructuralRules } from 'src/bridge/ts/parser-internals/typescript-structural-rules';
-import { TypeScriptBoundaryRuleAppender } from 'src/bridge/ts/parser-internals/type-union-rules/boundary-rule-appender';
-import { TypeScriptConditionalRules } from 'src/bridge/ts/parser-internals/typescript-conditional-rules';
-import { TypeScriptTerminalBranches } from 'src/bridge/ts/parser-internals/typescript-terminal-rules';
-import ts from 'typescript';
-import { EARLY_RETURN } from 'src/bridge/ts/parser-internals/constants';
-import type { RuleContextData } from 'src/types';
+import { TypeScriptStructuralRules } from "src/bridge/ts/parser-internals/typescript-structural-rules";
+import { TypeScriptBoundaryRuleAppender } from "src/bridge/ts/parser-internals/type-union-rules/boundary-rule-appender";
+import { TypeScriptConditionalRules } from "src/bridge/ts/parser-internals/typescript-conditional-rules";
+import { TypeScriptTerminalBranches } from "src/bridge/ts/parser-internals/typescript-terminal-rules";
+import ts from "typescript";
+import { EARLY_RETURN } from "src/bridge/ts/parser-internals/constants";
+import type { RuleContextData } from "src/types";
 
 /** Responsibilities: _aggregation TypeScript conditional structural_. **/
 export class TypeScriptTypeRules {

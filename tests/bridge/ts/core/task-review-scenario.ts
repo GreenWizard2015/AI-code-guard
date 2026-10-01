@@ -58,11 +58,11 @@ export class TaskReviewScenario {
 		return fixture.with_temporary_files("task-review-code-", {}, (root, reporting) => {
 			const initial = reporting.format([], { batch_size: 10, policy: "top-category" });
 			const completion_match = initial.match(
-				/Architecture review completion code: [0-9a-f]{32} \d{4}-\d{2}-\d{2} \d{2}:\d{2}/u,
+				/Primary agent private completion code \(do not delegate\): ([0-9a-f]{32})/u,
 			);
 			let completion_code = "";
 			if (completion_match !== null) {
-				completion_code = completion_match[0];
+				completion_code = completion_match[1];
 			}
 			const review = join(root, ".ai-code-guard", "review");
 			mkdirSync(review, { recursive: true });
@@ -78,7 +78,10 @@ export class TaskReviewScenario {
 			const review = join(root, ".ai-code-guard", "review");
 			mkdirSync(review, { recursive: true });
 			writeFileSync(join(review, "short.md"), "too short\n");
-			writeFileSync(join(review, "problem.md"), `${Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n")}\n`);
+			writeFileSync(
+				join(review, "problem.md"),
+				`${Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n")}\n`,
+			);
 			return {
 				output: reporting.format([], { batch_size: 10, policy: "top-category" }),
 				short_file_exists: existsSync(join(review, "short.md")),

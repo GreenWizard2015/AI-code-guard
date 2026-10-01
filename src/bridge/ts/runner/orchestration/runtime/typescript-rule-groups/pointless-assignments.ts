@@ -1,16 +1,14 @@
-import { PointlessExpression } from 'src/rules/typescript/pointless-expression';
-import { TypeScriptAssignmentAnalysis } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/typescript-assignment-analysis';
-import ts from 'typescript';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Assignment } from 'src/types';
-import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
-
-
+import { PointlessExpression } from "src/rules/typescript/pointless-expression";
+import { TypeScriptAssignmentAnalysis } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/typescript-assignment-analysis";
+import ts from "typescript";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Assignment } from "src/types";
+import { TypeScriptCallableBody } from "src/typescript-callable-aliases/typescript-callable-body";
 
 /** Responsibilities: _pointless assignments identification_, _assignment violations addition_. **/
 export class PointlessAssignments {
-	private readonly assignment_rule_id = 'pointless-assignment';
+	private readonly assignment_rule_id = "pointless-assignment";
 	private readonly script_assignment_analysis = new TypeScriptAssignmentAnalysis();
 	private readonly pointless_expression = new PointlessExpression();
 	private readonly callable_body = new TypeScriptCallableBody();
@@ -21,7 +19,7 @@ export class PointlessAssignments {
 		file: string,
 		source_file: ts.SourceFile,
 		statement: ts.Statement,
-		candidates: Assignment[]
+		candidates: Assignment[],
 	): Assignment[] {
 		const assignments = this.script_assignment_analysis.assignment_value(statement, source_file);
 		if (assignments.length > 0) {
@@ -36,7 +34,7 @@ export class PointlessAssignments {
 		violations: Violation[],
 		file: string,
 		candidates: Assignment[],
-		returned_names: string[]
+		returned_names: string[],
 	): void {
 		for (const returned_name of returned_names) {
 			if (candidates.length === 0) {
@@ -51,12 +49,7 @@ export class PointlessAssignments {
 	}
 
 	/** Responsibilities: _analysis assignments callable_. **/
-	public append_callable(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile,
-		body: ts.Block
-	): void {
+	public append_callable(violations: Violation[], file: string, source_file: ts.SourceFile, body: ts.Block): void {
 		let candidates: Assignment[] = [];
 		for (const statement of body.statements) {
 			candidates = this.append_statement(violations, file, source_file, statement, candidates);
@@ -64,16 +57,12 @@ export class PointlessAssignments {
 	}
 
 	/** Responsibilities: _analysis callable assignments source_. **/
-	public append_assignment_violations(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	public append_assignment_violations(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		if (source_file.statements.length === 0) {
 			return;
 		}
 		const visit = (node: ts.Node): void => {
-			const handled = this.callable_body.resolve(node, false, body => {
+			const handled = this.callable_body.resolve(node, false, (body) => {
 				if (!ts.isBlock(body)) {
 					return false;
 				}

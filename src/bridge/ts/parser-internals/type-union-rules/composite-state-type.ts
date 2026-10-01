@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { NullableTypeRules } from 'src/bridge/ts/parser-internals/type-union-rules/nullable-type-rules';
+import ts from "typescript";
+import { NullableTypeRules } from "src/bridge/ts/parser-internals/type-union-rules/nullable-type-rules";
 
 /** Responsibilities: _composite state types classification_. **/
 export class CompositeStateTypeRules {
@@ -51,7 +51,7 @@ export class CompositeStateTypeRules {
 		if (!ts.isIntersectionTypeNode(declaration.type)) {
 			return false;
 		}
-		return declaration.type.types.every(type => this.is_object_alias(type, source_file, next_seen));
+		return declaration.type.types.every((type) => this.is_object_alias(type, source_file, next_seen));
 	}
 
 	/** Responsibilities: _structural intersections classification_. **/
@@ -61,7 +61,7 @@ export class CompositeStateTypeRules {
 		}
 		const source_file = node.getSourceFile();
 		const seen = new Set<string>();
-		return node.types.every(type => this.is_object_alias(type, source_file, seen));
+		return node.types.every((type) => this.is_object_alias(type, source_file, seen));
 	}
 
 	/** Responsibilities: _literal union aliases resolution_. **/
@@ -90,7 +90,7 @@ export class CompositeStateTypeRules {
 		}
 		const next_seen = new Set(seen);
 		next_seen.add(name);
-		return declaration.type.types.every(type => this.is_literal_type(type, source_file, next_seen));
+		return declaration.type.types.every((type) => this.is_literal_type(type, source_file, next_seen));
 	}
 
 	/** Responsibilities: _applicable union boundaries classification_. **/
@@ -149,11 +149,11 @@ export class CompositeStateTypeRules {
 
 	/** Responsibilities: _combine allowed union checks_. **/
 	private is_value_union(node: ts.UnionTypeNode): boolean {
-		const primitive_values = node.types.every(type => this.value_type_kinds.has(type.kind));
+		const primitive_values = node.types.every((type) => this.value_type_kinds.has(type.kind));
 		if (primitive_values) {
 			return true;
 		}
-		return node.types.every(type => ts.isArrayTypeNode(type));
+		return node.types.every((type) => ts.isArrayTypeNode(type));
 	}
 
 	/** Responsibilities: _literal-only unions classification_. **/
@@ -169,7 +169,7 @@ export class CompositeStateTypeRules {
 		if (!ts.isUnionTypeNode(node)) {
 			return false;
 		}
-		return node.types.every(type => this.is_literal_type(type, node.getSourceFile(), new Set()));
+		return node.types.every((type) => this.is_literal_type(type, node.getSourceFile(), new Set()));
 	}
 
 	/** Responsibilities: _report state violations_. **/

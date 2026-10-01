@@ -1,5 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptMemberBinding } from 'src/typescript-aliases/typescript-member-binding';
+import ts from "typescript";
+import { TypeScriptMemberBinding } from "src/typescript-aliases/typescript-member-binding";
+import type { StaticValueResolver } from "src/protocols";
 
 /** Responsibilities: _resolution TypeScript member aliases_. **/
 export class TypeScriptMemberAliases {
@@ -37,10 +38,7 @@ export class TypeScriptMemberAliases {
 	}
 
 	/** Responsibilities: _member alias resolver initialization_. **/
-	public constructor(
-		target_name: string,
-		static_value: (expression: ts.Expression, node: ts.Node) => string
-	) {
+	public constructor(target_name: string, static_value: StaticValueResolver) {
 		this.bindings = new TypeScriptMemberBinding(target_name, static_value);
 	}
 

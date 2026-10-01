@@ -1,4 +1,4 @@
-import type { AstLanguage, NormalizedAstFile } from 'src/types';
+import type { AstLanguage, NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _cached AST state contract_, _language compatibility_. **/
 export interface AstCacheEntry {

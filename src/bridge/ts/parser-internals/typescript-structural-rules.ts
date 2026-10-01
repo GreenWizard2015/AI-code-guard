@@ -1,26 +1,19 @@
-import { TypeScriptOperatorPrecedence } from 'src/bridge/ts/parser-internals/typescript-operator-precedence';
-import { TypeScriptLogicalChain } from 'src/bridge/ts/parser-internals/typescript-logical-chain';
-import {
-	INDEX_SIGNATURE,
-	INTERFACE_RULE_ID,
-	UNBOUNDED_TYPE,
-} from 'src/bridge/ts/parser-internals/constants';
-import ts from 'typescript';
-import type { CallableShapeCounts, RuleAppender, RuleContextData } from 'src/types';
-import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
-import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
+import { TypeScriptOperatorPrecedence } from "src/bridge/ts/parser-internals/typescript-operator-precedence";
+import { TypeScriptLogicalChain } from "src/bridge/ts/parser-internals/typescript-logical-chain";
+import { INDEX_SIGNATURE, INTERFACE_RULE_ID, UNBOUNDED_TYPE } from "src/bridge/ts/parser-internals/constants";
+import ts from "typescript";
+import type { CallableShapeCounts, RuleAppender, RuleContextData } from "src/types";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type-aliases";
+import { TypeScriptCallableBody } from "src/typescript-callable-aliases/typescript-callable-body";
 
 /** Responsibilities: _classification TypeScript structural members_. **/
 export class TypeScriptStructuralRules {
-	private readonly data_member_kinds = new Set([
-		ts.SyntaxKind.PropertySignature,
-		ts.SyntaxKind.IndexSignature,
-	]);
+	private readonly data_member_kinds = new Set([ts.SyntaxKind.PropertySignature, ts.SyntaxKind.IndexSignature]);
 	private readonly logical_chain = new TypeScriptLogicalChain();
 	private readonly operator_precedence = new TypeScriptOperatorPrecedence();
 	private readonly type_aliases = new TypeScriptTypeAliases();
 	private readonly callable_body = new TypeScriptCallableBody();
-	private readonly unbounded_type_names = new Set(['any', 'unknown', 'object', 'Object']);
+	private readonly unbounded_type_names = new Set(["any", "unknown", "object", "Object"]);
 
 	/** Responsibilities: _classification type member storage_. **/
 	private is_data_member(member: ts.TypeElement): boolean {
@@ -75,11 +68,7 @@ export class TypeScriptStructuralRules {
 	private inside_callable_body(node: ts.Node): boolean {
 		let current: ts.Node | undefined = node.parent;
 		while (current !== undefined) {
-			const nested = this.callable_body.resolve(
-				current,
-				undefined,
-				body => body.getStart() <= node.getStart()
-			);
+			const nested = this.callable_body.resolve(current, undefined, (body) => body.getStart() <= node.getStart());
 			if (nested !== undefined) {
 				return nested;
 			}
@@ -142,13 +131,13 @@ export class TypeScriptStructuralRules {
 	/** Responsibilities: _aggregation structural rules applicable_. **/
 	public append(node: ts.Node, context: RuleContextData): void {
 		if (this.logical_chain.long_chain(node)) {
-			context.append_rule(node, 'logical-chain-size');
+			context.append_rule(node, "logical-chain-size");
 		}
 		if (this.operator_precedence.mixed_boolean_operator(node)) {
-			context.append_rule(node, 'mixed-boolean-precedence');
+			context.append_rule(node, "mixed-boolean-precedence");
 		}
 		if (this.operator_precedence.mixed_arithmetic_operator(node)) {
-			context.append_rule(node, 'mixed-arithmetic-precedence');
+			context.append_rule(node, "mixed-arithmetic-precedence");
 		}
 		this.append_type_rules(node, context);
 	}

@@ -8,24 +8,12 @@ import { DiagnosticRule } from "src/model/diagnostic-rule";
 export class JestTestShapeViolations {
 	private readonly test_shape_rule = new JestTestShapeRule();
 	private readonly assertion_grouping_rule = new JestAssertionGroupingRule();
-	private readonly test_lambda_diagnostic = new DiagnosticRule(
-		"typescript-jest-test-lambda",
-	);
-	private readonly test_expect_diagnostic = new DiagnosticRule(
-		"typescript-jest-test-expect",
-	);
-	private readonly type_test_diagnostic = new DiagnosticRule(
-		"typescript-jest-type-only-test",
-	);
-	private readonly exception_only_diagnostic = new DiagnosticRule(
-		"test-exception-only",
-	);
-	private readonly assertion_grouping_diagnostic = new DiagnosticRule(
-		"test-assertion-grouping",
-	);
-	private readonly assertion_complexity_diagnostic = new DiagnosticRule(
-		"test-too-many-assertions",
-	);
+	private readonly test_lambda_diagnostic = new DiagnosticRule("typescript-jest-test-lambda");
+	private readonly test_expect_diagnostic = new DiagnosticRule("typescript-jest-test-expect");
+	private readonly type_test_diagnostic = new DiagnosticRule("typescript-jest-type-only-test");
+	private readonly exception_only_diagnostic = new DiagnosticRule("test-exception-only");
+	private readonly assertion_grouping_diagnostic = new DiagnosticRule("test-assertion-grouping");
+	private readonly assertion_complexity_diagnostic = new DiagnosticRule("test-too-many-assertions");
 
 	/** Responsibilities: _test shape diagnostics_. **/
 	public shape_diagnostics(
@@ -34,16 +22,10 @@ export class JestTestShapeViolations {
 		source_file: ts.SourceFile,
 		tests: ts.CallExpression[],
 	): void {
-		for (const line of this.test_shape_rule.non_arrow_lines(
-			source_file,
-			tests,
-		)) {
+		for (const line of this.test_shape_rule.non_arrow_lines(source_file, tests)) {
 			violations.push(this.test_lambda_diagnostic.violation(file, line));
 		}
-		for (const line of this.test_shape_rule.missing_expect_lines(
-			source_file,
-			tests,
-		)) {
+		for (const line of this.test_shape_rule.missing_expect_lines(source_file, tests)) {
 			violations.push(this.test_expect_diagnostic.violation(file, line));
 		}
 	}
@@ -55,16 +37,10 @@ export class JestTestShapeViolations {
 		source_file: ts.SourceFile,
 		tests: ts.CallExpression[],
 	): void {
-		for (const line of this.test_shape_rule.shape_test_lines(
-			source_file,
-			tests,
-		)) {
+		for (const line of this.test_shape_rule.shape_test_lines(source_file, tests)) {
 			violations.push(this.type_test_diagnostic.violation(file, line));
 		}
-		for (const line of this.test_shape_rule.exception_test_lines(
-			source_file,
-			tests,
-		)) {
+		for (const line of this.test_shape_rule.exception_test_lines(source_file, tests)) {
 			violations.push(this.exception_only_diagnostic.violation(file, line));
 		}
 	}
@@ -88,9 +64,7 @@ export class JestTestShapeViolations {
 			tests,
 			this.assertion_grouping_rule.maximum_expectations + 1,
 		)) {
-			violations.push(
-				this.assertion_complexity_diagnostic.violation(file, line),
-			);
+			violations.push(this.assertion_complexity_diagnostic.violation(file, line));
 		}
 	}
 }

@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { RuleContextData } from 'src/types';
-import { REST_UNION_CONTRACT } from 'src/bridge/ts/parser-internals/constants';
+import ts from "typescript";
+import type { RuleContextData } from "src/types";
+import { REST_UNION_CONTRACT } from "src/bridge/ts/parser-internals/constants";
 
 /** Responsibilities: _rest-parameter unions identification_, _contract violations addition_. **/
 export class RestUnionContractRule {
@@ -32,7 +32,7 @@ export class RestUnionContractRule {
 	private collect_aliases(
 		node: ts.Node,
 		namespace: readonly string[],
-		aliases: Map<string, ts.TypeAliasDeclaration>
+		aliases: Map<string, ts.TypeAliasDeclaration>,
 	): void {
 		if (ts.isModuleDeclaration(node)) {
 			if (node.body !== undefined) {
@@ -41,38 +41,35 @@ export class RestUnionContractRule {
 			return;
 		}
 		if (ts.isTypeAliasDeclaration(node)) {
-			aliases.set([...namespace, node.name.text].join('.'), node);
+			aliases.set([...namespace, node.name.text].join("."), node);
 		}
-		node.forEachChild(child => this.collect_aliases(child, namespace, aliases));
+		node.forEachChild((child) => this.collect_aliases(child, namespace, aliases));
 	}
 
 	/** Responsibilities: _source type alias collection_. **/
 	private alias_declarations(source_file: ts.SourceFile): ReadonlyMap<string, ts.TypeAliasDeclaration> {
 		const aliases = new Map<string, ts.TypeAliasDeclaration>();
-		source_file.forEachChild(node => this.collect_aliases(node, [], aliases));
+		source_file.forEachChild((node) => this.collect_aliases(node, [], aliases));
 		return aliases;
 	}
 	/** Responsibilities: _nearest qualified alias lookup_. **/
-	private alias_key(
-		node: ts.TypeReferenceNode,
-		aliases: ReadonlyMap<string, ts.TypeAliasDeclaration>
-	): string {
+	private alias_key(node: ts.TypeReferenceNode, aliases: ReadonlyMap<string, ts.TypeAliasDeclaration>): string {
 		const parts = this.alias_parts(node.typeName);
 		const namespace = this.namespace_parts(node);
 		for (let length = namespace.length; length >= 0; length -= 1) {
-			const key = [...namespace.slice(0, length), ...parts].join('.');
+			const key = [...namespace.slice(0, length), ...parts].join(".");
 			if (aliases.has(key)) {
 				return key;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _referenced union alias search_. **/
 	private referenced_union(
 		node: ts.Node,
 		aliases: ReadonlyMap<string, ts.TypeAliasDeclaration>,
-		seen: Set<string>
+		seen: Set<string>,
 	): boolean {
 		if (!ts.isTypeReferenceNode(node)) {
 			return false;
@@ -94,7 +91,7 @@ export class RestUnionContractRule {
 	private contains_union(
 		node: ts.Node,
 		aliases: ReadonlyMap<string, ts.TypeAliasDeclaration>,
-		seen: Set<string>
+		seen: Set<string>,
 	): boolean {
 		if (node.kind === this.union_kind) {
 			return true;
@@ -103,7 +100,7 @@ export class RestUnionContractRule {
 			return true;
 		}
 		let found = false;
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (!found && this.contains_union(child, aliases, seen)) {
 				found = true;
 			}
@@ -124,7 +121,13 @@ export class RestUnionContractRule {
 
 	/** Responsibilities: _aggregation rest-union contract violation_. **/
 	public append_rule(node: ts.Node, context: RuleContextData): void {
-		if ((!this.rest_parameter(node)) || (!ts.isParameter(node)) || node.type === undefined) {
+		if (!this.rest_parameter(node)) {
+			return;
+		}
+		if (!ts.isParameter(node)) {
+			return;
+		}
+		if (node.type === undefined) {
 			return;
 		}
 		const aliases = this.alias_declarations(node.getSourceFile());

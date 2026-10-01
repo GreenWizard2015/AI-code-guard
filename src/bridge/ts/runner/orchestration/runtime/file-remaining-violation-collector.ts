@@ -1,14 +1,14 @@
-import ts from 'typescript';
-import type { LintFileNameContract, LintSourceRecord, NamedLine } from 'src/types';
-import type { Violation } from 'src/protocols';
-import type { RemainingViolationOptions } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import { PlacementSupport } from 'src/bridge/ts/runner/placement-support';
-import { Reexports } from 'src/bridge/ts/runner/orchestration/runtime/python/reexports';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { SourceFileAst } from 'src/bridge/ts/runner/orchestration/runtime/source-file-ast';
-import { CodingRuleLinter } from 'src/bridge/ts/runner/orchestration/runtime/coding-rules';
-import { SingletonCollector } from 'src/bridge/ts/runner/orchestration/runtime/singleton-collector';
-import { CyrillicTextRules } from 'src/bridge/ts/rules/support/cyrillic-text-rules';
+import ts from "typescript";
+import type { LintFileNameContract, LintSourceRecord, NamedLine } from "src/types";
+import type { Violation } from "src/protocols";
+import type { RemainingViolationOptions } from "src/bridge/ts/runner/orchestration/runtime/types";
+import { PlacementSupport } from "src/bridge/ts/runner/placement-support";
+import { Reexports } from "src/bridge/ts/runner/orchestration/runtime/python/reexports";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { SourceFileAst } from "src/bridge/ts/runner/orchestration/runtime/source-file-ast";
+import { CodingRuleLinter } from "src/bridge/ts/runner/orchestration/runtime/coding-rules";
+import { SingletonCollector } from "src/bridge/ts/runner/orchestration/runtime/singleton-collector";
+import { CyrillicTextRules } from "src/bridge/ts/rules/support/cyrillic-text-rules";
 
 /** Responsibilities: _collection remaining file-level violations_. **/
 export class FileRemainingViolationCollector {
@@ -17,25 +17,20 @@ export class FileRemainingViolationCollector {
 	private readonly cyrillic_text_rules = new CyrillicTextRules();
 
 	/** Responsibilities: _collection singleton violations normalization_. **/
-	private collect_singletons(
-		source: LintSourceRecord,
-		file: string,
-		text: string,
-		python: boolean
-	): Violation[] {
-		const local_class_names = new Set(source.normalized_ast.classes.map(node => node.name));
+	private collect_singletons(source: LintSourceRecord, file: string, text: string, python: boolean): Violation[] {
+		const local_class_names = new Set(source.normalized_ast.classes.map((node) => node.name));
 		let source_file: ts.SourceFile;
 		if (source.typescript()) {
 			source_file = source.typescript_ast.source_file_node();
 		} else {
-			source_file = ts.createSourceFile(file, '', ts.ScriptTarget.Latest, true);
+			source_file = ts.createSourceFile(file, "", ts.ScriptTarget.Latest, true);
 		}
 		const singleton_collector = new SingletonCollector(
 			file,
 			text,
 			local_class_names,
 			source.normalized_ast,
-			source_file
+			source_file,
 		);
 		return singleton_collector.collect_violations(python);
 	}
@@ -61,36 +56,32 @@ export class FileRemainingViolationCollector {
 
 	/** Responsibilities: _common remaining violation stages_. **/
 	private append_common(options: RemainingViolationOptions): void {
-		const language = options.python ? 'python' : 'typescript';
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.placement`,
-			() => this.placement_support.append_function_violations(
-				options.violations, options.file, options.source.normalized_ast.functions
-			)
+		const language = options.python ? "python" : "typescript";
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.placement`, () =>
+			this.placement_support.append_function_violations(
+				options.violations,
+				options.file,
+				options.source.normalized_ast.functions,
+			),
 		);
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.reexports`,
-			() => this.reexports.append_reexport_violations(
-				options.violations, options.file, options.text, options.source
-			)
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.reexports`, () =>
+			this.reexports.append_reexport_violations(options.violations, options.file, options.text, options.source),
 		);
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.coding-rules`,
-			() => this.append_coding_rules(options)
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.coding-rules`, () =>
+			this.append_coding_rules(options),
 		);
 	}
 
 	/** Responsibilities: _metric remaining violation stages_. **/
 	private append_metrics(options: RemainingViolationOptions): void {
-		const language = options.python ? 'python' : 'typescript';
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.type-declarations`,
-			() => this.append_type_declarations(
+		const language = options.python ? "python" : "typescript";
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.type-declarations`, () =>
+			this.append_type_declarations(
 				options.violations,
 				options.file,
 				options.source.file_name,
-				options.source.normalized_ast.type_declarations
-			)
+				options.source.normalized_ast.type_declarations,
+			),
 		);
 	}
 
@@ -104,7 +95,7 @@ export class FileRemainingViolationCollector {
 		if (!file_name.is_functions_file || file_name.test()) {
 			return;
 		}
-		const rule = new DiagnosticRule('functions-file-type-declaration');
+		const rule = new DiagnosticRule("functions-file-type-declaration");
 		for (const declaration of declarations) {
 			violations.push(rule.violation(file, declaration.line + 1));
 		}
@@ -118,18 +109,14 @@ export class FileRemainingViolationCollector {
 
 	/** Responsibilities: _remaining language analysis_. **/
 	public append_language(options: RemainingViolationOptions): void {
-		const language = options.python ? 'python' : 'typescript';
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.cyrillic`,
-			() => options.violations.push(...this.cyrillic_text_rules.source_violations(
-				options.file, options.text, options.python
-			))
+		const language = options.python ? "python" : "typescript";
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.cyrillic`, () =>
+			options.violations.push(
+				...this.cyrillic_text_rules.source_violations(options.file, options.text, options.python),
+			),
 		);
-		options.stage_timer.measure(
-			`file-analysis.${language}.post-remaining.singletons`,
-			() => options.violations.push(...this.collect_singletons(
-				options.source, options.file, options.text, options.python
-			))
+		options.stage_timer.measure(`file-analysis.${language}.post-remaining.singletons`, () =>
+			options.violations.push(...this.collect_singletons(options.source, options.file, options.text, options.python)),
 		);
 	}
 }

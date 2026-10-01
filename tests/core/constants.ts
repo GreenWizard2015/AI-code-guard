@@ -5,7 +5,7 @@ import { LintProjectContextStore } from "src/bridge/ts/core/project-context";
 import type { ProjectSourceOptions } from "src/bridge/ts/runner/types";
 
 export const SOURCE_OPTIONS: ProjectSourceOptions = {
-	get context_state(): ProjectSourceOptions['context_state'] {
+	get context_state(): ProjectSourceOptions["context_state"] {
 		return {
 			available: false,
 			value: new LintProjectContextStore([], {
@@ -19,12 +19,9 @@ export const SOURCE_OPTIONS: ProjectSourceOptions = {
 	entry_files: [],
 };
 
-export const PROJECT_ROOT = resolve(
-	dirname(fileURLToPath(import.meta.url)),
-	"../..",
-);
+export const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-export const grouped_protocol_files = {
+export const GROUPED_PROTOCOL_FILES = {
 	"protocols.py": [
 		"from typing import Protocol",
 		"",
@@ -36,7 +33,7 @@ export const grouped_protocol_files = {
 	].join("\n"),
 };
 
-export const composition_files = {
+export const COMPOSITION_FILES = {
 	"composition-root.ts":
 		"import { CompositionMiddle } from './composition-middle';\nexport const CompositionRoot = class CompositionRoot {\n  private readonly middle = new CompositionMiddle();\n};",
 	"composition-middle.ts":
@@ -46,16 +43,13 @@ export const composition_files = {
 	"composition-end.ts": [
 		"export const CompositionEnd = class CompositionEnd {",
 		"  run() {",
-		...Array.from(
-			{ length: 14 },
-			(_, index) => `    const value${index} = ${index};`,
-		),
+		...Array.from({ length: 14 }, (_, index) => `    const value${index} = ${index};`),
 		"  }",
 		"};",
 	].join("\n"),
 };
 
-export const singleton_files = {
+export const SINGLETON_FILES = {
 	"singleton.ts": [
 		"class Service {}",
 		"const service = new Service();",
@@ -71,30 +65,33 @@ export const singleton_files = {
 		"function build_external() { return new ExternalService(); }",
 		"const external_built = build_external();",
 	].join("\n"),
-	"imported-singleton.ts":
-		"import { ImportedService } from './service';\nconst imported = new ImportedService();",
+	"imported-singleton.ts": "import { ImportedService } from './service';\nconst imported = new ImportedService();",
 	"service.ts": "export class ImportedService {}",
-	"singleton.py": [
-		"class Service:",
-		"    pass",
-		"service = Service()",
-		"def build():",
-		"    return Service()",
-	].join("\n"),
+	"singleton.py": ["class Service:", "    pass", "service = Service()", "def build():", "    return Service()"].join(
+		"\n",
+	),
 	"imported-singleton.py": "from service import ImportedService\nimported = ImportedService()",
 	"service.py": "class ImportedService:\n    pass",
-	"imported-singleton-lower.py": "from service import ImportedService as imported_service\ninstance = imported_service()",
+	"imported-singleton-lower.py":
+		"from service import ImportedService as imported_service\ninstance = imported_service()",
 	"imported-module-singleton.py": "import service\ninstance = service.ImportedService()",
-	"imported-class-alias.py": "from service import ImportedService\nServiceAlias = ImportedService\ninstance = ServiceAlias()",
-	"destructured-class-alias.py": "from service import ImportedService\ndestructured, ignored = (ImportedService, None)\ninstance = destructured()",
-	"assigned-class-alias.ts": "class AssignedService {}\nconst AssignedAlias = AssignedService;\nconst assigned = new AssignedAlias();",
-	"destructured-class-alias.ts": "class DestructuredService {}\nconst { DestructuredService: DestructuredAlias } = { DestructuredService };\nconst destructured = new DestructuredAlias();",
-	"array-destructured-class-alias.ts": "class ArrayDestructuredService {}\nconst [ArrayAlias] = [ArrayDestructuredService];\nconst array_destructured = new ArrayAlias();",
-	"namespace-class-alias.ts": "import * as service_module from './service';\nconst NamespaceAlias = service_module.ImportedService;\nconst namespace_instance = new NamespaceAlias();",
-	"qualified-namespace-singleton.ts": "import * as service_module from './service';\nconst qualified = new service_module.ImportedService();",
+	"imported-class-alias.py":
+		"from service import ImportedService\nServiceAlias = ImportedService\ninstance = ServiceAlias()",
+	"destructured-class-alias.py":
+		"from service import ImportedService\ndestructured, ignored = (ImportedService, None)\ninstance = destructured()",
+	"assigned-class-alias.ts":
+		"class AssignedService {}\nconst AssignedAlias = AssignedService;\nconst assigned = new AssignedAlias();",
+	"destructured-class-alias.ts":
+		"class DestructuredService {}\nconst { DestructuredService: DestructuredAlias } = { DestructuredService };\nconst destructured = new DestructuredAlias();",
+	"array-destructured-class-alias.ts":
+		"class ArrayDestructuredService {}\nconst [ArrayAlias] = [ArrayDestructuredService];\nconst array_destructured = new ArrayAlias();",
+	"namespace-class-alias.ts":
+		"import * as service_module from './service';\nconst NamespaceAlias = service_module.ImportedService;\nconst namespace_instance = new NamespaceAlias();",
+	"qualified-namespace-singleton.ts":
+		"import * as service_module from './service';\nconst qualified = new service_module.ImportedService();",
 };
 
-export const callable_limit_files = {
+export const CALLABLE_LIMIT_FILES = {
 	"short-file.ts": "export const shortValue = 1;\n",
 	"short-class.ts": [
 		"export class ShortClass {",
@@ -110,32 +107,22 @@ export const callable_limit_files = {
 		"  }",
 		"}",
 		"export function tiny() { return 1; }",
-		...Array.from(
-			{ length: 16 },
-			(_, index) => `export function grouped${index}() { return ${index}; }`,
-		),
+		...Array.from({ length: 16 }, (_, index) => `export function grouped${index}() { return ${index}; }`),
 		"export function _Agent_load() { return 1; }",
 		"export function _Agent_save() { return 1; }",
 	].join("\n"),
 	"metrics.py": [
 		"def too_many(a, b, c, d, e, f):",
 		"    return a + b + c + d + e + f",
-		...Array.from(
-			{ length: 16 },
-			(_, index) => `def grouped_${index}(): return ${index}`,
-		),
+		...Array.from({ length: 16 }, (_, index) => `def grouped_${index}(): return ${index}`),
 		"def _Worker_start(): return 1",
 		"def _Worker_stop(): return 1",
 	].join("\n"),
-	"imports.py": [
-		"from module import (",
-		"    _Dispatcher_send,",
-		"    _Dispatcher_receive,",
-		")",
-		"value = 1",
-	].join("\n"),
+	"imports.py": ["from module import (", "    _Dispatcher_send,", "    _Dispatcher_receive,", ")", "value = 1"].join(
+		"\n",
+	),
 };
-export const short_class_files = {
+export const SHORT_CLASS_FILES = {
 	"small-classes.ts": [
 		"class First {",
 		"  run() { return 1; }",
@@ -154,7 +141,7 @@ export const short_class_files = {
 	].join("\n"),
 };
 
-export const shared_threshold_files = {
+export const SHARED_THRESHOLD_FILES = {
 	"shared-types.ts": [
 		"type RecordData = string;",
 		"class Service {",
@@ -184,7 +171,7 @@ export const shared_threshold_files = {
 	].join("\n"),
 };
 
-export const separate_class_files = {
+export const SEPARATE_CLASS_FILES = {
 	"mixed.ts": [
 		"type SharedInput = string;",
 		"class Service {",
@@ -205,7 +192,7 @@ export const separate_class_files = {
 	].join("\n"),
 };
 
-export const method_candidates_files = {
+export const METHOD_CANDIDATES_FILES = {
 	"first.ts": [
 		"type SharedInput = string;",
 		"class Service {",
@@ -217,7 +204,7 @@ export const method_candidates_files = {
 	].join("\n"),
 };
 
-export const project_wide_parameter_files = {
+export const PROJECT_WIDE_PARAMETER_FILES = {
 	"first.ts":
 		"class RequestData {}\nfunction load(request: RequestData, cache: CacheData) { return request && cache && request && cache; }",
 	"second.ts": [
@@ -227,7 +214,7 @@ export const project_wide_parameter_files = {
 	].join("\n"),
 };
 
-export const type_operation_files = {
+export const TYPE_OPERATION_FILES = {
 	"type-operations.ts": [
 		'type Selected = Pick<RecordData, "id">;',
 		'type Field = RecordData["id"];',
@@ -238,7 +225,7 @@ export const type_operation_files = {
 	"tests/type-operations.ts": 'type Selected = Pick<RecordData, "id">;',
 };
 
-export const external_type_files = {
+export const EXTERNAL_TYPE_FILES = {
 	"external-types.ts": [
 		"class Service {",
 		"  first(element: HTMLElement) { return element && element && element; }",
@@ -278,7 +265,7 @@ export const external_type_files = {
 	].join("\n"),
 };
 
-export const generic_signature_files = {
+export const GENERIC_SIGNATURE_FILES = {
 	"generic-signatures.ts": [
 		"function accepts(value: unknown): string { return String(value); }",
 		"function returns(value: string): unknown { return value; }",
@@ -298,52 +285,49 @@ export const generic_signature_files = {
 	].join("\n"),
 };
 
-export const interface_port_files = {
+export const INTERFACE_PORT_FILES = {
 	"source.ts":
 		"interface EffectsPort { click(): void; }\nclass Effects implements EffectsPort {\n  click() {}\n}\nclass Waiter {\n  wait() {}\n}",
 	"one.ts":
 		"import { Effects, Waiter } from './source';\nfunction run(effects: EffectsPort, waiter = new Waiter()) {\n  effects.click();\n  waiter.wait();\n}\nrun(new Effects());",
 };
-export const export_usage_files = {
+export const EXPORT_USAGE_FILES = {
 	typescript: {
-		"source.ts":
-			"export function public_function() { return 1; }\nexport class PublicService {\n  run() {}\n}",
+		"source.ts": "export function public_function() { return 1; }\nexport class PublicService {\n  run() {}\n}",
 	},
 	python: {
 		"source.py":
 			'__all__ = ["public_function", "PublicService"]\n\ndef public_function():\n    return 1\n\nclass PublicService:\n    def run(self):\n        return 1',
 	},
 };
-export const awaited_return_files = {
+export const AWAITED_RETURN_FILES = {
 	"source.ts":
 		"export class DomElement {\n  raw() {}\n  text() {}\n}\nexport class OtherElement {\n  text() {}\n}\nexport function create_element(): Promise<DomElement | null> {\n  return Promise.resolve(null);\n}",
 	"one.ts":
 		"import { create_element, OtherElement } from './source';\nasync function use_elements() {\n  const element = await create_element();\n  element?.raw();\n  new OtherElement().text();\n}",
 };
 
-export const local_callable_files = {
+export const LOCAL_CALLABLE_FILES = {
 	"source.ts":
 		"class Service { helper() { return 1; } run() { return this.helper(); } private hidden() { return 2; } }",
 };
-export const local_python_callable_files = {
+export const LOCAL_PYTHON_CALLABLE_FILES = {
 	"source.py":
 		"class Service:\n    def helper(self):\n        return 1\n    def run(self):\n        return self.helper()\n    def _hidden(self):\n        return 2",
 };
-export const protocol_container_files = {
+export const PROTOCOL_CONTAINER_FILES = {
 	"source.py":
 		"from typing import Protocol\n\nclass RequestHandler(Protocol):\n    def matches(self):\n        ...\n    def handle(self):\n        ...\n\nclass ConcreteHandler:\n    def matches(self):\n        return True\n    def handle(self):\n        return None",
 	"dispatcher.py":
 		"from source import ConcreteHandler, RequestHandler\n\nclass Dispatcher:\n    def __init__(self):\n        self.handlers: list[RequestHandler] = [ConcreteHandler()]\n\n    def run(self):\n        for handler in self.handlers:\n            if handler.matches():\n                handler.handle()",
 };
-export const type_checking_property_files = {
-	"source.py":
-		"class BrowserBridgeDirectory:\n    def has_tool(self, name):\n        return True",
+export const TYPE_CHECKING_PROPERTY_FILES = {
+	"source.py": "class BrowserBridgeDirectory:\n    def has_tool(self, name):\n        return True",
 	"mixin.py":
 		'from source import BrowserBridgeDirectory\n\n\nclass UpstreamMixin:\n    if TYPE_CHECKING:\n        @property\n        def browser_registry(self) -> BrowserBridgeDirectory:\n            ...\n\n    def resolve(self):\n        return self.browser_registry.has_tool("tool")',
 };
-export const forward_annotation_files = {
-	"transport.py":
-		"class BrowserBridgeTransport:\n    def poll(self):\n        return None",
+export const FORWARD_ANNOTATION_FILES = {
+	"transport.py": "class BrowserBridgeTransport:\n    def poll(self):\n        return None",
 	"server.py":
 		'from transport import BrowserBridgeTransport\nclass Server:\n    @property\n    def browser_bridge_transport(self) -> "BrowserBridgeTransport":\n        ...\n    def build_client(self) -> Client:\n        return Client()\n    def use_client(self):\n        client = self.build_client()\n        client.initialize()',
 	"client.py": "class Client:\n    def initialize(self):\n        return None",
@@ -351,7 +335,7 @@ export const forward_annotation_files = {
 		"from server import Server\nclass Dispatcher:\n    def run(self, server: Server):\n        server.browser_bridge_transport.poll()",
 };
 
-export const typescript_usage_files = {
+export const TYPESCRIPT_USAGE_FILES = {
 	"source.ts": [
 		"function once() { return 1; }",
 		"function twice() { return 2; }",
@@ -370,17 +354,10 @@ export const typescript_usage_files = {
 		"new Service().once();",
 		"new Service().twice();",
 	].join("\n"),
-	"two.ts": [
-		"import { twice, Service } from './source';",
-		"twice();",
-		"new Service().twice();",
-	].join("\n"),
-	"tests/usage.ts": [
-		"import { testOnly } from '../source';",
-		"testOnly();",
-	].join("\n"),
+	"two.ts": ["import { twice, Service } from './source';", "twice();", "new Service().twice();"].join("\n"),
+	"tests/usage.ts": ["import { testOnly } from '../source';", "testOnly();"].join("\n"),
 };
-export const python_usage_files = {
+export const PYTHON_USAGE_FILES = {
 	"source.py": [
 		"def once():",
 		"    return 1",
@@ -412,32 +389,24 @@ export const python_usage_files = {
 		"Service().once()",
 		"Service().twice()",
 	].join("\n"),
-	"two.py": [
-		"from source import twice, Service",
-		"twice()",
-		"Service().twice()",
-	].join("\n"),
+	"two.py": ["from source import twice, Service", "twice()", "Service().twice()"].join("\n"),
 	"tests/usage.py": ["from source import once", "once()"].join("\n"),
 };
 
-export const external_name_files = {
+export const EXTERNAL_NAME_FILES = {
 	"source.ts":
-		"const unsafeWindow = globalThis.window;\nconst MpsTypes = globalThis.MpsTypes;\nconst ToolAnnotations = {};\nconst ProjectToolAnnotations = {};\nconst MockMpsTypes = globalThis.MpsTypes;\nconst InternalPayload = {};\nconst JsonObject = {};\nconst TaskRecord = {};\nconst ExternalWindow = globalThis.ExternalWindow;",
+		"unsafeWindow;\nGM_xmlhttpRequest;\nMpsTypes;\nToolAnnotations;\nconst ProjectToolAnnotations = {};\nconst MockMpsTypes = globalThis.MpsTypes;\nconst InternalPayload = {};\nconst JsonObject = {};\nconst TaskRecord = {};\nconst ExternalWindow = globalThis.ExternalWindow;",
 };
-export const python_alias_files = {
+export const PYTHON_ALIAS_FILES = {
 	"source.py":
 		"from typing import TypeAlias\nvalid_alias: TypeAlias = str\n_PrivateAlias: TypeAlias = str\nValidAlias: TypeAlias = str\nTooManyAliasWordsHere: TypeAlias = str",
 };
-export const typescript_declaration_files = {
+export const TYPESCRIPT_DECLARATION_FILES = {
 	"source.ts":
 		"type invalid_type = string;\ninterface _InvalidInterface {}\nenum invalid_enum { Value }\nclass _InvalidClass {}\ntype ValidType = string;\ninterface ValidInterface { value: string; }\nenum ValidEnum { Value }\nclass ValidClass {}",
 };
-export const ignored_external_names = [
-	"unsafeWindow",
-	"MpsTypes",
-	"ToolAnnotations",
-];
-export const reported_project_names = [
+export const IGNORED_EXTERNAL_NAMES = ["unsafeWindow", "MpsTypes", "ToolAnnotations"];
+export const REPORTED_PROJECT_NAMES = [
 	"MockMpsTypes",
 	"InternalPayload",
 	"JsonObject",
@@ -446,7 +415,7 @@ export const reported_project_names = [
 	"ProjectToolAnnotations",
 ];
 
-export const nullable_domain_files = {
+export const NULLABLE_DOMAIN_FILES = {
 	"nullable.py": [
 		"import typing",
 		"from typing import Optional, Union",
@@ -473,12 +442,9 @@ export const nullable_domain_files = {
 	].join("\n"),
 };
 
-export const documentation_readme = resolve(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../docs/rules/README.md",
-);
+export const DOCUMENTATION_README = resolve(dirname(fileURLToPath(import.meta.url)), "../../docs/rules/README.md");
 
-export const report_sections = [
+export const REPORT_SECTIONS = [
 	"[info]",
 	"[warning]",
 	"Reference docs:",
@@ -490,7 +456,7 @@ export const report_sections = [
 	"If a problem cannot be fixed locally, analyze it from the perspective of the calling code.",
 ];
 
-export const report_count_violations = [
+export const REPORT_COUNT_VIOLATIONS = [
 	{
 		file: "b.ts",
 		line: 1,
@@ -517,7 +483,7 @@ export const report_count_violations = [
 	},
 ];
 
-export const report_sorted_violations = [
+export const REPORT_SORTED_VIOLATIONS = [
 	...Array.from({ length: 4 }, (_, line) => ({
 		file: "a.ts",
 		line: line + 1,
@@ -552,12 +518,11 @@ export const report_sorted_violations = [
 	},
 ];
 
-export const critical_only_violations = [
+export const CRITICAL_ONLY_VIOLATIONS = [
 	{
 		file: "worker.ts",
 		line: 1,
-		message:
-			"module-level functions must be declared in the project-root functions file",
+		message: "module-level functions must be declared in the project-root functions file",
 		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. CLI/entrypoint startup code may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
 		rule_id: "function-placement",
 		priority: 3 as const,
@@ -572,9 +537,8 @@ export const critical_only_violations = [
 	},
 ];
 
-export const dynamic_import_files = {
-	"static.ts":
-		"import { helper } from './helper';\nexport const value = helper();\n",
+export const DYNAMIC_IMPORT_FILES = {
+	"static.ts": "import { helper } from './helper';\nexport const value = helper();\n",
 	"dynamic.ts": [
 		"export async function loadFeature() {",
 		"  return import('./feature');",
@@ -583,11 +547,7 @@ export const dynamic_import_files = {
 	].join("\n"),
 	"dynamic-type.ts": "type RelayRecord = import('../relay').RelayRecord;\n",
 	"static.py": "from module import helper\nvalue = helper()\n",
-	"nested.py": [
-		"def load_feature():",
-		"    from module import helper",
-		"    return helper()",
-	].join("\n"),
+	"nested.py": ["def load_feature():", "    from module import helper", "    return helper()"].join("\n"),
 	"dynamic.py": [
 		"import importlib",
 		"import importlib as loader",
@@ -615,21 +575,18 @@ export const dynamic_import_files = {
 		"    return first, second, third, fourth, fifth, sixth, seventh, eighth, ninth, tenth, eleventh",
 	].join("\n"),
 };
-export const alias_rule_files = {
+export const ALIAS_RULE_FILES = {
 	"reexport.ts": "export { helper } from './helper';\n",
 	"reexport.py": "from module import helper\nhelper_alias = helper\n",
 	"alias.ts":
 		"export function getCurrentPathname(): string {\n  const pathname = globalThis.location.pathname;\n  return pathname;\n}",
 	"destructure.ts":
 		"export function getCurrentLocationPathname(): string {\n  const { pathname } = globalThis.location;\n  return { pathname };\n}",
-	"variable.ts":
-		"export function getComputedValue(): string {\n  var value = readValue();\n  return value;\n}",
-	"variable.py":
-		"def get_computed_value():\n    value = read_value()\n    return value",
+	"variable.ts": "export function getComputedValue(): string {\n  var value = readValue();\n  return value;\n}",
+	"variable.py": "def get_computed_value():\n    value = read_value()\n    return value",
 	"chain.ts":
 		'export function describeMode(): string {\n  const mode = "passthrough";\n  const result = mode;\n  return result;\n}',
-	"chain.py":
-		'def describe_mode():\n    mode = "passthrough"\n    result = mode\n    return result',
+	"chain.py": 'def describe_mode():\n    mode = "passthrough"\n    result = mode\n    return result',
 	"multiline-object.ts":
 		"export function createOptions(): Options {\n  const options: Options = {\n    enabled: true,\n  };\n  return options;\n}",
 	"constructor-factories.ts":
@@ -637,14 +594,14 @@ export const alias_rule_files = {
 	"inline-types.ts":
 		'type NamedShape = { value: string };\nfunction readShape(input: { value: string }): string {\n  return input.value;\n}\nfunction create_shell(): {\n  header: HTMLDivElement;\n  body: HTMLDivElement;\n  footer: HTMLDivElement;\n} {\n  return createShellValue();\n}\nfunction mutation_name(action: "send" | "confirm"): string {\n  return action;\n}',
 };
-export const alias_test_files = {
+export const ALIAS_TEST_FILES = {
 	"tests/inline-types.test.ts":
 		"function readShape(input: { camelCaseFieldWithExtraWords: string }): string {\n  return input.value;\n}",
 	"tests/inline-type-fields.test.ts":
 		"function readShape(input: { camelCaseFieldWithExtraWords: string }): string {\n  return input.camelCaseFieldWithExtraWords;\n}",
 };
 
-export const mixed_dependency_files = {
+export const MIXED_DEPENDENCY_FILES = {
 	"navigation-dependencies.ts": [
 		"type ChatGptNewChatButtonFinder = () => HTMLAnchorElement;",
 		"type ChatGptNewChatNavigationWaiter = () => Promise<void>;",
@@ -658,7 +615,7 @@ export const mixed_dependency_files = {
 	"padding-a.ts": "export const paddingA = 1;",
 	"padding-b.ts": "export const paddingB = 2;",
 };
-export const constructor_files = {
+export const CONSTRUCTOR_FILES = {
 	"constructors.ts": [
 		"class Invalid {",
 		"  constructor() { this.document = this.create_document(); }",
@@ -687,7 +644,7 @@ export const constructor_files = {
 		'        self.value = options.get("value", value)',
 	].join("\n"),
 };
-export const structural_alias_files = {
+export const STRUCTURAL_ALIAS_FILES = {
 	"source.ts": [
 		"export class Dependency {",
 		"  run() { return 1; }",
@@ -721,7 +678,7 @@ export const structural_alias_files = {
 		"panel.execute();",
 	].join("\n"),
 };
-export const python_framework_hook_files = {
+export const PYTHON_FRAMEWORK_HOOK_FILES = {
 	"source.py": [
 		"class Handler:",
 		"    @property",
@@ -739,7 +696,7 @@ export const python_framework_hook_files = {
 		"        return None",
 	].join("\n"),
 };
-export const specialization_source = [
+export const SPECIALIZATION_SOURCE = [
 	"class Tiny { run() {} }",
 	`class Broad {\n${Array.from({ length: 6 }, (_, index) => `  public${index}() {}`).join("\n")}\n}`,
 	`class Huge {\n${Array.from({ length: 16 }, (_, index) => `  method${index}() {}`).join("\n")}\n}`,
@@ -750,7 +707,7 @@ export const specialization_source = [
 	"interface Contract { first(): void; second(): void; }",
 	`class Adapter implements Contract {\n${Array.from({ length: 6 }, (_, index) => `  method${index}() {}`).join("\n")}\n}`,
 ].join("\n");
-export const decorated_plugin_source = [
+export const DECORATED_PLUGIN_SOURCE = [
 	"class Plugin:",
 	"    @PluginWrapper._hookimpl",
 	"    def first(self) -> None:",
@@ -776,7 +733,7 @@ export const decorated_plugin_source = [
 	"    def sixth(self) -> None:",
 	"        return None",
 ].join("\n");
-export const python_callable_source = [
+export const PYTHON_CALLABLE_SOURCE = [
 	"class Service:",
 	"    def __init__(self, value: str) -> None:",
 	"        self.value = value",
@@ -790,7 +747,7 @@ export const python_callable_source = [
 	"async def load(*items: str, **options: object) -> list[str]:",
 	"    return list(items)",
 ].join("\n");
-export const control_flow_source = [
+export const CONTROL_FLOW_SOURCE = [
 	"def conditional(value: bool) -> None:",
 	"    if value:",
 	"        execute()",
@@ -824,7 +781,7 @@ export const control_flow_source = [
 	"    except RuntimeError:",
 	"        recover()",
 ].join("\n");
-export const python_composition_files = {
+export const PYTHON_COMPOSITION_FILES = {
 	"root.py": [
 		"from .middle import Middle",
 		"",
@@ -839,16 +796,12 @@ export const python_composition_files = {
 		"    def __init__(self):",
 		"        self.leaf = Leaf()",
 	].join("\n"),
-	"leaf.py": [
-		"from .end import End",
-		"",
-		"class Leaf:",
-		"    def __init__(self):",
-		"        self.end = End()",
-	].join("\n"),
+	"leaf.py": ["from .end import End", "", "class Leaf:", "    def __init__(self):", "        self.end = End()"].join(
+		"\n",
+	),
 	"end.py": ["class End:", "    pass"].join("\n"),
 };
-export const forbidden_syntax_probe_files = {
+export const FORBIDDEN_SYNTAX_PROBE_FILES = {
 	"sample.ts": [
 		"export class Sample {",
 		"  static helper() { return 1; }",
@@ -864,16 +817,16 @@ export const forbidden_syntax_probe_files = {
 		"  const retried = new Formatter(first, second, third).retry(value);",
 		"}",
 		'const cached = getattr(obj, "value");',
-		'const read_attribute = getattr;',
+		"const read_attribute = getattr;",
 		'read_attribute(obj, "value");',
-		'const { getattr: destructured_read } = { getattr };',
+		"const { getattr: destructured_read } = { getattr };",
 		'destructured_read(obj, "value");',
-		'const [array_read] = [getattr];',
+		"const [array_read] = [getattr];",
 		'array_read(obj, "value");',
 		'setattr(obj, "value", cached);',
-		'const write_attribute = setattr;',
+		"const write_attribute = setattr;",
 		'write_attribute(obj, "value", cached);',
-		'const { setattr: destructured_write } = { setattr };',
+		"const { setattr: destructured_write } = { setattr };",
 		'destructured_write(obj, "value", cached);',
 		"const result = structuredContent;",
 		"unwrap_tool_result(result);",
@@ -910,30 +863,19 @@ export const forbidden_syntax_probe_files = {
 		")",
 	].join("\n"),
 };
-export const conditional_block_files = {
+export const CONDITIONAL_BLOCK_FILES = {
 	"conditional-blocks.ts": [
 		"if (ready) submit();",
 		"if (ready) { submit(); } else recover();",
 		"if (ready) { submit(); } else if (retry) { recover(); }",
 		"if (ready) { submit(); } else { recover(); }",
 	].join("\n"),
-	"conditional-blocks.py": [
-		"if ready:",
-		"    submit()",
-		"elif retry:",
-		"    recover()",
-		"else:",
-		"    finish()",
-	].join("\n"),
-	"nested-conditional.py": [
-		"if ready:",
-		"    submit()",
-		"else:",
-		"    if retry:",
-		"        recover()",
-	].join("\n"),
+	"conditional-blocks.py": ["if ready:", "    submit()", "elif retry:", "    recover()", "else:", "    finish()"].join(
+		"\n",
+	),
+	"nested-conditional.py": ["if ready:", "    submit()", "else:", "    if retry:", "        recover()"].join("\n"),
 };
-export const forwarding_files = {
+export const FORWARDING_FILES = {
 	"proxy.ts": [
 		"class Service {",
 		"  constructor(private readonly dependency: Dependency) {}",
@@ -978,18 +920,42 @@ export const forwarding_files = {
 		"    return load_proxy_config(args.config)",
 	].join("\n"),
 };
-export const typeof_cases = {
+export const TYPEOF_CASES = {
 	single:
 		'function read(value: unknown): string {\n  if (typeof value === "string") {\n    return value;\n  }\n  return "";\n}',
 	repeated:
 		'function read(value: unknown): string {\n  if (typeof value === "string") {\n    return value;\n  }\n  if (typeof value === "number") {\n    return String(value);\n  }\n  return "";\n}',
 };
-export const protocol_reference_files: Record<string, string> = {
+export const PROTOCOL_REFERENCE_FILES: Record<string, string> = {
 	"ports.ts": "export interface ServicePort { run(): void; }",
-	"protocols.py":
-		"from typing import Protocol\n\nclass ServicePort(Protocol):\n    def run(self) -> None: ...",
+	"protocols.py": "from typing import Protocol\n\nclass ServicePort(Protocol):\n    def run(self) -> None: ...",
+	...Object.fromEntries(
+		Array.from({ length: 5 }, (_, index) =>
+			[
+				[
+					`consumer-${index}.ts`,
+					[
+						"import type { ServicePort } from './ports';",
+						"export class Consumer {",
+						"  constructor(private readonly service: ServicePort) {}",
+						"}",
+					].join("\n"),
+				],
+				[
+					`consumer-${index}.py`,
+					[
+						"from protocols import ServicePort",
+						"",
+						"class Consumer:",
+						"    def __init__(self, service: ServicePort) -> None:",
+						"        self.service = service",
+					].join("\n"),
+				],
+			].flat(),
+		),
+	),
 };
-export const contract_field_files = {
+export const CONTRACT_FIELD_FILES = {
 	"contract-fields.ts": [
 		"interface UserStore {",
 		"  cache: Map<string, string>;",
@@ -1008,9 +974,9 @@ export const contract_field_files = {
 		"    value: str",
 	].join("\n"),
 };
-export const type_node_source =
+export const TYPE_NODE_SOURCE =
 	"type Result = (First);\ntype Union = First | Second;\ntype Factory = (value: string) => Result;\ntype Collection = Array<Result>;";
-export const ast_source = [
+export const AST_SOURCE = [
 	"export class Service {",
 	"  constructor(private readonly value: string) {}",
 	"  run(first: string, second: number): void {",
@@ -1028,20 +994,14 @@ export const ast_source = [
 	"  name: string,",
 	"  count: number",
 	"): string {",
-	"  return " +
-		String.fromCharCode(96) +
-		"$" +
-		"{name}:$" +
-		"{count}" +
-		String.fromCharCode(96) +
-		";",
+	"  return " + String.fromCharCode(96) + "$" + "{name}:$" + "{count}" + String.fromCharCode(96) + ";",
 	"}",
 	"",
 	"export const convert = (value: string): string => {",
 	"  return value.trim();",
 	"};",
 ].join("\n");
-export const short_function_node = {
+export const SHORT_FUNCTION_NODE = {
 	name: "shortFunction",
 	start: 4,
 	end: 5,
@@ -1052,7 +1012,7 @@ export const short_function_node = {
 	exception_only: false,
 	visibility: "public" as const,
 };
-export const argument_function_node = {
+export const ARGUMENT_FUNCTION_NODE = {
 	name: "argumentFunction",
 	start: 4,
 	end: 5,
@@ -1063,7 +1023,7 @@ export const argument_function_node = {
 	exception_only: false,
 	visibility: "public" as const,
 };
-export const short_method_class = {
+export const SHORT_METHOD_CLASS = {
 	name: "Service",
 	start: 0,
 	end: 40,
@@ -1079,7 +1039,7 @@ export const short_method_class = {
 	],
 	fields: [],
 };
-export const deterministic_function_files = {
+export const DETERMINISTIC_FUNCTION_FILES = {
 	"b.ts": [
 		"function third(value: SharedInput) { return value; }",
 		"function fourth(value: SharedInput) { return value; }",
@@ -1090,21 +1050,19 @@ export const deterministic_function_files = {
 		"function second(value: SharedInput) { return value; }",
 	].join("\n"),
 };
-export const arbitrary_combination_files = {
+export const ARBITRARY_COMBINATION_FILES = {
 	"combinations.ts": [
 		"class ProjectA {}",
 		"class ProjectB {}",
 		...Array.from(
 			{ length: 4 },
 			(_, index) =>
-				"function run" +
-				index +
-				"(a: ProjectA, id: string, b: ProjectB, scope: string) { return [a, id, b, scope]; }",
+				"function run" + index + "(a: ProjectA, id: string, b: ProjectB, scope: string) { return [a, id, b, scope]; }",
 		),
 	].join("\n"),
 };
 
-export const coverage_control_flow_source = [
+export const COVERAGE_CONTROL_FLOW_SOURCE = [
 	"from typing import Any, Optional, Union",
 	"",
 	"class Parsed:",
@@ -1157,7 +1115,7 @@ export const coverage_control_flow_source = [
 	"    return parsed.value == None, parsed.value is value",
 ].join("\n");
 
-export const access_source = [
+export const ACCESS_SOURCE = [
 	"from models import Model as Alias",
 	"class Handler:",
 	"    value: Alias",
@@ -1245,7 +1203,7 @@ export const access_source = [
 	"        return worker(value + value)",
 ].join("\n");
 
-export const structure_source = [
+export const STRUCTURE_SOURCE = [
 	"from dataclasses import dataclass",
 	"from typing import Protocol",
 	"",

@@ -1,26 +1,22 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { RuleParameters } from 'src/types';
-import type { AstCallableNode, AstClassNode } from 'src/types';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { RuleParameters } from "src/types";
+import type { AstCallableNode, AstClassNode } from "src/types";
 
 /** Responsibilities: _validation constructor position public_. **/
 export class MethodOrder {
-	private readonly constructor_names = new Set(['constructor', '__init__']);
-	private readonly hidden_visibilities = new Set(['private', 'protected']);
+	private readonly constructor_names = new Set(["constructor", "__init__"]);
+	private readonly hidden_visibilities = new Set(["private", "protected"]);
 
 	/** Responsibilities: _identification public methods placed_. **/
-	private public_order_violations(
-		file: string,
-		methods: AstCallableNode[],
-		last_non_public: number
-	): Violation[] {
+	private public_order_violations(file: string, methods: AstCallableNode[], last_non_public: number): Violation[] {
 		const violations: Violation[] = [];
 		methods.forEach((method, index) => {
 			if (index < last_non_public && this.is_public(method)) {
 				violations.push(
-					this.order_violation(file, method.start, 'method-order-public', {
+					this.order_violation(file, method.start, "method-order-public", {
 						name: method.name,
-					})
+					}),
 				);
 			}
 		});
@@ -39,11 +35,7 @@ export class MethodOrder {
 	}
 
 	/** Responsibilities: _aggregation constructor-order violations class_. **/
-	private append_constructor_violations(
-		violations: Violation[],
-		file: string,
-		methods: AstCallableNode[]
-	): void {
+	private append_constructor_violations(violations: Violation[], file: string, methods: AstCallableNode[]): void {
 		for (const [index, method] of methods.entries()) {
 			if (!this.constructor_names.has(method.name)) {
 				continue;
@@ -57,16 +49,16 @@ export class MethodOrder {
 		file: string,
 		method: AstCallableNode,
 		methods: AstCallableNode[],
-		index: number
+		index: number,
 	): Violation[] {
 		const violations: Violation[] = [];
 		const methods_after = methods.slice(index + 1);
-		if (methods_after.some(item => !this.constructor_names.has(item.name) && !this.is_public(item))) {
-			violations.push(this.order_violation(file, method.start, 'method-order-constructor-after'));
+		if (methods_after.some((item) => !this.constructor_names.has(item.name) && !this.is_public(item))) {
+			violations.push(this.order_violation(file, method.start, "method-order-constructor-after"));
 		}
 		const methods_before = methods.slice(0, index);
-		if (methods_before.some(item => !this.constructor_names.has(item.name) && this.is_public(item))) {
-			violations.push(this.order_violation(file, method.start, 'method-order-constructor-before'));
+		if (methods_before.some((item) => !this.constructor_names.has(item.name) && this.is_public(item))) {
+			violations.push(this.order_violation(file, method.start, "method-order-constructor-before"));
 		}
 		return violations;
 	}
@@ -96,12 +88,8 @@ export class MethodOrder {
 	}
 
 	/** Responsibilities: _implementation method-order violations addition_. **/
-	public append_impl_order(
-		violations: Violation[],
-		file: string,
-		methods: AstCallableNode[]
-	): void {
-		const implementation_methods = methods.filter(method => !this.constructor_names.has(method.name));
+	public append_impl_order(violations: Violation[], file: string, methods: AstCallableNode[]): void {
+		const implementation_methods = methods.filter((method) => !this.constructor_names.has(method.name));
 		const last_non_public = this.last_hidden_index(implementation_methods);
 		violations.push(...this.public_order_violations(file, implementation_methods, last_non_public));
 	}

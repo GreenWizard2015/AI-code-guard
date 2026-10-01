@@ -1,5 +1,5 @@
-import { SharedParameterOrder } from 'src/bridge/ts/core/shared-parameter-order';
-import { MIN_ARGUMENT_USES, MIN_SHARED_METHODS } from 'src/constants';
+import { SharedParameterOrder } from "src/bridge/ts/core/shared-parameter-order";
+import { MIN_ARGUMENT_USES, MIN_SHARED_METHODS } from "src/constants";
 import type {
 	AnalyzedCallable,
 	AnalyzedParameter,
@@ -7,10 +7,9 @@ import type {
 	SharedCallableKind,
 	SharedParameterCandidate,
 	SharedParameterNode,
-} from 'src/metrics/types';
+} from "src/metrics/types";
 
-
-import type { MutableParameterNode } from 'src/metrics/types';
+import type { MutableParameterNode } from "src/metrics/types";
 
 /** Responsibilities: _normalization callables group shared_. **/
 export class SharedParameterAnalyzer {
@@ -23,7 +22,7 @@ export class SharedParameterAnalyzer {
 	private append_parameter(
 		nodes: Map<string, MutableParameterNode>,
 		parameter: AnalyzedParameter,
-		location: CallableLocation
+		location: CallableLocation,
 	): void {
 		let node = nodes.get(parameter.key);
 		if (node === undefined) {
@@ -41,13 +40,10 @@ export class SharedParameterAnalyzer {
 	}
 
 	/** Responsibilities: _aggregation supported parameters analysis_. **/
-	private append_callable(
-		nodes: Map<string, MutableParameterNode>,
-		callable: AnalyzedCallable
-	): void {
+	private append_callable(nodes: Map<string, MutableParameterNode>, callable: AnalyzedCallable): void {
 		const parameter_keys = new Set<string>();
 		for (const parameter of callable.parameters) {
-if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
+			if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 				continue;
 			}
 			parameter_keys.add(parameter.key);
@@ -60,7 +56,7 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 		const shared_parameter_order = new SharedParameterOrder();
 
 		const locations = [...node.locations.values()].sort((left, right) =>
-			shared_parameter_order.compare_locations(left, right)
+			shared_parameter_order.compare_locations(left, right),
 		);
 		return {
 			key: node.key,
@@ -76,7 +72,7 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 		nodes: readonly SharedParameterNode[],
 		next_index: number,
 		selected: readonly SharedParameterNode[],
-		locations: readonly CallableLocation[]
+		locations: readonly CallableLocation[],
 	): SharedParameterCandidate[] {
 		if (!this.has_kind) {
 			return [];
@@ -98,7 +94,7 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 		nodes: readonly SharedParameterNode[],
 		next_index: number,
 		selected: readonly SharedParameterNode[],
-		locations: readonly CallableLocation[]
+		locations: readonly CallableLocation[],
 	): SharedParameterCandidate[] {
 		const shared_parameter_order = new SharedParameterOrder();
 
@@ -108,9 +104,7 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 			if (intersection.length < MIN_SHARED_METHODS) {
 				continue;
 			}
-			candidates.push(
-				...this.branch_candidates(nodes, index + 1, [...selected, nodes[index]], intersection)
-			);
+			candidates.push(...this.branch_candidates(nodes, index + 1, [...selected, nodes[index]], intersection));
 		}
 		return candidates;
 	}
@@ -120,13 +114,13 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 		this.callables = callables;
 		const first_callable = callables[0];
 		this.has_kind = first_callable !== undefined;
-		this.kind = 'method';
+		this.kind = "method";
 		if (first_callable !== undefined) {
 			this.kind = first_callable.kind;
 		}
 		this.valid_scope = true;
 		if (this.has_kind) {
-			this.valid_scope = callables.every(callable => callable.kind === this.kind);
+			this.valid_scope = callables.every((callable) => callable.kind === this.kind);
 		}
 	}
 
@@ -141,22 +135,20 @@ if (parameter.uses < MIN_ARGUMENT_USES || parameter_keys.has(parameter.key)) {
 		for (const callable of this.callables) {
 			this.append_callable(mutable_nodes, callable);
 		}
-		const nodes = [...mutable_nodes.values()].map(node => this.immutable_node(node));
+		const nodes = [...mutable_nodes.values()].map((node) => this.immutable_node(node));
 		nodes.sort((left, right) => shared_parameter_order.compare_nodes(left, right));
-		return new Map(nodes.map(node => [node.key, node]));
+		return new Map(nodes.map((node) => [node.key, node]));
 	}
 
 	/** Responsibilities: _collection shared parameters satisfy_. **/
 	public collect_candidates(): SharedParameterCandidate[] {
 		const shared_parameter_order = new SharedParameterOrder();
 
-		const nodes = [...this.shared_parameters().values()].filter(
-			node => node.locations.length >= MIN_SHARED_METHODS
-		);
+		const nodes = [...this.shared_parameters().values()].filter((node) => node.locations.length >= MIN_SHARED_METHODS);
 		const candidates: SharedParameterCandidate[] = [];
 		for (let index = 0; index < nodes.length; index += 1) {
 			const node = nodes[index];
-			if (node.kind !== 'reference') {
+			if (node.kind !== "reference") {
 				continue;
 			}
 			candidates.push(...this.branch_candidates(nodes, index + 1, [node], node.locations));

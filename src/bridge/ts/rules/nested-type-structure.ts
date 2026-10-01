@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type { NamedLine } from 'src/types';
+import ts from "typescript";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { NamedLine } from "src/types";
 
 /** Responsibilities: _nested type ownership_. **/
 export class NestedTypeStructure {
@@ -34,14 +34,14 @@ export class NestedTypeStructure {
 			}
 			if (type_declaration) {
 				if (nested) {
-				indexes.push(source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line);
+					indexes.push(source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line);
 				}
 			}
 			let child_nested = nested;
 			if (this.nested_scope(node)) {
 				child_nested = true;
 			}
-			ts.forEachChild(node, child => visit(child, child_nested));
+			ts.forEachChild(node, (child) => visit(child, child_nested));
 		};
 		visit(source_file, false);
 		return indexes;
@@ -50,7 +50,7 @@ export class NestedTypeStructure {
 	/** Responsibilities: _source indentation measurement_. **/
 	private indentation(line: string): number {
 		let index = 0;
-		while (index < line.length && (line[index] === ' ' || line[index] === '\t')) {
+		while (index < line.length && (line[index] === " " || line[index] === "\t")) {
 			index += 1;
 		}
 		return index;
@@ -59,15 +59,15 @@ export class NestedTypeStructure {
 	/** Responsibilities: _nested Python type collection_. **/
 	private python_type_indexes(lines: readonly string[], declarations: readonly NamedLine[]): number[] {
 		return declarations
-			.filter(declaration => {
-				let line = '';
+			.filter((declaration) => {
+				let line = "";
 				if (lines[declaration.line] !== undefined) {
 					line = lines[declaration.line];
 				}
 				const code = line.slice(this.indentation(line));
-				return this.indentation(line) > 0 && !code.startsWith('class ');
+				return this.indentation(line) > 0 && !code.startsWith("class ");
 			})
-			.map(declaration => declaration.line);
+			.map((declaration) => declaration.line);
 	}
 
 	/** Responsibilities: _nested type diagnostic creation_. **/
@@ -75,7 +75,7 @@ export class NestedTypeStructure {
 		if (indexes.length === 0) {
 			return;
 		}
-		const rule = new DiagnosticRule('nested-type');
+		const rule = new DiagnosticRule("nested-type");
 		violations.push(rule.violation(file, indexes[0] + 1, { count: String(indexes.length) }));
 	}
 
@@ -96,7 +96,7 @@ export class NestedTypeStructure {
 		if (indexes.length === 0) {
 			return;
 		}
-		const rule = new DiagnosticRule('nested-type');
+		const rule = new DiagnosticRule("nested-type");
 		violations.push(rule.violation(file, indexes[0] + 1, { count: String(indexes.length) }));
 	}
 }

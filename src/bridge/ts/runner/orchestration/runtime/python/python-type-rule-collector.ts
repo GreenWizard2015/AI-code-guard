@@ -1,17 +1,17 @@
-import { AnyTypes } from 'src/rules/typescript/any-types';
-import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { ProjectTypeBoundary } from 'src/metrics/project-type-boundary';
-import type { PythonRuleInput } from 'src/runner/types';
-import type { AstCallableNode, AstClassNode } from 'src/types';
+import { AnyTypes } from "src/rules/typescript/any-types";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type-aliases";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { ProjectTypeBoundary } from "src/metrics/project-type-boundary";
+import type { PythonRuleInput } from "src/runner/types";
+import type { AstCallableNode, AstClassNode } from "src/types";
 
 /** Responsibilities: _Python type rule collection_. **/
 export class PythonTypeRuleCollector {
 	private readonly input: PythonRuleInput;
-	private readonly type_field_rule = new DiagnosticRule('type-field-count');
-	private readonly return_type_rule = new DiagnosticRule('explicit-return-type');
-	private readonly parameter_type_rule = new DiagnosticRule('python-explicit-parameter-type');
-	private readonly field_type_rule = new DiagnosticRule('python-explicit-field-type');
+	private readonly type_field_rule = new DiagnosticRule("type-field-count");
+	private readonly return_type_rule = new DiagnosticRule("explicit-return-type");
+	private readonly parameter_type_rule = new DiagnosticRule("python-explicit-parameter-type");
+	private readonly field_type_rule = new DiagnosticRule("python-explicit-field-type");
 
 	/** Responsibilities: _type-field count violations addition_. **/
 	private append_type_fields(): void {
@@ -53,7 +53,7 @@ export class PythonTypeRuleCollector {
 	/** Responsibilities: _project type contract names_. **/
 	private allowed_contracts(classes: readonly AstClassNode[]): Set<string> {
 		const allowed = new Set(
-			[...this.input.project_type_names].filter(name => !this.input.project_class_names.has(name))
+			[...this.input.project_type_names].filter((name) => !this.input.project_class_names.has(name)),
 		);
 		for (const name of this.input.project_protocol_names) {
 			allowed.add(name);
@@ -79,7 +79,7 @@ export class PythonTypeRuleCollector {
 			project_types: this.input.project_type_names,
 			allowed_contracts: this.allowed_contracts(classes),
 			reference_aliases: this.input.reference_aliases,
-			language: 'python',
+			language: "python",
 		});
 		boundary.append();
 	}
@@ -92,7 +92,7 @@ export class PythonTypeRuleCollector {
 	/** Responsibilities: _Python type rules addition_. **/
 	public append_type_rules(): void {
 		const { classes, functions } = this.input;
-		const callables = functions.concat(classes.flatMap(node => node.methods));
+		const callables = functions.concat(classes.flatMap((node) => node.methods));
 		this.append_type_fields();
 		this.append_callable_types(callables);
 		this.append_field_types();
@@ -106,8 +106,8 @@ export class PythonTypeRuleCollector {
 		any_types.append_any_info(
 			violations,
 			file_name.value,
-			functions.concat(classes.flatMap(node => node.methods)),
-			classes
+			functions.concat(classes.flatMap((node) => node.methods)),
+			classes,
 		);
 	}
 }

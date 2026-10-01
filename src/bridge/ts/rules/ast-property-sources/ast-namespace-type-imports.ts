@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { AstPropertySourcesProtocol } from 'src/protocols';
+import ts from "typescript";
+import type { AstPropertySourcesProtocol } from "src/protocols";
 
 /** Responsibilities: _resolution namespace type imports_. **/
 export class AstNamespaceTypeImports {
@@ -26,18 +26,18 @@ export class AstNamespaceTypeImports {
 				return this.sources.module_path(this.source.fileName, statement.moduleSpecifier.text);
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _qualified namespace type key_. **/
 	public key(name: string): string {
-		const separator = name.indexOf('.');
+		const separator = name.indexOf(".");
 		if (separator < 1) {
-			return '';
+			return "";
 		}
 		const module = this.module(name.slice(0, separator));
 		if (module.length === 0) {
-			return '';
+			return "";
 		}
 		return `${module}\u0000${name.slice(separator + 1)}`;
 	}

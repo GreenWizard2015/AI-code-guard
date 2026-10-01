@@ -1,9 +1,9 @@
-import { resolve } from 'node:path';
-import type { CliOptions } from 'src/types';
+import { resolve } from "node:path";
+import type { CliOptions } from "src/types";
 
 /** Responsibilities: _CLI arguments directory parsing_. **/
 export class CommandLineOptions {
-	private readonly option_prefix = '--';
+	private readonly option_prefix = "--";
 
 	/** Responsibilities: _creation default CLI option_. **/
 	private default_options(): CliOptions {
@@ -13,7 +13,7 @@ export class CommandLineOptions {
 			root: process.cwd(),
 			timings: false,
 			batch_size: 10,
-			policy: 'top-category',
+			policy: "top-category",
 		};
 	}
 
@@ -24,7 +24,7 @@ export class CommandLineOptions {
 			return true;
 		}
 		if (option === `${this.option_prefix}entry-file`) {
-			options.entry_files.push(value.replaceAll('\\', '/'));
+			options.entry_files.push(value.replaceAll("\\", "/"));
 			return true;
 		}
 		if (option === `${this.option_prefix}root`) {
@@ -45,7 +45,7 @@ export class CommandLineOptions {
 			return true;
 		}
 		if (option === `${this.option_prefix}policy`) {
-			if (value !== 'top-category' && value !== 'all') {
+			if (value !== "top-category" && value !== "all") {
 				throw new Error(`Invalid --policy value: ${value}`);
 			}
 			options.policy = value;

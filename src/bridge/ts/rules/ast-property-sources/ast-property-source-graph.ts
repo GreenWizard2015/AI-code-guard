@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { readFileSync } from "node:fs";
+import ts from "typescript";
+import type { ModulePathResolver } from "src/protocols";
 
 /** Responsibilities: _AST property source graph_. **/
 export class AstPropertySourceGraph {
@@ -9,7 +10,7 @@ export class AstPropertySourceGraph {
 	private readonly binding_types: Map<string, ts.TypeNode>;
 	private readonly binding_aliases: Map<string, string>;
 	private readonly prepared_sources = new Set<AstPropertySourceGraph>();
-	private readonly module_path: (file: string, specifier: string) => string;
+	private readonly module_path: ModulePathResolver;
 
 	/** Responsibilities: _source declaration registration_. **/
 	private register_source(source: ts.SourceFile): void {
@@ -115,7 +116,7 @@ export class AstPropertySourceGraph {
 	private load_source(file: string): void {
 		const imported = ts.createSourceFile(
 			file,
-			readFileSync(file, 'utf8'),
+			readFileSync(file, "utf8"),
 			ts.ScriptTarget.Latest,
 			true,
 			ts.ScriptKind.TS,
@@ -141,7 +142,7 @@ export class AstPropertySourceGraph {
 		declarations: Map<string, ts.Declaration>,
 		binding_types: Map<string, ts.TypeNode>,
 		binding_aliases: Map<string, string>,
-		module_path: (file: string, specifier: string) => string,
+		module_path: ModulePathResolver,
 	) {
 		this.root_source = root_source;
 		this.declarations = declarations;

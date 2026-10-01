@@ -1,26 +1,23 @@
-import { TypeScriptImportedFunctionAliases } from 'src/typescript-imported-function-aliases';
-import { readFileSync } from 'node:fs';
-import ts from 'typescript';
+import { TypeScriptImportedFunctionAliases } from "src/typescript-imported-function-aliases";
+import { readFileSync } from "node:fs";
+import ts from "typescript";
 
 /** Responsibilities: _resolution imported instance aliases_. **/
 export class TypeScriptImportedInstanceAliases {
 	private readonly script_target = ts.ScriptTarget.Latest;
 
 	/** Responsibilities: _resolution import source absolute_. **/
-	private imported_file_path(
-		source_file: ts.SourceFile,
-		statement: ts.Statement
-	): string {
+	private imported_file_path(source_file: ts.SourceFile, statement: ts.Statement): string {
 		const imported_function_aliases = new TypeScriptImportedFunctionAliases();
 
-if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-			return '';
+		if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+			return "";
 		}
 		const file = imported_function_aliases.import_file(source_file, statement.moduleSpecifier.text);
 		if (file !== undefined) {
 			return file;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _extraction named import bindings_. **/
@@ -39,13 +36,10 @@ if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSp
 	private add_imported_bindings(
 		bindings: ts.NamedImports,
 		imported_file: string,
-		instances: Map<string, string>
+		instances: Map<string, string>,
 	): void {
 		for (const element of bindings.elements) {
-			const owner = this.exported_instance_owner(
-				imported_file,
-				this.imported_binding_name(element)
-			);
+			const owner = this.exported_instance_owner(imported_file, this.imported_binding_name(element));
 			if (owner) {
 				instances.set(element.name.text, owner);
 			}
@@ -62,34 +56,31 @@ if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSp
 
 	/** Responsibilities: _resolution owner exported instance_. **/
 	private exported_instance_owner(file: string, exported_name: string): string {
-		const source = readFileSync(file, 'utf8');
+		const source = readFileSync(file, "utf8");
 		const source_file = ts.createSourceFile(file, source, this.script_target, true);
 		const declarations = this.exported_variable(source_file, exported_name);
 		for (const declaration of declarations) {
 			return this.new_instance_owner(declaration);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution class owner construction_. **/
 	private new_instance_owner(declaration: ts.VariableDeclaration): string {
 		if (declaration.initializer === undefined) {
-			return '';
+			return "";
 		}
 		if (!ts.isNewExpression(declaration.initializer)) {
-			return '';
+			return "";
 		}
 		if (!ts.isIdentifier(declaration.initializer.expression)) {
-			return '';
+			return "";
 		}
 		return declaration.initializer.expression.text;
 	}
 
 	/** Responsibilities: _discovery exported variable declaration_. **/
-	private exported_variable(
-		source_file: ts.SourceFile,
-		exported_name: string
-	): ts.VariableDeclaration[] {
+	private exported_variable(source_file: ts.SourceFile, exported_name: string): ts.VariableDeclaration[] {
 		for (const statement of source_file.statements) {
 			const declaration = this.exported_variable_in(statement, source_file, exported_name);
 			if (declaration.length > 0) {
@@ -103,13 +94,13 @@ if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSp
 	private exported_variable_in(
 		statement: ts.Statement,
 		source_file: ts.SourceFile,
-		exported_name: string
+		exported_name: string,
 	): ts.VariableDeclaration[] {
-if (!this.has_export_modifier(statement) || !ts.isVariableStatement(statement)) {
+		if (!this.has_export_modifier(statement) || !ts.isVariableStatement(statement)) {
 			return [];
 		}
 		const declaration = statement.declarationList.declarations.find(
-			item => item.name.getText(source_file) === exported_name
+			(item) => item.name.getText(source_file) === exported_name,
 		);
 		if (declaration !== undefined) {
 			return [declaration];
@@ -122,16 +113,14 @@ if (!this.has_export_modifier(statement) || !ts.isVariableStatement(statement)) 
 		if (!ts.canHaveModifiers(statement)) {
 			return false;
 		}
-		return Boolean(
-			ts.getModifiers(statement)?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)
-		);
+		return Boolean(ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword));
 	}
 
 	/** Responsibilities: _resolution imported instance addition_. **/
 	public add_imported_instances(
 		source_file: ts.SourceFile,
 		statement: ts.Statement,
-		instances: Map<string, string>
+		instances: Map<string, string>,
 	): void {
 		const imported_file = this.imported_file_path(source_file, statement);
 		if (!imported_file) {

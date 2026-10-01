@@ -1,11 +1,11 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { ObjectCallableExpression } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-expression';
-import ts from 'typescript';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { ObjectCallableExpression } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-expression";
+import ts from "typescript";
 
 /** Responsibilities: _contract output ownership_. **/
 export class ObjectLiteralReturns {
-	private readonly rule = new DiagnosticRule('typescript-object-literal-return');
+	private readonly rule = new DiagnosticRule("typescript-object-literal-return");
 	private readonly callable_expression = new ObjectCallableExpression();
 	private readonly contract_names: ReadonlySet<string>;
 	private readonly function_parent_kinds = new Set([
@@ -27,10 +27,7 @@ export class ObjectLiteralReturns {
 	}
 
 	/** Responsibilities: _classification contract reference_. **/
-	private contains_contract_reference(
-		node: ts.TypeReferenceNode,
-		contract_names: ReadonlySet<string>
-	): boolean {
+	private contains_contract_reference(node: ts.TypeReferenceNode, contract_names: ReadonlySet<string>): boolean {
 		if (contract_names.has(this.type_name(node.typeName))) {
 			return true;
 		}
@@ -38,9 +35,7 @@ export class ObjectLiteralReturns {
 		if (type_arguments === undefined) {
 			return false;
 		}
-		return type_arguments.some(type_argument =>
-			this.contains_contract_type(type_argument, contract_names)
-		);
+		return type_arguments.some((type_argument) => this.contains_contract_type(type_argument, contract_names));
 	}
 
 	/** Responsibilities: _classification type node references_. **/
@@ -49,7 +44,7 @@ export class ObjectLiteralReturns {
 			return this.contains_contract_reference(node, contract_names);
 		}
 		if (ts.isUnionTypeNode(node) || ts.isIntersectionTypeNode(node)) {
-			return node.types.some(type_part => this.contains_contract_type(type_part, contract_names));
+			return node.types.some((type_part) => this.contains_contract_type(type_part, contract_names));
 		}
 		if (ts.isParenthesizedTypeNode(node)) {
 			return this.contains_contract_type(node.type, contract_names);
@@ -75,7 +70,7 @@ export class ObjectLiteralReturns {
 		if (ts.isTypeAliasDeclaration(node)) {
 			aliases.push(node);
 		}
-		node.forEachChild(child => this.collect_type_aliases(child, aliases));
+		node.forEachChild((child) => this.collect_type_aliases(child, aliases));
 	}
 
 	/** Responsibilities: _source alias declaration collection_. **/
@@ -131,7 +126,7 @@ export class ObjectLiteralReturns {
 		file: string,
 		source_file: ts.SourceFile,
 		node: ts.ReturnStatement,
-		contract_names: ReadonlySet<string>
+		contract_names: ReadonlySet<string>,
 	): void {
 		if (!this.object_return(node, contract_names)) {
 			return;
@@ -150,21 +145,12 @@ export class ObjectLiteralReturns {
 	}
 
 	/** Responsibilities: _initialization source context contract_. **/
-	public constructor(
-		project_contract_names: ReadonlySet<string>,
-		local_type_aliases: ReadonlySet<string>
-	) {
-		this.contract_names = new Set(
-			Array.from(project_contract_names).filter(name => !local_type_aliases.has(name))
-		);
+	public constructor(project_contract_names: ReadonlySet<string>, local_type_aliases: ReadonlySet<string>) {
+		this.contract_names = new Set(Array.from(project_contract_names).filter((name) => !local_type_aliases.has(name)));
 	}
 
 	/** Responsibilities: _aggregation object-literal output violations_. **/
-	public append_violations(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	public append_violations(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		const contract_names = this.contract_names_for(source_file);
 		const visit = (node: ts.Node): void => {
 			if (ts.isReturnStatement(node)) {
@@ -184,5 +170,4 @@ export class ObjectLiteralReturns {
 		const callable = callables[0];
 		return callable?.type !== undefined && this.contains_contract_type(callable.type, contract_names);
 	}
-
 }

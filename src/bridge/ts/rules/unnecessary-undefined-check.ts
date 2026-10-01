@@ -1,7 +1,7 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import { AstPropertyType } from 'src/bridge/ts/rules/ast-property-type-resolver';
-import type { RuleAppender } from 'src/types';
+import { AstPropertyType } from "src/bridge/ts/rules/ast-property-type-resolver";
+import type { RuleAppender } from "src/types";
 
 /** Responsibilities: _detection unnecessary undefined checks_. **/
 export class UnnecessaryUndefinedCheck {
@@ -26,12 +26,12 @@ export class UnnecessaryUndefinedCheck {
 	/** Responsibilities: _expression resolution validation_. **/
 	private checked_expression(node: ts.BinaryExpression): ts.Expression {
 		if (ts.isIdentifier(node.left)) {
-			if (node.left.text === 'undefined') {
+			if (node.left.text === "undefined") {
 				return node.right;
 			}
 		}
 		if (ts.isIdentifier(node.right)) {
-			if (node.right.text === 'undefined') {
+			if (node.right.text === "undefined") {
 				return node.left;
 			}
 		}
@@ -42,13 +42,13 @@ export class UnnecessaryUndefinedCheck {
 	private element_name(node: ts.ElementAccessExpression): string {
 		const argument = node.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
 		const key = this.unwrapped_key(argument);
 		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
 			return key.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _unwrapping static element key_. **/
@@ -73,7 +73,7 @@ export class UnnecessaryUndefinedCheck {
 
 	/** Responsibilities: _known field lookup_. **/
 	private required_field(expression: ts.Expression, name: string): boolean {
-		if (!ts.isIdentifier(expression) || name === '') {
+		if (!ts.isIdentifier(expression) || name === "") {
 			return false;
 		}
 		if (!this.resolver.known_field(expression.text, name)) {
@@ -149,7 +149,7 @@ export class UnnecessaryUndefinedCheck {
 	/** Responsibilities: _aggregation diagnostic node violates_. **/
 	public append(node: ts.Node): void {
 		if (this.matches(node)) {
-			this.append_rule(node, 'unnecessary-undefined-check');
+			this.append_rule(node, "unnecessary-undefined-check");
 		}
 	}
 }

@@ -1,13 +1,13 @@
-import { CallableUsage } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-usage';
-import { ClassRules } from 'src/bridge/ts/rules/class-rules';
-import { Composition } from 'src/bridge/ts/runner/orchestration/runtime/composition/composition';
-import { SharedParameterAdapter } from 'src/metrics/shared-parameter-adapter';
-import { SharedParameterAnalyzer } from 'src/metrics/shared-parameter-analyzer';
-import type { AnalyzedCallable } from 'src/metrics/types';
-import { SharedParameterReporter } from 'src/metrics/shared-parameter-reporter';
-import type { LintProjectContext, LintStageTimerProtocol, Violation } from 'src/protocols';
-import { ModulePlacementAnalyzer } from 'src/bridge/ts/runner/orchestration/runtime/module-placement';
-import { TestFrameworkConsistency } from 'src/bridge/ts/runner/orchestration/runtime/python/test-framework-consistency';
+import { CallableUsage } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-usage";
+import { ClassRules } from "src/bridge/ts/rules/class-rules";
+import { Composition } from "src/bridge/ts/runner/orchestration/runtime/composition/composition";
+import { SharedParameterAdapter } from "src/metrics/shared-parameter-adapter";
+import { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
+import type { AnalyzedCallable } from "src/metrics/types";
+import { SharedParameterReporter } from "src/metrics/shared-parameter-reporter";
+import type { LintProjectContext, LintStageTimerProtocol, Violation } from "src/protocols";
+import { ModulePlacementAnalyzer } from "src/bridge/ts/runner/orchestration/runtime/module-placement";
+import { TestFrameworkConsistency } from "src/bridge/ts/runner/orchestration/runtime/python/test-framework-consistency";
 
 /** Responsibilities: _execution project-wide class composition_. **/
 export class GlobalViolationCollector {
@@ -44,14 +44,12 @@ export class GlobalViolationCollector {
 	/** Responsibilities: _production callables group adaptation_. **/
 	private callable_groups(): AnalyzedCallable[][] {
 		const callables: AnalyzedCallable[] = [];
-		const production_files = this.project_files.filter(file =>
-			this.context.source_record(file).file_name.product()
-		);
+		const production_files = this.project_files.filter((file) => this.context.source_record(file).file_name.product());
 		for (const file of production_files) {
 			const source = this.context.source_record(file);
 			const adapter = new SharedParameterAdapter({
 				file: source.relative_path,
-				kind: 'function',
+				kind: "function",
 				nodes: source.normalized_ast.functions,
 				project_types: this.project_type_names,
 				reference_aliases: source.normalized_ast.reference_aliases,
@@ -64,7 +62,7 @@ export class GlobalViolationCollector {
 
 	/** Responsibilities: _collection reporting shared parameter_. **/
 	private parameter_violations(): Violation[] {
-		const candidates = this.callable_groups().flatMap(callable_group => {
+		const candidates = this.callable_groups().flatMap((callable_group) => {
 			const analyzer = new SharedParameterAnalyzer(callable_group);
 			return analyzer.collect_candidates();
 		});
@@ -75,38 +73,30 @@ export class GlobalViolationCollector {
 	/** Responsibilities: _time collection project-wide class-field_. **/
 	private class_fields_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const class_rules = new ClassRules();
-		return stage_timer.measure(
-			'global-analysis.class-fields',
-			() => class_rules.collect_context_fields({
-				files: this.project_files,
-				repo_root: this.repo_root,
-			}, this.context)
+		return stage_timer.measure("global-analysis.class-fields", () =>
+			class_rules.collect_context_fields(
+				{
+					files: this.project_files,
+					repo_root: this.repo_root,
+				},
+				this.context,
+			),
 		);
 	}
 
 	/** Responsibilities: _time collection composition violations_. **/
 	private composition_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const composition = new Composition();
-		return stage_timer.measure(
-			'global-analysis.composition',
-			() => composition.collect_composition(this.context.files(), this.repo_root)
+		return stage_timer.measure("global-analysis.composition", () =>
+			composition.collect_composition(this.context.files(), this.repo_root),
 		);
 	}
 
 	/** Responsibilities: _time collection callable usage_. **/
 	private callable_usage_stage(stage_timer: LintStageTimerProtocol): Violation[] {
 		const callable_usage = new CallableUsage();
-		return stage_timer.measure(
-			'global-analysis.callable-usage',
-			() => callable_usage.collect_timed_usage(this.context.files(), stage_timer)
-		);
-	}
-
-	/** Responsibilities: _time shared-parameter analysis_. **/
-	private parameters_stage(stage_timer: LintStageTimerProtocol): Violation[] {
-		return stage_timer.measure(
-			'global-analysis.shared-parameters',
-			() => this.parameter_violations()
+		return stage_timer.measure("global-analysis.callable-usage", () =>
+			callable_usage.collect_timed_usage(this.context.files(), stage_timer),
 		);
 	}
 
@@ -118,18 +108,7 @@ export class GlobalViolationCollector {
 			this.context,
 			this.ignored_files,
 		);
-		return stage_timer.measure(
-			'global-analysis.module-placement',
-			() => module_placement.collect_violations()
-		);
-	}
-
-	/** Responsibilities: _time collection Python test-framework_. **/
-	private test_framework_stage(stage_timer: LintStageTimerProtocol): Violation[] {
-		return stage_timer.measure(
-			'global-analysis.test-framework',
-			() => this.test_framework_consistency.violations(this.context)
-		);
+		return stage_timer.measure("global-analysis.module-placement", () => module_placement.collect_violations());
 	}
 
 	/** Responsibilities: _initialization project inputs shared_. **/
@@ -153,9 +132,11 @@ export class GlobalViolationCollector {
 			...this.class_fields_stage(stage_timer),
 			...this.composition_stage(stage_timer),
 			...this.callable_usage_stage(stage_timer),
-			...this.parameters_stage(stage_timer),
+			...stage_timer.measure("global-analysis.shared-parameters", () => this.parameter_violations()),
 			...this.module_placement_stage(stage_timer),
-			...this.test_framework_stage(stage_timer),
+			...stage_timer.measure("global-analysis.test-framework", () =>
+				this.test_framework_consistency.violations(this.context),
+			),
 		];
 	}
 
@@ -165,6 +146,6 @@ export class GlobalViolationCollector {
 		if (target_files.size === 0) {
 			return [];
 		}
-		return violations.filter(violation => target_files.has(violation.file));
+		return violations.filter((violation) => target_files.has(violation.file));
 	}
 }

@@ -1,4 +1,4 @@
-import type { PythonTestFramework } from 'src/bridge/ts/runner/orchestration/runtime/python/types';
+import type { PythonTestFramework } from "src/bridge/ts/runner/orchestration/runtime/python/types";
 
 /** Responsibilities: _Python test framework count_, _framework totals comparison_. **/
 export class TestFrameworkCounts {
@@ -27,5 +27,4 @@ export class TestFrameworkCounts {
 	public all(framework: PythonTestFramework, total: number): boolean {
 		return this.count(framework) === total;
 	}
-
 }

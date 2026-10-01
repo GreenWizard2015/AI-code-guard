@@ -1,11 +1,12 @@
-import { Syntax } from 'src/syntax';
-import { TypeScriptImportIssues } from 'src/bridge/ts/parser/typescript-import-issues';
-import { TypeScriptSymbolDeclaration } from 'src/bridge/ts/parser/typescript-symbol-declaration';
-import { TypeScriptTypeDeclarations } from 'src/bridge/ts/parser/typescript-type-declarations';
-import { TypeScriptTypeMembers } from 'src/bridge/ts/parser/typescript-type-members';
-import { TypeScriptResponsibilityTargets } from 'src/model/typescript-responsibility-targets';
-import ts from 'typescript';
-import type { TypeScriptCallReferenceCollectorProtocol } from 'src/model/protocols';
+import { Syntax } from "src/syntax";
+import { TypeScriptImportIssues } from "src/bridge/ts/parser/typescript-import-issues";
+import { TypeScriptSymbolDeclaration } from "src/bridge/ts/parser/typescript-symbol-declaration";
+import { TypeScriptTypeDeclarations } from "src/bridge/ts/parser/typescript-type-declarations";
+import { TypeScriptTypeMembers } from "src/bridge/ts/parser/typescript-type-members";
+import { TypeScriptResponsibilityTargets } from "src/model/typescript-responsibility-targets";
+import ts from "typescript";
+import type { SourceLineResolver } from "src/protocols";
+import type { TypeScriptCallReferenceCollectorProtocol } from "src/model/protocols";
 import type {
 	AstCallableNode,
 	AstClassNode,
@@ -16,7 +17,7 @@ import type {
 	NamedSymbol,
 	NormalizedAstFile,
 	TypeScriptTreeMetadata,
-} from 'src/types';
+} from "src/types";
 
 /** Responsibilities: _collection TypeScript syntax module_. **/
 export class TypeScriptAstMetadata {
@@ -77,7 +78,7 @@ export class TypeScriptAstMetadata {
 	private module_type_spans(): AstSourceSpan[] {
 		const spans: AstSourceSpan[] = [];
 		for (const statement of this.source_file.statements) {
-if (ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
+			if (ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
 				spans.push(this.statement_span(statement));
 			}
 		}
@@ -96,7 +97,7 @@ if (ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
 	}
 
 	/** Responsibilities: _derivation imports spans depth_. **/
-	private tree_metadata(line_for: (position: number) => number): TypeScriptTreeMetadata {
+	private tree_metadata(line_for: SourceLineResolver): TypeScriptTreeMetadata {
 		const attribute_accesses: LineDepth[] = [];
 		const import_issues = this.import_issues.late_import_issues(this.source_file, line_for);
 		const named_symbols: NamedSymbol[] = this.symbol_declaration.collect_named_symbols(this.source_file);
@@ -104,7 +105,7 @@ if (ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
 		const visit = (node: ts.Node): void => {
 			import_issues.push(...this.import_issues.node_import_issues(node, this.source_file, line_for));
 			type_declarations.push(...this.type_declarations.declaration_for(node, this.source_file));
-if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.parent)) {
+			if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.parent)) {
 				const depth = this.attribute_access_depth(node);
 				if (depth > 4) {
 					attribute_accesses.push({
@@ -119,41 +120,15 @@ if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.p
 		return { attribute_accesses, import_issues, named_symbols, type_declarations };
 	}
 
-	/** Responsibilities: _initialization source text AST_. **/
-	public constructor(
-		source_file: ts.SourceFile,
-		call_reference_collector: TypeScriptCallReferenceCollectorProtocol
-	) {
-		this.source_file = source_file;
-		this.call_reference_collector = call_reference_collector;
-		this.responsibility_targets = new TypeScriptResponsibilityTargets(source_file);
-	}
-
-	/** Responsibilities: _collection syntax policy issues_. **/
-	public collect_syntax_issues(line_for: (position: number) => number): AstParseIssue[] {
-		const diagnostics = this.syntax.syntax_issues(this.source_file);
-		if (diagnostics.length === 0) {
-			return [];
-		}
-		return diagnostics.map(diagnostic => {
-			let start = diagnostic.start;
-			if (start === undefined) {
-				start = 0;
-			}
-			return {
-				line: line_for(start),
-				message: ts.flattenDiagnosticMessageText(diagnostic.messageText, ' '),
-			};
-		});
-	}
-
-	/** Responsibilities: _combination parsing classes functions_. **/
-	public normalized(classes: AstClassNode[], functions: AstCallableNode[]): NormalizedAstFile {
-		const line_for = (position: number): number =>
-			this.source_file.getLineAndCharacterOfPosition(position).line;
-		const tree = this.tree_metadata(line_for);
+	/** Responsibilities: _AST metadata_. **/
+	private normalized_file(
+		classes: AstClassNode[],
+		functions: AstCallableNode[],
+		tree: TypeScriptTreeMetadata,
+		line_for: SourceLineResolver,
+	): NormalizedAstFile {
 		return {
-			language: 'typescript',
+			language: "typescript",
 			classes,
 			functions,
 			parse_issues: this.collect_syntax_issues(line_for),
@@ -163,8 +138,13 @@ if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.p
 			module_type_spans: this.module_type_spans(),
 			module_protocol_spans: this.module_protocol_spans(),
 			call_references: this.call_reference_collector.collect(),
-			private_accesses: [], repeated_branches: [], module_instances: [], coding_issues: [],
-			python_imports: [], python_main_guard: false, docstring_spans: [],
+			private_accesses: [],
+			repeated_branches: [],
+			module_instances: [],
+			coding_issues: [],
+			python_imports: [],
+			python_main_guard: false,
+			docstring_spans: [],
 			python_callable_count: { count: 0, first_line: 0 },
 			responsibility_targets: this.responsibility_targets.collect(),
 			named_symbols: tree.named_symbols,
@@ -172,5 +152,37 @@ if (ts.isPropertyAccessExpression(node) && !ts.isPropertyAccessExpression(node.p
 			reference_aliases: this.type_declarations.collect_reference_aliases(this.source_file),
 			type_members: this.type_members.collect_type_members(this.source_file),
 		};
+	}
+
+	/** Responsibilities: _initialization source text AST_. **/
+	public constructor(source_file: ts.SourceFile, call_reference_collector: TypeScriptCallReferenceCollectorProtocol) {
+		this.source_file = source_file;
+		this.call_reference_collector = call_reference_collector;
+		this.responsibility_targets = new TypeScriptResponsibilityTargets(source_file);
+	}
+
+	/** Responsibilities: _collection syntax policy issues_. **/
+	public collect_syntax_issues(line_for: SourceLineResolver): AstParseIssue[] {
+		const diagnostics = this.syntax.syntax_issues(this.source_file);
+		if (diagnostics.length === 0) {
+			return [];
+		}
+		return diagnostics.map((diagnostic) => {
+			let start = diagnostic.start;
+			if (start === undefined) {
+				start = 0;
+			}
+			return {
+				line: line_for(start),
+				message: ts.flattenDiagnosticMessageText(diagnostic.messageText, " "),
+			};
+		});
+	}
+
+	/** Responsibilities: _combination parsing classes functions_. **/
+	public normalized(classes: AstClassNode[], functions: AstCallableNode[]): NormalizedAstFile {
+		const line_for = (position: number): number => this.source_file.getLineAndCharacterOfPosition(position).line;
+		const tree = this.tree_metadata(line_for);
+		return this.normalized_file(classes, functions, tree, line_for);
 	}
 }

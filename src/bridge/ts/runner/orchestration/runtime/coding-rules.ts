@@ -1,16 +1,21 @@
-import { PythonCodingRuleCollector } from 'src/bridge/ts/runner/orchestration/runtime/python/python-coding-rule-collector';
-import { Syntax } from 'src/syntax';
-import { TypeScriptCodingRules } from 'src/bridge/ts/runner/orchestration/runtime/typescript-coding-rules';
+import { PythonCodingRuleCollector } from "src/bridge/ts/runner/orchestration/runtime/python/python-coding-rule-collector";
+import { Syntax } from "src/syntax";
+import { TypeScriptCodingRules } from "src/bridge/ts/runner/orchestration/runtime/typescript-coding-rules";
 
-import type { CodingRuleSourceData, SourceFileAstProtocol, Violation } from 'src/protocols';
-import { TypeScriptRuleContext } from 'src/rules/typescript/typescript-rule-context';
-import { RESPONSIBILITY_ACTION_EXTENSIONS, RESPONSIBILITY_ACTION_WORDS, RESPONSIBILITY_CONDITION_WORDS, RESPONSIBILITY_NOUN_WORDS } from 'src/bridge/ts/runner/orchestration/runtime/constants';
-import { ResponsibilityRules } from 'src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-rules';
-import { ResponsibilityWording } from 'src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-wording';
+import type { CodingRuleSourceData, SourceFileAstProtocol, Violation } from "src/protocols";
+import { TypeScriptRuleContext } from "src/rules/typescript/typescript-rule-context";
+import {
+	RESPONSIBILITY_ACTION_EXTENSIONS,
+	RESPONSIBILITY_ACTION_WORDS,
+	RESPONSIBILITY_CONDITION_WORDS,
+	RESPONSIBILITY_NOUN_WORDS,
+} from "src/bridge/ts/runner/orchestration/runtime/constants";
+import { ResponsibilityRules } from "src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-rules";
+import { ResponsibilityWording } from "src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-wording";
 
-import type { CodingRuleLinterContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { LintStageTimer } from 'src/stage-timing';
-import type { LintStageTimerProtocol } from 'src/protocols';
+import type { CodingRuleLinterContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { LintStageTimer } from "src/stage-timing";
+import type { LintStageTimerProtocol } from "src/protocols";
 
 /** Responsibilities: _collection TypeScript Python coding_, _responsibility violations collection_. **/
 export class CodingRuleLinter implements CodingRuleLinterContract {

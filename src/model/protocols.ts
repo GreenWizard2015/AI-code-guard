@@ -1,15 +1,6 @@
-import ts from 'typescript';
-import type {
-	AstCallableNode,
-	AstCallableReference,
-	AstClassNode,
-	CallableOptions,
-} from 'src/types';
-import type {
-	CallableNodeContext,
-	DestructuredAlias,
-	DestructuredInstanceOptions,
-} from 'src/model/types';
+import ts from "typescript";
+import type { AstCallableNode, AstCallableReference, AstClassNode, CallableOptions } from "src/types";
+import type { CallableNodeContext, DestructuredAlias, DestructuredInstanceOptions } from "src/model/types";
 
 /** Responsibilities: _define callable owner resolution_. **/
 export interface CallOwnerResolver {
@@ -30,7 +21,7 @@ export interface TypeScriptClassCallableNodesProtocol {
 	class_method_nodes(
 		context: CallableNodeContext,
 		node: ts.ClassLikeDeclaration,
-		fallback_name: string
+		fallback_name: string,
 	): AstCallableNode[];
 }
 
@@ -43,7 +34,7 @@ export interface TypeScriptPropertyStateProtocol {
 		pattern: ts.ObjectBindingPattern,
 		source_file: ts.SourceFile,
 		initializer: ts.Expression,
-		current_owner: string
+		current_owner: string,
 	): readonly DestructuredAlias[];
 }
 
@@ -52,7 +43,7 @@ export interface TypeScriptCallableDataProtocol {
 	callable_node(options: CallableOptions): AstCallableNode;
 }
 
-	/** Responsibilities: _reference contract_. **/
+/** Responsibilities: _reference contract_. **/
 export interface TypeScriptCallReferenceCollectorProtocol {
 	collect(): AstCallableReference[];
 }

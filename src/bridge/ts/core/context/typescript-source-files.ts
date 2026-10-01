@@ -1,15 +1,15 @@
-import { extname } from 'node:path';
-import ts from 'typescript';
+import { extname } from "node:path";
+import ts from "typescript";
 
 /** Responsibilities: _TypeScript source caching_. **/
 export class TypeScriptSourceFiles {
 	private readonly files: readonly string[];
 	private readonly texts: ReadonlyMap<string, string>;
-	private readonly typescript_extensions = new Set(['.ts', '.tsx']);
+	private readonly typescript_extensions = new Set([".ts", ".tsx"]);
 
 	/** Responsibilities: _selection TypeScript parser script_. **/
 	private script_kind(file: string): ts.ScriptKind {
-		if (file.endsWith('.tsx')) {
+		if (file.endsWith(".tsx")) {
 			return ts.ScriptKind.TSX;
 		}
 		return ts.ScriptKind.TS;
@@ -19,15 +19,9 @@ export class TypeScriptSourceFiles {
 	private source_file(file: string): ts.SourceFile {
 		let source_text = this.texts.get(file);
 		if (source_text === undefined) {
-			source_text = '';
+			source_text = "";
 		}
-		return ts.createSourceFile(
-			file,
-			source_text,
-			ts.ScriptTarget.Latest,
-			true,
-			this.script_kind(file),
-		);
+		return ts.createSourceFile(file, source_text, ts.ScriptTarget.Latest, true, this.script_kind(file));
 	}
 
 	/** Responsibilities: _initialization source paths texts_. **/

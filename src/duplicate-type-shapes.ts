@@ -1,17 +1,17 @@
-import { createHash } from 'node:crypto';
-import ts from 'typescript';
+import { createHash } from "node:crypto";
+import ts from "typescript";
 
-import type { AstClassNode, DuplicateTypeShape, NamedLine, NamedShape } from 'src/types';
+import type { AstClassNode, DuplicateTypeShape, NamedLine, NamedShape } from "src/types";
 
 /** Responsibilities: _normalization TypeScript Python type_. **/
 export class DuplicateTypeShapes {
-	private readonly hash_algorithm = 'sha256';
+	private readonly hash_algorithm = "sha256";
 	/** Responsibilities: _creation stable hash fields_. **/
 	private shape_hash(fields: readonly string[], base_names: readonly string[]): string {
 		const sorted_fields = [...fields].sort((left, right) => left.localeCompare(right));
 		const sorted_base_names = [...base_names].sort((left, right) => left.localeCompare(right));
-		const serialized = [...sorted_base_names.map(base => `base:${base}`), ...sorted_fields].join('\n');
-		return createHash(this.hash_algorithm).update(serialized).digest('hex');
+		const serialized = [...sorted_base_names.map((base) => `base:${base}`), ...sorted_fields].join("\n");
+		return createHash(this.hash_algorithm).update(serialized).digest("hex");
 	}
 
 	/** Responsibilities: _named shape its addition_. **/
@@ -40,7 +40,7 @@ export class DuplicateTypeShapes {
 				continue;
 			}
 			const first = matches[0];
-			duplicates.push({ line: first.line, names: matches.map(match => match.name) });
+			duplicates.push({ line: first.line, names: matches.map((match) => match.name) });
 		}
 		return duplicates;
 	}
@@ -50,7 +50,7 @@ export class DuplicateTypeShapes {
 		if (ts.isInterfaceDeclaration(statement)) {
 			return statement.members;
 		}
-if (ts.isTypeAliasDeclaration(statement) && ts.isTypeLiteralNode(statement.type)) {
+		if (ts.isTypeAliasDeclaration(statement) && ts.isTypeLiteralNode(statement.type)) {
 			return statement.type.members;
 		}
 		return [];
@@ -58,10 +58,10 @@ if (ts.isTypeAliasDeclaration(statement) && ts.isTypeLiteralNode(statement.type)
 
 	/** Responsibilities: _resolution declared name TypeScript_. **/
 	private type_name(statement: ts.Statement): string {
-if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) {
+		if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)) {
 			return statement.name.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _collection base names TypeScript_. **/
@@ -74,16 +74,16 @@ if (ts.isInterfaceDeclaration(statement) || ts.isTypeAliasDeclaration(statement)
 			return [];
 		}
 		return clauses
-			.filter(clause => clause.token === ts.SyntaxKind.ExtendsKeyword)
-			.flatMap(clause => clause.types.map(type => type.expression.getText(source_file)));
+			.filter((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword)
+			.flatMap((clause) => clause.types.map((type) => type.expression.getText(source_file)));
 	}
 
 	/** Responsibilities: _normalization TypeScript type member_. **/
 	private type_field(member: ts.TypeElement, source_file: ts.SourceFile): string {
-if (!ts.isPropertySignature(member) || member.name === undefined) {
-			return '';
+		if (!ts.isPropertySignature(member) || member.name === undefined) {
+			return "";
 		}
-		let type = '';
+		let type = "";
 		if (member.type !== undefined) {
 			type = member.type.getText(source_file);
 		}
@@ -91,21 +91,17 @@ if (!ts.isPropertySignature(member) || member.name === undefined) {
 	}
 
 	/** Responsibilities: _nested TypeScript shape collection_. **/
-	private append_typescript_shape(
-		shapes: NamedShape[],
-		source_file: ts.SourceFile,
-		node: ts.Node
-	): void {
+	private append_typescript_shape(shapes: NamedShape[], source_file: ts.SourceFile, node: ts.Node): void {
 		if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) {
 			const members = this.type_members(node);
 			const name = this.type_name(node);
-			if (name !== '' && members.length > 0) {
-				const fields = members.map(member => this.type_field(member, source_file)).filter(field => field !== '');
+			if (name !== "" && members.length > 0) {
+				const fields = members.map((member) => this.type_field(member, source_file)).filter((field) => field !== "");
 				const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
 				shapes.push({ name, line, fields, base_names: this.type_base_names(node, source_file) });
 			}
 		}
-		node.forEachChild(child => this.append_typescript_shape(shapes, source_file, child));
+		node.forEachChild((child) => this.append_typescript_shape(shapes, source_file, child));
 	}
 
 	/** Responsibilities: _collection normalization TypeScript interface_. **/
@@ -117,10 +113,10 @@ if (!ts.isPropertySignature(member) || member.name === undefined) {
 
 	/** Responsibilities: _normalization Python classes conversion_. **/
 	private python_shapes(classes: readonly AstClassNode[]): NamedShape[] {
-		return classes.map(class_node => ({
+		return classes.map((class_node) => ({
 			name: class_node.name,
 			line: class_node.start + 1,
-			fields: class_node.fields.map(field => `${field.name}:${field.type}`),
+			fields: class_node.fields.map((field) => `${field.name}:${field.type}`),
 			base_names: class_node.base_class_names,
 		}));
 	}

@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { TypeScriptReferenceShape, TypeScriptTypeDetails } from 'src/model/types';
+import ts from "typescript";
+import type { TypeScriptReferenceShape, TypeScriptTypeDetails } from "src/model/types";
 
 /** Responsibilities: _classification TypeScript type nodes_. **/
 export class TypeScriptTypeNode {
@@ -48,7 +48,7 @@ export class TypeScriptTypeNode {
 
 	/** Responsibilities: _normalization type reference name_. **/
 	private reference_shape(): TypeScriptReferenceShape {
-		let name = '';
+		let name = "";
 		let arguments_list: readonly ts.TypeNode[] = [];
 		if (ts.isTypeReferenceNode(this.node)) {
 			if (!ts.isIdentifier(this.node.typeName)) {
@@ -64,11 +64,11 @@ export class TypeScriptTypeNode {
 
 	/** Responsibilities: _classification type node primitive_. **/
 	private primitive_node(node: ts.TypeNode): boolean {
-if (ts.isLiteralTypeNode(node) && this.literal_is_primitive(node.literal)) {
+		if (ts.isLiteralTypeNode(node) && this.literal_is_primitive(node.literal)) {
 			return true;
 		}
 		if (ts.isUnionTypeNode(node)) {
-			return node.types.every(item => this.primitive_node(item));
+			return node.types.every((item) => this.primitive_node(item));
 		}
 		return this.primitive_kinds.has(node.kind);
 	}

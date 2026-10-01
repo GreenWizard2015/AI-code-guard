@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptTypedCallableBindings } from 'src/typescript-callable-aliases/typed-callable-bindings';
+import ts from "typescript";
+import { TypeScriptTypedCallableBindings } from "src/typescript-callable-aliases/typed-callable-bindings";
 
 /** Responsibilities: _typed callable contract bindings_. **/
 export class TypeScriptContractBindings {

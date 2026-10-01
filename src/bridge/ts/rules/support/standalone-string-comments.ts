@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { CyrillicCommentText } from 'src/bridge/ts/rules/types';
+import ts from "typescript";
+import type { CyrillicCommentText } from "src/bridge/ts/rules/types";
 
 /** Responsibilities: _standalone string comment analysis_. **/
 export class StandaloneStringComments {
@@ -7,11 +7,7 @@ export class StandaloneStringComments {
 	private readonly source_file: ts.SourceFile;
 
 	/** Responsibilities: _standalone template recording_. **/
-	private append_template(
-		node: ts.Node,
-		source_file: ts.SourceFile,
-		comments: CyrillicCommentText[],
-	): void {
+	private append_template(node: ts.Node, source_file: ts.SourceFile, comments: CyrillicCommentText[]): void {
 		if (!ts.isExpressionStatement(node)) {
 			return;
 		}
@@ -38,37 +34,28 @@ export class StandaloneStringComments {
 	): string {
 		comments.push({ line: line_number, text: line });
 		if (line.includes(delimiter)) {
-			return '';
+			return "";
 		}
 		return delimiter;
 	}
 
 	/** Responsibilities: _Python string comment openings_. **/
-	private append_opening(
-		line: string,
-		line_number: number,
-		comments: CyrillicCommentText[],
-	): string {
+	private append_opening(line: string, line_number: number, comments: CyrillicCommentText[]): string {
 		const match = line.match(/^[ \t]*[rRuUbBfFtT]{0,2}("""|''')/u);
 		if (match === null) {
-			return '';
+			return "";
 		}
 		comments.push({ line: line_number, text: line });
 		const content = line.slice(match[0].length);
 		if (content.includes(match[1])) {
-			return '';
+			return "";
 		}
 		return match[1];
 	}
 
 	/** Responsibilities: _standalone Python line dispatch_. **/
-	private append_line(
-		line: string,
-		line_number: number,
-		delimiter: string,
-		comments: CyrillicCommentText[],
-	): string {
-		if (delimiter !== '') {
+	private append_line(line: string, line_number: number, delimiter: string, comments: CyrillicCommentText[]): string {
+		if (delimiter !== "") {
 			return this.append_continuation(line, line_number, delimiter, comments);
 		}
 		return this.append_opening(line, line_number, comments);
@@ -77,13 +64,7 @@ export class StandaloneStringComments {
 	/** Responsibilities: _standalone string comment initialization_. **/
 	public constructor(text: string) {
 		this.text = text;
-		this.source_file = ts.createSourceFile(
-			'source.ts',
-			text,
-			ts.ScriptTarget.Latest,
-			true,
-			ts.ScriptKind.TS,
-		);
+		this.source_file = ts.createSourceFile("source.ts", text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 	}
 
 	/** Responsibilities: _standalone template collection_. **/
@@ -100,8 +81,8 @@ export class StandaloneStringComments {
 	/** Responsibilities: _standalone Python triple-quoted collection_. **/
 	public python_comments(): CyrillicCommentText[] {
 		const comments: CyrillicCommentText[] = [];
-		let delimiter = '';
-		for (const [index, line] of this.text.split('\n').entries()) {
+		let delimiter = "";
+		for (const [index, line] of this.text.split("\n").entries()) {
 			delimiter = this.append_line(line, index + 1, delimiter, comments);
 		}
 		return comments;

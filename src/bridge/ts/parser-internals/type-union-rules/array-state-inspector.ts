@@ -1,20 +1,17 @@
-import ts from 'typescript';
-import { TypeScriptCallAliases } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-call-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
-import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
+import ts from "typescript";
+import { TypeScriptCallAliases } from "src/bridge/ts/parser-internals/type-union-rules/typescript-call-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type-aliases";
 
 /** Responsibilities: _array result detection_. **/
 export class TypeScriptArrayStateInspector {
 	private readonly expression_names = new TypeScriptExpressionNames();
-	private readonly array_type_names = new Set(['Array', 'ReadonlyArray']);
+	private readonly array_type_names = new Set(["Array", "ReadonlyArray"]);
 	private readonly call_aliases = new TypeScriptCallAliases();
 	private readonly type_aliases = new TypeScriptTypeAliases();
 
 	/** Responsibilities: _invocation alias name_. **/
-	private invocation_name(
-		expression: ts.CallExpression,
-		aliases: ReadonlyMap<string, string>
-	): string {
+	private invocation_name(expression: ts.CallExpression, aliases: ReadonlyMap<string, string>): string {
 		const name = this.call_aliases.call_name(expression);
 		const resolved = aliases.get(name);
 		if (resolved !== undefined) {
@@ -24,30 +21,23 @@ export class TypeScriptArrayStateInspector {
 	}
 
 	/** Responsibilities: _callable name lookup_. **/
-	private indexed_call_name(
-		expression: ts.Expression,
-	 aliases: ReadonlyMap<string, string>
-	): string {
+	private indexed_call_name(expression: ts.Expression, aliases: ReadonlyMap<string, string>): string {
 		expression = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isCallExpression(expression)) {
 			return this.invocation_name(expression, aliases);
 		}
 		if (!ts.isIdentifier(expression)) {
-			return '';
+			return "";
 		}
 		const name = aliases.get(expression.text);
 		if (name === undefined) {
-			return '';
+			return "";
 		}
 		return name;
 	}
 
 	/** Responsibilities: _nested callable declaration collection_. **/
-	private append_nested_callables(
-		node: ts.Node,
-		name: string,
-		declarations: ts.FunctionLikeDeclaration[]
-	): void {
+	private append_nested_callables(node: ts.Node, name: string, declarations: ts.FunctionLikeDeclaration[]): void {
 		if (ts.isFunctionDeclaration(node) && node.name?.text === name) {
 			declarations.push(node);
 		}
@@ -64,7 +54,7 @@ export class TypeScriptArrayStateInspector {
 				declarations.push(initializer);
 			}
 		}
-		ts.forEachChild(node, child => this.append_nested_callables(child, name, declarations));
+		ts.forEachChild(node, (child) => this.append_nested_callables(child, name, declarations));
 	}
 
 	/** Responsibilities: _collection callable declarations matching_. **/
@@ -97,8 +87,8 @@ export class TypeScriptArrayStateInspector {
 			return false;
 		}
 		visited.add(text);
-		const normalized = text.replace(/^readonly\s+/u, '');
-		if (normalized.endsWith('[]') || normalized.startsWith('Array<') || normalized.startsWith('ReadonlyArray<')) {
+		const normalized = text.replace(/^readonly\s+/u, "");
+		if (normalized.endsWith("[]") || normalized.startsWith("Array<") || normalized.startsWith("ReadonlyArray<")) {
 			return true;
 		}
 		const readonly_match = /^Readonly<(.+)>$/u.exec(normalized);
@@ -159,7 +149,7 @@ export class TypeScriptArrayStateInspector {
 		if (returns.length === 0) {
 			return false;
 		}
-		return returns.every(expression => this.single_item_array(expression));
+		return returns.every((expression) => this.single_item_array(expression));
 	}
 
 	/** Responsibilities: _classification single-item array expression_. **/
@@ -173,23 +163,21 @@ export class TypeScriptArrayStateInspector {
 
 	/** Responsibilities: _single-item method detection_. **/
 	public single_item_method(node: ts.CallExpression, source_file: ts.SourceFile): boolean {
-		if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'at') {
+		if (!ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== "at") {
 			return false;
 		}
 		if (node.arguments.length !== 1) {
 			return false;
 		}
 		const argument = this.expression_names.unwrap_transparent_expression(node.arguments[0]);
-		if (!ts.isNumericLiteral(argument) || argument.text !== '0') {
+		if (!ts.isNumericLiteral(argument) || argument.text !== "0") {
 			return false;
 		}
 		const name = this.indexed_call_name(node.expression.expression, this.call_aliases.names(source_file));
 		if (name.length === 0) {
 			return false;
 		}
-		return this.callable_declarations(source_file, name).some(callable =>
-			this.single_item_callable(callable)
-		);
+		return this.callable_declarations(source_file, name).some((callable) => this.single_item_callable(callable));
 	}
 
 	/** Responsibilities: _single-item callable detection_. **/
@@ -206,8 +194,6 @@ export class TypeScriptArrayStateInspector {
 		if (name.length === 0) {
 			return false;
 		}
-		return this.callable_declarations(source_file, name).some(callable =>
-			this.single_item_callable(callable)
-		);
+		return this.callable_declarations(source_file, name).some((callable) => this.single_item_callable(callable));
 	}
 }

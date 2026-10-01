@@ -1,5 +1,5 @@
-import { resolve, isAbsolute } from 'node:path';
-import type { ReportViolation } from 'src/types';
+import { resolve, isAbsolute } from "node:path";
+import type { ReportViolation } from "src/types";
 
 /** Responsibilities: _group task violations priority_. **/
 export class TaskViolationGroups {
@@ -30,10 +30,7 @@ export class TaskViolationGroups {
 	}
 
 	/** Responsibilities: _selection violations requested priority_. **/
-	public at_priority(
-		violations: readonly ReportViolation[],
-		priority: number,
-	): ReportViolation[] {
+	public at_priority(violations: readonly ReportViolation[], priority: number): ReportViolation[] {
 		const result: ReportViolation[] = [];
 		for (const violation of violations) {
 			if (violation.priority === priority) {
@@ -58,9 +55,7 @@ export class TaskViolationGroups {
 	}
 
 	/** Responsibilities: _absolute source violation count_. **/
-	public file_counts(
-		violations: readonly ReportViolation[],
-	): Map<string, number> {
+	public file_counts(violations: readonly ReportViolation[]): Map<string, number> {
 		const counts = new Map<string, number>();
 		for (const violation of violations) {
 			const file = this.absolute_file(violation.file);

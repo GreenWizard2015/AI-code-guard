@@ -1,10 +1,10 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { AstCallableNode, AstClassNode } from 'src/types';
-import type { TypeScriptClassCallableNodesProtocol } from 'src/model/protocols';
-import { TypeScriptClassMembers } from 'src/parser/ts/typescript-class-members';
+import type { AstCallableNode, AstClassNode } from "src/types";
+import type { TypeScriptClassCallableNodesProtocol } from "src/model/protocols";
+import { TypeScriptClassMembers } from "src/parser/ts/typescript-class-members";
 
-import type { ClassNodeData, ClassNodeOptions, SourceRange } from 'src/types';
+import type { ClassNodeData, ClassNodeOptions, SourceRange } from "src/types";
 
 /** Responsibilities: _TypeScript class metrics construction_. **/
 export class TypeScriptClassNodes {
@@ -25,7 +25,7 @@ export class TypeScriptClassNodes {
 	}
 
 	/** Responsibilities: _collection nested class nodes_. **/
-	private append_class_nodes(node: ts.Node, classes: AstClassNode[], fallback_name = ''): void {
+	private append_class_nodes(node: ts.Node, classes: AstClassNode[], fallback_name = ""): void {
 		if (ts.isClassDeclaration(node)) {
 			classes.push(this.class_node(node));
 		} else if (ts.isClassExpression(node)) {
@@ -35,7 +35,7 @@ export class TypeScriptClassNodes {
 			this.append_variable_nodes(node, classes);
 			return;
 		}
-		node.forEachChild(child => this.append_class_nodes(child, classes));
+		node.forEachChild((child) => this.append_class_nodes(child, classes));
 	}
 
 	/** Responsibilities: _collection nested interface nodes_. **/
@@ -46,19 +46,12 @@ export class TypeScriptClassNodes {
 				fields: this.member_data.interface_fields(node),
 			});
 		}
-		node.forEachChild(child => this.append_interface_nodes(child, interfaces));
+		node.forEachChild((child) => this.append_interface_nodes(child, interfaces));
 	}
 
 	/** Responsibilities: _combine class data_. **/
-	private class_node(
-		node: ts.ClassLikeDeclaration,
-		fallback_name = '<anonymous>'
-	): AstClassNode {
-		const methods = this.callable_nodes.class_method_nodes(
-			{ source_file: this.source_file },
-			node,
-			fallback_name
-		);
+	private class_node(node: ts.ClassLikeDeclaration, fallback_name = "<anonymous>"): AstClassNode {
+		const methods = this.callable_nodes.class_method_nodes({ source_file: this.source_file }, node, fallback_name);
 		const range = this.class_line_range(node);
 		const interfaces = this.implemented_interfaces(node);
 		return this.build_class_node({
@@ -91,7 +84,7 @@ export class TypeScriptClassNodes {
 			if (clause.token !== ts.SyntaxKind.ImplementsKeyword) {
 				continue;
 			}
-			interfaces.push(...clause.types.map(type => type.expression.getText(this.source_file)));
+			interfaces.push(...clause.types.map((type) => type.expression.getText(this.source_file)));
 		}
 		return interfaces;
 	}
@@ -139,15 +132,15 @@ export class TypeScriptClassNodes {
 	private extends_class_name(node: ts.ClassLikeDeclaration): string {
 		const clauses = node.heritageClauses;
 		if (clauses === undefined) {
-			return '';
+			return "";
 		}
 		for (const clause of clauses) {
-if (clause.token !== ts.SyntaxKind.ExtendsKeyword || !clause.types[0]) {
+			if (clause.token !== ts.SyntaxKind.ExtendsKeyword || !clause.types[0]) {
 				continue;
 			}
 			return clause.types[0].expression.getText(this.source_file);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _sum member lines_. **/

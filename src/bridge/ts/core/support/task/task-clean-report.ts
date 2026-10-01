@@ -1,8 +1,4 @@
-import type {
-	TaskDocumentationProtocol,
-	TaskReviewProtocol,
-	TaskWorkspaceProtocol,
-} from "src/protocols";
+import type { TaskDocumentationProtocol, TaskReviewProtocol, TaskWorkspaceProtocol } from "src/protocols";
 import { MAX_REVIEW_LINES, MIN_REVIEW_LINES } from "src/constants";
 
 /** Responsibilities: _task report formatting_. **/
@@ -18,9 +14,7 @@ export class TaskCleanReport {
 			if (this.review.line_count(file) >= MIN_REVIEW_LINES) {
 				continue;
 			}
-			notices.push(
-				`File ${file} is too short. Add concrete architectural details, evidence, and impact.`,
-			);
+			notices.push(`File ${file} is too short. Add concrete architectural details, evidence, and impact.`);
 		}
 		return notices;
 	}
@@ -31,7 +25,7 @@ export class TaskCleanReport {
 			...notices,
 			"Total issues: 0.\nTotal files: 0.",
 			this.documentation.philosophy(),
-			this.review.instruction(),
+			this.review.primary_instruction(),
 		].join("\n\n");
 	}
 
@@ -47,11 +41,7 @@ export class TaskCleanReport {
 	}
 
 	/** Responsibilities: _review report formatting_. **/
-	public format_review(
-		file: string,
-		total: number,
-		notices: readonly string[],
-	): string {
+	public format_review(file: string, total: number, notices: readonly string[]): string {
 		if (this.review.line_count(file) < MIN_REVIEW_LINES) {
 			return [
 				...notices,
@@ -79,11 +69,7 @@ export class TaskCleanReport {
 	public format(): string {
 		this.workspace.clear_batch();
 		if (this.review.completed()) {
-			return [
-				"Total issues: 0.",
-				"Total files: 0.",
-				"Architecture review completion code verified.",
-			].join("\n");
+			return ["Total issues: 0.", "Total files: 0.", "Architecture review completion code verified."].join("\n");
 		}
 		const notices = this.short_file_notices();
 		const review_files = this.review.files();

@@ -1,7 +1,7 @@
-import { Violation as ViolationClass } from 'src/parser/ts/violation';
-import { RULE_DATA } from 'src/parser/ts/constants';
-import type { Rule, Violation } from 'src/protocols';
-import type { RuleParameters } from 'src/types';
+import { Violation as ViolationClass } from "src/parser/ts/violation";
+import { RULE_DATA } from "src/parser/ts/constants";
+import type { Rule, Violation } from "src/protocols";
+import type { RuleParameters } from "src/types";
 
 /** Responsibilities: _rule metadata resolution_, _diagnostic violations rendering_. **/
 export class DiagnosticRule implements Rule {
@@ -51,11 +51,7 @@ export class DiagnosticRule implements Rule {
 	}
 
 	/** Responsibilities: _creation rendered diagnostic violation_. **/
-	public violation(
-		file: string,
-		line: number,
-		parameters: RuleParameters = {},
-	): Violation {
+	public violation(file: string, line: number, parameters: RuleParameters = {}): Violation {
 		const message_parameters = parameters;
 		return new ViolationClass({
 			file,

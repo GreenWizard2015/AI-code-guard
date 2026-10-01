@@ -1,8 +1,8 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { CodeClass, ImportedSymbol } from 'src/types';
-import { TypeScriptModuleExports } from 'src/module-resolution/resolver';
-import type { LocalImport, TypeScriptComposition } from 'src/bridge/ts/runner/orchestration/runtime/composition/types';
+import type { CodeClass, ImportedSymbol } from "src/types";
+import { TypeScriptModuleExports } from "src/module-resolution/resolver";
+import type { LocalImport, TypeScriptComposition } from "src/bridge/ts/runner/orchestration/runtime/composition/types";
 
 /** Responsibilities: _construction class composition models_. **/
 export class TypeScriptCompositionModel {
@@ -19,9 +19,7 @@ export class TypeScriptCompositionModel {
 		if (!ts.isVariableStatement(statement)) {
 			return [];
 		}
-		return statement.declarationList.declarations.flatMap(declaration =>
-			this.class_from_declaration(declaration)
-		);
+		return statement.declarationList.declarations.flatMap((declaration) => this.class_from_declaration(declaration));
 	}
 
 	/** Responsibilities: _collection class variable declaration_. **/
@@ -34,7 +32,7 @@ export class TypeScriptCompositionModel {
 	}
 
 	/** Responsibilities: _construction class composition record_. **/
-	private create_class(node: ts.ClassLikeDeclaration, fallback_name = '<anonymous>'): CodeClass {
+	private create_class(node: ts.ClassLikeDeclaration, fallback_name = "<anonymous>"): CodeClass {
 		let name = fallback_name;
 		if (node.name !== undefined) {
 			name = node.name.text;
@@ -62,10 +60,10 @@ export class TypeScriptCompositionModel {
 	/** Responsibilities: _collection dependencies field_. **/
 	private field_dependencies(node: ts.Node): string[] {
 		const dependencies: string[] = [];
-if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
+		if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 			dependencies.push(node.expression.text);
 		}
-		node.forEachChild(child => dependencies.push(...this.field_dependencies(child)));
+		node.forEachChild((child) => dependencies.push(...this.field_dependencies(child)));
 		return dependencies;
 	}
 
@@ -89,14 +87,14 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 	private local_import_file(node: ts.ImportDeclaration): string {
 		const module_specifier = node.moduleSpecifier;
 		if (!ts.isStringLiteral(module_specifier)) {
-			return '';
+			return "";
 		}
-		if (!module_specifier.text.startsWith('.')) {
-			return '';
+		if (!module_specifier.text.startsWith(".")) {
+			return "";
 		}
 		const file = this.export_resolver.module_symbol(this.file, module_specifier.text);
 		if (file.length === 0) {
-			return '';
+			return "";
 		}
 		return file;
 	}
@@ -106,7 +104,7 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 		for (const resolved of this.local_import(statement)) {
 			const { clause, file: imported_file } = resolved;
 			if (clause.name) {
-				imports.set(clause.name.text, this.imported_symbol(imported_file, 'default'));
+				imports.set(clause.name.text, this.imported_symbol(imported_file, "default"));
 			}
 			this.add_named_imports(clause, imported_file, imports);
 		}
@@ -125,7 +123,7 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 	private add_named_imports(
 		clause: ts.ImportClause,
 		imported_file: string,
-		imports: Map<string, ImportedSymbol>
+		imports: Map<string, ImportedSymbol>,
 	): void {
 		if (clause.namedBindings === undefined) {
 			return;
@@ -156,9 +154,9 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 	}
 
 	/** Responsibilities: _composition model state initialization_. **/
-	constructor(file: string, text: string, source_file: ts.SourceFile);
+	constructor(file: string, source_file: ts.SourceFile);
 	/** Responsibilities: _composition model state initialization_. **/
-	constructor(file: string, _text: string, source_file: ts.SourceFile) {
+	constructor(file: string, source_file: ts.SourceFile) {
 		this.file = file;
 		this.source_file = source_file;
 	}
@@ -166,9 +164,7 @@ if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
 	/** Responsibilities: _construction TypeScript composition model_. **/
 	public composition(): TypeScriptComposition {
 		const imports = this.imports();
-		const classes = this.source_file.statements.flatMap(statement =>
-			this.classes_from_statement(statement)
-		);
+		const classes = this.source_file.statements.flatMap((statement) => this.classes_from_statement(statement));
 		return { classes, imports };
 	}
 

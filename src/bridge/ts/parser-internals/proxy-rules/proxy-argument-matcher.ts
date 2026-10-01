@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _proxy argument matching_. **/
 export class ProxyArgumentMatcher {
@@ -61,7 +61,7 @@ export class ProxyArgumentMatcher {
 
 	/** Responsibilities: _unsupported spread argument classification_. **/
 	private unsupported_spread_arguments(arguments_list: ts.NodeArray<ts.Expression>): boolean {
-		return arguments_list.some(argument => {
+		return arguments_list.some((argument) => {
 			if (!ts.isSpreadElement(argument)) {
 				return false;
 			}
@@ -78,7 +78,7 @@ export class ProxyArgumentMatcher {
 		if (ts.isIdentifier(current)) {
 			return current.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _argument name collection_. **/

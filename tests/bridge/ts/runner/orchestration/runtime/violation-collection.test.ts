@@ -1,49 +1,51 @@
-import 'src/bridge/ts/runner/orchestration/runtime/file-lint';
-import 'src/bridge/ts/runner/orchestration/runtime/coding-rules';
-import { TestFixture } from 'tests/core/test-fixture';
+import "src/bridge/ts/runner/orchestration/runtime/file-lint";
+import "src/bridge/ts/runner/orchestration/runtime/coding-rules";
+import { TestFixture } from "tests/core/test-fixture";
 
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from "@jest/globals";
 
-describe('coding-lint collection', () => {
+describe("coding-lint collection", () => {
 	const fixture = new TestFixture();
 
-	test('processes every file and returns all phases', () => {
+	test("processes every file and returns all phases", () => {
 		const report = fixture.collect_fixture_report({
-			'first.ts': 'const first = a.b.c.d.e;\n',
-			'second.ts': 'const second = a.b.c.d.e;\n',
+			"first.ts": "const first = a.b.c.d.e;\n",
+			"second.ts": "const second = a.b.c.d.e;\n",
 		});
 		expect({
-			first: report.violations.filter(item => item.file.endsWith('first.ts')).length > 0,
-			second: report.violations.filter(item => item.file.endsWith('second.ts')).length > 0,
+			first: report.violations.filter((item) => item.file.endsWith("first.ts")).length > 0,
+			second: report.violations.filter((item) => item.file.endsWith("second.ts")).length > 0,
 			keys: Object.keys(report),
-		}).toEqual({ first: true, second: true, keys: ['files', 'violations'] });
+		}).toEqual({ first: true, second: true, keys: ["files", "violations"] });
 	});
 
-	test('reports syntax errors from incomplete Python files without crashing', () => {
-		const report = fixture.collect_fixture_report({ 'invalid.py': 'def broken(\n' });
+	test("reports syntax errors from incomplete Python files without crashing", () => {
+		const report = fixture.collect_fixture_report({ "invalid.py": "def broken(\n" });
 
-		expect(report.violations).toContainEqual(expect.objectContaining({
-			rule_id: 'parse-error',
-			file: expect.stringMatching(/invalid\.py$/u),
-		}));
-	});
-
-	test('uses sibling files as context when one file is selected', () => {
-		const violations = fixture.collect_fixture_violations(
-			{ 'base.ts': 'export class Base {}\n', 'child.ts': 'export class Child extends Base {}\n' },
-			['child.ts']
+		expect(report.violations).toContainEqual(
+			expect.objectContaining({
+				rule_id: "parse-error",
+				file: expect.stringMatching(/invalid\.py$/u),
+			}),
 		);
-		expect(violations.map(item => item.file.endsWith('base.ts'))).not.toContain(true);
+	});
+
+	test("uses sibling files as context when one file is selected", () => {
+		const violations = fixture.collect_fixture_violations(
+			{ "base.ts": "export class Base {}\n", "child.ts": "export class Child extends Base {}\n" },
+			["child.ts"],
+		);
+		expect(violations.map((item) => item.file.endsWith("base.ts"))).not.toContain(true);
 		expect(violations).toContainEqual(expect.objectContaining({ message: 'class inherits from local class "Base"' }));
 	});
 
-	test('keeps shared violation selection empty when there are no violations', () => {
+	test("keeps shared violation selection empty when there are no violations", () => {
 		const shared = fixture.shared_violations([]);
 		expect(shared).toEqual([]);
 		expect(shared).toHaveLength(0);
 	});
 
-	test('does not return non-shared diagnostics from shared selection', () => {
+	test("does not return non-shared diagnostics from shared selection", () => {
 		const shared = fixture.shared_violations([]);
 		expect(shared).toHaveLength(0);
 		expect(shared).toEqual([]);

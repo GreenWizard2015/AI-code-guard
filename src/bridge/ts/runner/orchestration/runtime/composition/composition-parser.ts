@@ -1,23 +1,19 @@
-import { PythonCompositionImports } from 'src/bridge/ts/runner/orchestration/runtime/composition/python-composition-imports';
-import type { LintSourceRecord } from 'src/types';
-import { ClassDependencyMap } from 'src/bridge/ts/runner/orchestration/runtime/composition/class-dependency-resolver';
-import { TypeScriptCompositionModel } from 'src/bridge/ts/runner/orchestration/runtime/composition/typescript-composition-builder';
-import type { AstPythonImport } from 'src/types';
+import { PythonCompositionImports } from "src/bridge/ts/runner/orchestration/runtime/composition/python-composition-imports";
+import type { LintSourceRecord } from "src/types";
+import { ClassDependencyMap } from "src/bridge/ts/runner/orchestration/runtime/composition/class-dependency-resolver";
+import { TypeScriptCompositionModel } from "src/bridge/ts/runner/orchestration/runtime/composition/typescript-composition-builder";
+import type { AstPythonImport } from "src/types";
 
-
-import type { ClassGraph, CodeClass, CompositionResult } from 'src/bridge/ts/runner/orchestration/runtime/types';
+import type { ClassGraph, CodeClass, CompositionResult } from "src/bridge/ts/runner/orchestration/runtime/types";
 
 /** Responsibilities: _Python TypeScript source parsing_. **/
 export class CompositionModel {
-	private readonly python_language = 'python' as const;
+	private readonly python_language = "python" as const;
 	/** Responsibilities: _class nodes imports addition_. **/
 	private add_file_classes(graph: ClassGraph, source: LintSourceRecord): void {
 		const composition = this.parse_composition(source);
 		graph.imports_by_file.set(source.absolute_path, composition.imports);
-		graph.classes_by_file.set(
-			source.absolute_path,
-			new Map(composition.classes.map(item => [item.name, item]))
-		);
+		graph.classes_by_file.set(source.absolute_path, new Map(composition.classes.map((item) => [item.name, item])));
 		for (const item of composition.classes) {
 			graph.classes.set(item.key, item);
 		}
@@ -26,11 +22,7 @@ export class CompositionModel {
 	/** Responsibilities: _language-specific composition parsing_. **/
 	private parse_composition(source: LintSourceRecord): CompositionResult {
 		if (source.language !== this.python_language) {
-			const builder = new TypeScriptCompositionModel(
-				source.absolute_path,
-				source.text,
-				source.typescript_ast.source_file_node()
-			);
+			const builder = new TypeScriptCompositionModel(source.absolute_path, source.typescript_ast.source_file_node());
 			return builder.composition();
 		}
 		return this.parse_python_composition(source);
@@ -41,10 +33,7 @@ export class CompositionModel {
 		const python_composition_imports = new PythonCompositionImports();
 		return {
 			classes: this.python_classes(source),
-			imports: python_composition_imports.python_imports(
-				source.absolute_path,
-				this.python_imports(source)
-			),
+			imports: python_composition_imports.python_imports(source.absolute_path, this.python_imports(source)),
 		};
 	}
 
@@ -60,16 +49,16 @@ export class CompositionModel {
 	/** Responsibilities: _normalization Python classes conversion_. **/
 	private python_classes(source: LintSourceRecord): CodeClass[] {
 		const ast = source.normalized_ast;
-		return ast.classes.map(node => {
+		return ast.classes.map((node) => {
 			let dependencies = node.dependencies;
 			if (dependencies === undefined) {
 				dependencies = [];
 			}
 			return {
 				key: `${source.absolute_path}:${node.name}`,
-			file: source.absolute_path,
-			line: node.start,
-			name: node.name,
+				file: source.absolute_path,
+				line: node.start,
+				name: node.name,
 				dependencies,
 			};
 		});

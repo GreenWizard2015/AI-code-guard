@@ -1,6 +1,6 @@
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type { AstCallableNode, AstClassNode } from 'src/types';
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { AstCallableNode, AstClassNode } from "src/types";
 /** Responsibilities: _reporting callback API mixin_. **/
 export class MethodSpecializationReporter {
 	private readonly violations: Violation[];
@@ -14,7 +14,7 @@ export class MethodSpecializationReporter {
 	/** Responsibilities: _hook method classification_. **/
 	private external_hook_method(method: AstCallableNode): boolean {
 		for (const decorator of method.decorators) {
-			if (decorator.toLowerCase().includes('hook')) {
+			if (decorator.toLowerCase().includes("hook")) {
 				return true;
 			}
 		}
@@ -23,10 +23,10 @@ export class MethodSpecializationReporter {
 
 	/** Responsibilities: _specialization method selection_. **/
 	private included_method(method: AstCallableNode): boolean {
-		if (method.name === 'constructor') {
+		if (method.name === "constructor") {
 			return false;
 		}
-		if (method.name === '__init__') {
+		if (method.name === "__init__") {
 			return false;
 		}
 		return !this.external_hook_method(method);
@@ -38,66 +38,52 @@ export class MethodSpecializationReporter {
 		if (inline_callback_fields === 0) {
 			return;
 		}
-		const rule = new DiagnosticRule('class-callback-fields');
+		const rule = new DiagnosticRule("class-callback-fields");
 		this.violations.push(
 			rule.violation(this.file, this.node.start + 1, {
 				count: String(inline_callback_fields),
-			})
+			}),
 		);
 	}
 
 	/** Responsibilities: _aggregation implementation metrics concrete_. **/
 	private append_implementation_rules(methods: readonly AstCallableNode[]): void {
-		const count = methods.filter(method => method.visibility !== 'public').length;
+		const count = methods.filter((method) => method.visibility !== "public").length;
 		if (count > 15) {
-			const rule = new DiagnosticRule('class-method-max-count');
+			const rule = new DiagnosticRule("class-method-max-count");
 			this.violations.push(
-					rule.violation(
-					this.file,
-					this.node.start + 1,
-					{ count: String(count), visibility: 'non-public' }
-				)
+				rule.violation(this.file, this.node.start + 1, { count: String(count), visibility: "non-public" }),
 			);
 		}
 	}
 
 	/** Responsibilities: _aggregation visibility method-count diagnostics_. **/
-	private append_public_rules(
-		methods: readonly AstCallableNode[],
-		implements_interface: boolean
-	): void {
-		const count = methods.filter(method => method.visibility === 'public').length;
+	private append_public_rules(methods: readonly AstCallableNode[], implements_interface: boolean): void {
+		const count = methods.filter((method) => method.visibility === "public").length;
 		const rule_id = this.public_method_rule(count, implements_interface);
 		if (rule_id.length > 0) {
 			const rule = new DiagnosticRule(rule_id);
 			this.violations.push(
-					rule.violation(
-					this.file,
-					this.node.start + 1,
-					{ count: String(count), visibility: 'public' }
-				)
+				rule.violation(this.file, this.node.start + 1, { count: String(count), visibility: "public" }),
 			);
 		}
 	}
 
 	/** Responsibilities: _creation configuration public-method diagnostic_. **/
-	private public_method_rule(
-		count: number,
-		implements_interface: boolean
-	): string {
+	private public_method_rule(count: number, implements_interface: boolean): string {
 		if (implements_interface && count < 2) {
-			return '';
+			return "";
 		}
 		if (count < 2) {
-			return 'class-method-min-count';
+			return "class-method-min-count";
 		}
 		if (count > 15) {
-			return 'class-method-max-count';
+			return "class-method-max-count";
 		}
 		if (count > 5) {
-			return 'class-method-count-info';
+			return "class-method-count-info";
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _classification class participates mixin_. **/
@@ -109,18 +95,18 @@ export class MethodSpecializationReporter {
 		if (this.node.base_class_name) {
 			base_names = [this.node.base_class_name];
 		}
-return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith('Mixin'));
+		return this.node.name.endsWith("Mixin") || base_names.some((name) => name.endsWith("Mixin"));
 	}
 
 	/** Responsibilities: _classification inherited class_. **/
 	private has_base_type(): boolean {
-if (this.node.interfaces !== undefined && this.node.interfaces.length > 0) {
+		if (this.node.interfaces !== undefined && this.node.interfaces.length > 0) {
 			return true;
 		}
-if (this.node.base_class_name !== undefined && this.node.base_class_name.length > 0) {
+		if (this.node.base_class_name !== undefined && this.node.base_class_name.length > 0) {
 			return true;
 		}
-return this.node.base_class_names !== undefined && this.node.base_class_names.length > 0;
+		return this.node.base_class_names !== undefined && this.node.base_class_names.length > 0;
 	}
 
 	/** Responsibilities: _initialization violation sink file_. **/
@@ -128,9 +114,7 @@ return this.node.base_class_names !== undefined && this.node.base_class_names.le
 		this.violations = violations;
 		this.file = file;
 		this.node = node;
-		this.methods = node.methods.filter(
-			method => this.included_method(method)
-		);
+		this.methods = node.methods.filter((method) => this.included_method(method));
 	}
 
 	/** Responsibilities: _reporting API-facing class method_. **/

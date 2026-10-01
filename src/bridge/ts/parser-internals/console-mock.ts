@@ -1,16 +1,16 @@
-import ts from 'typescript';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptObjectAliases } from 'src/typescript-aliases/typescript-object-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
+import ts from "typescript";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptObjectAliases } from "src/typescript-aliases/typescript-object-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
 
 /** Responsibilities: _classification console mocks assignments_. **/
 export class ConsoleMock {
-	private readonly mock_methods = new Set(['spyOn', 'stub']);
-	private readonly assignment_methods = new Set(['fn', 'mock']);
-	private readonly console_aliases = new TypeScriptMemberAliases('console', () => '');
-	private readonly jest_aliases = new TypeScriptMemberAliases('jest', () => '');
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly mock_methods = new Set(["spyOn", "stub"]);
+	private readonly assignment_methods = new Set(["fn", "mock"]);
+	private readonly console_aliases = new TypeScriptMemberAliases("console", () => "");
+	private readonly jest_aliases = new TypeScriptMemberAliases("jest", () => "");
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
 
 	/** Responsibilities: _source object aliases_. **/
@@ -37,7 +37,7 @@ export class ConsoleMock {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		const key = this.expression_aliases.unwrapped(expression.argumentExpression);
 		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
@@ -49,14 +49,14 @@ export class ConsoleMock {
 	/** Responsibilities: _classification invocation invokes configuration_. **/
 	private is_mock_call(node: ts.CallExpression): boolean {
 		let method = this.member_name(node.expression, node);
-		if (method === '') {
+		if (method === "") {
 			if (!ts.isIdentifier(node.expression)) {
 				return false;
 			}
-			if (!this.jest_aliases.property(node.expression, node, 'spyOn')) {
+			if (!this.jest_aliases.property(node.expression, node, "spyOn")) {
 				return false;
 			}
-			method = 'spyOn';
+			method = "spyOn";
 		}
 		if (!this.mock_methods.has(method)) {
 			return false;
@@ -92,7 +92,7 @@ export class ConsoleMock {
 			return false;
 		}
 		const method = this.member_name(node.expression, source);
-		if (method === '') {
+		if (method === "") {
 			return false;
 		}
 		return this.assignment_methods.has(method);
@@ -128,22 +128,22 @@ export class ConsoleMock {
 	/** Responsibilities: _reporting expression valid console_. **/
 	public console_expression(node: ts.Expression, source: ts.Node): boolean {
 		if (ts.isIdentifier(node)) {
-			return node.text === 'console';
+			return node.text === "console";
 		}
 		if (ts.isPropertyAccessExpression(node)) {
-			if (ts.isIdentifier(node.expression) && node.expression.text === 'globalThis' && node.name.text === 'console') {
+			if (ts.isIdentifier(node.expression) && node.expression.text === "globalThis" && node.name.text === "console") {
 				return true;
 			}
 			const values = this.object_aliases(source).property_values(node.expression, node.name.text);
-			return values.some(value => this.console_expression(value, source));
+			return values.some((value) => this.console_expression(value, source));
 		}
 		if (!ts.isElementAccessExpression(node) || !ts.isIdentifier(node.expression)) {
 			return false;
 		}
-		if (node.expression.text !== 'globalThis' || node.argumentExpression === undefined) {
+		if (node.expression.text !== "globalThis" || node.argumentExpression === undefined) {
 			return false;
 		}
-		return this.static_expression_values.value(node.argumentExpression, source) === 'console';
+		return this.static_expression_values.value(node.argumentExpression, source) === "console";
 	}
 
 	/** Responsibilities: _reporting node defines console_. **/
@@ -167,5 +167,4 @@ export class ConsoleMock {
 		}
 		return this.console_usage_assignment(node);
 	}
-
 }

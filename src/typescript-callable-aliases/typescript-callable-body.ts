@@ -1,5 +1,6 @@
-import ts from 'typescript';
-import type { CallableBodyKind } from 'src/typescript-callable-aliases/types';
+import ts from "typescript";
+import type { CallableBodyKind } from "src/typescript-callable-aliases/types";
+import type { NodeBodyResolver } from "src/protocols";
 
 /** Responsibilities: _classification TypeScript callable bodies_. **/
 export class TypeScriptCallableBody {
@@ -14,13 +15,9 @@ export class TypeScriptCallableBody {
 	]);
 
 	/** Responsibilities: _declaration body resolution_. **/
-	private declaration_body<T>(
-		node: ts.Node,
-		missing: T,
-		present: (body: ts.Node) => T
-	): T {
+	private declaration_body<T>(node: ts.Node, missing: T, present: NodeBodyResolver<T>): T {
 		let result = missing;
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (ts.isBlock(child)) {
 				result = present(child);
 			}
@@ -29,16 +26,12 @@ export class TypeScriptCallableBody {
 	}
 
 	/** Responsibilities: _callable body resolution_. **/
-	public resolve<T>(
-		node: ts.Node,
-		missing: T,
-		present: (body: ts.Node) => T
-	): T {
+	public resolve<T>(node: ts.Node, missing: T, present: NodeBodyResolver<T>): T {
 		const kind = this.body_kind(node);
-		if (kind === 'unsupported') {
+		if (kind === "unsupported") {
 			return missing;
 		}
-		if (kind === 'expression' && (ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
+		if (kind === "expression" && (ts.isArrowFunction(node) || ts.isFunctionExpression(node))) {
 			return present(node.body);
 		}
 		return this.declaration_body(node, missing, present);
@@ -47,12 +40,11 @@ export class TypeScriptCallableBody {
 	/** Responsibilities: _classification callable body kind_. **/
 	public body_kind(node: ts.Node): CallableBodyKind {
 		if (!this.supported_kinds.has(node.kind)) {
-			return 'unsupported';
+			return "unsupported";
 		}
 		if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
-			return 'expression';
+			return "expression";
 		}
-		return 'declaration';
+		return "declaration";
 	}
-
 }

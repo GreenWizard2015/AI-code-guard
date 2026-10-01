@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _storage matched Jest expression_, _report value availability_. **/
 export class JestExpressionMatch {
@@ -22,7 +22,7 @@ export class JestExpressionMatch {
 	/** Responsibilities: _output matched expression_. **/
 	public value(): ts.Expression {
 		if (!this.available) {
-			throw new Error('Jest expression is not available.');
+			throw new Error("Jest expression is not available.");
 		}
 		return this.expression;
 	}

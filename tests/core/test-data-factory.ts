@@ -1,9 +1,15 @@
-import type { AnalyzedCallable, AnalyzedParameter, SharedCallableKind, SharedParameterCandidate, SharedParameterKind } from 'src/metrics/types';
+import type {
+	AnalyzedCallable,
+	AnalyzedParameter,
+	SharedCallableKind,
+	SharedParameterCandidate,
+	SharedParameterKind,
+} from "src/metrics/types";
 
 /** Responsibilities: _construction shared-parameter test data_. **/
 export class TestDataFactory {
-	private readonly reference_kind = 'reference';
-	private readonly primitive_kind = 'basic';
+	private readonly reference_kind = "reference";
+	private readonly primitive_kind = "basic";
 
 	/** Responsibilities: _creation stable parameter key_. **/
 	private parameter_key(kind: string, identity: string): string {
@@ -15,7 +21,7 @@ export class TestDataFactory {
 		kind: SharedParameterKind,
 		identity: string,
 		project_type: boolean,
-		uses: number
+		uses: number,
 	): AnalyzedParameter {
 		return {
 			key: this.parameter_key(kind, identity),
@@ -43,22 +49,19 @@ export class TestDataFactory {
 		method: string,
 		line: number,
 		parameters: readonly AnalyzedParameter[],
-		file = 'fixture.ts',
-		kind: SharedCallableKind = 'function'
+		file = "fixture.ts",
+		kind: SharedCallableKind = "function",
 	): AnalyzedCallable {
-		return { kind, language: 'unknown', location: { file, line, method }, parameters };
+		return { kind, language: "unknown", location: { file, line, method }, parameters };
 	}
 
 	/** Responsibilities: _shared-parameter candidate fixture formatting_. **/
 	public candidate_name(candidate: SharedParameterCandidate): string {
-		return candidate.nodes.map(node => node.identity).join(', ');
+		return candidate.nodes.map((node) => node.identity).join(", ");
 	}
 
 	/** Responsibilities: _construction named shared-parameter candidate_. **/
-	public candidate_named(
-		candidates: readonly SharedParameterCandidate[],
-		name: string
-	): SharedParameterCandidate[] {
+	public candidate_named(candidates: readonly SharedParameterCandidate[], name: string): SharedParameterCandidate[] {
 		for (const candidate of candidates) {
 			if (this.candidate_name(candidate) === name) {
 				return [candidate];

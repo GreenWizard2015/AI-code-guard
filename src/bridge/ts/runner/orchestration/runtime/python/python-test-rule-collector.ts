@@ -1,19 +1,19 @@
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type { AstCallableNode } from 'src/types';
-import type { PythonRuleInput } from 'src/runner/types';
-import { MAX_TEST_ASSERTIONS } from 'src/constants';
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { AstCallableNode } from "src/types";
+import type { PythonRuleInput } from "src/runner/types";
+import { MAX_TEST_ASSERTIONS } from "src/constants";
 
 /** Responsibilities: _collection Python test assertion_. **/
 export class PythonTestRuleCollector {
 	private readonly input: PythonRuleInput;
-	private readonly assertion_rule = new DiagnosticRule('python-test-assert');
-	private readonly assertion_alias_rule = new DiagnosticRule('python-test-assertion-alias');
-	private readonly ending_rule = new DiagnosticRule('python-test-assert-ending');
-	private readonly grouping_rule = new DiagnosticRule('test-assertion-grouping');
-	private readonly complexity_rule = new DiagnosticRule('test-too-many-assertions');
-	private readonly exception_only_rule = new DiagnosticRule('test-exception-only');
-	private readonly inheritance_rule = new DiagnosticRule('python-test-class-inheritance');
+	private readonly assertion_rule = new DiagnosticRule("python-test-assert");
+	private readonly assertion_alias_rule = new DiagnosticRule("python-test-assertion-alias");
+	private readonly ending_rule = new DiagnosticRule("python-test-assert-ending");
+	private readonly grouping_rule = new DiagnosticRule("test-assertion-grouping");
+	private readonly complexity_rule = new DiagnosticRule("test-too-many-assertions");
+	private readonly exception_only_rule = new DiagnosticRule("test-exception-only");
+	private readonly inheritance_rule = new DiagnosticRule("python-test-class-inheritance");
 
 	/** Responsibilities: _aggregation assertion-shape violations callable_. **/
 	private append_assertion(
@@ -21,26 +21,21 @@ export class PythonTestRuleCollector {
 		file: string,
 		method: AstCallableNode,
 		assertion_rule: DiagnosticRule,
-		ending_rule: DiagnosticRule
+		ending_rule: DiagnosticRule,
 	): void {
-if (!method.name.startsWith('test_') || method.decorators.includes('fixture')) {
+		if (!method.name.startsWith("test_") || method.decorators.includes("fixture")) {
 			return;
 		}
 		if (method.has_unittest_assertion !== true) {
 			violations.push(assertion_rule.violation(file, method.start + 1));
 		}
-if (method.has_unittest_assertion === true && method.unittest_ending_valid !== true) {
+		if (method.has_unittest_assertion === true && method.unittest_ending_valid !== true) {
 			violations.push(ending_rule.violation(file, method.start + 1));
 		}
 	}
 
 	/** Responsibilities: _aggregation assertion grouping violations_. **/
-	private append_grouping(
-		violations: Violation[],
-		file: string,
-		method: AstCallableNode,
-		rule: DiagnosticRule
-	): void {
+	private append_grouping(violations: Violation[], file: string, method: AstCallableNode, rule: DiagnosticRule): void {
 		if (method.unittest_assertion_count >= 3) {
 			violations.push(rule.violation(file, method.start + 1));
 		}
@@ -51,7 +46,7 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 		violations: Violation[],
 		file: string,
 		method: AstCallableNode,
-		rule: DiagnosticRule
+		rule: DiagnosticRule,
 	): void {
 		if (method.unittest_assertion_count > MAX_TEST_ASSERTIONS) {
 			violations.push(rule.violation(file, method.start + 1));
@@ -59,16 +54,12 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 	}
 
 	/** Responsibilities: _application assertion rules methods_. **/
-	private append_method_assertions(
-		violations: Violation[],
-		file: string,
-		method: AstCallableNode,
-	): void {
+	private append_method_assertions(violations: Violation[], file: string, method: AstCallableNode): void {
 		this.append_assertion(violations, file, method, this.assertion_rule, this.ending_rule);
-		if (!method.name.startsWith('test_')) {
+		if (!method.name.startsWith("test_")) {
 			return;
 		}
-		if (method.decorators.includes('fixture')) {
+		if (method.decorators.includes("fixture")) {
 			return;
 		}
 		if (method.unittest_exception_only === true) {
@@ -82,10 +73,10 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 
 	/** Responsibilities: _aggregation exception assertion bypass_. **/
 	private append_exception_bypass(violations: Violation[], file: string, method: AstCallableNode): void {
-		if (!method.name.startsWith('test_')) {
+		if (!method.name.startsWith("test_")) {
 			return;
 		}
-		if (method.decorators.includes('fixture')) {
+		if (method.decorators.includes("fixture")) {
 			return;
 		}
 		if (method.test_exception_bypass === true) {
@@ -96,8 +87,10 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 	/** Responsibilities: _test-class inheritance violations addition_. **/
 	private append_inheritance(violations: Violation[]): void {
 		for (const node of this.input.classes) {
-			const has_test_method = node.methods.some(method => method.name.startsWith('test_') && !method.decorators.includes('fixture'));
-			const valid_inheritance = node.base_class_names.length === 1 && node.base_class_names[0] === 'unittest.TestCase';
+			const has_test_method = node.methods.some(
+				(method) => method.name.startsWith("test_") && !method.decorators.includes("fixture"),
+			);
+			const valid_inheritance = node.base_class_names.length === 1 && node.base_class_names[0] === "unittest.TestCase";
 			if (has_test_method && !valid_inheritance) {
 				violations.push(this.inheritance_rule.violation(this.input.file_name.value, node.start + 1));
 			}
@@ -115,10 +108,12 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 		if (!file_name.test_py()) {
 			return;
 		}
-		const rule = new DiagnosticRule('python-test-shape');
-		violations.push(...operations.functions
-			.filter(node => node.name.startsWith('test_') && !node.decorators.includes('fixture'))
-			.map(node => rule.violation(file_name.value, node.start + 1)));
+		const rule = new DiagnosticRule("python-test-shape");
+		violations.push(
+			...operations.functions
+				.filter((node) => node.name.startsWith("test_") && !node.decorators.includes("fixture"))
+				.map((node) => rule.violation(file_name.value, node.start + 1)),
+		);
 		this.append_inheritance(violations);
 	}
 
@@ -130,7 +125,7 @@ if (method.has_unittest_assertion === true && method.unittest_ending_valid !== t
 				this.append_exception_bypass(violations, file_name.value, method);
 			}
 		}
-		if (!python_imports.some(item => item.module === 'unittest')) {
+		if (!python_imports.some((item) => item.module === "unittest")) {
 			return;
 		}
 		for (const node of classes) {

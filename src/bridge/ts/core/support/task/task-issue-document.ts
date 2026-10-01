@@ -1,7 +1,7 @@
-import { isAbsolute, resolve } from 'node:path';
-import { readFileSync, statSync } from 'node:fs';
-import type { ReportViolation } from 'src/types';
-import type { TaskDocumentationProtocol, TaskWorkspaceProtocol } from 'src/protocols';
+import { isAbsolute, resolve } from "node:path";
+import { readFileSync, statSync } from "node:fs";
+import type { ReportViolation } from "src/types";
+import type { TaskDocumentationProtocol, TaskWorkspaceProtocol } from "src/protocols";
 
 /** Responsibilities: _grouped lint violations formatting_. **/
 export class TaskIssueDocument {
@@ -13,12 +13,12 @@ export class TaskIssueDocument {
 	private source_line(file: string, line: number): string {
 		const absolute_file = this.absolute_file(file);
 		if (!statSync(absolute_file).isFile()) {
-			return '(directory-level diagnostic)';
+			return "(directory-level diagnostic)";
 		}
-		const source = readFileSync(absolute_file, 'utf8').split(/\r?\n/u);
+		const source = readFileSync(absolute_file, "utf8").split(/\r?\n/u);
 		const index = line - 1;
 		if (index < 0 || index >= source.length) {
-			return '';
+			return "";
 		}
 		return source[index].trim();
 	}
@@ -70,7 +70,7 @@ export class TaskIssueDocument {
 	): void {
 		const files = this.grouped_files(violations);
 		for (const [file, file_violations] of [...files.entries()].sort(([left], [right]) => left.localeCompare(right))) {
-			lines.push('', `## ${file}`);
+			lines.push("", `## ${file}`);
 			for (const violation of file_violations.sort((left, right) => left.line - right.line)) {
 				lines.push(`- Line ${violation.line}: ${this.source_line(file, violation.line)}`);
 				if (single_violation || messages.size > 1) {
@@ -95,16 +95,13 @@ export class TaskIssueDocument {
 			`## ${directory}`,
 			`Problem: ${violation.message}`,
 		];
-		return lines.join('\n');
+		return lines.join("\n");
 	}
 
 	/** Responsibilities: _shared line-specific rule formatting_. **/
-	private rule_description_lines(
-		first: ReportViolation,
-		violations: readonly ReportViolation[],
-	): string[] {
-		const messages = new Set(violations.map(violation => violation.message));
-		const hints = [...new Set(violations.map(violation => violation.hint))];
+	private rule_description_lines(first: ReportViolation, violations: readonly ReportViolation[]): string[] {
+		const messages = new Set(violations.map((violation) => violation.message));
+		const hints = [...new Set(violations.map((violation) => violation.hint))];
 		const problem_lines: string[] = [];
 		if (violations.length > 1 && messages.size === 1) {
 			problem_lines.push(`Problem: ${first.message}`);
@@ -118,21 +115,21 @@ export class TaskIssueDocument {
 	/** Responsibilities: _rule section grouped formatting_. **/
 	private rule_section(rule_id: string, violations: readonly ReportViolation[]): string {
 		if (violations.length === 0) {
-			return '';
+			return "";
 		}
 		const first = violations[0];
 		if (statSync(this.absolute_file(first.file)).isDirectory()) {
 			return this.directory_section(rule_id, first);
 		}
-		const messages = new Set(violations.map(violation => violation.message));
-		const hints = new Set(violations.map(violation => violation.hint));
+		const messages = new Set(violations.map((violation) => violation.message));
+		const hints = new Set(violations.map((violation) => violation.hint));
 		const lines = [
 			`# ${rule_id}`,
 			`Read \`${this.workspace.rule_document_path(rule_id)}\`.`,
 			...this.rule_description_lines(first, violations),
 		];
 		this.append_file_sections(lines, violations, messages, hints, violations.length === 1);
-		return lines.join('\n');
+		return lines.join("\n");
 	}
 
 	/** Responsibilities: _initialization workspace paths task_. **/
@@ -147,13 +144,13 @@ export class TaskIssueDocument {
 		return [...this.grouped_rules(violations).entries()]
 			.sort(([left], [right]) => left.localeCompare(right))
 			.map(([rule_id, group]) => this.rule_section(rule_id, group))
-			.join('\n\n');
+			.join("\n\n");
 	}
 
 	/** Responsibilities: _output formatting issue document_. **/
 	public write(violations: readonly ReportViolation[]): void {
 		this.workspace.clear_batch();
-		const rule_ids = [...new Set(violations.map(violation => violation.rule_id))].sort();
+		const rule_ids = [...new Set(violations.map((violation) => violation.rule_id))].sort();
 		this.documentation.copy_rule_documents(rule_ids, this.workspace);
 		this.workspace.write_issues(this.format(violations));
 	}

@@ -4,11 +4,11 @@ import type {
 	TypeScriptAstFileProtocol,
 	TypeScriptReferenceContextProtocol,
 	Violation,
-} from 'src/protocols';
-import type { LintFileNameContract, LintSourceRecord, NormalizedAstFile } from 'src/types';
-import type { AstStatementNode } from 'src/types';
-import ts from 'typescript';
-import type { RuleParameters } from 'src/types';
+} from "src/protocols";
+import type { LintFileNameContract, LintSourceRecord, NormalizedAstFile } from "src/types";
+import type { AstStatementNode } from "src/types";
+import ts from "typescript";
+import type { RuleParameters } from "src/types";
 
 export type FileLinterOptions = {
 	repo_root: string;
@@ -83,7 +83,7 @@ export type ReturnViolationContext = {
 	kind: PythonAssignmentKind;
 	name: string;
 };
-type PythonAssignmentKind = 'assignment' | 'return' | 'other';
+type PythonAssignmentKind = "assignment" | "return" | "other";
 export type StatementContext = {
 	violations: Violation[];
 	file: string;

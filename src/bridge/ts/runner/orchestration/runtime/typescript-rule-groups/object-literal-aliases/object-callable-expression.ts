@@ -1,8 +1,8 @@
-import ts from 'typescript';
-import { FakeObject } from 'src/fake-object';
-import { ObjectCallableAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-aliases';
-import { ObjectLiteralAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { FakeObject } from "src/fake-object";
+import { ObjectCallableAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-aliases";
+import { ObjectLiteralAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _classification callable object expressions_. **/
 export class ObjectCallableExpression {
@@ -112,6 +112,6 @@ export class ObjectCallableExpression {
 		if (!ts.isObjectLiteralExpression(current)) {
 			return false;
 		}
-		return current.properties.some(property => this.property(property, node));
+		return current.properties.some((property) => this.property(property, node));
 	}
 }

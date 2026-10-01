@@ -1,12 +1,12 @@
-import type ts from 'typescript';
-import type { ProjectSourcePython } from 'src/project-source-python';
-import type { LintProjectContext } from 'src/protocols';
+import type ts from "typescript";
+import type { ProjectSourcePython } from "src/project-source-python";
+import type { LintProjectContext } from "src/protocols";
 
 export type RuleAppender = (node: ts.Node, rule_id: string) => void;
 export type PlacementFunctionNode = {
 	start: number;
 	nested: boolean;
-}
+};
 export type ValueRule = { condition: boolean; rule_id: string };
 export type UnresolvedSpecifierInput = {
 	file: string;

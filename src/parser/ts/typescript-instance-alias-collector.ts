@@ -1,15 +1,13 @@
-import { TypeScriptCallReturnAnalysis } from 'src/bridge/ts/parser/typescript-call-return-analysis';
-import { TypeScriptReferenceHelpers } from 'src/bridge/ts/parser/typescript-reference-helpers';
-import ts from 'typescript';
+import { TypeScriptCallReturnAnalysis } from "src/bridge/ts/parser/typescript-call-return-analysis";
+import { TypeScriptReferenceHelpers } from "src/bridge/ts/parser/typescript-reference-helpers";
+import ts from "typescript";
 
-import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { TypeScriptPropertyStateProtocol } from 'src/model/protocols';
-import type { TypeScriptObjectPropertyCollectorProtocol } from 'src/protocols';
-import { TypeScriptObjectPropertyCollector } from 'src/parser/ts/typescript-object-property-collector';
+import type { TypeScriptInstanceStore } from "src/model/protocols";
+import type { TypeScriptPropertyStateProtocol } from "src/model/protocols";
+import type { TypeScriptObjectPropertyCollectorProtocol } from "src/protocols";
+import { TypeScriptObjectPropertyCollector } from "src/parser/ts/typescript-object-property-collector";
 
-
-
-import type { InstanceAliasResolvers } from 'src/types';
+import type { InstanceAliasResolvers } from "src/types";
 
 /** Responsibilities: _collection TypeScript instance aliases_. **/
 export class TypeScriptInstanceAliasCollector {
@@ -21,17 +19,17 @@ export class TypeScriptInstanceAliasCollector {
 	private readonly object_properties: TypeScriptObjectPropertyCollectorProtocol;
 
 	/** Responsibilities: _resolution current class owner_. **/
-	private class_owner(node: ts.Node, owner: string = ''): string {
+	private class_owner(node: ts.Node, owner: string = ""): string {
 		if (ts.isClassLike(node)) {
 			if (node.name) {
 				return node.name.text;
 			}
-			return '';
+			return "";
 		}
 		if (owner !== undefined) {
 			return owner;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _parameter instance aliases addition_. **/
@@ -48,11 +46,7 @@ export class TypeScriptInstanceAliasCollector {
 	}
 
 	/** Responsibilities: _destructured instance aliases addition_. **/
-	private append_destructured(
-		node: ts.VariableDeclaration,
-		initializer: ts.Expression,
-		owner: string = ''
-	): boolean {
+	private append_destructured(node: ts.VariableDeclaration, initializer: ts.Expression, owner: string = ""): boolean {
 		if (!ts.isObjectBindingPattern(node.name)) {
 			return false;
 		}
@@ -67,10 +61,7 @@ export class TypeScriptInstanceAliasCollector {
 	}
 
 	/** Responsibilities: _instance aliases addition construction_. **/
-	private append_constructed(
-		node: ts.VariableDeclaration,
-		initializer: ts.Expression
-	): boolean {
+	private append_constructed(node: ts.VariableDeclaration, initializer: ts.Expression): boolean {
 		const script_reference_helpers = new TypeScriptReferenceHelpers();
 
 		if (script_reference_helpers.new_instance(node, this.aliases, this.instances, initializer)) {
@@ -80,10 +71,7 @@ export class TypeScriptInstanceAliasCollector {
 	}
 
 	/** Responsibilities: _instance reference alias addition_. **/
-	private append_reference_alias(
-		node: ts.VariableDeclaration,
-		initializer: ts.Expression
-	): boolean {
+	private append_reference_alias(node: ts.VariableDeclaration, initializer: ts.Expression): boolean {
 		if (!ts.isIdentifier(node.name) || !ts.isIdentifier(initializer)) {
 			return false;
 		}
@@ -96,7 +84,7 @@ export class TypeScriptInstanceAliasCollector {
 	}
 
 	/** Responsibilities: _aggregation invocation result aliases_. **/
-	private append_call(node: ts.VariableDeclaration, owner: string = ''): boolean {
+	private append_call(node: ts.VariableDeclaration, owner: string = ""): boolean {
 		const analysis = new TypeScriptCallReturnAnalysis();
 		let initializers: ts.Expression[] = [];
 		if (node.initializer !== undefined) {
@@ -106,11 +94,7 @@ export class TypeScriptInstanceAliasCollector {
 	}
 
 	/** Responsibilities: _aggregation invocation initializer alias_. **/
-	private append_call_initializer(
-		node: ts.VariableDeclaration,
-		owner: string,
-		initializers: ts.Expression[]
-	): boolean {
+	private append_call_initializer(node: ts.VariableDeclaration, owner: string, initializers: ts.Expression[]): boolean {
 		if (initializers.length === 0) {
 			return false;
 		}
@@ -129,7 +113,7 @@ export class TypeScriptInstanceAliasCollector {
 	/** Responsibilities: _resolution invocation owner_. **/
 	private call_owner(initializer: ts.CallExpression, owner: string): string {
 		let resolved_owner = this.resolvers.call_owner(initializer.expression, owner);
-if (!resolved_owner && ts.isPropertyAccessExpression(initializer.expression)) {
+		if (!resolved_owner && ts.isPropertyAccessExpression(initializer.expression)) {
 			resolved_owner = this.resolvers.property_owner(initializer.expression, owner);
 		}
 		return resolved_owner;
@@ -153,7 +137,7 @@ if (!resolved_owner && ts.isPropertyAccessExpression(initializer.expression)) {
 	private append_variable_initializer(
 		node: ts.VariableDeclaration,
 		owner: string,
-		initializers: ts.Expression[]
+		initializers: ts.Expression[],
 	): boolean {
 		if (initializers.length === 0) {
 			return false;
@@ -165,11 +149,11 @@ if (!resolved_owner && ts.isPropertyAccessExpression(initializer.expression)) {
 		if (this.append_reference_alias(node, initializer)) {
 			return true;
 		}
-return this.append_constructed(node, initializer) || this.append_call(node, owner);
+		return this.append_constructed(node, initializer) || this.append_call(node, owner);
 	}
 
 	/** Responsibilities: _aggregation aliases variable_. **/
-	private append_variable(node: ts.VariableDeclaration, owner: string = ''): void {
+	private append_variable(node: ts.VariableDeclaration, owner: string = ""): void {
 		const analysis = new TypeScriptCallReturnAnalysis();
 		let initializers: ts.Expression[] = [];
 		if (node.initializer !== undefined) {
@@ -184,12 +168,12 @@ return this.append_constructed(node, initializer) || this.append_call(node, owne
 	}
 
 	/** Responsibilities: _variable collection aliases traversal_. **/
-	private visit_variable(node: ts.Node, owner: string = ''): void {
+	private visit_variable(node: ts.Node, owner: string = ""): void {
 		const current_owner = this.class_owner(node, owner);
 		if (ts.isVariableDeclaration(node)) {
 			this.append_variable(node, current_owner);
 		}
-		ts.forEachChild(node, child => this.visit_variable(child, current_owner));
+		ts.forEachChild(node, (child) => this.visit_variable(child, current_owner));
 	}
 
 	/** Responsibilities: _parameter collection aliases traversal_. **/
@@ -197,7 +181,7 @@ return this.append_constructed(node, initializer) || this.append_call(node, owne
 		if (ts.isParameter(node)) {
 			this.append_parameter(node);
 		}
-		ts.forEachChild(node, child => this.visit_parameter(child));
+		ts.forEachChild(node, (child) => this.visit_parameter(child));
 	}
 
 	/** Responsibilities: _initialization TypeScript instance alias_. **/
@@ -206,7 +190,7 @@ return this.append_constructed(node, initializer) || this.append_call(node, owne
 		aliases: Map<string, string>,
 		instances: TypeScriptInstanceStore,
 		properties: TypeScriptPropertyStateProtocol,
-		resolvers: InstanceAliasResolvers
+		resolvers: InstanceAliasResolvers,
 	) {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 
@@ -215,10 +199,8 @@ return this.append_constructed(node, initializer) || this.append_call(node, owne
 		this.instances = instances;
 		this.properties = properties;
 		this.resolvers = resolvers;
-		this.object_properties = new TypeScriptObjectPropertyCollector(
-			this.aliases,
-			this.properties,
-			expression => call_return_analysis.unwrap_expression(expression)
+		this.object_properties = new TypeScriptObjectPropertyCollector(this.aliases, this.properties, (expression) =>
+			call_return_analysis.unwrap_expression(expression),
 		);
 	}
 

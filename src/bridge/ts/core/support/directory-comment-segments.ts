@@ -1,22 +1,17 @@
-import type { AstSourceSpan } from 'src/types';
-import type { CommentScanResult, SourceRange } from 'src/types';
-import type { CommentSegment } from 'src/types';
+import type { AstSourceSpan } from "src/types";
+import type { CommentScanResult, SourceRange } from "src/types";
+import type { CommentSegment } from "src/types";
 
 /** Responsibilities: _source text identification scanning_. **/
 export class DirectoryCommentSegments {
-	private readonly block_comment_start = '/*';
-	private readonly block_comment_end = '*/';
-	private readonly python_line_comment = '#';
-	private readonly typescript_line_comment = '//';
+	private readonly block_comment_start = "/*";
+	private readonly block_comment_end = "*/";
+	private readonly python_line_comment = "#";
+	private readonly typescript_line_comment = "//";
 
 	/** Responsibilities: _aggregation comment span range_. **/
-	private append_span_range(
-		ranges: SourceRange[],
-		line: string,
-		line_number: number,
-		span: AstSourceSpan
-	): void {
-if (line_number < span.start_line || line_number > span.end_line) {
+	private append_span_range(ranges: SourceRange[], line: string, line_number: number, span: AstSourceSpan): void {
+		if (line_number < span.start_line || line_number > span.end_line) {
 			return;
 		}
 		let start = 0;
@@ -31,11 +26,7 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	}
 
 	/** Responsibilities: _calculation comment documentation ranges_. **/
-	private ignored_ranges(
-		line: string,
-		line_number: number,
-		spans: readonly AstSourceSpan[]
-	): SourceRange[] {
+	private ignored_ranges(line: string, line_number: number, spans: readonly AstSourceSpan[]): SourceRange[] {
 		const ranges: SourceRange[] = [];
 		for (const span of spans) {
 			this.append_span_range(ranges, line, line_number, span);
@@ -55,9 +46,9 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	private process_block_segment(text: string): CommentSegment {
 		const remainder = this.close_block_comment(text);
 		if (remainder.length === 0) {
-			return { text: '', in_block_comment: true, result: { text: '', in_block_comment: true }, complete: false };
+			return { text: "", in_block_comment: true, result: { text: "", in_block_comment: true }, complete: false };
 		}
-		return { text: remainder, in_block_comment: false, result: { text: '', in_block_comment: false }, complete: false };
+		return { text: remainder, in_block_comment: false, result: { text: "", in_block_comment: false }, complete: false };
 	}
 
 	/** Responsibilities: _consume line-comment segment output_. **/
@@ -67,7 +58,7 @@ if (line_number < span.start_line || line_number > span.end_line) {
 			text: code,
 			in_block_comment: false,
 		};
-		return { text: '', in_block_comment: false, result, complete: true };
+		return { text: "", in_block_comment: false, result, complete: true };
 	}
 
 	/** Responsibilities: _consume code segment up_. **/
@@ -82,14 +73,14 @@ if (line_number < span.start_line || line_number > span.end_line) {
 			return {
 				text: text.slice(0, block) + text.slice(end + this.block_comment_end.length),
 				in_block_comment: false,
-				result: { text: '', in_block_comment: false },
+				result: { text: "", in_block_comment: false },
 				complete: false,
 			};
 		}
 		return {
 			text: text.slice(0, block),
 			in_block_comment: true,
-			result: { text: '', in_block_comment: true },
+			result: { text: "", in_block_comment: true },
 			complete: false,
 		};
 	}
@@ -98,7 +89,7 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	private close_block_comment(text: string): string {
 		const end = text.indexOf(this.block_comment_end);
 		if (end < 0) {
-			return '';
+			return "";
 		}
 		return text.slice(end + this.block_comment_end.length);
 	}
@@ -117,18 +108,14 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	}
 
 	/** Responsibilities: _non-empty code line count_. **/
-	public count_code_lines(
-		text: string,
-		python: boolean,
-		...span_lists: (readonly AstSourceSpan[])[]
-	): number {
+	public count_code_lines(text: string, python: boolean, ...span_lists: (readonly AstSourceSpan[])[]): number {
 		let ignored_spans: readonly AstSourceSpan[] = [];
 		if (span_lists[0] !== undefined) {
 			ignored_spans = span_lists[0];
 		}
 		let in_block_comment = false;
 		let count = 0;
-		for (const [index, raw_line] of text.split('\n').entries()) {
+		for (const [index, raw_line] of text.split("\n").entries()) {
 			const line = this.remove_ignored_spans(raw_line, index, ignored_spans);
 			const code = this.scan_comment_segments(line, in_block_comment, python);
 			in_block_comment = code.in_block_comment;
@@ -140,14 +127,10 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	}
 
 	/** Responsibilities: _removal ignored source spans_. **/
-	public remove_ignored_spans(
-		line: string,
-		line_number: number,
-		spans: readonly AstSourceSpan[]
-	): string {
+	public remove_ignored_spans(line: string, line_number: number, spans: readonly AstSourceSpan[]): string {
 		const ranges = this.ignored_ranges(line, line_number, spans);
 		ranges.sort((left, right) => left.start - right.start);
-		let result = '';
+		let result = "";
 		let cursor = 0;
 		for (const range of ranges) {
 			result += line.slice(cursor, range.start);
@@ -157,11 +140,7 @@ if (line_number < span.start_line || line_number > span.end_line) {
 	}
 
 	/** Responsibilities: _source text comment scanning_. **/
-	public scan_comment_segments(
-		line: string,
-		in_block_comment: boolean,
-		python: boolean
-	): CommentScanResult {
+	public scan_comment_segments(line: string, in_block_comment: boolean, python: boolean): CommentScanResult {
 		let text = line;
 		let block_comment = in_block_comment;
 		while (text) {
@@ -171,6 +150,6 @@ if (line_number < span.start_line || line_number > span.end_line) {
 			}
 			({ text, in_block_comment: block_comment } = step);
 		}
-		return { text: '', in_block_comment: block_comment };
+		return { text: "", in_block_comment: block_comment };
 	}
 }

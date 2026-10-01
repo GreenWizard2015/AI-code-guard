@@ -1,5 +1,5 @@
-import type { ReportViolation } from 'src/types';
-import type { TaskWorkspaceProtocol } from 'src/protocols';
+import type { ReportViolation } from "src/types";
+import type { TaskWorkspaceProtocol } from "src/protocols";
 
 /** Responsibilities: _group report violations_, _output reporting rendering_. **/
 export class TaskReportDocument {
@@ -26,7 +26,7 @@ export class TaskReportDocument {
 				return left_rule.localeCompare(right_rule);
 			})
 			.map(([rule_id, rule_violations]) => {
-				const files = new Set(rule_violations.map(violation => violation.file));
+				const files = new Set(rule_violations.map((violation) => violation.file));
 				return `| \`${rule_id}\` | ${rule_violations.length} | ${files.size} |`;
 			});
 	}
@@ -41,15 +41,9 @@ export class TaskReportDocument {
 	public markdown(): string {
 		const rows = this.rule_rows();
 		if (rows.length === 0) {
-			rows.push('| — | 0 | 0 |');
+			rows.push("| — | 0 | 0 |");
 		}
-		return [
-			'# Lint report',
-			'',
-			'| Rule | Problems | Files |',
-			'| --- | ---: | ---: |',
-			...rows,
-		].join('\n');
+		return ["# Lint report", "", "| Rule | Problems | Files |", "| --- | ---: | ---: |", ...rows].join("\n");
 	}
 
 	/** Responsibilities: _markdown report writing_. **/

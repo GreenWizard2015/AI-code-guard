@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticExpressionBindings } from 'src/typescript-callable-aliases/typescript-static-expression-bindings';
-import { TypeScriptStaticExpressionOperations } from 'src/typescript-callable-aliases/typescript-static-expression-operations';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticExpressionBindings } from "src/typescript-callable-aliases/typescript-static-expression-bindings";
+import { TypeScriptStaticExpressionOperations } from "src/typescript-callable-aliases/typescript-static-expression-operations";
 
 /** Responsibilities: _static expression value resolution_. **/
 export class TypeScriptStaticExpressionValues {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly operations = new TypeScriptStaticExpressionOperations();
 
 	/** Responsibilities: _static value declaration_. **/
@@ -59,7 +59,7 @@ export class TypeScriptStaticExpressionValues {
 		if (this.append_assignment_node(values, node)) {
 			changed = true;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_node(values, child, root)) {
 				changed = true;
 			}
@@ -93,8 +93,8 @@ export class TypeScriptStaticExpressionValues {
 
 	/** Responsibilities: _static expression value dependencies_. **/
 	public constructor() {
-		this.bindings = new TypeScriptStaticExpressionBindings(
-			(values, name, initializer) => this.operations.append(values, name, initializer)
+		this.bindings = new TypeScriptStaticExpressionBindings((values, name, initializer) =>
+			this.operations.append(values, name, initializer),
 		);
 	}
 
@@ -113,16 +113,16 @@ export class TypeScriptStaticExpressionValues {
 	public value(expression: ts.Expression, node: ts.Node): string {
 		const values = this.values(node);
 		const literal = this.operations.literal(values, expression);
-		if (literal !== '') {
+		if (literal !== "") {
 			return literal;
 		}
 		const current = this.expression_aliases.unwrapped(expression);
 		if (!ts.isIdentifier(current)) {
-			return '';
+			return "";
 		}
 		const value = values.get(current.text);
 		if (value === undefined) {
-			return '';
+			return "";
 		}
 		return value;
 	}

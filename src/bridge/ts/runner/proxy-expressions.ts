@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
+import ts from "typescript";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
 
 /** Responsibilities: _TypeScript proxy expression analysis_. **/
 export class TypeScriptProxyExpressions {
@@ -39,7 +39,7 @@ export class TypeScriptProxyExpressions {
 		if (ts.isSatisfiesExpression(node)) {
 			return node.expression;
 		}
-		throw new Error('Node is not a transparent expression.');
+		throw new Error("Node is not a transparent expression.");
 	}
 
 	/** Responsibilities: _element property chain_. **/
@@ -49,7 +49,7 @@ export class TypeScriptProxyExpressions {
 			return [];
 		}
 		const property_name = this.static_expression_values.value(argument, node);
-		if (property_name === '') {
+		if (property_name === "") {
 			return [];
 		}
 		const chain = this.property_chain(node.expression);

@@ -13,8 +13,9 @@ class PythonAnnotationResolverProtocol(Protocol):
         self,
         annotation: ast.AST,
         aliases: dict[str, str],
-        _generics: frozenset[str],
-    ) -> str: ...
+        generics: frozenset[str],
+    ) -> str:
+        raise NotImplementedError(generics)
 
 
 class PythonReferenceContextProtocol(Protocol):

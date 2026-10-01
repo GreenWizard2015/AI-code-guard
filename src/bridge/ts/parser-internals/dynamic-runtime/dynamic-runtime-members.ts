@@ -1,35 +1,32 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
-import { ObjectValueRules } from 'src/bridge/ts/runner/object-value-rules';
-import { DynamicObjectMemberAliases } from 'src/bridge/ts/dynamic-object-member-aliases';
-import { DynamicRuntimeMemberExpressions } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-member-expressions';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
+import { ObjectValueRules } from "src/bridge/ts/runner/object-value-rules";
+import { DynamicObjectMemberAliases } from "src/bridge/ts/dynamic-object-member-aliases";
+import { DynamicRuntimeMemberExpressions } from "src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-member-expressions";
 
 /** Responsibilities: _dynamic runtime member collection_. **/
 export class DynamicRuntimeMembers {
-	private readonly dynamic_member_owners = new Set(['Reflect', 'Proxy']);
-	private readonly dynamic_call_names = new Set(['Proxy']);
+	private readonly dynamic_member_owners = new Set(["Reflect", "Proxy"]);
+	private readonly dynamic_call_names = new Set(["Proxy"]);
 	private readonly object_value_rules = new ObjectValueRules();
-	private readonly reflect_aliases = new TypeScriptExpressionAliases('Reflect');
-	private readonly proxy_aliases = new TypeScriptExpressionAliases('Proxy');
-	private readonly object_aliases = new TypeScriptExpressionAliases('Object');
+	private readonly reflect_aliases = new TypeScriptExpressionAliases("Reflect");
+	private readonly proxy_aliases = new TypeScriptExpressionAliases("Proxy");
+	private readonly object_aliases = new TypeScriptExpressionAliases("Object");
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
 	private readonly dynamic_object_aliases = new DynamicObjectMemberAliases();
-	private readonly proxy_object_aliases = new DynamicObjectMemberAliases('Proxy');
-	private readonly object_object_aliases = new DynamicObjectMemberAliases('Object');
+	private readonly proxy_object_aliases = new DynamicObjectMemberAliases("Proxy");
+	private readonly object_object_aliases = new DynamicObjectMemberAliases("Object");
 	private readonly member_expressions = new DynamicRuntimeMemberExpressions();
-	private readonly reflect_member_aliases = new TypeScriptMemberAliases(
-		'Reflect',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly reflect_member_aliases = new TypeScriptMemberAliases("Reflect", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
-	private readonly proxy_member_aliases = new TypeScriptMemberAliases(
-		'Proxy',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly proxy_member_aliases = new TypeScriptMemberAliases("Proxy", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
-	private readonly object_member_aliases = new TypeScriptMemberAliases(
-		'Object',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly object_member_aliases = new TypeScriptMemberAliases("Object", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
 
 	/** Responsibilities: _direct dynamic member identification_. **/
@@ -121,24 +118,24 @@ export class DynamicRuntimeMembers {
 
 	/** Responsibilities: _property own-member identification_. **/
 	private own_property_access(expression: ts.PropertyAccessExpression): boolean {
-		if (this.object_aliases.member_name(expression) === 'hasOwn') {
+		if (this.object_aliases.member_name(expression) === "hasOwn") {
 			if (this.object_aliases.receiver(expression.expression, expression)) {
 				return true;
 			}
-			return this.object_object_aliases.member(expression, expression, 'hasOwn');
+			return this.object_object_aliases.member(expression, expression, "hasOwn");
 		}
-		return this.object_object_aliases.member(expression, expression, 'hasOwn');
+		return this.object_object_aliases.member(expression, expression, "hasOwn");
 	}
 
 	/** Responsibilities: _element own-member identification_. **/
 	private own_element_access(expression: ts.ElementAccessExpression): boolean {
-		if (this.object_aliases.member_name(expression) === 'hasOwn') {
+		if (this.object_aliases.member_name(expression) === "hasOwn") {
 			if (this.object_aliases.receiver(expression.expression, expression)) {
 				return true;
 			}
-			return this.object_object_aliases.member(expression, expression, 'hasOwn');
+			return this.object_object_aliases.member(expression, expression, "hasOwn");
 		}
-		return this.object_object_aliases.member(expression, expression, 'hasOwn');
+		return this.object_object_aliases.member(expression, expression, "hasOwn");
 	}
 
 	/** Responsibilities: _dynamic access identification_. **/

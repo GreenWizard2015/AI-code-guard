@@ -59,11 +59,3 @@ class PythonReferenceAliasesProtocol(Protocol):
     def collect(self, tree: ast.Module) -> list[JsonObject]: ...
 
     def resolved_name(self, name: str, names: frozenset[str]) -> str: ...
-
-
-__all__ = [
-    "PythonContainerAliasesProtocol",
-    "PythonContainerLookupProtocol",
-    "PythonContainerValuesProtocol",
-    "PythonReferenceAliasesProtocol",
-]

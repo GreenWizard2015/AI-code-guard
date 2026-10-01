@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { ImportedNames } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/imported-names';
-import { TypeScriptClassAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/class-aliases';
-import { TypeScriptFactoryAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-aliases';
-import { BUILTIN_CONSTRUCTORS } from 'src/bridge/ts/runner/orchestration/runtime/constants';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { ImportedNames } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/imported-names";
+import { TypeScriptClassAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/class-aliases";
+import { TypeScriptFactoryAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-aliases";
+import { BUILTIN_CONSTRUCTORS } from "src/bridge/ts/runner/orchestration/runtime/constants";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _TypeScript singleton expression matching_. **/
 export class TypeScriptSingletonExpressions {
@@ -203,10 +203,7 @@ export class TypeScriptSingletonExpressions {
 	}
 
 	/** Responsibilities: _singleton expression matcher initialization_. **/
-	public constructor(
-		source_file: ts.SourceFile,
-		local_class_names: ReadonlySet<string>,
-	) {
+	public constructor(source_file: ts.SourceFile, local_class_names: ReadonlySet<string>) {
 		this.source_file = source_file;
 		this.imported_names = new ImportedNames(this.source_file);
 		this.class_aliases = new TypeScriptClassAliases(source_file, local_class_names);
@@ -228,5 +225,4 @@ export class TypeScriptSingletonExpressions {
 		}
 		return this.initializer(declaration.initializer);
 	}
-
 }

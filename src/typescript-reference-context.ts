@@ -1,14 +1,14 @@
-import { TypeScriptImportedInstanceAliases } from 'src/bridge/ts/parser/typescript-imported-instance-aliases';
-import { TypeScriptReferenceOwnerHelpers } from 'src/typescript-reference-owner-helpers';
-import type { PropertyOwnerCallbacks } from 'src/protocols';
-import type { CallOwnerResolver } from 'src/model/protocols';
-import ts from 'typescript';
-import { TypeScriptInstanceAliasCollector } from 'src/parser/ts/typescript-instance-alias-collector';
-import type { InstanceAliasResolvers } from 'src/types';
-import { TypeScriptCallReturns } from 'src/model/typescript-call-returns';
-import type { TypeScriptSourceResolver } from 'src/model/types';
-import { TypeScriptInstanceIndex } from 'src/model/typescript-instance-index';
-import { TypeScriptPropertyState } from 'src/model/typescript-property-state';
+import { TypeScriptImportedInstanceAliases } from "src/bridge/ts/parser/typescript-imported-instance-aliases";
+import { TypeScriptReferenceOwnerHelpers } from "src/typescript-reference-owner-helpers";
+import type { PropertyOwnerCallbacks } from "src/protocols";
+import type { CallOwnerResolver } from "src/model/protocols";
+import ts from "typescript";
+import { TypeScriptInstanceAliasCollector } from "src/parser/ts/typescript-instance-alias-collector";
+import type { InstanceAliasResolvers } from "src/types";
+import { TypeScriptCallReturns } from "src/model/typescript-call-returns";
+import type { TypeScriptSourceResolver } from "src/model/types";
+import { TypeScriptInstanceIndex } from "src/model/typescript-instance-index";
+import { TypeScriptPropertyState } from "src/model/typescript-property-state";
 /** Responsibilities: _initialization TypeScript aliases property_. **/
 export class TypeScriptReferenceContext implements InstanceAliasResolvers, PropertyOwnerCallbacks, CallOwnerResolver {
 	private readonly source_file: ts.SourceFile;
@@ -54,12 +54,12 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 		}
 		const argument = expression.argumentExpression;
 		if (!argument) {
-			return '';
+			return "";
 		}
 		if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
 			return argument.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution member owner_. **/
@@ -79,46 +79,35 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 		this.source_file = source_file;
 		this.instances = new TypeScriptInstanceIndex(source_file);
 		this.call_returns = new TypeScriptCallReturns(source_file, this.aliases, ...resolvers);
-		this.reference_owner_helpers = new TypeScriptReferenceOwnerHelpers(
-			this.aliases,
-			this.instances,
-			this
-		);
-		this.property_state = new TypeScriptPropertyState(
-			this.aliases,
-			this,
-			this.instances
-		);
+		this.reference_owner_helpers = new TypeScriptReferenceOwnerHelpers(this.aliases, this.instances, this);
+		this.property_state = new TypeScriptPropertyState(this.aliases, this, this.instances);
 		this.instance_collector = new TypeScriptInstanceAliasCollector(
 			source_file,
 			this.aliases,
 			this.instances,
 			this.property_state,
-			this
+			this,
 		);
 	}
 
 	/** Responsibilities: _resolution callable owner represented_. **/
-	public call_owner(expression: ts.Expression, current_owner: string = ''): string {
+	public call_owner(expression: ts.Expression, current_owner: string = ""): string {
 		if (ts.isIdentifier(expression)) {
 			return this.call_returns.owner_for(expression.text);
 		}
 		if (!ts.isPropertyAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		const owner = this.method_owner(expression, current_owner);
 		if (!owner) {
-			return '';
+			return "";
 		}
 		return this.call_returns.owner_for(expression.name.text, owner);
 	}
 
 	/** Responsibilities: _resolution owner type represented_. **/
-	public property_owner(
-		expression: ts.PropertyAccessExpression,
-		current_owner: string = ''
-	): string {
-		let owner = '';
+	public property_owner(expression: ts.PropertyAccessExpression, current_owner: string = ""): string {
+		let owner = "";
 		if (current_owner !== undefined) {
 			owner = current_owner;
 		}
@@ -146,22 +135,12 @@ export class TypeScriptReferenceContext implements InstanceAliasResolvers, Prope
 	}
 
 	/** Responsibilities: _resolution owner type method_. **/
-	public method_owner(
-		expression: ts.AccessExpression,
-		current_owner: string = ''
-	): string {
-		let owner_name = '';
+	public method_owner(expression: ts.AccessExpression, current_owner: string = ""): string {
+		let owner_name = "";
 		if (current_owner !== undefined) {
 			owner_name = current_owner;
 		}
-		const base_owner = this.reference_owner_helpers.property_base_owner(
-			expression.expression,
-			owner_name
-		);
-		return this.member_owner(
-			base_owner,
-			this.access_name(expression)
-		);
+		const base_owner = this.reference_owner_helpers.property_base_owner(expression.expression, owner_name);
+		return this.member_owner(base_owner, this.access_name(expression));
 	}
-
 }

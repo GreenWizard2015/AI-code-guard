@@ -1,12 +1,12 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticObjectValues } from 'src/typescript-callable-aliases/static-object-values';
-import { TypeScriptStaticObjectSources } from 'src/typescript-callable-aliases/static-object-sources';
-import type { TypeScriptStaticObjectArgumentsProtocol } from 'src/protocols';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticObjectValues } from "src/typescript-callable-aliases/static-object-values";
+import { TypeScriptStaticObjectSources } from "src/typescript-callable-aliases/static-object-sources";
+import type { TypeScriptStaticObjectArgumentsProtocol } from "src/protocols";
 
 /** Responsibilities: _static object property collection_. **/
 export class TypeScriptStaticObjectProperties {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly source_expressions: TypeScriptStaticObjectSources;
 	private readonly value_resolver: TypeScriptStaticObjectValues;
 	private readonly objects: Map<string, ts.ObjectLiteralExpression>;
@@ -54,10 +54,7 @@ export class TypeScriptStaticObjectProperties {
 		if (this.append_named_binding(element.name, value)) {
 			return true;
 		}
-		return this.value_resolver.append_value(
-			element.name.text,
-			this.expression_aliases.unwrapped(value)
-		);
+		return this.value_resolver.append_value(element.name.text, this.expression_aliases.unwrapped(value));
 	}
 
 	/** Responsibilities: _named object source_. **/
@@ -72,30 +69,15 @@ export class TypeScriptStaticObjectProperties {
 		return this.value_resolver.append_object(binding.text, current);
 	}
 
-	/** Responsibilities: _object value binding_. **/
-	private append_value_property(
-		element: ts.BindingElement,
-		initializer: ts.ObjectLiteralExpression,
-		source_name: string
-	): boolean {
-		return this.value_resolver.append_property_value(
-			initializer,
-			source_name,
-			new Set(),
-			current => this.value_resolver.append_value(
-				element.name.getText(),
-				this.expression_aliases.unwrapped(current)
-			)
-		);
-	}
-
 	/** Responsibilities: _named binding property_. **/
 	private append_named_property(element: ts.BindingElement, initializer: ts.ObjectLiteralExpression): boolean {
 		let source_name = this.value_resolver.property_name(element.name);
 		if (element.propertyName !== undefined) {
 			source_name = this.value_resolver.property_name(element.propertyName);
 		}
-		return this.append_value_property(element, initializer, source_name);
+		return this.value_resolver.append_property_value(initializer, source_name, new Set(), (current) =>
+			this.value_resolver.append_value(element.name.getText(), this.expression_aliases.unwrapped(current)),
+		);
 	}
 
 	/** Responsibilities: _nested binding property_. **/
@@ -104,11 +86,8 @@ export class TypeScriptStaticObjectProperties {
 			return false;
 		}
 		const source_name = this.value_resolver.property_name(element.propertyName);
-		return this.value_resolver.append_property_value(
-			initializer,
-			source_name,
-			new Set(),
-			current => this.append_binding(element.name, current)
+		return this.value_resolver.append_property_value(initializer, source_name, new Set(), (current) =>
+			this.append_binding(element.name, current),
 		);
 	}
 
@@ -116,7 +95,7 @@ export class TypeScriptStaticObjectProperties {
 	public constructor(
 		values: Map<string, string>,
 		objects: Map<string, ts.ObjectLiteralExpression>,
-		arguments_source: TypeScriptStaticObjectArgumentsProtocol
+		arguments_source: TypeScriptStaticObjectArgumentsProtocol,
 	) {
 		this.value_resolver = new TypeScriptStaticObjectValues(values, objects);
 		this.objects = objects;
@@ -154,7 +133,7 @@ export class TypeScriptStaticObjectProperties {
 	/** Responsibilities: _nested binding source_. **/
 	public append_binding(binding: ts.BindingName, initializer: ts.Expression): boolean {
 		const current = this.expression_aliases.unwrapped(initializer);
-		if (this.source_expressions.append_binding(current, expression => this.append_binding(binding, expression))) {
+		if (this.source_expressions.append_binding(current, (expression) => this.append_binding(binding, expression))) {
 			return true;
 		}
 		if (ts.isIdentifier(binding)) {

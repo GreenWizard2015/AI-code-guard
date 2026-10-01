@@ -1,5 +1,5 @@
-import type { ReportViolation } from 'src/types';
-import type { ViolationPriorityCounts } from 'src/bridge/ts/core/support/types';
+import type { ReportViolation } from "src/types";
+import type { ViolationPriorityCounts } from "src/bridge/ts/core/support/types";
 
 /** Responsibilities: _priority violation count_, _failure status determination_. **/
 export class ViolationSummary {
@@ -27,7 +27,7 @@ export class ViolationSummary {
 			info: this.count([...this.violations], 1),
 			warning: this.count([...this.violations], 2),
 			critical: this.count([...this.violations], 3),
-			files: new Set(this.violations.map(violation => violation.file)).size,
+			files: new Set(this.violations.map((violation) => violation.file)).size,
 			total: this.violations.length,
 		};
 	}

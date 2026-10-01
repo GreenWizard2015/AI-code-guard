@@ -1,8 +1,8 @@
-import ts from 'typescript';
-import { JEST_EXCEPTIONS } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
-import { JestObjectShapeMatcher } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-object-shape-matcher';
-import { JestPropertyAssertionMatcher } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-property-assertion-matcher';
-import { JestTypeAssertionMatcher } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-type-assertion-matcher';
+import ts from "typescript";
+import { JEST_EXCEPTIONS } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JestObjectShapeMatcher } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-object-shape-matcher";
+import { JestPropertyAssertionMatcher } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-property-assertion-matcher";
+import { JestTypeAssertionMatcher } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-type-assertion-matcher";
 
 /** Responsibilities: _Jest shape assertions matching_, _Jest exception assertions matching_. **/
 export class JestAssertionShapeMatcher {

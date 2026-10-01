@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptObjectAliases } from 'src/typescript-aliases/typescript-object-aliases';
-import { TypeScriptStaticArrayKeys } from 'src/typescript-callable-aliases/static-array/typescript-static-array-keys';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptObjectAliases } from "src/typescript-aliases/typescript-object-aliases";
+import { TypeScriptStaticArrayKeys } from "src/typescript-callable-aliases/static-array/typescript-static-array-keys";
 
 /** Responsibilities: _dynamic object member ownership_. **/
 export class DynamicObjectMemberAliases {
@@ -27,17 +27,11 @@ export class DynamicObjectMemberAliases {
 	}
 
 	/** Responsibilities: _object member source collection_. **/
-	private source_values(
-		expression: ts.Expression,
-		source: ts.Node,
-		property_name: string
-	): readonly ts.Expression[] {
+	private source_values(expression: ts.Expression, source: ts.Node, property_name: string): readonly ts.Expression[] {
 		const objects = this.source_objects(source);
 		const values = objects.property_values(expression, property_name);
 		const array_values = this.array_aliases.expressions(expression, source.getSourceFile());
-		const array_property_values = array_values.flatMap(value =>
-			objects.property_values(value, property_name)
-		);
+		const array_property_values = array_values.flatMap((value) => objects.property_values(value, property_name));
 		return [...values, ...array_property_values];
 	}
 
@@ -49,19 +43,10 @@ export class DynamicObjectMemberAliases {
 		return ts.isElementAccessExpression(expression);
 	}
 
-	/** Responsibilities: _dynamic array receiver resolution_. **/
-	private array_receiver(expression: ts.Expression, source: ts.Node): boolean {
-		const array_values = this.array_aliases.expressions(
-			expression,
-			source.getSourceFile()
-		);
-		return array_values.some(value => this.target_aliases.receiver(value, source));
-	}
-
 	/** Responsibilities: _dynamic source receiver resolution_. **/
 	private source_receiver(expression: ts.Expression, source: ts.Node): boolean {
 		const property_name = this.member_name(expression);
-		if (property_name === '') {
+		if (property_name === "") {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
@@ -76,7 +61,7 @@ export class DynamicObjectMemberAliases {
 	}
 
 	/** Responsibilities: _dynamic object alias initialization_. **/
-	public constructor(target_name: string = 'Reflect') {
+	public constructor(target_name: string = "Reflect") {
 		this.target_aliases = new TypeScriptExpressionAliases(target_name);
 	}
 
@@ -86,7 +71,7 @@ export class DynamicObjectMemberAliases {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		return this.target_aliases.member_name(expression);
 	}
@@ -96,7 +81,8 @@ export class DynamicObjectMemberAliases {
 		if (!this.member_expression(expression)) {
 			return false;
 		}
-		if (this.array_receiver(expression, source)) {
+		const array_values = this.array_aliases.expressions(expression, source.getSourceFile());
+		if (array_values.some((value) => this.target_aliases.receiver(value, source))) {
 			return true;
 		}
 		return this.source_receiver(expression, source);
@@ -108,11 +94,11 @@ export class DynamicObjectMemberAliases {
 			return false;
 		}
 		const property_name = this.member_name(expression);
-		if (property_name === '') {
+		if (property_name === "") {
 			return false;
 		}
 		const values = this.source_objects(source).property_values(expression.expression, property_name);
-		return values.some(value => {
+		return values.some((value) => {
 			if (!ts.isPropertyAccessExpression(value) && !ts.isElementAccessExpression(value)) {
 				return false;
 			}

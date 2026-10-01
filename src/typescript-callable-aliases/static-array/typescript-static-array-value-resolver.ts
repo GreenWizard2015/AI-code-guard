@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticArrayIndexValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-index-values';
-import { TypeScriptStaticArrayMethods } from 'src/typescript-callable-aliases/static-array/typescript-static-array-methods';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticArrayIndexValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-index-values";
+import { TypeScriptStaticArrayMethods } from "src/typescript-callable-aliases/static-array/typescript-static-array-methods";
 
 /** Responsibilities: _static array values_. **/
 export class TypeScriptStaticArrayValues {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly array_methods = new TypeScriptStaticArrayMethods();
 	private readonly index_values: TypeScriptStaticArrayIndexValues;
 	private readonly array_sources: Map<string, readonly ts.Expression[]>;
@@ -40,11 +40,7 @@ export class TypeScriptStaticArrayValues {
 	}
 
 	/** Responsibilities: _array alternative resolution_. **/
-	private append_branch_values(
-		values: ts.Expression[],
-		left: ts.Expression,
-		right: ts.Expression
-	): boolean {
+	private append_branch_values(values: ts.Expression[], left: ts.Expression, right: ts.Expression): boolean {
 		let found = this.append(values, left);
 		if (this.append(values, right)) {
 			found = true;
@@ -166,10 +162,7 @@ export class TypeScriptStaticArrayValues {
 	}
 
 	/** Responsibilities: _static array source dependencies_. **/
-	public constructor(
-		array_sources: Map<string, readonly ts.Expression[]>,
-		numeric_sources: Map<string, number>
-	) {
+	public constructor(array_sources: Map<string, readonly ts.Expression[]>, numeric_sources: Map<string, number>) {
 		this.array_sources = array_sources;
 		this.index_values = new TypeScriptStaticArrayIndexValues(numeric_sources);
 	}

@@ -1,31 +1,31 @@
-import ts from 'typescript';
-import type { AstVisibility, NamedSymbol, NamedSymbolKind } from 'src/types';
-import type { NamedSymbolOptions } from 'src/bridge/ts/parser/types';
+import ts from "typescript";
+import type { AstVisibility, NamedSymbol, NamedSymbolKind } from "src/types";
+import type { NamedSymbolOptions } from "src/bridge/ts/parser/types";
 
 /** Responsibilities: _classification TypeScript declarations construction_. **/
 export class TypeScriptSymbolDeclaration {
-	private readonly default_visibility: AstVisibility = 'public';
+	private readonly default_visibility: AstVisibility = "public";
 
 	/** Responsibilities: _construction symbols variable declarations_. **/
 	private variable_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
+		if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 			return [];
 		}
-		let kind: NamedSymbolKind = 'variable';
+		let kind: NamedSymbolKind = "variable";
 		if (ts.isVariableDeclarationList(node.parent)) {
 			if ((node.parent.flags & ts.NodeFlags.Const) !== 0) {
-				kind = 'constant';
+				kind = "constant";
 			}
 		}
-		let is_module_constant = false;
-		if (kind === 'constant') {
-			is_module_constant = this.is_module_scope(node);
-		}
-		return [this.named_symbol(node.name.text, node, kind, source_file, {
-			is_module_constant: is_module_constant,
-			visibility: this.default_visibility,
-			is_module_function: false,
-		})];
+		const is_module_scope = this.is_module_scope(node);
+		return [
+			this.named_symbol(node.name.text, node, kind, source_file, {
+				is_module_constant: kind === "constant" && is_module_scope,
+				is_module_variable: kind === "variable" && is_module_scope,
+				visibility: this.default_visibility,
+				is_module_function: false,
+			}),
+		];
 	}
 
 	/** Responsibilities: _construction symbols named declarations_. **/
@@ -46,53 +46,61 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 		if (!ts.isFunctionDeclaration(node) || !node.name) {
 			return [];
 		}
-		return [this.named_symbol(node.name.text, node, 'function', source_file, {
-			is_module_constant: false,
-			visibility: this.default_visibility,
-			is_module_function: ts.isSourceFile(node.parent),
-		})];
+		return [
+			this.named_symbol(node.name.text, node, "function", source_file, {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility: this.default_visibility,
+				is_module_function: ts.isSourceFile(node.parent),
+			}),
+		];
 	}
 
 	/** Responsibilities: _construction symbol class method_. **/
 	private method_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (ts.isMethodDeclaration(node)) {
-			if (node.name) {
-				return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
-					is_module_constant: false,
-					visibility: this.declaration_visibility(node),
-					is_module_function: false,
-					})];
-			}
+		let name = "";
+		let visibility = this.default_visibility;
+		if (ts.isMethodDeclaration(node) && node.name) {
+			name = node.name.getText(source_file);
+			visibility = this.declaration_visibility(node);
+		} else if (ts.isMethodSignature(node) && node.name && ts.isInterfaceDeclaration(node.parent)) {
+			name = node.name.getText(source_file);
+		} else {
+			return [];
 		}
-		if (ts.isMethodSignature(node)) {
-			if (node.name && ts.isInterfaceDeclaration(node.parent)) {
-				return [this.named_symbol(node.name.getText(source_file), node, 'method', source_file, {
-					is_module_constant: false,
-					visibility: this.default_visibility,
-					is_module_function: false,
-					})];
-		}
-		}
-		return [];
+		return [
+			this.named_symbol(name, node, "method", source_file, {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility,
+				is_module_function: false,
+			}),
+		];
 	}
 
 	/** Responsibilities: _construction symbol class field_. **/
 	private member_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
 		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
 			if (node.name) {
-				return [this.named_symbol(node.name.getText(source_file), node, 'field', source_file, {
-					is_module_constant: false,
-					visibility: this.default_visibility,
-					is_module_function: false,
-					})];
+				return [
+					this.named_symbol(node.name.getText(source_file), node, "field", source_file, {
+						is_module_constant: false,
+						is_module_variable: false,
+						visibility: this.default_visibility,
+						is_module_function: false,
+					}),
+				];
 			}
 		}
 		if (ts.isParameter(node) && ts.isIdentifier(node.name)) {
-			return [this.named_symbol(node.name.text, node, 'variable', source_file, {
-				is_module_constant: false,
-				visibility: this.default_visibility,
-				is_module_function: false,
-			})];
+			return [
+				this.named_symbol(node.name.text, node, "variable", source_file, {
+					is_module_constant: false,
+					is_module_variable: false,
+					visibility: this.default_visibility,
+					is_module_function: false,
+				}),
+			];
 		}
 		return [];
 	}
@@ -118,7 +126,7 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 		node: ts.Node,
 		kind: NamedSymbolKind,
 		source_file: ts.SourceFile,
-		options: NamedSymbolOptions
+		options: NamedSymbolOptions,
 	): NamedSymbol {
 		const symbol_options = this.normalized_options(options);
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
@@ -127,6 +135,7 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 			line,
 			kind,
 			is_module_constant: symbol_options.is_module_constant,
+			is_module_variable: symbol_options.is_module_variable,
 			visibility: symbol_options.visibility,
 			is_module_function: symbol_options.is_module_function,
 		};
@@ -137,6 +146,7 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 		const visibility: AstVisibility = options.visibility;
 		return {
 			is_module_constant: options.is_module_constant === true,
+			is_module_variable: options.is_module_variable === true,
 			visibility,
 			is_module_function: options.is_module_function === true,
 		};
@@ -146,19 +156,19 @@ if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name)) {
 	private declaration_visibility(node: ts.MethodDeclaration): AstVisibility {
 		if (node.name) {
 			if (ts.isPrivateIdentifier(node.name)) {
-				return 'private';
+				return "private";
 			}
 		}
 		if (ts.canHaveModifiers(node)) {
 			const modifiers = ts.getModifiers(node);
-			if (modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
-				return 'private';
+			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+				return "private";
 			}
-			if (modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
-				return 'protected';
+			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+				return "protected";
 			}
 		}
-		return 'public';
+		return "public";
 	}
 
 	/** Responsibilities: _classification AST declaration normalization_. **/

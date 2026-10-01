@@ -1,5 +1,5 @@
-import type { AstCallableReference } from 'src/types';
-import type { ParsedFile, SharedCallableKind } from 'src/metrics/types';
+import type { AstCallableReference } from "src/types";
+import type { ParsedFile, SharedCallableKind } from "src/metrics/types";
 
 /** Responsibilities: _indexing callable references file_. **/
 export class CallableReferenceIndex {

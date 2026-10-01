@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptNamespaceAliases } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptNamespaceAliases } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/namespace-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _array alias resolution_. **/
 export class TypeScriptArrayDestructuredAliases {
@@ -11,7 +11,7 @@ export class TypeScriptArrayDestructuredAliases {
 
 	/** Responsibilities: _collection class alias name_. **/
 	private append_name_alias(name: string, target: string): boolean {
-		if (target === '') {
+		if (target === "") {
 			return false;
 		}
 		if (!this.names.has(target)) {
@@ -38,7 +38,7 @@ export class TypeScriptArrayDestructuredAliases {
 			return false;
 		}
 		const expression = this.expression_names.unwrap_transparent_expression(source);
-		let target = '';
+		let target = "";
 		if (ts.isIdentifier(expression)) {
 			target = expression.text;
 		} else {
@@ -66,10 +66,7 @@ export class TypeScriptArrayDestructuredAliases {
 	}
 
 	/** Responsibilities: _collection array source aliases_. **/
-	private append_source(
-		declaration: ts.VariableDeclaration,
-		elements: readonly ts.ArrayBindingElement[],
-	): boolean {
+	private append_source(declaration: ts.VariableDeclaration, elements: readonly ts.ArrayBindingElement[]): boolean {
 		if (declaration.initializer === undefined) {
 			return false;
 		}

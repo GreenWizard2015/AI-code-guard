@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptReferenceType } from 'src/parser/ts/typescript-reference-type';
+import ts from "typescript";
+import { TypeScriptReferenceType } from "src/parser/ts/typescript-reference-type";
 
 /** Responsibilities: _invocation result expressions_, _reference owner resolution_. **/
 export class TypeScriptCallReturnAnalysis {
@@ -7,10 +7,10 @@ export class TypeScriptCallReturnAnalysis {
 
 	/** Responsibilities: _extraction expression wrapped syntax_. **/
 	private wrapped_expression(expression: ts.Expression): ts.Expression[] {
-if (ts.isAwaitExpression(expression) || ts.isParenthesizedExpression(expression)) {
+		if (ts.isAwaitExpression(expression) || ts.isParenthesizedExpression(expression)) {
 			return [expression.expression];
 		}
-if (ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) {
+		if (ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) {
 			return [expression.expression];
 		}
 		if (ts.isTypeAssertionExpression(expression)) {
@@ -26,7 +26,7 @@ if (ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) {
 		if (owner.length > 0) {
 			return owner;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _unwrap nested output expressions_. **/
@@ -43,5 +43,4 @@ if (ts.isAsExpression(expression) || ts.isSatisfiesExpression(expression)) {
 			}
 		}
 	}
-
 }

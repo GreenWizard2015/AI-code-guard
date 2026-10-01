@@ -1,6 +1,16 @@
-import type { AstArgumentUse, AstCallableNode, AstCallableReference, AstClassNode, AstReferenceAlias, AstTypedArgument, AstVisibility, CallableOwnershipResolver, NormalizedAstFile } from 'src/types';
-import type { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
-import type { Violation } from 'src/protocols';
+import type {
+	AstArgumentUse,
+	AstCallableNode,
+	AstCallableReference,
+	AstClassNode,
+	AstReferenceAlias,
+	AstTypedArgument,
+	AstVisibility,
+	CallableOwnershipResolver,
+	NormalizedAstFile,
+} from "src/types";
+import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
+import type { Violation } from "src/protocols";
 export type ParsedFile = { file: string; ast: NormalizedAstFile };
 export type CallableDefinition = {
 	file: string;
@@ -63,10 +73,10 @@ export type CallableMatcherReferenceContext = {
 	reference: AstCallableReference;
 };
 
-export type SharedCallableKind = 'function' | 'method';
-export type SharedParameterKind = 'basic' | 'reference';
+export type SharedCallableKind = "function" | "method";
+export type SharedParameterKind = "basic" | "reference";
 export type ParameterKindResult = { supported: boolean; value: SharedParameterKind };
-export type SharedParameterLanguage = 'python' | 'typescript' | 'unknown';
+export type SharedParameterLanguage = "python" | "typescript" | "unknown";
 export type ProjectTypeBoundaryInput = {
 	violations: Violation[];
 	file: string;

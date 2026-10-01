@@ -1,8 +1,8 @@
-import { existsSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
-import ts from 'typescript';
-import { AstNamespaceTypeImports } from 'src/bridge/ts/rules/ast-property-sources/ast-namespace-type-imports';
-import { AstPropertySourceGraph } from 'src/bridge/ts/rules/ast-property-sources/ast-property-source-graph';
+import { existsSync } from "node:fs";
+import { dirname, extname, join } from "node:path";
+import ts from "typescript";
+import { AstNamespaceTypeImports } from "src/bridge/ts/rules/ast-property-sources/ast-namespace-type-imports";
+import { AstPropertySourceGraph } from "src/bridge/ts/rules/ast-property-sources/ast-property-source-graph";
 
 /** Responsibilities: _AST property source resolution_. **/
 export class AstPropertySources {
@@ -17,7 +17,7 @@ export class AstPropertySources {
 	private project_root(file: string): string {
 		let directory = dirname(file);
 		while (directory !== dirname(directory)) {
-			if (existsSync(join(directory, 'tsconfig.json'))) {
+			if (existsSync(join(directory, "tsconfig.json"))) {
 				return directory;
 			}
 			directory = dirname(directory);
@@ -27,13 +27,13 @@ export class AstPropertySources {
 
 	/** Responsibilities: _import base path resolution_. **/
 	private base_path(file: string, specifier: string): string {
-		if (specifier.startsWith('.')) {
+		if (specifier.startsWith(".")) {
 			return join(dirname(file), specifier);
 		}
-		if (specifier.startsWith('src/')) {
+		if (specifier.startsWith("src/")) {
 			return join(this.project_root(file), specifier);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _imported declaration key_. **/
@@ -53,16 +53,16 @@ export class AstPropertySources {
 				}
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _import module specifier_. **/
 	private import_module(statement: ts.Statement): string {
 		if (!ts.isImportDeclaration(statement)) {
-			return '';
+			return "";
 		}
 		if (!ts.isStringLiteral(statement.moduleSpecifier)) {
-			return '';
+			return "";
 		}
 		return statement.moduleSpecifier.text;
 	}
@@ -101,19 +101,19 @@ export class AstPropertySources {
 	public module_path(file: string, specifier: string): string {
 		const base = this.base_path(file, specifier);
 		if (base.length === 0) {
-			return '';
+			return "";
 		}
 		if (extname(base).length > 0) {
 			if (existsSync(base)) {
 				return base;
 			}
 		}
-		for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
+		for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, "index.ts")]) {
 			if (existsSync(candidate)) {
 				return candidate;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _declaration key resolution_. **/
@@ -136,7 +136,7 @@ export class AstPropertySources {
 
 	/** Responsibilities: _checking declaration availability_. **/
 	public declaration_exists(key: string): boolean {
-		if (!key.includes('\u0000')) {
+		if (!key.includes("\u0000")) {
 			return false;
 		}
 		const declaration = this.graph.declarations.get(key);
@@ -151,7 +151,7 @@ export class AstPropertySources {
 
 	/** Responsibilities: _retrieving declarations_. **/
 	public declaration(key: string): ts.Declaration {
-		if (!key.includes('\u0000')) {
+		if (!key.includes("\u0000")) {
 			throw new Error(`Invalid AST property declaration key: ${key}`);
 		}
 		const declaration = this.graph.declarations.get(key);

@@ -1,8 +1,8 @@
-import { TypeScriptCallReturnAnalysis } from 'src/bridge/ts/parser/typescript-call-return-analysis';
-import { TypeScriptImportedCallOwners } from 'src/model/typescript-imported-call-owners';
+import { TypeScriptCallReturnAnalysis } from "src/bridge/ts/parser/typescript-call-return-analysis";
+import { TypeScriptImportedCallOwners } from "src/model/typescript-imported-call-owners";
 
-import ts from 'typescript';
-import type { TypeScriptSourceResolver } from 'src/model/types';
+import ts from "typescript";
+import type { TypeScriptSourceResolver } from "src/model/types";
 
 /** Responsibilities: _indexing TypeScript functions variables_. **/
 export class TypeScriptCallReturns {
@@ -49,14 +49,14 @@ export class TypeScriptCallReturns {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 
 		if (!ts.isIdentifier(declaration.name)) {
-			return '';
+			return "";
 		}
 		if (declaration.initializer === undefined) {
-			return '';
+			return "";
 		}
 		const initializers = call_return_analysis.unwrap_expression(declaration.initializer);
 		if (initializers.length === 0) {
-			return '';
+			return "";
 		}
 		const initializer = initializers[0];
 		return this.function_initializer_owner(initializer);
@@ -64,12 +64,12 @@ export class TypeScriptCallReturns {
 
 	/** Responsibilities: _resolution owner represented function_. **/
 	private function_initializer_owner(initializer: ts.Expression): string {
-if (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer)) {
-			return '';
+		if (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer)) {
+			return "";
 		}
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 		if (initializer.type === undefined) {
-			return '';
+			return "";
 		}
 		return call_return_analysis.reference_owner(initializer.type);
 	}
@@ -77,7 +77,7 @@ if (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer)) {
 	/** Responsibilities: _indexing methods declared inside_. **/
 	private add_local_methods(): void {
 		for (const statement of this.source_file.statements) {
-if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
+			if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 				const class_declaration = statement;
 				this.add_class_methods(class_declaration);
 			}
@@ -94,15 +94,21 @@ if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 			const owner = this.class_method_owner(member);
 			const method_name = this.class_method_name(member);
 			if (owner && method_name) {
-				this.owners.set([class_name, method_name].join('.'), owner);
+				this.owners.set([class_name, method_name].join("."), owner);
 			}
 		}
 	}
 
 	/** Responsibilities: _resolution owner class class_. **/
 	private class_method_owner(member: ts.ClassElement): string {
-		if ((!ts.isMethodDeclaration(member)) || (!member.name) || member.type === undefined) {
-			return '';
+		if (!ts.isMethodDeclaration(member)) {
+			return "";
+		}
+		if (!member.name) {
+			return "";
+		}
+		if (member.type === undefined) {
+			return "";
 		}
 		const analysis = new TypeScriptCallReturnAnalysis();
 		return analysis.reference_owner(member.type);
@@ -111,7 +117,7 @@ if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 	/** Responsibilities: _resolution stable name class_. **/
 	private class_method_name(member: ts.ClassElement): string {
 		if (!ts.isMethodDeclaration(member) || !member.name) {
-			return '';
+			return "";
 		}
 		return member.name.getText();
 	}
@@ -120,13 +126,13 @@ if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 	private owner_from_alias(key: string): string {
 		const alias = this.aliases.get(key);
 		if (alias === undefined) {
-			return '';
+			return "";
 		}
 		const alias_owner = this.owners.get(alias);
 		if (alias_owner !== undefined) {
 			return alias_owner;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _initialization source aliases callable_. **/
@@ -149,10 +155,10 @@ if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 	}
 
 	/** Responsibilities: _resolution owner callable name_. **/
-	public owner_for(name: string, owner: string = ''): string {
+	public owner_for(name: string, owner: string = ""): string {
 		let key = name;
 		if (owner) {
-			key = [owner, name].join('.');
+			key = [owner, name].join(".");
 		}
 		const direct_owner = this.owners.get(key);
 		if (direct_owner !== undefined) {

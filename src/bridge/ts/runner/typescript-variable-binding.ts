@@ -1,10 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptTypeNode } from 'src/model/typescript-type-node';
+import ts from "typescript";
+import { TypeScriptTypeNode } from "src/model/typescript-type-node";
 
 /** Responsibilities: _resolution lexical variable bindings_. **/
 export class TypeScriptVariableBinding {
 	private readonly source_file: ts.SourceFile;
 	private readonly type_nodes = new Map<ts.TypeNode, TypeScriptTypeNode>();
+	private readonly declarations_cache = new Map<string, ts.VariableDeclaration[]>();
 
 	/** Responsibilities: _classification lexical scope nodes_. **/
 	private is_scope(node: ts.Node): boolean {
@@ -56,11 +57,7 @@ export class TypeScriptVariableBinding {
 	}
 
 	/** Responsibilities: _selection eligible declaration scope_. **/
-	private candidate_scope(
-		declaration: ts.VariableDeclaration,
-		scopes: readonly ts.Node[],
-		reference: ts.Node
-	): number {
+	private candidate_scope(declaration: ts.VariableDeclaration, scopes: readonly ts.Node[], reference: ts.Node): number {
 		if (declaration.pos > reference.pos) {
 			return -1;
 		}
@@ -72,7 +69,7 @@ export class TypeScriptVariableBinding {
 		declaration: ts.VariableDeclaration,
 		scope_index: number,
 		selected: ts.Node,
-		selected_scope: number
+		selected_scope: number,
 	): boolean {
 		if (scope_index < selected_scope) {
 			return true;
@@ -84,7 +81,7 @@ export class TypeScriptVariableBinding {
 	private visible_declaration(
 		declarations: readonly ts.VariableDeclaration[],
 		scopes: readonly ts.Node[],
-		reference: ts.Node
+		reference: ts.Node,
 	): ts.Node {
 		let selected: ts.Node = this.source_file;
 		let selected_scope = scopes.length;
@@ -118,15 +115,14 @@ export class TypeScriptVariableBinding {
 	}
 
 	/** Responsibilities: _exposure visible variable declaration_. **/
-	public declaration(
-		name: string,
-		reference: ts.Node
-	): ts.Node {
-		return this.visible_declaration(
-			this.declarations(this.source_file, name),
-			this.scope_chain(reference),
-			reference
-		);
+	public declaration(name: string, reference: ts.Node): ts.Node {
+		let declarations = this.declarations_cache.get(name);
+		if (declarations === undefined) {
+			declarations = this.declarations(this.source_file, name);
+			this.declarations_cache.set(name, declarations);
+		}
+		const scopes = this.scope_chain(reference);
+		return this.visible_declaration(declarations, scopes, reference);
 	}
 
 	/** Responsibilities: _classification visible primitive binding_. **/

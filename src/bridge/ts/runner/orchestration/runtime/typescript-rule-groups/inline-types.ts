@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import { TestPathSyntax } from 'src/test-path-syntax';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
+import ts from "typescript";
+import { TestPathSyntax } from "src/test-path-syntax";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
 /** Responsibilities: _detection inline object union_. **/
 export class InlineTypes {
 	private readonly type_parent_checks: readonly ((node: ts.Node) => boolean)[] = [
@@ -31,11 +31,25 @@ export class InlineTypes {
 
 	/** Responsibilities: _creation violation inline object_. **/
 	private object_violation(file: string, line: number, node: ts.Node): Violation[] {
-		if (!this.is_object_type(node) && !ts.isClassExpression(node)) {
-			return [];
+		const rule = new DiagnosticRule("typescript-inline-object-type");
+		if (this.is_object_type(node)) {
+			return [rule.violation(file, line)];
 		}
-		const rule = new DiagnosticRule('typescript-inline-object-type');
-		return [rule.violation(file, line)];
+		if (ts.isClassExpression(node)) {
+			return [rule.violation(file, line)];
+		}
+		if (this.is_inline_function(node)) {
+			return [rule.violation(file, line)];
+		}
+		return [];
+	}
+
+	/** Responsibilities: _classification inline function type_. **/
+	private is_inline_function(node: ts.Node): boolean {
+		if (!ts.isFunctionTypeNode(node)) {
+			return false;
+		}
+		return this.signature_parents.some((check) => check(this.type_parent(node)));
 	}
 
 	/** Responsibilities: _creation violation inline union_. **/
@@ -43,7 +57,7 @@ export class InlineTypes {
 		if (!this.is_inline_union(node)) {
 			return [];
 		}
-		const rule = new DiagnosticRule('typescript-inline-union-type');
+		const rule = new DiagnosticRule("typescript-inline-union-type");
 		return [rule.violation(file, line)];
 	}
 
@@ -52,7 +66,7 @@ export class InlineTypes {
 		if (!this.generic_type_node(node)) {
 			return [];
 		}
-		const rule = new DiagnosticRule('inline-generic-type');
+		const rule = new DiagnosticRule("inline-generic-type");
 		return [rule.violation(file, line)];
 	}
 
@@ -61,7 +75,7 @@ export class InlineTypes {
 		if (ts.isInterfaceDeclaration(node)) {
 			return node.members;
 		}
-if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
+		if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 			return node.type.members;
 		}
 		return [];
@@ -73,10 +87,9 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (count <= 10) {
 			return [];
 		}
-		const rule = new DiagnosticRule('type-field-count');
+		const rule = new DiagnosticRule("type-field-count");
 		return [rule.violation(file, line, { count: String(count) })];
 	}
-
 
 	/** Responsibilities: _classification node contains inline_. **/
 	private unwrapped_type(node: ts.TypeNode): ts.TypeNode {
@@ -101,7 +114,7 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (!parent.typeArguments) {
 			return false;
 		}
-		return parent.typeArguments.some(argument => this.unwrapped_type(argument) === node);
+		return parent.typeArguments.some((argument) => this.unwrapped_type(argument) === node);
 	}
 
 	/** Responsibilities: _classification union node inline_. **/
@@ -109,7 +122,7 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (!ts.isUnionTypeNode(node)) {
 			return false;
 		}
-		if (!this.signature_parents.some(check => check(this.type_parent(node)))) {
+		if (!this.signature_parents.some((check) => check(this.type_parent(node)))) {
 			return false;
 		}
 		return node.types.every(ts.isLiteralTypeNode);
@@ -129,7 +142,7 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		if (!ts.isTypeLiteralNode(node)) {
 			return false;
 		}
-		const has_type_parent = this.type_parent_checks.some(check => check(this.type_parent(node)));
+		const has_type_parent = this.type_parent_checks.some((check) => check(this.type_parent(node)));
 		if (!has_type_parent) {
 			return false;
 		}
@@ -148,11 +161,7 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 	}
 
 	/** Responsibilities: _aggregation inline-type violations traversing_. **/
-	public append_inline_types(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	public append_inline_types(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		const test_path_syntax = new TestPathSyntax();
 
 		if (test_path_syntax.test_ts(file)) {
@@ -164,5 +173,4 @@ if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
 		};
 		visit(source_file);
 	}
-
 }

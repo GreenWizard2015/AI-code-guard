@@ -1,38 +1,26 @@
-import type ts from 'typescript';
-import type { ArgumentUse, TypedArgument } from 'src/model/types';
-import type {
-	LintProjectContext,
-	LintStageTimerProtocol,
-	TypeScriptAstFileProtocol,
-	Violation,
-} from 'src/protocols';
+import type ts from "typescript";
+import type { ArgumentUse, TypedArgument } from "src/model/types";
+import type { LintProjectContext, LintStageTimerProtocol, TypeScriptAstFileProtocol, Violation } from "src/protocols";
 
-export type CallableOwnershipResolver = (
-	class_node: AstClassNode,
-	owner: string,
-	method_name: string
-) => boolean;
+export type CallableOwnershipResolver = (class_node: AstClassNode, owner: string, method_name: string) => boolean;
 
-type ClassMetricViolationKind = 'class_size' | 'short_class' | 'class_methods';
-type CallableMetricViolationKind = 'short_function' | 'short_method' | 'long_function';
-type LengthMetricViolationKind = 'long_method' | 'arguments';
-export type MetricViolationKind =
-	| ClassMetricViolationKind
-	| CallableMetricViolationKind
-	| LengthMetricViolationKind;
+type ClassMetricViolationKind = "class_size" | "short_class" | "class_methods";
+type CallableMetricViolationKind = "short_function" | "short_method" | "long_function";
+type LengthMetricViolationKind = "long_method" | "arguments";
+export type MetricViolationKind = ClassMetricViolationKind | CallableMetricViolationKind | LengthMetricViolationKind;
 
-export type AstVisibility = 'public' | 'protected' | 'private';
-export type AstLanguage = 'python' | 'typescript';
+export type AstVisibility = "public" | "protected" | "private";
+export type AstLanguage = "python" | "typescript";
 export type DuplicateTypeShape = { line: number; names: string[] };
 export type NamedShape = { name: string; line: number; fields: string[]; base_names: string[] };
-type AstImportTiming = 'dynamic' | 'nested' | 'late';
-export type AstImportKind = AstImportTiming | 'sys_path_mutation' | 'relative';
-type NamedCallableKind = 'function' | 'method';
-type NamedDataKind = 'variable' | 'field';
-type NamedDeclarationKind = 'constant' | 'type_alias';
+type AstImportTiming = "dynamic" | "nested" | "late";
+export type AstImportKind = AstImportTiming | "sys_path_mutation" | "relative";
+type NamedCallableKind = "function" | "method";
+type NamedDataKind = "variable" | "field";
+type NamedDeclarationKind = "constant" | "type_alias";
 export type NamedSymbolKind = NamedCallableKind | NamedDataKind | NamedDeclarationKind;
-type AstReferenceTypeKind = 'named' | 'generic' | 'template';
-export type AstTypeKind = 'basic' | AstReferenceTypeKind;
+type AstReferenceTypeKind = "named" | "generic" | "template";
+export type AstTypeKind = "basic" | AstReferenceTypeKind;
 
 export type AstArgumentUse = { name: string; count: number };
 export type AstTypedArgument = {
@@ -49,7 +37,7 @@ export type AstStatementNode = {
 	simple_alias: boolean;
 	destructured: boolean;
 };
-type AstStatementKind = 'assignment' | 'return' | 'other';
+type AstStatementKind = "assignment" | "return" | "other";
 export type AstClassField = {
 	line: number;
 	name: string;
@@ -98,12 +86,11 @@ type AstCallablePresentationFlags = {
 };
 /** Responsibilities: _callable analysis representation_. **/
 export interface AstCallableNode
-	extends
-	AstCallableIdentity,
-	AstCallableMetrics,
-	AstCallableAnalysis,
-	AstCallableTestFlags,
-	AstCallablePresentationFlags {}
+	extends AstCallableIdentity,
+		AstCallableMetrics,
+		AstCallableAnalysis,
+		AstCallableTestFlags,
+		AstCallablePresentationFlags {}
 type AstClassIdentity = { name: string; start: number; end: number; methods: AstCallableNode[] };
 type AstClassInheritance = {
 	lines: number;
@@ -138,12 +125,13 @@ export type AstCallableReference = {
 	dynamic: boolean;
 	line: number;
 };
-type CallableReferenceKind = 'function' | 'method';
+type CallableReferenceKind = "function" | "method";
 export type NamedSymbol = {
 	name: string;
 	line: number;
 	kind: NamedSymbolKind;
 	is_module_constant: boolean;
+	is_module_variable: boolean;
 	visibility: AstVisibility;
 	is_module_function: boolean;
 };
@@ -180,8 +168,8 @@ export type PythonBatchAstOptions = {
 	files: readonly string[];
 	repo_root: string;
 };
-type AstResponsibilityOwnerKind = 'class' | 'interface';
-type AstResponsibilityCallableKind = 'method' | 'function';
+type AstResponsibilityOwnerKind = "class" | "interface";
+type AstResponsibilityCallableKind = "method" | "function";
 export type AstResponsibilityKind = AstResponsibilityOwnerKind | AstResponsibilityCallableKind;
 export type AstResponsibilityTarget = {
 	kind: AstResponsibilityKind;
@@ -220,7 +208,10 @@ type NormalizedAstOptionalMetadata = {
 	docstring_spans: AstSourceSpan[];
 	responsibility_targets: AstResponsibilityTarget[];
 };
-export type NormalizedAstFile = NormalizedAstIdentity & NormalizedAstData & NormalizedAstOptionalData & NormalizedAstOptionalMetadata;
+export type NormalizedAstFile = NormalizedAstIdentity &
+	NormalizedAstData &
+	NormalizedAstOptionalData &
+	NormalizedAstOptionalMetadata;
 
 export type CodeClass = {
 	key: string;
@@ -399,10 +390,10 @@ export type TsMethodScanState = { class_start: number; depth: number };
 export type PythonClassMetrics = { end: number; method_count: number };
 export type CodingRuleSourceOptions = { file: string; text: string };
 export type CodingRuleAstParser = { source_ast(text: string): NormalizedAstFile };
-export type ParseLanguage = 'python' | 'typescript';
-export type CallTargetKind = 'bound' | 'call';
+export type ParseLanguage = "python" | "typescript";
+export type CallTargetKind = "bound" | "call";
 export type CallbackCounts = { readonly total: number; readonly inline: number };
-export type CallbackKind = 'none' | 'typed' | 'inline';
+export type CallbackKind = "none" | "typed" | "inline";
 export type FieldTypeData = { readonly type: string; readonly type_kind: AstTypeKind };
 export type ExpressionUnwrapper = (expression: ts.Expression) => ts.Expression[];
 export type PropertyOwner = { property_name: string; owner: string };
@@ -412,7 +403,7 @@ export type MaxMethodMetricInput = {
 	node: AstClassNode;
 };
 export type MixCallableNode = { name: string; start: number; end: number; argument_count: number };
-export type Visibility = 'public' | 'non-public';
+export type Visibility = "public" | "non-public";
 export type SourceIdentity = { absolute_path: string; relative_path: string; language: AstLanguage };
 export type CommentScanResult = { text: string; in_block_comment: boolean };
 export type SourceRange = { start: number; end: number };
@@ -439,7 +430,7 @@ export type CliOptions = {
 	batch_size: number;
 	policy: LintTaskPolicy;
 };
-export type LintTaskPolicy = 'top-category' | 'all';
+export type LintTaskPolicy = "top-category" | "all";
 export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy };
 export type LintExecutionReport = { context: LintProjectContext; report: LintRunResult };
 export type LintStageDuration = { name: string; duration_ms: number };

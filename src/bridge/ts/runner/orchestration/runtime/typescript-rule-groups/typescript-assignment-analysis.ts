@@ -1,6 +1,6 @@
-import { PointlessExpression } from 'src/rules/typescript/pointless-expression';
-import ts from 'typescript';
-import type { Assignment, AssignmentDetails } from 'src/bridge/ts/runner/orchestration/runtime/types';
+import { PointlessExpression } from "src/rules/typescript/pointless-expression";
+import ts from "typescript";
+import type { Assignment, AssignmentDetails } from "src/bridge/ts/runner/orchestration/runtime/types";
 
 /** Responsibilities: _normalization assignments identification logical_. **/
 export class TypeScriptAssignmentAnalysis {
@@ -14,14 +14,16 @@ export class TypeScriptAssignmentAnalysis {
 	private create_assignment(
 		declaration: ts.VariableDeclaration,
 		statement: ts.Statement,
-		source_file: ts.SourceFile
+		source_file: ts.SourceFile,
 	): Assignment[] {
 		const details_list = this.assignment_details(declaration);
 		for (const details of details_list) {
-			return [{
-				line: source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line,
-				...details,
-			}];
+			return [
+				{
+					line: source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line,
+					...details,
+				},
+			];
 		}
 		return [];
 	}
@@ -32,17 +34,19 @@ export class TypeScriptAssignmentAnalysis {
 		if (!name || declaration.initializer === undefined) {
 			return [];
 		}
-		return [{
-			name,
-			initializer: declaration.initializer,
-			simple_alias: ts.isIdentifier(declaration.initializer),
-			destructured: !ts.isIdentifier(declaration.name),
-		}];
+		return [
+			{
+				name,
+				initializer: declaration.initializer,
+				simple_alias: ts.isIdentifier(declaration.initializer),
+				destructured: !ts.isIdentifier(declaration.name),
+			},
+		];
 	}
 
 	/** Responsibilities: _extraction variable declarations assignment_. **/
 	private assignment_declaration(statement: ts.Statement): ts.VariableDeclaration[] {
-if (!ts.isVariableStatement(statement) || statement.declarationList.declarations.length !== 1) {
+		if (!ts.isVariableStatement(statement) || statement.declarationList.declarations.length !== 1) {
 			return [];
 		}
 		for (const declaration of statement.declarationList.declarations) {
@@ -63,12 +67,10 @@ if (!ts.isVariableStatement(statement) || statement.declarationList.declarations
 
 	/** Responsibilities: _classification assignment name reused_. **/
 	private has_reused_assignments(candidates: Assignment[], last: Assignment): boolean {
-		if (candidates.slice(1).every(candidate => candidate.simple_alias)) {
+		if (candidates.slice(1).every((candidate) => candidate.simple_alias)) {
 			return true;
 		}
-		return candidates
-			.slice(0, -1)
-			.every(candidate => this.contains_identifier(last.initializer, candidate.name));
+		return candidates.slice(0, -1).every((candidate) => this.contains_identifier(last.initializer, candidate.name));
 	}
 
 	/** Responsibilities: _classification node contains logical_. **/

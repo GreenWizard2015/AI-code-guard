@@ -1,5 +1,5 @@
-import type { NormalizedAstFile } from 'src/types';
-import type { SpawnOptions } from 'node:child_process';
+import type { NormalizedAstFile } from "src/types";
+import type { SpawnOptions } from "node:child_process";
 
 export type PythonAstWorkerSources = { [name: string]: string };
 export type PythonAstStageTiming = {

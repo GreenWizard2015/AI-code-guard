@@ -1,10 +1,9 @@
-import { MetricViolations } from 'src/metric-violations';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from 'src/constants';
-import type { AstClassNode, LintFileNameContract } from 'src/types';
-import { ProceduralClassName } from 'src/metrics/procedural-class-name';
-
+import { MetricViolations } from "src/metric-violations";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
+import type { AstClassNode, LintFileNameContract } from "src/types";
+import { ProceduralClassName } from "src/metrics/procedural-class-name";
 
 /** Responsibilities: _reporting class mixins state_. **/
 export class ClassStructureReporter {
@@ -24,7 +23,7 @@ export class ClassStructureReporter {
 		if (this.node.base_class_name) {
 			base_names = [this.node.base_class_name];
 		}
-return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith('Mixin'));
+		return this.node.name.endsWith("Mixin") || base_names.some((name) => name.endsWith("Mixin"));
 	}
 
 	/** Responsibilities: _classification class owns stateful_. **/
@@ -33,7 +32,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		if (interfaces?.length || fields?.length) {
 			return true;
 		}
-		return methods.some(method => method.name === '__init__' || method.name === 'constructor');
+		return methods.some((method) => method.name === "__init__" || method.name === "constructor");
 	}
 
 	/** Responsibilities: _resolution primary base class_. **/
@@ -42,7 +41,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 			return this.node.base_class_name;
 		}
 		if (this.node.base_class_names.length === 0) {
-			return '';
+			return "";
 		}
 		return this.node.base_class_names[0];
 	}
@@ -52,11 +51,11 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		if (!this.is_mixin()) {
 			return;
 		}
-		const rule = new DiagnosticRule('mixin');
+		const rule = new DiagnosticRule("mixin");
 		this.violations.push(
 			rule.violation(this.file_name.value, this.node.start + 1, {
 				name: this.node.name,
-			})
+			}),
 		);
 	}
 
@@ -65,7 +64,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		if (this.has_state()) {
 			return;
 		}
-		const rule = new DiagnosticRule('stateless-class');
+		const rule = new DiagnosticRule("stateless-class");
 		this.violations.push(rule.violation(this.file_name.value, this.node.start + 1));
 	}
 
@@ -78,7 +77,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		if (!base_name) {
 			return;
 		}
-		const rule = new DiagnosticRule('local-inheritance');
+		const rule = new DiagnosticRule("local-inheritance");
 		this.violations.push(rule.violation(this.file_name.value, this.node.start + 1, { base_name }));
 	}
 
@@ -91,8 +90,10 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		if (interfaces.length <= MAX_CLASS_INTERFACES) {
 			return;
 		}
-		const rule = new DiagnosticRule('class-interface-count');
-		this.violations.push(rule.violation(this.file_name.value, this.node.start + 1, { count: String(interfaces.length) }));
+		const rule = new DiagnosticRule("class-interface-count");
+		this.violations.push(
+			rule.violation(this.file_name.value, this.node.start + 1, { count: String(interfaces.length) }),
+		);
 	}
 
 	/** Responsibilities: _aggregation class size method-count_. **/
@@ -102,19 +103,17 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		const line = this.node.start;
 		if (this.minimum_class_size > MAX_CLASS_LINES) {
 			this.violations.push(
-				metric_violations.metric_violation(this.file_name.value, line, this.minimum_class_size, 'class_size')
+				metric_violations.metric_violation(this.file_name.value, line, this.minimum_class_size, "class_size"),
 			);
 		}
-		const methods = this.node.methods.filter(
-			method => method.name !== 'constructor' && method.name !== '__init__'
-		);
+		const methods = this.node.methods.filter((method) => method.name !== "constructor" && method.name !== "__init__");
 		const has_constructor = this.node.methods.some(
-			method => method.name === 'constructor' || method.name === '__init__'
+			(method) => method.name === "constructor" || method.name === "__init__",
 		);
 		const method_count = methods.length + (has_constructor ? 1 : 0);
 		if (method_count > MAX_CLASS_METHODS) {
 			this.violations.push(
-				metric_violations.metric_violation(this.file_name.value, line, method_count, 'class_methods')
+				metric_violations.metric_violation(this.file_name.value, line, method_count, "class_methods"),
 			);
 		}
 	}
@@ -154,7 +153,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		}
 		const metric_violations = new MetricViolations();
 		this.violations.push(
-			metric_violations.metric_violation(this.file_name.value, this.node.start, this.minimum_class_size, 'short_class')
+			metric_violations.metric_violation(this.file_name.value, this.node.start, this.minimum_class_size, "short_class"),
 		);
 	}
 
@@ -163,7 +162,7 @@ return this.node.name.endsWith('Mixin') || base_names.some(name => name.endsWith
 		violations: Violation[],
 		file_name: LintFileNameContract,
 		node: AstClassNode,
-		suppress_short_class = false
+		suppress_short_class = false,
 	) {
 		this.violations = violations;
 		this.file_name = file_name;

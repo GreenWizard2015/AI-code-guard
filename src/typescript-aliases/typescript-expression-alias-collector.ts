@@ -1,10 +1,7 @@
-import ts from 'typescript';
-import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
-import { TypeScriptObjectAliases } from 'src/typescript-aliases/typescript-object-aliases';
-import type {
-	TypeScriptExpressionAliasesProtocol,
-	TypeScriptObjectAliasesProtocol,
-} from 'src/protocols';
+import ts from "typescript";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
+import { TypeScriptObjectAliases } from "src/typescript-aliases/typescript-object-aliases";
+import type { TypeScriptExpressionAliasesProtocol, TypeScriptObjectAliasesProtocol } from "src/protocols";
 
 /** Responsibilities: _TypeScript expression alias collection_. **/
 export class TypeScriptExpressionAliasCollector {
@@ -15,7 +12,7 @@ export class TypeScriptExpressionAliasCollector {
 	private append_pattern_alias(
 		aliases: Set<string>,
 		node: ts.VariableDeclaration,
-		object_aliases: TypeScriptObjectAliasesProtocol
+		object_aliases: TypeScriptObjectAliasesProtocol,
 	): boolean {
 		if (node.initializer === undefined) {
 			return false;
@@ -24,8 +21,8 @@ export class TypeScriptExpressionAliasCollector {
 			aliases,
 			node.name,
 			node.initializer,
-			expression => object_aliases.value(this.owner.unwrapped(expression)),
-			(alias_set, name, initializer) => this.owner.append_alias(alias_set, name, initializer)
+			(expression) => object_aliases.value(this.owner.unwrapped(expression)),
+			(name, initializer) => this.owner.append_alias(aliases, name, initializer),
 		);
 	}
 
@@ -33,7 +30,7 @@ export class TypeScriptExpressionAliasCollector {
 	private append_variable_alias(
 		aliases: Set<string>,
 		node: ts.VariableDeclaration,
-		object_aliases: TypeScriptObjectAliasesProtocol
+		object_aliases: TypeScriptObjectAliasesProtocol,
 	): boolean {
 		if (node.initializer === undefined) {
 			return false;
@@ -62,7 +59,7 @@ export class TypeScriptExpressionAliasCollector {
 		aliases: Set<string>,
 		node: ts.Node,
 		root: ts.Node,
-		object_aliases: TypeScriptObjectAliasesProtocol
+		object_aliases: TypeScriptObjectAliasesProtocol,
 	): boolean {
 		if (node !== root && ts.isFunctionLike(node)) {
 			return false;
@@ -74,7 +71,7 @@ export class TypeScriptExpressionAliasCollector {
 		if (ts.isBinaryExpression(node) && this.append_assignment_alias(aliases, node)) {
 			changed = true;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_scope_aliases(aliases, child, root, object_aliases)) {
 				changed = true;
 			}
@@ -93,5 +90,4 @@ export class TypeScriptExpressionAliasCollector {
 		}
 		return aliases;
 	}
-
 }

@@ -1,16 +1,14 @@
-import { ReexportNames } from 'src/bridge/ts/runner/orchestration/runtime/python/reexport-names';
-import ts from 'typescript';
-import type { Violation, Rule } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { LintSourceRecord } from 'src/types';
-import type { NormalizedAstFile } from 'src/types';
-
-
+import { ReexportNames } from "src/bridge/ts/runner/orchestration/runtime/python/reexport-names";
+import ts from "typescript";
+import type { Violation, Rule } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { LintSourceRecord } from "src/types";
+import type { NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _detection TypeScript Python facade_. **/
 export class Reexports {
-	private readonly reexport_rule_id = 'reexports';
-	private readonly python_init_file = '/__init__.py';
+	private readonly reexport_rule_id = "reexports";
+	private readonly python_init_file = "/__init__.py";
 
 	/** Responsibilities: _collection imported TypeScript bindings_. **/
 	private typescript_imported_bindings(source_file: ts.SourceFile): Set<string> {
@@ -47,10 +45,7 @@ export class Reexports {
 	}
 
 	/** Responsibilities: _classification local TypeScript reexport_. **/
-	private local_typescript_reexport(
-		statement: ts.ExportDeclaration,
-		imported_bindings: ReadonlySet<string>,
-	): boolean {
+	private local_typescript_reexport(statement: ts.ExportDeclaration, imported_bindings: ReadonlySet<string>): boolean {
 		const export_clause = statement.exportClause;
 		if (statement.moduleSpecifier !== undefined) {
 			return false;
@@ -61,7 +56,7 @@ export class Reexports {
 		if (!ts.isNamedExports(export_clause)) {
 			return false;
 		}
-		return export_clause.elements.some(element => {
+		return export_clause.elements.some((element) => {
 			let local_name = element.name;
 			if (element.propertyName !== undefined) {
 				local_name = element.propertyName;
@@ -71,11 +66,7 @@ export class Reexports {
 	}
 
 	/** Responsibilities: _aggregation TypeScript reexport violations_. **/
-	private append_typescript_reexports(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	private append_typescript_reexports(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		const rule = this.reexport_rule();
 		const imported_bindings = this.typescript_imported_bindings(source_file);
 		for (const statement of source_file.statements) {
@@ -88,19 +79,14 @@ export class Reexports {
 			const line = source_file.getLineAndCharacterOfPosition(statement.getStart(source_file)).line;
 			violations.push(
 				rule.violation(file, line + 1, {
-					reason: 'use the defining module directly instead of re-exporting it',
-				})
+					reason: "use the defining module directly instead of re-exporting it",
+				}),
 			);
 		}
 	}
 
 	/** Responsibilities: _inspection Python import facade_. **/
-	private append_python_reexport(
-		violations: Violation[],
-		file: string,
-		text: string,
-		ast: NormalizedAstFile
-	): void {
+	private append_python_reexport(violations: Violation[], file: string, text: string, ast: NormalizedAstFile): void {
 		if (file.endsWith(this.python_init_file)) {
 			return;
 		}
@@ -116,14 +102,14 @@ export class Reexports {
 		const rule = this.reexport_rule();
 		violations.push(
 			rule.violation(file, line + 1, {
-				reason: 'use the defining module directly instead of a re-export facade',
-			})
+				reason: "use the defining module directly instead of a re-export facade",
+			}),
 		);
 	}
 
 	/** Responsibilities: _classification diagnostic line Python_. **/
 	private python_facade_line(text: string, ast: NormalizedAstFile): number {
-		const lines = text.split('\n');
+		const lines = text.split("\n");
 		if (!this.is_python_facade(lines, ast)) {
 			return -1;
 		}
@@ -175,10 +161,10 @@ export class Reexports {
 
 	/** Responsibilities: _Python import parenthesis tracking_. **/
 	private import_delta(line: string): number {
-		if (line.startsWith('from ')) {
+		if (line.startsWith("from ")) {
 			return this.parenthesis_delta(line);
 		}
-		if (line.startsWith('import ')) {
+		if (line.startsWith("import ")) {
 			return this.parenthesis_delta(line);
 		}
 		return -1;
@@ -189,10 +175,10 @@ export class Reexports {
 		let opening = 0;
 		let closing = 0;
 		for (const character of line) {
-			if (character === '(') {
+			if (character === "(") {
 				opening += 1;
 			}
-			if (character === ')') {
+			if (character === ")") {
 				closing += 1;
 			}
 		}
@@ -209,7 +195,7 @@ export class Reexports {
 		violations: Violation[],
 		file: string,
 		text: string,
-		source: LintSourceRecord
+		source: LintSourceRecord,
 	): void {
 		if (source.python()) {
 			this.append_python_reexport(violations, file, text, source.normalized_ast);

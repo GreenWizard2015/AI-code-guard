@@ -1,6 +1,7 @@
-import ts from 'typescript';
-import { TypeScriptStaticArraySources } from 'src/typescript-callable-aliases/static-array/typescript-static-array-sources';
-import { TypeScriptStaticArrayValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver';
+import ts from "typescript";
+import type { SpreadValueAppender } from "src/protocols";
+import { TypeScriptStaticArraySources } from "src/typescript-callable-aliases/static-array/typescript-static-array-sources";
+import { TypeScriptStaticArrayValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver";
 
 /** Responsibilities: _static object invocation arguments_. **/
 export class TypeScriptStaticObjectArguments {
@@ -26,10 +27,7 @@ export class TypeScriptStaticObjectArguments {
 	}
 
 	/** Responsibilities: _static spread argument resolution_. **/
-	public append_spread(
-		element: ts.SpreadElement,
-		append_value: (expression: ts.Expression) => boolean
-	): boolean {
+	public append_spread(element: ts.SpreadElement, append_value: SpreadValueAppender): boolean {
 		let found = false;
 		for (const value of this.array_values.values(element.expression)) {
 			if (append_value(value)) {

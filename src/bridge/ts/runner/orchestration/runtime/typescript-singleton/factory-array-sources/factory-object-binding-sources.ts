@@ -1,6 +1,7 @@
-import ts from 'typescript';
-import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { FactoryObjectSourcesContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import type { ArraySourceResolver, ExpressionVisitor } from "src/protocols";
 
 /** Responsibilities: _factory object binding sources_. **/
 export class TypeScriptFactoryObjectBindingSources {
@@ -25,7 +26,7 @@ export class TypeScriptFactoryObjectBindingSources {
 			}
 			return this.property_source(initializer, this.expression_names.static_binding_name(element));
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _nested binding source_. **/
@@ -33,9 +34,9 @@ export class TypeScriptFactoryObjectBindingSources {
 		initializer: ts.ObjectLiteralExpression,
 		element: ts.BindingElement,
 		name: string,
-		array_source: (binding: ts.ArrayBindingPattern, value: ts.Expression, name: string) => string,
+		array_source: ArraySourceResolver,
 	): string {
-		let result = '';
+		let result = "";
 		this.append_property_value(initializer, this.expression_names.static_binding_name(element), (value) => {
 			if (ts.isObjectBindingPattern(element.name)) {
 				const binding = element.name;
@@ -57,10 +58,10 @@ export class TypeScriptFactoryObjectBindingSources {
 			return this.spread_source(property.expression, property_name);
 		}
 		if (property.name === undefined) {
-			return '';
+			return "";
 		}
 		if (this.expression_names.static_property_name(property.name) !== property_name) {
-			return '';
+			return "";
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
 			return property.name.text;
@@ -68,14 +69,14 @@ export class TypeScriptFactoryObjectBindingSources {
 		if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.initializer)) {
 			return property.initializer.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _direct property value_. **/
 	private direct_property(
 		property: ts.ObjectLiteralElementLike,
 		property_name: string,
-		visitor: (value: ts.Expression) => void,
+		visitor: ExpressionVisitor,
 	): boolean {
 		if (property.name === undefined) {
 			return false;
@@ -94,7 +95,7 @@ export class TypeScriptFactoryObjectBindingSources {
 	private append_property_value(
 		initializer: ts.ObjectLiteralExpression,
 		property_name: string,
-		visitor: (value: ts.Expression) => void,
+		visitor: ExpressionVisitor,
 	): void {
 		for (let index = initializer.properties.length - 1; index >= 0; index -= 1) {
 			const property = initializer.properties[index];
@@ -112,7 +113,7 @@ export class TypeScriptFactoryObjectBindingSources {
 
 	/** Responsibilities: _spread property source_. **/
 	private spread_source(expression: ts.Expression, property_name: string): string {
-		let result = '';
+		let result = "";
 		this.object_sources.append(expression, (initializer) => {
 			result = this.property_source(initializer, property_name);
 		});
@@ -128,11 +129,11 @@ export class TypeScriptFactoryObjectBindingSources {
 	public property_source(initializer: ts.ObjectLiteralExpression, property_name: string): string {
 		for (let index = initializer.properties.length - 1; index >= 0; index -= 1) {
 			const source = this.source_property(initializer.properties[index], property_name);
-			if (source !== '') {
+			if (source !== "") {
 				return source;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _object binding resolution_. **/
@@ -140,10 +141,10 @@ export class TypeScriptFactoryObjectBindingSources {
 		initializer: ts.ObjectLiteralExpression,
 		binding: ts.ObjectBindingPattern,
 		name: string,
-		array_source: (binding: ts.ArrayBindingPattern, value: ts.Expression, name: string) => string,
+		array_source: ArraySourceResolver,
 	): string {
 		const direct = this.direct_binding_source(initializer, binding, name);
-		if (direct !== '') {
+		if (direct !== "") {
 			return direct;
 		}
 		for (const element of binding.elements) {
@@ -155,6 +156,6 @@ export class TypeScriptFactoryObjectBindingSources {
 			}
 			return this.nested_binding_source(initializer, element, name, array_source);
 		}
-		return '';
+		return "";
 	}
 }

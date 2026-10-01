@@ -1,10 +1,5 @@
-import type {
-	LintSourceRecord,
-	LintFileNameContract,
-	LintSourceRecordOptions,
-	NormalizedAstFile,
-} from 'src/types';
-import type { TypeScriptAstFileProtocol } from 'src/protocols';
+import type { LintSourceRecord, LintFileNameContract, LintSourceRecordOptions, NormalizedAstFile } from "src/types";
+import type { TypeScriptAstFileProtocol } from "src/protocols";
 
 /** Responsibilities: _storage normalization TypeScript lint_, _AST access exposure_. **/
 export class TypeScriptLintSourceRecord implements LintSourceRecord {
@@ -13,7 +8,7 @@ export class TypeScriptLintSourceRecord implements LintSourceRecord {
 	public readonly file_name: LintFileNameContract;
 	public readonly text: string;
 	public readonly normalized_ast: NormalizedAstFile;
-	public readonly language = 'typescript' as const;
+	public readonly language = "typescript" as const;
 	public readonly typescript_ast: TypeScriptAstFileProtocol;
 
 	/** Responsibilities: _initialization normalization TypeScript lint_. **/

@@ -1,4 +1,4 @@
-import type { ReportViolation } from 'src/types';
+import type { ReportViolation } from "src/types";
 
 /** Responsibilities: _diagnostic violation data storage_, _adjusted violation copies creation_. **/
 export class Violation {

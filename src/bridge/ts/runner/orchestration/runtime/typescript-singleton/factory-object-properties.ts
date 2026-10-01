@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import type { TypeScriptFactoryArrayAliasesProtocol } from 'src/protocols';
-import { TypeScriptFactoryNestedObjectExpressions } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-nested-object-expressions';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { TypeScriptFactoryArrayAliasesProtocol } from "src/protocols";
+import { TypeScriptFactoryNestedObjectExpressions } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-nested-object-expressions";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution factory object properties_. **/
 export class TypeScriptFactoryObjectProperties {
@@ -12,7 +12,7 @@ export class TypeScriptFactoryObjectProperties {
 	/** Responsibilities: _direct property source_. **/
 	private direct_source(property: ts.ObjectLiteralElementLike, property_name: string): string {
 		if (this.property_key(property) !== property_name) {
-			return '';
+			return "";
 		}
 		if (ts.isShorthandPropertyAssignment(property)) {
 			return property.name.text;
@@ -20,7 +20,7 @@ export class TypeScriptFactoryObjectProperties {
 		if (ts.isPropertyAssignment(property) && ts.isIdentifier(property.initializer)) {
 			return property.initializer.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _direct factory expression_. **/
@@ -44,12 +44,12 @@ export class TypeScriptFactoryObjectProperties {
 		if (ts.isIdentifier(source)) {
 			const object_source = this.object_sources.get(source.text);
 			if (object_source === undefined) {
-				return '';
+				return "";
 			}
 			source = object_source;
 		}
 		if (!ts.isObjectLiteralExpression(source)) {
-			return '';
+			return "";
 		}
 		return this.source(source, property_name);
 	}
@@ -58,17 +58,17 @@ export class TypeScriptFactoryObjectProperties {
 	private resolve_source(initializer: ts.ObjectLiteralExpression, property_name: string): string {
 		for (let index = initializer.properties.length - 1; index >= 0; index -= 1) {
 			const property = initializer.properties[index];
-			let source = '';
+			let source = "";
 			if (ts.isSpreadAssignment(property)) {
 				source = this.spread_source(property.expression, property_name);
 			} else {
 				source = this.direct_source(property, property_name);
 			}
-			if (source !== '') {
+			if (source !== "") {
 				return source;
 			}
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _factory expression collection_. **/
@@ -130,7 +130,7 @@ export class TypeScriptFactoryObjectProperties {
 	/** Responsibilities: _static property name_. **/
 	public property_key(property: ts.ObjectLiteralElementLike): string {
 		if (property.name === undefined) {
-			return '';
+			return "";
 		}
 		return this.expression_names.static_property_name(property.name);
 	}
@@ -152,7 +152,7 @@ export class TypeScriptFactoryObjectProperties {
 		const sources = this.sources(initializer, [property_name]);
 		const source = sources.get(property_name);
 		if (source === undefined) {
-			return '';
+			return "";
 		}
 		return source;
 	}
@@ -169,5 +169,4 @@ export class TypeScriptFactoryObjectProperties {
 		}
 		return expressions;
 	}
-
 }

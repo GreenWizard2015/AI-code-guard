@@ -1,7 +1,7 @@
-import ts from 'typescript';
-import type { AstResponsibilityKind, AstResponsibilityTarget } from 'src/types';
-import { ResponsibilityContainerKind } from 'src/model/types';
-import type { ResponsibilityContainer } from 'src/model/types';
+import ts from "typescript";
+import type { AstResponsibilityKind, AstResponsibilityTarget } from "src/types";
+import { ResponsibilityContainerKind } from "src/model/types";
+import type { ResponsibilityContainer } from "src/model/types";
 
 /** Responsibilities: _collection TypeScript responsibility targets_. **/
 export class TypeScriptResponsibilityTargets {
@@ -17,19 +17,15 @@ export class TypeScriptResponsibilityTargets {
 	/** Responsibilities: _TypeScript documentation access_. **/
 	private documentation(node: ts.Node): string {
 		const comments = ts.getJSDocCommentsAndTags(node);
-		const documentation = comments.find(comment => comment.kind === ts.SyntaxKind.JSDoc);
+		const documentation = comments.find((comment) => comment.kind === ts.SyntaxKind.JSDoc);
 		if (documentation === undefined) {
-			return '';
+			return "";
 		}
 		return documentation.getText(this.source_file);
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
-	private target(
-		kind: AstResponsibilityKind,
-		name: string,
-		node: ts.Node,
-	): AstResponsibilityTarget {
+	private target(kind: AstResponsibilityKind, name: string, node: ts.Node): AstResponsibilityTarget {
 		return {
 			kind,
 			name,
@@ -41,7 +37,7 @@ export class TypeScriptResponsibilityTargets {
 	/** Responsibilities: _declaration names identification_. **/
 	private declaration_name(node: ts.NamedDeclaration): string {
 		if (node.name === undefined) {
-			return '';
+			return "";
 		}
 		return node.name.getText(this.source_file);
 	}
@@ -49,7 +45,7 @@ export class TypeScriptResponsibilityTargets {
 	/** Responsibilities: _declaration names identification_. **/
 	private method_name(node: ts.Node): string {
 		if (ts.isConstructorDeclaration(node)) {
-			return 'constructor';
+			return "constructor";
 		}
 		if (ts.isMethodDeclaration(node)) {
 			return this.declaration_name(node);
@@ -63,15 +59,11 @@ export class TypeScriptResponsibilityTargets {
 		if (ts.isMethodSignature(node)) {
 			return this.declaration_name(node);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
-	private append_method(
-		targets: AstResponsibilityTarget[],
-		node: ts.Node,
-		container: ResponsibilityContainer,
-	): void {
+	private append_method(targets: AstResponsibilityTarget[], node: ts.Node, container: ResponsibilityContainer): void {
 		if (container.kind === ResponsibilityContainerKind.Interface && ts.isMethodSignature(node)) {
 			return;
 		}
@@ -79,7 +71,7 @@ export class TypeScriptResponsibilityTargets {
 		if (!name) {
 			return;
 		}
-		targets.push(this.target('method', name, node));
+		targets.push(this.target("method", name, node));
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
@@ -91,8 +83,8 @@ export class TypeScriptResponsibilityTargets {
 			kind: ResponsibilityContainerKind.Class,
 			line: this.source_file.getLineAndCharacterOfPosition(node.getStart(this.source_file)).line,
 		};
-		targets.push(this.target('class', node.name.text, node));
-		node.members.forEach(member => this.visit(member, targets, current));
+		targets.push(this.target("class", node.name.text, node));
+		node.members.forEach((member) => this.visit(member, targets, current));
 		return true;
 	}
 
@@ -102,15 +94,15 @@ export class TypeScriptResponsibilityTargets {
 			kind: ResponsibilityContainerKind.Interface,
 			line: this.source_file.getLineAndCharacterOfPosition(node.getStart(this.source_file)).line,
 		};
-		targets.push(this.target('interface', node.name.text, node));
-		node.members.forEach(member => this.visit(member, targets, current));
+		targets.push(this.target("interface", node.name.text, node));
+		node.members.forEach((member) => this.visit(member, targets, current));
 		return true;
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
 	private append_function(node: ts.FunctionDeclaration, targets: AstResponsibilityTarget[]): boolean {
 		if (node.name !== undefined) {
-			targets.push(this.target('function', node.name.text, node));
+			targets.push(this.target("function", node.name.text, node));
 		}
 		return true;
 	}
@@ -121,7 +113,7 @@ export class TypeScriptResponsibilityTargets {
 			return true;
 		}
 		if (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) {
-			targets.push(this.target('function', node.name.getText(this.source_file), node));
+			targets.push(this.target("function", node.name.getText(this.source_file), node));
 		}
 		return true;
 	}
@@ -147,11 +139,7 @@ export class TypeScriptResponsibilityTargets {
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
-	private visit(
-		node: ts.Node,
-		targets: AstResponsibilityTarget[],
-		container: ResponsibilityContainer,
-	): void {
+	private visit(node: ts.Node, targets: AstResponsibilityTarget[], container: ResponsibilityContainer): void {
 		if (container.kind !== ResponsibilityContainerKind.Root && this.method_kinds.has(node.kind)) {
 			this.append_method(targets, node, container);
 			return;
@@ -159,7 +147,7 @@ export class TypeScriptResponsibilityTargets {
 		if (this.append_declaration(node, targets)) {
 			return;
 		}
-		ts.forEachChild(node, child => this.visit(child, targets, this.root_container));
+		ts.forEachChild(node, (child) => this.visit(child, targets, this.root_container));
 	}
 
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
@@ -175,7 +163,7 @@ export class TypeScriptResponsibilityTargets {
 	/** Responsibilities: _TypeScript responsibility targets collection_. **/
 	public collect_nodes(nodes: readonly ts.Node[]): AstResponsibilityTarget[] {
 		const targets: AstResponsibilityTarget[] = [];
-		nodes.forEach(node => this.visit(node, targets, this.root_container));
+		nodes.forEach((node) => this.visit(node, targets, this.root_container));
 		return targets;
 	}
 }

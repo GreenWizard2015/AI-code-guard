@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliasCollector } from 'src/typescript-aliases/typescript-expression-alias-collector';
+import ts from "typescript";
+import { TypeScriptExpressionAliasCollector } from "src/typescript-aliases/typescript-expression-alias-collector";
 
 /** Responsibilities: _resolution TypeScript expression aliases_. **/
 export class TypeScriptExpressionAliases {
@@ -10,7 +10,7 @@ export class TypeScriptExpressionAliases {
 	/** Responsibilities: _globalThis target classification_. **/
 	private matches_global_target(expression: ts.Expression): boolean {
 		if (ts.isElementAccessExpression(expression)) {
-			if (!ts.isIdentifier(expression.expression) || expression.expression.text !== 'globalThis') {
+			if (!ts.isIdentifier(expression.expression) || expression.expression.text !== "globalThis") {
 				return false;
 			}
 			const argument = expression.argumentExpression;
@@ -22,7 +22,7 @@ export class TypeScriptExpressionAliases {
 		if (!ts.isPropertyAccessExpression(expression)) {
 			return false;
 		}
-		if (!ts.isIdentifier(expression.expression) || expression.expression.text !== 'globalThis') {
+		if (!ts.isIdentifier(expression.expression) || expression.expression.text !== "globalThis") {
 			return false;
 		}
 		return expression.name.text === this.target_name;
@@ -30,10 +30,10 @@ export class TypeScriptExpressionAliases {
 
 	/** Responsibilities: _alias target classification_. **/
 	private matches_target(expression: ts.Expression): boolean {
-		if (this.target_name === '*') {
+		if (this.target_name === "*") {
 			return true;
 		}
-		if (this.target_name === 'this') {
+		if (this.target_name === "this") {
 			return expression.kind === ts.SyntaxKind.ThisKeyword;
 		}
 		if (!ts.isIdentifier(expression)) {
@@ -148,17 +148,17 @@ export class TypeScriptExpressionAliases {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		const argument = expression.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
 		const key = this.unwrapped(argument);
 		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
 			return key.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _alias initializer unwrapping_. **/

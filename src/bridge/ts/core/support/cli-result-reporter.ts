@@ -1,6 +1,6 @@
-import type { LintStageTimerProtocol, TaskReportingProtocol } from 'src/protocols';
-import type { CliOptions } from 'src/types';
-import type { LintRunResult } from 'src/types';
+import type { LintStageTimerProtocol, TaskReportingProtocol } from "src/protocols";
+import type { CliOptions } from "src/types";
+import type { LintRunResult } from "src/types";
 
 /** Responsibilities: _lint results formatting_, _diagnostics and timings writing_. **/
 export class CliResultReporter {
@@ -21,26 +21,18 @@ export class CliResultReporter {
 	}
 
 	/** Responsibilities: _report lint results_. **/
-	public report(
-		report: LintRunResult,
-		options: CliOptions,
-	): void {
+	public report(report: LintRunResult, options: CliOptions): void {
 		const task_options = { batch_size: options.batch_size, policy: options.policy };
 		const output = this.task_reporting.format(report.violations, task_options);
 		this.write(report, output);
 	}
 
 	/** Responsibilities: _reporting lint results stage_. **/
-	public report_with_timings(
-		report: LintRunResult,
-		options: CliOptions,
-		stage_timer: LintStageTimerProtocol,
-	): void {
+	public report_with_timings(report: LintRunResult, options: CliOptions, stage_timer: LintStageTimerProtocol): void {
 		const task_options = { batch_size: options.batch_size, policy: options.policy };
-		const output = stage_timer.measure(
-			'diagnostics',
-			() => this.task_reporting.format(report.violations, task_options),
+		const output = stage_timer.measure("diagnostics", () =>
+			this.task_reporting.format(report.violations, task_options),
 		);
-		this.write(report, [output, stage_timer.format()].join('\n'));
+		this.write(report, [output, stage_timer.format()].join("\n"));
 	}
 }

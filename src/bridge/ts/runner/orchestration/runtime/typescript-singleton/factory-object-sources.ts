@@ -1,5 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { ObjectSourceVisitor } from "src/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _factory object source registry_. **/
 export class TypeScriptFactoryObjectSources {
@@ -86,10 +87,7 @@ export class TypeScriptFactoryObjectSources {
 	}
 
 	/** Responsibilities: _object source dispatch_. **/
-	public append(
-		expression: ts.Expression,
-		visitor: (source: ts.ObjectLiteralExpression) => void,
-	): void {
+	public append(expression: ts.Expression, visitor: ObjectSourceVisitor): void {
 		this.register();
 		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isObjectLiteralExpression(source)) {

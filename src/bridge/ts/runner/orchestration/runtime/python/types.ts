@@ -1,8 +1,8 @@
-import type { PythonRuleAppender } from 'src/runner/types';
-import type { LintFileNameContract, NormalizedAstFile } from 'src/types';
-import type { LintSourceRecord } from 'src/types';
-import type { AstClassNode, AstPythonImport, LineOnly } from 'src/types';
-import type { Violation } from 'src/protocols';
+import type { PythonRuleAppender } from "src/runner/types";
+import type { LintFileNameContract, NormalizedAstFile } from "src/types";
+import type { LintSourceRecord } from "src/types";
+import type { AstClassNode, AstPythonImport, LineOnly } from "src/types";
+import type { Violation } from "src/protocols";
 
 export type NamedDeclaration = { name: string; line: number; has_self: boolean };
 export type LineViolation = { line: number };
@@ -37,5 +37,5 @@ export type PythonProjectNames = {
 	project_protocol_names: ReadonlySet<string>;
 	project_type_names: ReadonlySet<string>;
 };
-export type PythonTestFramework = 'pytest' | 'unittest';
+export type PythonTestFramework = "pytest" | "unittest";
 export type TestFrameworkFile = { source: LintSourceRecord; framework: PythonTestFramework };

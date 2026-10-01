@@ -1,16 +1,12 @@
-import ts from 'typescript';
-import { ContextSourceRecordSet } from 'src/bridge/ts/core/context/context-source-record-factory';
-import { TypeScriptSourceFiles } from 'src/bridge/ts/core/context/typescript-source-files';
-import { PythonSourceFiles } from 'src/bridge/ts/core/context/python-source-files';
-import { SourceText } from 'src/rules/typescript/default-source-loader';
-import type {
-	LintProjectContext,
-	LintStageTimerProtocol,
-	PythonAstDataProtocol,
-} from 'src/protocols';
-import { LintProjectContextStore } from 'src/bridge/ts/core/project-context';
-import type { NormalizedAstFile } from 'src/types';
-import { PythonAstData } from 'src/bridge/ts/core/python-ast-parser';
+import ts from "typescript";
+import { ContextSourceRecordSet } from "src/bridge/ts/core/context/context-source-record-factory";
+import { TypeScriptSourceFiles } from "src/bridge/ts/core/context/typescript-source-files";
+import { PythonSourceFiles } from "src/bridge/ts/core/context/python-source-files";
+import { SourceText } from "src/rules/typescript/default-source-loader";
+import type { LintProjectContext, LintStageTimerProtocol, PythonAstDataProtocol } from "src/protocols";
+import { LintProjectContextStore } from "src/bridge/ts/core/project-context";
+import type { NormalizedAstFile } from "src/types";
+import { PythonAstData } from "src/bridge/ts/core/python-ast-parser";
 
 /** Responsibilities: _source text parsing_. **/
 export class LintProjectContextCreator {
@@ -18,27 +14,16 @@ export class LintProjectContextCreator {
 	private readonly source_text = new SourceText();
 	private readonly python_ast_parser: PythonAstDataProtocol;
 
-	/** Responsibilities: _source text measurement_. **/
-	private timed_source_texts(files: string[], stage_timer: LintStageTimerProtocol): Map<string, string> {
-		return stage_timer.measure(
-			'startup.project-context.read-files',
-			() => this.source_texts(files)
-		);
-	}
-
 	/** Responsibilities: _TypeScript source parsing_. **/
 	private timed_source_files(
 		files: string[],
 		texts: ReadonlyMap<string, string>,
-		stage_timer: LintStageTimerProtocol
+		stage_timer: LintStageTimerProtocol,
 	): Map<string, ts.SourceFile> {
-		return stage_timer.measure(
-			'startup.project-context.typescript-source-files',
-			() => {
-				const source_files = new TypeScriptSourceFiles(files, texts);
-				return source_files.source_files();
-			}
-		);
+		return stage_timer.measure("startup.project-context.typescript-source-files", () => {
+			const source_files = new TypeScriptSourceFiles(files, texts);
+			return source_files.source_files();
+		});
 	}
 
 	/** Responsibilities: _Python batch parsing_. **/
@@ -46,15 +31,12 @@ export class LintProjectContextCreator {
 		repo_root: string,
 		files: string[],
 		texts: ReadonlyMap<string, string>,
-		stage_timer: LintStageTimerProtocol
+		stage_timer: LintStageTimerProtocol,
 	): ReadonlyMap<string, NormalizedAstFile> {
-		return stage_timer.measure(
-			'startup.project-context.python-bridge',
-			() => {
-				const source_files = new PythonSourceFiles(files, texts, this.python_ast_parser, repo_root);
-				return source_files.source_ast(stage_timer, 'startup.project-context.python-bridge');
-			}
-		);
+		return stage_timer.measure("startup.project-context.python-bridge", () => {
+			const source_files = new PythonSourceFiles(files, texts, this.python_ast_parser, repo_root);
+			return source_files.source_ast(stage_timer, "startup.project-context.python-bridge");
+		});
 	}
 
 	/** Responsibilities: _initialization reusable Python AST_. **/
@@ -67,29 +49,24 @@ export class LintProjectContextCreator {
 	}
 
 	/** Responsibilities: _construction complete project context_. **/
-	public lint_context(
-		repo_root: string,
-		files: string[],
-		stage_timer: LintStageTimerProtocol
-	): LintProjectContext {
-		const texts = this.timed_source_texts(files, stage_timer);
+	public lint_context(repo_root: string, files: string[], stage_timer: LintStageTimerProtocol): LintProjectContext {
+		const texts = stage_timer.measure("startup.project-context.read-files", () => this.source_texts(files));
 		const source_files = this.timed_source_files(files, texts, stage_timer);
 		const python_file_asts = this.python_file_asts(repo_root, files, texts, stage_timer);
-		const sources = stage_timer.measure(
-			'startup.project-context.source-records',
-			() => this.source_record_factory.source_records({
+		const sources = stage_timer.measure("startup.project-context.source-records", () =>
+			this.source_record_factory.source_records({
 				repo_root,
 				files,
 				texts,
 				source_files,
 				python_file_asts,
 				stage_timer,
-			})
+			}),
 		);
 		const statistics = this.source_record_factory.statistics(files, source_files);
 		return stage_timer.measure(
-			'startup.project-context.context-store',
-			() => new LintProjectContextStore(sources, statistics)
+			"startup.project-context.context-store",
+			() => new LintProjectContextStore(sources, statistics),
 		);
 	}
 

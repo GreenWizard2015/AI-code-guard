@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { FakeObjectProtocol } from 'src/protocols';
-import { ObjectCallableBinding } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-binding';
+import ts from "typescript";
+import type { FakeObjectProtocol } from "src/protocols";
+import { ObjectCallableBinding } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-callable-binding";
 
 /** Responsibilities: _resolution callable object aliases_. **/
 export class ObjectCallableAliases {

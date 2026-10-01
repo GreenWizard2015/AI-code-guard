@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import type { AstCallableReference } from 'src/types';
-import type { TypeScriptReferenceContextProtocol } from 'src/protocols';
-import type { CallReferenceOptions } from 'src/bridge/ts/parser/types';
+import ts from "typescript";
+import type { AstCallableReference } from "src/types";
+import type { TypeScriptReferenceContextProtocol } from "src/protocols";
+import type { CallReferenceOptions } from "src/bridge/ts/parser/types";
 
 /** Responsibilities: _construction normalization TypeScript function_. **/
 export class TypeScriptCallReference {
-	private readonly method_kind = 'method' as const;
+	private readonly method_kind = "method" as const;
 
 	/** Responsibilities: _resolution accessed member name_. **/
 	private member_name(expression: ts.AccessExpression): string {
@@ -16,14 +16,11 @@ export class TypeScriptCallReference {
 		if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
 			return argument.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _optional owner caller addition_. **/
-	private add_reference_context(
-		reference: AstCallableReference,
-		options: CallReferenceOptions
-	): void {
+	private add_reference_context(reference: AstCallableReference, options: CallReferenceOptions): void {
 		if (options.is_bound) {
 			return;
 		}
@@ -47,20 +44,20 @@ export class TypeScriptCallReference {
 		if (option_values[0] !== undefined) {
 			return option_values[0];
 		}
-		return { current_owner: '', is_bound: false, is_call: false };
+		return { current_owner: "", is_bound: false, is_call: false };
 	}
 
 	/** Responsibilities: _construction normalization function reference_. **/
 	private function_reference(
 		context: TypeScriptReferenceContextProtocol,
 		expression: ts.Identifier,
-		line: number
+		line: number,
 	): AstCallableReference {
 		return {
 			name: context.function_name(expression),
-			kind: 'function',
-			owner: '',
-			caller_owner: '',
+			kind: "function",
+			owner: "",
+			caller_owner: "",
 			is_call: false,
 			dynamic: false,
 			line,
@@ -72,13 +69,13 @@ export class TypeScriptCallReference {
 		context: TypeScriptReferenceContextProtocol,
 		expression: ts.AccessExpression,
 		line: number,
-		options: CallReferenceOptions
+		options: CallReferenceOptions,
 	): AstCallableReference {
 		const reference: AstCallableReference = {
 			name: this.member_name(expression),
 			kind: this.method_kind,
 			owner: context.method_owner(expression, options.current_owner),
-			caller_owner: '',
+			caller_owner: "",
 			is_call: false,
 			dynamic: false,
 			line,
@@ -105,6 +102,6 @@ export class TypeScriptCallReference {
 		if (ts.isElementAccessExpression(expression) && this.member_name(expression).length > 0) {
 			return this.method_reference(context, expression, line, reference_options);
 		}
-		throw new Error('Unsupported TypeScript call reference expression.');
+		throw new Error("Unsupported TypeScript call reference expression.");
 	}
 }

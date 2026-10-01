@@ -1,11 +1,12 @@
-import { TypeScriptStatementSloc } from 'src/typescript-statement-sloc';
-import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
-import ts from 'typescript';
+import { TypeScriptStatementSloc } from "src/typescript-statement-sloc";
+import { TypeScriptCallableBody } from "src/typescript-callable-aliases/typescript-callable-body";
+import ts from "typescript";
 
 /** Responsibilities: _calculation TypeScript callable lines_. **/
 export class CallableBodyMetrics {
 	private readonly source_file: ts.SourceFile;
 	private readonly line_cache = new Map<number, number>();
+	private readonly character_cache = new Map<number, number>();
 	private readonly statement_sloc = new TypeScriptStatementSloc();
 	private readonly callable_body = new TypeScriptCallableBody();
 
@@ -35,7 +36,8 @@ export class CallableBodyMetrics {
 		}
 		const start = this.source_line(first.getStart(this.source_file));
 		const end = this.source_line(last.end - 1);
-		return (end - start) + 1;
+		const span = end - start;
+		return span + 1;
 	}
 
 	/** Responsibilities: _significant source line count_. **/
@@ -53,31 +55,35 @@ export class CallableBodyMetrics {
 
 	/** Responsibilities: _source non-whitespace character count_. **/
 	public significant_characters(text: string): number {
-		return text.replace(/\s+/gu, '').length;
+		return text.replace(/\s+/gu, "").length;
 	}
 
 	/** Responsibilities: _callable significant character count_. **/
 	public characters(node: ts.SignatureDeclarationBase): number {
-		return this.callable_body.resolve(
-			node,
-			1,
-			body => Math.max(1, this.significant_characters(body.getText(this.source_file).replace(/\breturn\b|[{}]/gu, '')))
+		const cached = this.character_cache.get(node.pos);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const characters = this.callable_body.resolve(node, 1, (body) =>
+			Math.max(1, this.significant_characters(body.getText(this.source_file).replace(/\breturn\b|[{}]/gu, ""))),
 		);
+		this.character_cache.set(node.pos, characters);
+		return characters;
 	}
 
 	/** Responsibilities: _callable body lines calculation_. **/
 	public lines(node: ts.SignatureDeclarationBase): number {
-		return this.callable_body.resolve(node, 0, body => this.line_count(body));
+		return this.callable_body.resolve(node, 0, (body) => this.line_count(body));
 	}
 
 	/** Responsibilities: _callable body SLOC calculation_. **/
 	public sloc(node: ts.SignatureDeclarationBase): number {
-		return this.callable_body.resolve(node, 1, body => this.sloc_count(body));
+		return this.callable_body.resolve(node, 1, (body) => this.sloc_count(body));
 	}
 
 	/** Responsibilities: _classification callable body only_. **/
 	public exception_only(node: ts.SignatureDeclarationBase): boolean {
-		return this.callable_body.resolve(node, false, body => {
+		return this.callable_body.resolve(node, false, (body) => {
 			if (!ts.isBlock(body) || body.statements.length !== 1) {
 				return false;
 			}

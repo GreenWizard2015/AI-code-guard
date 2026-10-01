@@ -1,12 +1,12 @@
-import ts from 'typescript';
-import { TypeScriptCallableAliases } from 'src/typescript-callable-aliases';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptObjectCallableAliases } from 'src/typescript-callable-aliases/object-callable-aliases';
+import ts from "typescript";
+import { TypeScriptCallableAliases } from "src/typescript-callable-aliases";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptObjectCallableAliases } from "src/typescript-callable-aliases/object-callable-aliases";
 
 /** Responsibilities: _callable object properties identification_, _fake objects classification_. **/
 export class FakeObject {
 	private readonly callable_aliases = new TypeScriptCallableAliases();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly object_aliases = new TypeScriptObjectCallableAliases();
 	private readonly callable_kinds = new Set([
 		ts.SyntaxKind.MethodDeclaration,

@@ -1,17 +1,13 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import { TypeScriptCallReferenceCollector } from 'src/parser/ts/typescript-call-references';
-import { TypeScriptClassNodes } from 'src/parser/ts/typescript-class-node';
-import type {
-	AstCallableNode,
-	AstClassNode,
-	NormalizedAstFile,
-} from 'src/types';
-import type { TypeScriptSourceResolver } from 'src/model/types';
-import type { TypeScriptAstOptions } from 'src/model/types';
-import { TypeScriptCallableData } from 'src/model/typescript-callable-data';
-import { CallableNodes } from 'src/model/typescript-callable-nodes';
-import { TypeScriptAstMetadata } from 'src/model/typescript-ast-metadata';
+import { TypeScriptCallReferenceCollector } from "src/parser/ts/typescript-call-references";
+import { TypeScriptClassNodes } from "src/parser/ts/typescript-class-node";
+import type { AstCallableNode, AstClassNode, NormalizedAstFile } from "src/types";
+import type { TypeScriptSourceResolver } from "src/model/types";
+import type { TypeScriptAstOptions } from "src/model/types";
+import { TypeScriptCallableData } from "src/model/typescript-callable-data";
+import { CallableNodes } from "src/model/typescript-callable-nodes";
+import { TypeScriptAstMetadata } from "src/model/typescript-ast-metadata";
 
 /** Responsibilities: _TypeScript file parsing_. **/
 export class TypeScriptAstFile {
@@ -32,7 +28,7 @@ export class TypeScriptAstFile {
 		if (body === undefined || !ts.isModuleBlock(body)) {
 			return [];
 		}
-		return body.statements.flatMap(child => this.function_nodes_for(child));
+		return body.statements.flatMap((child) => this.function_nodes_for(child));
 	}
 
 	/** Responsibilities: _extraction callable nodes top-level_. **/
@@ -46,10 +42,7 @@ export class TypeScriptAstFile {
 		if (!ts.isVariableStatement(statement)) {
 			return [];
 		}
-		return this.callable_nodes.variable_callable_nodes(
-			{ source_file: this.source_file },
-			statement
-		);
+		return this.callable_nodes.variable_callable_nodes({ source_file: this.source_file }, statement);
 	}
 
 	/** Responsibilities: _aggregation callable nodes source-file_. **/
@@ -69,7 +62,7 @@ export class TypeScriptAstFile {
 		let source_resolver: TypeScriptSourceResolver;
 		if (options === undefined) {
 			let script_kind = ts.ScriptKind.TS;
-			if (file.endsWith('.tsx')) {
+			if (file.endsWith(".tsx")) {
 				script_kind = ts.ScriptKind.TSX;
 			}
 			this.source_file = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, script_kind);
@@ -81,27 +74,21 @@ export class TypeScriptAstFile {
 		this.callable_data = new TypeScriptCallableData(this.source_file);
 		this.callable_nodes = new CallableNodes(this.callable_data);
 		this.class_node_factory = new TypeScriptClassNodes(this.source_file, this.callable_nodes);
-		this.call_reference_collector = new TypeScriptCallReferenceCollector(
-			this.source_file,
-			source_resolver
-		);
+		this.call_reference_collector = new TypeScriptCallReferenceCollector(this.source_file, source_resolver);
 		this.metadata = new TypeScriptAstMetadata(this.source_file, this.call_reference_collector);
 	}
 
 	/** Responsibilities: _source TypeScript AST access_. **/
 	public source_file_node(): ts.SourceFile {
 		if (this.source_file.fileName.length === 0) {
-			throw new Error('TypeScript source file has no file name.');
+			throw new Error("TypeScript source file has no file name.");
 		}
 		return this.source_file.getSourceFile();
 	}
 
 	/** Responsibilities: _collection normalization class interface_. **/
 	public classes(): AstClassNode[] {
-		const class_nodes = [
-			...this.class_node_factory.class_nodes(),
-			...this.class_node_factory.interface_nodes(),
-		];
+		const class_nodes = [...this.class_node_factory.class_nodes(), ...this.class_node_factory.interface_nodes()];
 		class_nodes.sort((left, right) => left.start - right.start);
 		return class_nodes;
 	}
@@ -115,14 +102,14 @@ export class TypeScriptAstFile {
 
 	/** Responsibilities: _construction normalization AST file_. **/
 	public normalized(): NormalizedAstFile {
-		const cached = this.normalized_cache.get('normalized');
+		const cached = this.normalized_cache.get("normalized");
 		if (cached !== undefined) {
 			return cached;
 		}
 		const classes = this.classes();
 		const functions = this.functions();
 		const normalized = this.metadata.normalized(classes, functions);
-		this.normalized_cache.set('normalized', normalized);
+		this.normalized_cache.set("normalized", normalized);
 		return normalized;
 	}
 
@@ -132,7 +119,7 @@ export class TypeScriptAstFile {
 			...cached,
 			call_references: this.call_reference_collector.collect(),
 		};
-		this.normalized_cache.set('normalized', normalized);
+		this.normalized_cache.set("normalized", normalized);
 		return normalized;
 	}
 }

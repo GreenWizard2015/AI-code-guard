@@ -1,11 +1,12 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import type { StaticObjectValueAppender } from "src/protocols";
 
 /** Responsibilities: _static object value collection_. **/
 export class TypeScriptStaticObjectValues {
 	private readonly expression_names = new TypeScriptExpressionNames();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly literal_kinds = new Set([
 		ts.SyntaxKind.StringLiteral,
 		ts.SyntaxKind.NoSubstitutionTemplateLiteral,
@@ -17,16 +18,16 @@ export class TypeScriptStaticObjectValues {
 	/** Responsibilities: _computed object property name_. **/
 	private computed_property_name(node: ts.ComputedPropertyName): string {
 		const static_name = this.expression_names.static_property_name(node);
-		if (static_name !== '') {
+		if (static_name !== "") {
 			return static_name;
 		}
 		const current = this.expression_aliases.unwrapped(node.expression);
 		if (!ts.isIdentifier(current)) {
-			return '';
+			return "";
 		}
 		const value = this.values.get(current.text);
 		if (value === undefined) {
-			return '';
+			return "";
 		}
 		return value;
 	}
@@ -35,7 +36,7 @@ export class TypeScriptStaticObjectValues {
 	private append_named_property(
 		property: ts.ObjectLiteralElementLike,
 		source_name: string,
-		append_value: (value: ts.Expression) => boolean
+		append_value: StaticObjectValueAppender,
 	): boolean {
 		if (ts.isPropertyAssignment(property)) {
 			if (this.property_name(property.name) !== source_name) {
@@ -56,7 +57,7 @@ export class TypeScriptStaticObjectValues {
 		property: ts.SpreadAssignment,
 		source_name: string,
 		seen: Set<ts.ObjectLiteralExpression>,
-		append_value: (value: ts.Expression) => boolean
+		append_value: StaticObjectValueAppender,
 	): boolean {
 		const current = this.expression_aliases.unwrapped(property.expression);
 		if (ts.isObjectLiteralExpression(current)) {
@@ -99,7 +100,7 @@ export class TypeScriptStaticObjectValues {
 		property: ts.ObjectLiteralElementLike,
 		source_name: string,
 		seen: Set<ts.ObjectLiteralExpression>,
-		append_value: (value: ts.Expression) => boolean
+		append_value: StaticObjectValueAppender,
 	): boolean {
 		if (this.append_named_property(property, source_name, append_value)) {
 			return true;
@@ -118,7 +119,7 @@ export class TypeScriptStaticObjectValues {
 		if (this.values.has(name)) {
 			return false;
 		}
-		this.values.set(name, current.getText().replace(/^['"`]|['"`]$/g, ''));
+		this.values.set(name, current.getText().replace(/^['"`]|['"`]$/g, ""));
 		return true;
 	}
 
@@ -157,7 +158,7 @@ export class TypeScriptStaticObjectValues {
 		initializer: ts.ObjectLiteralExpression,
 		source_name: string,
 		seen: Set<ts.ObjectLiteralExpression>,
-		append_value: (value: ts.Expression) => boolean
+		append_value: StaticObjectValueAppender,
 	): boolean {
 		if (seen.has(initializer)) {
 			return false;
@@ -197,12 +198,12 @@ export class TypeScriptStaticObjectValues {
 
 	/** Responsibilities: _object property value resolution_. **/
 	public property_value(object: ts.ObjectLiteralExpression, source_name: string): string {
-		let result = '';
-		this.append_property_value(object, source_name, new Set(), current => {
+		let result = "";
+		this.append_property_value(object, source_name, new Set(), (current) => {
 			const value = this.expression_aliases.unwrapped(current);
 			if (this.literal_kinds.has(value.kind)) {
-				result = value.getText().replace(/^['"`]|['"`]$/g, '');
-				return result !== '';
+				result = value.getText().replace(/^['"`]|['"`]$/g, "");
+				return result !== "";
 			}
 			if (ts.isIdentifier(value)) {
 				const aliased = this.values.get(value.text);

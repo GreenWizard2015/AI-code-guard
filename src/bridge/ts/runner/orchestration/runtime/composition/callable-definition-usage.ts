@@ -1,12 +1,18 @@
-import { CallableOwnership } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import { MIN_USAGE_FILES } from 'src/constants';
-import { CallableReferenceMatcher } from 'src/bridge/ts/runner/orchestration/runtime/composition/callable-reference-matcher';
-import type { CallableDefinition, CallableDefinitionUsageOptions, CallableClassIndex, CallableProjectIndex, ParsedFile } from 'src/metrics/types';
-import type { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
-import type { UsageData } from 'src/bridge/ts/runner/orchestration/runtime/composition/types';
-import type { CallableOwnershipResolver } from 'src/types';
+import { CallableOwnership } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-ownership";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import { MIN_USAGE_FILES } from "src/constants";
+import { CallableReferenceMatcher } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-reference-matcher";
+import type {
+	CallableDefinition,
+	CallableDefinitionUsageOptions,
+	CallableClassIndex,
+	CallableProjectIndex,
+	ParsedFile,
+} from "src/metrics/types";
+import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
+import type { UsageData } from "src/bridge/ts/runner/orchestration/runtime/composition/types";
+import type { CallableOwnershipResolver } from "src/types";
 
 /** Responsibilities: _detection local external usage_. **/
 export class CallableDefinitionUsage {
@@ -24,7 +30,7 @@ export class CallableDefinitionUsage {
 	/** Responsibilities: _hook method classification_. **/
 	private external_hook_method(): boolean {
 		for (const decorator of this.definition.node.decorators) {
-			if (decorator.toLowerCase().includes('hook')) {
+			if (decorator.toLowerCase().includes("hook")) {
 				return true;
 			}
 		}
@@ -34,10 +40,10 @@ export class CallableDefinitionUsage {
 	/** Responsibilities: _selection usage label analysis_. **/
 	private usage_label(): string {
 		let label = this.definition.node.name;
-		if (this.definition.kind === 'method') {
+		if (this.definition.kind === "method") {
 			let owner = this.definition.node.owner;
 			if (owner === undefined) {
-				owner = '<unknown>';
+				owner = "<unknown>";
 			}
 			label = `${owner}.${this.definition.node.name}`;
 		}
@@ -50,29 +56,26 @@ export class CallableDefinitionUsage {
 		if (count >= MIN_USAGE_FILES || (count === 0 && used_locally)) {
 			return [];
 		}
-		const rule = new DiagnosticRule('unused-callable');
+		const rule = new DiagnosticRule("unused-callable");
 		return [
 			rule.violation(this.definition.file, this.definition.node.start + 1, {
 				kind: this.definition.kind,
 				label: this.usage_label(),
 				count: String(count),
-				file_word: count === 1 ? 'file' : 'files',
+				file_word: count === 1 ? "file" : "files",
 			}),
 		];
 	}
 
 	/** Responsibilities: _collection local external reference_. **/
 	private usage(): UsageData {
-		const local_files = this.parsed_files.filter(file => file.file === this.definition.file);
+		const local_files = this.parsed_files.filter((file) => file.file === this.definition.file);
 		if (local_files.length === 0) {
 			return { used_locally: false, external_files: new Set() };
 		}
 		const local_file = local_files[0];
 		const used_locally = this.matcher.file_references(local_file, this.method_count);
-		const external_files = this.matcher.external_files(
-			this.definition.file,
-			this.method_count
-		);
+		const external_files = this.matcher.external_files(this.definition.file, this.method_count);
 		return { used_locally, external_files };
 	}
 
@@ -99,7 +102,7 @@ export class CallableDefinitionUsage {
 
 	/** Responsibilities: _reporting callable externally usage_. **/
 	public external_method(): boolean {
-		if (this.definition.kind !== 'method') {
+		if (this.definition.kind !== "method") {
 			return false;
 		}
 		if (this.external_hook_method()) {

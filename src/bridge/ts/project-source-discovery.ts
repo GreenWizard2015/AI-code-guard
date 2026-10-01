@@ -1,8 +1,8 @@
-import type { Dirent } from 'node:fs';
-import { readdirSync } from 'node:fs';
-import { relative, join, extname } from 'node:path';
-import type { LintProjectContext } from 'src/protocols';
-import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from 'src/bridge/ts/parser/constants';
+import type { Dirent } from "node:fs";
+import { readdirSync } from "node:fs";
+import { relative, join, extname } from "node:path";
+import type { LintProjectContext } from "src/protocols";
+import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from "src/bridge/ts/parser/constants";
 
 /** Responsibilities: _source files discovery projection_, _ignored paths filtering_. **/
 export class ProjectSourceDiscovery {
@@ -15,7 +15,7 @@ export class ProjectSourceDiscovery {
 		if (!this.source_extensions.has(extname(name))) {
 			return false;
 		}
-		return this.project_prefixes.some(prefix => path.startsWith(prefix));
+		return this.project_prefixes.some((prefix) => path.startsWith(prefix));
 	}
 
 	/** Responsibilities: _directory entry collection_. **/
@@ -24,7 +24,7 @@ export class ProjectSourceDiscovery {
 		directory: string,
 		entry: Dirent,
 		pending: string[],
-		files: string[]
+		files: string[],
 	): void {
 		const file = join(directory, entry.name);
 		if (entry.isDirectory()) {
@@ -33,7 +33,7 @@ export class ProjectSourceDiscovery {
 			}
 			return;
 		}
-		const path = relative(root, file).split('\\').join('/');
+		const path = relative(root, file).split("\\").join("/");
 		if (entry.isFile() && this.is_project_source(entry.name, path)) {
 			files.push(file);
 		}

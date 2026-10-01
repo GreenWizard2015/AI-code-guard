@@ -1,30 +1,27 @@
-import { FakeObject } from 'src/fake-object';
-import { ObjectValueRules } from 'src/bridge/ts/runner/object-value-rules';
-import ts from 'typescript';
-import { TypeScriptTypeNode } from 'src/model/typescript-type-node';
-import { TypeScriptVariableBinding } from 'src/bridge/ts/runner/typescript-variable-binding';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
-import { TypeScriptCallableBody } from 'src/typescript-callable-aliases/typescript-callable-body';
+import { FakeObject } from "src/fake-object";
+import { ObjectValueRules } from "src/bridge/ts/runner/object-value-rules";
+import ts from "typescript";
+import { TypeScriptTypeNode } from "src/model/typescript-type-node";
+import { TypeScriptVariableBinding } from "src/bridge/ts/runner/typescript-variable-binding";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
+import { TypeScriptCallableBody } from "src/typescript-callable-aliases/typescript-callable-body";
 
-
-
-
-import type { RuleAppender } from 'src/bridge/ts/runner/types';
+import type { RuleAppender } from "src/bridge/ts/runner/types";
 
 /** Responsibilities: _classification primitive values typeof_. **/
 export class ValueRules {
 	private readonly rule_ids = {
-		structured: 'multiple-result-shapes',
-		object_to_string: 'typescript-object-prototype-string',
-		object_assign: 'typescript-object-assign',
-		object_method_call: 'typescript-object-method-call',
-		fake_object: 'typescript-fake-object',
+		structured: "multiple-result-shapes",
+		object_to_string: "typescript-object-prototype-string",
+		object_assign: "typescript-object-assign",
+		object_method_call: "typescript-object-method-call",
+		fake_object: "typescript-fake-object",
 	};
-	private readonly type_aliases = new TypeScriptExpressionAliases('type');
+	private readonly type_aliases = new TypeScriptExpressionAliases("type");
 	private readonly variable_bindings = new Map<ts.SourceFile, TypeScriptVariableBinding>();
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
-	private readonly structured_names = new Set(['structuredContent', 'unwrap_tool_result']);
+	private readonly structured_names = new Set(["structuredContent", "unwrap_tool_result"]);
 	private readonly object_value_rules = new ObjectValueRules();
 	private readonly fake_object = new FakeObject();
 	private readonly callable_body = new TypeScriptCallableBody();
@@ -62,7 +59,7 @@ export class ValueRules {
 	private structured_key(node: ts.ElementAccessExpression): string {
 		const argument = node.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
 		const key = this.unwrapped_key(argument);
 		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
@@ -80,7 +77,7 @@ export class ValueRules {
 			return false;
 		}
 		const key = this.structured_key(node);
-		if (key === '') {
+		if (key === "") {
 			return false;
 		}
 		return this.structured_names.has(key);
@@ -123,7 +120,13 @@ export class ValueRules {
 		if (!ts.isPropertySignature(node) && !ts.isPropertyDeclaration(node)) {
 			return false;
 		}
-		if ((!ts.isIdentifier(node.name)) || node.name.text !== name || node.type === undefined) {
+		if (!ts.isIdentifier(node.name)) {
+			return false;
+		}
+		if (node.name.text !== name) {
+			return false;
+		}
+		if (node.type === undefined) {
 			return false;
 		}
 		const type_node = new TypeScriptTypeNode(node.type);
@@ -158,11 +161,7 @@ export class ValueRules {
 	}
 
 	/** Responsibilities: _aggregation fake object diagnostic_. **/
-	private fake_object_rule(
-		node: ts.Node,
-		test_file: boolean,
-		append_rule: RuleAppender
-	): void {
+	private fake_object_rule(node: ts.Node, test_file: boolean, append_rule: RuleAppender): void {
 		if (test_file) {
 			return;
 		}
@@ -198,10 +197,7 @@ export class ValueRules {
 	}
 
 	/** Responsibilities: _reporting primitive type operations_. **/
-	public typed_primitive(
-		expression: ts.Expression,
-		source_file: ts.SourceFile
-	): boolean {
+	public typed_primitive(expression: ts.Expression, source_file: ts.SourceFile): boolean {
 		if (ts.isParenthesizedExpression(expression)) {
 			return this.typed_primitive(expression.expression, source_file);
 		}

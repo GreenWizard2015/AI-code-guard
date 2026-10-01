@@ -1,7 +1,7 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { AstImportIssue } from 'src/types';
-import { IMPORT_RULE_IDS } from 'src/bridge/ts/rules/constants';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { AstImportIssue } from "src/types";
+import { IMPORT_RULE_IDS } from "src/bridge/ts/rules/constants";
 
 /** Responsibilities: _import issue kinds mapping_, _import violations addition_. **/
 export class ImportsRules {
@@ -24,11 +24,7 @@ export class ImportsRules {
 	}
 
 	/** Responsibilities: _aggregation violations import issues_. **/
-	public append_import_violations(
-		violations: Violation[],
-		file: string,
-		issues: AstImportIssue[]
-	): void {
+	public append_import_violations(violations: Violation[], file: string, issues: AstImportIssue[]): void {
 		if (issues.length === 0) {
 			return;
 		}

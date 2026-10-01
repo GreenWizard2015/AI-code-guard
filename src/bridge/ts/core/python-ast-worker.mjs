@@ -1,5 +1,5 @@
-import { spawn, spawnSync } from 'node:child_process';
-import { readSync, writeSync } from 'node:fs';
+import { spawn, spawnSync } from "node:child_process";
+import { readSync, writeSync } from "node:fs";
 
 export class PythonAstWorker {
 	constructor(arguments_list, options, persistent) {
@@ -12,11 +12,11 @@ export class PythonAstWorker {
 
 	start_persistent() {
 		if (!this.persistent || this.child !== null) return;
-		this.child = spawn('python3', this.arguments_list, this.options);
+		this.child = spawn("python3", this.arguments_list, this.options);
 		const input = this.child.stdin;
 		const output = this.child.stdout;
 		if (input === null || output === null) {
-			throw new Error('Python AST worker pipes were not created.');
+			throw new Error("Python AST worker pipes were not created.");
 		}
 		this.input_fd = input._handle.fd;
 		this.output_fd = output._handle.fd;
@@ -36,12 +36,12 @@ export class PythonAstWorker {
 			try {
 				const count = readSync(this.output_fd, buffer, 0, buffer.length, null);
 				if (count === 0) {
-					throw new Error('Python AST worker exited before returning a response.');
+					throw new Error("Python AST worker exited before returning a response.");
 				}
 				this.response_buffer = Buffer.concat([this.response_buffer, buffer.subarray(0, count)]);
 				return;
 			} catch (error) {
-				if (!String(error).includes('EAGAIN')) {
+				if (!String(error).includes("EAGAIN")) {
 					throw error;
 				}
 				Atomics.wait(this.wait_buffer, 0, 0, 2);
@@ -55,7 +55,7 @@ export class PythonAstWorker {
 			this.append_response_bytes();
 			header_end = this.response_buffer.indexOf(10);
 		}
-		const payload_length = Number(this.response_buffer.subarray(0, header_end).toString('ascii'));
+		const payload_length = Number(this.response_buffer.subarray(0, header_end).toString("ascii"));
 		const payload_start = header_end + 1;
 		const frame_end = payload_start + payload_length + 1;
 		while (this.response_buffer.length < frame_end) {
@@ -63,22 +63,18 @@ export class PythonAstWorker {
 		}
 		const payload = this.response_buffer.subarray(payload_start, frame_end - 1);
 		this.response_buffer = this.response_buffer.subarray(frame_end);
-		return payload.toString('utf8');
+		return payload.toString("utf8");
 	}
 
 	write_frame(payload) {
-		const payload_buffer = Buffer.from(payload, 'utf8');
-		const frame = Buffer.concat([
-			Buffer.from(`${String(payload_buffer.length)}\n`),
-			payload_buffer,
-			Buffer.from('\n'),
-		]);
+		const payload_buffer = Buffer.from(payload, "utf8");
+		const frame = Buffer.concat([Buffer.from(`${String(payload_buffer.length)}\n`), payload_buffer, Buffer.from("\n")]);
 		let offset = 0;
 		while (offset < frame.length) {
 			try {
 				offset += writeSync(this.input_fd, frame, offset, frame.length - offset);
 			} catch (error) {
-				if (!String(error).includes('EAGAIN')) {
+				if (!String(error).includes("EAGAIN")) {
 					throw error;
 				}
 				Atomics.wait(this.wait_buffer, 0, 0, 2);
@@ -97,16 +93,12 @@ export class PythonAstWorker {
 	}
 
 	single_batch_result(request) {
-		const payload = Buffer.from(request, 'utf8');
-		const frame = Buffer.concat([
-			Buffer.from(`${String(payload.length)}\n`),
-			payload,
-			Buffer.from('\n'),
-		]);
-		const result = spawnSync('python3', this.arguments_list, {
+		const payload = Buffer.from(request, "utf8");
+		const frame = Buffer.concat([Buffer.from(`${String(payload.length)}\n`), payload, Buffer.from("\n")]);
+		const result = spawnSync("python3", this.arguments_list, {
 			...this.options,
 			input: frame,
-			encoding: 'buffer',
+			encoding: "buffer",
 			maxBuffer: 64 * 1024 * 1024,
 		});
 		if (result.error !== undefined) {
@@ -123,10 +115,10 @@ export class PythonAstWorker {
 		if (this.child === null) {
 			return;
 		}
-		this.write_frame(JSON.stringify({ command: 'exit' }));
+		this.write_frame(JSON.stringify({ command: "exit" }));
 		const response = JSON.parse(this.read_response());
-		if (response.status !== 'exited') {
-			throw new Error('Python AST worker did not acknowledge exit.');
+		if (response.status !== "exited") {
+			throw new Error("Python AST worker did not acknowledge exit.");
 		}
 		const child = this.child;
 		this.child = null;

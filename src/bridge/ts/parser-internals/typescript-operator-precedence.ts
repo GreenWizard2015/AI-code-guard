@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _classification mixed boolean arithmetic_. **/
 export class TypeScriptOperatorPrecedence {
@@ -39,11 +39,7 @@ export class TypeScriptOperatorPrecedence {
 	}
 
 	/** Responsibilities: _collection binary operators expression_. **/
-	private append_binary_operators(
-		node: ts.Expression,
-		operators: Set<ts.SyntaxKind>,
-		boolean_group: boolean
-	): void {
+	private append_binary_operators(node: ts.Expression, operators: Set<ts.SyntaxKind>, boolean_group: boolean): void {
 		if (ts.isParenthesizedExpression(node)) {
 			return;
 		}
@@ -95,8 +91,9 @@ export class TypeScriptOperatorPrecedence {
 			if (!this.operator_in_group(node.operatorToken.kind, boolean_group)) {
 				return 0;
 			}
-			return 1 + this.binary_operator_count(node.left, boolean_group) +
-				this.binary_operator_count(node.right, boolean_group);
+			return (
+				1 + this.binary_operator_count(node.left, boolean_group) + this.binary_operator_count(node.right, boolean_group)
+			);
 		}
 		if (boolean_group && ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.ExclamationToken) {
 			return this.binary_operator_count(node.operand, true);

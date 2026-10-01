@@ -1,37 +1,24 @@
-import { relative } from 'node:path';
-import type { LintAnalysisStage, LintRunResult } from 'src/types';
-import { DirectoryRules } from 'src/bridge/ts/rules/support/directory-rules';
-import { FileLinter } from 'src/bridge/ts/runner/orchestration/runtime/file-lint';
-import { GlobalViolationCollector } from 'src/bridge/ts/runner/orchestration/runtime/global-violations';
-import { TextFileDiscovery } from 'src/bridge/ts/core/markdown-file-discovery';
-import type { Violation } from 'src/protocols';
+import { relative } from "node:path";
+import type { LintAnalysisStage, LintRunResult } from "src/types";
+import { DirectoryRules } from "src/bridge/ts/rules/support/directory-rules";
+import { FileLinter } from "src/bridge/ts/runner/orchestration/runtime/file-lint";
+import { GlobalViolationCollector } from "src/bridge/ts/runner/orchestration/runtime/global-violations";
+import { TextFileDiscovery } from "src/bridge/ts/core/markdown-file-discovery";
+import type { Violation } from "src/protocols";
 
 /** Responsibilities: _directory analysis coordination_, _file analysis coordination_, _global analysis coordination_. **/
 export class LintRunAnalysis {
 	private readonly directory_rules = new DirectoryRules();
 	private readonly text_files = new TextFileDiscovery();
 
-	/** Responsibilities: _text violations collection_. **/
-	private collect_text(stage: LintAnalysisStage): Violation[] {
-		return stage.stage_timer.measure(
-			'markdown-analysis',
-			() => this.text_files.violations(
-				stage.state.repo_root,
-				stage.state.ignored_directories,
-			),
-		);
-	}
-
 	/** Responsibilities: _directory-level violations collection_. **/
 	public collect_directory(stage: LintAnalysisStage): Violation[] {
 		const state = stage.state;
-		const analyzed_files = state.files.filter(file => !state.ignored_files.has(file));
+		const analyzed_files = state.files.filter((file) => !state.ignored_files.has(file));
 		const class_counts = new Map(
-			analyzed_files.map(file => [file, state.context.source_record(file).normalized_ast.classes.length]),
+			analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast.classes.length]),
 		);
-		const source_asts = new Map(
-			analyzed_files.map(file => [file, state.context.source_record(file).normalized_ast]),
-		);
+		const source_asts = new Map(analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast]));
 		return this.directory_rules.collect_directory_violations(
 			analyzed_files,
 			state.repo_root,
@@ -59,9 +46,7 @@ export class LintRunAnalysis {
 	/** Responsibilities: _global violations collection_. **/
 	public collect_global(stage: LintAnalysisStage): Violation[] {
 		const state = stage.state;
-		const target_file_set = new Set(
-			state.files.flatMap(file => [file, relative(state.repo_root, file)]),
-		);
+		const target_file_set = new Set(state.files.flatMap((file) => [file, relative(state.repo_root, file)]));
 		const global_violation_collector = new GlobalViolationCollector(
 			state.repo_root,
 			state.project_files,
@@ -74,10 +59,12 @@ export class LintRunAnalysis {
 
 	/** Responsibilities: _every analysis stage execution_, _combine violations_. **/
 	public collect(stage: LintAnalysisStage): LintRunResult {
-		const directory_violations = stage.stage_timer.measure('directory-analysis', () => this.collect_directory(stage));
-		const file_violations = stage.stage_timer.measure('file-analysis', () => this.collect_file(stage));
-		const global_violations = stage.stage_timer.measure('global-analysis', () => this.collect_global(stage));
-		const text_violations = this.collect_text(stage);
+		const directory_violations = stage.stage_timer.measure("directory-analysis", () => this.collect_directory(stage));
+		const file_violations = stage.stage_timer.measure("file-analysis", () => this.collect_file(stage));
+		const global_violations = stage.stage_timer.measure("global-analysis", () => this.collect_global(stage));
+		const text_violations = stage.stage_timer.measure("markdown-analysis", () =>
+			this.text_files.violations(stage.state.repo_root, stage.state.ignored_directories),
+		);
 		return {
 			files: stage.state.files,
 			violations: [...directory_violations, ...file_violations, ...global_violations, ...text_violations],

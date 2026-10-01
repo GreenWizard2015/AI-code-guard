@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _TypeScript invocation aliases_. **/
 export class TypeScriptCallAliases {
@@ -9,14 +9,12 @@ export class TypeScriptCallAliases {
 	private readonly cache = new WeakMap<ts.SourceFile, ReadonlyMap<string, string>>();
 
 	/** Responsibilities: _invocation alias target_. **/
-	private append_call(
-		aliases: Map<string, string>, name: string, initializer: ts.Expression
-	): boolean {
+	private append_call(aliases: Map<string, string>, name: string, initializer: ts.Expression): boolean {
 		if (!ts.isCallExpression(initializer)) {
 			return false;
 		}
 		const target = this.call_name(initializer);
-		if (target === '') {
+		if (target === "") {
 			return false;
 		}
 		aliases.set(name, target);
@@ -24,9 +22,7 @@ export class TypeScriptCallAliases {
 	}
 
 	/** Responsibilities: _referenced invocation alias_. **/
-	private append_reference(
-		aliases: Map<string, string>, name: string, initializer: ts.Expression
-	): boolean {
+	private append_reference(aliases: Map<string, string>, name: string, initializer: ts.Expression): boolean {
 		if (!ts.isIdentifier(initializer)) {
 			return false;
 		}
@@ -40,9 +36,7 @@ export class TypeScriptCallAliases {
 	}
 
 	/** Responsibilities: _alias extension_. **/
-	private append_alias(
-		aliases: Map<string, string>, name: string, initializer: ts.Expression
-	): boolean {
+	private append_alias(aliases: Map<string, string>, name: string, initializer: ts.Expression): boolean {
 		initializer = this.expression_names.unwrap_transparent_expression(initializer);
 		if (aliases.has(name)) {
 			return false;
@@ -62,8 +56,8 @@ export class TypeScriptCallAliases {
 			new Set<string>(),
 			node.name,
 			node.initializer,
-			expression => this.expression_names.unwrap_transparent_expression(expression),
-			(_alias_set, name, initializer) => this.append_alias(aliases, name, initializer)
+			(expression) => this.expression_names.unwrap_transparent_expression(expression),
+			(name, initializer) => this.append_alias(aliases, name, initializer),
 		);
 	}
 
@@ -78,7 +72,7 @@ export class TypeScriptCallAliases {
 				changed = true;
 			}
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_scope_aliases(aliases, child)) {
 				changed = true;
 			}
@@ -109,6 +103,6 @@ export class TypeScriptCallAliases {
 		if (ts.isPropertyAccessExpression(call.expression)) {
 			return call.expression.name.text;
 		}
-		return '';
+		return "";
 	}
 }

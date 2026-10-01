@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { FakeObjectProtocol } from 'src/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { FakeObjectProtocol } from "src/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _collection callable object bindings_. **/
 export class ObjectCallableBinding {
@@ -9,7 +9,7 @@ export class ObjectCallableBinding {
 
 	/** Responsibilities: _callable name alias_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
-		if (name === '') {
+		if (name === "") {
 			return false;
 		}
 		if (aliases.has(name)) {
@@ -28,11 +28,7 @@ export class ObjectCallableBinding {
 	}
 
 	/** Responsibilities: _nested callable binding_. **/
-	private append_nested(
-		aliases: Set<string>,
-		binding: ts.BindingName,
-		value: ts.Expression
-	): boolean {
+	private append_nested(aliases: Set<string>, binding: ts.BindingName, value: ts.Expression): boolean {
 		if (ts.isIdentifier(binding)) {
 			return this.append_value(aliases, binding.text, value);
 		}
@@ -49,11 +45,11 @@ export class ObjectCallableBinding {
 	private append_element(
 		aliases: Set<string>,
 		element: ts.BindingElement,
-		initializer: ts.ObjectLiteralExpression
+		initializer: ts.ObjectLiteralExpression,
 	): boolean {
 		const source_name = this.expression_names.static_binding_name(element);
 		const property = initializer.properties.find(
-			candidate => this.expression_names.static_element_name(candidate) === source_name
+			(candidate) => this.expression_names.static_element_name(candidate) === source_name,
 		);
 		if (property === undefined) {
 			return false;
@@ -73,7 +69,7 @@ export class ObjectCallableBinding {
 	private append_object_elements(
 		aliases: Set<string>,
 		binding: ts.ObjectBindingPattern,
-		initializer: ts.ObjectLiteralExpression
+		initializer: ts.ObjectLiteralExpression,
 	): boolean {
 		let changed = false;
 		for (const element of binding.elements) {
@@ -88,11 +84,7 @@ export class ObjectCallableBinding {
 	}
 
 	/** Responsibilities: _callable array element_. **/
-	private append_array_element(
-		aliases: Set<string>,
-		element: ts.ArrayBindingElement,
-		value: ts.Expression
-	): boolean {
+	private append_array_element(aliases: Set<string>, element: ts.ArrayBindingElement, value: ts.Expression): boolean {
 		if (!ts.isBindingElement(element) || element.dotDotDotToken) {
 			return false;
 		}
@@ -103,7 +95,7 @@ export class ObjectCallableBinding {
 	private append_array_elements(
 		aliases: Set<string>,
 		binding: ts.ArrayBindingPattern,
-		initializer: ts.ArrayLiteralExpression
+		initializer: ts.ArrayLiteralExpression,
 	): boolean {
 		let changed = false;
 		for (let index = 0; index < binding.elements.length; index += 1) {
@@ -187,12 +179,11 @@ export class ObjectCallableBinding {
 		if (ts.isVariableDeclaration(node) && this.variable(aliases, node)) {
 			changed = true;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_scope(aliases, child)) {
 				changed = true;
 			}
 		});
 		return changed;
 	}
-
 }

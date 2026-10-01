@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _resolution callable binding aliases_. **/
 export class TypeScriptCallableAliases {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 
 	/** Responsibilities: _callable alias name extension_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
@@ -30,7 +30,7 @@ export class TypeScriptCallableAliases {
 	private append_array_alias(
 		arrays: Map<string, ts.ArrayLiteralExpression>,
 		name: string,
-		initializer: ts.Expression
+		initializer: ts.Expression,
 	): void {
 		const current = this.expression_aliases.unwrapped(initializer);
 		if (ts.isArrayLiteralExpression(current)) {
@@ -50,7 +50,7 @@ export class TypeScriptCallableAliases {
 	private append_variable(
 		aliases: Set<string>,
 		node: ts.VariableDeclaration,
-		arrays: Map<string, ts.ArrayLiteralExpression>
+		arrays: Map<string, ts.ArrayLiteralExpression>,
 	): boolean {
 		if (node.initializer === undefined) {
 			return false;
@@ -66,7 +66,11 @@ export class TypeScriptCallableAliases {
 	}
 
 	/** Responsibilities: _callable array elements_. **/
-	private append_array_elements(aliases: Set<string>, binding: ts.ArrayBindingPattern, values: ts.ArrayLiteralExpression): boolean {
+	private append_array_elements(
+		aliases: Set<string>,
+		binding: ts.ArrayBindingPattern,
+		values: ts.ArrayLiteralExpression,
+	): boolean {
 		let changed = false;
 		for (let index = 0; index < binding.elements.length; index += 1) {
 			const element = binding.elements[index];
@@ -86,7 +90,7 @@ export class TypeScriptCallableAliases {
 		aliases: Set<string>,
 		binding: ts.ArrayBindingPattern,
 		initializer: ts.Expression,
-		arrays: Map<string, ts.ArrayLiteralExpression>
+		arrays: Map<string, ts.ArrayLiteralExpression>,
 	): boolean {
 		const current = this.expression_aliases.unwrapped(initializer);
 		if (ts.isArrayLiteralExpression(current)) {
@@ -114,7 +118,7 @@ export class TypeScriptCallableAliases {
 	private append_declaration(
 		aliases: Set<string>,
 		node: ts.Node,
-		arrays: Map<string, ts.ArrayLiteralExpression>
+		arrays: Map<string, ts.ArrayLiteralExpression>,
 	): boolean {
 		if (ts.isFunctionDeclaration(node)) {
 			return this.append_function(aliases, node);
@@ -141,7 +145,7 @@ export class TypeScriptCallableAliases {
 		aliases: Set<string>,
 		node: ts.Node,
 		root: ts.Node,
-		arrays: Map<string, ts.ArrayLiteralExpression>
+		arrays: Map<string, ts.ArrayLiteralExpression>,
 	): boolean {
 		let changed = this.append_declaration(aliases, node, arrays);
 		if (this.append_assignment_node(aliases, node)) {
@@ -150,7 +154,7 @@ export class TypeScriptCallableAliases {
 		if (node !== root && ts.isFunctionLike(node)) {
 			return changed;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_node(aliases, child, root, arrays)) {
 				changed = true;
 			}

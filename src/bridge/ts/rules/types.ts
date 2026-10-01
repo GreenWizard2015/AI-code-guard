@@ -1,12 +1,6 @@
-import type { RuleParameters } from 'src/types';
-import type {
-	AstClassNode,
-	AstSourceSpan,
-	ImportedFunction,
-	NamedLine,
-	NormalizedAstFile,
-} from 'src/types';
-import type { Violation } from 'src/protocols';
+import type { RuleParameters } from "src/types";
+import type { AstClassNode, AstSourceSpan, ImportedFunction, NamedLine, NormalizedAstFile } from "src/types";
+import type { Violation } from "src/protocols";
 
 export type ParsedClassFile = { file: string; ast: NormalizedAstFile };
 export type ClassDefinition = { file: string; node: AstClassNode };
@@ -14,7 +8,7 @@ export type ViolationContent = {
 	rule_id: string;
 	parameters: RuleParameters;
 };
-export type ContractKind = 'interface' | 'protocol';
+export type ContractKind = "interface" | "protocol";
 export type DirectoryFileViolationOptions = {
 	violations: Violation[];
 	file: string;
@@ -52,7 +46,7 @@ export type PythonClassSummaryOptions = {
 	has_module_functions: boolean;
 	has_implementation_classes: boolean;
 	type_declarations: readonly NamedLine[];
-}
+};
 
 export type CyrillicQuoteDelimiter = "'" | '"';
 

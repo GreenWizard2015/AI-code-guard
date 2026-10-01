@@ -1,5 +1,5 @@
-import type { DirectCase, ProjectCase } from 'tests/language-parity/types';
-import { LanguageParityCaseRunner } from 'tests/language-parity/language-parity-case-runner';
+import type { DirectCase, ProjectCase } from "tests/language-parity/types";
+import { LanguageParityCaseRunner } from "tests/language-parity/language-parity-case-runner";
 
 /** Responsibilities: _delegate direct parity checks_, _delegate architecture project checks_. **/
 export class LanguageParityChecker {

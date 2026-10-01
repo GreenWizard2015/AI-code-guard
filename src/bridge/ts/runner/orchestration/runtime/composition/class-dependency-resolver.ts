@@ -1,4 +1,4 @@
-import type { CodeClass, ImportedSymbol } from 'src/types';
+import type { CodeClass, ImportedSymbol } from "src/types";
 
 /** Responsibilities: _resolution imported class keys_. **/
 export class ClassDependencyMap {
@@ -14,7 +14,7 @@ export class ClassDependencyMap {
 		}
 		const imported = this.imports_by_file.get(file)?.get(name);
 		if (!imported) {
-			return '';
+			return "";
 		}
 		return this.imported_class_key(imported);
 	}
@@ -23,11 +23,11 @@ export class ClassDependencyMap {
 	private imported_class_key(imported: ImportedSymbol): string {
 		const imported_classes = this.classes_by_file.get(imported.file);
 		if (imported_classes === undefined) {
-			return '';
+			return "";
 		}
 		const resolved = imported_classes.get(imported.name)?.key;
 		if (resolved === undefined) {
-			return '';
+			return "";
 		}
 		return resolved;
 	}
@@ -35,7 +35,7 @@ export class ClassDependencyMap {
 	/** Responsibilities: _initialization graph class indexing_. **/
 	public constructor(
 		classes_by_file: Map<string, Map<string, CodeClass>>,
-		imports_by_file: Map<string, Map<string, ImportedSymbol>>
+		imports_by_file: Map<string, Map<string, ImportedSymbol>>,
 	) {
 		this.classes_by_file = classes_by_file;
 		this.imports_by_file = imports_by_file;

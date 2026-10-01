@@ -1,13 +1,13 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { ClassNode } from 'src/bridge/ts/core/support/class-node';
-import type { ClassNodeInput } from 'src/bridge/ts/core/support/types';
-import type { MixCallableNode } from 'src/types';
-import type { LintFileNameContract } from 'src/types';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { ClassNode } from "src/bridge/ts/core/support/class-node";
+import type { ClassNodeInput } from "src/bridge/ts/core/support/types";
+import type { MixCallableNode } from "src/types";
+import type { LintFileNameContract } from "src/types";
 
 /** Responsibilities: _detection mixed classes aggregation_. **/
 export class MixCollection {
-	private readonly mixed_rule_id = 'mixed-module';
+	private readonly mixed_rule_id = "mixed-module";
 
 	/** Responsibilities: _classification class qualifies mixin_. **/
 	private is_eligible_class(class_node: ClassNode): boolean {
@@ -18,11 +18,7 @@ export class MixCollection {
 	}
 
 	/** Responsibilities: _creation mixin violation class_. **/
-	private mix_violation(
-		file: string,
-		class_node: ClassNode,
-		function_node: MixCallableNode
-	): Violation {
+	private mix_violation(file: string, class_node: ClassNode, function_node: MixCallableNode): Violation {
 		const line = Math.min(class_node.start, function_node.start) + 1;
 		const rule = new DiagnosticRule(this.mixed_rule_id);
 		return rule.violation(file, line);
@@ -33,7 +29,7 @@ export class MixCollection {
 		violations: Violation[],
 		classes: readonly ClassNodeInput[],
 		file: string,
-		function_node: MixCallableNode
+		function_node: MixCallableNode,
 	): void {
 		for (const node of classes) {
 			const class_node = new ClassNode(node);
@@ -48,7 +44,7 @@ export class MixCollection {
 	public mixed_module(
 		classes: readonly ClassNodeInput[],
 		functions: readonly MixCallableNode[],
-		file_name: LintFileNameContract
+		file_name: LintFileNameContract,
 	): boolean {
 		if (file_name.test_py()) {
 			return false;
@@ -56,7 +52,7 @@ export class MixCollection {
 		if (functions.length === 0) {
 			return false;
 		}
-		return classes.some(node => this.is_eligible_class(new ClassNode(node)));
+		return classes.some((node) => this.is_eligible_class(new ClassNode(node)));
 	}
 
 	/** Responsibilities: _aggregation mixin violations classes_. **/
@@ -64,7 +60,7 @@ export class MixCollection {
 		violations: Violation[],
 		classes: readonly ClassNodeInput[],
 		functions: readonly MixCallableNode[],
-		file_name: LintFileNameContract
+		file_name: LintFileNameContract,
 	): void {
 		if (!this.mixed_module(classes, functions, file_name)) {
 			return;

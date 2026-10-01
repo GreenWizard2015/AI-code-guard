@@ -1,12 +1,13 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberVariableAliases } from 'src/typescript-aliases/typescript-member-variable-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberVariableAliases } from "src/typescript-aliases/typescript-member-variable-aliases";
+import type { StaticValueResolver } from "src/protocols";
 
 /** Responsibilities: _collection TypeScript member bindings_. **/
 export class TypeScriptMemberBinding {
 	private readonly target_aliases: TypeScriptExpressionAliases;
 	private readonly variable_aliases: TypeScriptMemberVariableAliases;
-	private readonly static_value: (expression: ts.Expression, node: ts.Node) => string;
+	private readonly static_value: StaticValueResolver;
 
 	/** Responsibilities: _member expression unwrapping_. **/
 	private unwrap(expression: ts.Expression): ts.Expression {
@@ -22,7 +23,7 @@ export class TypeScriptMemberBinding {
 
 	/** Responsibilities: _member alias insertion_. **/
 	private add(aliases: Map<string, Set<string>>, name: string, property: string): boolean {
-		if (name === '' || property === '') {
+		if (name === "" || property === "") {
 			return false;
 		}
 		const existing = aliases.get(name);
@@ -56,12 +57,7 @@ export class TypeScriptMemberBinding {
 	}
 
 	/** Responsibilities: _source member aliases_. **/
-	private source(
-		aliases: Map<string, Set<string>>,
-		name: string,
-		value: ts.Expression,
-		node: ts.Node
-	): boolean {
+	private source(aliases: Map<string, Set<string>>, name: string, value: ts.Expression, node: ts.Node): boolean {
 		if (!ts.isPropertyAccessExpression(value) && !ts.isElementAccessExpression(value)) {
 			return false;
 		}
@@ -72,13 +68,8 @@ export class TypeScriptMemberBinding {
 	}
 
 	/** Responsibilities: _member value aliases_. **/
-	private value(
-		aliases: Map<string, Set<string>>,
-		name: string,
-		initializer: ts.Expression,
-		node: ts.Node
-	): boolean {
-		if (name === '') {
+	private value(aliases: Map<string, Set<string>>, name: string, initializer: ts.Expression, node: ts.Node): boolean {
+		if (name === "") {
 			return false;
 		}
 		const value = this.unwrap(initializer);
@@ -99,7 +90,7 @@ export class TypeScriptMemberBinding {
 				changed = true;
 			}
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.visit(aliases, child, root)) {
 				changed = true;
 			}
@@ -108,17 +99,14 @@ export class TypeScriptMemberBinding {
 	}
 
 	/** Responsibilities: _member binding initialization_. **/
-	public constructor(
-		target_name: string,
-		static_value: (expression: ts.Expression, node: ts.Node) => string
-	) {
+	public constructor(target_name: string, static_value: StaticValueResolver) {
 		this.target_aliases = new TypeScriptExpressionAliases(target_name);
 		this.static_value = static_value;
 		this.variable_aliases = new TypeScriptMemberVariableAliases(
 			this.target_aliases,
 			(aliases, name, property) => this.add(aliases, name, property),
 			(aliases, name, initializer, node) => this.value(aliases, name, initializer, node),
-			expression => this.unwrap(expression)
+			(expression) => this.unwrap(expression),
 		);
 	}
 
@@ -128,11 +116,11 @@ export class TypeScriptMemberBinding {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		const argument = expression.argumentExpression;
 		if (argument === undefined) {
-			return '';
+			return "";
 		}
 		if (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument)) {
 			return argument.text;

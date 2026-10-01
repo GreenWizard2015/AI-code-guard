@@ -1,19 +1,18 @@
-import { ClassReferenceMetric } from 'src/bridge/ts/rules/class-reference-metric';
-import { ClassStructure } from 'src/bridge/ts/rules/class-structure';
-import { PythonClassFieldScanner } from 'src/bridge/ts/rules/python-class-field-scanner';
-import type { LintProjectContext, Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { TypeScriptClassFieldRules } from 'src/model/typescript-class-field-rules';
-import { NestedTypeStructure } from 'src/bridge/ts/rules/nested-type-structure';
-import type { ClassFieldFiles, LintSourceRecord } from 'src/types';
-import type { ClassSummaryOptions, PythonClassSummaryOptions } from 'src/bridge/ts/rules/types';
-import ts from 'typescript';
-
+import { ClassReferenceMetric } from "src/bridge/ts/rules/class-reference-metric";
+import { ClassStructure } from "src/bridge/ts/rules/class-structure";
+import { PythonClassFieldScanner } from "src/bridge/ts/rules/python-class-field-scanner";
+import type { LintProjectContext, Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { TypeScriptClassFieldRules } from "src/model/typescript-class-field-rules";
+import { NestedTypeStructure } from "src/bridge/ts/rules/nested-type-structure";
+import type { ClassFieldFiles, LintSourceRecord } from "src/types";
+import type { ClassSummaryOptions, PythonClassSummaryOptions } from "src/bridge/ts/rules/types";
+import ts from "typescript";
 
 /** Responsibilities: _class metric coordination_. **/
 export class ClassRules {
-	private readonly exception_rule_id = 'exception-grouping';
-	private readonly top_rule_id = 'top-level-classes';
+	private readonly exception_rule_id = "exception-grouping";
+	private readonly top_rule_id = "top-level-classes";
 	private readonly nested_type_structure = new NestedTypeStructure();
 
 	/** Responsibilities: _exception grouping addition_. **/
@@ -35,16 +34,16 @@ export class ClassRules {
 
 	/** Responsibilities: _top-level functions detection_. **/
 	private typescript_functions(source_file: ts.SourceFile): boolean {
-		return source_file.statements.some(statement => {
+		return source_file.statements.some((statement) => {
 			if (ts.isFunctionDeclaration(statement)) {
 				return statement.name !== undefined;
 			}
 			if (!ts.isVariableStatement(statement)) {
 				return false;
 			}
-			return statement.declarationList.declarations.some(declaration => {
+			return statement.declarationList.declarations.some((declaration) => {
 				const initializer = declaration.initializer;
-return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer));
+				return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer));
 			});
 		});
 	}
@@ -54,9 +53,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 		if (options.has_module_functions) {
 			return -1;
 		}
-		const exception_indexes = indexes.filter(index =>
-			this.is_exception_class(options.lines[index], options.python)
-		);
+		const exception_indexes = indexes.filter((index) => this.is_exception_class(options.lines[index], options.python));
 		if (exception_indexes.length === 1) {
 			return exception_indexes[0];
 		}
@@ -73,9 +70,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 	/** Responsibilities: _exception declarations classification_. **/
 	private is_exception_class(line: string, python: boolean): boolean {
 		if (python) {
-			return /\bclass\s+\w+\s*\([^)]*(?:Exception|BaseException|[A-Z]\w*Error)\b[^)]*\)/u.test(
-				line
-			);
+			return /\bclass\s+\w+\s*\([^)]*(?:Exception|BaseException|[A-Z]\w*Error)\b[^)]*\)/u.test(line);
 		}
 		return /\bclass\s+\w+\s+extends\s+(?:\w+\.)?Error\b/u.test(line);
 	}
@@ -97,9 +92,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 			options.python,
 			options.parsed_indexes,
 		);
-		const class_indexes = indexes.filter(
-			index => !this.is_exception_class(options.lines[index], options.python)
-		);
+		const class_indexes = indexes.filter((index) => !this.is_exception_class(options.lines[index], options.python));
 		if (class_indexes.length <= 1) {
 			return;
 		}
@@ -110,7 +103,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 	private collect_fields(
 		context_files: readonly LintSourceRecord[],
 		python_violations: Violation[],
-		typescript_violations: Violation[]
+		typescript_violations: Violation[],
 	): Violation[] {
 		const class_reference_metric = new ClassReferenceMetric();
 		const violations = class_reference_metric.collect_class_refs(context_files);
@@ -126,7 +119,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 		return this.collect_fields(
 			[],
 			scanner.collect_class_fields(input.files, input.repo_root),
-			class_fields.collect_fields(input.files, input.repo_root)
+			class_fields.collect_fields(input.files, input.repo_root),
 		);
 	}
 
@@ -141,14 +134,12 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 		return this.collect_fields(
 			context_sources,
 			scanner.collect_context_fields(input.files, input.repo_root, context),
-			class_fields.context_fields(input.files, input.repo_root, context)
+			class_fields.context_fields(input.files, input.repo_root, context),
 		);
 	}
 
 	/** Responsibilities: _Python class diagnostics addition_. **/
-	public append_python_classes(
-		options: PythonClassSummaryOptions,
-	): void {
+	public append_python_classes(options: PythonClassSummaryOptions): void {
 		const {
 			violations,
 			file,
@@ -174,7 +165,7 @@ return initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFun
 		file: string,
 		lines: string[],
 		source_file: ts.SourceFile,
-		parsed_indexes: number[]
+		parsed_indexes: number[],
 	): void {
 		const class_structure = new ClassStructure();
 		class_structure.append_nested_class(violations, file, lines, false, source_file);

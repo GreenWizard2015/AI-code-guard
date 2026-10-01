@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptStaticArraySources } from 'src/typescript-callable-aliases/static-array/typescript-static-array-sources';
-import { TypeScriptStaticArrayValues } from 'src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptStaticArraySources } from "src/typescript-callable-aliases/static-array/typescript-static-array-sources";
+import { TypeScriptStaticArrayValues } from "src/typescript-callable-aliases/static-array/typescript-static-array-value-resolver";
 
 /** Responsibilities: _classification static array keys_. **/
 export class TypeScriptStaticArrayKeys {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly array_sources = new Map<string, readonly ts.Expression[]>();
 	private readonly numeric_sources = new Map<string, number>();
 	private readonly sources = new TypeScriptStaticArraySources(this.array_sources, this.numeric_sources);
@@ -37,13 +37,13 @@ export class TypeScriptStaticArrayKeys {
 	public value(expression: ts.Expression, source_file: ts.SourceFile): string {
 		const candidates = this.expressions(expression, source_file);
 		if (candidates.length !== 1) {
-			return '';
+			return "";
 		}
 		const candidate = this.expression_aliases.unwrapped(candidates[0]);
 		if (ts.isStringLiteral(candidate) || ts.isNoSubstitutionTemplateLiteral(candidate)) {
 			return candidate.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution static array expressions_. **/

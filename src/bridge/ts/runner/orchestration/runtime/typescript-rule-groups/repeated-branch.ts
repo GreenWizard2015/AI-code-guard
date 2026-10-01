@@ -1,18 +1,16 @@
-import ts from 'typescript';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Branch } from 'src/bridge/ts/runner/orchestration/runtime/types';
+import ts from "typescript";
+import type { NodeVisitor } from "src/protocols";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Branch } from "src/bridge/ts/runner/orchestration/runtime/types";
 
 /** Responsibilities: _collection repeated TypeScript branch_. **/
 export class RepeatedBranch {
-	private readonly comparison_kinds = new Set([
-		ts.SyntaxKind.EqualsEqualsEqualsToken,
-		ts.SyntaxKind.EqualsEqualsToken,
-	]);
+	private readonly comparison_kinds = new Set([ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken]);
 
 	/** Responsibilities: _creation violations repeated branch_. **/
 	private branch_violations(file: string, branches: Branch[]): Violation[] {
-		const branch_names = new Set(branches.map(branch => branch.name));
+		const branch_names = new Set(branches.map((branch) => branch.name));
 		if (branches.length < 2) {
 			return [];
 		}
@@ -20,7 +18,7 @@ export class RepeatedBranch {
 			return [];
 		}
 		const first_branch = branches[0];
-		const rule = new DiagnosticRule('branch-duplication');
+		const rule = new DiagnosticRule("branch-duplication");
 		return [rule.violation(file, first_branch.line)];
 	}
 
@@ -42,11 +40,7 @@ export class RepeatedBranch {
 	}
 
 	/** Responsibilities: _aggregation normalization branch its_. **/
-	private append_branch(
-		branches: Branch[],
-		node: ts.IfStatement,
-		source_file: ts.SourceFile
-	): boolean {
+	private append_branch(branches: Branch[], node: ts.IfStatement, source_file: ts.SourceFile): boolean {
 		const name = this.comparison_name(node.expression);
 		if (!name) {
 			return false;
@@ -64,7 +58,7 @@ export class RepeatedBranch {
 		violations: Violation[],
 		file: string,
 		source_file: ts.SourceFile,
-		visit: (node: ts.Node) => void
+		visit: NodeVisitor,
 	): void {
 		if (ts.isIfStatement(node)) {
 			violations.push(...this.branch_violations(file, this.collect_branches(node, source_file)));
@@ -75,15 +69,15 @@ export class RepeatedBranch {
 	/** Responsibilities: _resolution compared identifier name_. **/
 	public comparison_name(expression: ts.Expression): string {
 		if (!ts.isBinaryExpression(expression)) {
-			return '';
+			return "";
 		}
 		if (!this.comparison_kinds.has(expression.operatorToken.kind)) {
-			return '';
+			return "";
 		}
 		if (ts.isIdentifier(expression.left)) {
 			return expression.left.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _aggregation repeated-branch violations source_. **/
@@ -91,9 +85,7 @@ export class RepeatedBranch {
 		if (source_file.statements.length === 0) {
 			return;
 		}
-		const visit = (node: ts.Node): void =>
-			this.visit_branch(node, violations, file, source_file, visit);
+		const visit = (node: ts.Node): void => this.visit_branch(node, violations, file, source_file, visit);
 		visit(source_file);
 	}
-
 }

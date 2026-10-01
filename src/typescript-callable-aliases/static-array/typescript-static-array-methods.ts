@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
 
 /** Responsibilities: _static Array method sources_. **/
 export class TypeScriptStaticArrayMethods {
-	private readonly array_aliases = new TypeScriptExpressionAliases('Array');
-	private readonly array_member_aliases = new TypeScriptMemberAliases('Array', () => '');
+	private readonly array_aliases = new TypeScriptExpressionAliases("Array");
+	private readonly array_member_aliases = new TypeScriptMemberAliases("Array", () => "");
 
 	/** Responsibilities: _Array method invocation classification_. **/
 	private matches_array_method(expression: ts.CallExpression, name: string): boolean {
@@ -24,12 +24,12 @@ export class TypeScriptStaticArrayMethods {
 
 	/** Responsibilities: _Array.of invocation classification_. **/
 	public matches_array_of(expression: ts.CallExpression): boolean {
-		return this.matches_array_method(expression, 'of');
+		return this.matches_array_method(expression, "of");
 	}
 
 	/** Responsibilities: _Array.from invocation classification_. **/
 	public matches_array_from(expression: ts.CallExpression): boolean {
-		return this.matches_array_method(expression, 'from');
+		return this.matches_array_method(expression, "from");
 	}
 
 	/** Responsibilities: _Array constructor invocation classification_. **/

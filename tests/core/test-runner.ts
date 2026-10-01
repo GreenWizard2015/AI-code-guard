@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { join } from "node:path";
 import { QualityCheckProcess } from "tests/core/quality-checks";
 import type { TestRunnerRequest } from "tests/core/types";
 import { PROJECT_ROOT } from "tests/core/constants";
@@ -9,20 +10,14 @@ export class TestExecution {
 	private readonly quality_checks: QualityCheckProcess;
 
 	/** Responsibilities: _child commands execution_. **/
-	private run_command(
-		command: string,
-		args: readonly string[],
-		env: NodeJS.ProcessEnv,
-	): void {
+	private run_command(command: string, args: readonly string[], env: NodeJS.ProcessEnv): void {
 		const result = spawnSync(command, [...args], {
 			env,
 			stdio: "inherit",
 			shell: false,
 		});
 		if (result.error !== undefined) {
-			process.stderr.write(
-				`Failed to start ${command}: ${result.error.message}\n`,
-			);
+			process.stderr.write(`Failed to start ${command}: ${result.error.message}\n`);
 			process.exit(1);
 		}
 		if (result.status !== 0) {
@@ -44,10 +39,7 @@ export class TestExecution {
 	}
 
 	/** Responsibilities: _command option parsing_. **/
-	private apply_arg(
-		request: TestRunnerRequest,
-		arg: string,
-	): TestRunnerRequest {
+	private apply_arg(request: TestRunnerRequest, arg: string): TestRunnerRequest {
 		if (arg === "--") {
 			return request;
 		}
@@ -71,10 +63,7 @@ export class TestExecution {
 			headless: false,
 			skip_quality: false,
 		};
-		return args.reduce(
-			(request, arg) => this.apply_arg(request, arg),
-			initial_request,
-		);
+		return args.reduce((request, arg) => this.apply_arg(request, arg), initial_request);
 	}
 
 	/** Responsibilities: _usage text rendering_. **/
@@ -116,9 +105,7 @@ Examples:
 	}
 
 	/** Responsibilities: _environment selection testing_. **/
-	private test_environment(
-		...environments: NodeJS.ProcessEnv[]
-	): NodeJS.ProcessEnv {
+	private test_environment(...environments: NodeJS.ProcessEnv[]): NodeJS.ProcessEnv {
 		if (environments.length === 0) {
 			return process.env;
 		}
@@ -133,6 +120,28 @@ Examples:
 		this.run_command("pnpm", ["--dir", this.project_root, "install"], env);
 	}
 
+	/** Responsibilities: _Python test environment_. **/
+	private python_test_environment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+		return {
+			...env,
+			PYTHONPATH: join(this.project_root, "src/parser/python-bridge"),
+		};
+	}
+
+	/** Responsibilities: _Python test execution_. **/
+	private run_python_tests(env: NodeJS.ProcessEnv): void {
+		this.run_command("python3", ["-m", "pytest", "tests/parser/python-bridge"], this.python_test_environment(env));
+	}
+
+	/** Responsibilities: _TypeScript test execution_. **/
+	private run_typescript_tests(args: readonly string[], env: NodeJS.ProcessEnv): void {
+		const node_options = [env.NODE_OPTIONS, "--experimental-vm-modules"].filter(Boolean).join(" ");
+		this.run_command("pnpm", ["--dir", this.project_root, "exec", "jest", "--maxWorkers=4", ...args], {
+			...env,
+			NODE_OPTIONS: node_options,
+		});
+	}
+
 	/** Responsibilities: _runner state initialization_. **/
 	constructor(project_root: string = "") {
 		if (project_root === undefined) {
@@ -144,17 +153,11 @@ Examples:
 	}
 
 	/** Responsibilities: _tests execution_. **/
-	public run_tests(
-		args: readonly string[],
-		...environments: NodeJS.ProcessEnv[]
-	): void {
+	public run_tests(args: readonly string[], ...environments: NodeJS.ProcessEnv[]): void {
 		const test_env = this.test_environment(...environments);
 		this.install_dependencies(test_env);
-		this.run_command(
-			"pnpm",
-			["--dir", this.project_root, "test", ...args],
-			test_env,
-		);
+		this.run_python_tests(test_env);
+		this.run_typescript_tests(args, test_env);
 	}
 
 	/** Responsibilities: _runner requests handling_. **/

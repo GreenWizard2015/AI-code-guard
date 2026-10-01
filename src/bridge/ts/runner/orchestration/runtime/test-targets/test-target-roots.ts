@@ -1,6 +1,6 @@
-import { dirname, join, normalize } from 'node:path';
-import { PYTHON_EXTERNAL_MODULES } from 'src/bridge/ts/runner/orchestration/runtime/test-targets/constants';
-import type { TestFileOrganizationProtocol } from 'src/protocols';
+import { dirname, join, normalize } from "node:path";
+import { PYTHON_EXTERNAL_MODULES } from "src/bridge/ts/runner/orchestration/runtime/test-targets/constants";
+import type { TestFileOrganizationProtocol } from "src/protocols";
 
 /** Responsibilities: _matching test target roots_. **/
 export class TestTargetRoots {
@@ -8,11 +8,11 @@ export class TestTargetRoots {
 
 	/** Responsibilities: _TypeScript import path_. **/
 	private typescript_import_path(file: string, specifier: string): string {
-		if (specifier.startsWith('src/')) {
+		if (specifier.startsWith("src/")) {
 			return specifier;
 		}
-		if (!specifier.startsWith('.')) {
-			return '';
+		if (!specifier.startsWith(".")) {
+			return "";
 		}
 		return normalize(join(dirname(file), specifier));
 	}
@@ -21,12 +21,12 @@ export class TestTargetRoots {
 	private python_relative_path(file: string, specifier: string): string {
 		let dots = 0;
 		for (const character of specifier) {
-			if (character !== '.') {
+			if (character !== ".") {
 				break;
 			}
 			dots += 1;
 		}
-		const module_name = specifier.slice(dots).replaceAll('.', '/');
+		const module_name = specifier.slice(dots).replaceAll(".", "/");
 		let directory = dirname(file);
 		for (let index = 1; index < dots; index += 1) {
 			directory = dirname(directory);
@@ -36,17 +36,17 @@ export class TestTargetRoots {
 
 	/** Responsibilities: _Python import path_. **/
 	private python_import_path(file: string, specifier: string): string {
-		if (specifier.startsWith('.')) {
+		if (specifier.startsWith(".")) {
 			return this.python_relative_path(file, specifier);
 		}
-		const root = specifier.split('.')[0];
+		const root = specifier.split(".")[0];
 		if (root === undefined || PYTHON_EXTERNAL_MODULES.has(root)) {
-			return '';
+			return "";
 		}
-		if (this.test_file_organization.source_directory(['tools', root])) {
-			return join('tools', root);
+		if (this.test_file_organization.source_directory(["tools", root])) {
+			return join("tools", root);
 		}
-		return join('src', 'parser', 'python-bridge', specifier.replaceAll('.', '/'));
+		return join("src", "parser", "python-bridge", specifier.replaceAll(".", "/"));
 	}
 
 	/** Responsibilities: _import source path_. **/
@@ -64,7 +64,7 @@ export class TestTargetRoots {
 		if (last_segment === undefined) {
 			return [];
 		}
-		const module_name = last_segment.replace(/\.(?:[cm]?[jt]sx?|py)$/, '');
+		const module_name = last_segment.replace(/\.(?:[cm]?[jt]sx?|py)$/, "");
 		source_segments[source_segments.length - 1] = module_name;
 		source_segments.pop();
 		if (source_segments.length === 0) {
@@ -75,12 +75,12 @@ export class TestTargetRoots {
 
 	/** Responsibilities: _source path segments_. **/
 	private source_segments(file: string): string[] {
-		const segments = file.replaceAll('\\', '/').split('/').filter(Boolean);
-		const source_index = segments.indexOf('src');
+		const segments = file.replaceAll("\\", "/").split("/").filter(Boolean);
+		const source_index = segments.indexOf("src");
 		if (source_index >= 0) {
 			return segments.slice(source_index + 1);
 		}
-		const tools_index = segments.indexOf('tools');
+		const tools_index = segments.indexOf("tools");
 		if (tools_index >= 0) {
 			return segments.slice(tools_index);
 		}
@@ -103,7 +103,7 @@ export class TestTargetRoots {
 	/** Responsibilities: _common prefix length_. **/
 	private common_length(shared: string[], path: string[]): number {
 		let length = Math.min(shared.length, path.length);
-		while (length > 0 && shared.slice(0, length).join('/') !== path.slice(0, length).join('/')) {
+		while (length > 0 && shared.slice(0, length).join("/") !== path.slice(0, length).join("/")) {
 			length -= 1;
 		}
 		return length;

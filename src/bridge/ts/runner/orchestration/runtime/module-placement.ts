@@ -1,10 +1,9 @@
-import { PlacementSupport } from 'src/bridge/ts/runner/placement-support';
-import { relative } from 'node:path';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { Violation } from 'src/protocols';
-import type { LintProjectContext } from 'src/protocols';
-import { ProjectSourceScanner } from 'src/bridge/ts/project-source-scanner';
-
+import { PlacementSupport } from "src/bridge/ts/runner/placement-support";
+import { relative } from "node:path";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { Violation } from "src/protocols";
+import type { LintProjectContext } from "src/protocols";
+import { ProjectSourceScanner } from "src/bridge/ts/project-source-scanner";
 
 /** Responsibilities: _collection importers evaluate placement_. **/
 export class ModulePlacementAnalyzer {
@@ -49,7 +48,7 @@ export class ModulePlacementAnalyzer {
 		if (this.ignored_files.has(target)) {
 			return false;
 		}
-		if (relative(this.root, target).startsWith('tools/coding-lint/')) {
+		if (relative(this.root, target).startsWith("tools/coding-lint/")) {
 			return false;
 		}
 		return placement_support.placement_candidate(this.root, target, importers);
@@ -92,10 +91,12 @@ export class ModulePlacementAnalyzer {
 		if (!this.candidate(target, importers)) {
 			return [];
 		}
-		const rule = new DiagnosticRule('module-placement');
-		return [rule.violation(relative(this.root, target), 1, {
-			...placement_support.placement_parameters(this.root, target, importers),
-		})];
+		const rule = new DiagnosticRule("module-placement");
+		return [
+			rule.violation(relative(this.root, target), 1, {
+				...placement_support.placement_parameters(this.root, target, importers),
+			}),
+		];
 	}
 
 	/** Responsibilities: _collection module-placement violations imported_. **/

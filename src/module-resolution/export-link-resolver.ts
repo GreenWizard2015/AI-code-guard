@@ -1,10 +1,10 @@
-import ts from 'typescript';
+import ts from "typescript";
 import type {
 	ModulePathResolver,
 	RecursiveExportResolver,
 	ResolvedTypeScriptExport,
-} from 'src/module-resolution/types';
-import type { TypeScriptExportLinks } from 'src/module-resolution/protocols';
+} from "src/module-resolution/types";
+import type { TypeScriptExportLinks } from "src/module-resolution/protocols";
 
 /** Responsibilities: _resolution named star imported_. **/
 export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
@@ -15,7 +15,7 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 	private imported_file(statement: ts.ImportDeclaration, file: string): string {
 		const module_specifier = statement.moduleSpecifier;
 		if (!ts.isStringLiteral(module_specifier)) {
-			return '';
+			return "";
 		}
 		return this.module_paths.module_symbol(file, module_specifier.text);
 	}
@@ -26,7 +26,7 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		source_file: ts.SourceFile,
 		statement: ts.ExportDeclaration,
 		element: ts.ExportSpecifier,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		let source_name = element.name.text;
 		if (element.propertyName !== undefined) {
@@ -41,7 +41,7 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		}
 		const imported_file = this.module_paths.module_symbol(file, module_specifier.text);
 		if (imported_file.length === 0) {
-			return { file: '', name: '' };
+			return { file: "", name: "" };
 		}
 		return this.resolver.file_for(imported_file, source_name, visited);
 	}
@@ -52,18 +52,18 @@ export class TypeScriptExportLinksTable implements TypeScriptExportLinks {
 		source_file: ts.SourceFile,
 		statement: ts.ExportDeclaration,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const export_clause = statement.exportClause;
-if (export_clause === undefined || !ts.isNamedExports(export_clause)) {
-			return { file: '', name: '' };
+		if (export_clause === undefined || !ts.isNamedExports(export_clause)) {
+			return { file: "", name: "" };
 		}
 		for (const element of export_clause.elements) {
 			if (element.name.text === name) {
 				return this.named_element_target(file, source_file, statement, element, visited);
 			}
 		}
-		return { file: '', name: '' };
+		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _resolution star-export links source_. **/
@@ -71,15 +71,15 @@ if (export_clause === undefined || !ts.isNamedExports(export_clause)) {
 		file: string,
 		statement: ts.ExportDeclaration,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const module_specifier = statement.moduleSpecifier;
-if (module_specifier === undefined || !ts.isStringLiteral(module_specifier)) {
-			return { file: '', name: '' };
+		if (module_specifier === undefined || !ts.isStringLiteral(module_specifier)) {
+			return { file: "", name: "" };
 		}
 		const imported_file = this.module_paths.module_symbol(file, module_specifier.text);
 		if (imported_file.length === 0) {
-			return { file: '', name: '' };
+			return { file: "", name: "" };
 		}
 		return this.resolver.file_for(imported_file, name, visited);
 	}
@@ -89,10 +89,10 @@ if (module_specifier === undefined || !ts.isStringLiteral(module_specifier)) {
 		imported_file: string,
 		clause: ts.ImportClause,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
-if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBindings)) {
-			return { file: '', name: '' };
+		if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBindings)) {
+			return { file: "", name: "" };
 		}
 		for (const binding of clause.namedBindings.elements) {
 			if (binding.name.text !== name) {
@@ -104,7 +104,7 @@ if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBinding
 			}
 			return this.resolver.file_for(imported_file, imported_name, visited);
 		}
-		return { file: '', name: '' };
+		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _initialization recursive export module_. **/
@@ -118,7 +118,7 @@ if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBinding
 		file: string,
 		source_file: ts.SourceFile,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		for (const statement of source_file.statements) {
 			if (!ts.isExportDeclaration(statement)) {
@@ -129,7 +129,7 @@ if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBinding
 				return resolved;
 			}
 		}
-		return { file: '', name: '' };
+		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _resolution star export target_. **/
@@ -137,10 +137,10 @@ if (clause.namedBindings === undefined || !ts.isNamedImports(clause.namedBinding
 		file: string,
 		source_file: ts.SourceFile,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		for (const statement of source_file.statements) {
-if (!ts.isExportDeclaration(statement) || statement.exportClause !== undefined) {
+			if (!ts.isExportDeclaration(statement) || statement.exportClause !== undefined) {
 				continue;
 			}
 			const resolved = this.star_statement(file, statement, name, visited);
@@ -148,7 +148,7 @@ if (!ts.isExportDeclaration(statement) || statement.exportClause !== undefined) 
 				return resolved;
 			}
 		}
-		return { file: '', name: '' };
+		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _resolution exported target represented_. **/
@@ -156,22 +156,21 @@ if (!ts.isExportDeclaration(statement) || statement.exportClause !== undefined) 
 		file: string,
 		statement: ts.ImportDeclaration,
 		name: string,
-		visited: Set<string>
+		visited: Set<string>,
 	): ResolvedTypeScriptExport {
 		const imported_file = this.imported_file(statement, file);
 		const clause = statement.importClause;
 		if (imported_file.length === 0) {
-			return { file: '', name: '' };
+			return { file: "", name: "" };
 		}
 		if (clause === undefined) {
-			return { file: '', name: '' };
+			return { file: "", name: "" };
 		}
 		if (clause.name !== undefined) {
 			if (clause.name.text === name) {
-				return this.resolver.file_for(imported_file, 'default', visited);
+				return this.resolver.file_for(imported_file, "default", visited);
 			}
 		}
 		return this.named_binding(imported_file, clause, name, visited);
 	}
-
 }

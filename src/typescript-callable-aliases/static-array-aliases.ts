@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _static array alias collection_. **/
 export class TypeScriptStaticArrayAliases {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly static_key_kinds = new Set([
 		ts.SyntaxKind.StringLiteral,
 		ts.SyntaxKind.NoSubstitutionTemplateLiteral,
@@ -14,7 +14,7 @@ export class TypeScriptStaticArrayAliases {
 
 	/** Responsibilities: _literal array value_. **/
 	private append_literal(values: Map<string, string>, name: string, current: ts.Expression): boolean {
-		const value = current.getText().replace(/^['"`]|['"`]$/g, '');
+		const value = current.getText().replace(/^['"`]|['"`]$/g, "");
 		if (values.has(name) || value.length === 0) {
 			return false;
 		}

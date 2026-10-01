@@ -1,12 +1,16 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { JEST_ANY_VALUES, JEST_OBJECT, JEST_SHAPES } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants';
-import { JestExpressionMatch } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-expression-match';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import {
+	JEST_ANY_VALUES,
+	JEST_OBJECT,
+	JEST_SHAPES,
+} from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JestExpressionMatch } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-expression-match";
 
 /** Responsibilities: _Jest objectContaining shapes matching_. **/
 export class JestObjectShapeMatcher {
 	private readonly shape_matchers = JEST_SHAPES;
-	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+	private readonly expect_aliases = new TypeScriptExpressionAliases("expect");
 
 	/** Responsibilities: _classification expression Jest any-value_. **/
 	private is_any_value(node: ts.Expression, context: ts.Node): boolean {

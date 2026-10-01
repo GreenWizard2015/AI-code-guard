@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _private member declaration names_. **/
 export class PrivateMemberDeclarationNames {
@@ -21,13 +21,13 @@ export class PrivateMemberDeclarationNames {
 		if (modifiers === undefined) {
 			return false;
 		}
-		return modifiers.some(item => item.kind === this.private_keyword);
+		return modifiers.some((item) => item.kind === this.private_keyword);
 	}
 
 	/** Responsibilities: _class member name resolution_. **/
 	public name(member: ts.ClassElement, source_file: ts.SourceFile): string {
 		if (member.name === undefined) {
-			return '';
+			return "";
 		}
 		return member.name.getText(source_file);
 	}
@@ -35,10 +35,10 @@ export class PrivateMemberDeclarationNames {
 	/** Responsibilities: _private member name collection_. **/
 	public names(member: ts.ClassElement, source_file: ts.SourceFile): string[] {
 		const name = this.name(member, source_file);
-		if (this.private_identifier(member) && name !== '') {
+		if (this.private_identifier(member) && name !== "") {
 			return [name];
 		}
-		if (this.has_private_modifier(member) && name !== '') {
+		if (this.has_private_modifier(member) && name !== "") {
 			return [name];
 		}
 		return [];

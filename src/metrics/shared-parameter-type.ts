@@ -1,12 +1,8 @@
-import type { AstReferenceAlias, AstTypedArgument } from 'src/types';
-import type {
-	AnalyzedParameter,
-	SharedParameterKind,
-	SharedParameterLanguage,
-} from 'src/metrics/types';
+import type { AstReferenceAlias, AstTypedArgument } from "src/types";
+import type { AnalyzedParameter, SharedParameterKind, SharedParameterLanguage } from "src/metrics/types";
 
-import { TYPE_SEPARATORS } from 'src/metrics/constants';
-import type { ParameterKindResult } from 'src/metrics/types';
+import { TYPE_SEPARATORS } from "src/metrics/constants";
+import type { ParameterKindResult } from "src/metrics/types";
 
 /** Responsibilities: _shared parameter types classification_. **/
 export class SharedParameterType {
@@ -43,7 +39,7 @@ export class SharedParameterType {
 	/** Responsibilities: _type references extraction_. **/
 	private type_names(type: string): string[] {
 		const names: string[] = [];
-		let current = '';
+		let current = "";
 		for (const character of type) {
 			if (!TYPE_SEPARATORS.includes(character)) {
 				current += character;
@@ -51,7 +47,7 @@ export class SharedParameterType {
 			}
 			if (current.length > 0) {
 				names.push(current);
-				current = '';
+				current = "";
 			}
 		}
 		if (current.length > 0) {
@@ -62,13 +58,13 @@ export class SharedParameterType {
 
 	/** Responsibilities: _excluded tooling types identification_. **/
 	private tooling_type(type: string): boolean {
-		if (this.language === 'typescript' && type.startsWith('Json')) {
+		if (this.language === "typescript" && type.startsWith("Json")) {
 			return true;
 		}
-		if (type.startsWith('ast.')) {
+		if (type.startsWith("ast.")) {
 			return true;
 		}
-		if (type.startsWith('ts.')) {
+		if (type.startsWith("ts.")) {
 			return true;
 		}
 		return type.length === 1 && type === type.toUpperCase();
@@ -96,18 +92,18 @@ export class SharedParameterType {
 
 	/** Responsibilities: _typed arguments classification_. **/
 	private parameter_kind(argument: AstTypedArgument, type: string): ParameterKindResult {
-		if (argument.kind === 'basic') {
-			return { supported: true, value: 'basic' };
+		if (argument.kind === "basic") {
+			return { supported: true, value: "basic" };
 		}
-if ((argument.kind === 'named' || argument.kind === 'generic') && this.reference_allowed(type)) {
-			return { supported: true, value: 'reference' };
+		if ((argument.kind === "named" || argument.kind === "generic") && this.reference_allowed(type)) {
+			return { supported: true, value: "reference" };
 		}
-		return { supported: false, value: 'basic' };
+		return { supported: false, value: "basic" };
 	}
 
 	/** Responsibilities: _derive parameter grouping identity_. **/
 	private parameter_identity(argument: AstTypedArgument, type: string, kind: SharedParameterKind): string {
-		if (kind === 'basic') {
+		if (kind === "basic") {
 			return `${argument.name}:${type}`;
 		}
 		return type;
@@ -118,33 +114,35 @@ if ((argument.kind === 'named' || argument.kind === 'generic') && this.reference
 		argument: AstTypedArgument,
 		type: string,
 		kind: SharedParameterKind,
-		uses: ReadonlyMap<string, number>
+		uses: ReadonlyMap<string, number>,
 	): AnalyzedParameter[] {
 		const identity = this.parameter_identity(argument, type, kind);
-		return [{
-			key: JSON.stringify([kind, identity]),
-			identity,
-			kind,
-			project_type: kind === 'reference' && this.project_reference(type),
-			uses: this.use_count(argument, uses),
-		}];
+		return [
+			{
+				key: JSON.stringify([kind, identity]),
+				identity,
+				kind,
+				project_type: kind === "reference" && this.project_reference(type),
+				uses: this.use_count(argument, uses),
+			},
+		];
 	}
 
 	/** Responsibilities: _type context initialization_. **/
 	public constructor(
 		reference_aliases: readonly AstReferenceAlias[],
 		project_types: ReadonlySet<string>,
-		language: SharedParameterLanguage = 'unknown'
+		language: SharedParameterLanguage = "unknown",
 	) {
 		this.project_types = project_types;
-		this.aliases = new Map(reference_aliases.map(alias => [alias.name, alias.target]));
+		this.aliases = new Map(reference_aliases.map((alias) => [alias.name, alias.target]));
 		this.language = language;
 	}
 
 	/** Responsibilities: _type expression normalization_. **/
 	public canonical(type: string): string {
-		let result = '';
-		let token = '';
+		let result = "";
+		let token = "";
 		for (const character of type.trim()) {
 			if (character.trim().length === 0) {
 				continue;
@@ -154,7 +152,7 @@ if ((argument.kind === 'named' || argument.kind === 'generic') && this.reference
 				continue;
 			}
 			result = this.append_token(result, token) + character;
-			token = '';
+			token = "";
 		}
 		return this.append_token(result, token);
 	}
@@ -164,14 +162,11 @@ if ((argument.kind === 'named' || argument.kind === 'generic') && this.reference
 		if (this.project_types.has(type)) {
 			return true;
 		}
-		return this.type_names(type).some(name => this.project_types.has(name));
+		return this.type_names(type).some((name) => this.project_types.has(name));
 	}
 
 	/** Responsibilities: _analyze shared parameter_. **/
-	public parameter(
-		argument: AstTypedArgument,
-		uses: ReadonlyMap<string, number>
-	): AnalyzedParameter[] {
+	public parameter(argument: AstTypedArgument, uses: ReadonlyMap<string, number>): AnalyzedParameter[] {
 		const type = this.canonical(argument.type);
 		const kind = this.parameter_kind(argument, type);
 		if (!kind.supported) {

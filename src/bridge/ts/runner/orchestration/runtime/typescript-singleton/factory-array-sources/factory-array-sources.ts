@@ -1,7 +1,8 @@
-import ts from 'typescript';
-import { TypeScriptFactoryArrayObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-array-object-sources';
-import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import type { ArrayValuesVisitor } from "src/protocols";
+import { TypeScriptFactoryArrayObjectSources } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-array-object-sources";
+import type { FactoryObjectSourcesContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution factory array sources_. **/
 export class TypeScriptFactoryArraySources {
@@ -95,22 +96,15 @@ export class TypeScriptFactoryArraySources {
 	}
 
 	/** Responsibilities: _initialization factory array sources_. **/
-	public constructor(
-		source_file: ts.SourceFile,
-		object_sources: FactoryObjectSourcesContract,
-	) {
+	public constructor(source_file: ts.SourceFile, object_sources: FactoryObjectSourcesContract) {
 		this.source_file = source_file;
-		this.binding_sources = new TypeScriptFactoryArrayObjectSources(
-			object_sources,
-			(initializer) => this.elements(initializer),
+		this.binding_sources = new TypeScriptFactoryArrayObjectSources(object_sources, (initializer) =>
+			this.elements(initializer),
 		);
 	}
 
 	/** Responsibilities: _array source dispatch_. **/
-	public append(
-		expression: ts.Expression,
-		visitor: (values: readonly ts.Expression[]) => void,
-	): void {
+	public append(expression: ts.Expression, visitor: ArrayValuesVisitor): void {
 		this.register_array_sources();
 		const source = this.expression_names.unwrap_transparent_expression(expression);
 		if (ts.isArrayLiteralExpression(source)) {

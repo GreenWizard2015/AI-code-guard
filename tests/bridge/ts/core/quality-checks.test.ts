@@ -26,24 +26,14 @@ describe("coding lint quality checks", () => {
 		expect(ruff).toEqual({
 			label: "Ruff Python linting",
 			command: "python3",
-			args: [
-				"-m",
-				"ruff",
-				"check",
-				"--isolated",
-				"--select",
-				"E4,E7,E9,F",
-				`${PROJECT_ROOT}/src/parser/python-bridge`,
-			],
+			args: ["-m", "ruff", "check", "--isolated", "--select", "E4,E7,E9,F", `${PROJECT_ROOT}/src/parser/python-bridge`],
 			environment: process.env,
 		});
 	});
 
 	test("formats all TypeScript source and test directories", () => {
 		const definitions = new QualityCheckDefinitions(PROJECT_ROOT);
-		const formatting = definitions
-			.type_script_checks()
-			.find((check) => check.label === "TypeScript formatting");
+		const formatting = definitions.type_script_checks().find((check) => check.label === "TypeScript formatting");
 
 		expect(formatting?.args).toEqual([
 			"--dir",
@@ -69,17 +59,11 @@ describe("coding lint quality checks", () => {
 	test("checks nested Python files with project-root paths", () => {
 		const definitions = new QualityCheckDefinitions(PROJECT_ROOT);
 		const checks = definitions.python_checks();
-		const pyflakes = checks.find(
-			(check) => check.label === "Python unused imports and names",
-		);
-		const vulture = checks.find(
-			(check) => check.label === "Python unused functions and classes",
-		);
+		const pyflakes = checks.find((check) => check.label === "Python unused imports and names");
+		const vulture = checks.find((check) => check.label === "Python unused functions and classes");
 
 		expect({
-			pyflakes_paths: pyflakes?.args
-				.slice(2)
-				.every((file) => file.startsWith(`${PROJECT_ROOT}/`)),
+			pyflakes_paths: pyflakes?.args.slice(2).every((file) => file.startsWith(`${PROJECT_ROOT}/`)),
 			pyflakes_nested_file: pyflakes?.args.includes(
 				`${PROJECT_ROOT}/src/parser/python-bridge/implementation/ast/ast_bridge.py`,
 			),
@@ -93,20 +77,14 @@ describe("coding lint quality checks", () => {
 
 	test("passes the bridge path to Python type checking", () => {
 		const definitions = new QualityCheckDefinitions(PROJECT_ROOT);
-		const mypy = definitions
-			.python_checks()
-			.find((check) => check.label === "Python type checking");
+		const mypy = definitions.python_checks().find((check) => check.label === "Python type checking");
 
-		expect(mypy?.environment.MYPYPATH).toBe(
-			`${PROJECT_ROOT}/src/parser/python-bridge`,
-		);
+		expect(mypy?.environment.MYPYPATH).toBe(`${PROJECT_ROOT}/src/parser/python-bridge`);
 	});
 
 	test("uses the project root for the lint command", () => {
 		const definitions = new QualityCheckDefinitions(PROJECT_ROOT);
-		const lint = definitions
-			.repository_checks()
-			.find((check) => check.label === "Coding lint");
+		const lint = definitions.repository_checks().find((check) => check.label === "Coding lint");
 
 		expect(lint?.args.slice(0, 2)).toEqual(["--dir", PROJECT_ROOT]);
 		expect(lint?.args).toEqual(["--dir", PROJECT_ROOT, "lint"]);

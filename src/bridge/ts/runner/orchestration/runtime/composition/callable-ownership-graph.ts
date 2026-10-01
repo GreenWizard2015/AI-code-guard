@@ -1,8 +1,6 @@
-import type {
-	CallableClassIndex,
-	CallableProjectIndex,
-} from 'src/metrics/types';
-import type { AstClassNode } from 'src/types';
+import type { CallableClassIndex, CallableProjectIndex } from "src/metrics/types";
+import type { AstClassNode } from "src/types";
+import type { NameRelationsResolver } from "src/protocols";
 
 /** Responsibilities: _resolution callable ownership traverse_. **/
 export class CallableOwnershipGraph {
@@ -13,7 +11,7 @@ export class CallableOwnershipGraph {
 	private readonly type_members_cache = new Map<string, ReadonlySet<string>>();
 
 	/** Responsibilities: _related type names traversal_. **/
-	private walk_names(start: string, related: (name: string) => string[]): Set<string> {
+	private walk_names(start: string, related: NameRelationsResolver): Set<string> {
 		const pending = [start];
 		const visited = new Set<string>();
 		while (pending.length > 0) {
@@ -40,7 +38,7 @@ export class CallableOwnershipGraph {
 	}
 
 	/** Responsibilities: _identification type reachability class_. **/
-	private type_reaches_class(class_name: string, type_name: string = '', method_name: string = ''): boolean {
+	private type_reaches_class(class_name: string, type_name: string = "", method_name: string = ""): boolean {
 		if (!type_name) {
 			return false;
 		}
@@ -62,12 +60,12 @@ export class CallableOwnershipGraph {
 	}
 
 	/** Responsibilities: _identification port methods graph_. **/
-	private has_port_method(names: Set<string>, method_name = ''): boolean {
+	private has_port_method(names: Set<string>, method_name = ""): boolean {
 		if (method_name.length === 0) {
 			return false;
 		}
 		for (const name of names) {
-if (name.endsWith('Port') && this.type_member_names(name).has(method_name)) {
+			if (name.endsWith("Port") && this.type_member_names(name).has(method_name)) {
 				return true;
 			}
 		}
@@ -75,7 +73,7 @@ if (name.endsWith('Port') && this.type_member_names(name).has(method_name)) {
 	}
 
 	/** Responsibilities: _callable ownership matching_. **/
-	private matches_graph(class_node: AstClassNode, method_name: string, owner: string = ''): boolean {
+	private matches_graph(class_node: AstClassNode, method_name: string, owner: string = ""): boolean {
 		if (this.matches_interface(class_node, method_name)) {
 			return true;
 		}
@@ -106,7 +104,7 @@ if (name.endsWith('Port') && this.type_member_names(name).has(method_name)) {
 		if (members.length === 0) {
 			names = new Set([type_name]);
 		} else {
-			names = this.walk_names(type_name, name => this.type_members(name));
+			names = this.walk_names(type_name, (name) => this.type_members(name));
 		}
 		this.type_names_cache.set(type_name, names);
 		return names;
@@ -147,20 +145,20 @@ if (name.endsWith('Port') && this.type_member_names(name).has(method_name)) {
 		if (bases.length === 0) {
 			names = new Set([class_name]);
 		} else {
-			names = this.walk_names(class_name, name => this.class_bases(name));
+			names = this.walk_names(class_name, (name) => this.class_bases(name));
 		}
 		this.base_names_cache.set(class_name, names);
 		return names;
 	}
 
 	/** Responsibilities: _shared concrete subclasses identification_. **/
-	private shares_concrete_subclass(right: string, left: string = ''): boolean {
+	private shares_concrete_subclass(right: string, left: string = ""): boolean {
 		if (!left) {
 			return false;
 		}
 		return [...this.class_nodes.values()]
-			.filter(node => !node.protocol && !node.type_contract)
-			.some(node => {
+			.filter((node) => !node.protocol && !node.type_contract)
+			.some((node) => {
 				const ancestors = this.base_class_names(node.name);
 				return ancestors.has(left) && ancestors.has(right);
 			});
@@ -185,7 +183,7 @@ if (name.endsWith('Port') && this.type_member_names(name).has(method_name)) {
 	}
 
 	/** Responsibilities: _callable owner matching_. **/
-	public match(class_node: AstClassNode, method_name: string, owner: string = ''): boolean {
+	public match(class_node: AstClassNode, method_name: string, owner: string = ""): boolean {
 		if (owner !== undefined) {
 			if (this.type_member_names(owner).has(method_name)) {
 				return true;

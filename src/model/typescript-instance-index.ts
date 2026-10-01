@@ -1,8 +1,8 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { DestructuredAlias } from 'src/model/types';
-import type { DestructuredInstanceOptions } from 'src/model/types';
-import type { TypeScriptInstanceStore } from 'src/model/protocols';
+import type { DestructuredAlias } from "src/model/types";
+import type { DestructuredInstanceOptions } from "src/model/types";
+import type { TypeScriptInstanceStore } from "src/model/protocols";
 
 /** Responsibilities: _indexing TypeScript instances scope_. **/
 export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
@@ -35,7 +35,7 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
 			}
 			current = current.parent;
 		}
-		return 'module';
+		return "module";
 	}
 
 	/** Responsibilities: _resolution module-level instance owner_. **/
@@ -44,7 +44,7 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
 		if (owner !== undefined) {
 			return owner;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution instance owner traversal_. **/
@@ -84,10 +84,7 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
 	}
 
 	/** Responsibilities: _instance owner supplied addition_. **/
-	public add_all(
-		entries: readonly DestructuredAlias[],
-		node: ts.Node
-	): void {
+	public add_all(entries: readonly DestructuredAlias[], node: ts.Node): void {
 		for (const entry of entries) {
 			this.add(entry.name, entry.owner, node);
 		}
@@ -99,10 +96,7 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
 		if (!ts.isObjectBindingPattern(node.name)) {
 			return;
 		}
-		this.add_all(
-			property_state.destructured_aliases(node.name, source_file, initializer, current_owner),
-			node
-		);
+		this.add_all(property_state.destructured_aliases(node.name, source_file, initializer, current_owner), node);
 	}
 
 	/** Responsibilities: _resolution indexing owner name_. **/
@@ -115,6 +109,6 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStore {
 		if (owner !== undefined) {
 			return owner;
 		}
-		return '';
+		return "";
 	}
 }

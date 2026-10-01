@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import type { BooleanCallTarget } from 'src/bridge/ts/parser-internals/types';
+import ts from "typescript";
+import type { BooleanCallTarget } from "src/bridge/ts/parser-internals/types";
 
 /** Responsibilities: _resolution boolean invocation targets_, _boolean declarations identification_. **/
 export class TypeScriptBooleanCall {
@@ -7,16 +7,16 @@ export class TypeScriptBooleanCall {
 
 	/** Responsibilities: _boolean predicate naming_. **/
 	private predicate_name(name: string): boolean {
-		if (name.startsWith('is') || name.startsWith('has') || name.startsWith('can')) {
+		if (name.startsWith("is") || name.startsWith("has") || name.startsWith("can")) {
 			return true;
 		}
-		if (name.startsWith('proxy_') || name.endsWith('_operator')) {
+		if (name.startsWith("proxy_") || name.endsWith("_operator")) {
 			return true;
 		}
-		if (name.startsWith('repeated_') || name.endsWith('_typeof')) {
+		if (name.startsWith("repeated_") || name.endsWith("_typeof")) {
 			return true;
 		}
-		return ['some', 'every', 'includes', 'startsWith', 'endsWith', 'test'].includes(name);
+		return ["some", "every", "includes", "startsWith", "endsWith", "test"].includes(name);
 	}
 
 	/** Responsibilities: _boolean declaration search_. **/
@@ -49,9 +49,7 @@ export class TypeScriptBooleanCall {
 	}
 
 	/** Responsibilities: _extraction invocation targets expression_. **/
-	public call_target(
-		expression: ts.LeftHandSideExpression
-	): BooleanCallTarget[] {
+	public call_target(expression: ts.LeftHandSideExpression): BooleanCallTarget[] {
 		if (ts.isIdentifier(expression)) {
 			return [{ name: expression.text, property_call: false }];
 		}

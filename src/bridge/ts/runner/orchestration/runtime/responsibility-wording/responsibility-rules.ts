@@ -1,22 +1,22 @@
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { AstResponsibilityTarget } from 'src/types';
-import type { Violation } from 'src/protocols';
-import type { ResponsibilityLimits, ResponsibilityValues } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { ResponsibilityWordingChecker } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { ResponsibilityDocumentation } from 'src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-documentation';
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { AstResponsibilityTarget } from "src/types";
+import type { Violation } from "src/protocols";
+import type { ResponsibilityLimits, ResponsibilityValues } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { ResponsibilityWordingChecker } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { ResponsibilityDocumentation } from "src/bridge/ts/runner/orchestration/runtime/responsibility-wording/responsibility-documentation";
 
 /** Responsibilities: _responsibility rule collection_. **/
 export class ResponsibilityRules {
-	private readonly rule = new DiagnosticRule('responsibilities');
-	private readonly minimum_rule = new DiagnosticRule('responsibilities-min-count');
-	private readonly maximum_rule = new DiagnosticRule('responsibilities-max-count');
-	private readonly wording_rule = new DiagnosticRule('responsibilities-wording');
+	private readonly rule = new DiagnosticRule("responsibilities");
+	private readonly minimum_rule = new DiagnosticRule("responsibilities-min-count");
+	private readonly maximum_rule = new DiagnosticRule("responsibilities-max-count");
+	private readonly wording_rule = new DiagnosticRule("responsibilities-wording");
 	private readonly wording_checker: ResponsibilityWordingChecker;
 
 	/** Responsibilities: _documentation line values_. **/
 	private values_for_line(line: string): ResponsibilityValues {
-		const content = line.slice('Responsibilities:'.length).trim();
-		if (!content.endsWith('.')) {
+		const content = line.slice("Responsibilities:".length).trim();
+		if (!content.endsWith(".")) {
 			return { present: true, values: [], format_valid: false };
 		}
 		const body = content.slice(0, -1).trim();
@@ -31,7 +31,7 @@ export class ResponsibilityRules {
 		cursor: number,
 	): ResponsibilityValues {
 		const separator = body.slice(cursor, match.index).trim();
-		if (value_count > 0 && separator !== ',') {
+		if (value_count > 0 && separator !== ",") {
 			return { present: true, values: [], format_valid: false };
 		}
 		if (value_count === 0 && separator.length > 0) {
@@ -71,7 +71,7 @@ export class ResponsibilityRules {
 
 	/** Responsibilities: _responsibility contracts validation_. **/
 	private limits(target: AstResponsibilityTarget): ResponsibilityLimits {
-		if (target.kind === 'class' || target.kind === 'interface') {
+		if (target.kind === "class" || target.kind === "interface") {
 			return { minimum: 1, maximum: 4 };
 		}
 		return { minimum: 1, maximum: 2 };
@@ -84,10 +84,10 @@ export class ResponsibilityRules {
 		values: ResponsibilityValues,
 	): Violation[] {
 		if (!values.present) {
-			return [this.issue(file, target, 'missing a Responsibilities line', this.rule)];
+			return [this.issue(file, target, "missing a Responsibilities line", this.rule)];
 		}
 		if (!values.format_valid) {
-			return [this.issue(file, target, 'use paired underscores around each responsibility', this.rule)];
+			return [this.issue(file, target, "use paired underscores around each responsibility", this.rule)];
 		}
 		return [];
 	}
@@ -100,37 +100,29 @@ export class ResponsibilityRules {
 		limits: ResponsibilityLimits,
 	): Violation[] {
 		if (values.length < limits.minimum) {
-			return [this.issue(file, target, '', this.minimum_rule)];
+			return [this.issue(file, target, "", this.minimum_rule)];
 		}
 		if (values.length > limits.maximum) {
-			return [this.issue(file, target, '', this.maximum_rule)];
+			return [this.issue(file, target, "", this.maximum_rule)];
 		}
 		return [];
 	}
 
 	/** Responsibilities: _responsibility contracts validation_. **/
-	private target_violations(
-		file: string,
-		target: AstResponsibilityTarget,
-	): Violation[] {
+	private target_violations(file: string, target: AstResponsibilityTarget): Violation[] {
 		const values = this.responsibility_values(target.documentation);
 		const documentation_violations = this.documentation_violations(file, target, values);
 		if (documentation_violations.length > 0) {
 			return documentation_violations;
 		}
 		if (!this.wording_checker.valid(values.values)) {
-			return [this.issue(file, target, '', this.wording_rule)];
+			return [this.issue(file, target, "", this.wording_rule)];
 		}
 		return this.limit_violations(file, target, values.values, this.limits(target));
 	}
 
 	/** Responsibilities: _responsibility contracts validation_. **/
-	private issue(
-		file: string,
-		target: AstResponsibilityTarget,
-		text: string,
-		rule: DiagnosticRule,
-	): Violation {
+	private issue(file: string, target: AstResponsibilityTarget, text: string, rule: DiagnosticRule): Violation {
 		return rule.violation(file, target.line + 1, {
 			kind: target.kind,
 			name: target.name,

@@ -1,15 +1,15 @@
-import { DictionaryReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/dictionary-returns';
-import { InlineTypes } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/inline-types';
-import { ObjectLiteralReturns } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-returns';
-import { PointlessAssignments } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/pointless-assignments';
-import { PrivateMemberAccess } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-access';
-import { RepeatedBranch } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/repeated-branch';
-import { TypeOperations } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/type-operations';
-import { JestTestRules } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-test-rules';
-import { TypeScriptDeclarations } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/typescript-declarations';
-import type { Violation } from 'src/protocols';
-import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types';
+import { DictionaryReturns } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/dictionary-returns";
+import { InlineTypes } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/inline-types";
+import { ObjectLiteralReturns } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object-literal-returns";
+import { PointlessAssignments } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/pointless-assignments";
+import { PrivateMemberAccess } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/private-member-access/private-member-access";
+import { RepeatedBranch } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/repeated-branch";
+import { TypeOperations } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/type-operations";
+import { JestTestRules } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-test-rules";
+import { TypeScriptDeclarations } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/typescript-declarations";
+import type { Violation } from "src/protocols";
+import type { TypeScriptScannerRuleContext } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { TypeScriptRuleGroupContract } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types";
 
 /** Responsibilities: _TypeScript declaration rules application_, _application expression Jest rules_. **/
 export class TypeScriptScriptRuleGroup implements TypeScriptRuleGroupContract {
@@ -29,7 +29,7 @@ export class TypeScriptScriptRuleGroup implements TypeScriptRuleGroupContract {
 		this.context = context;
 		this.object_literal_returns = new ObjectLiteralReturns(
 			context.project_contract_names,
-			new Set(context.ast.type_declarations.map(declaration => declaration.name)),
+			new Set(context.ast.type_declarations.map((declaration) => declaration.name)),
 		);
 	}
 

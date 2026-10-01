@@ -1,9 +1,9 @@
-import ts from 'typescript';
-import { TypeScriptFactoryArraySources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-array-sources';
-import { TypeScriptFactoryArrayObjectExpressions } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-object-expressions';
-import { TypeScriptFactoryObjectSources } from 'src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources';
-import type { FactoryObjectSourcesContract } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptFactoryArraySources } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-sources/factory-array-sources";
+import { TypeScriptFactoryArrayObjectExpressions } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-array-object-expressions";
+import { TypeScriptFactoryObjectSources } from "src/bridge/ts/runner/orchestration/runtime/typescript-singleton/factory-object-sources";
+import type { FactoryObjectSourcesContract } from "src/bridge/ts/runner/orchestration/runtime/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _resolution array factory aliases_. **/
 export class TypeScriptFactoryArrayAliases {
@@ -193,7 +193,7 @@ export class TypeScriptFactoryArrayAliases {
 	/** Responsibilities: _resolution array factory source_. **/
 	public source(declaration: ts.VariableDeclaration, name: string): string {
 		if (!ts.isArrayBindingPattern(declaration.name)) {
-			return '';
+			return "";
 		}
 		return this.sources.binding_sources.binding_source(declaration.name, this.sources.values(declaration), name);
 	}

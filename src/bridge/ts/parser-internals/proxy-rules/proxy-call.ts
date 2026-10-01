@@ -1,25 +1,20 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _detection callable proxy wrappers_. **/
 export class ProxyCall {
-	private readonly hidden_visibility_kinds = new Set([
-		ts.SyntaxKind.PrivateKeyword,
-		ts.SyntaxKind.ProtectedKeyword,
-	]);
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly hidden_visibility_kinds = new Set([ts.SyntaxKind.PrivateKeyword, ts.SyntaxKind.ProtectedKeyword]);
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 
 	/** Responsibilities: _classification declaration supported callable_. **/
-	private is_callable_declaration(
-		node: ts.Node
-	): boolean {
+	private is_callable_declaration(node: ts.Node): boolean {
 		if (ts.isFunctionDeclaration(node)) {
 			return true;
 		}
 		if (!ts.isMethodDeclaration(node)) {
 			return false;
 		}
-		return !node.modifiers?.some(modifier => this.hidden_visibility_kinds.has(modifier.kind));
+		return !node.modifiers?.some((modifier) => this.hidden_visibility_kinds.has(modifier.kind));
 	}
 
 	/** Responsibilities: _collection proxy invocation statement_. **/
@@ -118,7 +113,7 @@ export class ProxyCall {
 		if (!ts.isIdentifier(owner)) {
 			return false;
 		}
-		if (owner.text[0] === '_') {
+		if (owner.text[0] === "_") {
 			return false;
 		}
 		return owner.text !== owner.text.toUpperCase();
@@ -155,5 +150,4 @@ export class ProxyCall {
 		}
 		return this.supported_property_owner(target.expression);
 	}
-
 }

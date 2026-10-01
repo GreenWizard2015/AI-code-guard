@@ -1,13 +1,12 @@
-import { TypeScriptCallReference } from 'src/bridge/ts/parser/typescript-call-reference-builder';
-import { TypeScriptCallExpressionInspector } from 'src/typescript-call-expression-inspector';
-import ts from 'typescript';
+import { TypeScriptCallReference } from "src/bridge/ts/parser/typescript-call-reference-builder";
+import { TypeScriptCallExpressionInspector } from "src/typescript-call-expression-inspector";
+import ts from "typescript";
 
-import type { AstCallableReference } from 'src/types';
-import type { TypeScriptSourceResolver } from 'src/model/types';
-import { TypeScriptReferenceContext } from 'src/typescript-reference-context';
+import type { AstCallableReference } from "src/types";
+import type { TypeScriptSourceResolver } from "src/model/types";
+import { TypeScriptReferenceContext } from "src/typescript-reference-context";
 
-
-import type { CallTargetKind } from 'src/types';
+import type { CallTargetKind } from "src/types";
 
 /** Responsibilities: _TypeScript expressions collection traversal_. **/
 export class TypeScriptCallReferenceCollector {
@@ -17,7 +16,7 @@ export class TypeScriptCallReferenceCollector {
 	private readonly expression_inspector = new TypeScriptCallExpressionInspector();
 
 	/** Responsibilities: _node routing invocation traversal_. **/
-	private visit_node(node: ts.Node, owner: string = ''): void {
+	private visit_node(node: ts.Node, owner: string = ""): void {
 		let current_owner = owner;
 		if (ts.isClassDeclaration(node)) {
 			if (node.name !== undefined) {
@@ -29,11 +28,11 @@ export class TypeScriptCallReferenceCollector {
 			}
 		}
 		this.append_call_reference(node, current_owner);
-		ts.forEachChild(node, child => this.visit_node(child, current_owner));
+		ts.forEachChild(node, (child) => this.visit_node(child, current_owner));
 	}
 
 	/** Responsibilities: _aggregation reference direct invocation_. **/
-	private append_call_reference(node: ts.Node, owner: string = ''): void {
+	private append_call_reference(node: ts.Node, owner: string = ""): void {
 		const expressions = this.expression_inspector.direct_value_expression(node);
 		if (expressions.length > 0) {
 			this.append_reference(expressions[0], owner);
@@ -43,7 +42,7 @@ export class TypeScriptCallReferenceCollector {
 	}
 
 	/** Responsibilities: _nested node preservation traversal_. **/
-	private append_nested_node(node: ts.Node, owner: string = ''): void {
+	private append_nested_node(node: ts.Node, owner: string = ""): void {
 		if (ts.isCallExpression(node)) {
 			this.append_nested_values(node, owner);
 			this.append_call_target(node, owner);
@@ -59,7 +58,7 @@ export class TypeScriptCallReferenceCollector {
 	}
 
 	/** Responsibilities: _aggregation constructor references inspection_. **/
-	private append_new_node(node: ts.NewExpression, owner: string = ''): void {
+	private append_new_node(node: ts.NewExpression, owner: string = ""): void {
 		const call_reference_builder = new TypeScriptCallReference();
 
 		this.append_nested_values(node, owner);
@@ -69,10 +68,7 @@ export class TypeScriptCallReferenceCollector {
 	}
 
 	/** Responsibilities: _nested object values traversal_. **/
-	private append_nested_values(
-		node: ts.Node,
-		owner: string = ''
-	): void {
+	private append_nested_values(node: ts.Node, owner: string = ""): void {
 		if (ts.isArrayLiteralExpression(node)) {
 			this.append_argument_values(node.elements, owner);
 			return;
@@ -85,7 +81,7 @@ export class TypeScriptCallReferenceCollector {
 	}
 
 	/** Responsibilities: _invocation argument expressions traversal_. **/
-	private append_argument_values(arguments_list: readonly ts.Expression[], owner: string = ''): void {
+	private append_argument_values(arguments_list: readonly ts.Expression[], owner: string = ""): void {
 		for (const argument of arguments_list) {
 			if (ts.isSpreadElement(argument)) {
 				this.append_reference(argument.expression, owner);
@@ -108,7 +104,7 @@ export class TypeScriptCallReferenceCollector {
 	}
 
 	/** Responsibilities: _collection supported callable reference_. **/
-	private append_reference(expression: ts.Expression, owner: string = ''): void {
+	private append_reference(expression: ts.Expression, owner: string = ""): void {
 		if (!this.supported_reference(expression)) {
 			return;
 		}
@@ -118,32 +114,28 @@ export class TypeScriptCallReferenceCollector {
 				current_owner: owner,
 				is_bound: false,
 				is_call: false,
-			})
+			}),
 		);
 	}
 
 	/** Responsibilities: _aggregation callable target invocation_. **/
-	private append_call_target(node: ts.CallExpression, owner: string = ''): void {
+	private append_call_target(node: ts.CallExpression, owner: string = ""): void {
 		const bound_expressions = this.expression_inspector.bind_target(node);
 		if (bound_expressions.length > 0) {
-			this.append_target(bound_expressions[0], 'bound', owner);
+			this.append_target(bound_expressions[0], "bound", owner);
 			return;
 		}
 		if (this.supported_reference(node.expression)) {
-			this.append_target(node.expression, 'call', owner);
+			this.append_target(node.expression, "call", owner);
 		}
 	}
 
 	/** Responsibilities: _aggregation resolution callable reference_. **/
-	private append_target(
-		expression: ts.Node,
-		target_kind: CallTargetKind,
-		owner: string = ''
-	): void {
+	private append_target(expression: ts.Node, target_kind: CallTargetKind, owner: string = ""): void {
 		const call_reference_builder = new TypeScriptCallReference();
 
 		const options = { current_owner: owner, is_bound: false, is_call: false };
-		if (target_kind === 'bound') {
+		if (target_kind === "bound") {
 			options.is_bound = true;
 		} else {
 			options.is_call = true;

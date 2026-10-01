@@ -1,5 +1,6 @@
-import type { Violation } from 'src/protocols';
-import ts from 'typescript';
+import type { Violation } from "src/protocols";
+import ts from "typescript";
+import type { ObjectSourceVisitor } from "src/protocols";
 
 /** Responsibilities: _define coding-rule lint execution_. **/
 export interface CodingRuleLinterContract {
@@ -11,11 +12,8 @@ export interface ResponsibilityWordingChecker {
 	valid(values: readonly string[]): boolean;
 }
 
-	/** Responsibilities: _factory source contract_. **/
+/** Responsibilities: _factory source contract_. **/
 export interface FactoryObjectSourcesContract {
 	values(): Map<string, ts.ObjectLiteralExpression>;
-	append(
-		expression: ts.Expression,
-		visitor: (source: ts.ObjectLiteralExpression) => void,
-	): void;
+	append(expression: ts.Expression, visitor: ObjectSourceVisitor): void;
 }

@@ -1,13 +1,14 @@
-import { AstDiskCache } from 'src/bridge/ts/core/support/ast-disk-cache';
-import { AstCacheHit } from 'src/bridge/ts/core/support/ast-cache-hit';
-import { AstCacheMiss } from 'src/bridge/ts/core/support/ast-cache-miss';
-import type { AstCacheEntry } from 'src/bridge/ts/core/support/protocols';
+import { AstDiskCache } from "src/bridge/ts/core/support/ast-disk-cache";
+import { AstCacheHit } from "src/bridge/ts/core/support/ast-cache-hit";
+import { AstCacheMiss } from "src/bridge/ts/core/support/ast-cache-miss";
+import type { AstCacheEntry } from "src/bridge/ts/core/support/protocols";
+import type { PythonAstBatchParser } from "src/protocols";
 import type {
 	NormalizedAstFile,
 	PythonBatchAstOptions,
 	PythonAstCacheReadOptions,
 	PythonAstCacheWriteOptions,
-} from 'src/types';
+} from "src/types";
 
 /** Responsibilities: _Python AST caching_. **/
 export class PythonAstBatchCache {
@@ -63,10 +64,7 @@ export class PythonAstBatchCache {
 	}
 
 	/** Responsibilities: _missing batch index lookup_. **/
-	private missing_batch_indexes(
-		texts: readonly string[],
-		results: ReadonlyMap<number, NormalizedAstFile>,
-	): number[] {
+	private missing_batch_indexes(texts: readonly string[], results: ReadonlyMap<number, NormalizedAstFile>): number[] {
 		const indexes: number[] = [];
 		for (const index of texts.keys()) {
 			if (!results.has(index)) {
@@ -78,9 +76,9 @@ export class PythonAstBatchCache {
 
 	/** Responsibilities: _uncached source validation_. **/
 	private missing_batch_texts(texts: readonly string[], indexes: readonly number[]): string[] {
-		return indexes.map(index => {
+		return indexes.map((index) => {
 			if (index < 0 || index >= texts.length) {
-				throw new Error('Python AST batch source is missing.');
+				throw new Error("Python AST batch source is missing.");
 			}
 			return texts[index];
 		});
@@ -97,7 +95,7 @@ export class PythonAstBatchCache {
 			const text_in_range = text_index >= 0 && text_index < texts.length;
 			const ast_in_range = index >= 0 && index < parsed.length;
 			if (!text_in_range || !ast_in_range) {
-				throw new Error('Python AST bridge returned an incomplete batch.');
+				throw new Error("Python AST bridge returned an incomplete batch.");
 			}
 			const text = texts[text_index];
 			const ast = parsed[index];
@@ -114,7 +112,7 @@ export class PythonAstBatchCache {
 		return texts.map((_, index) => {
 			const ast = results.get(index);
 			if (ast === undefined) {
-				throw new Error('Python AST batch result is missing.');
+				throw new Error("Python AST batch result is missing.");
 			}
 			return ast;
 		});
@@ -142,21 +140,14 @@ export class PythonAstBatchCache {
 	): void {
 		const file = options.files[text_index];
 		const ast = options.parsed[index];
-		if (
-			file === undefined ||
-			ast === undefined ||
-			options.texts[text_index] === undefined
-		) {
+		if (file === undefined || ast === undefined || options.texts[text_index] === undefined) {
 			return;
 		}
 		disk_cache.write(file, ast);
 	}
 
 	/** Responsibilities: _batch cache setup_. **/
-	public constructor(
-		parsed_ast_cache: Map<string, NormalizedAstFile>,
-		disk_cache_enabled: boolean,
-	) {
+	public constructor(parsed_ast_cache: Map<string, NormalizedAstFile>, disk_cache_enabled: boolean) {
 		this.parsed_ast_cache = parsed_ast_cache;
 		this.disk_cache_enabled = disk_cache_enabled;
 	}
@@ -165,16 +156,13 @@ export class PythonAstBatchCache {
 	public cached(text: string): AstCacheEntry {
 		const ast = this.parsed_ast_cache.get(text);
 		if (ast === undefined) {
-			return new AstCacheMiss(text, 'memory cache miss');
+			return new AstCacheMiss(text, "memory cache miss");
 		}
 		return new AstCacheHit(ast);
 	}
 
 	/** Responsibilities: _batch AST resolution_. **/
-	public resolve(
-		options: PythonBatchAstOptions,
-		parse: (texts: readonly string[]) => NormalizedAstFile[],
-	): NormalizedAstFile[] {
+	public resolve(options: PythonBatchAstOptions, parse: PythonAstBatchParser): NormalizedAstFile[] {
 		const results = this.cached_batch_results(options.texts);
 		this.read_disk_results({ ...options, results });
 		const missing_indexes = this.missing_batch_indexes(options.texts, results);

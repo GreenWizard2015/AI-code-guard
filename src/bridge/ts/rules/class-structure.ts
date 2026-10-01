@@ -1,8 +1,7 @@
-import ts from 'typescript';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import { TypeScriptAstFile } from 'src/model/typescript-ast';
-
+import ts from "typescript";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import { TypeScriptAstFile } from "src/model/typescript-ast";
 
 /** Responsibilities: _top-level nested Python lookup_. **/
 export class ClassStructure {
@@ -12,7 +11,7 @@ export class ClassStructure {
 	private indentation(line: string): number {
 		let index = 0;
 		while (index < line.length) {
-			if (line[index] !== ' ' && line[index] !== '\t') {
+			if (line[index] !== " " && line[index] !== "\t") {
 				break;
 			}
 			index += 1;
@@ -22,20 +21,20 @@ export class ClassStructure {
 
 	/** Responsibilities: _class header terminator_. **/
 	private header_end(character: string): boolean {
-		if (character === ':' || character === '(') {
+		if (character === ":" || character === "(") {
 			return true;
 		}
-		return character === ' ' || character === '\t';
+		return character === " " || character === "\t";
 	}
 
 	/** Responsibilities: _class header detection_. **/
 	private class_header(line: string): boolean {
 		const code = line.slice(this.indentation(line));
-		if (!code.startsWith('class ')) {
+		if (!code.startsWith("class ")) {
 			return false;
 		}
 		const name = code.slice(6);
-		const end = [...name].findIndex(character => this.header_end(character));
+		const end = [...name].findIndex((character) => this.header_end(character));
 		let class_name = name;
 		if (end >= 0) {
 			class_name = name.slice(0, end);
@@ -59,7 +58,7 @@ export class ClassStructure {
 	/** Responsibilities: _selection parsing TypeScript source_. **/
 	private typescript_source_file(file: string, lines: string[], ...source_files: ts.SourceFile[]): ts.SourceFile {
 		if (source_files.length === 0) {
-			return new TypeScriptAstFile(file, lines.join('\n')).source_file;
+			return new TypeScriptAstFile(file, lines.join("\n")).source_file;
 		}
 		return source_files[0];
 	}
@@ -82,7 +81,7 @@ export class ClassStructure {
 			if (this.is_nested_scope(node)) {
 				child_nested_scope = true;
 			}
-			ts.forEachChild(node, child => visit(child, child_nested_scope));
+			ts.forEachChild(node, (child) => visit(child, child_nested_scope));
 		};
 		visit(source_file, false);
 		return indexes;
@@ -118,18 +117,14 @@ export class ClassStructure {
 		if (python) {
 			return lines
 				.map((line, index) => ({ line, index }))
-				.filter(
-					item =>
-						this.indentation(item.line) === this.top_level_indentation &&
-						this.class_header(item.line)
-				)
-				.map(item => item.index);
+				.filter((item) => this.indentation(item.line) === this.top_level_indentation && this.class_header(item.line))
+				.map((item) => item.index);
 		}
-		const ast = new TypeScriptAstFile(file, lines.join('\n'));
+		const ast = new TypeScriptAstFile(file, lines.join("\n"));
 		return ast
 			.classes()
-			.filter(node => !node.type_contract && !node.protocol)
-			.map(node => node.start);
+			.filter((node) => !node.type_contract && !node.protocol)
+			.map((node) => node.start);
 	}
 
 	/** Responsibilities: _aggregation nested-class violations source_. **/
@@ -149,17 +144,12 @@ export class ClassStructure {
 		if (indexes.length === 0) {
 			return;
 		}
-		const rule = new DiagnosticRule('nested-class');
+		const rule = new DiagnosticRule("nested-class");
 		violations.push(rule.violation(file, indexes[0] + 1, { count: String(indexes.length) }));
 	}
 
 	/** Responsibilities: _output top-level class indexing_. **/
-	public class_indexes_for(
-		file: string,
-		lines: string[],
-		python: boolean,
-		...parsed_lists: number[][]
-	): number[] {
+	public class_indexes_for(file: string, lines: string[], python: boolean, ...parsed_lists: number[][]): number[] {
 		let parsed_indexes: number[] = [];
 		if (parsed_lists[0] !== undefined) {
 			parsed_indexes = parsed_lists[0];

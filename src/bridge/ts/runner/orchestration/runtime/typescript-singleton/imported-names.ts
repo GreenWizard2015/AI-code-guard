@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _collection named imports answer_. **/
 export class ImportedNames {

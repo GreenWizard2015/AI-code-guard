@@ -1,13 +1,13 @@
-import { AnyTypes } from 'src/rules/typescript/any-types';
-import { TypeScriptTypeAliases } from 'src/typescript-aliases/type-aliases';
-import { MetricViolations } from 'src/metric-violations';
-import { CallableMetrics } from 'src/metrics/callable-metrics';
-import { MethodContractRules } from 'src/metrics/method-contract-rules';
-import { ProjectTypeBoundary } from 'src/metrics/project-type-boundary';
-import type { Violation } from 'src/protocols';
-import type { AstCallableNode } from 'src/types';
-import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types';
+import { AnyTypes } from "src/rules/typescript/any-types";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type-aliases";
+import { MetricViolations } from "src/metric-violations";
+import { CallableMetrics } from "src/metrics/callable-metrics";
+import { MethodContractRules } from "src/metrics/method-contract-rules";
+import { ProjectTypeBoundary } from "src/metrics/project-type-boundary";
+import type { Violation } from "src/protocols";
+import type { AstCallableNode } from "src/types";
+import type { TypeScriptScannerRuleContext } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { TypeScriptRuleGroupContract } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types";
 
 /** Responsibilities: _callable metrics application_, _application callable naming type_. **/
 export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract {
@@ -33,9 +33,7 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 			return;
 		}
 		const allowed_contracts = new Set(
-			[...this.context.project_type_names].filter(
-				name => !this.context.project_class_names.has(name)
-			)
+			[...this.context.project_type_names].filter((name) => !this.context.project_class_names.has(name)),
 		);
 		for (const name of this.context.project_interface_names) {
 			allowed_contracts.add(name);
@@ -47,7 +45,7 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 			project_types: this.context.project_type_names,
 			allowed_contracts,
 			reference_aliases: this.context.ast.reference_aliases,
-			language: 'typescript',
+			language: "typescript",
 		});
 		boundary.append();
 	}
@@ -65,7 +63,7 @@ export class TypeScriptCallableRuleGroup implements TypeScriptRuleGroupContract 
 		const file = this.context.file_name.value;
 		const functions = this.context.ast.functions;
 		const classes = this.context.ast.classes;
-		const methods = classes.flatMap(node => node.methods);
+		const methods = classes.flatMap((node) => node.methods);
 		this.append_function_metrics(violations, file, functions);
 		this.any_types.append_any_info(violations, file, [...functions, ...methods], classes);
 		this.append_boundary(violations, [...functions, ...methods]);

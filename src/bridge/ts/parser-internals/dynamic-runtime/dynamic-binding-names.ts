@@ -1,9 +1,9 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _collection statically known dynamic_. **/
 export class DynamicBindingNames {
 	private readonly string_key_cache = new WeakMap<ts.SourceFile, ReadonlySet<string>>();
-	private readonly collection_names = new Set(['Map', 'ReadonlyMap', 'Set', 'ReadonlySet', 'WeakMap', 'WeakSet']);
+	private readonly collection_names = new Set(["Map", "ReadonlyMap", "Set", "ReadonlySet", "WeakMap", "WeakSet"]);
 	private readonly collection_name_cache = new WeakMap<ts.SourceFile, ReadonlySet<string>>();
 
 	/** Responsibilities: _aggregation literal key names_. **/
@@ -12,33 +12,33 @@ export class DynamicBindingNames {
 		if (name.length > 0) {
 			names.add(name);
 		}
-		ts.forEachChild(node, child => this.append_key_names(child, names));
+		ts.forEachChild(node, (child) => this.append_key_names(child, names));
 	}
 
 	/** Responsibilities: _resolution name bound string-valued_. **/
 	private string_binding_name(node: ts.Node): string {
 		if (ts.isParameter(node) || ts.isVariableDeclaration(node)) {
 			if (node.type === undefined) {
-				return '';
+				return "";
 			}
 			return this.string_named_binding(node.name, node.type);
 		}
 		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
 			if (node.type === undefined) {
-				return '';
+				return "";
 			}
 			return this.string_named_binding(node.name, node.type);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution string binding named_. **/
 	private string_named_binding(name: ts.Node, type: ts.TypeNode): string {
 		if (!ts.isIdentifier(name)) {
-			return '';
+			return "";
 		}
 		if (type.kind !== ts.SyntaxKind.StringKeyword) {
-			return '';
+			return "";
 		}
 		return name.text;
 	}
@@ -72,33 +72,33 @@ export class DynamicBindingNames {
 		if (name.length > 0) {
 			names.add(name);
 		}
-		ts.forEachChild(node, child => this.collect_collection_names(child, names));
+		ts.forEachChild(node, (child) => this.collect_collection_names(child, names));
 	}
 
 	/** Responsibilities: _resolution name bound collection-valued_. **/
 	private collection_binding_name(node: ts.Node): string {
 		if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
 			if (node.type === undefined) {
-				return '';
+				return "";
 			}
 			return this.collection_named_binding(node.name, node.type);
 		}
 		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
 			if (node.type === undefined) {
-				return '';
+				return "";
 			}
 			return this.collection_named_binding(node.name, node.type);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution collection binding named_. **/
 	private collection_named_binding(name: ts.Node, type: ts.TypeNode): string {
 		if (!ts.isIdentifier(name)) {
-			return '';
+			return "";
 		}
 		if (!this.collection_type(type)) {
-			return '';
+			return "";
 		}
 		return name.text;
 	}

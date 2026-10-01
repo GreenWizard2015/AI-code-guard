@@ -1,6 +1,6 @@
-import type { AstCallableReference, CallableOwnershipResolver } from 'src/types';
-import type { CallableMatcherContext, ParsedFile } from 'src/metrics/types';
-import type { CallableReferenceIndex } from 'src/metrics/callable-reference-index';
+import type { AstCallableReference, CallableOwnershipResolver } from "src/types";
+import type { CallableMatcherContext, ParsedFile } from "src/metrics/types";
+import type { CallableReferenceIndex } from "src/metrics/callable-reference-index";
 
 /** Responsibilities: _callable references definitions matching_. **/
 export class CallableReferenceMatcher {
@@ -12,11 +12,11 @@ export class CallableReferenceMatcher {
 	/** Responsibilities: _classification reference matches requested_. **/
 	private matches_reference(reference: AstCallableReference, method_count: number): boolean {
 		const { definition } = this.context;
-if (definition.kind !== reference.kind || definition.node.name !== reference.name) {
+		if (definition.kind !== reference.kind || definition.node.name !== reference.name) {
 			return false;
 		}
-		if (definition.kind === 'function' || reference.dynamic) {
-			return definition.kind === 'function' || method_count === 1;
+		if (definition.kind === "function" || reference.dynamic) {
+			return definition.kind === "function" || method_count === 1;
 		}
 		return this.matches_owned_method(reference, method_count);
 	}
@@ -54,7 +54,7 @@ if (definition.kind !== reference.kind || definition.node.name !== reference.nam
 	/** Responsibilities: _classification callable owner present_. **/
 	private has_known_owner(owner: string): boolean {
 		for (const definition of this.context.definitions) {
-			if (definition.kind !== 'method') {
+			if (definition.kind !== "method") {
 				continue;
 			}
 			if (definition.node.owner === owner) {
@@ -89,14 +89,11 @@ if (definition.kind !== reference.kind || definition.node.name !== reference.nam
 		if (references === undefined) {
 			return false;
 		}
-		return references.some(reference => this.matches_reference(reference, method_count));
+		return references.some((reference) => this.matches_reference(reference, method_count));
 	}
 
 	/** Responsibilities: _collection external files reference_. **/
-	public external_files(
-		excluded_file: string,
-		method_count: number
-	): Set<string> {
+	public external_files(excluded_file: string, method_count: number): Set<string> {
 		const external_files = new Set<string>();
 		for (const file of this.reference_candidates()) {
 			if (file.file === excluded_file) {

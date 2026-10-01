@@ -1,25 +1,21 @@
-import ts from 'typescript';
-import { TypeScriptBindingAliases } from 'src/typescript-aliases/typescript-binding-aliases';
-import type { TypeScriptExpressionAliasesProtocol } from 'src/protocols';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/typescript-binding-aliases";
+import type {
+	ExpressionUnwrapper,
+	MemberAliasAppender,
+	MemberValueAppender,
+	TypeScriptExpressionAliasesProtocol,
+} from "src/protocols";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
 
 /** Responsibilities: _member variable alias resolution_. **/
 export class TypeScriptMemberVariableAliases {
 	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly binding_aliases = new TypeScriptBindingAliases();
 	private readonly target_aliases: TypeScriptExpressionAliasesProtocol;
-	private readonly add_alias: (
-		aliases: Map<string, Set<string>>,
-		name: string,
-		property: string
-	) => boolean;
-	private readonly append_value: (
-		aliases: Map<string, Set<string>>,
-		name: string,
-		initializer: ts.Expression,
-		node: ts.Node
-	) => boolean;
-	private readonly unwrap_expression: (expression: ts.Expression) => ts.Expression;
+	private readonly add_alias: MemberAliasAppender;
+	private readonly append_value: MemberValueAppender;
+	private readonly unwrap_expression: ExpressionUnwrapper;
 
 	/** Responsibilities: _property member alias_. **/
 	private property(aliases: Map<string, Set<string>>, node: ts.VariableDeclaration): boolean {
@@ -71,26 +67,17 @@ export class TypeScriptMemberVariableAliases {
 			new Set<string>(),
 			node.name,
 			node.initializer,
-			expression => this.unwrap_expression(expression),
-			(_ignored, name, initializer) => this.append_value(aliases, name, initializer, node)
+			(expression) => this.unwrap_expression(expression),
+			(name, initializer) => this.append_value(aliases, name, initializer, node),
 		);
 	}
 
 	/** Responsibilities: _member alias dependencies_. **/
 	public constructor(
 		target_aliases: TypeScriptExpressionAliasesProtocol,
-		add_alias: (
-			aliases: Map<string, Set<string>>,
-			name: string,
-			property: string
-		) => boolean,
-		append_value: (
-			aliases: Map<string, Set<string>>,
-			name: string,
-			initializer: ts.Expression,
-			node: ts.Node
-		) => boolean,
-		unwrap_expression: (expression: ts.Expression) => ts.Expression
+		add_alias: MemberAliasAppender,
+		append_value: MemberValueAppender,
+		unwrap_expression: ExpressionUnwrapper,
 	) {
 		this.target_aliases = target_aliases;
 		this.add_alias = add_alias;
@@ -118,5 +105,4 @@ export class TypeScriptMemberVariableAliases {
 		}
 		return changed;
 	}
-
 }

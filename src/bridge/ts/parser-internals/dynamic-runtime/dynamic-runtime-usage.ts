@@ -1,10 +1,10 @@
-import ts from 'typescript';
-import type { RuleContextData } from 'src/types';
-import { DYNAMIC_RUNTIME_USAGE } from 'src/bridge/ts/parser-internals/constants';
-import { DynamicBindingNames } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-binding-names';
-import { TypeScriptInOperatorAliases } from 'src/bridge/ts/parser-internals/dynamic-runtime/typescript-in-operator-aliases';
-import { TypeScriptConditionExpression } from 'src/bridge/ts/parser-internals/typescript-condition-expression';
-import { DynamicRuntimeMembers } from 'src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-members';
+import ts from "typescript";
+import type { RuleContextData } from "src/types";
+import { DYNAMIC_RUNTIME_USAGE } from "src/bridge/ts/parser-internals/constants";
+import { DynamicBindingNames } from "src/bridge/ts/parser-internals/dynamic-runtime/dynamic-binding-names";
+import { TypeScriptInOperatorAliases } from "src/bridge/ts/parser-internals/dynamic-runtime/typescript-in-operator-aliases";
+import { TypeScriptConditionExpression } from "src/bridge/ts/parser-internals/typescript-condition-expression";
+import { DynamicRuntimeMembers } from "src/bridge/ts/parser-internals/dynamic-runtime/dynamic-runtime-members";
 
 /** Responsibilities: _detection dynamic runtime access_. **/
 export class DynamicRuntimeUsage {

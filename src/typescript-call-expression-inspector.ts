@@ -1,16 +1,15 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
 
 /** Responsibilities: _unwrap TypeScript invocation expressions_. **/
 export class TypeScriptCallExpressionInspector {
-	private readonly bind_method_name = 'bind';
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly bind_method_name = "bind";
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
-	private readonly member_aliases = new TypeScriptMemberAliases(
-		'*',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly member_aliases = new TypeScriptMemberAliases("*", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
 
 	/** Responsibilities: _unwrap nested bind invocation_. **/
@@ -116,10 +115,10 @@ export class TypeScriptCallExpressionInspector {
 
 	/** Responsibilities: _Function bind invocation_. **/
 	private function_bind_call(expression: ts.Expression): boolean {
-		if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== 'call') {
+		if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== "call") {
 			return false;
 		}
-		return this.static_member_chain(expression.expression).join('.') === 'Function.prototype.bind';
+		return this.static_member_chain(expression.expression).join(".") === "Function.prototype.bind";
 	}
 
 	/** Responsibilities: _collection direct value expressions_. **/

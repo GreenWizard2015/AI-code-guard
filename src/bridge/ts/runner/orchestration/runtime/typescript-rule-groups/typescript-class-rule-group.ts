@@ -1,12 +1,12 @@
-import { ClassReporting } from 'src/bridge/ts/core/support/class-reporting';
-import { DirectoryCommentSegments } from 'src/bridge/ts/core/support/directory-comment-segments';
-import { MethodOrder } from 'src/bridge/ts/rules/method-order';
-import { ClassStructureReporter } from 'src/metrics/class-structure-reporter';
-import { MIN_FILE_LINES } from 'src/constants';
-import type { Violation } from 'src/protocols';
-import type { AstClassNode } from 'src/types';
-import type { TypeScriptScannerRuleContext } from 'src/bridge/ts/runner/orchestration/runtime/types';
-import type { TypeScriptRuleGroupContract } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types';
+import { ClassReporting } from "src/bridge/ts/core/support/class-reporting";
+import { DirectoryCommentSegments } from "src/bridge/ts/core/support/directory-comment-segments";
+import { MethodOrder } from "src/bridge/ts/rules/method-order";
+import { ClassStructureReporter } from "src/metrics/class-structure-reporter";
+import { MIN_FILE_LINES } from "src/constants";
+import type { Violation } from "src/protocols";
+import type { AstClassNode } from "src/types";
+import type { TypeScriptScannerRuleContext } from "src/bridge/ts/runner/orchestration/runtime/types";
+import type { TypeScriptRuleGroupContract } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/types";
 
 /** Responsibilities: _class metrics application_, _application class structure ordering_. **/
 export class TypeScriptClassRuleGroup implements TypeScriptRuleGroupContract {
@@ -34,8 +34,9 @@ export class TypeScriptClassRuleGroup implements TypeScriptRuleGroupContract {
 	/** Responsibilities: _aggregation class rule violations_. **/
 	public append(violations: Violation[]): void {
 		const classes = this.context.ast.classes;
-		const suppress_short_class = classes.filter(node => !node.type_contract && !node.protocol).length >= 2 &&
-			this.segments.count_code_lines(this.context.lines.join('\n'), false) < MIN_FILE_LINES;
+		const suppress_short_class =
+			classes.filter((node) => !node.type_contract && !node.protocol).length >= 2 &&
+			this.segments.count_code_lines(this.context.lines.join("\n"), false) < MIN_FILE_LINES;
 		for (const node of classes) {
 			this.append_class_metric(violations, node, suppress_short_class);
 		}

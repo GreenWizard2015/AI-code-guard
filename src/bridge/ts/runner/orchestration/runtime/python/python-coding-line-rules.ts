@@ -1,15 +1,15 @@
 /** Responsibilities: _classification Python source lines_. **/
 export class PythonCodingLineRules {
-	private readonly reflection_calls = ['isinstance', 'getattr', 'setattr', 'callable'];
-	private readonly python_only_reflections = new Set(['isinstance', 'callable']);
-	private readonly type_call = 'type(';
+	private readonly reflection_calls = ["isinstance", "getattr", "setattr", "callable"];
+	private readonly python_only_reflections = new Set(["isinstance", "callable"]);
+	private readonly type_call = "type(";
 
 	/** Responsibilities: _classification qualified decorator_. **/
 	private is_decorator(trimmed: string, name: string): boolean {
 		if (trimmed === `@${name}`) {
 			return true;
 		}
-		if (!trimmed.startsWith('@')) {
+		if (!trimmed.startsWith("@")) {
 			return false;
 		}
 		return trimmed.endsWith(`.${name}`);
@@ -37,11 +37,14 @@ export class PythonCodingLineRules {
 
 	/** Responsibilities: _classification source line assigns_. **/
 	private is_type_assignment(source: string): boolean {
-		const equals = source.indexOf('=');
+		const equals = source.indexOf("=");
 		if (equals <= 0) {
 			return false;
 		}
-		return source.slice(equals + 1).trimStart().startsWith(this.type_call);
+		return source
+			.slice(equals + 1)
+			.trimStart()
+			.startsWith(this.type_call);
 	}
 
 	/** Responsibilities: _classification characters terminate Python_. **/
@@ -49,7 +52,7 @@ export class PythonCodingLineRules {
 		if (character.length === 0) {
 			return true;
 		}
-		if (character === '_' || character === '$') {
+		if (character === "_" || character === "$") {
 			return false;
 		}
 		return !this.is_or_digit(character);
@@ -57,26 +60,26 @@ export class PythonCodingLineRules {
 
 	/** Responsibilities: _classification uppercase numeric identifier_. **/
 	private is_or_digit(character: string): boolean {
-		if (character >= 'A' && character <= 'Z') {
+		if (character >= "A" && character <= "Z") {
 			return true;
 		}
-		if (character >= 'a' && character <= 'z') {
+		if (character >= "a" && character <= "z") {
 			return true;
 		}
-		return character >= '0' && character <= '9';
+		return character >= "0" && character <= "9";
 	}
 
 	/** Responsibilities: _collection rule kinds represented_. **/
 	public base_line_kinds(trimmed: string): string[] {
 		const kinds: string[] = [];
-if (trimmed === 'except:' || trimmed.startsWith('except Exception:')) {
-			kinds.push('broad-except');
+		if (trimmed === "except:" || trimmed.startsWith("except Exception:")) {
+			kinds.push("broad-except");
 		}
-		if (this.is_decorator(trimmed, 'staticmethod')) {
-			kinds.push('python-static-method');
+		if (this.is_decorator(trimmed, "staticmethod")) {
+			kinds.push("python-static-method");
 		}
-		if (this.is_decorator(trimmed, 'classmethod')) {
-			kinds.push('python-class-method');
+		if (this.is_decorator(trimmed, "classmethod")) {
+			kinds.push("python-class-method");
 		}
 		return kinds;
 	}
@@ -91,7 +94,7 @@ if (trimmed === 'except:' || trimmed.startsWith('except Exception:')) {
 			}
 		}
 		if (this.is_type_assignment(trimmed)) {
-			kinds.push('dynamic-type');
+			kinds.push("dynamic-type");
 		}
 		return kinds;
 	}

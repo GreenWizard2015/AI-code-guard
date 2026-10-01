@@ -128,6 +128,8 @@ startup and fails when a rule document is missing or a diagnostic uses an unknow
 - [`numeric-name`](numeric-name.md)
 - [`naming-private`](naming-private.md)
 - [`naming-type`](naming-type.md)
+- [`typescript-module-constant-case`](typescript-module-constant-case.md)
+- [`typescript-module-variable`](typescript-module-variable.md)
 - [`nested-class`](nested-class.md)
 - [`nested-type`](nested-type.md)
 - [`typescript-namespace-file`](typescript-namespace-file.md)

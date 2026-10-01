@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
-import { TypeScriptStaticKeyAliases } from 'src/typescript-callable-aliases/static-key-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import { TypeScriptStaticKeyAliases } from "src/typescript-callable-aliases/static-key-aliases";
 
 /** Responsibilities: _callable type property collection_. **/
 export class TypeScriptCallableTypeProperties {
@@ -32,13 +32,13 @@ export class TypeScriptCallableTypeProperties {
 	/** Responsibilities: _typed property name resolution_. **/
 	public property_name(name: ts.PropertyName): string {
 		const literal_name = this.expression_names.static_property_name(name);
-		if (literal_name !== '') {
+		if (literal_name !== "") {
 			return literal_name;
 		}
 		if (ts.isComputedPropertyName(name)) {
 			return this.static_key_aliases.value(name.expression, name);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _type literal callable properties_. **/

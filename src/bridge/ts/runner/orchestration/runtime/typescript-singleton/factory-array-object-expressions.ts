@@ -1,20 +1,14 @@
-import ts from 'typescript';
-import { TypeScriptExpressionNames } from 'src/typescript-aliases/typescript-expression-names';
+import ts from "typescript";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/typescript-expression-names";
+import type { NestedFactoryExpressionsResolver, ObjectSourceAppender } from "src/protocols";
 
 /** Responsibilities: _array object factory resolution_. **/
 export class TypeScriptFactoryArrayObjectExpressions {
 	private readonly expression_names = new TypeScriptExpressionNames();
 	private readonly initializer: ts.ObjectLiteralExpression;
 	private readonly name: string;
-	private readonly nested_expressions: (
-		binding: ts.ArrayBindingPattern,
-		initializer: ts.Expression,
-		name: string,
-	) => ReadonlyMap<string, ts.FunctionLikeDeclarationBase>;
-	private readonly append_object_source: (
-		expression: ts.Expression,
-		visitor: (source: ts.ObjectLiteralExpression) => void,
-	) => void;
+	private readonly nested_expressions: NestedFactoryExpressionsResolver;
+	private readonly append_object_source: ObjectSourceAppender;
 	private readonly collected = new Map<string, ts.FunctionLikeDeclarationBase>();
 
 	/** Responsibilities: _object property factory_. **/
@@ -94,15 +88,8 @@ export class TypeScriptFactoryArrayObjectExpressions {
 	public constructor(
 		initializer: ts.ObjectLiteralExpression,
 		name: string,
-		append_object_source: (
-			expression: ts.Expression,
-			visitor: (source: ts.ObjectLiteralExpression) => void,
-		) => void,
-		nested_expressions: (
-			binding: ts.ArrayBindingPattern,
-			initializer: ts.Expression,
-			name: string,
-		) => ReadonlyMap<string, ts.FunctionLikeDeclarationBase>,
+		append_object_source: ObjectSourceAppender,
+		nested_expressions: NestedFactoryExpressionsResolver,
 	) {
 		this.initializer = initializer;
 		this.name = name;

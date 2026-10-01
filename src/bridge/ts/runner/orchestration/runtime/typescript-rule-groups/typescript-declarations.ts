@@ -1,35 +1,24 @@
-import ts from 'typescript';
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { NamedDeclaration } from 'src/types';
+import ts from "typescript";
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { NamedDeclaration } from "src/types";
 
 /** Responsibilities: _extraction named declarations group_. **/
 export class TypeScriptDeclarations {
-	private readonly prefix_separator = '_';
-	private readonly private_prefix = '_';
+	private readonly prefix_separator = "_";
+	private readonly private_prefix = "_";
 
 	/** Responsibilities: _extraction function-valued variable declaration_. **/
-	private variable_declaration(
-		item: ts.VariableDeclaration,
-		source_file: ts.SourceFile
-	): NamedDeclaration[] {
+	private variable_declaration(item: ts.VariableDeclaration, source_file: ts.SourceFile): NamedDeclaration[] {
 		const initializer = item.initializer;
 		if (!initializer || (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer))) {
 			return [];
 		}
-		return [this.declaration(
-			item.name.getText(source_file),
-			item,
-			source_file,
-			initializer.parameters
-		)];
+		return [this.declaration(item.name.getText(source_file), item, source_file, initializer.parameters)];
 	}
 
 	/** Responsibilities: _extraction private named import_. **/
-	private imported_declaration(
-		element: ts.ImportSpecifier,
-		source_file: ts.SourceFile
-	): NamedDeclaration[] {
+	private imported_declaration(element: ts.ImportSpecifier, source_file: ts.SourceFile): NamedDeclaration[] {
 		if (element.name.text.startsWith(this.private_prefix)) {
 			return [this.declaration(element.name.text, element, source_file, [])];
 		}
@@ -41,18 +30,15 @@ export class TypeScriptDeclarations {
 		name: string,
 		node: ts.Node,
 		source_file: ts.SourceFile,
-		parameters: readonly ts.ParameterDeclaration[]
+		parameters: readonly ts.ParameterDeclaration[],
 	): NamedDeclaration {
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
-		const has_self = parameters.length > 0 && parameters[0].name.getText(source_file) === 'self';
+		const has_self = parameters.length > 0 && parameters[0].name.getText(source_file) === "self";
 		return { name, line, has_self };
 	}
 
 	/** Responsibilities: _extraction named top-level function_. **/
-	private top_function_declarations(
-		statement: ts.Node,
-		source_file: ts.SourceFile
-	): NamedDeclaration[] {
+	private top_function_declarations(statement: ts.Node, source_file: ts.SourceFile): NamedDeclaration[] {
 		if (!ts.isFunctionDeclaration(statement) || !statement.name) {
 			return [];
 		}
@@ -60,14 +46,11 @@ export class TypeScriptDeclarations {
 	}
 
 	/** Responsibilities: _function-valued top-level variables extraction_. **/
-	private top_variable_declarations(
-		statement: ts.Node,
-		source_file: ts.SourceFile
-	): NamedDeclaration[] {
+	private top_variable_declarations(statement: ts.Node, source_file: ts.SourceFile): NamedDeclaration[] {
 		if (!ts.isVariableStatement(statement)) {
 			return [];
 		}
-		return statement.declarationList.declarations.flatMap(item => this.variable_declaration(item, source_file));
+		return statement.declarationList.declarations.flatMap((item) => this.variable_declaration(item, source_file));
 	}
 
 	/** Responsibilities: _extraction private named imports_. **/
@@ -79,7 +62,7 @@ export class TypeScriptDeclarations {
 		if (!bindings || !ts.isNamedImports(bindings)) {
 			return [];
 		}
-		return bindings.elements.flatMap(element => this.imported_declaration(element, source_file));
+		return bindings.elements.flatMap((element) => this.imported_declaration(element, source_file));
 	}
 
 	/** Responsibilities: _collection nested TypeScript declarations_. **/
@@ -99,21 +82,21 @@ export class TypeScriptDeclarations {
 	private prefix_for(name: string): string {
 		let first = name[1];
 		if (first === undefined) {
-			first = '';
+			first = "";
 		}
 		const end = name.indexOf(this.prefix_separator, 2);
 		if (!this.valid_prefix(name, first, end)) {
-			return '';
+			return "";
 		}
 		return `${name.slice(0, end)}${this.prefix_separator}`;
 	}
 
 	/** Responsibilities: _validation capitalization shape private_. **/
 	private valid_prefix(name: string, first: string, end: number): boolean {
-		if (name[0] !== '_' || end < 0) {
+		if (name[0] !== "_" || end < 0) {
 			return false;
 		}
-if (first === first.toLowerCase() || first !== first.toUpperCase()) {
+		if (first === first.toLowerCase() || first !== first.toUpperCase()) {
 			return false;
 		}
 		return true;
@@ -123,7 +106,7 @@ if (first === first.toLowerCase() || first !== first.toUpperCase()) {
 	private append_group_violations(
 		violations: Violation[],
 		file: string,
-		groups: Map<string, NamedDeclaration[]>
+		groups: Map<string, NamedDeclaration[]>,
 	): void {
 		for (const [prefix, group] of groups) {
 			const violation = this.group_violation(file, prefix, group);
@@ -132,21 +115,19 @@ if (first === first.toLowerCase() || first !== first.toUpperCase()) {
 	}
 
 	/** Responsibilities: _creation class-like-prefix violation declaration_. **/
-	private group_violation(
-		file: string,
-		prefix: string,
-		group: NamedDeclaration[]
-	): Violation[] {
-if (group.length < 2 || group.every(declaration => declaration.has_self)) {
+	private group_violation(file: string, prefix: string, group: NamedDeclaration[]): Violation[] {
+		if (group.length < 2 || group.every((declaration) => declaration.has_self)) {
 			return [];
 		}
 		const class_name = prefix.slice(1, -1);
-		const rule = new DiagnosticRule('class-like-prefix');
-		return [rule.violation(file, group[0].line + 1, {
-			prefix,
+		const rule = new DiagnosticRule("class-like-prefix");
+		return [
+			rule.violation(file, group[0].line + 1, {
+				prefix,
 				count: String(group.length),
-			class_name,
-		})];
+				class_name,
+			}),
+		];
 	}
 
 	/** Responsibilities: _group declarations their class-like_. **/
@@ -166,11 +147,7 @@ if (group.length < 2 || group.every(declaration => declaration.has_self)) {
 	}
 
 	/** Responsibilities: _collection declarations aggregation prefix-group_. **/
-	public append_prefix_violations(
-		violations: Violation[],
-		file: string,
-		source_file: ts.SourceFile
-	): void {
+	public append_prefix_violations(violations: Violation[], file: string, source_file: ts.SourceFile): void {
 		const declarations = this.declarations_for_node(source_file, source_file);
 		const groups = this.prefix_groups(declarations);
 		this.append_group_violations(violations, file, groups);

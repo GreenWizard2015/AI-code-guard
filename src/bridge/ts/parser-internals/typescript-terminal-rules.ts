@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _classification terminal TypeScript branches_. **/
 export class TypeScriptTerminalBranches {

@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { PropertyOwnerCallbacks } from 'src/protocols';
+import ts from "typescript";
+import type { TypeScriptInstanceStore } from "src/model/protocols";
+import type { PropertyOwnerCallbacks } from "src/protocols";
 
 /** Responsibilities: _resolution TypeScript owners identifiers_. **/
 export class TypeScriptReferenceOwnerHelpers {
@@ -10,10 +10,7 @@ export class TypeScriptReferenceOwnerHelpers {
 	private readonly callbacks: PropertyOwnerCallbacks;
 
 	/** Responsibilities: _resolution owner non-constructor expression_. **/
-	private non_new_owner(
-		expression: ts.Expression,
-		current_owner: string
-	): string {
+	private non_new_owner(expression: ts.Expression, current_owner: string): string {
 		if (ts.isIdentifier(expression)) {
 			return this.identifier_owner(expression, this.instances);
 		}
@@ -24,37 +21,27 @@ export class TypeScriptReferenceOwnerHelpers {
 	}
 
 	/** Responsibilities: _resolution owner member access_. **/
-	private member_owner(
-		expression: ts.Expression,
-		current_owner: string
-	): string {
+	private member_owner(expression: ts.Expression, current_owner: string): string {
 		if (ts.isCallExpression(expression)) {
 			return this.callbacks.call_owner(expression.expression, current_owner);
 		}
 		if (ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression)) {
 			return this.callbacks.method_owner(expression, current_owner);
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _initialization aliases instances property_. **/
-	constructor(
-		aliases: Map<string, string>,
-		instances: TypeScriptInstanceStore,
-		callbacks: PropertyOwnerCallbacks
-	) {
+	constructor(aliases: Map<string, string>, instances: TypeScriptInstanceStore, callbacks: PropertyOwnerCallbacks) {
 		this.aliases = aliases;
 		this.instances = instances;
 		this.callbacks = callbacks;
 	}
 
 	/** Responsibilities: _resolution owner represented new_. **/
-	public new_expression_owner(
-		expression: ts.NewExpression,
-		aliases: Map<string, string>
-	): string {
+	public new_expression_owner(expression: ts.NewExpression, aliases: Map<string, string>): string {
 		if (!ts.isIdentifier(expression.expression)) {
-			return '';
+			return "";
 		}
 		const name = expression.expression.text;
 		const alias = aliases.get(name);
@@ -74,10 +61,7 @@ export class TypeScriptReferenceOwnerHelpers {
 	}
 
 	/** Responsibilities: _resolution base owner property_. **/
-	public property_base_owner(
-		expression: ts.Expression,
-		current_owner: string
-	): string {
+	public property_base_owner(expression: ts.Expression, current_owner: string): string {
 		if (ts.isNewExpression(expression)) {
 			return this.new_expression_owner(expression, this.aliases);
 		}

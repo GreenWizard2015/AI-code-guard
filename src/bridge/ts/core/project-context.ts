@@ -1,5 +1,5 @@
-import type { LintRunStatistics, LintSourceRecord } from 'src/types';
-import type { LintProjectContext } from 'src/protocols';
+import type { LintRunStatistics, LintSourceRecord } from "src/types";
+import type { LintProjectContext } from "src/protocols";
 
 /** Responsibilities: _lint source records storage_, _statistics exposure projection_. **/
 export class LintProjectContextStore implements LintProjectContext {
@@ -8,7 +8,7 @@ export class LintProjectContextStore implements LintProjectContext {
 
 	/** Responsibilities: _source records initialization_, _statistics initialization_. **/
 	public constructor(records: LintSourceRecord[], statistics: LintRunStatistics) {
-		this.records = new Map(records.map(record => [record.absolute_path, record]));
+		this.records = new Map(records.map((record) => [record.absolute_path, record]));
 		this.statistics_value = statistics;
 	}
 

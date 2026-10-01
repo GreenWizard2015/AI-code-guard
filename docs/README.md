@@ -89,10 +89,10 @@ pnpm lint
 Run the complete test suite:
 
 ```bash
-pnpm test
+pnpm test:runner
 ```
 
-`pnpm test` runs the Python tests first, then the Jest/TypeScript tests. Its `posttest` hook runs the coding lint, so a successful command verifies both behavior and project structure.
+`pnpm test:runner` runs the Python tests first, then the Jest/TypeScript tests, followed by the configured formatters and quality checks.
 
 For the repository test runner, which also installs dependencies and runs the
 available formatters and quality checks, use:
@@ -106,8 +106,7 @@ pnpm test:runner -- --skip-quality
 Run the checks separately when debugging:
 
 ```bash
-pnpm test:python
-pnpm exec jest --runInBand
+pnpm test:runner -- --runInBand
 pnpm type-check
 pnpm lint
 ```
@@ -129,7 +128,7 @@ Format the supported source files:
 pnpm format
 ```
 
-The formatter commands use the existing project defaults. Formatting is not part of `pnpm test`.
+The formatter commands use the existing project defaults. Formatting and quality checks are part of `pnpm test:runner` unless `--skip-quality` is used.
 
 ## CLI usage
 
@@ -273,9 +272,8 @@ review note at a time.
 For a normal change, use this sequence:
 
 ```bash
-pnpm test:python
 pnpm type-check
-pnpm test
+pnpm test:runner
 pnpm lint
 git diff --check
 ```

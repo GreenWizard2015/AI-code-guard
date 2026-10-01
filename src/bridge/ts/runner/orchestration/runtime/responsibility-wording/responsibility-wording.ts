@@ -1,4 +1,4 @@
-import type { ResponsibilityWordingChecker } from 'src/bridge/ts/runner/orchestration/runtime/protocols';
+import type { ResponsibilityWordingChecker } from "src/bridge/ts/runner/orchestration/runtime/protocols";
 
 /** Responsibilities: _responsibility wording validation_. **/
 export class ResponsibilityWording implements ResponsibilityWordingChecker {
@@ -11,7 +11,7 @@ export class ResponsibilityWording implements ResponsibilityWordingChecker {
 		return value
 			.trim()
 			.split(/\s+/u)
-			.some(word => this.condition_words.has(word.toLowerCase()));
+			.some((word) => this.condition_words.has(word.toLowerCase()));
 	}
 
 	/** Responsibilities: _action word detection_. **/
@@ -19,7 +19,7 @@ export class ResponsibilityWording implements ResponsibilityWordingChecker {
 		return value
 			.trim()
 			.split(/\s+/u)
-			.some(word => {
+			.some((word) => {
 				const normalized_word = word.toLowerCase();
 				return this.action_words.has(normalized_word) && !this.noun_words.has(normalized_word);
 			});

@@ -1,7 +1,8 @@
-import ts from 'typescript';
-import type { RuleContextData } from 'src/types';
-import { SINGLE_ARRAY_STATE } from 'src/bridge/ts/parser-internals/constants';
-import { TypeScriptArrayStateInspector } from 'src/bridge/ts/parser-internals/type-union-rules/array-state-inspector';
+import ts from "typescript";
+import type { StatementPredicate } from "src/protocols";
+import type { RuleContextData } from "src/types";
+import { SINGLE_ARRAY_STATE } from "src/bridge/ts/parser-internals/constants";
+import { TypeScriptArrayStateInspector } from "src/bridge/ts/parser-internals/type-union-rules/array-state-inspector";
 
 /** Responsibilities: _detection zero-index array access_. **/
 export class TypeScriptArrayStateRules {
@@ -94,7 +95,7 @@ export class TypeScriptArrayStateRules {
 	private numeric_value(expression: ts.Expression): number {
 		expression = this.unwrapped_expression(expression);
 		if (ts.isNumericLiteral(expression)) {
-			return Number(expression.text.replaceAll('_', ''));
+			return Number(expression.text.replaceAll("_", ""));
 		}
 		if (ts.isPrefixUnaryExpression(expression)) {
 			return this.numeric_unary(expression);
@@ -107,23 +108,23 @@ export class TypeScriptArrayStateRules {
 
 	/** Responsibilities: _resolution undefined operand name_. **/
 	private undefined_operand_name(expression: ts.BinaryExpression): string {
-		if (ts.isIdentifier(expression.left) && expression.right.getText() === 'undefined') {
+		if (ts.isIdentifier(expression.left) && expression.right.getText() === "undefined") {
 			return expression.left.text;
 		}
-		if (ts.isIdentifier(expression.right) && expression.left.getText() === 'undefined') {
+		if (ts.isIdentifier(expression.right) && expression.left.getText() === "undefined") {
 			return expression.right.text;
 		}
-		return '';
+		return "";
 	}
 
 	/** Responsibilities: _resolution name guarded against_. **/
 	private undefined_guard_name(expression: ts.Expression): string {
 		expression = this.unwrapped_expression(expression);
 		if (!ts.isBinaryExpression(expression)) {
-			return '';
+			return "";
 		}
 		if (!this.strict_undefined_operators.has(expression.operatorToken.kind)) {
-			return '';
+			return "";
 		}
 		return this.undefined_operand_name(expression);
 	}
@@ -133,19 +134,19 @@ export class TypeScriptArrayStateRules {
 		if (!ts.isVariableStatement(statement)) {
 			return false;
 		}
-		return statement.declarationList.declarations.some(declaration => {
-				if (!ts.isIdentifier(declaration.name)) {
-					return false;
-				}
-				if (declaration.name.text !== name) {
-					return false;
+		return statement.declarationList.declarations.some((declaration) => {
+			if (!ts.isIdentifier(declaration.name)) {
+				return false;
+			}
+			if (declaration.name.text !== name) {
+				return false;
 			}
 			const initializer = declaration.initializer;
-				if (initializer === undefined) {
-					return false;
-				}
+			if (initializer === undefined) {
+				return false;
+			}
 			const unwrapped = this.unwrapped_expression(initializer);
-				if (!ts.isElementAccessExpression(unwrapped)) {
+			if (!ts.isElementAccessExpression(unwrapped)) {
 				return false;
 			}
 			const argument = unwrapped.argumentExpression;
@@ -166,10 +167,7 @@ export class TypeScriptArrayStateRules {
 	}
 
 	/** Responsibilities: _previous sibling statement_. **/
-	private previous_statement(
-		node: ts.Statement,
-		check: (statement: ts.Statement) => boolean
-	): boolean {
+	private previous_statement(node: ts.Statement, check: StatementPredicate): boolean {
 		const statements = this.statement_list(node);
 		const position = statements.indexOf(node);
 		if (position <= 0) {
@@ -191,7 +189,7 @@ export class TypeScriptArrayStateRules {
 		if (name.length === 0) {
 			return false;
 		}
-		return this.previous_statement(node, previous => this.zero_index_assignment(previous, name));
+		return this.previous_statement(node, (previous) => this.zero_index_assignment(previous, name));
 	}
 
 	/** Responsibilities: _reporting node accesses array_. **/
@@ -207,7 +205,7 @@ export class TypeScriptArrayStateRules {
 
 	/** Responsibilities: _aggregation single-item array-state diagnostics_. **/
 	public append(node: ts.Node, context: RuleContextData): void {
-if (this.array_access(node, context.source_file) || this.zero_index_guard(node)) {
+		if (this.array_access(node, context.source_file) || this.zero_index_guard(node)) {
 			context.append_rule(node, this.array_rule_id);
 		}
 	}

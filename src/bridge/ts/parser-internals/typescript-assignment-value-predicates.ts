@@ -1,7 +1,6 @@
-import { TypeScriptBooleanExpression } from 'src/bridge/ts/parser-internals/typescript-boolean-expression';
-import { ValueRules } from 'src/bridge/ts/runner/value-rules';
-import ts from 'typescript';
-
+import { TypeScriptBooleanExpression } from "src/bridge/ts/parser-internals/typescript-boolean-expression";
+import { ValueRules } from "src/bridge/ts/runner/value-rules";
+import ts from "typescript";
 
 /** Responsibilities: _classification allowed primitive defaults_. **/
 export class TypeScriptAssignmentValuePredicates {
@@ -55,11 +54,7 @@ export class TypeScriptAssignmentValuePredicates {
 	}
 
 	/** Responsibilities: _classification both sides expression_. **/
-	private boolean_operands(
-		left: ts.Expression,
-		right: ts.Expression,
-		source_file: ts.SourceFile
-	): boolean {
+	private boolean_operands(left: ts.Expression, right: ts.Expression, source_file: ts.SourceFile): boolean {
 		if (!this.boolean_expression.boolean_expression(left, source_file)) {
 			return false;
 		}
@@ -67,11 +62,7 @@ export class TypeScriptAssignmentValuePredicates {
 	}
 
 	/** Responsibilities: _classification operand primitive expression_. **/
-	private primitive_operand(
-		expression: ts.Expression,
-		source_file: ts.SourceFile,
-		value_rules: ValueRules
-	): boolean {
+	private primitive_operand(expression: ts.Expression, source_file: ts.SourceFile, value_rules: ValueRules): boolean {
 		if (this.primitive_literal(expression)) {
 			return true;
 		}
@@ -166,11 +157,7 @@ export class TypeScriptAssignmentValuePredicates {
 	}
 
 	/** Responsibilities: _reporting assignment operand satisfies_. **/
-	public operand_allowed(
-		left: ts.Expression,
-		right: ts.Expression,
-		source_file: ts.SourceFile
-	): boolean {
+	public operand_allowed(left: ts.Expression, right: ts.Expression, source_file: ts.SourceFile): boolean {
 		if (this.boolean_operands(left, right, source_file)) {
 			return true;
 		}
@@ -205,5 +192,4 @@ export class TypeScriptAssignmentValuePredicates {
 		}
 		return this.simple_default_value(expression);
 	}
-
 }

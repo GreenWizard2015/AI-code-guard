@@ -1,11 +1,11 @@
-import ts from 'typescript';
-import { JestAssertionShapeMatcher } from 'src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-assertion-shape-matcher';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+import ts from "typescript";
+import { JestAssertionShapeMatcher } from "src/bridge/ts/runner/orchestration/runtime/typescript-rule-groups/jest/jest-assertion-shape-matcher";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _collection Jest assertions classification_. **/
 export class JestAssertionShapeRule {
 	private readonly matcher = new JestAssertionShapeMatcher();
-	private readonly expect_aliases = new TypeScriptExpressionAliases('expect');
+	private readonly expect_aliases = new TypeScriptExpressionAliases("expect");
 
 	/** Responsibilities: _unwrapping Jest assertion callee_. **/
 	private unwrapped_expression(expression: ts.Expression): ts.Expression {
@@ -104,10 +104,7 @@ export class JestAssertionShapeRule {
 	}
 
 	/** Responsibilities: _aggregation supported expect assertion_. **/
-	private append_expect_assertion(
-		assertions: ts.CallExpression[],
-		node: ts.Node
-	): boolean {
+	private append_expect_assertion(assertions: ts.CallExpression[], node: ts.Node): boolean {
 		if (!ts.isCallExpression(node)) {
 			return false;
 		}
@@ -152,6 +149,6 @@ export class JestAssertionShapeRule {
 		if (assertions.length === 0) {
 			return false;
 		}
-		return assertions.every(assertion => this.matcher.exception_assertion(assertion));
+		return assertions.every((assertion) => this.matcher.exception_assertion(assertion));
 	}
 }

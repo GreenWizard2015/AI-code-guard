@@ -1,10 +1,5 @@
-import type {
-	AstArgumentUse,
-	AstClassField,
-	AstStatementNode,
-	AstTypedArgument,
-} from 'src/types';
-import type { FixtureCallableNode, FixtureClassNode } from 'tests/core/types';
+import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
+import type { FixtureCallableNode, FixtureClassNode } from "tests/core/types";
 
 /** Responsibilities: _callable fixture collection_, _class fixture collection_. **/
 export class FixtureLists {

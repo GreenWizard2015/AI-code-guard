@@ -1,12 +1,13 @@
-import type { Violation } from 'src/protocols';
-import { DiagnosticRule } from 'src/model/diagnostic-rule';
-import type { ViolationContent } from 'src/bridge/ts/rules/types';
+import type { Violation } from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic-rule";
+import type { ViolationContent } from "src/bridge/ts/rules/types";
+import type { NamedSymbol } from "src/types";
 import {
 	MAX_NAME_WORDS,
 	PASCAL_CASE_PATTERN,
 	SNAKE_CASE_PATTERN,
 	UPPER_CASE_PATTERN,
-} from 'src/bridge/ts/rules/constants';
+} from "src/bridge/ts/rules/constants";
 
 /** Responsibilities: _validation symbol names cases_. **/
 export class NamingValidation {
@@ -16,17 +17,12 @@ export class NamingValidation {
 	private readonly pascal_case_pattern = PASCAL_CASE_PATTERN;
 
 	/** Responsibilities: _validation symbol name against_. **/
-	private valid_symbol_name(
-		name: string,
-		kind: string,
-		is_module_constant: boolean,
-		words: string[]
-	): boolean {
+	private valid_symbol_name(name: string, kind: string, is_module_constant: boolean, words: string[]): boolean {
 		const is_snake_case = this.snake_case_pattern.test(name);
 		if (!this.valid_case_name(name)) {
 			return false;
 		}
-		if (is_snake_case && kind === 'constant' && is_module_constant) {
+		if (is_snake_case && kind === "constant" && is_module_constant) {
 			return false;
 		}
 		return words.length <= this.max_name_words;
@@ -36,11 +32,11 @@ export class NamingValidation {
 	private valid_case_name(name: string): boolean {
 		const is_snake_case = this.snake_case_pattern.test(name);
 		const is_upper_case = this.upper_case_pattern.test(name);
-		const starts_dunder = name.startsWith('__');
+		const starts_dunder = name.startsWith("__");
 		if (!starts_dunder) {
 			return is_snake_case || is_upper_case;
 		}
-		const is_dunder = name.endsWith('__');
+		const is_dunder = name.endsWith("__");
 		if (is_snake_case) {
 			return true;
 		}
@@ -50,30 +46,47 @@ export class NamingValidation {
 		return is_dunder;
 	}
 
+	/** Responsibilities: _classification leading underscore allowance_. **/
+	private leading_underscore_allowed(name: string, kind: string, visibility: string): boolean {
+		if (!name.startsWith("_")) {
+			return true;
+		}
+		if (/^_+$/u.test(name)) {
+			return true;
+		}
+		if (kind === "field") {
+			return true;
+		}
+		if (kind === "method" && /^__.*__$/u.test(name)) {
+			return true;
+		}
+		return kind === "method" && visibility === "private";
+	}
+
 	/** Responsibilities: _construction naming violation message_. **/
 	private naming_content(name: string, kind: string, word_count: number): ViolationContent {
-		if (kind === 'type' || kind === 'type_alias') {
-			let label = 'type alias';
-			if (kind === 'type') {
-				label = 'type';
+		if (kind === "type" || kind === "type_alias") {
+			let label = "type alias";
+			if (kind === "type") {
+				label = "type";
 			}
 			return {
-				rule_id: 'naming-type',
+				rule_id: "naming-type",
 				parameters: { label, name },
 			};
 		}
 		return {
-			rule_id: 'naming',
+			rule_id: "naming",
 			parameters: { kind, name, word_count: String(word_count) },
 		};
 	}
 
 	/** Responsibilities: _symbol name normalization segmentation_. **/
 	public name_words(name: string): string[] {
-		const without_hashes = name.replace(/^#+/u, '');
-		const with_separators = without_hashes.replace(/([a-z0-9])([A-Z])/gu, '$1_$2');
-		const normalized = with_separators.replace(/^_+|_+$/gu, '');
-		return normalized.split('_').filter(word => word.length > 0);
+		const without_hashes = name.replace(/^#+/u, "");
+		const with_separators = without_hashes.replace(/([a-z0-9])([A-Z])/gu, "$1_$2");
+		const normalized = with_separators.replace(/^_+|_+$/gu, "");
+		return normalized.split("_").filter((word) => word.length > 0);
 	}
 
 	/** Responsibilities: _reporting symbol name satisfies_. **/
@@ -81,34 +94,38 @@ export class NamingValidation {
 		name: string,
 		kind: string,
 		is_module_constant: boolean,
-		words: string[]
+		words: string[],
+		visibility = "public",
 	): boolean {
-		if (name === '_') {
+		if (!this.leading_underscore_allowed(name, kind, visibility)) {
+			return false;
+		}
+		if (/^_+$/u.test(name)) {
 			return true;
 		}
-		if (kind === 'type_alias' || kind === 'type') {
+		if (kind === "type_alias" || kind === "type") {
 			return this.pascal_case_pattern.test(name);
 		}
 		return this.valid_symbol_name(name, kind, is_module_constant, words);
 	}
 
+	/** Responsibilities: _standard symbol naming violations_. **/
+	public append_standard_violation(violations: Violation[], file: string, symbol: NamedSymbol): void {
+		const words = this.name_words(symbol.name);
+		if (this.valid_name(symbol.name, symbol.kind, symbol.is_module_constant, words, symbol.visibility)) {
+			return;
+		}
+		violations.push(this.naming_violation(file, symbol.line, symbol.name, symbol.kind, words.length));
+	}
+
 	/** Responsibilities: _creation numeric name violation_. **/
-	public numeric_name_violation(
-		file: string,
-		line: number,
-	): Violation {
-		const rule = new DiagnosticRule('numeric-name');
+	public numeric_name_violation(file: string, line: number): Violation {
+		const rule = new DiagnosticRule("numeric-name");
 		return rule.violation(file, line + 1);
 	}
 
 	/** Responsibilities: _creation naming violation invalid_. **/
-	public naming_violation(
-		file: string,
-		line: number,
-		name: string,
-		kind: string,
-		word_count: number
-	): Violation {
+	public naming_violation(file: string, line: number, name: string, kind: string, word_count: number): Violation {
 		const content = this.naming_content(name, kind, word_count);
 		const rule = new DiagnosticRule(content.rule_id);
 		return rule.violation(file, line + 1, content.parameters);

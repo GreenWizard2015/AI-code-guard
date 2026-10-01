@@ -1,11 +1,6 @@
 import type { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
 import type { TestDataFactory } from "tests/core/test-data-factory";
-import type {
-	AstArgumentUse,
-	AstClassField,
-	AstStatementNode,
-	AstTypedArgument,
-} from "src/types";
+import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
 import type { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
 
 export type AnalyzerCase = {
@@ -13,10 +8,7 @@ export type AnalyzerCase = {
 	factory: TestDataFactory;
 };
 export type Fixture = { root: string; paths: string[] };
-export type TemporaryFilesCallback<T> = (
-	root: string,
-	reporting: TaskReporting,
-) => T;
+export type TemporaryFilesCallback<T> = (root: string, reporting: TaskReporting) => T;
 export type TestRunnerRequest = {
 	readonly args: readonly string[];
 	readonly help_requested: boolean;

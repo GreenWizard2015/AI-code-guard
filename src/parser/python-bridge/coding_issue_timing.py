@@ -37,17 +37,6 @@ class PythonCodingIssueTiming:
         previous_ms = self.timings.get("node-rule-analysis", 0.0)
         self.timings["node-rule-analysis"] = previous_ms + elapsed_ms
 
-    def _record_dispatch_overhead(self) -> None:
-        """Responsibilities: _coding rule dispatch overhead_."""
-        rule_time = sum(
-            duration
-            for name, duration in self.timings.items()
-            if name.startswith("rule.")
-        )
-        self.timings["rule-dispatch-overhead"] = max(
-            0.0, self.timings.get("node-rule-analysis", 0.0) - rule_time
-        )
-
     def __init__(
         self,
         proxy_analysis: PythonAstIssueAnalysis,
@@ -68,7 +57,15 @@ class PythonCodingIssueTiming:
         for node in nodes:
             self._collect_proxy_node(node, proxy_issues)
             self._collect_rule_node(node, issues)
-        self._record_dispatch_overhead()
+        rule_time = sum(
+            duration
+            for name, duration in self.timings.items()
+            if name.startswith("rule.")
+        )
+        self.timings["rule-dispatch-overhead"] = max(
+            0.0,
+            self.timings.get("node-rule-analysis", 0.0) - rule_time,
+        )
 
     def durations(self) -> dict[str, float]:
         """Responsibilities: _coding issue timing snapshot_."""

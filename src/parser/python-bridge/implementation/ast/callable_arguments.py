@@ -58,14 +58,6 @@ class CallableArguments:
                     names.append(decorator.attr)
         return names
 
-    def _parameter_types(self, arguments: list[ast.arg]) -> list[str]:
-        """Responsibilities: _collection callable parameter types_."""
-        return [
-            ast.unparse(argument.annotation)
-            for argument in arguments
-            if argument.annotation
-        ]
-
     def _untyped_parameters(self, arguments: list[ast.arg]) -> list[str]:
         """Responsibilities: _collection untyped callable parameters_."""
         names: list[str] = []
@@ -99,7 +91,11 @@ class CallableArguments:
         return {
             "argument_count": len(arguments),
             "characters": characters,
-            "parameter_types": self._parameter_types(arguments),
+            "parameter_types": [
+                ast.unparse(argument.annotation)
+                for argument in arguments
+                if argument.annotation
+            ],
             "untyped_parameters": self._untyped_parameters(arguments),
             "argument_uses": self._argument_uses(node, arguments),
             "typed_arguments": self._typed_arguments(arguments),

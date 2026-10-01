@@ -1,17 +1,16 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
-import { TypeScriptConditionExpression } from 'src/bridge/ts/parser-internals/typescript-condition-expression';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
+import { TypeScriptConditionExpression } from "src/bridge/ts/parser-internals/typescript-condition-expression";
 
 /** Responsibilities: _callable feature checks identification_, _function comparisons classification_. **/
 export class TypeScriptCallableFeatureDetection {
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
 	private readonly condition_expression = new TypeScriptConditionExpression();
-	private readonly member_aliases = new TypeScriptMemberAliases(
-		'*',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly member_aliases = new TypeScriptMemberAliases("*", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
 	private readonly comparison_operators = new Set([
 		ts.SyntaxKind.EqualsEqualsToken,
@@ -26,14 +25,14 @@ export class TypeScriptCallableFeatureDetection {
 			return expression.name.text;
 		}
 		if (!ts.isElementAccessExpression(expression) || expression.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		return this.static_expression_values.value(expression.argumentExpression, node);
 	}
 
 	/** Responsibilities: _identification project-owned typeof function_. **/
 	private project_function_check(typeof_expression: ts.TypeOfExpression, function_name: string): boolean {
-		if (function_name !== 'function') {
+		if (function_name !== "function") {
 			return false;
 		}
 		const expression = this.expression_aliases.unwrapped(typeof_expression.expression);
@@ -60,7 +59,7 @@ export class TypeScriptCallableFeatureDetection {
 			}
 		}
 		let found = false;
-		current.forEachChild(child => {
+		current.forEachChild((child) => {
 			if (found || !ts.isExpression(child)) {
 				return;
 			}

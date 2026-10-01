@@ -9,11 +9,7 @@ import type { LintRunResult } from "src/types";
 import { relative } from "node:path";
 import type { CliOptions, LintExecutionReport } from "src/types";
 import { LintStageTimer } from "src/stage-timing";
-import type {
-	LintProjectContext,
-	LintStageTimerProtocol,
-	Violation,
-} from "src/protocols";
+import type { LintProjectContext, LintStageTimerProtocol } from "src/protocols";
 
 /** Responsibilities: _CLI option parsing_. **/
 export class Cli {
@@ -28,9 +24,7 @@ export class Cli {
 		context: LintProjectContext,
 		report: LintRunResult,
 	): void {
-		const target_files = new Set(
-			report.files.map((file) => relative(root, file)),
-		);
+		const target_files = new Set(report.files.map((file) => relative(root, file)));
 		report.violations.push(
 			...this.unused_code
 				.collect_unused_files(root, {
@@ -41,29 +35,10 @@ export class Cli {
 		);
 	}
 
-	/** Responsibilities: _classification collection violations fail_. **/
-	private should_fail(
-		violations: Violation[],
-		files: readonly string[],
-		stage_timer: LintStageTimerProtocol,
-	): boolean {
-		const report_status = new ReportStatus(violations, files);
-		return stage_timer.measure("process-result", () =>
-			report_status.warnings(),
-		);
-	}
-
 	/** Responsibilities: _creation lint reporting task_. **/
-	private lint_report(
-		options: CliOptions,
-		stage_timer: LintStageTimerProtocol,
-	): LintExecutionReport {
+	private lint_report(options: CliOptions, stage_timer: LintStageTimerProtocol): LintExecutionReport {
 		const execution = stage_timer.measure("startup", () =>
-			this.lint_run_factory.lint_report(
-				options.root,
-				options.ignored_directories,
-				stage_timer,
-			),
+			this.lint_run_factory.lint_report(options.root, options.ignored_directories, stage_timer),
 		);
 		const report = execution.report;
 		const statistics = execution.context.statistics();
@@ -71,27 +46,18 @@ export class Cli {
 			throw new Error("Lint context and report contain different file counts.");
 		}
 		stage_timer.measure("unused-files", () =>
-			this.append_unused_violations(
-				options.root,
-				options.entry_files,
-				execution.context,
-				report,
-			),
+			this.append_unused_violations(options.root, options.entry_files, execution.context, report),
 		);
 		return execution;
 	}
 
 	/** Responsibilities: _execution project lint execution_. **/
-	public run_project(
-		options: CliOptions,
-		stage_timer: LintStageTimerProtocol,
-	): void {
+	public run_project(options: CliOptions, stage_timer: LintStageTimerProtocol): void {
 		const { report } = this.lint_report(options, stage_timer);
 		const violations = report.violations;
-		const should_fail = this.should_fail(violations, report.files, stage_timer);
-		const result_reporter = new CliResultReporter(
-			new TaskReporting(options.root),
-		);
+		const report_status = new ReportStatus(violations, report.files);
+		const should_fail = stage_timer.measure("process-result", () => report_status.warnings());
+		const result_reporter = new CliResultReporter(new TaskReporting(options.root));
 		if (options.timings) {
 			result_reporter.report_with_timings(report, options, stage_timer);
 		} else {
@@ -106,9 +72,7 @@ export class Cli {
 	public run_cli(): void {
 		const stage_timer = new LintStageTimer();
 		const options = stage_timer.measure("startup", () =>
-			stage_timer.measure("startup.cli-options", () =>
-				this.command_line_options.from_arguments(process.argv),
-			),
+			stage_timer.measure("startup.cli-options", () => this.command_line_options.from_arguments(process.argv)),
 		);
 		try {
 			this.run_project(options, stage_timer);

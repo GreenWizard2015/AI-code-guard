@@ -1,11 +1,8 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _callable type rules_. **/
 export class TypeScriptCallableReturnRules {
-	private readonly callable_kinds = new Set([
-		ts.SyntaxKind.ArrowFunction,
-		ts.SyntaxKind.FunctionExpression,
-	]);
+	private readonly callable_kinds = new Set([ts.SyntaxKind.ArrowFunction, ts.SyntaxKind.FunctionExpression]);
 
 	/** Responsibilities: _callback boundary classification_. **/
 	private callback_boundary(child: ts.Node, parent: ts.Node): boolean {

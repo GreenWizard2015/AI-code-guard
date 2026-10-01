@@ -1,15 +1,15 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptContractBindings } from 'src/typescript-callable-aliases/contract-bindings';
-import { TypeScriptCallableTypeProperties } from 'src/typescript-callable-aliases/callable-type-properties';
-import { TypeScriptTypedCallableBindings } from 'src/typescript-callable-aliases/typed-callable-bindings';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptContractBindings } from "src/typescript-callable-aliases/contract-bindings";
+import { TypeScriptCallableTypeProperties } from "src/typescript-callable-aliases/callable-type-properties";
+import { TypeScriptTypedCallableBindings } from "src/typescript-callable-aliases/typed-callable-bindings";
 
 /** Responsibilities: _typed callable object resolution_. **/
 export class TypeScriptObjectCallableAliases {
 	private readonly contract_bindings = new TypeScriptContractBindings();
 	private readonly property_names = new TypeScriptCallableTypeProperties();
 	private readonly typed_bindings = new TypeScriptTypedCallableBindings();
-	private readonly expression_aliases = new TypeScriptExpressionAliases('');
+	private readonly expression_aliases = new TypeScriptExpressionAliases("");
 
 	/** Responsibilities: _callable alias name extension_. **/
 	private append_name(aliases: Set<string>, name: string): boolean {
@@ -25,7 +25,7 @@ export class TypeScriptObjectCallableAliases {
 		objects: Map<string, Set<string>>,
 		interfaces: Map<string, Set<string>>,
 		name: string,
-		expression: ts.NewExpression
+		expression: ts.NewExpression,
 	): boolean {
 		if (!ts.isIdentifier(expression.expression)) {
 			return false;
@@ -43,7 +43,7 @@ export class TypeScriptObjectCallableAliases {
 		objects: Map<string, Set<string>>,
 		interfaces: Map<string, Set<string>>,
 		name: string,
-		initializer: ts.Expression
+		initializer: ts.Expression,
 	): void {
 		const current = this.expression_aliases.unwrapped(initializer);
 		if (ts.isNewExpression(current)) {
@@ -63,11 +63,7 @@ export class TypeScriptObjectCallableAliases {
 	}
 
 	/** Responsibilities: _typed object binding element_. **/
-	private append_binding_element(
-		aliases: Set<string>,
-		properties: Set<string>,
-		element: ts.BindingElement
-	): boolean {
+	private append_binding_element(aliases: Set<string>, properties: Set<string>, element: ts.BindingElement): boolean {
 		if (!ts.isIdentifier(element.name)) {
 			return false;
 		}
@@ -87,7 +83,7 @@ export class TypeScriptObjectCallableAliases {
 		binding: ts.ObjectBindingPattern,
 		objects: Map<string, Set<string>>,
 		interfaces: Map<string, Set<string>>,
-		name: string
+		name: string,
 	): boolean {
 		let properties = objects.get(name);
 		if (properties === undefined) {
@@ -111,7 +107,7 @@ export class TypeScriptObjectCallableAliases {
 		binding: ts.ObjectBindingPattern,
 		initializer: ts.Expression,
 		objects: Map<string, Set<string>>,
-		interfaces: Map<string, Set<string>>
+		interfaces: Map<string, Set<string>>,
 	): boolean {
 		const current = this.expression_aliases.unwrapped(initializer);
 		if (ts.isIdentifier(current)) {
@@ -128,7 +124,7 @@ export class TypeScriptObjectCallableAliases {
 		aliases: Set<string>,
 		objects: Map<string, Set<string>>,
 		interfaces: Map<string, Set<string>>,
-		node: ts.VariableDeclaration
+		node: ts.VariableDeclaration,
 	): boolean {
 		if (node.initializer === undefined) {
 			this.typed_bindings.variable(objects, interfaces, node);
@@ -150,7 +146,7 @@ export class TypeScriptObjectCallableAliases {
 		objects: Map<string, Set<string>>,
 		interfaces: Map<string, Set<string>>,
 		node: ts.Node,
-		root: ts.Node
+		root: ts.Node,
 	): boolean {
 		let changed = this.contract_bindings.append(interfaces, node);
 		if (ts.isVariableDeclaration(node) && this.append_variable(aliases, objects, interfaces, node)) {
@@ -159,7 +155,7 @@ export class TypeScriptObjectCallableAliases {
 		if (node !== root && ts.isFunctionLike(node)) {
 			return changed;
 		}
-		node.forEachChild(child => {
+		node.forEachChild((child) => {
 			if (this.append_node(aliases, objects, interfaces, child, root)) {
 				changed = true;
 			}

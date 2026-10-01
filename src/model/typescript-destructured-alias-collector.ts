@@ -1,8 +1,8 @@
-import ts from 'typescript';
+import ts from "typescript";
 
-import type { TypeScriptInstanceStore } from 'src/model/protocols';
-import type { CallOwnerResolver, TypeScriptPropertyStateProtocol } from 'src/model/protocols';
-import type { DestructuredAlias } from 'src/model/types';
+import type { TypeScriptInstanceStore } from "src/model/protocols";
+import type { CallOwnerResolver, TypeScriptPropertyStateProtocol } from "src/model/protocols";
+import type { DestructuredAlias } from "src/model/types";
 
 /** Responsibilities: _resolution owners TypeScript object_. **/
 export class TypeScriptDestructuredAliasCollector {
@@ -19,38 +19,31 @@ export class TypeScriptDestructuredAliasCollector {
 	}
 
 	/** Responsibilities: _resolution owner destructured this-property_. **/
-	private this_property_owner(
-		initializer: ts.Expression,
-		current_owner: string
-	): string {
+	private this_property_owner(initializer: ts.Expression, current_owner: string): string {
 		if (!ts.isPropertyAccessExpression(initializer)) {
-			return '';
+			return "";
 		}
-if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.length === 0) {
-			return '';
+		if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.length === 0) {
+			return "";
 		}
 		return this.property_state.owner_for(current_owner, initializer.name.text);
 	}
 
 	/** Responsibilities: _resolution owner destructured object_. **/
-	private object_owner(
-		initializer: ts.Expression,
-		current_owner: string,
-		pattern: ts.ObjectBindingPattern
-	): string {
+	private object_owner(initializer: ts.Expression, current_owner: string, pattern: ts.ObjectBindingPattern): string {
 		if (ts.isCallExpression(initializer)) {
 			const owner = this.call_owner.call_owner(initializer.expression, current_owner);
 			if (owner !== undefined) {
 				return owner;
 			}
-			return '';
+			return "";
 		}
 		if (ts.isIdentifier(initializer)) {
 			const owner = this.instances.instance_owner(initializer.text, pattern);
 			if (owner !== undefined) {
 				return owner;
 			}
-			return '';
+			return "";
 		}
 		return this.this_property_owner(initializer, current_owner);
 	}
@@ -59,7 +52,7 @@ if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.l
 	public constructor(
 		property_state: TypeScriptPropertyStateProtocol,
 		call_owner: CallOwnerResolver,
-		instances: TypeScriptInstanceStore
+		instances: TypeScriptInstanceStore,
 	) {
 		this.property_state = property_state;
 		this.call_owner = call_owner;
@@ -70,15 +63,12 @@ if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.l
 	public collect_element(
 		element: ts.BindingElement,
 		object_owner: string,
-		source_file: ts.SourceFile
+		source_file: ts.SourceFile,
 	): readonly DestructuredAlias[] {
 		if (!ts.isIdentifier(element.name)) {
 			return [];
 		}
-		const property_owner = this.property_state.owner_for(
-			object_owner,
-			this.element_name(element, source_file)
-		);
+		const property_owner = this.property_state.owner_for(object_owner, this.element_name(element, source_file));
 		if (!property_owner) {
 			return [];
 		}
@@ -90,7 +80,7 @@ if (initializer.expression.kind !== ts.SyntaxKind.ThisKeyword || current_owner.l
 		pattern: ts.ObjectBindingPattern,
 		source_file: ts.SourceFile,
 		initializer: ts.Expression,
-		current_owner: string = ''
+		current_owner: string = "",
 	): readonly DestructuredAlias[] {
 		const object_owner = this.object_owner(initializer, current_owner, pattern);
 		if (!object_owner) {

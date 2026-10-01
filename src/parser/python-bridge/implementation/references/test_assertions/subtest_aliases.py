@@ -49,11 +49,10 @@ class PythonSubtestAliases:
 
     def _assignments(self, scope: ast.AST, node: ast.AST) -> list[ast.AST]:
         """Responsibilities: _prior alias assignments_."""
-        assignments = [
-            item
-            for item in ast.walk(scope)
-            if self._prior(item, scope, node.lineno, node.col_offset)
-        ]
+        assignments: list[ast.AST] = []
+        for item in ast.walk(scope):
+            if self._prior(item, scope, node.lineno, node.col_offset):
+                assignments.append(item)
         return sorted(assignments, key=lambda item: (item.lineno, item.col_offset))
 
     def _resolve(self, name: str, aliases: dict[str, str]) -> str:

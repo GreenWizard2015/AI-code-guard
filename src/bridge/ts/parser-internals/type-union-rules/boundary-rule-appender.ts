@@ -1,7 +1,7 @@
-import { TypeScriptBasicRules } from 'src/bridge/ts/parser-internals/type-union-rules/typescript-basic-rules';
-import { NullableTypeRules } from 'src/bridge/ts/parser-internals/type-union-rules/nullable-type-rules';
-import { UnionContractBypass } from 'src/bridge/ts/parser-internals/type-union-rules/union-contract-bypass';
-import { CompositeStateTypeRules } from 'src/bridge/ts/parser-internals/type-union-rules/composite-state-type';
+import { TypeScriptBasicRules } from "src/bridge/ts/parser-internals/type-union-rules/typescript-basic-rules";
+import { NullableTypeRules } from "src/bridge/ts/parser-internals/type-union-rules/nullable-type-rules";
+import { UnionContractBypass } from "src/bridge/ts/parser-internals/type-union-rules/union-contract-bypass";
+import { CompositeStateTypeRules } from "src/bridge/ts/parser-internals/type-union-rules/composite-state-type";
 import {
 	COMPOSITE_STATE_TYPE,
 	EXCEPTION_RAISING,
@@ -10,17 +10,17 @@ import {
 	NULLABLE_DOMAIN_TYPE,
 	SETATTR,
 	UNION_CONTRACT_BYPASS,
-} from 'src/bridge/ts/parser-internals/constants';
-import ts from 'typescript';
-import type { RuleContextData } from 'src/types';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
+} from "src/bridge/ts/parser-internals/constants";
+import ts from "typescript";
+import type { RuleContextData } from "src/types";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
 
 /** Responsibilities: _aggregation TypeScript invocation union_. **/
 export class TypeScriptBoundaryRuleAppender {
 	private readonly max_union_types = 3;
 	private readonly basic_rules = new TypeScriptBasicRules();
-	private readonly getattr_aliases = new TypeScriptExpressionAliases('getattr');
-	private readonly setattr_aliases = new TypeScriptExpressionAliases('setattr');
+	private readonly getattr_aliases = new TypeScriptExpressionAliases("getattr");
+	private readonly setattr_aliases = new TypeScriptExpressionAliases("setattr");
 	private readonly nullable_type_rules = new NullableTypeRules();
 	private readonly union_contract_bypass = new UnionContractBypass();
 	private readonly composite_state_type = new CompositeStateTypeRules();

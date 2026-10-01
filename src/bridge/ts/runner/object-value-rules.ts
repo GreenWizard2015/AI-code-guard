@@ -1,20 +1,19 @@
-import ts from 'typescript';
-import { TypeScriptExpressionAliases } from 'src/typescript-aliases/typescript-expression-aliases';
-import { TypeScriptMemberAliases } from 'src/typescript-aliases/typescript-member-aliases';
-import { TypeScriptStaticExpressionValues } from 'src/typescript-callable-aliases/typescript-static-expression-values';
-import { DynamicObjectMemberAliases } from 'src/bridge/ts/dynamic-object-member-aliases';
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/typescript-expression-aliases";
+import { TypeScriptMemberAliases } from "src/typescript-aliases/typescript-member-aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-callable-aliases/typescript-static-expression-values";
+import { DynamicObjectMemberAliases } from "src/bridge/ts/dynamic-object-member-aliases";
 
 /** Responsibilities: _classification object string invocation_. **/
 export class ObjectValueRules {
-	private readonly object_aliases = new TypeScriptExpressionAliases('Object');
-	private readonly nested_object_aliases = new DynamicObjectMemberAliases('Object');
+	private readonly object_aliases = new TypeScriptExpressionAliases("Object");
+	private readonly nested_object_aliases = new DynamicObjectMemberAliases("Object");
 	private readonly static_expression_values = new TypeScriptStaticExpressionValues();
-	private readonly object_member_aliases = new TypeScriptMemberAliases(
-		'Object',
-		(expression, node) => this.static_expression_values.value(expression, node)
+	private readonly object_member_aliases = new TypeScriptMemberAliases("Object", (expression, node) =>
+		this.static_expression_values.value(expression, node),
 	);
-	private readonly prototype_name = 'prototype';
-	private readonly call_name = 'call';
+	private readonly prototype_name = "prototype";
+	private readonly call_name = "call";
 
 	/** Responsibilities: _Object receiver resolution_. **/
 	private object_receiver(expression: ts.Expression, source: ts.Node): boolean {
@@ -35,10 +34,10 @@ export class ObjectValueRules {
 	/** Responsibilities: _object member names_. **/
 	private element_member_name(expression: ts.Expression, source: ts.Node): string {
 		if (!ts.isElementAccessExpression(expression)) {
-			return '';
+			return "";
 		}
 		if (expression.argumentExpression === undefined) {
-			return '';
+			return "";
 		}
 		return this.element_key_name(expression.argumentExpression, source);
 	}
@@ -57,7 +56,7 @@ export class ObjectValueRules {
 
 	/** Responsibilities: _classification expression invocation object_. **/
 	private object_string_call(expression: ts.Expression): boolean {
-		if (this.member_name(expression, expression) !== 'toString') {
+		if (this.member_name(expression, expression) !== "toString") {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
@@ -85,7 +84,7 @@ export class ObjectValueRules {
 		if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) {
 			return false;
 		}
-		if (this.member_name(node, source) === '') {
+		if (this.member_name(node, source) === "") {
 			return false;
 		}
 		return this.object_chain(node.expression, source);
@@ -108,13 +107,13 @@ export class ObjectValueRules {
 			return false;
 		}
 		if (ts.isIdentifier(node.expression)) {
-			return this.object_member_aliases.property(node.expression, node, 'assign');
+			return this.object_member_aliases.property(node.expression, node, "assign");
 		}
 		if (!ts.isPropertyAccessExpression(node.expression) && !ts.isElementAccessExpression(node.expression)) {
 			return false;
 		}
 		const target = node.expression.expression;
-		if (this.member_name(node.expression, node) !== 'assign') {
+		if (this.member_name(node.expression, node) !== "assign") {
 			return false;
 		}
 		return this.object_receiver(target, node);
@@ -126,7 +125,7 @@ export class ObjectValueRules {
 			return false;
 		}
 		if (ts.isIdentifier(node.expression)) {
-			return this.object_member_aliases.property(node.expression, node, 'hasOwnProperty');
+			return this.object_member_aliases.property(node.expression, node, "hasOwnProperty");
 		}
 		if (!ts.isPropertyAccessExpression(node.expression) && !ts.isElementAccessExpression(node.expression)) {
 			return false;

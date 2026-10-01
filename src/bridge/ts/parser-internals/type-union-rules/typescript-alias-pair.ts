@@ -1,19 +1,16 @@
-import ts from 'typescript';
+import ts from "typescript";
 
 /** Responsibilities: _detection singular plural field_. **/
 export class TypeScriptAliasPair {
-	private readonly property_kinds = new Set([
-		ts.SyntaxKind.PropertyDeclaration,
-		ts.SyntaxKind.PropertySignature,
-	]);
+	private readonly property_kinds = new Set([ts.SyntaxKind.PropertyDeclaration, ts.SyntaxKind.PropertySignature]);
 
 	/** Responsibilities: _retrieval type node field_. **/
 	private field_type(node: ts.Node): ts.TypeNode {
 		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
-			throw new Error('Typed field expected.');
+			throw new Error("Typed field expected.");
 		}
 		if (node.type === undefined) {
-			throw new Error('Typed field expected.');
+			throw new Error("Typed field expected.");
 		}
 		return node.type;
 	}
@@ -21,13 +18,13 @@ export class TypeScriptAliasPair {
 	/** Responsibilities: _resolution textual name field_. **/
 	private field_name(node: ts.Node): string {
 		if (!this.property_kinds.has(node.kind)) {
-			return '';
+			return "";
 		}
 		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
-			return '';
+			return "";
 		}
 		if (!ts.isIdentifier(node.name)) {
-			return '';
+			return "";
 		}
 		return node.name.text;
 	}
@@ -50,17 +47,14 @@ export class TypeScriptAliasPair {
 	/** Responsibilities: _derivation singular plural aliases_. **/
 	private alias_names(name: string): readonly string[] {
 		let singular = name;
-		if (name.endsWith('s')) {
+		if (name.endsWith("s")) {
 			singular = name.slice(0, -1);
 		}
 		return [singular, `${singular}s`];
 	}
 
 	/** Responsibilities: _two-field classification_. **/
-	private has_matching_types(
-		fields: ReadonlyMap<string, ts.Node>,
-		names: readonly string[]
-	): boolean {
+	private has_matching_types(fields: ReadonlyMap<string, ts.Node>, names: readonly string[]): boolean {
 		const singular_field = fields.get(names[0]);
 		const plural_field = fields.get(names[1]);
 		if (singular_field === undefined || plural_field === undefined) {
@@ -134,7 +128,7 @@ export class TypeScriptAliasPair {
 	private append_inherited_parent(
 		fields: Map<string, ts.Node>,
 		parent: ts.InterfaceDeclaration,
-		seen: Set<string>
+		seen: Set<string>,
 	): void {
 		for (const [name, field] of this.named_fields(parent)) {
 			fields.set(name, field);
@@ -145,10 +139,7 @@ export class TypeScriptAliasPair {
 	}
 
 	/** Responsibilities: _inherited interface fields collection_. **/
-	private inherited_fields(
-		node: ts.InterfaceDeclaration,
-		seen: Set<string>
-	): ReadonlyMap<string, ts.Node> {
+	private inherited_fields(node: ts.InterfaceDeclaration, seen: Set<string>): ReadonlyMap<string, ts.Node> {
 		const fields = new Map<string, ts.Node>();
 		if (seen.has(node.name.text)) {
 			return fields;
