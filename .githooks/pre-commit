@@ -5,4 +5,4 @@ set -euo pipefail
 repository_root="$(git rev-parse --show-toplevel)"
 cd "$repository_root"
 
-pnpm test:runner -- --headless
+pnpm test:runner -- --headless --skip-review

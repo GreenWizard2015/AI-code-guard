@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { QualityCheckProcess } from "tests/core/quality-checks";
-import type { TestRunnerRequest } from "tests/core/types";
-import { PROJECT_ROOT } from "tests/core/constants";
+import { PROJECT_ROOT } from "test-runner/constants";
+import { QualityCheckProcess } from "test-runner/quality-checks";
+import type { TestRunnerRequest } from "test-runner/types";
 
 /** Responsibilities: _and check execution testing_. **/
 export class TestExecution {
@@ -52,6 +52,9 @@ export class TestExecution {
 		if (arg === "--skip-quality") {
 			return { ...request, skip_quality: true };
 		}
+		if (arg === "--skip-review") {
+			return { ...request, skip_review: true };
+		}
 		return { ...request, args: [...request.args, arg] };
 	}
 
@@ -62,6 +65,7 @@ export class TestExecution {
 			help_requested: false,
 			headless: false,
 			skip_quality: false,
+			skip_review: false,
 		};
 		return args.reduce((request, arg) => this.apply_arg(request, arg), initial_request);
 	}
@@ -69,20 +73,22 @@ export class TestExecution {
 	/** Responsibilities: _usage text rendering_. **/
 	private help_text(): string {
 		return `
-Usage: pnpm exec tsx ${this.project_root}/test-runner.ts [options] [jest options]
+Usage: pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts [options] [jest options]
 
 Runs the repository tests and then the TypeScript/Python formatters and quality checks.
 
 Options:
   --headless         Run tests in headless CI mode
   --skip-quality     Skip formatters and quality checks
+  --skip-review      Skip the architecture review gate in the lint check
   --help             Show this help message
 
 Examples:
-  pnpm exec tsx ${this.project_root}/test-runner.ts
-  pnpm exec tsx ${this.project_root}/test-runner.ts --runInBand
-  pnpm exec tsx ${this.project_root}/test-runner.ts --headless
-  pnpm exec tsx ${this.project_root}/test-runner.ts --skip-quality
+  pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts
+  pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts --runInBand
+  pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts --headless
+  pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts --headless --skip-review
+  pnpm exec tsx ${this.project_root}/test-runner/test-runner.ts --skip-quality
 `;
 	}
 
@@ -94,14 +100,14 @@ Examples:
 	}
 
 	/** Responsibilities: _quality checks execution_. **/
-	private run_quality_checks(skip_quality: boolean): void {
+	private run_quality_checks(skip_quality: boolean, skip_review: boolean): void {
 		if (skip_quality) {
 			return;
 		}
 		if (!this.quality_checks.available_checks()) {
 			return;
 		}
-		this.quality_checks.run();
+		this.quality_checks.run(skip_review);
 	}
 
 	/** Responsibilities: _environment selection testing_. **/
@@ -128,11 +134,6 @@ Examples:
 		};
 	}
 
-	/** Responsibilities: _Python test execution_. **/
-	private run_python_tests(env: NodeJS.ProcessEnv): void {
-		this.run_command("python3", ["-m", "pytest", "tests/parser/python-bridge"], this.python_test_environment(env));
-	}
-
 	/** Responsibilities: _TypeScript test execution_. **/
 	private run_typescript_tests(args: readonly string[], env: NodeJS.ProcessEnv): void {
 		const node_options = [env.NODE_OPTIONS, "--experimental-vm-modules"].filter(Boolean).join(" ");
@@ -143,7 +144,7 @@ Examples:
 	}
 
 	/** Responsibilities: _runner state initialization_. **/
-	constructor(project_root: string = "") {
+	constructor(project_root = "") {
 		if (project_root === undefined) {
 			this.project_root = PROJECT_ROOT;
 		} else {
@@ -156,7 +157,7 @@ Examples:
 	public run_tests(args: readonly string[], ...environments: NodeJS.ProcessEnv[]): void {
 		const test_env = this.test_environment(...environments);
 		this.install_dependencies(test_env);
-		this.run_python_tests(test_env);
+		this.run_command("python3", ["-m", "pytest", "tests/parser/python-bridge"], this.python_test_environment(test_env));
 		this.run_typescript_tests(args, test_env);
 	}
 
@@ -170,7 +171,7 @@ Examples:
 		const env = this.create_env(headless);
 		this.print_start(headless);
 		this.run_tests(request.args, env);
-		this.run_quality_checks(request.skip_quality === true);
+		this.run_quality_checks(request.skip_quality === true, request.skip_review === true);
 		process.stdout.write("\n✅ All tests passed!\n");
 	}
 

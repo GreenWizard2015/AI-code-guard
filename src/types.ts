@@ -315,11 +315,6 @@ export type AbsoluteImportCandidate = {
 	file: string;
 	order: number;
 };
-export type TestRunnerRequest = {
-	readonly args: readonly string[];
-	readonly help_requested: boolean;
-};
-
 export type LintRunStatistics = {
 	source_reads: number;
 	typescript_parses: number;

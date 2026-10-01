@@ -12,10 +12,10 @@
 		"coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4 --coverage --coverageReporters=text",
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
 		"coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
-		"test:runner": "tsx test-runner.ts",
-		"lint": "tsx src/bridge/ts/core/cli.ts --entry-file src/bridge/ts/core/cli.ts --entry-file test-runner.ts",
+		"test:runner": "tsx test-runner/test-runner.ts",
+		"lint": "tsx src/bridge/ts/core/cli.ts --entry-file src/bridge/ts/core/cli.ts --entry-file test-runner/test-runner.ts",
 		"format": "pnpm format:ts && pnpm format:python",
-		"format:ts": "biome format --write test-runner.ts src/bridge/ts/core/cli.ts tests",
+		"format:ts": "biome format --write test-runner src/bridge/ts/core/cli.ts tests",
 		"format:python": "python3 -m black --line-length 120 src/parser/python-bridge",
 		"type-check": "tsc --noEmit"
 	},

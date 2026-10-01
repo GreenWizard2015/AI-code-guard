@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { TestExecution } from "tests/core/test-runner";
+import { TestExecution } from "test-runner/execution";
 
 {
 	const TEST_RUNNER = new TestExecution();

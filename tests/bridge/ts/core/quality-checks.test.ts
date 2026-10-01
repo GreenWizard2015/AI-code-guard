@@ -1,8 +1,8 @@
 import "src/bridge/ts/core/context-factory";
 import "src/stage-timing";
-import { QualityCheckDefinitions } from "tests/core/quality-check-definitions";
-import { PROJECT_ROOT } from "tests/core/constants";
 import { describe, expect, test } from "@jest/globals";
+import { QualityCheckDefinitions } from "test-runner/quality-check-definitions";
+import { PROJECT_ROOT } from "tests/core/constants";
 
 describe("coding lint quality checks", () => {
 	test("enables unreachable-condition diagnostics in Mypy", () => {
@@ -14,6 +14,7 @@ describe("coding lint quality checks", () => {
 			expect.objectContaining({
 				command: "python3",
 				args: expect.arrayContaining(["-m", "mypy", "--warn-unreachable"]),
+				supports_skip_review: false,
 			}),
 		);
 	});
@@ -28,6 +29,7 @@ describe("coding lint quality checks", () => {
 			command: "python3",
 			args: ["-m", "ruff", "check", "--isolated", "--select", "E4,E7,E9,F", `${PROJECT_ROOT}/src/parser/python-bridge`],
 			environment: process.env,
+			supports_skip_review: false,
 		});
 	});
 
@@ -42,7 +44,7 @@ describe("coding lint quality checks", () => {
 			"biome",
 			"format",
 			"--write",
-			`${PROJECT_ROOT}/test-runner.ts`,
+			`${PROJECT_ROOT}/test-runner/test-runner.ts`,
 			`${PROJECT_ROOT}/src/bridge/ts/core/cli.ts`,
 			`${PROJECT_ROOT}/tests`,
 		]);
@@ -87,6 +89,11 @@ describe("coding lint quality checks", () => {
 		const lint = definitions.repository_checks().find((check) => check.label === "Coding lint");
 
 		expect(lint?.args.slice(0, 2)).toEqual(["--dir", PROJECT_ROOT]);
-		expect(lint?.args).toEqual(["--dir", PROJECT_ROOT, "lint"]);
+		expect(lint).toEqual(
+			expect.objectContaining({
+				args: ["--dir", PROJECT_ROOT, "lint"],
+				supports_skip_review: true,
+			}),
+		);
 	});
 });

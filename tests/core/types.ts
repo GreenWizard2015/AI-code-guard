@@ -1,7 +1,7 @@
-import type { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
-import type { TestDataFactory } from "tests/core/test-data-factory";
-import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
 import type { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
+import type { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
+import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
+import type { TestDataFactory } from "tests/core/test-data-factory";
 
 export type AnalyzerCase = {
 	analyzer: SharedParameterAnalyzer;
@@ -9,18 +9,6 @@ export type AnalyzerCase = {
 };
 export type Fixture = { root: string; paths: string[] };
 export type TemporaryFilesCallback<T> = (root: string, reporting: TaskReporting) => T;
-export type TestRunnerRequest = {
-	readonly args: readonly string[];
-	readonly help_requested: boolean;
-	readonly headless: boolean;
-	readonly skip_quality: boolean;
-};
-export type QualityCheck = {
-	readonly label: string;
-	readonly command: string;
-	readonly args: readonly string[];
-	readonly environment: NodeJS.ProcessEnv;
-};
 type FixtureCallableShape = {
 	name: string;
 	start: number;

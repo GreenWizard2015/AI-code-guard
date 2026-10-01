@@ -274,7 +274,9 @@ git diff --check
 ```
 
 `pnpm install` activates the versioned `.githooks/pre-commit` hook. Before every commit it runs
-`pnpm test:runner -- --headless`; a failing test, quality check, or lint check blocks the commit.
+`pnpm test:runner -- --headless --skip-review`; a failing test, quality check, or lint check blocks the commit.
+The repository hook and GitHub Actions run this command with `--skip-review`; use the
+separate architecture-review workflow or agent for that gate in CI.
 
 Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
 

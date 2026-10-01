@@ -1,13 +1,14 @@
-import { CallableUsage } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-usage";
 import { ClassRules } from "src/bridge/ts/rules/class-rules";
+import { CallableUsage } from "src/bridge/ts/runner/orchestration/runtime/composition/callable-usage";
 import { Composition } from "src/bridge/ts/runner/orchestration/runtime/composition/composition";
+import { ModulePlacementAnalyzer } from "src/bridge/ts/runner/orchestration/runtime/module-placement";
+import { ProductionTestImportAnalyzer } from "src/bridge/ts/runner/orchestration/runtime/production-test-import";
+import { TestFrameworkConsistency } from "src/bridge/ts/runner/orchestration/runtime/python/test-framework-consistency";
 import { SharedParameterAdapter } from "src/metrics/shared-parameter-adapter";
 import { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
-import type { AnalyzedCallable } from "src/metrics/types";
 import { SharedParameterReporter } from "src/metrics/shared-parameter-reporter";
+import type { AnalyzedCallable } from "src/metrics/types";
 import type { LintProjectContext, LintStageTimerProtocol, Violation } from "src/protocols";
-import { ModulePlacementAnalyzer } from "src/bridge/ts/runner/orchestration/runtime/module-placement";
-import { TestFrameworkConsistency } from "src/bridge/ts/runner/orchestration/runtime/python/test-framework-consistency";
 
 /** Responsibilities: _execution project-wide class composition_. **/
 export class GlobalViolationCollector {
@@ -111,6 +112,17 @@ export class GlobalViolationCollector {
 		return stage_timer.measure("global-analysis.module-placement", () => module_placement.collect_violations());
 	}
 
+	/** Responsibilities: _test import timing_. **/
+	private test_import_stage(stage_timer: LintStageTimerProtocol): Violation[] {
+		const analyzer = new ProductionTestImportAnalyzer(
+			this.repo_root,
+			this.project_files,
+			this.context,
+			this.ignored_files,
+		);
+		return stage_timer.measure("global-analysis.production-test-import", () => analyzer.collect_violations());
+	}
+
 	/** Responsibilities: _initialization project inputs shared_. **/
 	public constructor(
 		repo_root: string,
@@ -134,6 +146,7 @@ export class GlobalViolationCollector {
 			...this.callable_usage_stage(stage_timer),
 			...stage_timer.measure("global-analysis.shared-parameters", () => this.parameter_violations()),
 			...this.module_placement_stage(stage_timer),
+			...this.test_import_stage(stage_timer),
 			...stage_timer.measure("global-analysis.test-framework", () =>
 				this.test_framework_consistency.violations(this.context),
 			),

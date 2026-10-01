@@ -190,6 +190,7 @@ startup and fails when a rule document is missing or a diagnostic uses an unknow
 - [`test-file-location`](test-file-location.md)
 - [`test-file-organization`](test-file-organization.md)
 - [`test-targets`](test-targets.md)
+- [`production-test-import`](production-test-import.md)
 - [`test-too-many-assertions`](test-too-many-assertions.md)
 - [`typescript-type-guard`](typescript-type-guard.md)
 - [`top-level-classes`](top-level-classes.md)

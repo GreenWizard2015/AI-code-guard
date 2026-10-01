@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { QualityCheckDefinitions } from "tests/core/quality-check-definitions";
-import type { QualityCheck } from "tests/core/types";
+import { QualityCheckDefinitions } from "test-runner/quality-check-definitions";
+import type { QualityCheck } from "test-runner/types";
 
 /** Responsibilities: _execution configuration quality commands_. **/
 export class QualityCheckProcess {
@@ -19,9 +19,13 @@ export class QualityCheckProcess {
 	}
 
 	/** Responsibilities: _execution configuration quality command_. **/
-	private run_command(check: QualityCheck): void {
+	private run_command(check: QualityCheck, skip_review: boolean): void {
 		process.stdout.write(`🔎 Checking ${check.label}...\n`);
-		const result = spawnSync(check.command, [...check.args], {
+		let args = check.args;
+		if (skip_review && check.supports_skip_review === true) {
+			args = [...check.args, "--", "--skip-review"];
+		}
+		const result = spawnSync(check.command, [...args], {
 			env: check.environment,
 			stdio: "inherit",
 			shell: false,
@@ -50,9 +54,9 @@ export class QualityCheckProcess {
 	}
 
 	/** Responsibilities: _execution available quality checks_. **/
-	public run(): void {
+	public run(skip_review: boolean): void {
 		for (const check of this.check_items) {
-			this.run_command(check);
+			this.run_command(check, skip_review);
 		}
 	}
 

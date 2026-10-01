@@ -44,6 +44,11 @@ export const RULE_DATA = {
 		hint: "Import at least one production module outside tests or __tests__. The common source root of those imports must match the test path. Target existence is not checked.",
 		priority: 7,
 	},
+	"production-test-import": {
+		message: "production file imports test file {target}",
+		hint: "Move shared code into a production module or keep the import inside tests. Do not: make production code depend on tests.",
+		priority: 7,
+	},
 	"explicit-return-type": {
 		message: "callable is missing an explicit return type",
 		hint: "Add an explicit result annotation to every named function, method, getter, or interface method. Do not: rely on return-type inference at a callable boundary.",

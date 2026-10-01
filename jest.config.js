@@ -9,6 +9,7 @@ export default {
   moduleNameMapper: {
     '^(.*/)?tools/coding-lint/(.*)$': '<rootDir>/src/$2',
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^test-runner/(.*)$': '<rootDir>/test-runner/$1',
     '^tests/(.*)$': '<rootDir>/tests/$1',
   },
   testEnvironment: 'node',
