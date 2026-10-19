@@ -1,8 +1,18 @@
 import type ts from "typescript";
-import type { RecursiveExportResolver, ResolvedTypeScriptExport } from "src/module-resolution/types";
+import type {
+	RecursiveExportResolver,
+	ResolvedTypeScriptDeclarationKind,
+	ResolvedTypeScriptExport,
+} from "src/module-resolution/types";
 
 /** Responsibilities: _define TypeScript declaration resolution_. **/
-export interface TypeScriptDeclarations {
+export interface TypeScriptDeclarationsContract {
+	exported_symbol(
+		file: string,
+		name: string,
+		source_file: ts.SourceFile,
+		visited: Set<string>,
+	): ResolvedTypeScriptExport;
 	direct_declaration(
 		file: string,
 		source_file: ts.SourceFile,
@@ -19,7 +29,7 @@ export interface TypeScriptDeclarations {
 	): ResolvedTypeScriptExport;
 }
 /** Responsibilities: _define TypeScript export-link resolution_. **/
-export interface TypeScriptExportLinks {
+export interface TypeScriptExportLinksContract {
 	named_export(file: string, source_file: ts.SourceFile, name: string, visited: Set<string>): ResolvedTypeScriptExport;
 	star_export(file: string, source_file: ts.SourceFile, name: string, visited: Set<string>): ResolvedTypeScriptExport;
 	imported_binding(
@@ -28,4 +38,17 @@ export interface TypeScriptExportLinks {
 		name: string,
 		visited: Set<string>,
 	): ResolvedTypeScriptExport;
+	imported_binding_name(
+		file: string,
+		statement: ts.ImportDeclaration,
+		imported_name: string,
+		visited: Set<string>,
+	): ResolvedTypeScriptExport;
+}
+
+/** Responsibilities: _TypeScript module resolver_. **/
+export interface TypeScriptModuleResolverContract {
+	module_symbol(file: string, module_name: string): string;
+	resolve(file: string, name: string): ResolvedTypeScriptExport;
+	symbol_kind(file: string, name: string): ResolvedTypeScriptDeclarationKind;
 }

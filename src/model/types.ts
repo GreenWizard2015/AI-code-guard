@@ -1,13 +1,41 @@
 import ts from "typescript";
-import type { AstTypeKind, AstVisibility, ImportedFunction } from "src/types";
-import type { TypeScriptPropertyStateProtocol } from "src/model/protocols";
+import { MODULE_CLASS_KIND, MODULE_INTERFACE_KIND, MODULE_ROOT_KIND } from "src/constants";
+import type {
+	AstCallableNodeContract,
+	AstCallableReference,
+	AstClassNode,
+	AstImportIssue,
+	AstParseIssue,
+	AstLiteralConstant,
+	AstLiteralReference,
+	AstReferenceAlias,
+	AstResponsibilityTarget,
+	AstSourceSpan,
+	AstTypeKind,
+	AstTypeMembers,
+	AstVisibility,
+	ImportedFunction,
+	LineDepth,
+	NamedLine,
+	NamedSymbol,
+	TypeScriptTreeMetadata,
+} from "src/types";
+import type { TypeScriptPropertyStateContract } from "src/model/protocols";
+import type {
+	LintStageTimerContract,
+	ProjectSourceIOContract,
+	SourceLineResolver,
+	StringSetMap,
+	TypeScriptAstTraversalContract,
+	TypeScriptMetadataNodeVisitor,
+} from "src/protocols";
 
 export type TypeScriptClassFieldContext = {
 	file: string;
 	relative_file: string;
 	source_file: ts.SourceFile;
 	imports: Map<string, ImportedFunction>;
-	functions: Map<string, Set<string>>;
+	functions: StringSetMap;
 };
 
 export type FieldAssignment = { field: string; name: string };
@@ -17,19 +45,71 @@ export type DestructuredInstanceOptions = {
 	initializer: ts.Expression;
 	current_owner: string;
 	source_file: ts.SourceFile;
-	property_state: TypeScriptPropertyStateProtocol;
+	property_state: TypeScriptPropertyStateContract;
 };
-export type TypeScriptSourceResolver = (file: string) => ts.SourceFile[];
+export type TypeScriptSourceResolver = ReadonlyMap<string, ts.SourceFile>;
 export type TypeScriptAstOptions = {
 	source_file: ts.SourceFile;
 	source_resolver: TypeScriptSourceResolver;
+	source_io: ProjectSourceIOContract;
+	project_root: string;
+	stage_timer: LintStageTimerContract;
+};
+export type TypeScriptCallReferenceCollectorOptions = {
+	source_file: ts.SourceFile;
+	project_root: string;
+	stage_timer: LintStageTimerContract;
+	source_files: TypeScriptSourceResolver;
+	traversal: TypeScriptAstTraversalContract;
+	source_io: ProjectSourceIOContract;
+};
+export type TypeScriptMetadataSpans = {
+	module_constant_spans: AstSourceSpan[];
+	module_type_spans: AstSourceSpan[];
+	module_protocol_spans: AstSourceSpan[];
+};
+export type TypeScriptLiteralMetadataResult = {
+	references: AstLiteralReference[];
+	constants: AstLiteralConstant[];
+};
+export type TreeMetadataState = {
+	import_issues: AstImportIssue[];
+	type_declarations: NamedLine[];
+	named_symbols: NamedSymbol[];
+	symbol_references: NamedLine[];
+	attribute_accesses: LineDepth[];
+};
+
+export type TypeScriptMetadataNodeOptions = {
+	node: ts.Node;
+	line_for: SourceLineResolver;
+	owner: string;
+	state: TreeMetadataState;
+	literal_references: AstLiteralReference[];
+	literal_constants: AstLiteralConstant[];
+	on_node: TypeScriptMetadataNodeVisitor;
+};
+export type TypeScriptDerivedMetadata = {
+	parse_issues: AstParseIssue[];
+	call_references: AstCallableReference[];
+	responsibility_targets: AstResponsibilityTarget[];
+	reference_aliases: AstReferenceAlias[];
+	type_members: AstTypeMembers;
+};
+export type TypeScriptNormalizedMetadataOptions = {
+	classes: AstClassNode[];
+	functions: AstCallableNodeContract[];
+	tree: TypeScriptTreeMetadata;
+	spans: TypeScriptMetadataSpans;
+	derived: TypeScriptDerivedMetadata;
 };
 /** Responsibilities: _kind TypeScript traversal representation_. **/
-export enum ResponsibilityContainerKind {
-	Class = "class",
-	Interface = "interface",
-	Root = "root",
-}
+export const RESPONSIBILITY_CONTAINER_KIND = {
+	Class: MODULE_CLASS_KIND,
+	Interface: MODULE_INTERFACE_KIND,
+	Root: MODULE_ROOT_KIND,
+} as const;
+export type ResponsibilityContainerKind = "class" | "interface" | "root";
 export type ResponsibilityContainer = { kind: ResponsibilityContainerKind; line: number };
 export type SourceLineRange = { start: number; end: number };
 export type CallableDataOptions = {
@@ -45,6 +125,7 @@ export type CallableNodeMetrics = {
 	lines: number;
 	sloc: number;
 	characters: number;
+	control_flow_depth: number;
 	argument_uses: ArgumentUse[];
 	typed_arguments: TypedArgument[];
 	argument_count: number;
@@ -52,11 +133,11 @@ export type CallableNodeMetrics = {
 	return_type: string;
 };
 export type DestructuredAlias = { name: string; owner: string };
+export type TypeScriptInstanceLookup = { readonly bound: boolean; readonly value: string };
 export type TypeScriptReferenceShape = {
 	readonly name: string;
 	readonly arguments: readonly ts.TypeNode[];
 };
-export type CallableNodeContext = { readonly source_file: ts.SourceFile };
 export type TypeScriptTypeDetails = {
 	readonly union: boolean;
 	readonly union_types: readonly ts.TypeNode[];

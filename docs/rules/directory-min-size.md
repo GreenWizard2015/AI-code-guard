@@ -1,6 +1,24 @@
 # `directory-min-size`
 
-**Purpose:** Detect source directories with fewer files than the minimum boundary.
+Description: A source directory must contain at least three implementation files. Tests and empty
+directories do not count.
 
-**Fix:** Move the module to its parent directory or merge it with a focused sibling. Do not add
-placeholder files just to satisfy the minimum.
+## Bad
+
+```text
+src/
+└── feature/                 # only 2 implementation files
+    ├── one.ts
+    └── two.ts
+```
+
+## Good
+
+```text
+src/
+└── feature/                 # 3 implementation files
+    ├── one.ts
+    ├── two.ts
+    └── three.ts
+```
+

@@ -1,0 +1,76 @@
+# `method-order-public`
+
+Description: Declare public methods after private and protected implementation methods.
+
+## Bad
+
+```ts
+class LabelOrder {
+	public label(): string { return "ready"; }
+	private normalize(): string { return "ready"; }
+}
+```
+
+
+## Good
+
+```ts
+// File: src/label_order.ts
+/** Responsibilities: _status label mapping_. **/
+export class LabelOrder {
+	private readonly labels: ReadonlyMap<string, string>;
+	private readonly fallback: string;
+
+	/** Responsibilities: _mapping initialization_. **/
+	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
+		this.labels = labels;
+		this.fallback = fallback;
+	}
+
+	/** Responsibilities: _status label selection_. **/
+	public label(status: string): string {
+		const label = this.labels.get(status);
+		if (label === undefined) {
+			return this.fallback;
+		}
+		return label;
+	}
+
+	/** Responsibilities: _prefixed label composition_. **/
+	public label_with_prefix(prefix: string, status: string): string {
+		const label = this.label(status);
+		return `${prefix}: ${label}`;
+	}
+
+	/** Responsibilities: _fallback capitalization_. **/
+	public uppercase_fallback(): string {
+		const normalized = this.fallback.trim();
+		return normalized.toUpperCase();
+	}
+
+	/** Responsibilities: _mapping size reporting_. **/
+	public status_count(): number {
+		let count = 0;
+		for (const status_name of this.labels.keys()) {
+			if (status_name.length > 0) {
+				count += 1;
+			}
+		}
+		return count;
+	}
+}
+// File: cli.ts
+import { LabelOrder } from "src/label_order";
+
+(function () {
+	const labels = new Map<string, string>();
+	labels.set("ready", "Ready");
+	labels.set("blocked", "Blocked");
+	const label_order = new LabelOrder(labels, "Unknown");
+	const label = label_order.label("ready");
+	const detailed = label_order.label_with_prefix("State", "blocked");
+	const fallback = label_order.uppercase_fallback();
+	const count = label_order.status_count();
+	console.log(`${label} ${detailed} ${fallback} ${count}`);
+})();
+```

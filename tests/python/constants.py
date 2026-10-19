@@ -8,7 +8,7 @@ CONSTANT = 1
 class Contract:
     value: str
 
-class Derived(Protocol, External.Base):
+class DerivedContract(Protocol, External.Base):
     value: list[str]
     other = alias
 
@@ -296,4 +296,29 @@ def first(parsed: Parsed) -> bool:
 
 def second(parsed: Parsed) -> bool:
     return parsed.attribute_accesses is None
+"""
+
+ANNOTATED_CLASS_ALIAS_SOURCE = """class Base:
+    def __init__(self):
+        pass
+
+instance = Base()
+base_init: Callable = Base.__init__
+base_init(instance)
+"""
+
+LOCAL_CLASS_ALIAS_SOURCE = """class Base:
+    def __init__(self):
+        pass
+    def control(self):
+        Base.__init__(self)
+    def candidate(self):
+        base_init = Base.__init__
+        base_init(self)
+"""
+
+REPEATED_CALL_SOURCE = """from builtins import callable as is_callable
+
+def check(value):
+    return is_callable(value)
 """

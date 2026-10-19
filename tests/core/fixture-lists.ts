@@ -1,5 +1,6 @@
-import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
+import type { AstArgumentUse, AstStatementNode, AstTypedArgument } from "src/types";
 import type { FixtureCallableNode, FixtureClassNode } from "tests/core/types";
+import type { AstClassFieldPatch } from "tests/core/types";
 
 /** Responsibilities: _callable fixture collection_, _class fixture collection_. **/
 export class FixtureLists {
@@ -12,7 +13,7 @@ export class FixtureLists {
 	public readonly methods: FixtureCallableNode[] = [];
 	public readonly interfaces: string[] = [];
 	public readonly base_class_names: string[] = [];
-	public readonly fields: Array<Partial<AstClassField>> = [];
+	public readonly fields: AstClassFieldPatch[] = [];
 	public readonly dependencies: string[] = [];
 
 	/** Responsibilities: _callable fixture initialization_. **/

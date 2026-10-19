@@ -1,0 +1,174 @@
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { ViolationContract } from "src/protocols";
+import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import {
+	CONSTRUCTOR_NAME,
+	PLUGIN_MARKER_NAME,
+	PLUGIN_MARKER_TOKEN,
+	PYTHON_CONSTRUCTOR_NAME,
+} from "src/metrics/constants";
+import { RULE_IDS } from "src/constants";
+/** Responsibilities: _public API metrics_, _implementation specialization checks_. **/
+export class MethodSpecializationReporter {
+	private readonly violations: ViolationContract[];
+
+	private readonly file: string;
+
+	private readonly node: AstClassNode;
+
+	private readonly methods: readonly AstCallableNodeContract[];
+
+	/** Responsibilities: _hook method classification_. **/
+	private external_hook_method(method: AstCallableNodeContract): boolean {
+		for (const decorator of method.decorators) {
+			const normalized = decorator.toLowerCase();
+			if (normalized.includes("hook")) {
+				return true;
+			}
+			if (normalized.includes(PLUGIN_MARKER_NAME) && normalized.includes(PLUGIN_MARKER_TOKEN)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Responsibilities: _specialization method selection_. **/
+	private included_method(method: AstCallableNodeContract): boolean {
+		if (method.name === CONSTRUCTOR_NAME) {
+			return false;
+		}
+		if (method.name === PYTHON_CONSTRUCTOR_NAME) {
+			return false;
+		}
+		return !this.external_hook_method(method);
+	}
+
+	/** Responsibilities: _aggregation callback-field diagnostics analysis_. **/
+	private append_callback_rule(): void {
+		if (this.node.callback_fields === 0) {
+			return;
+		}
+		const inline_callback_fields = this.node.inline_callback_fields;
+		if (inline_callback_fields === 0) {
+			return;
+		}
+		const rule = new DiagnosticRule("typescript-class-callback-fields");
+		this.violations.push(
+			rule.violation(this.file, this.node.start + 1, {
+				count: String(inline_callback_fields),
+			}),
+		);
+	}
+
+	/** Responsibilities: _aggregation implementation metrics concrete_. **/
+	private append_implementation_rules(methods: readonly AstCallableNodeContract[]): void {
+		const count = methods.filter((method) => method.visibility !== "public").length;
+		if (count > 15) {
+			const rule = new DiagnosticRule("class-method-max-count");
+			this.violations.push(
+				rule.violation(this.file, this.node.start + 1, { count: String(count), visibility: "non-public" }),
+			);
+		}
+	}
+
+	/** Responsibilities: _aggregation visibility method-count diagnostics_. **/
+	private append_public_rules(methods: readonly AstCallableNodeContract[], implements_interface: boolean): void {
+		const count = methods.filter((method) => method.visibility === "public").length;
+		const rule_id = this.public_method_rule(count, implements_interface);
+		if (rule_id.length > 0) {
+			const rule = new DiagnosticRule(rule_id);
+			this.violations.push(
+				rule.violation(this.file, this.node.start + 1, { count: String(count), visibility: "public" }),
+			);
+		}
+	}
+
+	/** Responsibilities: _creation configuration public-method diagnostic_. **/
+	private public_method_rule(count: number, implements_interface: boolean): string {
+		if (implements_interface) {
+			if (count < 2) {
+				return "";
+			}
+		}
+		if (count < 2) {
+			return RULE_IDS.class_method_min_count;
+		}
+		if (count > 15) {
+			return RULE_IDS.class_method_max_count;
+		}
+		if (count > 5) {
+			return RULE_IDS.class_method_count_info;
+		}
+		return "";
+	}
+
+	/** Responsibilities: _classification class participates mixin_. **/
+	private is_mixin(): boolean {
+		let base_names: readonly string[] = [];
+		if (this.node.base_class_names !== undefined) {
+			base_names = this.node.base_class_names;
+		}
+		if (this.node.base_class_name) {
+			base_names = [this.node.base_class_name];
+		}
+		return this.node.name.endsWith("Mixin") || base_names.some((name) => name.endsWith("Mixin"));
+	}
+
+	/** Responsibilities: _base class name collection_. **/
+	private base_type_names(): readonly string[] {
+		let names: readonly string[] = [];
+		if (this.node.base_class_names !== undefined) {
+			names = this.node.base_class_names;
+		}
+		if (this.node.base_class_name !== undefined) {
+			if (this.node.base_class_name.length > 0) {
+				names = [this.node.base_class_name];
+			}
+		}
+		return names;
+	}
+
+	/** Responsibilities: _classification inherited class_. **/
+	private has_base_type(): boolean {
+		if (this.node.interfaces !== undefined) {
+			if (this.node.interfaces.length > 0) {
+				return true;
+			}
+		}
+		if (this.base_type_names().length > 0) {
+			return true;
+		}
+		return false;
+	}
+
+	/** Responsibilities: _initialization violation sink file_. **/
+	public constructor(violations: ViolationContract[], file: string, node: AstClassNode) {
+		this.violations = violations;
+		this.file = file;
+		this.node = node;
+		this.methods = node.methods.filter((method) => this.included_method(method));
+	}
+
+	/** Responsibilities: _reporting API-facing class method_. **/
+	public report_api(): void {
+		if (this.node.is_data_class || this.is_mixin()) {
+			return;
+		}
+		if (this.methods.length === 0) {
+			return;
+		}
+		this.append_public_rules(this.methods, this.has_base_type());
+		this.append_callback_rule();
+	}
+
+	/** Responsibilities: _reporting implementation-facing class specialization_. **/
+	public report_implementation(): void {
+		if (this.node.is_data_class || this.is_mixin()) {
+			return;
+		}
+		if (this.node.type_contract || this.node.protocol) {
+			return;
+		}
+		this.append_implementation_rules(this.methods);
+	}
+}

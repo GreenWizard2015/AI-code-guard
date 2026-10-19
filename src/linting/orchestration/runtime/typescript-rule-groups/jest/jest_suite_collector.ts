@@ -1,0 +1,191 @@
+import ts from "typescript";
+import type { CallableConsumer } from "src/protocols";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
+import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
+
+import type { JestSuite } from "src/types";
+import { JEST_DESCRIBE_NAME } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
+
+/** Responsibilities: _Jest suite discovery_, _Jest suite alias resolution_. **/
+export class JestSuiteCollector {
+	private readonly test_names: Set<string>;
+	private readonly modifier_names: Set<string>;
+	private readonly describe_name = JEST_DESCRIBE_NAME;
+	private readonly describe_aliases: TypeScriptExpressionAliases;
+	private readonly test_aliases: TypeScriptExpressionAliases;
+	private readonly it_aliases: TypeScriptExpressionAliases;
+	private readonly static_expression_values: TypeScriptStaticExpressionValues;
+
+	/** Responsibilities: _unwrapping Jest invocation expression_. **/
+	private unwrapped_expression(expression: ts.Expression): ts.Expression {
+		let current = expression;
+		while (true) {
+			if (ts.isParenthesizedExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			if (ts.isAsExpression(current) || ts.isTypeAssertionExpression(current)) {
+				current = current.expression;
+				continue;
+			}
+			return current;
+		}
+	}
+
+	/** Responsibilities: _Jest identifier names_. **/
+	private identifier_call_name(expression: ts.Identifier, node: ts.Node): string {
+		if (this.describe_aliases.receiver(expression, node)) {
+			return this.describe_name;
+		}
+		if (this.test_aliases.receiver(expression, node)) {
+			return "test";
+		}
+		if (this.it_aliases.receiver(expression, node)) {
+			return "it";
+		}
+		return expression.text;
+	}
+
+	/** Responsibilities: _Jest computed modifier names_. **/
+	private element_call_name(expression: ts.ElementAccessExpression, node: ts.Node): string {
+		const argument = expression.argumentExpression;
+		if (argument === undefined) {
+			return "";
+		}
+		const modifier = this.static_expression_values.value(argument, node);
+		return this.modifier_call_name(expression.expression, modifier, node);
+	}
+
+	/** Responsibilities: _Jest modifier invocation_. **/
+	private modifier_call_name(owner: ts.Expression, modifier: string, node: ts.Node): string {
+		if (!this.modifier_names.has(modifier)) {
+			return "";
+		}
+		return this.call_name(this.unwrapped_expression(owner), node);
+	}
+
+	/** Responsibilities: _resolution Jest invocation expression_. **/
+	private call_name(expression: ts.Expression, node: ts.Node): string {
+		const current = this.unwrapped_expression(expression);
+		if (ts.isCallExpression(current)) {
+			return this.call_name(current.expression, node);
+		}
+		if (ts.isIdentifier(current)) {
+			return this.identifier_call_name(current, node);
+		}
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.modifier_call_name(current.expression, current.name.text, node);
+		}
+		if (ts.isElementAccessExpression(current)) {
+			return this.element_call_name(current, node);
+		}
+		return "";
+	}
+
+	/** Responsibilities: _classification invocation usage Jest_. **/
+	private is_each_factory(node: ts.CallExpression): boolean {
+		const expression = this.unwrapped_expression(node.expression);
+		if (!ts.isPropertyAccessExpression(expression)) {
+			return false;
+		}
+		return expression.name.text === "each";
+	}
+
+	/** Responsibilities: _classification invocation represents Jest_. **/
+	private is_test_call(node: ts.CallExpression): boolean {
+		if (this.is_each_factory(node)) {
+			return false;
+		}
+		const call_name = this.call_name(node.expression, node);
+		if (call_name.length > 0) {
+			if (this.test_names.has(call_name)) {
+				return true;
+			}
+		}
+		if (!ts.isCallExpression(node.expression)) {
+			return false;
+		}
+		return this.is_each_factory(node.expression);
+	}
+
+	/** Responsibilities: _collection direct test invocation_. **/
+	private direct_tests(node: ts.Node): ts.CallExpression[] {
+		const tests: ts.CallExpression[] = [];
+		const visit = (child: ts.Node): void => {
+			if (ts.isCallExpression(child)) {
+				if (this.call_name(child.expression, child) === this.describe_name) {
+					return;
+				}
+			}
+			if (ts.isCallExpression(child) && this.is_test_call(child)) {
+				tests.push(child);
+				return;
+			}
+			ts.forEachChild(child, visit);
+		};
+		ts.forEachChild(node, visit);
+		return tests;
+	}
+
+	/** Responsibilities: _normalization Jest suite invocation_. **/
+	private suite_from_call(node: ts.CallExpression, nested: boolean): JestSuite {
+		let body: ts.Block[] = [];
+		let tests: ts.CallExpression[] = [];
+		this.with_callback(node, (callback) => {
+			if (callback.body !== undefined) {
+				if (ts.isBlock(callback.body)) {
+					body = [callback.body];
+				}
+			}
+			if (callback.body !== undefined) {
+				tests = this.direct_tests(callback.body);
+			}
+		});
+		return { node, body, tests, nested };
+	}
+
+	/** Responsibilities: _execution callback each discovered_. **/
+	/** Responsibilities: _field initialization_. **/
+	constructor() {
+		this.test_names = new Set(["test", "it"]);
+		this.modifier_names = new Set(["only", "skip", "concurrent", "fails", "todo", "each"]);
+		this.describe_aliases = new TypeScriptExpressionAliases(JEST_DESCRIBE_NAME);
+		this.test_aliases = new TypeScriptExpressionAliases("test");
+		this.it_aliases = new TypeScriptExpressionAliases("it");
+		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
+	}
+	/** Responsibilities: _public operation_. **/
+	public with_callback(node: ts.CallExpression, consumer: CallableConsumer): void {
+		const candidate = node.arguments[node.arguments.length - 1];
+		if (candidate === undefined) {
+			return;
+		}
+		if (ts.isArrowFunction(candidate) || ts.isFunctionExpression(candidate)) {
+			consumer(candidate);
+		}
+	}
+
+	/** Responsibilities: _collection top-level Jest suites_. **/
+	public suites(source_file: ts.SourceFile): JestSuite[] {
+		const suites: JestSuite[] = [];
+		const visit = (node: ts.Node, nested: boolean): void => {
+			if (ts.isCallExpression(node)) {
+				if (this.call_name(node.expression, node) !== this.describe_name) {
+					ts.forEachChild(node, (child) => visit(child, nested));
+					return;
+				}
+				suites.push(this.suite_from_call(node, nested));
+				this.with_callback(node, (callback) => {
+					if (callback.body !== undefined) {
+						ts.forEachChild(callback.body, (child) => visit(child, true));
+					}
+				});
+				return;
+			}
+			ts.forEachChild(node, (child) => visit(child, nested));
+		};
+		ts.forEachChild(source_file, (child) => visit(child, false));
+		return suites;
+	}
+}

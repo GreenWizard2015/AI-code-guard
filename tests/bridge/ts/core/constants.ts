@@ -1,3 +1,77 @@
+import type { ReviewAgentRequest } from "src/types";
+import {
+	ACCESS_SOURCE,
+	CONTRACT_FIELD_FILES,
+	COVERAGE_CONTROL_FLOW_SOURCE,
+	STRUCTURE_SOURCE,
+} from "tests/core/constants";
+
+export const COVERAGE_FILES = {
+	"coverage-flow.py": COVERAGE_CONTROL_FLOW_SOURCE,
+	"coverage-access.py": ACCESS_SOURCE,
+	"coverage-structure.py": STRUCTURE_SOURCE,
+};
+
+export const INVALID_POLICY_SOURCES = {
+	"complex-defaults.ts": [
+		"class Reader {}",
+		"function build(reader: Reader = new Reader(), values: string[] = [], options = {}) {}",
+	].join("\n"),
+	"complex-defaults.py": [
+		"class Reader:",
+		"    pass",
+		"",
+		"def build(reader: Reader = Reader(), values: list[str] = [], options: dict = {}):",
+		"    return reader, values, flag",
+	].join("\n"),
+	"primitive-defaults.ts": [
+		'enum ReportMode { PROJECT = "project" }',
+		'function build(name = "", count = 0, enabled = false, value = null, values = [], options = {}, mode = ReportMode.PROJECT) {}',
+	].join("\n"),
+	"primitive-defaults.py":
+		'def build(name = "", count = 0, enabled = False, value = None, values = [], options = {}):\n    pass',
+	"overloads.ts": [
+		"function load(value: string): string;",
+		"function load(value: number): string;",
+		"function load(value: string | number): string { return String(value); }",
+		"class Reader {",
+		"  read(value: string): string;",
+		"  read(value: number): string;",
+		"  read(value: string | number): string { return String(value); }",
+		"}",
+	].join("\n"),
+	"interface-overloads.ts": [
+		"interface Reader {",
+		"  read(value: string): string;",
+		"  read(value: number): string;",
+		"}",
+	].join("\n"),
+	"ambients.ts": [
+		"declare function resolve(value: string): string;",
+		"declare function resolve(value: number): string;",
+	].join("\n"),
+	"empty-contracts.ts": "interface Empty {}",
+	"empty-contracts.py": ["from typing import Protocol", "class Empty(Protocol):", "    pass"].join("\n"),
+	"structural-type.ts": "type RuntimeShape = { value: string };",
+	"bare-aliases.ts": [
+		"type Existing = string;",
+		"export type Renamed = Existing;",
+		"export type Qualified = Namespace.Existing;",
+		"type Identity<T> = T;",
+		"type Shape = { value: string };",
+		"type Values = Existing[];",
+		"type Factory = () => Existing;",
+	].join("\n"),
+	"parameter-properties.ts": [
+		"class Client {",
+		"  private readonly transport: Transport;",
+		"  constructor(private readonly transport: Transport) {}",
+		"  constructor(public cache: Cache) {}",
+		"}",
+	].join("\n"),
+	...CONTRACT_FIELD_FILES,
+};
+
 export const COMPLEX_ASSERTION_FILES = {
 	"tests/complex.test.ts": [
 		"describe('result', () => {",
@@ -27,6 +101,33 @@ export const COMPLEX_ASSERTION_FILES = {
 		"    def test_one_field(self):",
 		'        self.assertEqual(result["one"], 1)',
 	].join("\n"),
+};
+
+export const ANALYZER_FILES_V1 = {
+	"analyzer/src/rules.ts": "export const version = 1;\n",
+	"analyzer/docs/rules/placeholder.md": "rules\n",
+	"analyzer/test-runner/placeholder.ts": "export const placeholder = true;\n",
+	"analyzer/package.json": "{}\n",
+	"analyzer/requirements.txt": "\n",
+	"analyzer/tsconfig.json": "{}\n",
+};
+
+export const REVIEW_PROMPT = "Review the project boundaries.\nWrite only confirmed findings.";
+
+export const METACHARACTER_REQUEST: ReviewAgentRequest = {
+	root: "/project",
+	instruction: "DIRECT REVIEW INSTRUCTION",
+	review_root: "/project/.ai-code-guard/review",
+	hook: {
+		hook_file: "/project/path with $HOME/agent's-hooks.ts",
+		hook_command: "/tools/tsx",
+		review_prefix: "review-$(touch injected)-",
+		review_phase: "cleanup",
+	},
+	review_stage: "boundaries",
+	review_stage_plan: "boundaries: review-boundaries-",
+	open_review_files: [],
+	prompt: REVIEW_PROMPT,
 };
 
 export const OVERSIZED_MODULE_FILES = {

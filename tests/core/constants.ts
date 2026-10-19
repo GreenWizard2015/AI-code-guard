@@ -1,25 +1,33 @@
 import { dirname, resolve } from "node:path";
 
 import { fileURLToPath } from "node:url";
-import { LintProjectContextStore } from "src/bridge/ts/core/project-context";
-import type { ProjectSourceOptions } from "src/bridge/ts/runner/types";
+import { LintProjectContextStore } from "src/core/lint_project_context_store";
+import { SourceText } from "src/source_text";
+import type { ProjectSourceOptions } from "src/model/types/types";
+import type { ReviewAgentExecutionResult } from "src/types";
 
 export const SOURCE_OPTIONS: ProjectSourceOptions = {
 	get context_state(): ProjectSourceOptions["context_state"] {
 		return {
 			available: false,
-			value: new LintProjectContextStore([], {
-				source_reads: 0,
-				typescript_parses: 0,
-				python_parses: 0,
-				source_records: 0,
-			}),
+			value: new LintProjectContextStore(
+				[],
+				{
+					source_reads: 0,
+					typescript_parses: 0,
+					python_parses: 0,
+					source_records: 0,
+				},
+				new SourceText(),
+			),
 		};
 	},
 	entry_files: [],
 };
 
 export const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+export const HOOK_TOOL_CONTEXT = { workdir: "", shell: "", login: false };
 
 export const GROUPED_PROTOCOL_FILES = {
 	"protocols.py": [
@@ -43,9 +51,112 @@ export const COMPOSITION_FILES = {
 	"composition-end.ts": [
 		"export const CompositionEnd = class CompositionEnd {",
 		"  run() {",
-		...Array.from({ length: 14 }, (_, index) => `    const value${index} = ${index};`),
+		Array.from({ length: 14 }, (_, index) => `    const value${index} = ${index};`).join("\n"),
 		"  }",
 		"};",
+	].join("\n"),
+};
+
+export const PYTHON_STATE_ANALYSIS_FILES = {
+	"nested.ts": [
+		"function nested(value: boolean): number {",
+		"    if (value) {",
+		"        for (const item of values) {",
+		"            while (item.ready) {",
+		"                try {",
+		"                    return item.value;",
+		"                } catch {",
+		"                    return 0;",
+		"                }",
+		"            }",
+		"        }",
+		"    }",
+		"    return 0;",
+		"}",
+	].join("\n"),
+	"nested.py": [
+		"def nested(value: bool) -> int:",
+		"    if value:",
+		"        for item in values:",
+		"            while item.ready:",
+		"                try:",
+		"                    return item.value",
+		"                except Exception:",
+		"                    return 0",
+		"    return 0",
+	].join("\n"),
+	"assignment-expressions.py": ["value = 1", "if (value := 2):", "    value += 1"].join("\n"),
+	"primitive-ternaries.py": [
+		"value = 1 if enabled else 0",
+		"result = make_value() if enabled else fallback",
+		"typed: str = make_value() if enabled else fallback",
+	].join("\n"),
+	"primitive-ternaries.ts": [
+		"const value = enabled ? 1 : 0;",
+		"const result = enabled ? makeValue() : fallback;",
+		"const typed: string = makeValue() ? makeValue() : fallback;",
+	].join("\n"),
+	"tests/fixture_complexity_test.py": [
+		"import unittest",
+		"class FixtureTests(unittest.TestCase):",
+		"    def setUp(self) -> None:",
+		[
+			"create_database()",
+			"configure_transport()",
+			"load_environment()",
+			"register_routes()",
+			"seed_users()",
+			"seed_messages()",
+			"connect_clients()",
+			"configure_browser()",
+			"configure_logger()",
+			"configure_metrics()",
+			"configure_clock()",
+			"configure_randomness()",
+			"configure_cleanup()",
+			"configure_assertions()",
+			"configure_retry()",
+			"configure_observers()",
+		]
+			.map((line) => `        ${line}`)
+			.join("\n"),
+		"    def test_result(self) -> None:",
+		"        self.assertTrue(True)",
+	].join("\n"),
+	"branch-count.ts": [
+		"function choose(value: number): number {",
+		Array.from({ length: 11 }, (_, index) => `    if (value === ${index}) { return ${index}; }`).join("\n"),
+		"    return -1;",
+		"}",
+	].join("\n"),
+	"branch_count.py": [
+		"def choose(value: int) -> int:",
+		Array.from({ length: 11 }, (_, index) => `    if value == ${index}: return ${index}`).join("\n"),
+		"    return -1",
+	].join("\n"),
+	"nested-branch.ts": [
+		"function outer(value: number): number {",
+		"    if (value < 0) { return -1; }",
+		"    function inner(input: number): number {",
+		Array.from({ length: 11 }, (_, index) => `        if (input === ${index}) { return ${index}; }`).join("\n"),
+		"        return -1;",
+		"    }",
+		"    return inner(value);",
+		"}",
+	].join("\n"),
+	"nested_branch.py": [
+		"def outer(value: int) -> int:",
+		"    if value < 0:",
+		"        return -1",
+		"    def inner(input: int) -> int:",
+		Array.from({ length: 11 }, (_, index) => `        if input == ${index}: return ${index}`).join("\n"),
+		"        return -1",
+		"    return inner(value)",
+	].join("\n"),
+	"lambda_branch.py": [
+		"def outer(value: int) -> int:",
+		`    chooser = lambda item: ${Array.from({ length: 11 }, (_, index) => `0 if item == ${index} else `).join("")}-1`,
+		"    return chooser(value)",
 	].join("\n"),
 };
 
@@ -107,14 +218,14 @@ export const CALLABLE_LIMIT_FILES = {
 		"  }",
 		"}",
 		"export function tiny() { return 1; }",
-		...Array.from({ length: 16 }, (_, index) => `export function grouped${index}() { return ${index}; }`),
+		Array.from({ length: 16 }, (_, index) => `export function grouped${index}() { return ${index}; }`).join("\n"),
 		"export function _Agent_load() { return 1; }",
 		"export function _Agent_save() { return 1; }",
 	].join("\n"),
 	"metrics.py": [
 		"def too_many(a, b, c, d, e, f):",
 		"    return a + b + c + d + e + f",
-		...Array.from({ length: 16 }, (_, index) => `def grouped_${index}(): return ${index}`),
+		Array.from({ length: 16 }, (_, index) => `def grouped_${index}(): return ${index}`).join("\n"),
 		"def _Worker_start(): return 1",
 		"def _Worker_stop(): return 1",
 	].join("\n"),
@@ -523,7 +634,7 @@ export const CRITICAL_ONLY_VIOLATIONS = [
 		file: "worker.ts",
 		line: 1,
 		message: "module-level functions must be declared in the project-root functions file",
-		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. CLI/entrypoint startup code may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
+		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. A cli.{ext} module may contain one entry-point function; keep all other behavior in domain classes. CLI startup wrappers may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
 		rule_id: "function-placement",
 		priority: 3 as const,
 	},
@@ -1007,6 +1118,7 @@ export const SHORT_FUNCTION_NODE = {
 	end: 5,
 	argument_count: 0,
 	characters: 100,
+	control_flow_depth: 0,
 	lines: 2,
 	sloc: 2,
 	exception_only: false,
@@ -1018,6 +1130,7 @@ export const ARGUMENT_FUNCTION_NODE = {
 	end: 5,
 	argument_count: 6,
 	characters: 0,
+	control_flow_depth: 0,
 	lines: 2,
 	sloc: 2,
 	exception_only: false,
@@ -1054,11 +1167,11 @@ export const ARBITRARY_COMBINATION_FILES = {
 	"combinations.ts": [
 		"class ProjectA {}",
 		"class ProjectB {}",
-		...Array.from(
+		Array.from(
 			{ length: 4 },
 			(_, index) =>
 				"function run" + index + "(a: ProjectA, id: string, b: ProjectB, scope: string) { return [a, id, b, scope]; }",
-		),
+		).join("\n"),
 	].join("\n"),
 };
 
@@ -1279,3 +1392,13 @@ export const STRUCTURE_SOURCE = [
 	"method_result = factory.make()[0]",
 	"dynamic_result = (factory())()[0]",
 ].join("\n");
+export const REVIEW_PROGRESS_DOCUMENT = {
+	"docs/agent/on_review.md": "Defects remaining to find: {N}. The minimum remaining count is 0.",
+};
+
+export const COMPLETED_REVIEW_RESULT: ReviewAgentExecutionResult = {
+	provider: "codex",
+	process: { exit_code: 0, stdout: "", stderr: "" },
+	no_issues: true,
+	message: "review completed",
+};

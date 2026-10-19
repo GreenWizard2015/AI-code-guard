@@ -5,4 +5,5 @@ set -euo pipefail
 repository_root="$(git rev-parse --show-toplevel)"
 cd "$repository_root"
 
-pnpm test:runner -- --headless --skip-review
+# No review agent is selected by the commit hook, so the linter skips architecture review.
+pnpm test:runner -- --headless

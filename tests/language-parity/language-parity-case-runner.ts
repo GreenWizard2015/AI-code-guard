@@ -1,39 +1,53 @@
-import { CodingRuleLinter } from "src/bridge/ts/runner/orchestration/runtime/coding-rules";
+import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
+import { SourceText } from "src/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 import type { DirectCase, ProjectCase } from "tests/language-parity/types";
 import { LanguageParityRuleMatcher } from "tests/language-parity/language-parity-rule-matcher";
-import { SourceFileAst } from "src/bridge/ts/runner/orchestration/runtime/source-file-ast";
-import { PythonAstData } from "src/bridge/ts/core/python-ast-parser";
-import { TypeScriptAstFile } from "src/model/typescript-ast";
+import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { PythonAstData } from "src/core/python_ast_data";
+import { PythonAstBridge } from "src/core/python_ast_bridge";
+import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
+import { LintStageTimer } from "src/lint_stage_timer";
 
 /** Responsibilities: _direct parity cases execution_, _architecture parity cases execution_, _parity cases execution projection_. **/
 export class LanguageParityCaseRunner {
-	private readonly fixture = new TestFixture();
-	private readonly matcher = new LanguageParityRuleMatcher();
-	private readonly python_ast_data = new PythonAstData();
+	private readonly fixture: TestFixture;
+	private readonly matcher: LanguageParityRuleMatcher;
+	private readonly python_ast_data: PythonAstData;
+
+	/** Responsibilities: _language parity fixture initialization_. **/
+	public constructor() {
+		this.fixture = new TestFixture();
+		this.matcher = new LanguageParityRuleMatcher();
+		this.python_ast_data = new PythonAstData(new PythonAstBridge());
+	}
 
 	/** Responsibilities: _direct TypeScript Python comparison_. **/
 	public direct_results(cases: readonly DirectCase[]): boolean[][] {
 		return cases.map((item) => {
 			const typescript_ast = new TypeScriptAstFile(`${item.rule_id}.ts`, item.typescript);
 			const python_ast = new TypeScriptAstFile(`${item.rule_id}.py`, item.python);
-			const typescript_linter = new CodingRuleLinter(
-				new SourceFileAst(
-					{ file: `${item.rule_id}.ts`, text: item.typescript },
-					typescript_ast.normalized(),
-					typescript_ast.source_file,
-					() => [],
-				),
+			const typescript_source = new SourceFileAst(
+				{ file: `${item.rule_id}.ts`, text: item.typescript },
+				typescript_ast.normalized(),
+				typescript_ast.source_file,
+				new Map(),
+				typescript_ast.traversal,
 			);
-			const python_linter = new CodingRuleLinter(
-				new SourceFileAst(
-					{ file: `${item.rule_id}.py`, text: item.python },
-					this.python_ast_data.source_ast(item.python),
-					python_ast.source_file,
-					() => [],
-				),
+			const python_source = new SourceFileAst(
+				{ file: `${item.rule_id}.py`, text: item.python },
+				this.python_ast_data.source_ast(item.python),
+				python_ast.source_file,
+				new Map(),
+				python_ast.traversal,
 			);
-			return this.matcher.pair(typescript_linter.lint(), python_linter.lint(), item.rule_id);
+			const typescript_linter = new CodingRuleLinter(process.cwd(), new SourceText());
+			const python_linter = new CodingRuleLinter(process.cwd(), new SourceText());
+			return this.matcher.pair(
+				typescript_linter.lint_typescript(typescript_source, new LintStageTimer()),
+				python_linter.lint_python(python_source),
+				item.rule_id,
+			);
 		});
 	}
 

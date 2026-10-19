@@ -52,7 +52,7 @@ if ! grep -Fq "$SHORTCUT_MARKER" "$BASHRC_PATH"; then
         printf 'ai-code-guard() {\n'
         printf '    local guard_root=%s\n' "$ESCAPED_PROJECT_ROOT"
         printf '    PATH="$guard_root/.venv/bin:$PATH" pnpm --dir "$guard_root" exec tsx \\\n'
-        printf '        "$guard_root/src/bridge/ts/core/cli.ts" \\\n'
+        printf '        "$guard_root/src/core/cli.ts" \\\n'
         printf '        --root "$PWD" "$@"\n'
         printf '}\n'
         printf '%s\n' "$SHORTCUT_MARKER"

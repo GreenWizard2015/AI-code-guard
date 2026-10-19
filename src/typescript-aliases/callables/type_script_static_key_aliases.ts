@@ -1,0 +1,93 @@
+import ts from "typescript";
+import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptStaticKeyState } from "src/typescript-aliases/callables/static-key/type_script_static_key_state";
+import { TypeScriptStaticObjectValues } from "src/typescript-aliases/callables/type_script_static_object_values";
+import type {
+	TypeScriptExpressionAliasesContract,
+	TypeScriptStaticKeyAliasesContract,
+	TypeScriptStaticKeyStateContract,
+} from "src/protocols";
+
+/** Responsibilities: _static key alias lookup_, _object property value resolution_. **/
+export class TypeScriptStaticKeyAliases implements TypeScriptStaticKeyAliasesContract {
+	private readonly expression_aliases: TypeScriptExpressionAliasesContract;
+	private readonly state_collector: TypeScriptStaticKeyStateContract;
+
+	/** Responsibilities: _static key scope lookup_. **/
+	private scopes(node: ts.Node): ts.Node[] {
+		const scopes: ts.Node[] = [];
+		let current = node;
+		while (!ts.isSourceFile(current)) {
+			if (ts.isFunctionLike(current)) {
+				scopes.push(current);
+			}
+			current = current.parent;
+		}
+		scopes.push(current);
+		return scopes;
+	}
+
+	/** Responsibilities: _static object property lookup_. **/
+	private object_property_value(object: ts.Expression, property_name: string, node: ts.Node): string {
+		const object_expression = this.expression_aliases.unwrapped(object);
+		if (!ts.isIdentifier(object_expression)) {
+			return "";
+		}
+		for (const scope of this.scopes(node)) {
+			const state = this.state_collector.collect(scope);
+			const source = state.objects.get(object_expression.text);
+			if (source === undefined) {
+				continue;
+			}
+			const value_resolver = new TypeScriptStaticObjectValues(state.values, state.objects);
+			return value_resolver.property_value(source, property_name);
+		}
+		return "";
+	}
+
+	/** Responsibilities: _static key alias composition_. **/
+	public constructor() {
+		this.expression_aliases = new TypeScriptExpressionAliases("");
+		this.state_collector = new TypeScriptStaticKeyState();
+	}
+
+	/** Responsibilities: _static key alias values_. **/
+	public values(node: ts.Node): ReadonlyMap<string, string> {
+		const values = new Map<string, string>();
+		for (const scope of this.scopes(node)) {
+			for (const [name, value] of this.state_collector.values(scope)) {
+				values.set(name, value);
+			}
+		}
+		return values;
+	}
+
+	/** Responsibilities: _static key alias resolution_. **/
+	public value(expression: ts.Expression, node: ts.Node): string {
+		const current = this.expression_aliases.unwrapped(expression);
+		if (!ts.isIdentifier(current)) {
+			return "";
+		}
+		const value = this.values(node).get(current.text);
+		if (value === undefined) {
+			return "";
+		}
+		return value;
+	}
+
+	/** Responsibilities: _static object property resolution_. **/
+	public object_property(expression: ts.Expression, node: ts.Node): string {
+		const current = this.expression_aliases.unwrapped(expression);
+		if (ts.isPropertyAccessExpression(current)) {
+			return this.object_property_value(current.expression, current.name.text, node);
+		}
+		if (!ts.isElementAccessExpression(current)) {
+			return "";
+		}
+		if (current.argumentExpression === undefined) {
+			return "";
+		}
+		const property_name = this.value(current.argumentExpression, node);
+		return this.object_property_value(current.expression, property_name, node);
+	}
+}

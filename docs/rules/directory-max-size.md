@@ -1,6 +1,27 @@
 # `directory-max-size`
 
-**Purpose:** Detect source directories with more files than the maximum boundary.
+Description: A source directory must contain at most forty implementation files. Tests do not
+count. Split files by domain ownership into focused subdirectories.
 
-**Fix:** Split the directory by domain ownership or move one cohesive group into a child directory.
-Do not add placeholder files or hide the size behind wrappers.
+## Bad
+
+```text
+src/
+└── feature/                 # 41 implementation files
+    ├── file_0.ts
+    ├── file_1.ts
+    ├── …
+    └── file_40.ts
+```
+
+## Good
+
+```text
+src/
+└── feature/                 # 40 implementation files
+    ├── file_0.ts
+    ├── file_1.ts
+    ├── …
+    └── file_39.ts
+```
+

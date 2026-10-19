@@ -1,6 +1,23 @@
 # `directory-class-min-size`
 
-**Purpose:** Detect source directories with fewer classes than the minimum class boundary.
+Description: A source directory must contain at least three implementation classes. Do not add
+placeholder classes; keep classes together only when they share a domain responsibility.
 
-**Fix:** Move the module to its parent directory or group related classes in one focused sibling.
-Do not add placeholder classes or files.
+## Bad
+
+```text
+src/
+└── feature/                 # 2 implementation classes
+    ├── alpha.ts
+    └── bravo.ts
+```
+
+## Good
+
+```text
+src/
+└── feature/                 # 3 related implementation classes
+    ├── alpha.ts
+    ├── bravo.ts
+    └── charlie.ts
+```

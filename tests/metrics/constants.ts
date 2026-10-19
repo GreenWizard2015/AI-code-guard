@@ -1,6 +1,6 @@
-import type { AstCallableNode } from "src/types";
+import type { AstCallableNodeContract } from "src/types";
 
-export const PROJECT_BOUNDARY_CALLABLE: AstCallableNode = {
+export const PROJECT_BOUNDARY_CALLABLE: AstCallableNodeContract = {
 	name: "load",
 	owner: "",
 	nested: false,
@@ -10,6 +10,7 @@ export const PROJECT_BOUNDARY_CALLABLE: AstCallableNode = {
 	lines: 1,
 	sloc: 1,
 	characters: 1,
+	control_flow_depth: 0,
 	statements: [],
 	parameter_types: ["UserAlias"],
 	return_type: "User",
@@ -29,7 +30,7 @@ export const PROJECT_BOUNDARY_CALLABLE: AstCallableNode = {
 	unittest_assertion_count: 0,
 };
 
-export const CONTRACT_BOUNDARY_CALLABLE: AstCallableNode = {
+export const CONTRACT_BOUNDARY_CALLABLE: AstCallableNodeContract = {
 	...PROJECT_BOUNDARY_CALLABLE,
 	parameter_types: ["UserPort"],
 	return_type: "UserPort",

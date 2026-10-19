@@ -1,0 +1,371 @@
+import "src/core/lint_project_context_creator";
+import "src/lint_stage_timer";
+import { join } from "node:path";
+import { describe, expect, test } from "@jest/globals";
+import type { ReportViolation } from "src/types";
+import { TaskReporting } from "src/core/support/task_reporting";
+import { TaskPublicationLock } from "src/core/support/task/task_publication_lock";
+import { TaskPublicationRecovery } from "src/core/support/task/publication/task_publication_recovery";
+import type { TaskPublicationRecoveryContract } from "src/core/support/task/types";
+import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
+import type { TaskReportingMemoryWorkspace } from "tests/bridge/ts/core/support/task-reporting-memory-workspace";
+
+/** Responsibilities: _failure state_, _failure message_. **/
+class ReportingFailureCapture {
+	private readonly action: () => void;
+	private failure_message = "";
+
+	/** Responsibilities: _action state_. **/
+	public constructor(action: () => void) {
+		this.action = action;
+	}
+
+	/** Responsibilities: _failure state transition_. **/
+	public run(): void {
+		try {
+			this.action();
+		} catch (error) {
+			this.failure_message = String(error);
+		}
+	}
+
+	/** Responsibilities: _failure message access_. **/
+	public message(): string {
+		return this.failure_message;
+	}
+}
+
+describe("task publication recovery", () => {
+	/** Responsibilities: _publication violation fixture creation_. **/
+	const reporting_files = {
+		"a.ts": "const first = 1;\n",
+		"b.ts": "const first = 1;\n",
+	};
+	/** Responsibilities: _in-memory task reporting setup_. **/
+	const with_reporting = <T>(callback: (fixture: TaskReportingMemoryWorkspace) => T): T => {
+		const fixture_factory = new TaskReportingMemoryFixture();
+		const fixture = fixture_factory.create(reporting_files);
+		return callback(fixture);
+	};
+	/** Responsibilities: _publication violation fixture creation_. **/
+	const violation = (
+		file: string,
+		line: number,
+		rule_id: string,
+		priority: ReportViolation["priority"],
+	): ReportViolation => ({
+		file,
+		line,
+		message: `${rule_id} message`,
+		hint: `${rule_id} hint`,
+		rule_id,
+		priority,
+	});
+
+	test("recovers an abandoned publication lock without spawning a process", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), "999999999\n\n");
+			reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			return {
+				lock_exists: io.file_paths.path_exists(lock),
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+			};
+		});
+		expect({ lock_exists: result.lock_exists, has_new_issue: result.issues.includes("unused-file") }).toEqual({
+			lock_exists: false,
+			has_new_issue: true,
+		});
+	});
+
+	test("recovers an ownerless lock left by interrupted acquisition", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			return {
+				lock_exists: io.file_paths.path_exists(lock),
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+			};
+		});
+		expect(result).toEqual({ lock_exists: false, issues: expect.stringContaining("unused-file") });
+	});
+
+	test("keeps committed documents when recovery cleans a partially deleted transaction", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.documents.write_document("issues", "committed issues\n");
+			const workspace = join(root, ".ai-code-guard");
+			const transaction = io.directory_operations.temporary_directory(root, ".ai-code-guard-task-");
+			io.file_content.write_text(join(transaction, "issues.md"), "old issues\n");
+			io.file_content.write_text(join(transaction, "journal"), "committed\n0\nissues");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `999999999\n${transaction}\nold-token\n`);
+			const recovery = new TaskPublicationRecovery(reporting.documents, join(workspace, "rules"), io);
+			const publication_lock = new TaskPublicationLock(workspace, recovery, io);
+			publication_lock.acquire();
+			const issues = io.file_content.file_text(join(workspace, "issues.md"));
+			publication_lock.release();
+			return { issues, transaction_exists: io.file_paths.path_exists(transaction) };
+		});
+		expect(result).toEqual({ issues: "committed issues\n", transaction_exists: false });
+	});
+
+	test("takes over a recovery claim abandoned by a dead recoverer", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const lock = join(workspace, ".task-publication-lock");
+			const claim = join(lock, "recovery");
+			io.directory_operations.create_directory(claim);
+			io.file_content.write_text(join(lock, "owner"), "999999999\n\nold-owner-token\n");
+			io.file_content.write_text(join(claim, "owner"), "999999999\nold-owner-token\n");
+			reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			return {
+				lock_exists: io.file_paths.path_exists(lock),
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+			};
+		});
+		expect(result).toEqual({ lock_exists: false, issues: expect.stringContaining("unused-file") });
+	});
+
+	test("rejects a recovery owner change before removing the live lock", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const workspace = join(root, ".ai-code-guard");
+			const transaction = io.directory_operations.temporary_directory(root, ".ai-code-guard-task-");
+			io.file_content.write_text(join(transaction, "journal"), "prepared\n0");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `999999999\n${transaction}\noriginal-token\n`);
+			const recovery: TaskPublicationRecoveryContract = {
+				backup_documents: () => new Map(),
+				existing_documents: () => new Set(),
+				restore: () => {
+					io.file_content.write_text(join(lock, "owner"), `${process.pid}\n${transaction}\nreplacement-token\n`);
+				},
+			};
+			const publication_lock = new TaskPublicationLock(workspace, recovery, io);
+			const capture = new ReportingFailureCapture(() => publication_lock.acquire());
+			capture.run();
+			return {
+				error: capture.message(),
+				lock_exists: io.file_paths.path_exists(lock),
+				claim_exists: io.file_paths.path_exists(join(lock, "recovery")),
+			};
+		});
+		expect(result).toEqual({
+			error: expect.stringContaining("owner changed during recovery"),
+			lock_exists: true,
+			claim_exists: false,
+		});
+	});
+
+	test("restores an abandoned staged transaction before publishing the next task", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const transaction = io.directory_operations.temporary_directory(root, ".ai-code-guard-task-");
+			io.directory_operations.move_path(join(workspace, "rules"), join(transaction, "rules"));
+			io.directory_operations.create_directory(join(workspace, "rules"));
+			io.file_content.write_text(join(workspace, "rules", "partial.md"), "partial\n");
+			for (const document of ["issues", "report", "lint-output"] as const) {
+				io.directory_operations.move_path(join(workspace, `${document}.md`), join(transaction, `${document}.md`));
+			}
+			io.file_content.write_text(join(transaction, "journal"), "1\nissues\nreport\nlint-output");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `999999999\n${transaction}\n`);
+			reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const published_rules = io.directory_entries.list_files(join(workspace, "rules"));
+			return {
+				lock_exists: io.file_paths.path_exists(lock),
+				published_rules,
+				transaction_exists: io.file_paths.path_exists(transaction),
+			};
+		});
+		expect(result).toEqual({
+			lock_exists: false,
+			published_rules: ["typescript-unused-file.md"],
+			transaction_exists: false,
+		});
+	});
+
+	test("restores an abandoned transaction before a later publication failure", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const previous = {
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+				report: io.file_content.file_text(join(workspace, "report.md")),
+			};
+			const transaction = io.directory_operations.temporary_directory(root, ".ai-code-guard-task-");
+			io.directory_operations.move_path(join(workspace, "rules"), join(transaction, "rules"));
+			io.directory_operations.create_directory(join(workspace, "rules"));
+			io.file_content.write_text(join(workspace, "rules", "partial.md"), "partial\n");
+			for (const document of ["issues", "report", "lint-output"] as const) {
+				io.directory_operations.move_path(join(workspace, `${document}.md`), join(transaction, `${document}.md`));
+			}
+			io.file_content.write_text(join(transaction, "journal"), "1\nissues\nreport\nlint-output");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `999999999\n${transaction}\n`);
+			const capture = new ReportingFailureCapture(() =>
+				reporting.batch.replace({
+					staged_rules: join(root, "missing-staged-rules"),
+					rule_ids: ["missing-rule"],
+					issues: "next issues",
+					documents: new Map(),
+				}),
+			);
+			capture.run();
+			return {
+				error: capture.message(),
+				previous,
+				current: {
+					issues: io.file_content.file_text(join(workspace, "issues.md")),
+					report: io.file_content.file_text(join(workspace, "report.md")),
+				},
+			};
+		});
+		expect({ error: result.error, current: result.current }).toEqual({
+			error: expect.stringContaining("does not exist"),
+			current: result.previous,
+		});
+	});
+
+	test("does not replace a live publication owner", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const previous = io.file_content.file_text(join(workspace, "issues.md"));
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `${process.pid}\n\nactive-token\n`);
+			const capture = new ReportingFailureCapture(() =>
+				reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+					batch_size: 10,
+					policy: "all",
+					skip_review: false,
+				}),
+			);
+			capture.run();
+			return {
+				error: capture.message(),
+				lock_exists: io.file_paths.path_exists(lock),
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+				previous,
+			};
+		});
+		expect(result).toEqual({
+			error: expect.stringContaining("live or unverifiable"),
+			lock_exists: true,
+			issues: result.previous,
+			previous: result.previous,
+		});
+	});
+
+	test("rejects a malformed abandoned journal without touching live artifacts", () => {
+		const result = with_reporting((fixture) => {
+			const { root, file_io: io } = fixture;
+			const reporting = new TaskReporting(root, { file_io: io, documentation: fixture.documentation });
+			reporting.format([violation("a.ts", 1, "parse-error", 3)], {
+				batch_size: 10,
+				policy: "all",
+				skip_review: false,
+			});
+			const workspace = join(root, ".ai-code-guard");
+			const transaction = io.directory_operations.temporary_directory(root, ".ai-code-guard-task-");
+			io.file_content.write_text(join(transaction, "journal"), "malformed\nunknown-document");
+			const lock = join(workspace, ".task-publication-lock");
+			io.directory_operations.create_directory(lock);
+			io.file_content.write_text(join(lock, "owner"), `999999999\n${transaction}\n`);
+			const previous = io.file_content.file_text(join(workspace, "issues.md"));
+			const capture = new ReportingFailureCapture(() =>
+				reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+					batch_size: 10,
+					policy: "all",
+					skip_review: false,
+				}),
+			);
+			capture.run();
+			return {
+				error: capture.message(),
+				issues: io.file_content.file_text(join(workspace, "issues.md")),
+				lock_exists: io.file_paths.path_exists(lock),
+				transaction_exists: io.file_paths.path_exists(transaction),
+				previous,
+			};
+		});
+		expect({
+			error: result.error,
+			issues_unchanged: result.issues === result.previous,
+			lock_exists: result.lock_exists,
+			transaction_exists: result.transaction_exists,
+		}).toEqual({
+			error: expect.stringContaining("journal is unavailable"),
+			issues_unchanged: true,
+			lock_exists: true,
+			transaction_exists: true,
+		});
+	});
+});

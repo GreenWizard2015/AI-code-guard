@@ -6,7 +6,7 @@ import type {
 	SharedParameterKind,
 } from "src/metrics/types";
 
-/** Responsibilities: _construction shared-parameter test data_. **/
+/** Responsibilities: _parameter fixture construction_, _candidate result selection_. **/
 export class TestDataFactory {
 	private readonly reference_kind = "reference";
 	private readonly primitive_kind = "basic";

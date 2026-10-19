@@ -27,10 +27,21 @@ existing directory before starting. Keep it separate from the linter workspace
 that contains this skill. If the argument is missing, ask for it rather than
 auditing an implicit directory.
 
+Architecture review runs only when a review agent is selected. Do not select a
+review agent for audit lint invocations; this skips architecture review without
+disabling lint rules, analysis, fixture execution, or attempt reporting.
+
 All fixtures, reports, and temporary copies must be scoped to
 `target_project_path`. Never modify the target project while searching for a
 bypass; fixes belong to the linter workspace unless the user explicitly
 requests changes to the target.
+
+All persistent Markdown output created by this skill must be under
+`target_project_path/.ai-code-guard/`. This includes the audit history and any
+reports. Do not create Markdown logs or reports in the project root, `docs/`,
+the linter workspace root, or the skill directory. Temporary Markdown files
+must stay inside the temporary copy's `.ai-code-guard/` directory. The skill's
+own `SKILL.md` is instruction text and is the only intentional exception.
 
 ## Participants and boundaries
 
@@ -41,7 +52,8 @@ temporary directory. It may:
 
 - read linter source code, rules, resolvers, and tests;
 - read the code being checked;
-- create small fixtures, drafts, and reports in its temporary directory;
+- create small fixtures in its temporary directory and keep any temporary
+  Markdown drafts or reports under that copy's `.ai-code-guard/` directory;
 - run the linter against those fixtures.
 
 The temporary agent must not:
@@ -75,17 +87,17 @@ The temporary agent always works in this copy, never in the shared working
 directory. After a fix, do not continue with the old copy: it may repeat a
 closed bypass or miss the new implementation.
 
-The file `lint-bypass-findings.md` is append-only audit history. Read it before
-every attempt, preserve every existing line and finding, and append new
-attempts or generalized patterns below the existing content. Never truncate,
-rewrite, reset, replace, or regenerate this file, including after a fix, a
-fresh copy, a zero-finding attempt, or a reporting checkpoint.
+The file `.ai-code-guard/lint-bypass-findings.md` is append-only audit history.
+Read it before every attempt, preserve every existing line and finding, and
+append new attempts or generalized patterns below the existing content. Never
+truncate, rewrite, reset, replace, or regenerate this file, including after a
+fix, a fresh copy, a zero-finding attempt, or a reporting checkpoint.
 
 ## One attempt
 
 Perform every attempt completely:
 
-1. Read the rules and the existing `lint-bypass-findings.md` so already closed
+1. Read the rules and the existing `.ai-code-guard/lint-bypass-findings.md` so already closed
    bypasses are not repeated.
 2. Select a rule or a related group of rules. Do not stop at the first obvious
    location; also inspect rules that use the same AST node, resolver, or source
@@ -211,7 +223,8 @@ complete `attempt=6` package puts the agent to sleep.
 
 ## Six-attempt reporting cycle
 
-Run attempts in order and append each result to `lint-bypass-findings.md`:
+Run attempts in order and append each result to
+`.ai-code-guard/lint-bypass-findings.md`:
 
 1. Attempts 1–5: search different rules or patterns. Do not fix or sleep.
 2. Attempt 6 with findings: return one package containing all findings from
@@ -238,8 +251,8 @@ After every finding series, group findings by shared mechanism:
 For every group, build at least one fixture for the original case and one for a
 nearby realistic variant. Verify that the shared fix closes the group without
 creating false positives. If several findings share one mechanism, document
-the generalized pattern and include representative bypass code in Markdown,
-not only a list of file names.
+the generalized pattern and include representative bypass code in the
+`.ai-code-guard/lint-bypass-findings.md` file, not only a list of file names.
 
 Nested classes and nested types forbidden by dedicated priority rules must be
 rejected before class metrics and type checks. Do not record a metric finding

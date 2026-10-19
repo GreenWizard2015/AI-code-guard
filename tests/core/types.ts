@@ -1,14 +1,13 @@
-import type { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
-import type { SharedParameterAnalyzer } from "src/metrics/shared-parameter-analyzer";
 import type { AstArgumentUse, AstClassField, AstStatementNode, AstTypedArgument } from "src/types";
 import type { TestDataFactory } from "tests/core/test-data-factory";
 
-export type AnalyzerCase = {
-	analyzer: SharedParameterAnalyzer;
+export type AstClassFieldPatch = Partial<AstClassField>;
+
+export type SharedParameterInputs = {
+	callables: ReturnType<TestDataFactory["analyzed_callable"]>[];
 	factory: TestDataFactory;
 };
-export type Fixture = { root: string; paths: string[] };
-export type TemporaryFilesCallback<T> = (root: string, reporting: TaskReporting) => T;
+export type Fixture = { root: string; paths: string[]; source_texts: ReadonlyMap<string, string> };
 type FixtureCallableShape = {
 	name: string;
 	start: number;
@@ -18,6 +17,7 @@ type FixtureCallableShape = {
 	lines: number;
 	sloc: number;
 	characters: number;
+	control_flow_depth: number;
 	statements: readonly AstStatementNode[];
 	parameter_types: readonly string[];
 	untyped_parameters: readonly string[];
@@ -42,7 +42,7 @@ type FixtureClassShape = {
 	start: number;
 	end: number;
 	methods: FixtureCallableNode[];
-	fields: Array<Partial<AstClassField>>;
+	fields: AstClassFieldPatch[];
 	lines: number;
 	sloc: number;
 	interfaces: readonly string[];

@@ -9,6 +9,8 @@ export default {
   moduleNameMapper: {
     '^(.*/)?tools/coding-lint/(.*)$': '<rootDir>/src/$2',
     '^src/(.*)$': '<rootDir>/src/$1',
+    '^external/(.*)$': '<rootDir>/external/$1',
+    '^documentation_validation/(.*)$': '<rootDir>/documentation_validation/$1',
     '^test-runner/(.*)$': '<rootDir>/test-runner/$1',
     '^tests/(.*)$': '<rootDir>/tests/$1',
   },

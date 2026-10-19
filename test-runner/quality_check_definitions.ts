@@ -1,0 +1,193 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import type { QualityCheck } from "test-runner/types";
+import type { QualityCheckDefinitionsContract, QualityCheckContract } from "src/protocols";
+import {
+	MIN_CONFIDENCE_ARGUMENT,
+	PYTHON_BRIDGE_DIRECTORY,
+	TESTS_DIRECTORY,
+	TEST_RUNNER_ENTRY,
+} from "test-runner/constants";
+import { CLI_ENTRY, EXTERNAL_DIRECTORY, NODE_MODULES_DIRECTORY } from "src/constants";
+
+/** Responsibilities: _quality check definition_, _language-specific check configuration_. **/
+export class QualityCheckDefinitions implements QualityCheckDefinitionsContract {
+	private readonly project_root: string;
+
+	/** Responsibilities: _recursive Python files collection_. **/
+	private python_files_in(directory: string): string[] {
+		const files: string[] = [];
+		for (const entry of readdirSync(directory, { withFileTypes: true })) {
+			const file = join(directory, entry.name);
+			if (entry.isDirectory()) {
+				files.push(...this.python_files_in(file));
+				continue;
+			}
+			if (entry.isFile() && entry.name.endsWith(".py")) {
+				files.push(file);
+			}
+		}
+		return files;
+	}
+
+	/** Responsibilities: _TypeScript quality-check files collection_. **/
+	private type_script_files(): string[] {
+		return [
+			join(this.project_root, TEST_RUNNER_ENTRY),
+			join(this.project_root, CLI_ENTRY),
+			join(this.project_root, TESTS_DIRECTORY),
+		];
+	}
+
+	/** Responsibilities: _define Python formatting checks_. **/
+	private python_formatting_checks(directory: string): QualityCheck {
+		return {
+			label: "Python formatting",
+			command: "python3",
+			args: ["-m", "black", directory],
+			environment: process.env,
+			supports_review_options: false,
+			supports_review_agent: false,
+		};
+	}
+
+	/** Responsibilities: _define Python unused-name checks_. **/
+	private python_unused_check(files: string[]): QualityCheck {
+		return {
+			label: "Python unused imports and names",
+			command: "python3",
+			args: ["-m", "pyflakes", ...files],
+			environment: process.env,
+			supports_review_options: false,
+			supports_review_agent: false,
+		};
+	}
+
+	/** Responsibilities: _define Python type checks_. **/
+	private python_type_check(): QualityCheck {
+		const bridge_directory = join(this.project_root, PYTHON_BRIDGE_DIRECTORY);
+		return {
+			label: "Python type checking",
+			command: "python3",
+			args: [
+				"-m",
+				"mypy",
+				"--warn-unreachable",
+				"--ignore-missing-imports",
+				"--follow-imports=skip",
+				"-m",
+				"python_bridge_entrypoint",
+			],
+			environment: { ...process.env, MYPYPATH: bridge_directory },
+			supports_review_options: false,
+			supports_review_agent: false,
+		};
+	}
+
+	/** Responsibilities: _define Ruff Python checks_. **/
+	private python_ruff_check(directory: string): QualityCheck {
+		return {
+			label: "Ruff Python linting",
+			command: "python3",
+			args: ["-m", "ruff", "check", "--isolated", "--select", "E4,E7,E9,F", directory],
+			environment: process.env,
+			supports_review_options: false,
+			supports_review_agent: false,
+		};
+	}
+
+	/** Responsibilities: _define Python unused-declaration checks_. **/
+	private python_unused_checkers(files: string[]): QualityCheck {
+		return {
+			label: "Python unused functions and classes",
+			command: "vulture",
+			args: [
+				...files,
+				join(this.project_root, TESTS_DIRECTORY),
+				"--exclude",
+				NODE_MODULES_DIRECTORY,
+				MIN_CONFIDENCE_ARGUMENT,
+				"80",
+			],
+			environment: process.env,
+			supports_review_options: false,
+			supports_review_agent: false,
+		};
+	}
+
+	/** Responsibilities: _quality-check definitions initialization_. **/
+	constructor(project_root: string) {
+		this.project_root = project_root;
+	}
+
+	/** Responsibilities: _TypeScript quality checks exposure_. **/
+	public type_script_checks(): QualityCheck[] {
+		const files = this.type_script_files();
+		return [
+			{
+				label: "TypeScript formatting",
+				command: "pnpm",
+				args: ["--dir", this.project_root, "exec", "biome", "format", "--write", ...files],
+				environment: process.env,
+				supports_review_options: false,
+				supports_review_agent: false,
+			},
+			{
+				label: "TypeScript types and unused declarations",
+				command: "pnpm",
+				args: ["--dir", this.project_root, "exec", "tsc", "--noEmit"],
+				environment: process.env,
+				supports_review_options: false,
+				supports_review_agent: false,
+			},
+		];
+	}
+
+	/** Responsibilities: _Python quality checks exposure_. **/
+	public python_checks(): QualityCheck[] {
+		const directory = join(this.project_root, PYTHON_BRIDGE_DIRECTORY);
+		const files = this.python_files_in(directory).sort();
+		return [
+			this.python_formatting_checks(directory),
+			this.python_ruff_check(directory),
+			this.python_unused_check(files),
+			this.python_type_check(),
+			this.python_unused_checkers(files),
+		];
+	}
+
+	/** Responsibilities: _repository quality checks exposure_. **/
+	public repository_checks(): QualityCheck[] {
+		const lint_arguments = ["--dir", this.project_root, "lint"];
+		const external_directory = join(this.project_root, EXTERNAL_DIRECTORY);
+		if (existsSync(external_directory)) {
+			lint_arguments.push("--ignore-dir", external_directory);
+		}
+		return [
+			{
+				label: "Coding lint",
+				command: "pnpm",
+				args: lint_arguments,
+				environment: process.env,
+				supports_review_options: true,
+				supports_review_agent: true,
+			},
+			{
+				label: "Rule documentation validation",
+				command: "pnpm",
+				args: ["--dir", this.project_root, "validate:rule-docs"],
+				environment: process.env,
+				supports_review_options: false,
+				supports_review_agent: false,
+			},
+		];
+	}
+
+	/** Responsibilities: _all quality checks exposure_. **/
+	public all_checks(): QualityCheckContract[] {
+		const type_script_checks = this.type_script_checks();
+		const python_checks = this.python_checks();
+		const repository_checks = this.repository_checks();
+		return [...type_script_checks, ...python_checks, ...repository_checks];
+	}
+}

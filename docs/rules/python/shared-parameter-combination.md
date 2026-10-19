@@ -1,0 +1,49 @@
+# `shared-parameter-combination`
+
+Description: Repeated parameter bundles indicate a missing value object.
+
+
+## Bad
+
+
+```python
+# File: src/transfer_session.py
+class TransferSession:
+    def send_one(self, data: TransferData, key: str) -> str: return data.name + key
+    def send_two(self, data: TransferData, key: str) -> str: return data.name + key
+    def send_three(self, data: TransferData, key: str) -> str: return data.name + key
+    def send_four(self, data: TransferData, key: str) -> str: return data.name + key
+# File: src/transfer_data.py
+class TransferData:
+    def __init__(self) -> None: self.name: str = "item"
+# File: cli.py
+from src.transfer_session import TransferSession
+from src.transfer_data import TransferData
+session = TransferSession()
+data = TransferData()
+session.send_one(data, "a")
+session.send_two(data, "b")
+session.send_three(data, "c")
+session.send_four(data, "d")
+```
+
+The rule intersects the exact sorted callable locations of each parameter node. A candidate may
+contain any number of reference and basic parameters, but it must contain at least one reference
+type. Basic identity includes both name and type, so `id:string`, `name:string`, and `id:number`
+remain separate.
+
+Reference-parameter singletons and maximal supported combinations are reported. Redundant
+subsets are compacted when a larger combination has the same callable support; this keeps the
+diagnostic bounded for dense parameter groups.
+
+**Fix:** Introduce a named context/options type for the complete combination and update every
+listed caller to pass that contract.
+
+## Good
+
+
+```python
+# File: cli.py
+if __name__ == "__main__":
+    value: str = "ready"
+```

@@ -3,7 +3,12 @@ import { LanguageParityCaseRunner } from "tests/language-parity/language-parity-
 
 /** Responsibilities: _delegate direct parity checks_, _delegate architecture project checks_. **/
 export class LanguageParityChecker {
-	private readonly case_runner = new LanguageParityCaseRunner();
+	private readonly case_runner: LanguageParityCaseRunner;
+
+	/** Responsibilities: _language parity checker initialization_. **/
+	public constructor() {
+		this.case_runner = new LanguageParityCaseRunner();
+	}
 
 	/** Responsibilities: _output direct parity results_. **/
 	public direct_results(cases: readonly DirectCase[]): boolean[][] {

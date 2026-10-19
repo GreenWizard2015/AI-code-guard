@@ -1,295 +1,448 @@
-# AI Code Guard
-
-AI Code Guard is a deliberately strict static linter for TypeScript and Python projects. It is designed to make code ownership, state transitions, module boundaries, and architectural intent explicit. The rules are stricter than standard style guides and are intended for projects where long-term structure and predictable maintenance matter more than minimizing the number of files or abstractions.
-
-The linter analyzes TypeScript with the TypeScript AST and analyzes Python with a dedicated Python `ast` bridge. Diagnostics are emitted with a rule ID, source location, severity, message, hint, and a link to the rule documentation.
-
-## Design goals
-
-AI Code Guard focuses on structural problems that are easy to introduce during fast development or AI-assisted development:
-
-- oversized files, classes, methods, and functions;
-- unclear ownership between classes, modules, and callers;
-- mutable state hidden behind broad helpers or object-shaped namespaces;
-- excessive inheritance, proxy methods, and temporary instances;
-- nullable domain types and overly broad unions;
-- dynamic type construction and reflection-based control flow;
-- misplaced free functions;
-- unsafe or ambiguous test shapes;
-- Python-specific control-flow, import, constructor, and private-access patterns;
-- TypeScript and Python import, reference, symbol, and callable relationships.
-
-The project intentionally favors focused classes, explicit interfaces, small ownership boundaries, and direct data flow. Some rules are opinionated and may be too strict for a conventional application. Treat the rule set as an architectural policy, not as a general-purpose formatter.
-
-## Priority levels
-
-| Priority | General scope |
-| ---: | --- |
-| 8 | Forbidden nested ownership structures, including nested classes and type declarations. |
-| 7 | Critical placement, missing/unused code, and size violations. |
-| 6 | Critical test, type-safety, and architecture violations. |
-| 5 | Type, contract, ownership, and responsibility-boundary violations. |
-| 4 | Import, runtime, proxy, and dynamic-access restrictions. |
-| 3 | Size, complexity, count, and architectural threshold violations. |
-| 2 | Naming, simple control-flow, and low-cost structural conventions. |
-| 1 | Informational counts and usage signals. |
-| 0 | Responsibility wording review. |
-
-## Requirements
-
-### System requirements
-
-- Ubuntu or another Linux distribution;
-- Node.js 18 or newer;
-- `pnpm` 8 or newer;
-- Python 3.10 or newer;
-- `python3-venv` when using a virtual environment.
-
-The Python bridge uses only the Python standard library at runtime. Development, tests, and CI checks use the packages listed in [`requirements.txt`](../requirements.txt).
-
-## Installation
-
-Install the JavaScript dependencies from the project root:
-
-```bash
-pnpm install
-```
-
-Create and activate a Python virtual environment, then install the Python requirements:
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-```
-
-The virtual environment is not required by the bridge itself, but it keeps test and formatting tools isolated from the system Python installation.
-
-## Quick start
-
-Run the linter against the current project directory:
-
-```bash
-pnpm lint
-```
-
-Run the complete test suite:
-
-```bash
-pnpm test:runner
-```
-
-`pnpm test:runner` runs the Python tests first, then the Jest/TypeScript tests, followed by the configured formatters and quality checks.
-
-For the repository test runner, which also installs dependencies and runs the
-available formatters and quality checks, use:
-
-```bash
-pnpm test:runner
-pnpm test:runner -- --headless
-pnpm test:runner -- --skip-quality
-```
-
-Run the checks separately when debugging:
-
-```bash
-pnpm test:runner -- --runInBand
-pnpm type-check
-pnpm lint
-```
-
-Measure TypeScript and Python coverage, including Python bridge processes
-launched by TypeScript:
-
-```bash
-pnpm coverage
-```
-
-The Jest report, Python JSON report, and list of uncovered Python statements
-are written to `coverage/`. The Python HTML report is written to `htmlcov/`.
-Temporary parallel coverage files are also kept in `coverage/`.
-
-Format the supported source files:
-
-```bash
-pnpm format
-```
-
-The formatter commands use the existing project defaults. Formatting and quality checks are part of `pnpm test:runner` unless `--skip-quality` is used.
-
-## CLI usage
-
-The CLI uses the process working directory as the default project root. To lint a different project, pass an absolute root explicitly:
-
-```bash
-pnpm --dir /absolute/path/to/AI-code-guard exec tsx \
-  /absolute/path/to/AI-code-guard/src/bridge/ts/core/cli.ts \
-  --root /absolute/path/to/project
-```
-
-Available options:
-
-```text
---root <path>
-    Project root to scan. Relative paths are resolved from the directory
-    where the command is started.
-
---ignore-dir <path>
-    Ignore a directory while discovering project files. The option may be
-    repeated.
-
---entry-file <path>
-    Treat a project-relative file as an entry point. The option may be
-    repeated.
-
---timings
-    Print all linter stage durations, including nested durations for every
-    analyzed TypeScript and Python file. Nested entries include their
-    percentage of the immediate parent duration.
-
---skip-review
-    Skip the mandatory architecture-review request. Use this in CI when the
-    delegated review is handled by a separate workflow.
-
---batch-size <number>
-    Maximum number of files included in the generated task. The default is 10.
-
---policy <top-category|all>
-    Select files from the largest top-severity rule category (the default), or
-    include files from all top-severity categories.
-
-```
-
-Examples:
-
-```bash
-pnpm --dir /absolute/path/to/AI-code-guard exec tsx \
-  /absolute/path/to/AI-code-guard/src/bridge/ts/core/cli.ts \
-  --root /absolute/path/to/my-project \
-  --ignore-dir generated \
-  --ignore-dir vendor \
-  --entry-file src/main.ts
-```
-
-To lint only selected files, set `CODING_LINT_FILES` to a comma-separated list
-of paths relative to the project root:
-
-```bash
-CODING_LINT_FILES=src/main.ts,tests/main.test.ts pnpm lint
-```
-
-The CLI also recognizes common entry points automatically:
-
-- TypeScript/TSX files beginning with `#!/usr/bin/env node`;
-- Python files with a `if __name__ == "__main__":` guard;
-- Python package `__init__.py` files;
-- exact root `functions.ts`, `functions.tsx`, and `functions.py` files;
-- test and spec files.
-
-## Ubuntu shortcut: `ai-code-guard` from any directory
-
-The repository includes [`setup-ubuntu-bash.sh`](../setup-ubuntu-bash.sh), which installs the project dependencies and configures the global Bash function automatically. Run it once from the checkout:
-
-```bash
-chmod +x /absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
-/absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
-source ~/.bashrc
-```
-
-The script creates `.venv`, installs [`requirements.txt`](../requirements.txt), installs the Node dependencies, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
-
-The shortcut uses absolute paths for the linter installation and passes the directory where the command was invoked as the project root. This means the same command can lint any project without changing directory first.
-
-Now run it from any project directory:
-
-```bash
-cd /absolute/path/to/my-project
-ai-code-guard
-```
-
-You can pass the normal CLI options:
-
-```bash
-ai-code-guard --ignore-dir build --ignore-dir vendor --entry-file src/main.ts
-```
-
-If Bash is not your login shell, put the same function in the startup file used by your shell, such as `~/.zshrc`, and reload that file.
-
-## Project structure
-
-```text
-src/
-├── bridge/ts/
-│   ├── core/                 CLI, reporting, run construction, Python bridge
-│   ├── parser/               TypeScript-facing AST and source analysis
-│   ├── rules/                TypeScript and shared rule support
-│   └── runner/               File and project orchestration
-├── metrics/                  Shared callable, class, and parameter metrics
-├── parser/
-│   ├── python-bridge/        Python AST parser and Python rule collectors
-│   └── ts/                   TypeScript parser data and violation model
-├── rules/typescript/          TypeScript rule context and defaults
-└── runner/                   Project context and source scanning
-
-tests/
-├── core/                     TypeScript/Jest integration and unit tests
-└── python/                   Python bridge tests
-
-Test files below root `tests/` mirror a source module and may use one or more
-scope directories before the module or before the test file, for example
-`tests/performance/load/payments/` or
-`tests/payments/acceptance/uat/`. Root `__tests__/` is also supported.
-
-docs/rules/                   One document for each diagnostic rule
-```
-
-The Python implementation is intentionally isolated in `src/parser/python-bridge/`. The TypeScript process invokes the Python bridge with an absolute module path and exchanges JSON data through standard input/output. Python tests import the bridge modules directly, while TypeScript tests verify the cross-language integration.
-
-## Rule documentation
-
-The complete rule index is in [`rules/README.md`](rules/README.md). Each rule document describes its purpose, detection boundary, examples, and intended refactoring direction.
-
-The report includes an absolute path to the relevant rule document. If a critical placement diagnostic is present, start with [`function-placement`](rules/function-placement.md), move the free functions, and then rerun the linter.
-
-Each run creates `.ai-code-guard` in the project root. The selected task is
-written to `.ai-code-guard/issues.md`, and the referenced rule documents are
-copied to `.ai-code-guard/rules/`. The complete rule summary is written to
-`.ai-code-guard/report.md`. Review notes may be placed in
-`.ai-code-guard/review/`; the architecture review agent instruction is copied
-to `.ai-code-guard/architecture-review-agent.md`. The primary agent must
-start a review subagent with read access to the project code and write access
-to `.ai-code-guard/review/`; after the code is clean, the linter presents one
-review note at a time.
-
-## Development workflow
-
-For a normal change, use this sequence:
-
-```bash
-pnpm type-check
-pnpm test:runner
-pnpm lint
-git diff --check
-```
-
-`pnpm install` activates the versioned `.githooks/pre-commit` hook. Before every commit it runs
-`pnpm test:runner -- --headless --skip-review`; a failing test, quality check, or lint check blocks the commit.
-The repository hook and GitHub Actions run this command with `--skip-review`; use the
-separate architecture-review workflow or agent for that gate in CI.
-
-Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
-
-When a file or class becomes too large, split it by ownership. Prefer focused classes that own shared data and operations over collections of unrelated free functions. Free functions belong only in the exact project-root `functions.*` file.
-
-## Current limitations
-
-- The rules are intentionally opinionated and may require adaptation for frameworks with generated code or convention-heavy lifecycle APIs.
-- React and Next.js-specific patterns are not a primary detection target.
-- Dynamic metaprogramming can be detected only where it is visible in the AST.
-- The linter does not replace type checking, formatting, security scanning, or runtime tests.
-- The Python rules are almost certainly a poor fit for TensorFlow projects, whose generated graphs, tensors, decorators, and dynamic APIs do not match this linter's class-oriented architecture policy.
-
-## License and status
-
-This repository is a private project configuration and rule set. The rules evolve as new structural patterns are found in production code and AI-assisted changes.
+# Coding Lint Rules
+
+Every active rule is defined in the shared registry in `src/constants.ts`. Language-specific rules
+have a document in their language folder. Shared rules normally have separate documents in both
+language folders; rules whose examples and guidance are genuinely language-neutral may have one
+document directly in `docs/rules/`. The registry determines the required document paths, and the
+linter and documentation validator check that each required document exists and its examples match
+the applicable languages.
+
+## Rules
+
+- [`assertion-outside-test (TypeScript)`](rules/typescript/assertion-outside-test.md)
+- [`assertion-outside-test (Python)`](rules/python/assertion-outside-test.md)
+- [`argument-count (TypeScript)`](rules/typescript/argument-count.md)
+- [`argument-count (Python)`](rules/python/argument-count.md)
+- [`attribute-depth (TypeScript)`](rules/typescript/attribute-depth.md)
+- [`attribute-depth (Python)`](rules/python/attribute-depth.md)
+- [`typescript-bare-type-alias`](rules/typescript/bare-type-alias.md)
+- [`typescript-bind`](rules/typescript/bind.md)
+- [`typescript-singular-plural-alias`](rules/typescript/singular-plural-alias.md)
+- [`branch-duplication (TypeScript)`](rules/typescript/branch-duplication.md)
+- [`branch-duplication (Python)`](rules/python/branch-duplication.md)
+- [`broad-except (TypeScript)`](rules/typescript/broad-except.md)
+- [`broad-except (Python)`](rules/python/broad-except.md)
+- [`empty-error-handler (TypeScript)`](rules/typescript/empty-error-handler.md)
+- [`empty-error-handler (Python)`](rules/python/empty-error-handler.md)
+- [`test-time-dependency (TypeScript)`](rules/typescript/test-time-dependency.md)
+- [`test-time-dependency (Python)`](rules/python/test-time-dependency.md)
+- [`fixture-complexity (TypeScript)`](rules/typescript/fixture-complexity.md)
+- [`fixture-complexity (Python)`](rules/python/fixture-complexity.md)
+- [`python-call-method`](rules/python/call-method.md)
+- [`callable-feature-detection (TypeScript)`](rules/typescript/callable-feature-detection.md)
+- [`callable-feature-detection (Python)`](rules/python/callable-feature-detection.md)
+- [`responsibilities (TypeScript)`](rules/typescript/responsibilities.md)
+- [`responsibilities (Python)`](rules/python/responsibilities.md)
+- [`responsibilities-min-count (TypeScript)`](rules/typescript/responsibilities-min-count.md)
+- [`responsibilities-min-count (Python)`](rules/python/responsibilities-min-count.md)
+- [`responsibilities-max-count (TypeScript)`](rules/typescript/responsibilities-max-count.md)
+- [`responsibilities-max-count (Python)`](rules/python/responsibilities-max-count.md)
+- [`responsibilities-wording (TypeScript)`](rules/typescript/responsibilities-wording.md)
+- [`responsibilities-wording (Python)`](rules/python/responsibilities-wording.md)
+- [`callable-max-size (TypeScript)`](rules/typescript/callable-max-size.md)
+- [`callable-max-size (Python)`](rules/python/callable-max-size.md)
+- [`callable-min-size (TypeScript)`](rules/typescript/callable-min-size.md)
+- [`callable-min-size (Python)`](rules/python/callable-min-size.md)
+- [`callable-nesting-depth (TypeScript)`](rules/typescript/callable-nesting-depth.md)
+- [`callable-nesting-depth (Python)`](rules/python/callable-nesting-depth.md)
+- [`callable-branch-count (TypeScript)`](rules/typescript/callable-branch-count.md)
+- [`callable-branch-count (Python)`](rules/python/callable-branch-count.md)
+- [`hidden-global-state (TypeScript)`](rules/typescript/hidden-global-state.md)
+- [`hidden-global-state (Python)`](rules/python/hidden-global-state.md)
+- [`temporal-coupling (TypeScript)`](rules/typescript/temporal-coupling.md)
+- [`temporal-coupling (Python)`](rules/python/temporal-coupling.md)
+- [`duplicate-error-translation (TypeScript)`](rules/typescript/duplicate-error-translation.md)
+- [`duplicate-error-translation (Python)`](rules/python/duplicate-error-translation.md)
+- [`unasserted-async-completion (TypeScript)`](rules/typescript/unasserted-async-completion.md)
+- [`unasserted-async-completion (Python)`](rules/python/unasserted-async-completion.md)
+- [`retry-without-ownership (TypeScript)`](rules/typescript/retry-without-ownership.md)
+- [`retry-without-ownership (Python)`](rules/python/retry-without-ownership.md)
+
+- [`pointless-boolean-operation (TypeScript)`](rules/typescript/pointless-boolean-operation.md)
+- [`pointless-boolean-operation (Python)`](rules/python/pointless-boolean-operation.md)
+- [`incomplete-cache-key (TypeScript)`](rules/typescript/incomplete-cache-key.md)
+- [`incomplete-cache-key (Python)`](rules/python/incomplete-cache-key.md)
+- [`constructor-dependency-count (TypeScript)`](rules/typescript/constructor-dependency-count.md)
+- [`constructor-dependency-count (Python)`](rules/python/constructor-dependency-count.md)
+- [`error-context-loss (TypeScript)`](rules/typescript/error-context-loss.md)
+- [`error-context-loss (Python)`](rules/python/error-context-loss.md)
+- [`boolean-flag-parameter (TypeScript)`](rules/typescript/boolean-flag-parameter.md)
+- [`boolean-flag-parameter (Python)`](rules/python/boolean-flag-parameter.md)
+- [`callback-contract-size (TypeScript)`](rules/typescript/callback-contract-size.md)
+- [`callback-contract-size (Python)`](rules/python/callback-contract-size.md)
+- [`test-order-dependency (TypeScript)`](rules/typescript/test-order-dependency.md)
+- [`test-order-dependency (Python)`](rules/python/test-order-dependency.md)
+- [`import-fan-out (TypeScript)`](rules/typescript/import-fan-out.md)
+- [`import-fan-out (Python)`](rules/python/import-fan-out.md)
+- [`typescript-test-max-size`](rules/typescript/test-max-size.md)
+- [`typescript-test-min-size`](rules/typescript/test-min-size.md)
+- [`typescript-class-callback-fields`](rules/typescript/class-callback-fields.md)
+- [`class-field-import (TypeScript)`](rules/typescript/class-field-import.md)
+- [`class-field-import (Python)`](rules/python/class-field-import.md)
+- [`class-like-prefix (TypeScript)`](rules/typescript/class-like-prefix.md)
+- [`class-like-prefix (Python)`](rules/python/class-like-prefix.md)
+- [`class-max-size (TypeScript)`](rules/typescript/class-max-size.md)
+- [`class-max-size (Python)`](rules/python/class-max-size.md)
+- [`composite-state-type (TypeScript)`](rules/typescript/composite-state-type.md)
+- [`composite-state-type (Python)`](rules/python/composite-state-type.md)
+- [`class-method-count-info (TypeScript)`](rules/typescript/class-method-count-info.md)
+- [`class-method-count-info (Python)`](rules/python/class-method-count-info.md)
+- [`class-method-min-count (TypeScript)`](rules/typescript/class-method-min-count.md)
+- [`class-method-min-count (Python)`](rules/python/class-method-min-count.md)
+- [`class-method-max-count (TypeScript)`](rules/typescript/class-method-max-count.md)
+- [`class-method-max-count (Python)`](rules/python/class-method-max-count.md)
+- [`class-interface-count (TypeScript)`](rules/typescript/class-interface-count.md)
+- [`class-interface-count (Python)`](rules/python/class-interface-count.md)
+- [`class-min-size (TypeScript)`](rules/typescript/class-min-size.md)
+- [`class-min-size (Python)`](rules/python/class-min-size.md)
+- [`class-reference-info (TypeScript)`](rules/typescript/class-reference-info.md)
+- [`class-reference-info (Python)`](rules/python/class-reference-info.md)
+- [`class-reference-warning (TypeScript)`](rules/typescript/class-reference-warning.md)
+- [`class-reference-warning (Python)`](rules/python/class-reference-warning.md)
+- [`class-size (TypeScript)`](rules/typescript/class-size.md)
+- [`class-size (Python)`](rules/python/class-size.md)
+- [`python-class-method`](rules/python/class-method.md)
+- [`python-data-class-method`](rules/python/data-class-method.md)
+- [`python-abstract-class`](rules/python/abstract-class.md)
+- [`project-type-boundary (TypeScript)`](rules/typescript/project-type-boundary.md)
+- [`project-type-boundary (Python)`](rules/python/project-type-boundary.md)
+- [`complex-constructor (TypeScript)`](rules/typescript/complex-constructor.md)
+- [`complex-constructor (Python)`](rules/python/complex-constructor.md)
+- [`field-in-constructor (TypeScript)`](rules/typescript/field-in-constructor.md)
+- [`field-in-constructor (Python)`](rules/python/field-in-constructor.md)
+- [`complex-default-parameter (TypeScript)`](rules/typescript/complex-default-parameter.md)
+- [`complex-default-parameter (Python)`](rules/python/complex-default-parameter.md)
+- [`cyrillic-comment (TypeScript)`](rules/typescript/cyrillic-comment.md)
+- [`cyrillic-comment (Python)`](rules/python/cyrillic-comment.md)
+- [`composition-depth (TypeScript)`](rules/typescript/composition-depth.md)
+- [`composition-depth (Python)`](rules/python/composition-depth.md)
+- [`conditional-execution (TypeScript)`](rules/typescript/conditional-execution.md)
+- [`conditional-execution (Python)`](rules/python/conditional-execution.md)
+- [`early-return (TypeScript)`](rules/typescript/early-return.md)
+- [`early-return (Python)`](rules/python/early-return.md)
+- [`typescript-console-in-test`](rules/typescript/console-in-test.md)
+- [`typescript-console-mock-in-test`](rules/typescript/console-mock-in-test.md)
+- [`constants-file-content (TypeScript)`](rules/typescript/constants-file-content.md)
+- [`constants-file-content (Python)`](rules/python/constants-file-content.md)
+- [`contract-fields (TypeScript)`](rules/typescript/contract-fields.md)
+- [`contract-fields (Python)`](rules/python/contract-fields.md)
+- [`typescript-dictionary-return`](rules/typescript/dictionary-return.md)
+- [`python-direct-class-init`](rules/python/direct-class-init.md)
+- [`directory-class-min-size`](rules/directory-class-min-size.md)
+- [`directory-class-max-size`](rules/directory-class-max-size.md)
+- [`directory-min-size`](rules/directory-min-size.md)
+- [`ai-code-guard-directory-ignored`](rules/ai-code-guard-directory-ignored.md)
+- [`directory-max-size`](rules/directory-max-size.md)
+- [`directory-max-source-subdirectories`](rules/directory-max-source-subdirectories.md)
+- [`dynamic-import (TypeScript)`](rules/typescript/dynamic-import.md)
+- [`dynamic-import (Python)`](rules/python/dynamic-import.md)
+- [`typescript-dynamic-runtime-usage`](rules/typescript/dynamic-runtime-usage.md)
+- [`dynamic-type (TypeScript)`](rules/typescript/dynamic-type.md)
+- [`dynamic-type (Python)`](rules/python/dynamic-type.md)
+- [`empty-contract (TypeScript)`](rules/typescript/empty-contract.md)
+- [`empty-contract (Python)`](rules/python/empty-contract.md)
+- [`exception-grouping (TypeScript)`](rules/typescript/exception-grouping.md)
+- [`exception-grouping (Python)`](rules/python/exception-grouping.md)
+- [`exception-raising (TypeScript)`](rules/typescript/exception-raising.md)
+- [`exception-raising (Python)`](rules/python/exception-raising.md)
+- [`typescript-explicit-visibility`](rules/typescript/explicit-visibility.md)
+- [`facade-file-content (TypeScript)`](rules/typescript/facade-file-content.md)
+- [`facade-file-content (Python)`](rules/python/facade-file-content.md)
+- [`typescript-fake-object`](rules/typescript/fake-object.md)
+- [`functions-file-type-declaration (TypeScript)`](rules/typescript/functions-file-type-declaration.md)
+- [`functions-file-type-declaration (Python)`](rules/python/functions-file-type-declaration.md)
+- [`file-max-size (TypeScript)`](rules/typescript/file-max-size.md)
+- [`file-max-size (Python)`](rules/python/file-max-size.md)
+- [`file-min-size (TypeScript)`](rules/typescript/file-min-size.md)
+- [`file-min-size (Python)`](rules/python/file-min-size.md)
+- [`function-placement (TypeScript)`](rules/typescript/function-placement.md)
+- [`function-placement (Python)`](rules/python/function-placement.md)
+- [`cli-file-function-count (TypeScript)`](rules/typescript/cli-file-function-count.md)
+- [`cli-file-function-count (Python)`](rules/python/cli-file-function-count.md)
+- [`functions-file-domain-class (TypeScript)`](rules/typescript/functions-file-domain-class.md)
+- [`functions-file-domain-class (Python)`](rules/python/functions-file-domain-class.md)
+- [`getattr (TypeScript)`](rules/typescript/getattr.md)
+- [`getattr (Python)`](rules/python/getattr.md)
+- [`inline-generic-type (TypeScript)`](rules/typescript/inline-generic-type.md)
+- [`inline-generic-type (Python)`](rules/python/inline-generic-type.md)
+- [`nested-generic-type (TypeScript)`](rules/typescript/nested-generic-type.md)
+- [`nested-generic-type (Python)`](rules/python/nested-generic-type.md)
+- [`public-state-exposure (TypeScript)`](rules/typescript/public-state-exposure.md)
+- [`public-state-exposure (Python)`](rules/python/public-state-exposure.md)
+- [`test-duplicate-setup (TypeScript)`](rules/typescript/test-duplicate-setup.md)
+- [`test-duplicate-setup (Python)`](rules/python/test-duplicate-setup.md)
+- [`repeated-literal (TypeScript)`](rules/typescript/repeated-literal.md)
+- [`repeated-literal (Python)`](rules/python/repeated-literal.md)
+- [`literal-constant-reuse (TypeScript)`](rules/typescript/literal-constant-reuse.md)
+- [`literal-constant-reuse (Python)`](rules/python/literal-constant-reuse.md)
+- [`typescript-inline-object-type`](rules/typescript/inline-object-type.md)
+- [`typescript-inline-union-type`](rules/typescript/inline-union-type.md)
+- [`typescript-instanceof`](rules/typescript/instanceof.md)
+- [`typescript-interface-shape`](rules/typescript/interface-shape.md)
+- [`typescript-index-signature`](rules/typescript/index-signature.md)
+- [`python-isinstance`](rules/python/isinstance.md)
+- [`typescript-jest-describe-count`](rules/typescript/jest-describe-count.md)
+- [`typescript-jest-max-size`](rules/typescript/jest-max-size.md)
+- [`typescript-jest-min-size`](rules/typescript/jest-min-size.md)
+- [`typescript-jest-nested-describe`](rules/typescript/jest-nested-describe.md)
+- [`test-min-count (TypeScript)`](rules/typescript/test-min-count.md)
+- [`test-min-count (Python)`](rules/python/test-min-count.md)
+- [`test-max-count (TypeScript)`](rules/typescript/test-max-count.md)
+- [`test-max-count (Python)`](rules/python/test-max-count.md)
+- [`typescript-jest-test-ending`](rules/typescript/jest-test-ending.md)
+- [`typescript-jest-test-expect`](rules/typescript/jest-test-expect.md)
+- [`typescript-jest-test-lambda`](rules/typescript/jest-test-lambda.md)
+- [`typescript-jest-type-only-test`](rules/typescript/jest-type-only-test.md)
+- [`large-union (TypeScript)`](rules/typescript/large-union.md)
+- [`large-union (Python)`](rules/python/large-union.md)
+- [`late-import (TypeScript)`](rules/typescript/late-import.md)
+- [`late-import (Python)`](rules/python/late-import.md)
+- [`local-inheritance (TypeScript)`](rules/typescript/local-inheritance.md)
+- [`local-inheritance (Python)`](rules/python/local-inheritance.md)
+- [`typescript-logical-assignment`](rules/typescript/logical-assignment.md)
+- [`typescript-in-operator`](rules/typescript/in-operator.md)
+- [`method-order-constructor-after (TypeScript)`](rules/typescript/method-order-constructor-after.md)
+- [`method-order-constructor-after (Python)`](rules/python/method-order-constructor-after.md)
+- [`method-order-constructor-before (TypeScript)`](rules/typescript/method-order-constructor-before.md)
+- [`method-order-constructor-before (Python)`](rules/python/method-order-constructor-before.md)
+- [`method-order-public (TypeScript)`](rules/typescript/method-order-public.md)
+- [`method-order-public (Python)`](rules/python/method-order-public.md)
+- [`method-get-name (TypeScript)`](rules/typescript/method-get-name.md)
+- [`method-get-name (Python)`](rules/python/method-get-name.md)
+- [`method-find-fetch-lookup-name (TypeScript)`](rules/typescript/method-find-fetch-lookup-name.md)
+- [`method-find-fetch-lookup-name (Python)`](rules/python/method-find-fetch-lookup-name.md)
+- [`method-load-read-open-name (TypeScript)`](rules/typescript/method-load-read-open-name.md)
+- [`method-load-read-open-name (Python)`](rules/python/method-load-read-open-name.md)
+- [`method-calculate-compute-name (TypeScript)`](rules/typescript/method-calculate-compute-name.md)
+- [`method-calculate-compute-name (Python)`](rules/python/method-calculate-compute-name.md)
+- [`method-create-build-generate-name (TypeScript)`](rules/typescript/method-create-build-generate-name.md)
+- [`method-create-build-generate-name (Python)`](rules/python/method-create-build-generate-name.md)
+- [`method-parse-convert-transform-name (TypeScript)`](rules/typescript/method-parse-convert-transform-name.md)
+- [`method-parse-convert-transform-name (Python)`](rules/python/method-parse-convert-transform-name.md)
+- [`method-set-name (TypeScript)`](rules/typescript/method-set-name.md)
+- [`method-set-name (Python)`](rules/python/method-set-name.md)
+- [`method-process-name (TypeScript)`](rules/typescript/method-process-name.md)
+- [`method-process-name (Python)`](rules/python/method-process-name.md)
+- [`method-handle-name (TypeScript)`](rules/typescript/method-handle-name.md)
+- [`method-handle-name (Python)`](rules/python/method-handle-name.md)
+- [`method-execute-perform-do-name (TypeScript)`](rules/typescript/method-execute-perform-do-name.md)
+- [`method-execute-perform-do-name (Python)`](rules/python/method-execute-perform-do-name.md)
+- [`method-and-name (TypeScript)`](rules/typescript/method-and-name.md)
+- [`method-and-name (Python)`](rules/python/method-and-name.md)
+- [`method-long-name (TypeScript)`](rules/typescript/method-long-name.md)
+- [`method-long-name (Python)`](rules/python/method-long-name.md)
+- [`boolean-is-name (TypeScript)`](rules/typescript/boolean-is-name.md)
+- [`boolean-is-name (Python)`](rules/python/boolean-is-name.md)
+- [`boolean-exists-name (TypeScript)`](rules/typescript/boolean-exists-name.md)
+- [`boolean-exists-name (Python)`](rules/python/boolean-exists-name.md)
+- [`boolean-equals-name (TypeScript)`](rules/typescript/boolean-equals-name.md)
+- [`boolean-equals-name (Python)`](rules/python/boolean-equals-name.md)
+- [`boolean-has-can-name (TypeScript)`](rules/typescript/boolean-has-can-name.md)
+- [`boolean-has-can-name (Python)`](rules/python/boolean-has-can-name.md)
+- [`missing-import (TypeScript)`](rules/typescript/missing-import.md)
+- [`missing-import (Python)`](rules/python/missing-import.md)
+- [`mixed-module (TypeScript)`](rules/typescript/mixed-module.md)
+- [`mixed-module (Python)`](rules/python/mixed-module.md)
+- [`mixin (TypeScript)`](rules/typescript/mixin.md)
+- [`mixin (Python)`](rules/python/mixin.md)
+- [`module-constants-separation (TypeScript)`](rules/typescript/module-constants-separation.md)
+- [`module-constants-separation (Python)`](rules/python/module-constants-separation.md)
+- [`module-types-separation (TypeScript)`](rules/typescript/module-types-separation.md)
+- [`module-types-separation (Python)`](rules/python/module-types-separation.md)
+- [`module-protocols-separation (TypeScript)`](rules/typescript/module-protocols-separation.md)
+- [`module-protocols-separation (Python)`](rules/python/module-protocols-separation.md)
+- [`module-placement (TypeScript)`](rules/typescript/module-placement.md)
+- [`module-placement (Python)`](rules/python/module-placement.md)
+- [`python-multi-except`](rules/python/multi-except.md)
+- [`multiple-result-shapes (TypeScript)`](rules/typescript/multiple-result-shapes.md)
+- [`multiple-result-shapes (Python)`](rules/python/multiple-result-shapes.md)
+- [`mutable-field-assignment (TypeScript)`](rules/typescript/mutable-field-assignment.md)
+- [`mutable-field-assignment (Python)`](rules/python/mutable-field-assignment.md)
+- [`typescript-mutable-field`](rules/typescript/mutable-field.md)
+- [`naming (TypeScript)`](rules/typescript/naming.md)
+- [`naming (Python)`](rules/python/naming.md)
+- [`numeric-name (TypeScript)`](rules/typescript/numeric-name.md)
+- [`numeric-name (Python)`](rules/python/numeric-name.md)
+- [`naming-private (TypeScript)`](rules/typescript/naming-private.md)
+- [`naming-private (Python)`](rules/python/naming-private.md)
+- [`naming-type (TypeScript)`](rules/typescript/naming-type.md)
+- [`naming-type (Python)`](rules/python/naming-type.md)
+- [`typescript-module-constant-case`](rules/typescript/module-constant-case.md)
+- [`typescript-module-variable`](rules/typescript/module-variable.md)
+- [`nested-class (TypeScript)`](rules/typescript/nested-class.md)
+- [`nested-class (Python)`](rules/python/nested-class.md)
+- [`nested-type (TypeScript)`](rules/typescript/nested-type.md)
+- [`nested-type (Python)`](rules/python/nested-type.md)
+- [`typescript-namespace-file`](rules/typescript/namespace-file.md)
+- [`nested-import (TypeScript)`](rules/typescript/nested-import.md)
+- [`nested-import (Python)`](rules/python/nested-import.md)
+- [`nullable-domain-type (TypeScript)`](rules/typescript/nullable-domain-type.md)
+- [`nullable-domain-type (Python)`](rules/python/nullable-domain-type.md)
+- [`single-item-array-state (TypeScript)`](rules/typescript/single-item-array-state.md)
+- [`single-item-array-state (Python)`](rules/python/single-item-array-state.md)
+- [`typescript-union-contract-bypass`](rules/typescript/union-contract-bypass.md)
+- [`typescript-rest-union-contract`](rules/typescript/rest-union-contract.md)
+- [`typescript-object-assign`](rules/typescript/object-assign.md)
+- [`typescript-object-literal-return`](rules/typescript/object-literal-return.md)
+- [`typescript-object-method-call`](rules/typescript/object-method-call.md)
+- [`typescript-object-prototype-string`](rules/typescript/object-prototype-string.md)
+- [`python-object-setattr`](rules/python/object-setattr.md)
+- [`python-optional-union`](rules/python/optional-union.md)
+- [`python-conditional-type-alias`](rules/python/conditional-type-alias.md)
+- [`typescript-parameter-property`](rules/typescript/parameter-property.md)
+- [`parse-error (TypeScript)`](rules/typescript/parse-error.md)
+- [`parse-error (Python)`](rules/python/parse-error.md)
+- [`pointless-assignment (TypeScript)`](rules/typescript/pointless-assignment.md)
+- [`pointless-assignment (Python)`](rules/python/pointless-assignment.md)
+- [`private-member (TypeScript)`](rules/typescript/private-member.md)
+- [`private-member (Python)`](rules/python/private-member.md)
+- [`procedural-class-name (TypeScript)`](rules/typescript/procedural-class-name.md)
+- [`procedural-class-name (Python)`](rules/python/procedural-class-name.md)
+- [`python-property`](rules/python/property.md)
+- [`python-property-setter`](rules/python/property-setter.md)
+- [`python-protocol-grouping`](rules/python/protocol-grouping.md)
+- [`typescript-prototype-assignment`](rules/typescript/prototype-assignment.md)
+- [`proxy-callable (TypeScript)`](rules/typescript/proxy-callable.md)
+- [`proxy-callable (Python)`](rules/python/proxy-callable.md)
+- [`proxy-lambda (TypeScript)`](rules/typescript/proxy-lambda.md)
+- [`proxy-lambda (Python)`](rules/python/proxy-lambda.md)
+- [`python-elif`](rules/python/elif.md)
+- [`python-explicit-field-type`](rules/python/explicit-field-type.md)
+- [`python-explicit-parameter-type`](rules/python/explicit-parameter-type.md)
+- [`explicit-return-type (TypeScript)`](rules/typescript/explicit-return-type.md)
+- [`explicit-return-type (Python)`](rules/python/explicit-return-type.md)
+- [`logical-chain-size (TypeScript)`](rules/typescript/logical-chain-size.md)
+- [`logical-chain-size (Python)`](rules/python/logical-chain-size.md)
+- [`mixed-boolean-precedence (TypeScript)`](rules/typescript/mixed-boolean-precedence.md)
+- [`mixed-boolean-precedence (Python)`](rules/python/mixed-boolean-precedence.md)
+- [`mixed-arithmetic-precedence (TypeScript)`](rules/typescript/mixed-arithmetic-precedence.md)
+- [`mixed-arithmetic-precedence (Python)`](rules/python/mixed-arithmetic-precedence.md)
+- [`python-test-assert`](rules/python/test-assert.md)
+- [`python-test-assert-ending`](rules/python/test-assert-ending.md)
+- [`python-test-assertion-alias`](rules/python/test-assertion-alias.md)
+- [`python-test-assert-statement`](rules/python/test-assert-statement.md)
+- [`python-test-shape`](rules/python/test-shape.md)
+- [`python-test-subtest`](rules/python/test-subtest.md)
+- [`python-test-class-inheritance`](rules/python/test-class-inheritance.md)
+- [`python-test-framework-consistency`](rules/python/test-framework-consistency.md)
+- [`python-assignment-expression`](rules/python/assignment-expression.md)
+- [`reexports (TypeScript)`](rules/typescript/reexports.md)
+- [`reexports (Python)`](rules/python/reexports.md)
+- [`relative-import (TypeScript)`](rules/typescript/relative-import.md)
+- [`relative-import (Python)`](rules/python/relative-import.md)
+- [`setattr (TypeScript)`](rules/typescript/setattr.md)
+- [`setattr (Python)`](rules/python/setattr.md)
+- [`shared-parameter-combination (TypeScript)`](rules/typescript/shared-parameter-combination.md)
+- [`shared-parameter-combination (Python)`](rules/python/shared-parameter-combination.md)
+- [`shared-parameter-type (TypeScript)`](rules/typescript/shared-parameter-type.md)
+- [`shared-parameter-type (Python)`](rules/python/shared-parameter-type.md)
+- [`singleton (TypeScript)`](rules/typescript/singleton.md)
+- [`singleton (Python)`](rules/python/singleton.md)
+- [`stateless-class (TypeScript)`](rules/typescript/stateless-class.md)
+- [`stateless-class (Python)`](rules/python/stateless-class.md)
+- [`typescript-static-method`](rules/typescript/static-method.md)
+- [`typescript-static-field`](rules/typescript/static-field.md)
+- [`python-static-method`](rules/python/static-method.md)
+- [`python-sys-path-mutation`](rules/python/sys-path-mutation.md)
+- [`temporary-result-access (TypeScript)`](rules/typescript/temporary-result-access.md)
+- [`temporary-result-access (Python)`](rules/python/temporary-result-access.md)
+- [`ternary-expression (TypeScript)`](rules/typescript/ternary-expression.md)
+- [`ternary-expression (Python)`](rules/python/ternary-expression.md)
+- [`test-assertion-grouping (TypeScript)`](rules/typescript/test-assertion-grouping.md)
+- [`test-assertion-grouping (Python)`](rules/python/test-assertion-grouping.md)
+- [`test-file-location (TypeScript)`](rules/typescript/test-file-location.md)
+- [`test-file-location (Python)`](rules/python/test-file-location.md)
+- [`test-file-organization (TypeScript)`](rules/typescript/test-file-organization.md)
+- [`test-file-organization (Python)`](rules/python/test-file-organization.md)
+- [`test-targets (TypeScript)`](rules/typescript/test-targets.md)
+- [`test-targets (Python)`](rules/python/test-targets.md)
+- [`production-test-import (TypeScript)`](rules/typescript/production-test-import.md)
+- [`production-test-import (Python)`](rules/python/production-test-import.md)
+- [`test-too-many-assertions (TypeScript)`](rules/typescript/test-too-many-assertions.md)
+- [`test-too-many-assertions (Python)`](rules/python/test-too-many-assertions.md)
+- [`typescript-type-guard`](rules/typescript/type-guard.md)
+- [`top-level-classes (TypeScript)`](rules/typescript/top-level-classes.md)
+- [`top-level-classes (Python)`](rules/python/top-level-classes.md)
+- [`tuple-type (TypeScript)`](rules/typescript/tuple-type.md)
+- [`tuple-type (Python)`](rules/python/tuple-type.md)
+- [`python-type-factory`](rules/python/type-factory.md)
+- [`type-field-count (TypeScript)`](rules/typescript/type-field-count.md)
+- [`type-field-count (Python)`](rules/python/type-field-count.md)
+- [`type-info (TypeScript)`](rules/typescript/type-info.md)
+- [`type-info (Python)`](rules/python/type-info.md)
+- [`typescript-type-operation`](rules/typescript/type-operation.md)
+- [`typescript-type-assertion`](rules/typescript/type-assertion.md)
+- [`type-warning (TypeScript)`](rules/typescript/type-warning.md)
+- [`type-warning (Python)`](rules/python/type-warning.md)
+- [`unnecessary-undefined-check (TypeScript)`](rules/typescript/unnecessary-undefined-check.md)
+- [`unnecessary-undefined-check (Python)`](rules/python/unnecessary-undefined-check.md)
+- [`typescript-typeof`](rules/typescript/typeof.md)
+- [`typescript-unknown-parameter-type`](rules/typescript/unknown-parameter-type.md)
+- [`typescript-conditional-block`](rules/typescript/conditional-block.md)
+- [`test-only-usage (TypeScript)`](rules/typescript/test-only-usage.md)
+- [`test-only-usage (Python)`](rules/python/test-only-usage.md)
+- [`unused-callable (TypeScript)`](rules/typescript/unused-callable.md)
+- [`unused-callable (Python)`](rules/python/unused-callable.md)
+- [`unused-class (TypeScript)`](rules/typescript/unused-class.md)
+- [`unused-class (Python)`](rules/python/unused-class.md)
+- [`unused-constant (TypeScript)`](rules/typescript/unused-constant.md)
+- [`unused-constant (Python)`](rules/python/unused-constant.md)
+- [`unused-file (TypeScript)`](rules/typescript/unused-file.md)
+- [`unused-file (Python)`](rules/python/unused-file.md)
+- [`unused-module-variable (TypeScript)`](rules/typescript/unused-module-variable.md)
+- [`unused-module-variable (Python)`](rules/python/unused-module-variable.md)
+- [`unused-public-field (TypeScript)`](rules/typescript/unused-public-field.md)
+- [`unused-public-field (Python)`](rules/python/unused-public-field.md)
+- [`unused-type (TypeScript)`](rules/typescript/unused-type.md)
+- [`unused-type (Python)`](rules/python/unused-type.md)
+
+Diagnostics contain only the short rule ID, source location, rendered message, and a
+short actionable hint. Reference documents are printed as absolute paths in a final list after
+the diagnostic summary.
+
+## Method-contract guidance
+
+Method names should describe the domain contract visible to callers. Keep
+queries, commands, and construction operations distinct. A public method that
+returns a domain value should make that result clear; `find` may communicate
+optional absence while `require` may communicate that absence is an error.
+Commands normally return `void`/`None` unless the returned value is meaningful
+to the state transition. `create_`, `build_`, and `generate_` are appropriate
+when a method really creates a new value; construction should not hide an
+unrelated side effect.
+
+Boolean query names should read naturally as predicates or adjectives. Prefer
+`empty()` to `is_empty()`, `present()` to `exists()`, and `accessible()` to
+`has_access()` when those names accurately express the contract. Keep an
+equality-protocol name when the language requires it; do not invent an awkward
+adjective just to avoid a naming diagnostic.
+
+The method-name rules are review signals. A technical name can be correct at
+an I/O, parser, serializer, adapter, or dispatcher boundary, and a longer
+atomic domain operation can be correct. A common verb alone is not proof that
+a method is semantically wrong.
+
+## Guidance for rule documents
+
+Keep each rule document short and generic. Explain the design risk, show the smallest valid
+counterexample, then list refactoring options from the strongest ownership improvement to the
+smallest safe change. State important detection boundaries, such as declarations that are already
+valid or types that belong to an external boundary. Never recommend renaming, aliases, wrappers,
+or exclusions solely to silence a diagnostic. When a proposed fix is not appropriate after a
+caller and ownership review, record that decision outside the rule document rather than weakening
+the rule's guidance.
+
+## AST and test policy
+
+The linter reports mandatory violations only when the AST can prove them. It
+may use the method name, declared return type, visibility, and syntactic shape
+for review diagnostics, but it must not infer domain meaning from a method
+verb. The rules apply to project code and tests, including ordinary modules,
+protocol declarations, `types`, `constants`, and `index` files. These files do
+not receive language-specific exemptions; ordinary declarations in them are
+checked normally.
+
+Every mandatory rule needs positive and negative tests. Tests must verify real
+behavior or returned values, not merely the presence of methods or fields.
+Shared method-shape rules require TypeScript and Python regression coverage;
+the three Python annotation rules require Python coverage.

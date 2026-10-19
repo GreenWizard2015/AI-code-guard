@@ -39,19 +39,14 @@ export const DIRECT_CASES: DirectCase[] = [
 		python: "value = ready and load()",
 	},
 	{
-		rule_id: "switch",
-		typescript: 'switch (value) { case "a": break; default: break; }',
-		python: 'match value:\n    case "a":\n        pass\n    case _:\n        pass',
-	},
-	{
 		rule_id: "complex-default-parameter",
 		typescript: "function read(value = new Reader()): void {}",
 		python: "def read(value=Reader()):\n    pass",
 	},
 	{
-		rule_id: "temporary-instance-method-call",
-		typescript: "function read(): Value { return new Reader().read(); }",
-		python: "def read():\n    return Reader().read()",
+		rule_id: "temporary-result-access",
+		typescript: "function read(): Value { return create_values()[0]; }",
+		python: "def read():\n    return create_values()[0]",
 	},
 	{
 		rule_id: "single-item-array-state",
@@ -70,7 +65,7 @@ export const DIRECT_CASES: DirectCase[] = [
 			"class Reader:\n    def __init__(self):\n        self.value = 1\n    def set(self):\n        self.value = 2",
 	},
 	{
-		rule_id: "python-callable",
+		rule_id: "callable-feature-detection",
 		typescript: 'function execute(service: Service): void { if (typeof service.run !== "function") { fallback(); } }',
 		python: "def execute(service: Service) -> None:\n    if not callable(service.run):\n        fallback()",
 	},
@@ -106,6 +101,23 @@ export const ARCHITECTURE_CASES: DirectCase[] = [
 		rule_id: "inline-generic-type",
 		typescript: "function read(value: Promise<{ id: string }>): void {}",
 		python: 'def read(value: list[dict[str, str]]) -> str:\n    return ""',
+	},
+	{
+		rule_id: "nested-generic-type",
+		typescript: "function read(value: Promise<Array<Result>>): void {}",
+		python: "def read(value: list[dict[str, str]]) -> None:\n    return None",
+	},
+	{
+		rule_id: "public-state-exposure",
+		typescript: "class Registry { public items: Map<string, Item>; }",
+		python: "class Registry:\n    items: dict[str, Item]\n\n    def read(self) -> None:\n        return None",
+	},
+	{
+		rule_id: "repeated-literal",
+		typescript:
+			'function report(): void { write("connection is unavailable"); log("connection is unavailable"); throw new Error("connection is unavailable"); }',
+		python:
+			'def report() -> None:\n    write("connection is unavailable")\n    log("connection is unavailable")\n    raise RuntimeError("connection is unavailable")',
 	},
 	{
 		rule_id: "local-inheritance",

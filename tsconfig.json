@@ -1,20 +1,25 @@
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "lib": ["ES2021"],
-    "strict": true,
-    "noEmit": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "isolatedModules": true,
-    "types": ["node", "jest"],
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "include": ["src/**/*", "test-runner/**/*", "tests/**/*"]
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"baseUrl": ".",
+		"paths": {
+			"external/*": ["external/*"],
+			"src/*": ["src/*"],
+			"documentation_validation/*": ["documentation_validation/*"]
+		},
+		"lib": ["ES2021"],
+		"strict": true,
+		"noEmit": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"isolatedModules": true,
+		"types": ["node", "jest"],
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true
+	},
+	"include": ["documentation_validation/**/*", "src/**/*", "scripts/**/*.ts", "test-runner/**/*", "tests/**/*"]
 }

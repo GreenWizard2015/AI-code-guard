@@ -8,8 +8,8 @@ description: Measure and optimize linter and test-runner performance while prese
 Use this skill when improving the linter, its Python bridge, or fixture-test
 execution. Prioritize linter execution speed; improve test-runner speed after
 the production lint path or when test overhead directly affects lint
-development. Both paths must retain exactly the same diagnostics, ordering
-where observable, and exit behavior.
+development. Both paths must retain exactly the same diagnostic multiset and
+exit behavior; diagnostic ordering is not significant.
 
 ## Required target argument
 
@@ -23,6 +23,63 @@ $linter-performance /absolute/path/to/target-project
 The target is the codebase being analyzed. The linter workspace is the project
 where the implementation is changed. Do not modify the target project unless
 the user explicitly asks for it.
+
+All persistent Markdown output created by this skill must be under the linter
+workspace's `.ai-code-guard/` directory. This includes the performance log,
+timing snapshots, and experiment reports. Do not create Markdown logs in the
+workspace root, the target project root, or the skill directory. The skill's
+own `SKILL.md` is instruction text and is the only intentional exception.
+
+## Measurement helper
+
+Use the bundled helper when a repeatable run measurement is needed:
+
+```bash
+.codex/skills/linter-performance/measure-runs.sh \
+  --target /absolute/path/to/target-project \
+  --clear-cache
+```
+
+The helper resolves its own linter workspace from the script path, so it does
+not depend on the caller's current directory. `--target` is required and must
+be an existing absolute directory. Without `--clear-cache`, it removes the old
+known cache and measures one run. `--clear-cache` selects cold-run mode: it
+removes the complete `<target>/.ai-code-guard/cache/` directory before the
+measured run. It does not remove reports,
+issues, rules, review files, or source files. `--runs N` changes the default
+three comparable runs. The helper always passes `--policy all --batch-size
+10000` and does not select a review agent, so architecture review is skipped.
+The linter writes detailed stage timings to
+`.ai-code-guard/performance.md`; the helper snapshots that file for every run
+under the linter workspace's `.ai-code-guard/performance-runs/` directory and
+prints only total wall time and consistency data. It verifies that all measured
+runs have the same exit code, issue/file totals, and order-insensitive hashes
+of every diagnostic's file, line, message, hint, rule ID, and priority from the
+complete cached lint result. It fails consistency checking if that full result
+is unavailable; prioritized `issues.md` and `report.md` are not complete
+diagnostic evidence.
+When an experiment changes the Python bridge or Python analysis code, invoke the
+helper with `--runs 8` instead of the default three runs. Keep three runs for
+experiments that are strictly TypeScript or measurement-only.
+The helper prints average and median wall times.
+The helper returns the first non-zero linter exit code after all requested runs
+finish, or `2` when measured runs are inconsistent, while still printing every
+individual `RUN_*_EXIT` value.
+
+## Required webmcp-userscripts run
+
+When the target is
+`/home/anton/Documents/Development/personal-assistant/webmcp-userscripts`, use
+the exact full-project command below:
+
+```text
+ai-code-guard --root /home/anton/Documents/Development/personal-assistant/webmcp-userscripts --policy all --batch-size 10000
+```
+
+The run must omit a review-agent selection, select all policy problems, and use
+a batch size of 10000. Evaluate optimization by total wall time and total
+problems/files for the complete run. Individual batch or stage timings are
+supporting evidence only and must not replace the total comparison.
 
 ## Baseline first
 
@@ -45,8 +102,9 @@ Follow this algorithm in order; do not jump directly to a code change:
 1. Validate the target path and record the exact command, configuration, file
    scope, ignored paths, fixture set, and environment relevant to timing.
 2. Run and record the baseline before changing implementation code. Capture at
-   least three comparable runs when startup noise is material; use the median
-   and retain every individual result.
+   least three comparable runs when startup noise is material, or eight when the
+   experiment changes Python bridge or Python analysis code; use the median and
+   retain every individual result.
 3. Map the execution pipeline and its data flow: discovery, parsing, bridge
    startup, normalization, per-file rules, global rules, serialization, and
    reporting. Identify the actual hot stages from measurements.
@@ -71,8 +129,9 @@ low-overhead diagnostic feature covered by tests. Never infer a hotspot from
 source inspection alone when a targeted measurement can settle it.
 
 Every attempt, including a failed, rejected, unchanged, or zero-improvement
-attempt, must be appended to `linter-performance-log.md` in the linter
-workspace. Never replace earlier entries. Use this minimum record:
+attempt, must be appended to
+`.ai-code-guard/linter-performance-log.md` in the linter workspace. Never
+replace earlier entries. Use this minimum record:
 
 ```text
 attempt=<monotonic number>
@@ -89,7 +148,8 @@ reason=<evidence and next hypothesis>
 
 The log must include the agent's guesses, the evidence that confirmed or
 disproved them, and the next step. A claim such as “the cache should be faster”
-is not sufficient without measurements.
+is not sufficient without measurements. Keep the log in `.ai-code-guard`; do
+not create a second copy in the repository root.
 
 ## Mandatory optimization attempts
 
@@ -129,8 +189,7 @@ the semantics allow it) over a local constant-factor change. Any claimed
 complexity improvement must be backed by stage timings on the normal target
 and, when in scope, fixture tests. Report linter and test-runner timings
 separately; a test speedup never compensates for a linter regression. Keep a
-change only if the full diagnostic fingerprint, ordering where observable,
-parse-error behavior, bridge contract,
+change only if the full diagnostic multiset fingerprint, parse-error behavior, bridge contract,
 and exit status remain identical.
 
 ## Python bridge contract
@@ -184,7 +243,20 @@ correctness regression before measuring again.
 Do not treat one faster run as evidence of an improvement. Compare repeated
 runs with the same scope, report the median (and the individual runs), and
 explain startup variance. A performance experiment is incomplete until its
-entry has been written to `linter-performance-log.md`.
+entry has been written to `.ai-code-guard/linter-performance-log.md`.
+
+Use the median timing criterion when accepting a faster experiment: after
+diagnostics and tests pass, accept the new experiment only if its median full
+run is lower than the median of the best accepted experiment. Report minimum
+and maximum values to expose noise, but do not make the decision from the
+average, minimum, or maximum alone.
+
+When an experiment is accepted, immediately promote its measurements to the
+new baseline in `.ai-code-guard/linter-performance-log.md` and stage only the candidate's
+implementation, regression tests, and performance record with `git add`. Do
+not stage unrelated user changes already present in the worktree. The accepted
+log entry must name the new baseline median and the staged paths; a rejected or
+control experiment must never stage code.
 
 ## Verification
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Linter Bypass Audit"
   short_description: "Find and close realistic linter bypasses"
-  default_prompt: "Use $find-bypass to audit /absolute/path/to/target-project for realistic linter bypasses."
+  default_prompt: "Use $find-bypass to audit /absolute/path/to/target-project for realistic linter bypasses. Do not select a review agent for linter invocations, so the local skill does not start a nested architecture review."

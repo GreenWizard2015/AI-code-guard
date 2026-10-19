@@ -1,0 +1,70 @@
+import ts from "typescript";
+import type { TypeScriptTypeAliasesContract } from "src/protocols";
+
+/** Responsibilities: _local type alias collection_, _alias name resolution_. **/
+export class TypeScriptTypeAliases implements TypeScriptTypeAliasesContract {
+	private readonly aliases: Map<string, string>;
+	private readonly keyword_type_kinds: Set<ts.SyntaxKind>;
+
+	/** Responsibilities: _resolution type alias target_. **/
+	private alias_target(statement: ts.Statement, source_file: ts.SourceFile): string {
+		if (!ts.isTypeAliasDeclaration(statement)) {
+			return "";
+		}
+		if (ts.isTypeReferenceNode(statement.type) || this.keyword_type_kinds.has(statement.type.kind)) {
+			return statement.type.getText(source_file);
+		}
+		if (ts.isArrayTypeNode(statement.type)) {
+			return statement.type.getText(source_file);
+		}
+		if (!ts.isTypeOperatorNode(statement.type)) {
+			return "";
+		}
+		if (statement.type.operator === ts.SyntaxKind.ReadonlyKeyword) {
+			return statement.type.getText(source_file);
+		}
+		return "";
+	}
+
+	/** Responsibilities: _collection nested type aliases_. **/
+	private collect_node(node: ts.Node, source_file: ts.SourceFile): void {
+		if (ts.isTypeAliasDeclaration(node)) {
+			const target = this.alias_target(node, source_file);
+			if (target !== "") {
+				this.aliases.set(node.name.text, target);
+			}
+		}
+		node.forEachChild((child) => this.collect_node(child, source_file));
+	}
+
+	/** Responsibilities: _collection aliases from source_. **/
+	/** Responsibilities: _field initialization_. **/
+	constructor() {
+		this.aliases = new Map<string, string>();
+		this.keyword_type_kinds = new Set([
+			ts.SyntaxKind.AnyKeyword,
+			ts.SyntaxKind.UnknownKeyword,
+			ts.SyntaxKind.ObjectKeyword,
+		]);
+	}
+	/** Responsibilities: _public operation_. **/
+	public collect(source_file: ts.SourceFile): void {
+		this.aliases.clear();
+		this.collect_node(source_file, source_file);
+	}
+
+	/** Responsibilities: _resolution aliases transitively_. **/
+	public resolve(name: string): string {
+		let current = name;
+		const visited = new Set<string>();
+		while (!visited.has(current)) {
+			visited.add(current);
+			const target = this.aliases.get(current);
+			if (target === undefined) {
+				return current;
+			}
+			current = target;
+		}
+		return current;
+	}
+}

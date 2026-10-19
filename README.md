@@ -1,0 +1,364 @@
+# AI Code Guard
+
+AI Code Guard is a deliberately strict static linter for TypeScript and Python projects. It is designed to make code ownership, state transitions, module boundaries, and architectural intent explicit. The rules are stricter than standard style guides and are intended for projects where long-term structure and predictable maintenance matter more than minimizing the number of files or abstractions.
+
+The linter analyzes TypeScript with the TypeScript AST and analyzes Python with a dedicated Python `ast` bridge. Diagnostics are emitted with a rule ID, source location, severity, message, hint, and a link to the rule documentation.
+
+## Design goals
+
+AI Code Guard focuses on structural problems that are easy to introduce during fast development or AI-assisted development:
+
+- oversized files, classes, methods, and functions;
+- unclear ownership between classes, modules, and callers;
+- mutable state hidden behind broad helpers or object-shaped namespaces;
+- excessive inheritance, proxy methods, and temporary instances;
+- nullable domain types and overly broad unions;
+- dynamic type construction and reflection-based control flow;
+- misplaced free functions;
+- unsafe or ambiguous test shapes;
+- Python-specific control-flow, import, constructor, and private-access patterns;
+- TypeScript and Python import, reference, symbol, and callable relationships.
+
+The project intentionally favors focused classes, explicit interfaces, small ownership boundaries, and direct data flow. Some rules are opinionated and may be too strict for a conventional application. Treat the rule set as an architectural policy, not as a general-purpose formatter.
+
+## Priority levels
+
+| Priority | General scope |
+| ---: | --- |
+| 8 | Forbidden nested ownership structures, including nested classes and type declarations. |
+| 7 | Critical placement, missing/unused code, and size violations. |
+| 6 | Critical test, type-safety, and architecture violations. |
+| 5 | Type, contract, ownership, and responsibility-boundary violations. |
+| 4 | Import, runtime, proxy, and dynamic-access restrictions. |
+| 3 | Size, complexity, count, and architectural threshold violations. |
+| 2 | Naming, simple control-flow, and low-cost structural conventions. |
+| 1 | Informational counts and usage signals. |
+| 0 | Responsibility wording review. |
+
+
+## Requirements
+
+### System requirements
+
+- Ubuntu or another Linux distribution;
+- Node.js 18 or newer;
+- `pnpm` 8 or newer;
+- Python 3.10 or newer;
+- `python3-venv` when using a virtual environment.
+
+The Python bridge uses only the Python standard library at runtime. Development, tests, and CI checks use the packages listed in [`requirements.txt`](../requirements.txt).
+
+## Installation
+
+Install the JavaScript dependencies from the project root:
+
+```bash
+pnpm install
+```
+
+Create and activate a Python virtual environment, then install the Python requirements:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
+The virtual environment is not required by the bridge itself, but it keeps test and formatting tools isolated from the system Python installation.
+
+## Quick start
+
+Run the linter against the current project directory:
+
+```bash
+pnpm lint
+```
+
+Run the complete test suite:
+
+```bash
+pnpm test:runner
+```
+
+`pnpm test:runner` runs the Python tests first, then the Jest/TypeScript tests, followed by the configured formatters and quality checks.
+
+For the repository test runner, which also installs dependencies and runs the
+available formatters and quality checks, use:
+
+```bash
+pnpm test:runner
+pnpm test:runner -- --headless
+pnpm test:runner -- --skip-quality
+```
+
+Run the checks separately when debugging:
+
+```bash
+pnpm test:runner -- --runInBand
+pnpm type-check
+pnpm lint
+```
+
+Measure TypeScript and Python coverage, including Python bridge processes
+launched by TypeScript:
+
+```bash
+pnpm coverage
+```
+
+The Jest report, Python JSON report, and list of uncovered Python statements
+are written to `coverage/`. The Python HTML report is written to `htmlcov/`.
+Temporary parallel coverage files are also kept in `coverage/`.
+
+Format the supported source files:
+
+```bash
+pnpm format
+```
+
+The formatter commands use the existing project defaults. Formatting and quality checks are part of `pnpm test:runner` unless `--skip-quality` is used.
+
+## CLI usage
+
+The CLI uses the process working directory as the default project root. To lint a different project, pass an absolute root explicitly:
+
+```bash
+pnpm --dir /absolute/path/to/AI-code-guard exec tsx \
+  /absolute/path/to/AI-code-guard/src/core/cli.ts \
+  --root /absolute/path/to/project
+```
+
+Available options:
+
+```text
+--root <path>
+    Project root to scan. Relative paths are resolved from the directory
+    where the command is started.
+
+--ignore-dir <path>
+    Exclude a directory from lint targets. Its source files remain in the
+    production project graph for import resolution and test-target analysis.
+    The option may be repeated.
+
+--entry-file <path>
+    Treat a project-relative file as an entry point. The option may be
+    repeated.
+
+--force-review
+    Start the architecture review even when previous review files are complete
+    and even when lint diagnostics exist. Diagnostics remain reported; this flag
+    only removes them as a prerequisite for starting the review.
+
+--review-agent <codex|claude>
+    Run the selected external architecture-review CLI. If no agent is selected,
+    architecture review is skipped.
+
+--review-stage <boundaries|data-lifecycle|algorithms|tests|abstractions>
+    Run ONLY the selected architecture-review stage. Repeat the option to select multiple stages.
+
+--review-cleanup
+    Enable the cleanup dialogue after architecture-review findings. Cleanup is
+    disabled by default; review findings are retained unless this flag is set.
+
+--batch-size <number>
+    Maximum number of files included in the generated task. The default is 10.
+
+--policy <top-category|all>
+    Select files from the largest top-severity rule category (the default), or
+    include files from all top-severity categories.
+
+```
+
+Examples:
+
+```bash
+pnpm --dir /absolute/path/to/AI-code-guard exec tsx \
+  /absolute/path/to/AI-code-guard/src/core/cli.ts \
+  --root /absolute/path/to/my-project \
+  --review-agent codex \
+  --ignore-dir generated \
+  --ignore-dir vendor \
+  --entry-file src/main.ts
+```
+
+The CLI also recognizes common entry points automatically:
+
+- TypeScript/TSX files beginning with `#!/usr/bin/env node`;
+- Python files with a `if __name__ == "__main__":` guard;
+- Python package `__init__.py` files;
+- exact root `functions.ts`, `functions.tsx`, and `functions.py` files;
+- test and spec files.
+
+## Ubuntu shortcut: `ai-code-guard` from any directory
+
+The repository includes [`setup-ubuntu-bash.sh`](../setup-ubuntu-bash.sh), which installs the project dependencies and configures the global Bash function automatically. Run it once from the checkout:
+
+```bash
+chmod +x /absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
+/absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
+source ~/.bashrc
+```
+
+The script creates `.venv`, installs [`requirements.txt`](../requirements.txt), installs the Node dependencies, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
+
+The shortcut uses absolute paths for the linter installation and passes the directory where the command was invoked as the project root. This means the same command can lint any project without changing directory first.
+
+Now run it from any project directory:
+
+```bash
+cd /absolute/path/to/my-project
+ai-code-guard
+```
+
+You can pass the normal CLI options:
+
+```bash
+ai-code-guard --ignore-dir build --ignore-dir vendor --entry-file src/main.ts
+```
+
+If Bash is not your login shell, put the same function in the startup file used by your shell, such as `~/.zshrc`, and reload that file.
+
+## Review mode
+
+In this mode, the linter asks an AI assistant to review the project. The
+assistant looks for important design and behavior problems that ordinary lint
+rules may miss. It reads the code and tests, follows dependencies, checks error
+paths, and looks for repeated work or missing abstractions.
+
+This can use many provider tokens and can take much longer than a normal lint
+run. Codex is the main tested integration. Claude is also available, but it
+has not been tested as thoroughly, so its results and workflow may differ.
+
+The review has five parts, which run at the same time:
+
+- `boundaries` — ownership, coupling, cohesion, and dependency direction;
+- `data-lifecycle` — state changes, ownership, mutation, and error handling;
+- `algorithms` — repeated work, unnecessary traversal, and scalability;
+- `tests` — missing important tests, duplicate tests, and outdated tests;
+- `abstractions` — useful domain objects and simpler boundaries.
+
+The assistant writes one Markdown file for each confirmed major problem in
+`.ai-code-guard/review/`. Each finding must include evidence that can be
+checked and a concrete fix. Duplicate, speculative, or insignificant findings
+are not useful. The target is up to ten different findings, but the review
+stops when there are no more confirmed problems. Resolved files stay in the
+directory as history and are ignored on later runs.
+
+Start a review with:
+
+```bash
+ai-code-guard --review-agent codex
+ai-code-guard --review-agent claude
+```
+
+The usual workflow is:
+
+1. Run the linter and fix its diagnostics.
+2. Start an AI review with `--review-agent`.
+3. Read and fix the confirmed findings.
+4. Run the linter again.
+
+Use `--force-review` to start a new review even when there are existing review
+files or lint diagnostics. A run without `--review-agent` skips architecture
+review. Use `--review-cleanup` only when you want the assistant to process
+review findings after the initial review; it is disabled by default.
+
+The linter keeps the assistant output in
+`.ai-code-guard/agent-debug.log`. It does not copy instruction files into the
+project review directory. If the assistant fails or produces invalid output,
+the lint command fails and records the reason instead of claiming that the
+review is complete.
+
+## Project structure
+
+```text
+src/
+├── bridge/ts/
+│   ├── core/                 CLI, reporting, run construction, Python bridge
+│   ├── parser/               TypeScript-facing AST and source analysis
+│   ├── rules/                TypeScript and shared rule support
+│   └── runner/               File and project orchestration
+├── metrics/                  Shared callable, class, and parameter metrics
+├── parser/
+│   ├── python-bridge/        Python AST parser and Python rule collectors
+│   └── ts/                   TypeScript parser data and violation model
+├── rules/typescript/          TypeScript rule context and defaults
+└── runner/                   Project context and source scanning
+
+tests/
+├── core/                     TypeScript/Jest integration and unit tests
+└── python/                   Python bridge tests
+
+Test files below root `tests/` mirror a source module and may use one or more
+scope directories before the module or before the test file, for example
+`tests/performance/load/payments/` or
+`tests/payments/acceptance/uat/`. Root `__tests__/` is also supported.
+
+docs/rules/                   Rule docs, with TypeScript and Python versions in language folders
+```
+
+The Python implementation is intentionally isolated in `src/python-bridge/`. The TypeScript process invokes the Python bridge with an absolute module path and exchanges JSON data through standard input/output. Python tests import the bridge modules directly, while TypeScript tests verify the cross-language integration.
+
+## Rule documentation
+
+Rule documents live in `docs/rules/typescript/` and `docs/rules/python/`.
+Shared rules have a separate document for each language; language-specific
+rules have only their applicable version. The diagnostic registry in
+`src/constants.ts` declares the rule's language scope, and the documentation
+validator checks that every required version exists and contains examples in
+the correct language.
+
+Each run creates `.ai-code-guard` in the project root. The selected task is
+written to `.ai-code-guard/issues.md`, and the referenced rule documents are
+copied to `.ai-code-guard/rules/`. The complete rule summary is written to
+`.ai-code-guard/report.md`. Review notes may be placed in
+`.ai-code-guard/review/`. After the code is clean, use
+`--review-agent codex` or `--review-agent claude`; the linter starts only the
+selected external agent and presents one review note at a time.
+
+## Development workflow
+
+For a normal change, use this sequence:
+
+```bash
+pnpm type-check
+pnpm test:runner
+pnpm lint
+git diff --check
+```
+
+`pnpm install` activates the versioned `.githooks/pre-commit` hook. Before every commit it runs
+`pnpm test:runner -- --headless`; because no review agent is specified, architecture review is skipped.
+A failing test, quality check, or lint check blocks the commit. Git hooks and GitHub Actions run without an agent;
+select `--review-agent codex` or `--review-agent claude` explicitly to request review.
+
+Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
+
+When a file or class becomes too large, split it by ownership. Prefer focused classes that own shared data and operations over collections of unrelated free functions. Free functions belong only in the exact project-root `functions.*` file.
+
+## Current limitations
+
+- The rules are intentionally opinionated and may require adaptation for frameworks with generated code or convention-heavy lifecycle APIs.
+- React and Next.js-specific patterns are not a primary detection target.
+- Dynamic metaprogramming can be detected only where it is visible in the AST.
+- The linter does not replace type checking, formatting, security scanning, or runtime tests.
+- The Python rules are almost certainly a poor fit for TensorFlow projects, whose generated graphs, tensors, decorators, and dynamic APIs do not match this linter's class-oriented architecture policy.
+
+## License and status
+
+This repository is a private project configuration and rule set. The rules evolve as new structural patterns are found in production code and AI-assisted changes.
+
+## Performance benchmark
+
+The following benchmark measures AI-code-guard against its own repository with
+architecture review disabled. Each series contains 10 measured runs.
+
+Results recorded on 2026-10-19:
+
+| Mode | Average | Median |
+| --- | ---: | ---: |
+| **Date: 2026-10-19 Files: 1141 (892 TypeScript files and 249 Python files)** | | |
+| Without cache | 15.912 sec | 15.920 sec |
+| With cache | 1.353 sec | 1.350 sec |
+

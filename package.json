@@ -1,32 +1,39 @@
 {
-	"name": "ai-code-guard",
+	"name": "src",
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./*.mjs": "./src/*.mjs",
+		"./*.js": "./src/*.js",
+		"./*.ts": "./src/*.ts",
+		"./*": "./src/*.ts"
+	},
 	"bin": {
-		"ai-code-guard": "src/bridge/ts/core/cli.ts"
+		"ai-code-guard": "src/core/cli.ts"
 	},
 	"scripts": {
 		"prepare": "git config core.hooksPath .githooks",
-		"coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/parser/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python",
+		"coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python-bridge tests/performance",
 		"coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4 --coverage --coverageReporters=text",
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
 		"coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
-		"test:runner": "tsx test-runner/test-runner.ts",
-		"lint": "tsx src/bridge/ts/core/cli.ts --entry-file src/bridge/ts/core/cli.ts --entry-file test-runner/test-runner.ts",
+		"test:runner": "tsx test-runner/cli.ts",
+		"validate:rule-docs": "tsx documentation_validation/cli.ts",
+		"lint": "tsx src/core/cli.ts --entry-file src/core/cli.ts --entry-file documentation_validation/cli.ts --entry-file test-runner/cli.ts",
 		"format": "pnpm format:ts && pnpm format:python",
-		"format:ts": "biome format --write test-runner src/bridge/ts/core/cli.ts tests",
-		"format:python": "python3 -m black --line-length 120 src/parser/python-bridge",
+		"format:ts": "biome format --write documentation_validation test-runner src/core/cli.ts src/core/support/documentation_validation_session.ts src/project_analysis_identity.ts src/core/support/task/task_report_document.ts tests",
+		"format:python": "python3 -m black --line-length 120 src/python-bridge",
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
 		"tsx": "^4.7.1"
 	},
 	"devDependencies": {
-		"@jest/globals": "^29.7.0",
 		"@biomejs/biome": "^1.5.3",
-		"@types/node": "^20.11.30",
+		"@jest/globals": "^29.7.0",
 		"@types/jest": "^29.5.12",
+		"@types/node": "^20.11.30",
 		"jest": "^29.7.0",
 		"ts-jest": "^29.1.2",
 		"typescript": "^5.4.3"

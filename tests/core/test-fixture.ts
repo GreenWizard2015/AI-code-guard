@@ -1,216 +1,256 @@
-import { ClassReporting } from "src/bridge/ts/core/support/class-reporting";
-import { TaskReporting } from "src/bridge/ts/core/support/task-reporting";
-import { LintRunConfiguration } from "src/bridge/ts/core/lint-run-factory";
-import type { LintRunResult } from "src/types";
-import { mkdirSync } from "node:fs";
-import { mkdtempSync } from "node:fs";
-import { rmSync } from "node:fs";
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname } from "node:path";
-import { join } from "node:path";
-import { ClassStructureReporter } from "src/metrics/class-structure-reporter";
-import type { Violation } from "src/protocols";
-import { LintFileName } from "src/bridge/ts/core/context/file-name";
-import { LintStageTimer } from "src/stage-timing";
-import type { AstCallableNode, AstClassNode, AstTypeKind, AstVisibility } from "src/types";
-import { CodingRuleLinter } from "src/bridge/ts/runner/orchestration/runtime/coding-rules";
-import { SourceFileAst } from "src/bridge/ts/runner/orchestration/runtime/source-file-ast";
-import { TypeScriptAstFile } from "src/model/typescript-ast";
-import { LintProjectContextCreator } from "src/bridge/ts/core/context-factory";
-import { FixtureLists } from "tests/core/fixture-lists";
+import { resolve } from "node:path";
+import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { PythonAstData } from "src/core/python_ast_data";
+import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
+import { LintStageTimer } from "src/lint_stage_timer";
+import type { PythonAstDataOptions, ViolationContract } from "src/protocols";
+import type { IOContract } from "src/io/protocols";
+import type { LintExecutionReport, LintRunResult } from "src/types";
+import { randomUUID } from "node:crypto";
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/source_text";
+import { LintReportMode, type LintReportOptions } from "src/core/types";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/protocols";
+import type { ProjectSourceAnalysisOptions } from "src/types";
+import { FixtureAstMapper } from "tests/core/fixture_ast_mapper";
+import type { Fixture } from "tests/core/types";
+import type ts from "typescript";
 
-import type { Fixture, TemporaryFilesCallback, FixtureCallableNode, FixtureClassNode } from "tests/core/types";
-
-/** Responsibilities: _construction test fixtures execution_. **/
+/** Responsibilities: _in-memory project fixtures_, _lint execution fixtures_, _AST fixtures_. **/
 export class TestFixture {
-	private readonly lint_fixture_prefix = "webmcp-coding-lint-";
 	private readonly placement_fixture_prefix = "module-placement-";
+	private readonly python_ast_worker: PythonAstWorkerContract;
+	public readonly ast_nodes: FixtureAstMapper;
 
-	/** Responsibilities: _fixture text values normalization_. **/
-	private text_value<T>(value: T): string {
-		if (typeof value === "string") {
-			return value;
-		}
-		return "";
+	/** Responsibilities: _fixture lint configuration creation_. **/
+	private lint_configuration(): LintRunConfiguration {
+		return new LintRunConfiguration(new SourceText(), new NodeFileIO());
 	}
 
-	/** Responsibilities: _fixture number values normalization_. **/
-	private number_value<T>(value: T, fallback: number): number {
-		if (typeof value === "number") {
-			return value;
-		}
-		return fallback;
+	/** Responsibilities: _fixture adapter initialization_. **/
+	public constructor() {
+		this.python_ast_worker = this.lint_configuration().python_ast_worker;
+		this.ast_nodes = new FixtureAstMapper();
 	}
 
-	/** Responsibilities: _fixture boolean values normalization_. **/
-	private flag_value<T>(value: T): boolean {
-		return value === true;
+	/** Responsibilities: _fixture file access_. **/
+	public file_io(): IOContract {
+		return new NodeFileIO();
 	}
 
-	/** Responsibilities: _construction AST callable fixture_. **/
-	private callable_node(node: FixtureCallableNode): AstCallableNode {
-		const lists = new FixtureLists(node);
-		const default_lines = this.number_value(node.end, 0) - this.number_value(node.start, 0);
+	/** Responsibilities: _shared Python worker access_. **/
+	public worker(): PythonAstWorkerContract {
+		return this.python_ast_worker;
+	}
+
+	/** Responsibilities: _Python AST parser options_. **/
+	public python_ast_options(split_batch_enabled = false): PythonAstDataOptions {
+		const file_io = new NodeFileIO();
 		return {
-			name: this.text_value(node.name),
-			owner: this.text_value(node.owner),
-			nested: false,
-			start: this.number_value(node.start, 0),
-			end: this.number_value(node.end, 0),
-			argument_count: this.number_value(node.argument_count, 0),
-			lines: this.number_value(node.lines, default_lines + 1),
-			sloc: this.number_value(node.sloc, default_lines + 1),
-			characters: this.number_value(node.characters, 0),
-			statements: lists.statements,
-			parameter_types: lists.parameter_types,
-			untyped_parameters: lists.untyped_parameters,
-			return_type: this.text_value(node.return_type),
-			argument_uses: lists.argument_uses,
-			typed_arguments: lists.typed_arguments,
-			decorators: lists.decorators,
-			is_accessor: this.flag_value(node.is_accessor),
-			exception_only: this.flag_value(node.exception_only),
-			has_self: this.flag_value(node.has_self),
-			has_unittest_assertion: this.flag_value(node.has_unittest_assertion),
-			unittest_assertion_alias: this.flag_value(node.unittest_assertion_alias),
-			unittest_exception_only: this.flag_value(node.unittest_exception_only),
-			test_exception_bypass: this.flag_value(node.test_exception_bypass),
-			unittest_ending_valid: this.flag_value(node.unittest_ending_valid),
-			unittest_assertion_count: this.number_value(node.unittest_assertion_count, 0),
-			visibility: this.visibility_value(node.visibility),
+			worker: this.worker(),
+			analysis_identity: new ProjectAnalysisIdentity(file_io),
+			split_batch_enabled,
+			file_io,
 		};
 	}
 
-	/** Responsibilities: _construction AST class fixture_. **/
-	private class_node(node: FixtureClassNode): AstClassNode {
-		const lists = new FixtureLists({});
-		lists.constructor_lists(node);
-		const default_lines = this.number_value(node.end, 0) - this.number_value(node.start, 0);
-		return {
-			name: this.text_value(node.name),
-			start: this.number_value(node.start, 0),
-			end: this.number_value(node.end, 0),
-			methods: lists.methods.map((method) => this.callable_node(method)),
-			lines: this.number_value(node.lines, default_lines + 1),
-			sloc: this.number_value(node.sloc, default_lines + 1),
-			interfaces: lists.interfaces,
-			base_class_name: this.text_value(node.base_class_name),
-			base_class_names: lists.base_class_names,
-			extends_external_class: this.flag_value(node.extends_external_class),
-			is_data_class: this.flag_value(node.is_data_class),
-			type_contract: this.flag_value(node.type_contract),
-			protocol: this.flag_value(node.protocol),
-			callback_fields: this.number_value(node.callback_fields, 0),
-			inline_callback_fields: this.number_value(node.inline_callback_fields, 0),
-			fields: lists.fields.map((field) => ({
-				line: this.number_value(field.line, 0),
-				name: this.text_value(field.name),
-				value_name: this.text_value(field.value_name),
-				type: this.text_value(field.type),
-				type_kind: this.type_kind_value(field.type_kind),
-				class_variable: this.flag_value(field.class_variable),
-			})),
-			untyped_fields: [],
-			dependencies: lists.dependencies,
-		};
+	/** Responsibilities: _Python AST data_. **/
+	public python_ast_data(split_batch_enabled = false): PythonAstData {
+		return new PythonAstData(this.python_ast_options(split_batch_enabled));
 	}
 
-	/** Responsibilities: _fixture visibility values normalization_. **/
-	private visibility_value<T>(value: T): AstVisibility {
-		if (value === "private" || value === "protected") {
-			if (value === "private") {
-				return "private";
-			}
-			return "protected";
-		}
-		return "public";
+	/** Responsibilities: _test stage timer creation_. **/
+	public stage_timer(): LintStageTimer {
+		return new LintStageTimer();
 	}
 
-	/** Responsibilities: _fixture type kinds normalization_. **/
-	private type_kind_value<T>(value: T): AstTypeKind {
-		const logical_condition_1 = value === "named" || value === "generic" || value === "template";
-		if (logical_condition_1) {
-			if (value === "named") {
-				return "named";
-			}
-			if (value === "generic") {
-				return "generic";
-			}
-			return "template";
-		}
-		return "basic";
-	}
-
-	/** Responsibilities: _output fixture files temporary_. **/
-	private write_fixture_files(temp_dir: string, files: Record<string, string>): string[] {
-		return Object.entries(files).map(([name, content]) => {
-			const path = join(temp_dir, name);
-			mkdirSync(dirname(path), { recursive: true });
-			writeFileSync(path, content);
-			return path;
-		});
-	}
-
-	/** Responsibilities: _lint file selection restoration_. **/
-	private restore_lint_files(original: string = ""): void {
-		if (original.length === 0) {
-			delete process.env.CODING_LINT_FILES;
-			return;
-		}
-		process.env.CODING_LINT_FILES = original;
-	}
-
-	/** Responsibilities: _execution callback temporary fixture_. **/
-	public with_temporary_files<T>(
-		prefix: string,
-		files: Record<string, string>,
-		callback: TemporaryFilesCallback<T>,
-	): T {
-		const root = mkdtempSync(join(tmpdir(), prefix));
-		this.write_fixture_files(root, files);
-		const reporting = new TaskReporting(root);
+	/** Responsibilities: _isolated PATH configuration_. **/
+	public with_empty_path<T>(callback: () => T): T {
+		const original_path = process.env.PATH;
+		process.env.PATH = "";
 		try {
-			return callback(root, reporting);
+			return callback();
 		} finally {
-			rmSync(root, { recursive: true, force: true });
+			if (original_path === undefined) {
+				delete process.env.PATH;
+			} else {
+				process.env.PATH = original_path;
+			}
 		}
 	}
 
 	/** Responsibilities: _execution lint collection fixture_. **/
-	public collect_fixture_report(files: Record<string, string>, ...selected_lists: string[][]): LintRunResult {
-		const lint_run_factory = new LintRunConfiguration();
-		let selected_files: string[] = [];
-		if (selected_lists[0] !== undefined) {
-			selected_files = selected_lists[0];
-		}
+	public collect_fixture_execution(
+		files: Record<string, string>,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): LintExecutionReport {
+		const lint_run_factory = this.lint_configuration();
+		const request = this.fixture_lint_request(files, selected_files, entry_files);
+		return lint_run_factory.lint_report(request.options, request.mode);
+	}
 
-		const temp_dir = mkdtempSync(join(tmpdir(), this.lint_fixture_prefix));
-		let original = "";
-		if (process.env.CODING_LINT_FILES !== undefined) {
-			original = process.env.CODING_LINT_FILES;
+	/** Responsibilities: _in-memory lint request preparation_. **/
+	public fixture_lint_request(
+		files: Record<string, string>,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): { options: LintReportOptions; mode: LintReportMode } {
+		const virtual_root = `/virtual/ai-code-guard-project/${randomUUID()}`;
+		const source_io = new InMemoryProjectSourceIO(
+			new Map(Object.entries(files).map(([file, text]) => [resolve(virtual_root, file), text])),
+		);
+		const entries = Object.entries(files).sort(([left], [right]) => {
+			const left_path = resolve(virtual_root, left);
+			const right_path = resolve(virtual_root, right);
+			if (left_path < right_path) {
+				return -1;
+			}
+			if (left_path > right_path) {
+				return 1;
+			}
+			return 0;
+		});
+		const source_entries = entries.filter(([file]) =>
+			[".ts", ".tsx", ".py"].some((extension) => file.endsWith(extension)),
+		);
+		const markdown_entries = entries.filter(([file]) => file.endsWith(".md"));
+		const project_paths = source_entries.map(([file]) => resolve(virtual_root, file));
+		const source_texts = new Map(
+			entries.map(([file]) => {
+				const path = resolve(virtual_root, file);
+				return [path, source_io.source_text(path)];
+			}),
+		);
+		const markdown_files = markdown_entries.map(([file]) => resolve(virtual_root, file));
+		const input_entries = [...source_entries, ...markdown_entries];
+		const all_paths = new Map(input_entries.map(([file]) => [file, resolve(virtual_root, file)]));
+		const selected_paths: string[] = [];
+		if (selected_files.length === 0) {
+			selected_paths.push(...project_paths);
+		} else {
+			for (const file of selected_files) {
+				const selected_path = all_paths.get(file);
+				if (selected_path !== undefined) {
+					selected_paths.push(selected_path);
+				}
+			}
 		}
-		const paths = this.write_fixture_files(temp_dir, files);
-		const selected_paths = selected_files.map((file) => join(temp_dir, file));
-		let files_to_lint = paths;
-		if (selected_files.length > 0) {
-			files_to_lint = selected_paths;
+		const inputs = {
+			files: selected_paths.filter((file) => project_paths.includes(file)),
+			project_files: project_paths,
+			ignored_files: [],
+			markdown_files,
+			ignore_files: [],
+		};
+		return {
+			options: {
+				repo_root: virtual_root,
+				ignored_directories: [],
+				stage_timer: new LintStageTimer(),
+				inputs,
+				source_texts,
+				entry_files: [...entry_files],
+			},
+			mode: LintReportMode.IN_MEMORY_PROJECT,
+		};
+	}
+
+	/** Responsibilities: _production lint execution lifecycle_. **/
+	public with_lint_request<T>(
+		configuration: LintRunConfiguration,
+		files: Record<string, string>,
+		callback: (configuration: LintRunConfiguration, options: LintReportOptions, mode: LintReportMode) => T,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): T {
+		const request = this.fixture_lint_request(files, selected_files, entry_files);
+		return callback(configuration, request.options, request.mode);
+	}
+
+	/** Responsibilities: _shared bridge lint request_. **/
+	public with_shared_lint_request<T>(
+		configuration: LintRunConfiguration,
+		files: Record<string, string>,
+		callback: (configuration: LintRunConfiguration, options: LintReportOptions, mode: LintReportMode) => T,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): T {
+		const request = this.fixture_lint_request(files, selected_files, entry_files);
+		return callback(configuration, request.options, request.mode);
+	}
+
+	/** Responsibilities: _in-memory project context creation_, _Python bridge cleanup_. **/
+	public with_in_memory_project<T>(
+		files: Record<string, string>,
+		callback: (
+			root: string,
+			context: LintProjectContextContract,
+			files: readonly string[],
+			source_texts: Map<string, string>,
+			stage_timer: LintStageTimerContract,
+		) => T,
+		configuration_overrides: ReadonlyMap<string, string>,
+	): T {
+		const root = `/virtual/ai-code-guard-project/${randomUUID()}`;
+		const source_texts = new Map(Object.entries(files).map(([file, text]) => [resolve(root, file), text]));
+		const source_paths = [...source_texts.keys()];
+		const project_files = source_paths.filter((file) =>
+			[".ts", ".tsx", ".py"].some((extension) => file.endsWith(extension)),
+		);
+		const worker = this.worker();
+		const file_io = new NodeFileIO();
+		const analysis_identity = new ProjectAnalysisIdentity(file_io);
+		const context_factory = new LintProjectContextCreator(
+			new PythonAstData({
+				worker,
+				analysis_identity,
+				split_batch_enabled: true,
+				file_io,
+			}),
+			analysis_identity,
+			new InMemoryProjectSourceIO(source_texts),
+			file_io,
+		);
+		const stage_timer = new LintStageTimer();
+		const project_texts = new Map(source_texts);
+		for (const [file, text] of configuration_overrides) {
+			project_texts.set(resolve(root, file), text);
 		}
-		process.env.CODING_LINT_FILES = files_to_lint.join(",");
-		try {
-			const repo_root = process.cwd();
-			const execution = lint_run_factory.lint_report(repo_root, [], new LintStageTimer());
-			return execution.report;
-		} finally {
-			lint_run_factory.python_ast_worker.close();
-			this.restore_lint_files(original);
-			rmSync(temp_dir, { recursive: true, force: true });
-		}
+		const context = context_factory.lint_context(root, project_files, stage_timer, project_texts, true);
+		return callback(root, context, project_files, project_texts, stage_timer);
+	}
+
+	/** Responsibilities: _in-memory TypeScript source lookup_. **/
+	public typescript_source_files(context: LintProjectContextContract): Map<string, ts.SourceFile> {
+		return new Map(
+			context
+				.files()
+				.filter((source) => source.typescript())
+				.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
+		);
+	}
+
+	/** Responsibilities: _fixture report collection_. **/
+	public collect_fixture_report(
+		files: Record<string, string>,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): LintRunResult {
+		return this.collect_fixture_execution(files, selected_files, entry_files).report;
 	}
 
 	/** Responsibilities: _fixture violations collection_. **/
-	public collect_fixture_violations(files: Record<string, string>, ...selected_lists: string[][]): Violation[] {
-		return this.collect_fixture_report(files, ...selected_lists).violations;
+	public collect_fixture_violations(
+		files: Record<string, string>,
+		selected_files: readonly string[] = [],
+		entry_files: readonly string[] = [],
+	): ViolationContract[] {
+		return this.collect_fixture_report(files, selected_files, entry_files).violations;
 	}
 
 	/** Responsibilities: _fixture violation messages collection_. **/
@@ -220,59 +260,57 @@ export class TestFixture {
 		return [...messages];
 	}
 
-	/** Responsibilities: _class fixture violations addition_. **/
-	public append_class_violations(violations: Violation[], file: string, node: FixtureClassNode): void {
-		const class_reporting = new ClassReporting();
-		const normalized_node = this.class_node(node);
-
-		class_reporting.report_class_methods(violations, new LintFileName(file), normalized_node);
-		const structure = new ClassStructureReporter(violations, new LintFileName(file), normalized_node);
-		structure.report_design();
-		structure.report_sizes();
+	/** Responsibilities: _virtual source fixture creation_. **/
+	public fixture(files: Record<string, string>): Fixture {
+		const root = resolve(`/virtual/${this.placement_fixture_prefix}${randomUUID()}`);
+		const source_texts = new Map(Object.entries(files).map(([file, text]) => [resolve(root, file), text]));
+		return { root, paths: [...source_texts.keys()], source_texts };
 	}
 
-	/** Responsibilities: _module-placement fixture files creation_. **/
-	public fixture(files: Record<string, string>): Fixture {
-		const root = mkdtempSync(join(tmpdir(), this.placement_fixture_prefix));
-		const paths = Object.keys(files).map((file) => join(root, file));
-		for (const [file, text] of Object.entries(files)) {
-			const path = join(root, file);
-			mkdirSync(join(path, ".."), { recursive: true });
-			writeFileSync(path, text);
-		}
-		return { root, paths };
+	/** Responsibilities: _in-memory source scanner fixture_. **/
+	public source_scanner_fixture(
+		files: Record<string, string>,
+		entry_files: readonly string[] = [],
+	): { root: string; scanner: ProjectSourceScanner; files: string[] } {
+		return this.with_in_memory_project(
+			files,
+			(root, context, project_files) => ({
+				root,
+				scanner: new ProjectSourceScanner(root, {
+					context_state: { available: true, value: context },
+					entry_files,
+				}),
+				files: [...project_files],
+			}),
+			new Map(),
+		);
+	}
+
+	/** Responsibilities: _project source analysis options_. **/
+	public project_source_analysis_options(
+		fixture: Fixture,
+		context: LintProjectContextContract,
+		ignored_files: ReadonlySet<string>,
+	): ProjectSourceAnalysisOptions {
+		return {
+			root: fixture.root,
+			project_files: fixture.paths,
+			context,
+			ignored_files,
+			scanner: new ProjectSourceScanner(fixture.root, {
+				context_state: { available: true, value: context },
+				entry_files: [],
+			}),
+			files: new Set(fixture.paths),
+		};
 	}
 
 	/** Responsibilities: _shared-parameter violations selection_. **/
-	public shared_violations(violations: readonly Violation[]): Violation[] {
+	public shared_violations(violations: readonly ViolationContract[]): ViolationContract[] {
 		const shared = violations.filter((violation) => violation.message.includes("share parameter"));
 		if (shared.length === 0) {
 			return [];
 		}
 		return [...shared];
-	}
-
-	/** Responsibilities: _repeated AST lint comparison_. **/
-	public shared_ast_lint_results(context_factory: LintProjectContextCreator): Violation[][] {
-		return this.with_temporary_files(
-			"webmcp-lint-equivalence-",
-			{
-				"tools/coding-lint/rules.ts": "const value = Object.assign({}, source);\n",
-			},
-			(root) => {
-				const file = join(root, "tools/coding-lint/rules.ts");
-				const source = context_factory.lint_context(root, [file], new LintStageTimer()).source_record(file);
-				const ast_file = new TypeScriptAstFile(source.relative_path, source.text);
-				const source_ast = new SourceFileAst(
-					{ file: source.relative_path, text: source.text },
-					ast_file.normalized(),
-					ast_file.source_file,
-					() => [],
-				);
-				const source_linter = new CodingRuleLinter(source_ast);
-				const shared_linter = new CodingRuleLinter(source_ast);
-				return [source_linter.lint(), shared_linter.lint()];
-			},
-		);
 	}
 }

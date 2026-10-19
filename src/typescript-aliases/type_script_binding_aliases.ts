@@ -1,0 +1,236 @@
+import type { AliasAppender, BindingAliasAppender, ExpressionNormalizer } from "src/protocols";
+import ts from "typescript";
+import type { BindingAliasesContract, ExpressionNamesContract } from "src/protocols";
+
+/** Responsibilities: _object binding alias collection_, _array binding alias collection_. **/
+export class TypeScriptBindingAliases implements BindingAliasesContract {
+	private readonly expression_names: ExpressionNamesContract;
+	private readonly property_names: WeakMap<ts.Node, string>;
+
+	/** Responsibilities: _destructured property name_. **/
+	private resolve_property_name(element: ts.Node): string {
+		if (ts.isBindingElement(element)) {
+			return this.expression_names.static_binding_name(element);
+		}
+		return this.expression_names.static_property_name(element);
+	}
+
+	/** Responsibilities: _object property alias_. **/
+	private append_object_property(
+		binding: ts.BindingElement,
+		property: ts.ObjectLiteralElementLike,
+		property_name_value: string,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		if (ts.isPropertyAssignment(property)) {
+			return this.append_property_assignment(binding, property, property_name_value, append_binding_alias);
+		}
+		if (ts.isShorthandPropertyAssignment(property)) {
+			return this.append_shorthand_property(binding, property, property_name_value, append_binding_alias);
+		}
+		if (ts.isSpreadAssignment(property)) {
+			return this.append_spread_property(binding, property, append_binding_alias, normalize_initializer);
+		}
+		return false;
+	}
+
+	/** Responsibilities: _assigned property alias_. **/
+	private append_property_assignment(
+		binding: ts.BindingElement,
+		property: ts.PropertyAssignment,
+		property_name_value: string,
+		append_binding_alias: BindingAliasAppender,
+	): boolean {
+		if (this.property_name(property.name) !== property_name_value) {
+			return false;
+		}
+		return append_binding_alias(binding.name, property.initializer);
+	}
+
+	/** Responsibilities: _shorthand property alias_. **/
+	private append_shorthand_property(
+		binding: ts.BindingElement,
+		property: ts.ShorthandPropertyAssignment,
+		property_name_value: string,
+		append_binding_alias: BindingAliasAppender,
+	): boolean {
+		if (property.name.text !== property_name_value) {
+			return false;
+		}
+		return append_binding_alias(binding.name, property.name);
+	}
+
+	/** Responsibilities: _spread property alias_. **/
+	private append_spread_property(
+		binding: ts.BindingElement,
+		property: ts.SpreadAssignment,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		const spread_value = normalize_initializer(property.expression);
+		if (!ts.isObjectLiteralExpression(spread_value)) {
+			return false;
+		}
+		return this.append_object_binding(binding, spread_value, append_binding_alias, normalize_initializer);
+	}
+
+	/** Responsibilities: _object binding property_. **/
+	private append_object_binding(
+		element: ts.BindingElement,
+		initializer: ts.ObjectLiteralExpression,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		if (element.dotDotDotToken) {
+			return false;
+		}
+		const property_name_value = this.property_name(element);
+		if (property_name_value === "") {
+			return false;
+		}
+		let changed = false;
+		for (const property of initializer.properties) {
+			if (
+				this.append_object_property(element, property, property_name_value, append_binding_alias, normalize_initializer)
+			) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	/** Responsibilities: _object binding aliases_. **/
+	private append_object_aliases(
+		binding: ts.ObjectBindingPattern,
+		initializer: ts.ObjectLiteralExpression,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		let changed = false;
+		for (const element of binding.elements) {
+			if (this.append_object_binding(element, initializer, append_binding_alias, normalize_initializer)) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	/** Responsibilities: _spread binding item_. **/
+	private spread_binding_item(
+		element: ts.BindingElement,
+		item: ts.SpreadElement,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		const spread_value = normalize_initializer(item.expression);
+		if (!ts.isArrayLiteralExpression(spread_value)) {
+			return false;
+		}
+		const [spread_item] = spread_value.elements;
+		if (spread_item === undefined) {
+			return false;
+		}
+		return append_binding_alias(element.name, spread_item);
+	}
+
+	/** Responsibilities: _array binding item_. **/
+	private append_array_item(
+		element: ts.ArrayBindingElement,
+		item: ts.Expression,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		if (!ts.isBindingElement(element)) {
+			return false;
+		}
+		if (element.dotDotDotToken) {
+			return false;
+		}
+		if (item.kind === ts.SyntaxKind.OmittedExpression) {
+			return false;
+		}
+		if (ts.isSpreadElement(item)) {
+			return this.spread_binding_item(element, item, append_binding_alias, normalize_initializer);
+		}
+		return append_binding_alias(element.name, item);
+	}
+
+	/** Responsibilities: _array binding aliases_. **/
+	private append_array_aliases(
+		binding: ts.ArrayBindingPattern,
+		initializer: ts.ArrayLiteralExpression,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		let changed = false;
+		for (let index = 0; index < binding.elements.length; index += 1) {
+			const element = binding.elements[index];
+			const item = initializer.elements[index];
+			if (element === undefined || item === undefined) {
+				continue;
+			}
+			if (this.append_array_item(element, item, append_binding_alias, normalize_initializer)) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	/** Responsibilities: _destructured alias resolution_. **/
+	private append_destructured_alias(
+		binding: ts.BindingName,
+		value: ts.Expression,
+		append_binding_alias: BindingAliasAppender,
+		normalize_initializer: ExpressionNormalizer,
+	): boolean {
+		if (ts.isObjectBindingPattern(binding)) {
+			if (!ts.isObjectLiteralExpression(value)) {
+				return false;
+			}
+			return this.append_object_aliases(binding, value, append_binding_alias, normalize_initializer);
+		}
+		if (ts.isArrayBindingPattern(binding)) {
+			if (!ts.isArrayLiteralExpression(value)) {
+				return false;
+			}
+			return this.append_array_aliases(binding, value, append_binding_alias, normalize_initializer);
+		}
+		return false;
+	}
+
+	/** Responsibilities: _cached property name_. **/
+	/** Responsibilities: _binding alias composition_. **/
+	public constructor(expression_names: ExpressionNamesContract) {
+		this.property_names = new WeakMap<ts.Node, string>();
+		this.expression_names = expression_names;
+	}
+
+	/** Responsibilities: _binding property resolution_. **/
+	public property_name(element: ts.Node): string {
+		const cached = this.property_names.get(element);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const property_name = this.resolve_property_name(element);
+		this.property_names.set(element, property_name);
+		return property_name;
+	}
+
+	/** Responsibilities: _binding alias collection_. **/
+	public append_binding_aliases(
+		aliases: Set<string>,
+		binding: ts.BindingName,
+		initializer: ts.Expression,
+		normalize_initializer: ExpressionNormalizer,
+		append_alias: AliasAppender,
+	): boolean {
+		const value = normalize_initializer(initializer);
+		if (ts.isIdentifier(binding)) {
+			return append_alias(binding.text, value);
+		}
+		const append_binding_alias = (child_binding: ts.BindingName, child_initializer: ts.Expression): boolean =>
+			this.append_binding_aliases(aliases, child_binding, child_initializer, normalize_initializer, append_alias);
+		return this.append_destructured_alias(binding, value, append_binding_alias, normalize_initializer);
+	}
+}
