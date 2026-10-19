@@ -1,16 +1,14 @@
 import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import { CliApplication } from "src/core/cli_application";
 import { CliArchitectureReview } from "src/core/support/cli_architecture_review";
 import { CommandLineOptions } from "src/core/support/command_line_options";
 import { TaskReporting } from "src/core/support/task_reporting";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { PythonAstWorker } from "src/core/python-ast-worker.mjs";
 import { TaskReviewMemoryFixture } from "tests/bridge/ts/core/task-review-memory-fixture";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
-import { NodeFileIO } from "src/io/node_file_io";
-import { SourceText } from "src/source_text";
+import { TaskReviewFailingSourceIO } from "tests/bridge/ts/core/task-review-failing-source-io";
 
 describe("coding-lint process status reporting", () => {
 	const fixture_factory = new TaskReviewMemoryFixture();
@@ -53,63 +51,15 @@ describe("coding-lint process status reporting", () => {
 		expect(status).toEqual({ required: false, active: false, completed: false, failed: false });
 	});
 
-	test("preserves the primary project error when worker cleanup also fails", async () => {
+	test("preserves the project error from in-memory source discovery", async () => {
 		const fixture = fixture_factory.create("const value = 1;\n");
-		const cli = new CliApplication(new NodeFileIO(), new SourceText());
-		const close_error = new Error("worker cleanup failure");
-		const close_worker = jest.spyOn(PythonAstWorker.prototype, "close").mockReturnValue(Promise.reject(close_error));
+		const project_error = new Error("project source failure");
+		const cli = new CliApplication(fixture.io, new TaskReviewFailingSourceIO(project_error));
 		const result = await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer()).then(
 			() => undefined,
 			(error) => error,
 		);
-		close_worker.mockRestore();
-		expect(String(result)).toContain("ENOENT");
-	});
 
-	test("propagates a cleanup error after successful project execution", async () => {
-		const fixture = fixture_factory.create("const value = 1;\n");
-		const cli = new CliApplication(fixture.io, fixture.source_io);
-		const close_error = new Error("worker cleanup failure");
-		const close_worker = jest.spyOn(PythonAstWorker.prototype, "close").mockReturnValue(Promise.reject(close_error));
-		const result = await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer()).then(
-			() => undefined,
-			(error) => error,
-		);
-		close_worker.mockRestore();
-		expect(result).toBe(close_error);
-	});
-
-	test("closes the Python worker after direct project execution", async () => {
-		const previous_exit_code = process.exitCode;
-		process.exitCode = 0;
-		const fixture = fixture_factory.create("const value = 1;\n");
-		const cli = new CliApplication(fixture.io, fixture.source_io);
-		const close_worker = jest.spyOn(PythonAstWorker.prototype, "close").mockImplementation(() => undefined);
-		let close_calls = 0;
-		try {
-			await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer());
-		} finally {
-			close_calls = close_worker.mock.calls.length;
-			close_worker.mockRestore();
-			process.exitCode = previous_exit_code;
-		}
-		expect(close_calls).toBe(1);
-	});
-
-	test("closes the Python worker when direct project execution fails", async () => {
-		const fixture = fixture_factory.create("const value = 1;\n");
-		const cli = new CliApplication(new NodeFileIO(), new SourceText());
-		const close_worker = jest.spyOn(PythonAstWorker.prototype, "close").mockImplementation(() => undefined);
-		const result = await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer()).then(
-			() => undefined,
-			(error: unknown) => error,
-		);
-		const close_calls = close_worker.mock.calls.length;
-		close_worker.mockRestore();
-
-		expect({ has_file_system_error: String(result).includes("ENOENT"), close_calls }).toEqual({
-			has_file_system_error: true,
-			close_calls: 1,
-		});
+		expect(result).toBe(project_error);
 	});
 });

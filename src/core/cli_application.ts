@@ -133,13 +133,7 @@ export class CliApplication {
 		});
 		const architecture_review = new CliArchitectureReview(task_reporting, stage_timer);
 		const review_status = await architecture_review.status(options, violations);
-		this.report_project_outputs(
-			options,
-			report,
-			stage_timer,
-			task_reporting,
-			task_reporting.documents,
-		);
+		this.report_project_outputs(options, report, stage_timer, task_reporting, task_reporting.documents);
 		this.set_exit_code({ lint_failed: should_fail, review_failed: architecture_review.must_fail(review_status) });
 	}
 
