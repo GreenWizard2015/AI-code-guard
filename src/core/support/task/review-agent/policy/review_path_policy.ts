@@ -46,10 +46,44 @@ export class ReviewPathPolicy implements ReviewPathPolicyContract {
 
 	/** Responsibilities: _review directory boundary_. **/
 	private owned_review_root(review_root: string, cwd: string): boolean {
-		if (!this.review_root_directory(review_root)) {
+		if (this.io.file_paths.path_exists(review_root)) {
+			if (!this.review_root_directory(review_root)) {
+				return false;
+			}
+			return this.project_root_match(review_root, cwd);
+		}
+		return this.missing_review_root(review_root, cwd);
+	}
+
+	/** Responsibilities: _nearest existing review ancestor_. **/
+	private existing_review_ancestor(review_root: string): string {
+		let ancestor = dirname(review_root);
+		while (!this.io.file_paths.path_exists(ancestor)) {
+			const parent = dirname(ancestor);
+			if (parent === ancestor) {
+				return "";
+			}
+			ancestor = parent;
+		}
+		return ancestor;
+	}
+
+	/** Responsibilities: _new review directory boundary_. **/
+	private missing_review_root(review_root: string, cwd: string): boolean {
+		if (this.io.file_paths.symbolic_link(review_root)) {
 			return false;
 		}
-		return this.project_root_match(review_root, cwd);
+		const ancestor = this.existing_review_ancestor(review_root);
+		if (ancestor === "") {
+			return false;
+		}
+		if (this.io.file_paths.symbolic_link(ancestor)) {
+			return false;
+		}
+		if (this.io.directory_entries.path_kind(ancestor) !== DIRECTORY_ENTRY_DIRECTORY) {
+			return false;
+		}
+		return this.within_project_root(review_root, cwd);
 	}
 
 	/** Responsibilities: _review path containment_. **/

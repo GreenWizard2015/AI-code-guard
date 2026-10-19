@@ -3,7 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import { AgentHookApplication } from "src/core/support/task/review-agent/agent_hook_application";
 import { HookPayloadNormalizer } from "src/core/support/task/review-agent/hook_payload_normalizer";
 import type { RawHookPayload } from "src/core/support/task/review-agent/types";
-import { NodeFileIO } from "src/io/node_file_io";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { HOOK_TOOL_CONTEXT, PROJECT_ROOT } from "tests/core/constants";
 
 describe("review hook payload normalization", () => {
@@ -26,7 +26,9 @@ describe("review hook payload normalization", () => {
 			review_phase: "initial",
 		};
 		const normalizer = new HookPayloadNormalizer("review-algorithms-");
-		const application = new AgentHookApplication(new NodeFileIO());
+		const io = new InMemoryFileIO();
+		io.create_directory(PROJECT_ROOT);
+		const application = new AgentHookApplication(io);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 
@@ -48,7 +50,9 @@ describe("review hook payload normalization", () => {
 			review_phase: "initial",
 		};
 		const normalizer = new HookPayloadNormalizer("review-tests-");
-		const application = new AgentHookApplication(new NodeFileIO());
+		const io = new InMemoryFileIO();
+		io.create_directory(PROJECT_ROOT);
+		const application = new AgentHookApplication(io);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 
@@ -80,7 +84,9 @@ describe("review hook payload normalization", () => {
 			review_prefix: "review-boundaries-",
 			review_phase: "initial",
 		});
-		const application = new AgentHookApplication(new NodeFileIO());
+		const io = new InMemoryFileIO();
+		io.create_directory(PROJECT_ROOT);
+		const application = new AgentHookApplication(io);
 		const decision = application.decision(payload);
 
 		expect({
@@ -93,7 +99,9 @@ describe("review hook payload normalization", () => {
 
 	test("allows bare pwd without an active review prefix", () => {
 		const normalizer = new HookPayloadNormalizer("");
-		const application = new AgentHookApplication(new NodeFileIO());
+		const io = new InMemoryFileIO();
+		io.create_directory(PROJECT_ROOT);
+		const application = new AgentHookApplication(io);
 		const payload = normalizer.normalize({
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
@@ -127,7 +135,9 @@ describe("review hook payload normalization", () => {
 			review_phase: "initial",
 		};
 		const normalizer = new HookPayloadNormalizer("review-abstractions-");
-		const application = new AgentHookApplication(new NodeFileIO());
+		const io = new InMemoryFileIO();
+		io.create_directory(PROJECT_ROOT);
+		const application = new AgentHookApplication(io);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 

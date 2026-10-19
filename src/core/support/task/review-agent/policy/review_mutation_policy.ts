@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 import {
 	PATCH_ADD_FILE_PREFIX,
 	PATCH_DELETE_FILE_PREFIX,
@@ -110,9 +108,6 @@ export class ReviewMutationPolicy {
 		if (!this.paths.allows_file(path, cwd)) {
 			return { allowed: false, reason: "Review writes must stay in .ai-code-guard/review/." };
 		}
-		if (!existsSync(resolve(cwd, path))) {
-			return { allowed: true, reason: "" };
-		}
 		if (this.deletion_policy.allows_write(path, cwd)) {
 			return { allowed: true, reason: "" };
 		}
@@ -133,5 +128,4 @@ export class ReviewMutationPolicy {
 			reason: this.mutation_denial_reason(cleanup),
 		};
 	}
-
 }
