@@ -89,7 +89,6 @@ class StructureIssues:
             if type(next_node) is not ast.If:
                 return chain
             current = next_node
-        return chain
 
     def _summarize_chain(
         self, chain: dict[int, str]
