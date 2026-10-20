@@ -2,12 +2,9 @@ import { TypeScriptVariableBinding } from "src/linting/type_script_variable_bind
 import { TypeScriptBooleanDeclarationIndex } from "src/parser/internals/type_script_boolean_declaration_index";
 import ts from "typescript";
 import { BOOLEAN_OPERATOR_KINDS, COMPARISON_OPERATOR_KINDS } from "src/parser/internals/constants";
-import type {
-	BooleanExpressionContract,
-	TypeScriptBooleanDeclarationIndexContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
-import type { BooleanCallTarget } from "src/parser/internals/types";
+import type { BooleanExpressionContract } from "src/runtime_protocols";
+import type { TypeScriptBooleanDeclarationIndexContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type { BooleanCallTarget } from "src/model/types/types";
 
 /** Responsibilities: _boolean declaration resolution_, _boolean expression classification_. **/
 export class TypeScriptBooleanExpression implements BooleanExpressionContract {

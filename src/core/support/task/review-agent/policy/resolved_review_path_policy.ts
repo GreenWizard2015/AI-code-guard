@@ -1,7 +1,6 @@
 import { isAbsolute, relative, resolve } from "node:path";
 import { AI_CODE_GUARD_DIRECTORY, RESOLVED_REVIEW_DIRECTORY } from "src/core/support/task/review-agent/constants";
 import type { ResolvedReviewPathPolicyContract } from "src/core/support/task/review-agent/protocols";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _review path authorization_, _archive root lookup_. **/
@@ -19,8 +18,8 @@ export class ResolvedReviewPathPolicy implements ResolvedReviewPathPolicyContrac
 	/** Responsibilities: _directory ancestor containment_. **/
 	private ancestor_path(absolute_path: string, cwd: string): boolean {
 		const candidate = this.canonical_path(absolute_path);
-		const candidate_is_directory = this.io.directory_entries.path_kind(candidate) === DIRECTORY_ENTRY_DIRECTORY;
-		const original_is_directory = this.io.directory_entries.path_kind(absolute_path) === DIRECTORY_ENTRY_DIRECTORY;
+		const candidate_is_directory = this.io.directory_entries.path_is_directory(candidate);
+		const original_is_directory = this.io.directory_entries.path_is_directory(absolute_path);
 		if (!candidate_is_directory && !original_is_directory) {
 			return false;
 		}

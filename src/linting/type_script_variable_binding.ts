@@ -1,10 +1,7 @@
 import ts from "typescript";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
-import type {
-	TypeScriptTypeNodeContract,
-	TypeScriptVariableBindingContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { TypeScriptTypeNodeContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptVariableBindingContract } from "src/typescript_analysis_types";
 
 /** Responsibilities: _lexical scope resolution_, _visible declaration lookup_. **/
 export class TypeScriptVariableBinding implements TypeScriptVariableBindingContract {

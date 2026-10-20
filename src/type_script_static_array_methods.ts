@@ -1,7 +1,8 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
-import type { StaticArrayMethodsContract, TypeScriptMemberAliasesContract } from "src/protocols";
+import type { StaticArrayMethodsContract } from "src/shared_services_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _array factory recognition_, _array source extraction_. **/
 export class TypeScriptStaticArrayMethods implements StaticArrayMethodsContract {

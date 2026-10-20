@@ -12,7 +12,7 @@ import type {
 	MutableCallableReferencesByFile,
 	ParsedFile,
 } from "src/metrics/types";
-import type { SourceReferenceIndexContract } from "src/protocols";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
 import type { AstCallableReference, AstClassNode, AstTypeMemberRecord } from "src/types";
 import type { CallableUsageIndexState } from "src/linting/orchestration/runtime/composition/types";
 

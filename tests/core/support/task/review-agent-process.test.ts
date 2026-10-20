@@ -7,12 +7,20 @@ import { ReviewAgentProcess } from "src/core/support/task/review_agent_process";
 import { ReviewAgentHooks } from "src/core/support/task/review-agent/review_agent_hooks";
 import { RecordingProcess } from "tests/bridge/ts/core/recording-review-process";
 import { CleanupFailureReviewAgentProcess } from "tests/bridge/ts/core/review-agent/cleanup-failure-review-agent-process";
-import { StreamingReviewAgentProcess } from "tests/bridge/ts/core/review-agent/streaming-review-agent-process";
 
-/** Responsibilities: _process probes_, _hook state_. **/
-class ProbeReviewAgentProcess extends ReviewAgentProcess {
+/** Responsibilities: _streaming provider simulation_, _review termination handling_. **/
+class ReviewAgentProcessTestDriver extends ReviewAgentProcess {
+	private readonly child: ChildProcess;
 	public readonly probe_options: SpawnSyncOptionsWithStringEncoding[];
 	private readonly probe_result: SpawnSyncReturns<string>;
+
+	/** Responsibilities: _test process creation_. **/
+	protected override create_agent(_command: string, _arguments_list: readonly string[], _root: string): ChildProcess {
+		return this.child;
+	}
+
+	/** Responsibilities: _test process termination_. **/
+	protected override terminate_agent(_child: ChildProcess, _signal: NodeJS.Signals): void {}
 
 	/** Responsibilities: _mocked synchronous subprocess boundary_. **/
 	protected override spawn_sync(
@@ -24,9 +32,10 @@ class ProbeReviewAgentProcess extends ReviewAgentProcess {
 		return this.probe_result;
 	}
 
-	/** Responsibilities: _probe boundary initialization_. **/
-	public constructor(probe_result: SpawnSyncReturns<string>) {
+	/** Responsibilities: _process harness initialization_. **/
+	public constructor(child: ChildProcess, probe_result: SpawnSyncReturns<string>) {
 		super();
+		this.child = child;
 		this.probe_options = [];
 		this.probe_result = probe_result;
 	}
@@ -34,7 +43,7 @@ class ProbeReviewAgentProcess extends ReviewAgentProcess {
 
 describe("review agent hook forwarding", () => {
 	test("bounds provider availability probes", () => {
-		const review_process = new ProbeReviewAgentProcess({
+		const review_process = new ReviewAgentProcessTestDriver(new ChildProcess(), {
 			pid: 0,
 			output: [],
 			stdout: "",
@@ -117,7 +126,14 @@ describe("review agent hook forwarding", () => {
 		const stderr = new PassThrough();
 		Object.defineProperty(child, "stdout", { value: stdout });
 		Object.defineProperty(child, "stderr", { value: stderr });
-		const review_process = new StreamingReviewAgentProcess(child);
+		const review_process = new ReviewAgentProcessTestDriver(child, {
+			pid: 0,
+			output: [],
+			stdout: "",
+			stderr: "",
+			status: 0,
+			signal: null,
+		});
 		const result = ReviewAgentProcess.prototype.run_async.call(review_process, "review-agent", [], "/project");
 		stdout.emit("data", `${"x".repeat(2_000_000)}tail`);
 		stderr.emit("data", `${"y".repeat(2_000_000)}error-tail`);

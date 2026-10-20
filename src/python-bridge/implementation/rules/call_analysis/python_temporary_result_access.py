@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstNodeIndexContract
-from implementation.references.aliases.protocols import PythonReferenceAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonReferenceAliasesContract
 
 
 class PythonTemporaryResultAccess:

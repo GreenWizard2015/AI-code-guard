@@ -2,7 +2,7 @@ import { ClassRules } from "src/rules/class_rules";
 import { ContractFields } from "src/rules/contract_fields";
 import { MixCollection } from "src/rules/mix_collection";
 import { ContractNames } from "src/rules/contract_names";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import type { TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";

@@ -9,9 +9,13 @@ from implementation.ast.protocols import (
     PythonLiteralMetadataContract,
     PythonResponsibilityTargetsContract,
 )
-from implementation.protocols import PythonAstContentTreeContract
+from protocols import PythonAstContentTreeContract
 from implementation.rules.constants import PYTHON_MAIN_NAME, PYTHON_MAIN_VALUE
-from implementation.types import JsonObject, JsonValue, LiteralMetadata
+from implementation.types import (
+    JsonObject,
+    JsonValue,
+)
+from implementation.types import LiteralMetadata
 
 PythonAstReferenceOperation = Callable[[], JsonValue]
 

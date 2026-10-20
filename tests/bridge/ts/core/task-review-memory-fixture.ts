@@ -9,7 +9,8 @@ import {
 	REVIEW_PREAMBLE_DOCUMENT,
 	REVIEW_PREAMBLE_PLACEHOLDER,
 } from "src/core/support/task/constants";
-import { REPORTING_PROJECT_ROOT, RULE_DATA, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
+import { REPORTING_PROJECT_ROOT } from "src/constants";
+import { RULE_DATA, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TaskReviewMemoryWorkspace } from "tests/bridge/ts/core/task-review-memory-workspace";

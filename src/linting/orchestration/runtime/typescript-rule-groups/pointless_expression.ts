@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { PointlessExpressionContract } from "src/protocols";
+import type { PointlessExpressionContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _binding name extraction_, _constructor argument extraction_. **/
 export class PointlessExpression implements PointlessExpressionContract {

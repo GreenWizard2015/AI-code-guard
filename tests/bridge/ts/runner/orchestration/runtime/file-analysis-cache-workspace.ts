@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import type { GlobalAnalysisCacheOptions } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { GlobalAnalysisCacheOptions } from "src/cache_types";
+import type { LintSourceRecord } from "src/source_types";
 import { ViolationValue } from "src/violation_value";
 import type { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 

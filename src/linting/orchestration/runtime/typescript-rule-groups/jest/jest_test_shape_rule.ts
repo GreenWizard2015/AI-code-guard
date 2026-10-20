@@ -1,7 +1,7 @@
 import type { JestCallbackKind } from "src/types";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import ts from "typescript";
-import type { JestTestShapeRuleContract } from "src/protocols";
+import type { JestTestShapeRuleContract } from "src/testing_protocols";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 
 /** Responsibilities: _callback type validation_, _assertion presence detection_. **/

@@ -1,18 +1,17 @@
 import ts from "typescript";
 import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
 import { TypeScriptObjectAliases } from "src/typescript-aliases/type_script_object_aliases";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/typescript-aliases/type_script_object_alias_declaration_index";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type {
-	TypeScriptExpressionAliasesContract,
-	TypeScriptObjectAliasesContract,
-	TypeScriptExpressionAliasCollectorContract,
-} from "src/protocols";
+import type { TypeScriptExpressionAliasesContract, TypeScriptObjectAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptExpressionAliasCollectorContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _declaration alias collection_, _assignment alias collection_. **/
 export class TypeScriptExpressionAliasCollector implements TypeScriptExpressionAliasCollectorContract {
 	private readonly owner: TypeScriptExpressionAliasesContract;
 	private readonly expression_names: TypeScriptExpressionNames;
 	private readonly binding_aliases: TypeScriptBindingAliases;
+	private readonly declaration_index: TypeScriptObjectAliasDeclarationIndex;
 
 	/** Responsibilities: _pattern alias collection_. **/
 	private append_pattern_alias(
@@ -62,6 +61,7 @@ export class TypeScriptExpressionAliasCollector implements TypeScriptExpressionA
 	public constructor(owner: TypeScriptExpressionAliasesContract) {
 		this.expression_names = new TypeScriptExpressionNames();
 		this.binding_aliases = new TypeScriptBindingAliases(this.expression_names);
+		this.declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		this.owner = owner;
 	}
 
@@ -92,9 +92,9 @@ export class TypeScriptExpressionAliasCollector implements TypeScriptExpressionA
 	/** Responsibilities: _scope alias names_. **/
 	public collect(scope: ts.Node): ReadonlySet<string> {
 		const aliases = new Set<string>();
-		const object_aliases = new TypeScriptObjectAliases();
+		const object_aliases = new TypeScriptObjectAliases(this.declaration_index);
 		object_aliases.collect(scope);
-		const declarations = object_aliases.declarations(scope);
+		const declarations = this.declaration_index.declarations(scope);
 		let changed = true;
 		while (changed) {
 			changed = false;

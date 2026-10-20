@@ -2,7 +2,7 @@ import "src/core/lint_project_context_creator";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonAstData } from "src/core/python_ast_data";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
-import { PYTHON_CALLABLE_SOURCE, CONTROL_FLOW_SOURCE } from "tests/core/constants";
+import { PYTHON_CALLABLE_SOURCE, CONTROL_FLOW_SOURCE } from "tests/core/constants/ast_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 describe("parsePythonAst", () => {
 	test("sends source code with the explicit bridge source prefix", () => {

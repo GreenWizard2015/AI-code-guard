@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { TestFixture } from "tests/core/test-fixture";
-import { NULLABLE_DOMAIN_FILES } from "tests/core/constants";
+import { NULLABLE_DOMAIN_FILES } from "tests/core/constants/callable_usage/constants";
 import { PythonAstData } from "src/core/python_ast_data";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";

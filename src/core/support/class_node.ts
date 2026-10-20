@@ -1,5 +1,5 @@
 import type { ClassNodeInput } from "src/model/types/types";
-import type { ClassNodeContract } from "src/protocols";
+import type { ClassNodeContract } from "src/runtime_protocols";
 import { ERROR_CLASS_NAMES, ERROR_CLASS_SUFFIXES } from "src/constants";
 
 /** Responsibilities: _class inheritance classification_, _class metric normalization_. **/

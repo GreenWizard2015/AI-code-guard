@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { NestedFactoryExpressionsResolver, ObjectSourceAppender } from "src/protocols";
+import type { NestedFactoryExpressionsResolver } from "src/analysis_types";
+import type { ObjectSourceAppender } from "src/runtime_types";
 
 /** Responsibilities: _binding expression resolution_, _nested factory traversal_. **/
 export class TypeScriptFactoryArrayObjectExpressions {

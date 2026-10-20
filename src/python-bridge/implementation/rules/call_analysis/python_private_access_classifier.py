@@ -3,11 +3,9 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import (
-    PythonPrivateAccessOptionsContract,
-    PythonPrivateVarsMappingContract,
-    PythonReflectionNamesContract,
-)
+from implementation.ast.protocols import PythonPrivateAccessOptionsContract
+from implementation.protocols import PythonReflectionNamesContract
+from implementation.references.protocols import PythonPrivateVarsMappingContract
 from implementation.rules.constants import (
     PYTHON_CLASS_NAME,
     PYTHON_CONTAINER_KEYS_KEY,

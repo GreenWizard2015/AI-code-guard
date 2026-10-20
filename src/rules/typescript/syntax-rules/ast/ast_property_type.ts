@@ -1,9 +1,10 @@
 import ts from "typescript";
 
 import { AstPropertySources } from "src/rules/typescript/syntax-rules/ast/ast_property_sources";
-import type { AstPropertySourceIndexContract } from "src/protocols";
+import type { AstPropertySourceIndexContract } from "src/source_protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { AstPropertySourcesContract, AstPropertyTypeContract, SourceFileResolver } from "src/protocols";
+import type { AstPropertySourcesContract, AstPropertyTypeContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 import {
 	PROPERTY_STATE_OPTIONAL,

@@ -1,44 +1,39 @@
-import { join } from "node:path";
 import { ReportStatus } from "src/core/support/report_status";
-import { ISSUES_DOCUMENT_NAME, LINT_OUTPUT_DOCUMENT, REPORT_DOCUMENT_NAME } from "src/core/support/task/constants";
+import { LINT_OUTPUT_DOCUMENT } from "src/core/support/task/constants";
 import { TaskIssueDocument } from "src/core/support/task/reporting/task_issue_document";
 import { TaskReportDocument } from "src/core/support/task/reporting/task_report_document";
-import { ClaudeReviewAgent } from "src/core/support/task/review-agent/providers/claude_review_agent";
-import { CodexReviewAgent } from "src/core/support/task/review-agent/providers/codex_review_agent";
-import { ReviewAgentCatalog } from "src/core/support/task/review-agent/providers/review_agent_catalog";
-import { ReviewAgentHooks } from "src/core/support/task/review-agent/review_agent_hooks";
-import { ReviewAgentProcess } from "src/core/support/task/review_agent_process";
+import { ResolvedReviewArchive } from "src/core/support/task/resolved_review_archive";
 import { TaskCleanReport } from "src/core/support/task/task_clean_report";
 import { TaskFileSelector } from "src/core/support/task/task_file_selector";
 import { TaskReview } from "src/core/support/task/task_review";
-import { ResolvedReviewArchive } from "src/core/support/task/resolved_review_archive";
 import { TaskReviewAgent } from "src/core/support/task/task_review_agent";
 import { TaskWorkspace } from "src/core/support/task/task_workspace";
-import { AI_CODE_GUARD_DIRECTORY, NODE_MODULES_DIRECTORY, REPORTING_PROJECT_ROOT } from "src/constants";
+import { TaskReviewAgentRuntime } from "src/core/support/task_review_agent_runtime";
+import type { IOContract } from "src/io/protocols";
+import type { ReportViolation } from "src/reporting_protocols";
 import type {
 	TaskBatchReplacementContract,
 	TaskCleanReportContract,
 	TaskFileSelectorContract,
 	TaskIssueDocumentContract,
 	TaskReportingContract,
-	TaskReportingDependencies,
 	TaskReviewAgentContract,
 	TaskReviewContract,
 	TaskRuleDocumentationContract,
 	TaskWorkspaceContract,
 	TaskWorkspaceDocumentsContract,
-} from "src/protocols";
-import type { ReviewAgentSelection, ReviewStatus, TaskReviewRunResult } from "src/types";
-import type { LintTaskPolicy, ReportViolation, TaskReportingOptions, TaskWorkspaceDocument } from "src/types";
-import type { ReviewAgentRunOptions } from "src/types";
-import type { IOContract } from "src/io/protocols";
+} from "src/task_protocols";
+import type { TaskReportingDependencies } from "src/task_types";
+import type { ReviewStatus } from "src/task_types";
+import type { LintTaskPolicy, TaskReportingOptions, TaskWorkspaceDocument } from "src/task_types";
+import type { ReviewAgentRunOptions } from "src/task_types";
+import type { ReviewAgentSelection, TaskReviewRunResult } from "src/types";
 
 /** Responsibilities: _task violations selection_, _output task reporting documents_. **/
 export class TaskReporting implements TaskReportingContract {
 	public readonly documents: TaskWorkspaceDocumentsContract;
 	public readonly batch: TaskBatchReplacementContract;
 	public readonly workspace: TaskWorkspaceContract;
-	private readonly workspace_root: string;
 	private readonly documentation: TaskRuleDocumentationContract;
 	private readonly review: TaskReviewContract;
 	private readonly review_archive: ResolvedReviewArchive;
@@ -61,10 +56,9 @@ export class TaskReporting implements TaskReportingContract {
 			output = this.clean_report.format(skip_review);
 		} else {
 			const report_status = new ReportStatus(all_violations);
-			output = [
-				report_status.summary(),
-				`See your task in \`${join(this.workspace_root, ISSUES_DOCUMENT_NAME)}\`.`,
-			].join("\n");
+			output = [report_status.summary(), `See your task in \`${this.documents.path_for_document("issues")}\`.`].join(
+				"\n",
+			);
 		}
 		const documents = new Map<TaskWorkspaceDocument, string>([
 			["report", report],
@@ -76,10 +70,6 @@ export class TaskReporting implements TaskReportingContract {
 
 	/** Responsibilities: _task reporting collaborators initialization_. **/
 	public constructor(root: string, dependencies: TaskReportingDependencies) {
-		this.workspace_root = join(root, AI_CODE_GUARD_DIRECTORY);
-		const hook_file = join(REPORTING_PROJECT_ROOT, "src", "core", "support", "task", "agent-hooks.ts");
-		const hook_command = join(REPORTING_PROJECT_ROOT, NODE_MODULES_DIRECTORY, ".bin", "tsx");
-		const review_process = new ReviewAgentProcess();
 		this.file_io = dependencies.file_io;
 		const workspace = new TaskWorkspace(root, this.file_io);
 		this.workspace = workspace;
@@ -89,15 +79,13 @@ export class TaskReporting implements TaskReportingContract {
 		this.documentation = dependencies.documentation;
 		this.review_archive = new ResolvedReviewArchive(root, this.file_io);
 		this.review = new TaskReview(root, this.file_io);
+		const review_runtime = new TaskReviewAgentRuntime(root, this.file_io);
 		this.review_agent = new TaskReviewAgent({
 			root,
-			agent_catalog: new ReviewAgentCatalog(
-				[new CodexReviewAgent(review_process), new ClaudeReviewAgent(review_process)],
-				this.file_io,
-			),
-			hooks: new ReviewAgentHooks(root, hook_command, hook_file, review_process),
-			hook_command,
-			hook_file,
+			agent_catalog: review_runtime.catalog(),
+			hooks: review_runtime.hooks(),
+			hook_command: review_runtime.hook_command,
+			hook_file: review_runtime.hook_file,
 			file_io: this.file_io,
 		});
 		this.clean_report = new TaskCleanReport(this.review);
@@ -152,6 +140,6 @@ export class TaskReporting implements TaskReportingContract {
 		}
 		const report_document = new TaskReportDocument(this.documents, batch.violations);
 		const output = this.format_batch(batch.violations, violations, skip_review, report_document.markdown());
-		return [output, `Report in file \`${join(this.workspace_root, REPORT_DOCUMENT_NAME)}\`.`].join("\n");
+		return [output, `Report in file \`${this.documents.path_for_document("report")}\`.`].join("\n");
 	}
 }

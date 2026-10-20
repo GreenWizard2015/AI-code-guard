@@ -7,44 +7,44 @@ from implementation.ast.callables.python_ast_coding_issue_runner import (
     PythonAstCodingIssueInputs,
     PythonAstCodingIssues,
 )
-from implementation.ast.callables.python_ast_tree_dependencies import (
-    PythonAstTreeDependencies,
-)
 from implementation.ast.class_nodes.class_node_builder import (
     PythonClassNode,
     PythonClassNodeOptions,
 )
+from implementation.ast.protocols import (
+    PythonAstCoreDependenciesContract,
+)
+from implementation.ast.callables.python_ast_tree_dependencies import (
+    PythonAstTreeDependencies,
+)
 from implementation.ast.imports.python_ast_core_dependencies import (
     PythonAstCoreDependencies,
 )
-from implementation.ast.protocols import (
-    PythonAstCoreDependenciesContract,
-    PythonAstTreeDependenciesContract,
-)
 from implementation.ast.python_ast_content import PythonAstContent
-from implementation.ast.python_ast_tree_state import PythonAstTreeState
-from implementation.protocols import (
+from implementation.ast.python_ast_tree_assembler import PythonAstTreeAssembler
+from protocols import (
     PythonAstContentContract,
+    PythonReferenceCollectorContract,
+)
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonAstSymbolNodesContract,
-    PythonCallableStatementsContract,
     PythonFunctionNodesContract,
-    PythonImportNodesContract,
-    PythonImportRulesContract,
     PythonModuleConstantSpansContract,
-    PythonReferenceCollectorContract,
     PythonSourceSegmentsContract,
     PythonStructureIssuesContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonCallableStatementsContract
+from protocols import (
+    PythonImportNodesContract,
+    PythonImportRulesContract,
+)
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,
     PythonReferenceAliasesContract,
     PythonScopedTypeAliasesContract,
-)
-from implementation.references.aliases.python_container_assembly import (
-    PythonContainerAssembly,
 )
 from implementation.types import JsonObject
 
@@ -83,6 +83,7 @@ class PythonAstTree:
                 self.node_index,
                 self.source_segments,
                 container_aliases,
+                self.type_aliases,
             )
         )
         return builder.result
@@ -104,16 +105,16 @@ class PythonAstTree:
         core_dependencies: PythonAstCoreDependenciesContract = (
             PythonAstCoreDependencies(source)
         )
-        tree_dependencies: PythonAstTreeDependenciesContract = (
-            PythonAstTreeDependencies(
-                core_dependencies.syntax_tree(),
-                core_dependencies.node_index(),
-            )
+        tree_dependencies = PythonAstTreeDependencies(
+            core_dependencies.syntax_tree(), core_dependencies.node_index()
         )
-        container_assembly = PythonContainerAssembly(core_dependencies.node_index())
-        state = PythonAstTreeState(
-            core_dependencies, tree_dependencies, container_assembly
+        type_aliases = tree_dependencies.type_aliases()
+        callable_statements = tree_dependencies.callable_statements()
+        assembler = PythonAstTreeAssembler(
+            core_dependencies, type_aliases, callable_statements
         )
+        core_state = assembler.core_state()
+        state = assembler.state(core_state)
         core = state.core()
         callables = state.callables()
         imports = state.imports()
@@ -133,17 +134,13 @@ class PythonAstTree:
         )
         self.container_values: PythonContainerValuesContract = core.container_values()
         self.container_keys: PythonContainerKeysContract = core.container_keys()
-        self.type_aliases: PythonScopedTypeAliasesContract = (
-            tree_dependencies.type_aliases()
-        )
+        self.type_aliases: PythonScopedTypeAliasesContract = type_aliases
         self.function_nodes: PythonFunctionNodesContract = callables.function_nodes()
         self.symbols: PythonAstSymbolNodesContract = callables.symbols()
         self.module_constants: PythonModuleConstantSpansContract = (
             tree_dependencies.module_constants()
         )
-        self.callable_statements: PythonCallableStatementsContract = (
-            tree_dependencies.callable_statements()
-        )
+        self.callable_statements: PythonCallableStatementsContract = callable_statements
         self.import_rules: PythonImportRulesContract = imports.import_rules()
         self.structure_issues: PythonStructureIssuesContract = (
             imports.structure_issues()

@@ -4,7 +4,7 @@ import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { ProjectTypeBoundary } from "src/metrics/project-boundary/project_type_boundary";
 import { CONTRACT_SUFFIX } from "src/metrics/constants";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { CONTRACT_BOUNDARY_CALLABLE, PROJECT_BOUNDARY_CALLABLE } from "tests/metrics/constants";
 import { TestFixture } from "tests/core/test-fixture";
 

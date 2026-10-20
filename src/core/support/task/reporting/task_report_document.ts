@@ -1,5 +1,5 @@
-import type { ReportViolation } from "src/types";
-import type { TaskWorkspaceDocumentsContract } from "src/protocols";
+import type { ReportViolation } from "src/reporting_protocols";
+import type { TaskWorkspaceDocumentsContract } from "src/task_protocols";
 import { TaskReportViolationRows } from "src/core/support/task/reporting/task_report_violation_rows";
 import {
 	DOCUMENTATION_REPORT_DIVIDER,

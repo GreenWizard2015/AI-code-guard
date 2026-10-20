@@ -1,6 +1,6 @@
 import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
-import { UnusedCode } from "src/core/unused_code";
-import type { ViolationContract } from "src/protocols";
+import { UnusedCode } from "src/core/project-source/unused_code";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectSourceOptions } from "src/model/types/types";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -17,7 +17,7 @@ export class UnusedCodeFixture {
 
 	/** Responsibilities: _unused-source result collection_. **/
 	public collect(files: Record<string, string>, entry_files: readonly string[] = []): ViolationContract[] {
-		return this.fixture.with_in_memory_project(
+		return this.fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const options: ProjectSourceOptions = {

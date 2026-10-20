@@ -1,12 +1,8 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptStaticKeyState } from "src/typescript-aliases/callables/static-key/type_script_static_key_state";
+import { TypeScriptStaticKeyState } from "src/typescript-aliases/callables/type_script_static_key_state";
 import { TypeScriptStaticObjectValues } from "src/typescript-aliases/callables/type_script_static_object_values";
-import type {
-	TypeScriptExpressionAliasesContract,
-	TypeScriptStaticKeyAliasesContract,
-	TypeScriptStaticKeyStateContract,
-} from "src/protocols";
+import type { TypeScriptExpressionAliasesContract, TypeScriptStaticKeyAliasesContract, TypeScriptStaticKeyStateContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _static key alias lookup_, _object property value resolution_. **/
 export class TypeScriptStaticKeyAliases implements TypeScriptStaticKeyAliasesContract {

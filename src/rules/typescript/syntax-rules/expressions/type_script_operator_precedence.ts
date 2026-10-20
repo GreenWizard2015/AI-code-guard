@@ -1,5 +1,5 @@
 import { TypeScriptBooleanPrecedenceBoundary } from "src/rules/typescript/syntax-rules/expressions/type_script_boolean_precedence_boundary";
-import type { TypeScriptOperatorPrecedenceContract } from "src/protocols";
+import type { TypeScriptOperatorPrecedenceContract } from "src/typescript_analysis_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _boolean precedence_, _arithmetic precedence_. **/

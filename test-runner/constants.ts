@@ -1,12 +1,14 @@
-import { dirname } from "node:path";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-export const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEST_RUNNER_ENTRY = "test-runner/cli.ts";
 export const TESTS_DIRECTORY = "tests";
 export const PYTHON_BRIDGE_DIRECTORY = "src/python-bridge";
 export const PYTHON_TEST_DIRECTORY = "tests/python-bridge";
+export const PERFORMANCE_TEST_DIRECTORY = "tests/performance";
+export const PACKAGE_MANAGER = "pnpm";
+export const PYTHON_EXECUTABLE = "python3";
+export const PYTEST_MODULE = "pytest";
+export const JEST_EXECUTABLE = "jest";
+export const JEST_WORKER_ARGUMENT = "--maxWorkers=4";
+export const NODE_VM_MODULES_ARGUMENT = "--experimental-vm-modules";
 export const MIN_CONFIDENCE_ARGUMENT = "--min-confidence";
 export const HEADLESS_ARGUMENT = "--headless";
 export const FORCE_REVIEW_ARGUMENT = "--force-review";

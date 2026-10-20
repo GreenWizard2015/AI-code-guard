@@ -3,14 +3,13 @@ import { DynamicBindingNames } from "src/typescript-aliases/dynamic_binding_name
 import { TypeScriptInOperatorAliases } from "src/rules/typescript/syntax-rules/expressions/type_script_in_operator_aliases";
 import { TypeScriptConditionExpression } from "src/parser/internals/type_script_condition_expression";
 import { TypeScriptCallableFeatureDetection } from "src/rules/typescript/syntax-rules/callables/type_script_callable_feature_detection";
+import { TypeScriptCatchClause } from "src/rules/typescript/syntax-rules/expressions/type_script_catch_clause";
 import { TypeScriptCallableReturnRules } from "src/rules/typescript/syntax-rules/callables/type_script_callable_return_rules";
 import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/type_script_overload_rules";
 import { ValueRules } from "src/linting/value_rules";
-import type {
-	TypeScriptExpressionRulesContract,
-	TypeScriptVariableDeclarationIndexContract,
-	ValueRulesContract,
-} from "src/protocols";
+import type { TypeScriptExpressionRulesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type { ValueRulesContract } from "src/analysis_protocols";
 import type { RuleAppender } from "src/types";
 import ts from "typescript";
 import { RULE_IDS } from "src/constants";
@@ -115,9 +114,14 @@ export class TypeScriptExpressionRules implements TypeScriptExpressionRulesContr
 
 	/** Responsibilities: _broad catch rule addition_. **/
 	private append_catch_rule(node: ts.Node, append_rule: RuleAppender): void {
-		if (ts.isCatchClause(node) && !node.variableDeclaration) {
-			append_rule(node, BROAD_CATCH);
+		if (!ts.isCatchClause(node)) {
+			return;
 		}
+		const catch_clause = new TypeScriptCatchClause(node);
+		if (!catch_clause.reports_broad_catch()) {
+			return;
+		}
+		append_rule(node, BROAD_CATCH);
 	}
 
 	/** Responsibilities: _repeated typeof rule addition_. **/

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from implementation.ast.protocols import PythonAstCallableDependenciesContract
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstSymbolNodesContract,
-    PythonCallableStatementsContract,
     PythonFunctionNodesContract,
 )
+from implementation.ast.protocols import PythonCallableStatementsContract
 
 
 class PythonAstCallableState:

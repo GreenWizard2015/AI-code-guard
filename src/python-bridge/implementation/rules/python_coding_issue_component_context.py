@@ -3,15 +3,17 @@ from __future__ import annotations
 import ast
 from typing import cast
 
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonCodingIssueOptionsContract,
+    PythonSourceSegmentsContract,
+)
+from implementation.rules.protocols import PythonCodingIssueOptionsContract
+from implementation.rules.protocols import (
     PythonExpressionBoundaryContract,
     PythonPredicateConditionContract,
-    PythonSourceSegmentsContract,
     PythonTerminalBranchContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,

@@ -1,5 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import "src/linting/orchestration/runtime/composition/constants";
 import { CompositionAnalyzer } from "src/linting/orchestration/runtime/composition/components/composition_analyzer";
 import type { ClassGraph, CodeClass } from "src/types";
 

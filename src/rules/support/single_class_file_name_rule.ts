@@ -2,12 +2,9 @@ import { basename, extname } from "node:path";
 import { PYTHON_INDEX_MODULE, TYPESCRIPT_INDEX_MODULE } from "src/constants";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type {
-	RuleContract,
-	SingleClassFileNameRuleContract,
-	TestPathSyntaxContract,
-	ViolationContract,
-} from "src/protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
+import type { SingleClassFileNameRuleContract } from "src/shared_services_protocols";
+import type { TestPathSyntaxContract } from "src/testing_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type { AstClassNode } from "src/types";
 
@@ -49,18 +46,6 @@ export class SingleClassFileNameRule implements SingleClassFileNameRuleContract 
 				this.append_class_violation(violations, file, class_node);
 			}
 		}
-	}
-
-	/** Responsibilities: _focused class module identification_. **/
-	public focused_class_file(file: string, classes: readonly AstClassNode[]): boolean {
-		if (classes.length !== 1 || this.excluded_file(file)) {
-			return false;
-		}
-		const class_node = classes[0];
-		if (class_node === undefined || class_node.protocol || class_node.type_contract) {
-			return false;
-		}
-		return basename(file) === this.expected_file_name(class_node.name, file);
 	}
 
 	/** Responsibilities: _class name file-name conversion_. **/

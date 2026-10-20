@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _source cache identity_, _project configuration identity_. **/
 export class ContextSourceRecordCacheIdentity {

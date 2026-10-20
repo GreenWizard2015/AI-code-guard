@@ -4,6 +4,7 @@ export const FILE_ANALYSIS_CACHE_VERSION = 2;
 export const GLOBAL_ANALYSIS_CACHE_VERSION = 2;
 export const LINT_EXECUTION_CACHE_VERSION = 2;
 export const CACHE_DIRECTORY = "cache";
+export const CACHE_DIRECTORY_ENTRY_KIND = "directory";
 export const LINT_EXECUTION_CACHE_DIRECTORY = "lint-execution";
 export const LINT_EXECUTION_CACHE_FILE = "lint-result.json";
 export const CACHE_INPUT_STABILITY_ATTEMPTS = 3;

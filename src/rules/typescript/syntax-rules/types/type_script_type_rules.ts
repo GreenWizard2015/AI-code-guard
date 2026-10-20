@@ -9,15 +9,8 @@ import { TypeScriptOperatorPrecedence } from "src/rules/typescript/syntax-rules/
 import ts from "typescript";
 import { EARLY_RETURN } from "src/parser/internals/constants";
 import type { RuleContextData } from "src/types";
-import type {
-	TypeScriptAssignmentPredicatesContract,
-	TypeScriptNodeTypeRulesContract,
-	TypeScriptConditionalRulesContract,
-	TypeScriptTerminalBranchesContract,
-	NullableTypeRulesContract,
-	CompositeStateTypeRulesContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { TypeScriptAssignmentPredicatesContract, TypeScriptNodeTypeRulesContract, TypeScriptConditionalRulesContract, TypeScriptTerminalBranchesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type { NullableTypeRulesContract, CompositeStateTypeRulesContract } from "src/runtime_protocols";
 
 /** Responsibilities: _type diagnostics_, _conditional types_. **/
 export class TypeScriptTypeRules implements TypeScriptNodeTypeRulesContract {

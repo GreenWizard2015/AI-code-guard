@@ -11,12 +11,10 @@ import type {
 } from "src/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonAstBatchCache } from "src/core/python_ast_batch_cache";
-import type {
-	AstModelContract,
-	LintStageTimerContract,
-	PythonAstDataContract,
-	PythonAstDataOptions,
-} from "src/protocols";
+import type { AstModelContract } from "src/source_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { PythonAstDataContract } from "src/python_protocols";
+import type { PythonAstDataOptions } from "src/python_types";
 
 /** Responsibilities: _Python AST ownership_, _batch cache_, _worker state_. **/
 export class PythonAstData implements PythonAstDataContract {

@@ -2,7 +2,7 @@ import ts from "typescript";
 import type { FactoryObjectSourcesContract } from "src/linting/orchestration/runtime/protocols";
 import type { TypeScriptFactoryObjectBindingSourcesContract } from "src/linting/orchestration/runtime/protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { ArraySourceResolver, ExpressionVisitor } from "src/protocols";
+import type { ArraySourceResolver, ExpressionVisitor } from "src/analysis_types";
 
 /** Responsibilities: _nested object binding resolution_, _object property source lookup_. **/
 export class TypeScriptFactoryObjectBindingSources implements TypeScriptFactoryObjectBindingSourcesContract {

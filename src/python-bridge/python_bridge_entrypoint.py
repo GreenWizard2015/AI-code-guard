@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 from typing import Any, BinaryIO, TextIO
 
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.protocols import PythonAstBridgeContract, PythonBridgeInputContract
+from protocols import PythonAstBridgeContract
+from protocols import PythonBridgeInputContract
 from implementation.types import JsonObject
 from python_batch_result import PythonBatchResult
 from python_bridge_arguments import PythonBridgeArguments
@@ -114,6 +116,9 @@ class PythonBridgeEntrypoint:
 if __name__ == "__main__":
     bridge: PythonAstBridge = PythonAstBridge(PythonAstTree)
     entrypoint: PythonBridgeEntrypoint = PythonBridgeEntrypoint(
-        bridge, sys.stdin, sys.stdout, PythonBridgeInput(PathPythonBridgeFileIO())
+        bridge,
+        sys.stdin,
+        sys.stdout,
+        PythonBridgeInput(PathPythonBridgeFileIO(Path.cwd())),
     )
     entrypoint.run_cli(sys.argv)

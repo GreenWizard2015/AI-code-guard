@@ -33,7 +33,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         """Responsibilities: _text mode output_."""
         bridge = PythonAstBridge(PythonAstTree)
         output = io.StringIO()
-        input_source = PythonBridgeInput(PathPythonBridgeFileIO())
+        input_source = PythonBridgeInput(PathPythonBridgeFileIO(Path(".")))
         entrypoint = PythonBridgeEntrypoint(bridge, io.StringIO(), output, input_source)
         entrypoint.run_text("class Item:\n    pass\n")
         result = json.loads(output.getvalue())
@@ -41,7 +41,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
 
     def test_resolves_code_source_prefix(self) -> None:
         """Responsibilities: _code source routing_."""
-        source = PythonBridgeInput(PathPythonBridgeFileIO())
+        source = PythonBridgeInput(PathPythonBridgeFileIO(Path(".")))
         self.assertEqual(source.resolve("code:class Item:\n    pass\n"), "class Item:\n    pass\n")
 
     def test_resolves_file_source_prefix(self) -> None:
@@ -69,7 +69,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
             bridge,
             io.StringIO("def run():\n    return None\n"),
             output,
-            PythonBridgeInput(PathPythonBridgeFileIO()),
+            PythonBridgeInput(PathPythonBridgeFileIO(Path("."))),
         )
         entrypoint.run_cli(["entrypoint"])
         result = json.loads(output.getvalue())
@@ -89,7 +89,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
             bridge,
             io.StringIO(request),
             output,
-            PythonBridgeInput(PathPythonBridgeFileIO()),
+            PythonBridgeInput(PathPythonBridgeFileIO(Path("."))),
         )
         entrypoint.run_cli(["entrypoint", "--batch"])
         results = [json.loads(line) for line in output.getvalue().splitlines()]

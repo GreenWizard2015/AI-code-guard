@@ -1,4 +1,4 @@
-import type { TaskWorkspaceDocument } from "src/types";
+import type { TaskWorkspaceDocument } from "src/task_types";
 import type {
 	TaskPublicationJournalContract,
 	TaskPublicationJournalState,

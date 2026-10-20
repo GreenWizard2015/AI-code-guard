@@ -1,8 +1,10 @@
 import { AstCacheHit } from "src/core/cache/ast_cache_hit";
 import { AstCacheMiss } from "src/core/cache/ast_cache_miss";
 import { AstDiskCache } from "src/core/cache/ast_disk_cache";
-import type { AstCacheEntryContract, AstDiskCacheContract, ProjectAnalysisIdentityContract } from "src/protocols";
-import type { PythonAstBatchCacheContract, PythonAstBatchParser } from "src/protocols";
+import type { AstCacheEntryContract, AstDiskCacheContract } from "src/source_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { PythonAstBatchCacheContract } from "src/python_protocols";
+import type { PythonAstBatchParser } from "src/python_types";
 import type {
 	NormalizedAstFile,
 	PythonAstCacheBatch,

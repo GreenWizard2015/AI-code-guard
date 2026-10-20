@@ -7,16 +7,21 @@ from typing import Any
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
+    PythonSourceSegmentsContract,
+)
+from implementation.ast.protocols import (
     PythonCallableArgumentsContract,
     PythonCallableMetricsContract,
     PythonCallableStatementsContract,
     PythonFunctionSelectorContract,
-    PythonSourceSegmentsContract,
     PythonTestAssertionDataContract,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.references.protocols import (
+    PythonContainerAliasesContract,
+    PythonScopedTypeAliasesContract,
+)
 from implementation.types import JsonObject
 from implementation.rules.constants import PYTHON_RETURN_TYPE_KEY, PYTHON_STATEMENTS_KEY
 
@@ -31,6 +36,7 @@ class PythonFunctionNodesOptions:
     container_aliases: PythonContainerAliasesContract
     function_selector: PythonFunctionSelectorContract
     test_assertion_data: PythonTestAssertionDataContract
+    type_aliases: PythonScopedTypeAliasesContract
 
 
 class PythonFunctionNodes:
@@ -110,7 +116,7 @@ class PythonFunctionNodes:
             options.test_assertion_data
         )
         self.callable_arguments: PythonCallableArgumentsContract = CallableArguments(
-            self.node_index
+            self.node_index, options.type_aliases
         )
         self.callable_metrics: PythonCallableMetricsContract = CallableMetrics()
         self.callable_statements: PythonCallableStatementsContract = (

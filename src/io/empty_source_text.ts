@@ -1,4 +1,4 @@
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _empty source inventory_, _unavailable source results_. **/
 export class EmptySourceText implements ProjectSourceIOContract {

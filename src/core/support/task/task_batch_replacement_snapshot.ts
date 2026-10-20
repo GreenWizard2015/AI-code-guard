@@ -1,5 +1,5 @@
-import type { TaskWorkspaceDocument } from "src/types";
-import { TaskPublicationRollbackError } from "src/core/support/task/publication/task_publication_rollback_error";
+import type { TaskWorkspaceDocument } from "src/task_types";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import type {
 	TaskBatchReplacementSnapshotContract,
 	TaskPublicationLockContract,
@@ -8,9 +8,22 @@ import type {
 
 /** Responsibilities: _batch rollback state_, _transaction location_. **/
 export class TaskBatchReplacementSnapshot implements TaskBatchReplacementSnapshotContract {
+	private readonly boundary_failures: BoundaryFailureClassifier;
 	public readonly transaction: string;
 	public readonly rules_existed: boolean;
 	public readonly existing_documents: readonly TaskWorkspaceDocument[];
+
+	/** Responsibilities: _rollback failure reporting_. **/
+	private combined_rollback_failure(message: string, rollback_message: string): AggregateError {
+		const publication_error = new Error(message);
+		const rollback_failure = new Error(rollback_message);
+		const combined_failure = new AggregateError(
+			[publication_error, rollback_failure],
+			`${publication_error.message}; rollback: ${rollback_failure.message}`,
+		);
+		combined_failure.name = "TaskPublicationRollbackError";
+		return combined_failure;
+	}
 
 	/** Responsibilities: _rollback snapshot initialization_. **/
 	public constructor(
@@ -18,6 +31,7 @@ export class TaskBatchReplacementSnapshot implements TaskBatchReplacementSnapsho
 		rules_existed: boolean,
 		existing_documents: readonly TaskWorkspaceDocument[],
 	) {
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.transaction = transaction;
 		this.rules_existed = rules_existed;
 		this.existing_documents = existing_documents;
@@ -39,7 +53,10 @@ export class TaskBatchReplacementSnapshot implements TaskBatchReplacementSnapsho
 				recovery.restore(this.transaction, this.rules_existed, this.recovery_documents());
 			}
 		} catch (rollback_error) {
-			throw new TaskPublicationRollbackError(`${message}; rollback: ${String(rollback_error)}`);
+			if (!this.boundary_failures.system_failure_message(String(rollback_error))) {
+				throw rollback_error;
+			}
+			throw this.combined_rollback_failure(message, String(rollback_error));
 		}
 		lock.release();
 		throw new Error(message);

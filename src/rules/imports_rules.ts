@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstImportIssue } from "src/types";
 import { IMPORT_RULE_IDS } from "src/rules/constants";

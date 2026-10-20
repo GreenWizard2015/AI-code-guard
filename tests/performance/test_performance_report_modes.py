@@ -2,11 +2,22 @@ import unittest
 from pathlib import Path
 
 from performance.performance_report import PerformanceReport
-from performance.performance_snapshot_input import PerformanceSnapshotInput
-from performance.protocols import PerformanceSnapshotInputContract
-from tests.performance.in_memory_performance_snapshot_io import (
-    InMemoryPerformanceSnapshotIO,
-)
+
+
+class InMemoryPerformanceSnapshotIO:
+    """Responsibilities: _virtual snapshot lookup_, _snapshot text retrieval_."""
+
+    def __init__(self, snapshots: dict[Path, str]) -> None:
+        """Responsibilities: _snapshot collection initialization_."""
+        self.snapshots: dict[Path, str] = snapshots
+
+    def snapshot_paths(self, inputs: list[str]) -> list[Path]:
+        """Responsibilities: _snapshot path selection_."""
+        return [Path(value) for value in inputs if Path(value) in self.snapshots]
+
+    def snapshot_text(self, path: Path) -> str:
+        """Responsibilities: _snapshot source text lookup_."""
+        return self.snapshots[path]
 
 
 class PerformanceReportModesTest(unittest.TestCase):
@@ -20,7 +31,7 @@ class PerformanceReportModesTest(unittest.TestCase):
         startup: int,
         cold_only: bool = False,
         warm_only: bool = False,
-    ) -> PerformanceSnapshotInputContract:
+    ) -> dict[Path, str]:
         """Responsibilities: _mode snapshot fixture creation_."""
         path = Path(f"/virtual/{name}")
         lines = [
@@ -34,7 +45,7 @@ class PerformanceReportModesTest(unittest.TestCase):
             lines.append(f"| cold-only | {startup} sec |")
         if warm_only:
             lines.append(f"| warm-only | {startup} sec |")
-        return PerformanceSnapshotInput(path, "\n".join(lines) + "\n")
+        return {path: "\n".join(lines) + "\n"}
 
     def _matching_snapshots(self) -> dict[Path, str]:
         """Responsibilities: _matching mode snapshot fixtures_."""
@@ -44,7 +55,7 @@ class PerformanceReportModesTest(unittest.TestCase):
             self._snapshot("warm_first.performance.md", 2, False, True),
             self._snapshot("warm_second.performance.md", 4, False, True),
         ]
-        return {snapshot.path(): snapshot.content() for snapshot in snapshots}
+        return {path: content for snapshot in snapshots for path, content in snapshot.items()}
 
     def test_aggregates_cold_and_warm_stage_medians_separately(self) -> None:
         """Responsibilities: _cold/warm stage aggregation_."""

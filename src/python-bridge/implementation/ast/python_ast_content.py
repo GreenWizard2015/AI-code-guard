@@ -11,13 +11,11 @@ from implementation.ast.callables.python_ast_reference_content import (
 from implementation.ast.type_declarations.python_responsibility_targets import (
     PythonResponsibilityTargets,
 )
-from implementation.protocols import (
-    PythonAstContentTreeContract,
-    PythonPrivateAccessOptionsContract,
-    PythonPrivateVarsMappingContract,
-    PythonReflectionNamesContract,
-)
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from protocols import PythonAstContentTreeContract
+from implementation.ast.protocols import PythonPrivateAccessOptionsContract
+from implementation.protocols import PythonReflectionNamesContract
+from implementation.references.protocols import PythonPrivateVarsMappingContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.references.python_private_vars_mapping import (
     PythonPrivateVarsMapping,
 )
@@ -31,7 +29,10 @@ from implementation.rules.constants import PYTHON_PARSE_ISSUES_KEY
 from implementation.rules.call_analysis.python_private_access_options import (
     PythonPrivateAccessOptions,
 )
-from implementation.types import JsonObject, JsonValue
+from implementation.types import (
+    JsonObject,
+    JsonValue,
+)
 
 PythonAstOperation = Callable[[], JsonValue]
 

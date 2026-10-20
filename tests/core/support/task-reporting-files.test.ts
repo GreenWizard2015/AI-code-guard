@@ -3,7 +3,7 @@ import "src/lint_stage_timer";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
 describe("coding-lint task reporting files", () => {

@@ -1,19 +1,17 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptObjectAliases } from "src/typescript-aliases/type_script_object_aliases";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/typescript-aliases/type_script_object_alias_declaration_index";
 import { TypeScriptStaticArrayKeys } from "src/type_script_static_array_keys";
-import type {
-	DynamicObjectMemberAliasesContract,
-	TypeScriptExpressionAliasesContract,
-	TypeScriptObjectAliasesContract,
-	TypeScriptStaticArrayKeysContract,
-} from "src/protocols";
+import type { DynamicObjectMemberAliasesContract } from "src/runtime_protocols";
+import type { TypeScriptExpressionAliasesContract, TypeScriptObjectAliasesContract, TypeScriptStaticArrayKeysContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _object member value ownership_, _dynamic member alias resolution_. **/
 export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesContract {
 	private readonly target_aliases: TypeScriptExpressionAliasesContract;
 	private readonly array_aliases: TypeScriptStaticArrayKeysContract;
 	private readonly aliases_by_scope: Map<ts.Node, TypeScriptObjectAliasesContract>;
+	private readonly declaration_index: TypeScriptObjectAliasDeclarationIndex;
 
 	/** Responsibilities: _object member value classification_. **/
 	private member_value(value: ts.Expression, source: ts.Node, member_name: string): boolean {
@@ -76,7 +74,7 @@ export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesCon
 		if (cached !== undefined) {
 			return cached;
 		}
-		const aliases = new TypeScriptObjectAliases();
+		const aliases = new TypeScriptObjectAliases(this.declaration_index);
 		for (const scope of this.scope_nodes(node)) {
 			aliases.collect(scope);
 		}
@@ -121,6 +119,7 @@ export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesCon
 	/** Responsibilities: _dynamic object alias initialization_. **/
 	public constructor(target_name: string = "Reflect") {
 		this.aliases_by_scope = new Map<ts.Node, TypeScriptObjectAliasesContract>();
+		this.declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		this.target_aliases = new TypeScriptExpressionAliases(target_name);
 		this.array_aliases = new TypeScriptStaticArrayKeys();
 	}

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { TypeScriptModuleDeclarationNaming } from "src/linting/orchestration/runtime/typescript-rule-groups/special-rules/type_script_module_declaration_naming";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 describe("TypeScript module declaration naming", () => {
 	test("requires uppercase constants and forbids module variables", () => {

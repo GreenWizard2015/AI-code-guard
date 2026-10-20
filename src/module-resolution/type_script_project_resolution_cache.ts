@@ -1,15 +1,11 @@
 import { resolve as resolve_path } from "node:path";
-import {
-	MODULE_CACHE_DISK_SCOPE,
-	MODULE_CACHE_KEY_SEPARATOR,
-	MODULE_CACHE_SNAPSHOT_SCOPE,
-} from "src/module-resolution/constants";
+import { MODULE_CACHE_DISK_SCOPE, MODULE_CACHE_KEY_SEPARATOR, MODULE_CACHE_SNAPSHOT_SCOPE } from "src/constants";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
 import type {
 	TypeScriptModuleResolutionContract,
 	TypeScriptProjectResolutionCacheContract,
 } from "src/module-resolution/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _project resolution caching_, _cache scope selection_. **/
 export class TypeScriptProjectResolutionCache implements TypeScriptProjectResolutionCacheContract {

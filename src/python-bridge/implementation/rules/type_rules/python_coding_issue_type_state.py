@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from implementation.protocols import (
-    PythonCodingIssueComponentContextContract,
+from implementation.rules.protocols import PythonCodingIssueComponentContextContract
+from implementation.rules.protocols import (
     PythonUnboundedTypeRulesContract,
     PythonUnionRulesContract,
 )

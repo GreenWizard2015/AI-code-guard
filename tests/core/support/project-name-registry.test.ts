@@ -5,8 +5,8 @@ import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptLintSourceRecord } from "src/core/context/type_script_lint_source_record";
 import { LintProjectContextStore } from "src/core/lint_project_context_store";
 import { SourceText } from "src/source_text";
-import type { LintProjectContextContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { LintSourceRecord } from "src/source_types";
 
 describe("ProjectNameRegistry", () => {
 	test("collects interface names without rescanning classes for every declaration", () => {

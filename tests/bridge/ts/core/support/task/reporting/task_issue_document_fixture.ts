@@ -2,7 +2,7 @@ import { dirname, join } from "node:path";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { TaskRuleDocumentCatalog } from "src/core/support/task/reporting/task_rule_document_catalog";
 import { TaskWorkspace } from "src/core/support/task/task_workspace";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 
 /** Responsibilities: _virtual issue-report state_, _source-backed violation creation_. **/
 export class TaskIssueDocumentFixture {

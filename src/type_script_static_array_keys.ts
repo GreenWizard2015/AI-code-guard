@@ -5,8 +5,8 @@ import { TypeScriptStaticArrayValues } from "src/type_script_static_array_values
 import { TypeScriptStaticArrayMethods } from "src/type_script_static_array_methods";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { StaticExpressionArray } from "src/static_expression_array";
-import type { StaticExpressionArrayContract } from "src/protocols";
-import type { TypeScriptStaticArrayKeysContract } from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { TypeScriptStaticArrayKeysContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _static key expression resolution_, _array key source collection_. **/
 export class TypeScriptStaticArrayKeys implements TypeScriptStaticArrayKeysContract {

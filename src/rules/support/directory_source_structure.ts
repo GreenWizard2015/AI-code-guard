@@ -1,5 +1,5 @@
 import { dirname, isAbsolute, relative, sep } from "node:path";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MAX_SOURCE_SUBDIRECTORIES } from "src/constants";
 import { DIRECTORY_RULE_IDS } from "src/rules/constants";

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { TypeScriptNamespaceAliasesContract } from "src/protocols";
+import type { TypeScriptNamespaceAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _namespace import collection_, _qualified target resolution_. **/
 export class TypeScriptNamespaceAliases implements TypeScriptNamespaceAliasesContract {

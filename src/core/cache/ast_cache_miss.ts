@@ -1,4 +1,4 @@
-import type { AstCacheEntryContract } from "src/protocols";
+import type { AstCacheEntryContract } from "src/source_protocols";
 import type { NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _missing AST ownership_, _cache miss language rejection_. **/

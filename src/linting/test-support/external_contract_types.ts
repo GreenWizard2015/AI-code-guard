@@ -1,10 +1,10 @@
 import ts from "typescript";
 import { EXTERNAL_DIRECTORY } from "src/constants";
-import type { ExternalImportNames } from "src/linting/test-support/types";
+import type { SourceFileStringSetCache } from "src/source_types";
 
 /** Responsibilities: _external module classification_, _imported type identification_. **/
 export class ExternalContractTypes {
-	private readonly imported_names: WeakMap<ts.SourceFile, ExternalImportNames>;
+	private readonly imported_names: SourceFileStringSetCache;
 
 	/** Responsibilities: _project module boundary_. **/
 	private project_module(module_name: string): boolean {
@@ -48,7 +48,7 @@ export class ExternalContractTypes {
 	}
 
 	/** Responsibilities: _external import identity index_. **/
-	private external_import_names(source_file: ts.SourceFile): ExternalImportNames {
+	private external_import_names(source_file: ts.SourceFile): ReadonlySet<string> {
 		const cached = this.imported_names.get(source_file);
 		if (cached !== undefined) {
 			return cached;
@@ -65,7 +65,7 @@ export class ExternalContractTypes {
 
 	/** Responsibilities: _external type cache initialization_. **/
 	public constructor() {
-		this.imported_names = new WeakMap<ts.SourceFile, ExternalImportNames>();
+		this.imported_names = new WeakMap<ts.SourceFile, ReadonlySet<string>>();
 	}
 
 	/** Responsibilities: _external contract import lookup_. **/

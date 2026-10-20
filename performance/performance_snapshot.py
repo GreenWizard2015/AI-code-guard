@@ -5,6 +5,8 @@ from __future__ import annotations
 from performance.constants import (
     PROJECT_ROOT_KEY,
     PYTHON_FILES_KEY,
+    FILE_KEY_SUFFIX,
+    STAGE_KEY_PREFIX,
     TYPESCRIPT_FILES_KEY,
 )
 from performance.performance_workload_identity import PerformanceWorkloadIdentity
@@ -24,16 +26,16 @@ class PerformanceSnapshot:
         """Responsibilities: _performance stage value conversion_."""
         stage_values: dict[str, float] = {}
         for key, value in self.values.items():
-            if not key.startswith("stage:"):
+            if not key.startswith(STAGE_KEY_PREFIX):
                 continue
-            stage_values[key.removeprefix("stage:")] = float(value)
+            stage_values[key.removeprefix(STAGE_KEY_PREFIX)] = float(value)
         return stage_values
 
     def file_counts(self) -> dict[str, int]:
         """Responsibilities: _performance language file-count conversion_."""
         file_counts: dict[str, int] = {}
         for key, value in self.values.items():
-            if not key.endswith("_files"):
+            if not key.endswith(FILE_KEY_SUFFIX):
                 continue
             file_counts[key] = int(value)
         return file_counts

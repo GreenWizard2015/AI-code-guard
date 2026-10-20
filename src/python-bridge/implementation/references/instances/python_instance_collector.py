@@ -9,7 +9,7 @@ from implementation.references.protocols import (
     PythonAnnotationResolverContract,
     PythonReferenceContextContract,
 )
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 
 
 class PythonInstanceCollector:

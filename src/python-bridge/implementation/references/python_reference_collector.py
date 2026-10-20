@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass, field
 from time import perf_counter
 from typing import Any
 
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-)
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import (
     PythonAnnotationResolverContract,
     PythonCallReturnsContract,
@@ -36,9 +35,17 @@ from implementation.references.context.python_reference_context_options import (
 from implementation.references.context.python_reference_symbol_tables import (
     PythonReferenceSymbolTables,
 )
-from implementation.references.reference_state import PythonReferenceState
 from implementation.rules.constants import PYTHON_REFERENCE_COLLECTION_STAGE
 from implementation.types import JsonObject
+
+
+@dataclass
+class PythonReferenceState:
+    """Responsibilities: _reference context storage_, _storage reference builders records_."""
+
+    context: PythonReferenceContextContract = field(init=False)
+    builder: PythonReferenceBuilderContract = field(init=False)
+    references: list[JsonObject] = field(default_factory=list)
 
 
 class PythonReferenceCollector:

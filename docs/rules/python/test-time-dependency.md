@@ -32,11 +32,11 @@ class Status:
         return normalized_fragment in status_value
 # File: tests/domain/test_status.py
 import unittest
-from datetime import datetime
+import time as clock
 from src.domain.status import Status
 class TestStatus(unittest.TestCase):
     def test_uses_current_time(self) -> None:
-        current_time = datetime.now()  # <- error
+        current_time = clock.time()  # <- error
         self.assertEqual(Status(str(current_time)).normalized(), str(current_time).lower())
     def test_ready(self) -> None: self.assertTrue(Status("ready").ready())
 ```

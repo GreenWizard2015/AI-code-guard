@@ -1,4 +1,4 @@
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _controlled source discovery failure_, _in-memory source access_. **/
 export class TaskReviewFailingSourceIO implements ProjectSourceIOContract {

@@ -3,9 +3,11 @@ import ts from "typescript";
 import { AstPropertyType } from "src/rules/typescript/syntax-rules/ast/ast_property_type";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
 import { RULE_IDS } from "src/constants";
-import type { AstPropertySourceIndexContract } from "src/protocols";
+import type { AstPropertySourceIndexContract } from "src/source_protocols";
 import type { RuleAppender } from "src/types";
-import type { AstPropertyTypeContract, SourceFileResolver, UnnecessaryUndefinedCheckContract } from "src/protocols";
+import type { AstPropertyTypeContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { UnnecessaryUndefinedCheckContract } from "src/analysis_protocols";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 
 /** Responsibilities: _undefined checks_, _field types_. **/
@@ -87,6 +89,7 @@ export class UnnecessaryUndefinedCheck implements UnnecessaryUndefinedCheckContr
 
 	/** Responsibilities: _known field expressions_. **/
 	private required_field_expression(expression: ts.Expression): boolean {
+		expression = this.unwrapped_key(expression);
 		if (ts.isPropertyAccessExpression(expression)) {
 			return this.required_field(expression.expression, expression.name.text);
 		}

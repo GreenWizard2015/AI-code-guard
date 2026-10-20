@@ -7,6 +7,7 @@ import {
 } from "src/core/support/task/review-agent/constants";
 import type { ReviewAgentIdentityContract } from "src/core/support/task/review-agent/types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _process identity_, _agent identity storage_. **/
 export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
@@ -15,6 +16,7 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
 	private readonly boot_id: string;
 	private readonly available: boolean;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _identity from process fields_. **/
 	private process_fields(pid: number, fields: readonly string[], boot_id: string): ReviewAgentIdentityContract {
@@ -25,6 +27,23 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
 		return new ReviewAgentIdentity(pid, start_time, boot_id, true, this.file_io);
 	}
 
+	/** Responsibilities: _process stat field extraction_. **/
+	private process_stat_fields(pid: number): string[] {
+		const stat = this.file_io.file_content.file_text(`/proc/${pid}/stat`);
+		const command_end = stat.lastIndexOf(") ");
+		if (command_end < 0) {
+			return [];
+		}
+		return stat.slice(command_end + 2).split(" ");
+	}
+
+	/** Responsibilities: _current process identity reading_. **/
+	private process_identity(pid: number): ReviewAgentIdentityContract {
+		const fields = this.process_stat_fields(pid);
+		const boot_id = this.file_io.file_content.file_text("/proc/sys/kernel/random/boot_id").trim();
+		return this.process_fields(pid, fields, boot_id);
+	}
+
 	/** Responsibilities: _review-agent identity state_. **/
 	public constructor(pid: number, start_time: string, boot_id: string, available: boolean, file_io: IOContract) {
 		this.pid = pid;
@@ -32,6 +51,7 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
 		this.boot_id = boot_id;
 		this.available = available;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _current process identity_. **/
@@ -40,15 +60,11 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
 			return new ReviewAgentIdentity(pid, "", "", false, this.file_io);
 		}
 		try {
-			const stat = this.file_io.file_content.file_text(`/proc/${pid}/stat`);
-			const command_end = stat.lastIndexOf(") ");
-			if (command_end < 0) {
-				return new ReviewAgentIdentity(pid, "", "", false, this.file_io);
-			}
-			const fields = stat.slice(command_end + 2).split(" ");
-			const boot_id = this.file_io.file_content.file_text("/proc/sys/kernel/random/boot_id").trim();
-			return this.process_fields(pid, fields, boot_id);
+			return this.process_identity(pid);
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return new ReviewAgentIdentity(pid, "", "", false, this.file_io);
 		}
 	}
@@ -100,7 +116,9 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract {
 			this.file_io.directory_operations.create_directory(directory);
 			this.file_io.file_content.write_text(join(directory, String(this.pid)), serialized_identity);
 		} catch (error) {
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 }

@@ -1,4 +1,4 @@
-import type { ProcessSignalContract } from "src/protocols";
+import type { ProcessSignalContract } from "src/analysis_protocols";
 
 /** Responsibilities: _process liveness fixture_, _termination observations_. **/
 export class ReviewRunLockProcessSignalFixture implements ProcessSignalContract {

@@ -2,7 +2,7 @@ import ast
 import unittest
 from unittest.mock import patch
 
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
@@ -15,7 +15,7 @@ from implementation.references.aliases.python_container_alias_state import (
 )
 from implementation.references.aliases.python_container_keys import PythonContainerKeys
 from implementation.references.aliases.python_container_values import PythonContainerValues
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 
 
 class PythonBridgeCollectionRuleTest(unittest.TestCase):
@@ -39,6 +39,29 @@ class PythonBridgeCollectionRuleTest(unittest.TestCase):
         issues = parser.coding_issues()
         kinds = {issue["kind"] for issue in issues}
         self.assertIn("multiple-result-shapes", kinds)
+
+    def test_multiple_result_shape_mapping_get(self) -> None:
+        """Responsibilities: _mapping response shape verification_."""
+        source = (
+            "def content_from_response(response: dict[str, str]) -> str:\n"
+            '    structured_content = response.get("structuredContent")\n'
+            "    if structured_content is not None:\n"
+            "        return structured_content\n"
+            '    return response.get("unwrap_tool_result", "")\n'
+            "\n"
+            "def ordinary_value(response: dict[str, str]) -> str:\n"
+            '    return response.get("label", "")\n'
+        )
+        parser = PythonAstTree(source)
+
+        self.assertEqual(
+            [
+                issue["line"]
+                for issue in parser.coding_issues()
+                if issue["kind"] == "multiple-result-shapes"
+            ],
+            [1, 4],
+        )
 
     def test_container_point_lookup_does_not_copy_the_alias_mapping(self) -> None:
         """Responsibilities: _container point lookup verification_."""

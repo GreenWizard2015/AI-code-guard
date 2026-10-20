@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 export enum DocumentationLanguage {
 	TYPESCRIPT = "ts",

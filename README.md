@@ -354,11 +354,14 @@ This repository is a private project configuration and rule set. The rules evolv
 The following benchmark measures AI-code-guard against its own repository with
 architecture review disabled. Each series contains 10 measured runs.
 
-Results recorded on 2026-10-19:
+Results recorded on 2026-10-21:
 
 | Mode | Average | Median |
 | --- | ---: | ---: |
 | **Date: 2026-10-19 Files: 1141 (892 TypeScript files and 249 Python files)** | | |
 | Without cache | 15.912 sec | 15.920 sec |
 | With cache | 1.353 sec | 1.350 sec |
+| **Date: 2026-10-21 Files: 1131 (911 TypeScript files and 220 Python files)** | | |
+| Without cache | 16.546 sec | 16.610 sec |
+| With cache | 1.325 sec | 1.320 sec |
 

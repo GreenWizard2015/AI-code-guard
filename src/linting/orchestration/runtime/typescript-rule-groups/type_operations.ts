@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 /** Responsibilities: _type operator classification_, _project type resolution_. **/
 export class TypeOperations {

@@ -5,8 +5,8 @@ from collections.abc import Iterable
 from functools import cached_property
 from typing import Any
 
-from implementation.protocols import PythonCallableArgumentsContract
-from implementation.references.aliases.protocols import PythonReferenceAliasesContract
+from implementation.ast.protocols import PythonCallableArgumentsContract
+from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )
@@ -77,21 +77,26 @@ class PythonTypeDeclarationCollector:
             return []
         return [{"name": node.target.id, "line": node.lineno - 1}]
 
+    def _structural_declaration(
+        self, node: ast.Assign, target: ast.AST
+    ) -> list[JsonObject]:
+        """Responsibilities: _structural type declaration_."""
+        if len(node.targets) != 1 or type(target) is not ast.Name:
+            return []
+        if not target.id[:1].isupper():
+            return []
+        if not self.callable_arguments.structural_type(node.value):
+            return []
+        return [{"name": target.id, "line": node.lineno - 1}]
+
     def _assigned_declaration(self, node: ast.Assign) -> list[JsonObject]:
         """Responsibilities: _collection assigned type declaration_."""
         if len(node.targets) == 0:
             return []
         target: Any = node.targets[0]
-        is_factory = self._factory_in_value(node.value)
-        is_structural = self.callable_arguments.structural_type(node.value)
-        if not is_factory:
-            if len(node.targets) != 1:
-                return []
-            if type(target) is not ast.Name:
-                return []
-            if not is_structural:
-                return []
-        return [{"name": ast.unparse(target), "line": node.lineno - 1}]
+        if self._factory_in_value(node.value):
+            return [{"name": ast.unparse(target), "line": node.lineno - 1}]
+        return self._structural_declaration(node, target)
 
     def __init__(
         self, tree: ast.Module, callable_arguments: PythonCallableArgumentsContract

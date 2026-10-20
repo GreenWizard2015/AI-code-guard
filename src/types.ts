@@ -1,25 +1,13 @@
 import type { ArgumentUse, TypedArgument } from "src/model/types";
 import type ts from "typescript";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
-import type {
-	LintProjectContextContract,
-	LintStageTimerContract,
-	SourceFileResolver,
-	ProjectSourcePythonContract,
-	ProjectSourceScannerContract,
-	TypeScriptAstFileContract,
-	ViolationContract,
-	AstPropertySourceIndexContract,
-	TypeScriptAstTraversalContract,
-	ProjectSourceIOContract,
-	GitIgnoreGlobMatcherContract,
-} from "src/protocols";
-
-export type PythonProjectImportContext = {
-	root: string;
-	files: ReadonlySet<string>;
-	resolver: ProjectSourcePythonContract;
-};
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { AstPropertySourceIndexContract } from "src/source_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
+import type { FileNameLike, LintFileNameContract } from "src/source_types";
 
 export type TaskIssueFileViolationDetails = {
 	messages: ReadonlySet<string>;
@@ -56,6 +44,7 @@ export type ReviewAgentProcessResult = { exit_code: number; stdout: string; stde
 export type TypeScriptRuleContextOptions = {
 	stage_timer: LintStageTimerContract;
 	source_resolver: SourceFileResolver;
+	node_rules: TypeScriptNodeRulesContract;
 	module_exports: TypeScriptPropertyModuleResolverContract;
 	source_index: AstPropertySourceIndexContract;
 	traversal: TypeScriptAstTraversalContract;
@@ -381,14 +370,6 @@ export type ClassGraph = {
 };
 export type ImportedFunction = { source_file: string; source_name: string };
 export type ClassFieldFiles = { files: string[]; repo_root: string };
-export type PreparedCodingRuleSourceOptions = {
-	file: string;
-	text: string;
-	normalized_ast: NormalizedAstFile;
-	source_file: ts.SourceFile;
-	source_resolver: SourceFileResolver;
-	traversal: TypeScriptAstTraversalContract;
-};
 export type Assignment = {
 	line: number;
 	name: string;
@@ -420,86 +401,6 @@ export type PythonLintInput = {
 	project_protocol_names: ReadonlySet<string>;
 	project_type_names: ReadonlySet<string>;
 	normalized_ast: NormalizedAstFile;
-};
-export type FileNameLike = { value: string };
-export type LintFileNameContract = {
-	value: string;
-	is_functions_file: boolean;
-	test(): boolean;
-	product(): boolean;
-};
-export type LintSourceRecord = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFile;
-	language: AstLanguage;
-	typescript_ast: TypeScriptAstFileContract;
-	source_resolver: SourceFileResolver;
-	traversal: TypeScriptAstTraversalContract;
-	typescript(): boolean;
-	python(): boolean;
-};
-export type LintSourceRecordOptions = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFile;
-};
-export type TypeScriptLintSourceRecordOptions = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFile;
-	source_resolver: SourceFileResolver;
-};
-export type TypeScriptAstCreation = {
-	ast_file: TypeScriptAstFileContract;
-	traversal: TypeScriptAstTraversalContract;
-};
-export type ContextSourceRecordOptions = {
-	repo_root: string;
-	file: string;
-	text: string;
-	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
-	typescript_asts: ReadonlyMap<string, NormalizedAstFile>;
-	stage_timer: LintStageTimerContract;
-	source_io: ProjectSourceIOContract;
-};
-export type TypeScriptAstCreationOptions = {
-	file: string;
-	text: string;
-	source_files: ReadonlyMap<string, ts.SourceFile>;
-	project_root: string;
-	stage_timer: LintStageTimerContract;
-	source_io: ProjectSourceIOContract;
-};
-export type ContextSourceRecordsOptions = {
-	repo_root: string;
-	project_files: string[];
-	files: string[];
-	texts: ReadonlyMap<string, string>;
-	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
-	stage_timer: LintStageTimerContract;
-	virtual_project: boolean;
-	source_io: ProjectSourceIOContract;
-};
-export type TypeScriptTreeMetadata = {
-	attribute_accesses: LineDepth[];
-	symbol_references: NamedLine[];
-	literal_references: AstLiteralReference[];
-	literal_constants: AstLiteralConstant[];
-	import_issues: AstImportIssue[];
-	named_symbols: NamedSymbol[];
-	type_declarations: NamedLine[];
-};
-export type AbsoluteImportCandidate = {
-	file: string;
 };
 export type LintRunStatistics = {
 	source_reads: number;
@@ -557,45 +458,6 @@ export type CallableMetricComponents = {
 
 export type RuleParameters = Record<string, string>;
 export type FunctionCount = { count: number; first_line: number };
-export type AstCacheAstStructure = {
-	language: AstLanguage;
-	classes: AstClassNode[];
-	functions: AstCallableNodeContract[];
-	parse_issues: AstParseIssue[];
-	import_issues: AstImportIssue[];
-	attribute_accesses: LineDepth[];
-	named_symbols: NamedSymbol[];
-	type_declarations: NamedLine[];
-};
-export type AstCacheAstReferences = {
-	symbol_references: NamedLine[];
-	literal_references: AstLiteralReference[];
-	literal_constants: AstLiteralConstant[];
-	reference_aliases: AstReferenceAlias[];
-	private_accesses: LineOnly[];
-	repeated_branches: LineOnly[];
-	call_references: AstCallableReference[];
-	module_instances: AstModuleInstance[];
-};
-export type AstCacheAstModuleMetadata = {
-	module_constant_spans: AstSourceSpan[];
-	module_type_spans: AstSourceSpan[];
-	module_protocol_spans: AstSourceSpan[];
-	type_members: AstTypeMembersSerialized;
-	coding_issues: AstCodingIssue[];
-	responsibility_targets: AstResponsibilityTarget[];
-};
-export type AstCacheAstPythonMetadata = {
-	python_imports: AstPythonImport[];
-	python_callable_count: FunctionCount;
-	python_main_guard: boolean;
-	docstring_spans: AstSourceSpan[];
-};
-export type AstCacheAst = AstCacheAstStructure &
-	AstCacheAstReferences &
-	AstCacheAstModuleMetadata &
-	AstCacheAstPythonMetadata;
-export type CodingRuleSourceOptions = { file: string; text: string };
 export type ParseLanguage = "python" | "typescript";
 export type CallTargetKind = "bound" | "call";
 export type CallbackCounts = { readonly total: number; readonly inline: number };
@@ -620,220 +482,6 @@ export type CommentSegment = {
 	result: CommentScanResult;
 	complete: boolean;
 };
-export type ReportViolation = {
-	readonly file: string;
-	readonly line: number;
-	readonly message: string;
-	readonly hint: string;
-	readonly rule_id: string;
-	readonly priority: number;
-};
-export type TaskWorkspaceDocument = "issues" | "report" | "lint-output";
-
-export type TaskBatchReplacementOptions = {
-	staged_rules: string;
-	rule_ids: readonly string[];
-	issues: string;
-	documents: ReadonlyMap<TaskWorkspaceDocument, string>;
-};
 export type SourceReference = { file: string; line: number };
 export type SourceReferenceRelation = "implementation" | "usage";
 export type SourceReferenceMap<TKey extends {}> = Map<TKey, SourceReference[]>;
-export type CliOptions = {
-	ignored_directories: string[];
-	entry_files: string[];
-	root: string;
-	skip_review: boolean;
-	force_review: boolean;
-	review_cleanup: boolean;
-	review_agent: ReviewAgentSelection;
-	review_stages: string[];
-	batch_size: number;
-	policy: LintTaskPolicy;
-};
-export type ReviewStatus = {
-	required: boolean;
-	active: boolean;
-	completed: boolean;
-	failed: boolean;
-};
-export type LintExitStatus = { lint_failed: boolean; review_failed: boolean };
-export type LintTaskPolicy = "top-category" | "all";
-export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy; skip_review: boolean };
-export type ReviewAgentRunOptions = {
-	review_cleanup: boolean;
-	force_review: boolean;
-	review_stages: readonly string[];
-};
-export type LintExecutionReport = { context: LintProjectContextContract; report: LintRunResult };
-export type LintStageDuration = { name: string; duration_ms: number };
-export type LintStageFormatState = {
-	lines: string[];
-	parent_name: string;
-	stage: LintStageDuration;
-	durations_by_name: ReadonlyMap<string, LintStageDuration>;
-	children: ReadonlyMap<string, readonly LintStageDuration[]>;
-	indent: string;
-};
-export type ProjectNames = {
-	project_class_names: ReadonlySet<string>;
-	python_class_names: ReadonlySet<string>;
-	typescript_class_names: ReadonlySet<string>;
-	project_protocol_names: ReadonlySet<string>;
-	project_interface_names: ReadonlySet<string>;
-	project_contract_names: ReadonlySet<string>;
-	project_type_names: ReadonlySet<string>;
-};
-export type ProjectLanguage = "python" | "typescript";
-export type ProjectNameContext = {
-	project_files: readonly string[];
-	context: LintProjectContextContract;
-};
-type LintRunFiles = {
-	repo_root: string;
-	files: string[];
-	entry_files: string[];
-	ignored_files: ReadonlySet<string>;
-	ignored_directories: ReadonlySet<string>;
-	project_files: string[];
-	markdown_files: string[];
-};
-
-type LintRunContext = {
-	context: LintProjectContextContract;
-	source_texts: ReadonlyMap<string, string>;
-	global_cache_enabled: boolean;
-	virtual_project: boolean;
-};
-
-export type LintRunState = LintRunFiles & ProjectNames & LintRunContext;
-export type LintRunResult = { files: string[]; violations: ViolationContract[] };
-export type LintInputFiles = {
-	files: string[];
-	project_files: string[];
-	ignored_files: string[];
-	markdown_files: string[];
-	ignore_files: string[];
-};
-export type LintAnalysisStage = { state: LintRunState; stage_timer: LintStageTimerContract };
-
-export type GitIgnorePattern = {
-	base_directory: string;
-	negated: boolean;
-	anchored: boolean;
-	directory_only: boolean;
-	pattern: string;
-	matcher: GitIgnoreGlobMatcherContract;
-};
-
-export type GitIgnoreGlobMatchResult = {
-	matched: boolean;
-	visited_states: number;
-};
-
-export type GitIgnorePatternDetails = { value: string; negated: boolean; anchored: boolean; directory_only: boolean };
-export type GitIgnoreSourceFile = { file: string; base_directory: string };
-
-export type FileAnalysisCacheRecord = {
-	cache_version: number;
-	context_hash: string;
-	source_file: string;
-	source_hash: string;
-	ignored: boolean;
-	violations: ReportViolation[];
-};
-
-export type GlobalAnalysisCacheRecord = {
-	cache_version: number;
-	context_hash: string;
-	selection_hash: string;
-	violations: ReportViolation[];
-};
-
-export type LintFileFingerprint = {
-	file: string;
-	size: number;
-	mtime_ms: number;
-	ctime_ms: number;
-	content_hash: string;
-};
-
-export type LintDirectoryFingerprint = {
-	directory: string;
-	mtime_ms: number;
-	ctime_ms: number;
-	entries: string[];
-};
-
-export type LintExecutionCacheRecord = {
-	cache_version: number;
-	identity: string;
-	target_request: string;
-	entry_files: string[];
-	files: string[];
-	violations: ReportViolation[];
-	fingerprints: LintFileFingerprint[];
-	inputs: LintInputFiles;
-	ignored_directories: string[];
-	directories: LintDirectoryFingerprint[];
-};
-
-export type LintExecutionCacheState = {
-	cache_file: string;
-	identity: string;
-	target_request: string;
-	entry_files: string[];
-	fingerprints: LintFileFingerprint[];
-	inputs: LintInputFiles;
-	root: string;
-	ignored_directories: string[];
-	directories: LintDirectoryFingerprint[];
-};
-
-export type CacheState<T> = {
-	available: boolean;
-	value: T;
-};
-
-export type LintInputSelection = {
-	repo_root: string;
-	target_candidates: readonly string[];
-	files: readonly string[];
-	repository_project_candidates: string[];
-	external_project_candidates: string[];
-	visible: ReadonlySet<string>;
-};
-
-export type LintInputCandidateState = {
-	target_candidates: string[];
-	repository_project_candidates: string[];
-	external_project_candidates: string[];
-	ignored_candidates: string[];
-	markdown_candidates: string[];
-	visible: ReadonlySet<string>;
-	ignore_files: string[];
-};
-
-export type LintRawInputCandidates = {
-	target_candidates: string[];
-	repository_project_candidates: string[];
-	external_project_candidates: string[];
-	ignored_candidates: string[];
-	markdown_candidates: string[];
-};
-
-export type LintProjectCandidates = { repository: string[]; external: string[] };
-
-export type ProjectSourceAnalysisOptions = {
-	root: string;
-	project_files: readonly string[];
-	context: LintProjectContextContract;
-	ignored_files: ReadonlySet<string>;
-	scanner: ProjectSourceScannerContract;
-	files: Set<string>;
-};
-
-export type DirectoryFileSet = {
-	virtual_project: boolean;
-	files: readonly string[];
-};

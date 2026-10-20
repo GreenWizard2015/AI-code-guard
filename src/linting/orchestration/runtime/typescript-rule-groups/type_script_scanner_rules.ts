@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import { TypeScriptAstRuleGroup } from "src/linting/orchestration/runtime/typescript-rule-groups/type_script_ast_rule_group";
 import { TypeScriptCallableRuleGroup } from "src/linting/orchestration/runtime/typescript-rule-groups/type_script_callable_rule_group";

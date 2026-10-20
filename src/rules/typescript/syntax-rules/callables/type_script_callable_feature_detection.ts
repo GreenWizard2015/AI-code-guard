@@ -4,7 +4,7 @@ import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_memb
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 import { TypeScriptConditionExpression } from "src/parser/internals/type_script_condition_expression";
-import type { TypeScriptMemberAliasesContract } from "src/protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 
 /** Responsibilities: _callable feature checks identification_, _function comparisons classification_. **/

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptBooleanDeclarationIndexContract } from "src/protocols";
+import type { TypeScriptBooleanDeclarationIndexContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _boolean property names_, _boolean callable names_. **/
 export class TypeScriptBooleanDeclarationIndex implements TypeScriptBooleanDeclarationIndexContract {

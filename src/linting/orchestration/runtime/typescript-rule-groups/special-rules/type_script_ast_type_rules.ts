@@ -1,9 +1,9 @@
-import { RULES_BY_ID } from "src/model/constants";
-import ts from "typescript";
-import type { RuleContract, ViolationContract } from "src/protocols";
-import type { TypeScriptAstTypeRulesContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
-import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import { RULE_IDS } from "src/constants";
+import type { TypeScriptAstTypeRulesContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _nested generic detection_, _callback contract diagnostics_. **/
 export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
@@ -30,7 +30,9 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 				const arguments_nodes = child.typeArguments;
 				if (arguments_nodes !== undefined) {
 					nested = true;
-					arguments_nodes.forEach((argument) => argument.forEachChild(visit));
+					for (const argument of arguments_nodes) {
+						argument.forEachChild(visit);
+					}
 					return;
 				}
 			}
@@ -74,6 +76,17 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 		violations.push(rule.violation(this.context.file_name.value, line, {}));
 	}
 
+	/** Responsibilities: _callback parent classification_. **/
+	private callback_parent(parent: ts.Node): boolean {
+		if (ts.isTypeAliasDeclaration(parent)) {
+			return true;
+		}
+		if (ts.isPropertySignature(parent)) {
+			return true;
+		}
+		return ts.isPropertyDeclaration(parent);
+	}
+
 	/** Responsibilities: _callback contract node diagnostics_. **/
 	private append_callback_node(
 		violations: ViolationContract[],
@@ -81,23 +94,20 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 		rule: RuleContract,
 		node: ts.Node,
 	): void {
-		if (!ts.isFunctionTypeNode(node)) {
+		if (!ts.isFunctionTypeNode(node) || node.parameters.length <= this.maximum_callback_parameters) {
 			return;
 		}
 		const parent = node.parent;
-		const named_parent = ts.isTypeAliasDeclaration(parent);
-		const property_parent = ts.isPropertySignature(parent) || ts.isPropertyDeclaration(parent);
-		if (!named_parent && !property_parent) {
-			return;
-		}
-		if (node.parameters.length <= this.maximum_callback_parameters) {
+		if (!this.callback_parent(parent)) {
 			return;
 		}
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
-		violations.push(rule.violation(this.context.file_name.value, line, {
-			name: this.callback_contract_name(node),
-			count: String(node.parameters.length),
-		}));
+		violations.push(
+			rule.violation(this.context.file_name.value, line, {
+				name: this.callback_contract_name(node),
+				count: String(node.parameters.length),
+			}),
+		);
 	}
 
 	/** Responsibilities: _type rule context initialization_. **/
@@ -106,28 +116,17 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 	}
 
 	/** Responsibilities: _shared type-rule node diagnostics_. **/
-	public append_node(
-		violations: ViolationContract[],
-		source_file: ts.SourceFile,
-		node: ts.Node,
-	): void {
-		const callback_rule = RULES_BY_ID.get(RULE_IDS.callback_contract_size);
-		const nested_rule = RULES_BY_ID.get(RULE_IDS.nested_generic_type);
-		if (callback_rule !== undefined) {
-			this.append_callback_node(violations, source_file, callback_rule, node);
-		}
-		if (nested_rule !== undefined) {
-			this.append_nested_node(violations, source_file, nested_rule, node);
-		}
+	public append_node(violations: ViolationContract[], source_file: ts.SourceFile, node: ts.Node): void {
+		const callback_rule = new DiagnosticRule(RULE_IDS.callback_contract_size);
+		const nested_rule = new DiagnosticRule(RULE_IDS.nested_generic_type);
+		this.append_callback_node(violations, source_file, callback_rule, node);
+		this.append_nested_node(violations, source_file, nested_rule, node);
 	}
 
 	/** Responsibilities: _callback contract diagnostics_. **/
 	public append_callback_contracts(violations: ViolationContract[]): void {
 		const source_file = this.context.ast_file.source_file_node();
-		const rule = RULES_BY_ID.get(RULE_IDS.callback_contract_size);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.callback_contract_size);
 		const visit = (node: ts.Node): void => {
 			if (ts.isFunctionTypeNode(node)) {
 				const parent = node.parent;
@@ -135,10 +134,12 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 				const property_parent = ts.isPropertySignature(parent) || ts.isPropertyDeclaration(parent);
 				if ((named_parent || property_parent) && node.parameters.length > this.maximum_callback_parameters) {
 					const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
-					violations.push(rule.violation(this.context.file_name.value, line, {
-						name: this.callback_contract_name(node),
-						count: String(node.parameters.length),
-					}));
+					violations.push(
+						rule.violation(this.context.file_name.value, line, {
+							name: this.callback_contract_name(node),
+							count: String(node.parameters.length),
+						}),
+					);
 				}
 			}
 			node.forEachChild(visit);
@@ -149,10 +150,7 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 	/** Responsibilities: _nested generic diagnostics_. **/
 	public append_nested_generics(violations: ViolationContract[]): void {
 		const source_file = this.context.ast_file.source_file_node();
-		const rule = RULES_BY_ID.get(RULE_IDS.nested_generic_type);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.nested_generic_type);
 		const visit = (node: ts.Node): void => {
 			this.append_nested_node(violations, source_file, rule, node);
 			node.forEachChild(visit);
@@ -163,11 +161,6 @@ export class TypeScriptAstTypeRules implements TypeScriptAstTypeRulesContract {
 	/** Responsibilities: _shared TypeScript type-rule traversal_. **/
 	public append_type_rules(violations: ViolationContract[]): void {
 		const source_file = this.context.ast_file.source_file_node();
-		const callback_rule = RULES_BY_ID.get(RULE_IDS.callback_contract_size);
-		const nested_rule = RULES_BY_ID.get(RULE_IDS.nested_generic_type);
-		if (callback_rule === undefined && nested_rule === undefined) {
-			return;
-		}
 		const visit = (node: ts.Node): void => {
 			this.append_node(violations, source_file, node);
 			node.forEachChild(visit);

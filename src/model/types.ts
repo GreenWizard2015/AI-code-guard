@@ -1,5 +1,6 @@
 import ts from "typescript";
 import { MODULE_CLASS_KIND, MODULE_INTERFACE_KIND, MODULE_ROOT_KIND } from "src/constants";
+import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
 	AstCallableNodeContract,
 	AstCallableReference,
@@ -18,17 +19,14 @@ import type {
 	LineDepth,
 	NamedLine,
 	NamedSymbol,
-	TypeScriptTreeMetadata,
 } from "src/types";
 import type { TypeScriptPropertyStateContract } from "src/model/protocols";
-import type {
-	LintStageTimerContract,
-	ProjectSourceIOContract,
-	SourceLineResolver,
-	StringSetMap,
-	TypeScriptAstTraversalContract,
-	TypeScriptMetadataNodeVisitor,
-} from "src/protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { SourceLineResolver } from "src/runtime_types";
+import type { StringSetMap } from "src/analysis_types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptMetadataNodeVisitor } from "src/typescript_analysis_types";
 
 export type TypeScriptClassFieldContext = {
 	file: string;
@@ -80,10 +78,8 @@ export type TreeMetadataState = {
 	attribute_accesses: LineDepth[];
 };
 
-export type TypeScriptMetadataNodeOptions = {
-	node: ts.Node;
+export type TypeScriptMetadataCollectionOptions = {
 	line_for: SourceLineResolver;
-	owner: string;
 	state: TreeMetadataState;
 	literal_references: AstLiteralReference[];
 	literal_constants: AstLiteralConstant[];

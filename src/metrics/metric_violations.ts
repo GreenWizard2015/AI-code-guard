@@ -1,4 +1,5 @@
-import type { MetricViolationsContract, ViolationContract } from "src/protocols";
+import type { MetricViolationsContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import {
 	METRIC_KIND_CLASS_METHODS,

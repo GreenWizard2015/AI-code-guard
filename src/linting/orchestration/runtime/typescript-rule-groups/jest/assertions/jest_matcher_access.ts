@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { JestMatcherAccessContract } from "src/protocols";
+import type { JestMatcherAccessContract } from "src/testing_protocols";
 
 /** Responsibilities: _Jest matcher access decoding_, _AST access memoization_. **/
 export class JestMatcherAccess implements JestMatcherAccessContract {

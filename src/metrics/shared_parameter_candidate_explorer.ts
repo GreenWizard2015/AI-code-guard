@@ -1,12 +1,12 @@
-import { SharedParameterOrder } from "src/core/support/shared_parameter_order";
 import { MIN_SHARED_METHODS } from "src/constants";
+import { SharedParameterOrder } from "src/metrics/shared_parameter_order";
 import type {
 	CandidateExtension,
 	SharedCallableKind,
-	SharedParameterCandidateBranchOptions,
 	SharedParameterCandidateBranch,
-	SharedParameterCandidateExplorerContract,
+	SharedParameterCandidateBranchOptions,
 	SharedParameterCandidateExploration,
+	SharedParameterCandidateExplorerContract,
 	SharedParameterNode,
 	SharedParameterOrderContract,
 } from "src/metrics/types";
@@ -78,10 +78,11 @@ export class SharedParameterCandidateExplorer implements SharedParameterCandidat
 		if (intersection.length < MIN_SHARED_METHODS) {
 			return false;
 		}
-		this.append_pending_branch(
-			pending,
-			{ next_index: index + 1, nodes: [...branch.nodes, node], locations: intersection },
-		);
+		this.append_pending_branch(pending, {
+			next_index: index + 1,
+			nodes: [...branch.nodes, node],
+			locations: intersection,
+		});
 		return true;
 	}
 

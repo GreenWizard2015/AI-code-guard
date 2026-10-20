@@ -1,12 +1,13 @@
-import { AnyTypes } from "src/rules/typescript/syntax-rules/types/any_types";
-import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import { ProjectTypeBoundary } from "src/metrics/project-boundary/project_type_boundary";
-import type { PythonRuleInput } from "src/linting/types";
-import type { PythonTypeRuleCollectorContract } from "src/protocols";
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
 import { PYTHON_CALLABLE_TYPE_PREFIX, PYTHON_LANGUAGE } from "src/constants";
+import { PythonMutableCollectionTypes } from "src/linting/orchestration/runtime/python/python_mutable_collection_types";
+import type { PythonRuleInput } from "src/linting/types";
+import { ProjectTypeBoundary } from "src/metrics/project-boundary/project_type_boundary";
 import type { ProjectTypeBoundaryNames } from "src/metrics/types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { PythonTypeRuleCollectorContract } from "src/python_protocols";
+import { AnyTypes } from "src/rules/typescript/syntax-rules/types/any_types";
+import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
 
 /** Responsibilities: _Python field type checks_, _nested type checks_. **/
 export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract {
@@ -18,6 +19,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 	private readonly callback_contract_rule: DiagnosticRule;
 	private readonly nested_generic_rule: DiagnosticRule;
 	private readonly public_state_rule: DiagnosticRule;
+	private readonly mutable_collection_types: PythonMutableCollectionTypes;
 	private readonly maximum_callback_parameters = 3;
 
 	/** Responsibilities: _type-field count violations addition_. **/
@@ -74,10 +76,12 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 				if (parameters.length <= this.maximum_callback_parameters) {
 					continue;
 				}
-				violations.push(this.callback_contract_rule.violation(file_name.value, callable.start + 1, {
-					name: callable.name,
-					count: String(parameters.length),
-				}));
+				violations.push(
+					this.callback_contract_rule.violation(file_name.value, callable.start + 1, {
+						name: callable.name,
+						count: String(parameters.length),
+					}),
+				);
 				break;
 			}
 		}
@@ -138,35 +142,33 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 		}
 	}
 
-	/** Responsibilities: _mutable collection_. **/
-	private mutable_collection_field(type: string): boolean {
-		const normalized = type.replace(/\s+/gu, "");
-		const bracket = normalized.indexOf("[");
-		let base = normalized;
-		if (bracket >= 0) {
-			base = normalized.slice(0, bracket);
+	/** Responsibilities: _mutable field ownership_. **/
+	private append_mutable_issue(node: AstClassNode): void {
+		if (node.is_data_class || node.type_contract || node.protocol) {
+			return;
 		}
-		const dot = base.lastIndexOf(".");
-		const name = base.slice(dot + 1);
-		return ["list", "dict", "set", "deque", "defaultdict", "MutableMapping", "MutableSequence", "MutableSet"].includes(name);
+		const { violations, file_name } = this.input;
+		for (const field of node.fields) {
+			if (field.name.startsWith("_")) {
+				continue;
+			}
+			const known_type = this.mutable_collection_types.known_mutable_type(field.type);
+			const imported_type = this.mutable_collection_types.imported_mutable_type(field.type);
+			if (!known_type && !imported_type) {
+				continue;
+			}
+			violations.push(this.public_state_rule.violation(file_name.value, field.line + 1));
+		}
 	}
 
-	/** Responsibilities: _public state_. **/
+	/** Responsibilities: _public mutable state_. **/
 	private append_public_state(): void {
-		const { violations, file_name, classes } = this.input;
+		const { file_name, classes } = this.input;
 		if (file_name.test()) {
 			return;
 		}
 		for (const node of classes) {
-			if (node.is_data_class || node.type_contract || node.protocol) {
-				continue;
-			}
-			for (const field of node.fields) {
-				if (field.name.startsWith("_") || !this.mutable_collection_field(field.type)) {
-					continue;
-				}
-				violations.push(this.public_state_rule.violation(file_name.value, field.line + 1));
-			}
+			this.append_mutable_issue(node);
 		}
 	}
 
@@ -239,6 +241,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 		this.nested_generic_rule = new DiagnosticRule("nested-generic-type");
 		this.public_state_rule = new DiagnosticRule("public-state-exposure");
 		this.input = input;
+		this.mutable_collection_types = new PythonMutableCollectionTypes(input.python_imports, input.reference_aliases);
 	}
 
 	/** Responsibilities: _Python type rules addition_. **/

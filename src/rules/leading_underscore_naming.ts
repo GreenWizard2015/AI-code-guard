@@ -1,5 +1,5 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { NamedLine, NamedSymbol } from "src/types";
 
 /** Responsibilities: _leading underscore validation_, _leading underscore diagnostics_. **/

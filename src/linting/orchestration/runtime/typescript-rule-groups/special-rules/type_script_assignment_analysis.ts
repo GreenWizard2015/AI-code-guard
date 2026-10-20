@@ -1,5 +1,6 @@
 import type { Assignment, AssignmentDetails } from "src/model/types/types";
-import type { PointlessExpressionContract, TypeScriptAssignmentAnalysisContract } from "src/protocols";
+import type { PointlessExpressionContract } from "src/shared_services_protocols";
+import type { TypeScriptAssignmentAnalysisContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _assignment chain extraction_, _pointless assignment analysis_. **/

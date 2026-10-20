@@ -1,8 +1,18 @@
 import { delimiter, join, resolve } from "node:path";
-import { PYTHON_BRIDGE_DIRECTORY, PYTHON_TEST_DIRECTORY } from "test-runner/constants";
+import {
+	JEST_EXECUTABLE,
+	JEST_WORKER_ARGUMENT,
+	NODE_VM_MODULES_ARGUMENT,
+	PACKAGE_MANAGER,
+	PERFORMANCE_TEST_DIRECTORY,
+	PYTHON_BRIDGE_DIRECTORY,
+	PYTHON_EXECUTABLE,
+	PYTHON_TEST_DIRECTORY,
+	PYTEST_MODULE,
+} from "test-runner/constants";
 import { QualityCheckProcess } from "test-runner/quality_check_process";
 import { TestRunnerRequestArguments } from "test-runner/test_runner_request_arguments";
-import type { QualityCheckProcessContract } from "src/protocols";
+import type { QualityCheckProcessContract } from "src/task_types";
 import type { CommandRunnerContract, QualityCheckExecutionOptions, TestRunnerRequest } from "test-runner/types";
 
 /** Responsibilities: _quality check execution_, _test environment preparation_. **/
@@ -120,11 +130,15 @@ Examples:
 
 	/** Responsibilities: _TypeScript test execution_. **/
 	private run_typescript_tests(args: readonly string[], env: NodeJS.ProcessEnv): boolean {
-		const node_options = [env.NODE_OPTIONS, "--experimental-vm-modules"].filter(Boolean).join(" ");
-		return this.run_command("pnpm", ["--dir", this.project_root, "exec", "jest", "--maxWorkers=4", ...args], {
+		const node_options = [env.NODE_OPTIONS, NODE_VM_MODULES_ARGUMENT].filter(Boolean).join(" ");
+		return this.run_command(
+			PACKAGE_MANAGER,
+			["--dir", this.project_root, "exec", JEST_EXECUTABLE, JEST_WORKER_ARGUMENT, ...args],
+			{
 			...env,
 			NODE_OPTIONS: node_options,
-		});
+			},
+		);
 	}
 
 	/** Responsibilities: _runner state initialization_. **/
@@ -141,8 +155,13 @@ Examples:
 			return false;
 		}
 		const python_tests_passed = this.run_command(
-			"python3",
-			["-m", "pytest", join(this.project_root, PYTHON_TEST_DIRECTORY), join(this.project_root, "tests/performance")],
+			PYTHON_EXECUTABLE,
+			[
+				"-m",
+				PYTEST_MODULE,
+				join(this.project_root, PYTHON_TEST_DIRECTORY),
+				join(this.project_root, PERFORMANCE_TEST_DIRECTORY),
+			],
 			this.python_test_environment(test_env),
 		);
 		if (!python_tests_passed) {

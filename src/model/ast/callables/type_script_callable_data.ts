@@ -16,7 +16,7 @@ import type {
 	TypeScriptArgumentUsageContract,
 	TypeScriptCallableDataContract,
 } from "src/model/protocols";
-import type { CallableBodyMetricsContract } from "src/protocols";
+import type { CallableBodyMetricsContract } from "src/runtime_protocols";
 
 /** Responsibilities: _callable identity normalization_, _callable metric extraction_. **/
 export class TypeScriptCallableData implements TypeScriptCallableDataContract {

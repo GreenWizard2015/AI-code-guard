@@ -15,6 +15,8 @@ export const IMPORT_RULE_IDS = {
 	relative: "relative-import",
 };
 export const MODULE_FUNCTION_KIND = "function";
+export const MODULE_TYPE_NAME = "types";
+export const MODULE_PROTOCOL_NAME = "protocols";
 export const MODULE_DECLARATION_FILES: ReadonlySet<string> = new Set([
 	"constants.ts",
 	"constants.py",

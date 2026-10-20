@@ -1,6 +1,7 @@
 import { DeclarationPredicates } from "src/parser/analysis/declaration_predicates";
 import { PrototypePredicates } from "src/rules/typescript/syntax-rules/runtime/prototype_predicates";
-import type { TypeScriptClassNodeRulesContract, ValueRulesContract } from "src/protocols";
+import type { TypeScriptClassNodeRulesContract } from "src/typescript_analysis_protocols";
+import type { ValueRulesContract } from "src/analysis_protocols";
 import type { RuleContextData } from "src/types";
 import ts from "typescript";
 import { RULE_IDS } from "src/constants";

@@ -1,11 +1,6 @@
-import type {
-	AstPythonImport,
-	AstPythonImportName,
-	ImportedSymbol,
-	NormalizedAstFile,
-	PythonProjectImportContext,
-} from "src/types";
-import type { ProjectSourcePythonContract } from "src/protocols";
+import type { PythonProjectImportContext } from "src/source_types";
+import type { AstPythonImport, AstPythonImportName, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
 import { PYTHON_PACKAGE_SUFFIX } from "src/constants";
 import { PythonExportIndex } from "src/linting/orchestration/runtime/composition/python_export_index";
 

@@ -37,8 +37,10 @@ describe("GitIgnoreGlobMatcher", () => {
 		const results = parsed.map((item) => item.matcher.match_candidate(candidate));
 		const maximum_state_visits = (pattern.length + 1) * (candidate.length + 1);
 
-		expect(results.map((result) => result.matched)).toEqual([false]);
-		expect(results.every((result) => result.visited_states <= maximum_state_visits)).toBe(true);
+		expect({
+			matches: results.map((result) => result.matched),
+			visited_states: results.map((result) => result.visited_states),
+		}).toEqual({ matches: [false], visited_states: [maximum_state_visits] });
 	});
 
 	test("preserves recursive directories, single-character wildcards, and character classes", () => {

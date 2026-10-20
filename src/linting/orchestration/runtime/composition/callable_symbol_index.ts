@@ -1,6 +1,6 @@
 import type { CallableProjectIndex } from "src/metrics/types";
 import type { AstTypeMemberRecord } from "src/types";
-import type { CallableSymbolIndexContract } from "src/protocols";
+import type { CallableSymbolIndexContract } from "src/analysis_protocols";
 
 /** Responsibilities: _source-qualified symbol resolution_, _type member lookup_. **/
 export class CallableSymbolIndex implements CallableSymbolIndexContract {

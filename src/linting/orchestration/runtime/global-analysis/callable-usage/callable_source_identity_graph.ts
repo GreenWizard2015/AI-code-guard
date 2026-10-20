@@ -1,11 +1,5 @@
-import type {
-	CallableSourceIdentityGraphContract,
-	CallableSymbolIndexContract,
-	ReadonlyStringSetMap,
-	StringReadonlyMap,
-	StringReadonlySetMap,
-	StringSetMap,
-} from "src/protocols";
+import type { CallableSourceIdentityGraphContract, CallableSymbolIndexContract } from "src/analysis_protocols";
+import type { ReadonlyStringSetMap, StringReadonlyMap, StringReadonlySetMap, StringSetMap } from "src/analysis_types";
 import type { CallableClassIndex, CallableProjectIndex, ParsedFile } from "src/metrics/types";
 import type { AstClassNode } from "src/types";
 import { CallableSymbolIndex } from "src/linting/orchestration/runtime/composition/callable_symbol_index";

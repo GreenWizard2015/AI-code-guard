@@ -5,7 +5,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
 import { TestFixture } from "tests/core/test-fixture";
 import { describe, expect, test } from "@jest/globals";
-import { PYTHON_FRAMEWORK_HOOK_FILES } from "tests/core/constants";
+import { PYTHON_FRAMEWORK_HOOK_FILES } from "tests/core/constants/alias_analysis/constants";
 
 describe("coding-lint callable usage advanced - callback boundaries", () => {
 	test("resolves methods called through local structural method aliases", () => {

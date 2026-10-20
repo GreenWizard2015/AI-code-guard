@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { CompositeStateTypeRulesContract, NullableTypeRulesContract } from "src/protocols";
+import type { CompositeStateTypeRulesContract, NullableTypeRulesContract } from "src/runtime_protocols";
 
 /** Responsibilities: _composite state detection_, _literal union resolution_. **/
 export class CompositeStateTypeRules implements CompositeStateTypeRulesContract {

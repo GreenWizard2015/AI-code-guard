@@ -2,22 +2,35 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import TypeAlias
 
-from implementation.protocols import (
-    PythonCodingIssueStagesContract,
-    PythonControlFlowIssuesContract,
-    PythonFieldMutationCollectorContract,
-    PythonOperatorPrecedenceContract,
-    PythonProxyCallableAnalyzerContract,
-    PythonSingleItemArrayStateRulesContract,
+from implementation.types import JsonObject
+
+from implementation.protocols import PythonProxyCallableAnalyzerContract
+from implementation.ast.protocols import (
     PythonSubtestAliasesContract,
     PythonTestOrderDependencyContract,
+)
+from implementation.rules.protocols import (
+    PythonCodingIssueStagesContract,
+    PythonFieldMutationCollectorContract,
+)
+from implementation.rules.protocols import (
+    PythonControlFlowIssuesContract,
+    PythonOperatorPrecedenceContract,
+)
+from implementation.rules.protocols import (
+    PythonSingleItemArrayStateRulesContract,
     PythonUnboundedTypeRulesContract,
     PythonUnionRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
 
 PythonTestMutationIndex = dict[ast.AST, set[ast.AST]]
+PythonScopeTypes = set[type[ast.AST]]
+PythonAliasTimeline: TypeAlias = list[JsonObject]
+PythonScopeAliasHistoryData: TypeAlias = dict[str, PythonAliasTimeline]
+PythonScopeAliasHistories: TypeAlias = dict[ast.AST, PythonScopeAliasHistoryData]
 
 
 @dataclass(frozen=True)

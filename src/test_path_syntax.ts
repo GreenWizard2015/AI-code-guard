@@ -7,7 +7,7 @@ import {
 	TESTS_DIRECTORY_PREFIX,
 	TYPESCRIPT_TEST_SUFFIXES,
 } from "src/constants";
-import type { TestPathSyntaxContract } from "src/protocols";
+import type { TestPathSyntaxContract } from "src/testing_protocols";
 
 /** Responsibilities: _test path layout recognition_, _language-specific test file detection_. **/
 export class TestPathSyntax implements TestPathSyntaxContract {

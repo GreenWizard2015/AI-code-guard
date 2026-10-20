@@ -1,11 +1,10 @@
 import { dirname, join, relative } from "node:path";
-import type { AbsoluteImportCandidate, AstPythonImport, PythonProjectImportExpansion } from "src/types";
-import type {
-	AbsoluteImportRootCache,
-	AbsoluteImportRootIndex,
-	ProjectSourcePythonContract,
-	PythonImportFileIndexContract,
-} from "src/protocols";
+import type { AbsoluteImportCandidate } from "src/source_types";
+import type { AstPythonImport, PythonProjectImportExpansion } from "src/types";
+import type { AbsoluteImportRootCache } from "src/cache_types";
+import type { AbsoluteImportRootIndex } from "src/analysis_types";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { PythonImportFileIndexContract } from "src/python_protocols";
 import { PYTHON_EXTERNAL_MODULES, PYTHON_PACKAGE_MARKER, PYTHON_PACKAGE_SUFFIX } from "src/constants";
 import { PythonImportFileIndex } from "src/core/project-source/python_import_file_index";
 

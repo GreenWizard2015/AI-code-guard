@@ -23,7 +23,9 @@ import { TaskReviewDocumentation } from "src/core/support/task/task_review_docum
 import { AI_CODE_GUARD_DIRECTORY, REPORTING_PROJECT_ROOT } from "src/constants";
 import { REVIEW_STAGES } from "src/constants";
 import type { IOContract } from "src/io/protocols";
-import type { TaskReviewAgentContract, TaskReviewDocumentationContract } from "src/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { TaskReviewAgentContract, TaskReviewDocumentationContract } from "src/task_protocols";
+import type { ReviewAgentRunOptions } from "src/task_types";
 import type {
 	ReviewAgentExecutionResult,
 	ReviewAgentHookEventContract,
@@ -31,7 +33,6 @@ import type {
 	ReviewAgentName,
 	ReviewAgentProcessResult,
 	ReviewAgentRequest,
-	ReviewAgentRunOptions,
 	ReviewAgentSelection,
 	ReviewStageDefinition,
 	TaskReviewRunResult,
@@ -39,6 +40,7 @@ import type {
 
 /** Responsibilities: _architecture review-agent lifecycle_, _completion-file writing_. **/
 export class TaskReviewAgent implements TaskReviewAgentContract {
+	private readonly boundary_failures: BoundaryFailureClassifier;
 	private readonly root: string;
 	private readonly review_root: string;
 	private readonly instruction: string;
@@ -112,6 +114,9 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 				return { provider: "none", message: decision.reason };
 			}
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			const message = String(error);
 			this.review_documents.write_failure(message);
 			return { provider: "none", message };
@@ -221,8 +226,31 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 		try {
 			return await this.complete_stage_parallel(selection, stage, review_cleanup, stage_documents, dialogue);
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return this.stage_failure(String(error));
 		}
+	}
+
+	/** Responsibilities: _parallel stage completion aggregation_. **/
+	private async run_stages_parallel(
+		selection: ReviewAgentSelection,
+		stages: readonly ReviewStageDefinition[],
+		review_cleanup: boolean,
+	): Promise<TaskReviewRunResult[]> {
+		const settled_results = await Promise.allSettled(
+			stages.map((stage) => this.run_stage_parallel(selection, stage, review_cleanup)),
+		);
+		const results: TaskReviewRunResult[] = [];
+		for (const result of settled_results) {
+			if (result.status === "rejected") {
+				results.push(this.stage_failure(String(result.reason)));
+				continue;
+			}
+			results.push(result.value);
+		}
+		return results;
 	}
 
 	/** Responsibilities: _stage execution completion_. **/
@@ -246,6 +274,9 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 		try {
 			this.review_documents.write_failure(message);
 		} catch (write_error) {
+			if (!this.boundary_failures.system_failure_message(String(write_error))) {
+				throw write_error;
+			}
 			return { provider: "none", message: `${message}; ${String(write_error)}` };
 		}
 		return { provider: "none", message };
@@ -271,9 +302,7 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 		this.review_documents.reset();
 		const reviewed_identity = this.review_identity.value();
 		const stages = this.selected_review_stages(options);
-		const results = await Promise.all(
-			stages.map((stage) => this.run_stage_parallel(selection, stage, options.review_cleanup)),
-		);
+		const results = await this.run_stages_parallel(selection, stages, options.review_cleanup);
 		const failed = results.find((result) => result.provider === "none");
 		if (failed !== undefined) {
 			return failed;
@@ -287,6 +316,7 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 	/** Responsibilities: _review-agent initialization_. **/
 	constructor(options: TaskReviewAgentOptions) {
 		this.root = resolve(options.root);
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.review_root = join(this.root, AI_CODE_GUARD_DIRECTORY, "review");
 		this.file_io = options.file_io;
 		this.documentation = new TaskReviewDocumentation(REPORTING_PROJECT_ROOT, options.file_io);
@@ -315,10 +345,8 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 		if (selection === "none") {
 			return { provider: "none", message: REVIEW_NO_AGENT_MESSAGE };
 		}
-		try {
-			this.run_lock.acquire();
-		} catch (error) {
-			return { provider: "none", message: String(error) };
+		if (!this.run_lock.try_acquire()) {
+			return { provider: "none", message: "Another architecture review process owns the project lock." };
 		}
 		try {
 			return await this.run_locked_parallel(selection, options);

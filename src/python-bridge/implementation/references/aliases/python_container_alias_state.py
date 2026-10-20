@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 from implementation.rules.constants import PYTHON_BUILTINS_MODULE, PYTHON_DICT_ATTRIBUTE
-from implementation.references.aliases.protocols import PythonContainerLookupContract
+from implementation.references.protocols import PythonContainerLookupContract
 from implementation.references.aliases.python_container_lookup import (
     PythonContainerLookup,
 )

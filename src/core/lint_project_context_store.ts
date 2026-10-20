@@ -1,5 +1,7 @@
-import type { LintRunStatistics, LintSourceRecord } from "src/types";
-import type { LintProjectContextContract, ProjectSourceIOContract } from "src/protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { LintRunStatistics } from "src/types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _lint source records storage_, _statistics exposure projection_. **/
 export class LintProjectContextStore implements LintProjectContextContract {

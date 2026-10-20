@@ -1,7 +1,6 @@
 import { createHash, type Hash } from "node:crypto";
 import { resolve } from "node:path";
-import type { LintSourceRecord } from "src/types";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
+import type { LintSourceRecord } from "src/source_types";
 import {
 	PACKAGE_MANIFEST_FILE,
 	PYTHON_REQUIREMENTS_FILE,
@@ -10,9 +9,10 @@ import {
 	IGNORED_DIRS,
 	REPORTING_PROJECT_ROOT,
 } from "src/constants";
-import type { ProjectAnalysisIdentityContract } from "src/protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import { RULE_DOCUMENT_DIRECTORY } from "documentation_validation/constants";
 import type { FileEntryContract, IOContract } from "src/io/protocols";
+import { SYSTEM_FAILURE_CODES } from "src/io/constants";
 
 /** Responsibilities: _project analysis identity_, _cache invalidation boundaries_. **/
 export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract {
@@ -39,7 +39,7 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 
 	/** Responsibilities: _analyzer source file discovery_. **/
 	private analyzer_files(directory: string): string[] {
-		if (this.file_io.directory_entries.path_kind(directory) !== DIRECTORY_ENTRY_DIRECTORY) {
+		if (!this.file_io.directory_entries.path_is_directory(directory)) {
 			return [];
 		}
 		const files: string[] = [];
@@ -74,8 +74,21 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 				this.append_analysis_directory(directory, entry, pending);
 			}
 		} catch (error) {
-			void error;
+			if (!this.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
+	}
+
+	/** Responsibilities: _filesystem error classification_. **/
+	private system_failure_message(message: string): boolean {
+		const message_words = new Set(message.split(/[^A-Z0-9]+/u));
+		for (const code of SYSTEM_FAILURE_CODES) {
+			if (message_words.has(code)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Responsibilities: _analysis directory fingerprint scope_. **/
@@ -166,7 +179,9 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 				const stats = this.file_io.file_paths.metadata(directory);
 				value += `${resolve(directory)}${this.separator}${stats.mtime_ms}${this.separator}${stats.ctime_ms}${this.separator}`;
 			} catch (error) {
-				void error;
+				if (!this.system_failure_message(String(error))) {
+					throw error;
+				}
 			}
 		}
 		return this.content(value);

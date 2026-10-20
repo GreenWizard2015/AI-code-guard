@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.scoped_type_aliases import PythonScopedTypeAliases
-from implementation.ast.source_segments import SourceSegments
-from implementation.coding_issue_options import (
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.imports.source_segments import SourceSegments
+from implementation.ast.callables.coding_issue_options import (
     PythonCodingIssueAliases,
     PythonCodingIssueCollectorOptions,
     PythonCodingIssueContainerAliases,
@@ -19,7 +19,7 @@ from implementation.references.aliases.python_container_assembly import (
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.control_flow.python_expression_boundary import (
     PythonExpressionBoundary,
 )
@@ -29,7 +29,6 @@ from implementation.rules.control_flow.python_predicate_condition import (
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,
 )
-from python_collector_fixture_options import PythonCollectorFixtureOptions
 
 
 class PythonCollectorFixtureOptionsFactory:
@@ -78,7 +77,7 @@ class PythonCollectorFixtureOptionsFactory:
             ),
         )
 
-    def create(self, tree: ast.AST, source: str) -> PythonCollectorFixtureOptions:
+    def create(self, tree: ast.AST, source: str) -> PythonCodingIssueCollectorOptions:
         """Responsibilities: _coding collector fixture creation_."""
         assemblies = self._assemblies()
         index = PythonAstNodeIndex()
@@ -91,4 +90,4 @@ class PythonCollectorFixtureOptionsFactory:
                 PythonTerminalBranchRules(), PythonPredicateCondition()
             ),
         )
-        return PythonCollectorFixtureOptions(options)
+        return options

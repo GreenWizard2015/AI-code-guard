@@ -1,7 +1,7 @@
 import { basename, dirname, join } from "node:path";
 import { TaskRuleDocumentCatalog } from "src/core/support/task/reporting/task_rule_document_catalog";
 import { RULE_DATA } from "src/constants";
-import type { TaskRuleDocumentationContract, TaskWorkspaceDocumentsContract } from "src/protocols";
+import type { TaskRuleDocumentationContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _rule document validation_, _rule document publication_. **/
@@ -49,7 +49,7 @@ export class TaskRuleDocumentation implements TaskRuleDocumentationContract {
 		for (const rule_id of rule_ids) {
 			for (const path of this.document_catalog.rule_documents(rule_id)) {
 				const documentation_file = join(this.documentation_root, path);
-				if (this.file_io.directory_entries.path_kind(documentation_file) !== "file") {
+				if (!this.file_io.directory_entries.path_is_file(documentation_file)) {
 					throw new Error(`Rule "${rule_id}" is missing documentation: ${documentation_file}`);
 				}
 			}

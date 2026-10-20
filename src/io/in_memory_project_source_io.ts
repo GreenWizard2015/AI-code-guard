@@ -1,4 +1,4 @@
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import { resolve } from "node:path";
 import { ProjectPathRelation } from "src/core/support/project_path_relation";
 

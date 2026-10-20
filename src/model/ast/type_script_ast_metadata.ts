@@ -5,15 +5,12 @@ import { TypeScriptResponsibilityTargets } from "src/model/ast/type_script_respo
 import { TypeScriptTreeMetadataCollector } from "src/model/ast/type_script_tree_metadata_collector";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import ts from "typescript";
-import type {
-	SourceLineResolver,
-	SyntaxContract,
-	TypeScriptAstMetadataContract,
-	TypeScriptResponsibilityTargetsContract,
-	LintStageTimerContract,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { SourceLineResolver } from "src/runtime_types";
+import type { SyntaxContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { TypeScriptAstMetadataContract, TypeScriptResponsibilityTargetsContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
+import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
 	AstCallableNodeContract,
 	AstCallableReference,
@@ -21,7 +18,6 @@ import type {
 	AstParseIssue,
 	AstSourceSpan,
 	NormalizedAstFile,
-	TypeScriptTreeMetadata,
 } from "src/types";
 import type {
 	TypeScriptDerivedMetadata,

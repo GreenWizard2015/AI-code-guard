@@ -1,4 +1,4 @@
-import type { LintSourceRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
 import type { UnusedSymbolAliasCache, UnusedSymbolAliasMap } from "src/core/types";
 
 /** Responsibilities: _source alias indexing_, _reference name expansion_. **/

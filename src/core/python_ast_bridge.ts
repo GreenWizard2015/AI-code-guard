@@ -7,7 +7,8 @@ import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
 import { PYTHON_BRIDGE_DIRECTORY } from "src/constants";
 import { COVERAGE_MODULE, COVERAGE_PARALLEL_MODE_ARGUMENT, COVERAGE_RUN_COMMAND } from "src/core/constants";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import type { ProjectAnalysisIdentityContract, PythonAstDataOptions } from "src/protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { PythonAstDataOptions } from "src/python_types";
 import { NodeFileIO } from "src/io/node_file_io";
 import type { IOContract } from "src/io/protocols";
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { PrivateMemberAccess } from "src/linting/orchestration/runtime/typescript-rule-groups/private-member-access/private_member_access";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import ts from "typescript";
 
 describe("private member access", () => {

@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstTypedArgument } from "src/types";
 import { SharedParameterAnalyzer } from "src/metrics/shared_parameter_analyzer";
 import type {

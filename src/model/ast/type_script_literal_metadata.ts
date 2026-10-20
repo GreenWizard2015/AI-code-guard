@@ -1,5 +1,6 @@
 import ts from "typescript";
-import type { SourceLineResolver, TypeScriptAstTraversalContract } from "src/protocols";
+import type { SourceLineResolver } from "src/runtime_types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type { AstLiteralConstant, AstLiteralReference } from "src/types";
 import type { TypeScriptLiteralMetadataResult } from "src/model/types";
 

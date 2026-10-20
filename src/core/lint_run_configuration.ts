@@ -1,33 +1,26 @@
-import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
-import { ProjectNameRegistry } from "src/core/support/project_name_registry";
-import { resolve } from "node:path";
-import type {
-	LintProjectContextContract,
-	LintInputFileSelectorContract,
-	LintRunAnalysisContract,
-	LintStageTimerContract,
-	PythonAstDataContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
-import { LintRunAnalysis } from "src/core/lint_run_analysis";
-import type { LintAnalysisStage, LintRunState, ProjectNames } from "src/types";
-import type { LintInputFiles } from "src/types";
-import type { LintExecutionReport } from "src/types";
-import { PythonAstData } from "src/core/python_ast_data";
-import { PythonAstBridge } from "src/core/python_ast_bridge";
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
 import { PythonAstWorkerSession } from "external/python_ast_worker_session.mjs";
-import { TextFileDiscovery } from "src/core/text_file_discovery";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import { SourceNames } from "src/core/source_names";
 import { LintInputFileSelector } from "src/core/lint_input_file_selector";
-import { LintReportMode, type LintProjectAnalysis, type LintReportOptions } from "src/core/types";
+import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
+import { LintRunAnalysis } from "src/core/lint_run_analysis";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import { PythonAstBridge } from "src/core/python_ast_bridge";
+import { PythonAstData } from "src/core/python_ast_data";
+import { SourceNames } from "src/core/source_names";
+import { ProjectNameRegistry } from "src/core/support/project_name_registry";
+import { TextFileDiscovery } from "src/core/text_file_discovery";
+import { type LintProjectAnalysis, LintReportMode, type LintReportOptions } from "src/core/types";
 import type { IOContract } from "src/io/protocols";
+import type { LintAnalysisStage, LintRunState, ProjectNames } from "src/project_analysis_types";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { PythonAstDataContract } from "src/python_protocols";
+import type { LintRunAnalysisContract, LintRunConfigurationContract } from "src/runtime_protocols";
+import type { LintExecutionReport } from "src/runtime_types";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _lint input discovery_, _project analysis assembly_. **/
-export class LintRunConfiguration {
+export class LintRunConfiguration implements LintRunConfigurationContract {
 	private readonly source_names: SourceNames;
 	private readonly text_files: TextFileDiscovery;
 	public readonly input_file_selector: LintInputFileSelectorContract;
@@ -47,28 +40,14 @@ export class LintRunConfiguration {
 		source_texts: ReadonlyMap<string, string>,
 		virtual_project: boolean,
 	): LintProjectContextContract {
-		let source_io = this.source_io;
-		if (virtual_project) {
-			source_io = new InMemoryProjectSourceIO(source_texts);
-		}
 		const context_factory = new LintProjectContextCreator(
 			this.python_parser,
 			this.analysis_identity,
-			source_io,
+			this.source_io,
 			this.file_io,
 		);
 		return stage_timer.measure("startup.project-context", () =>
 			context_factory.lint_context(repo_root, project_files, stage_timer, source_texts, virtual_project),
-		);
-	}
-
-	/** Responsibilities: _ignored-directory normalization_. **/
-	private ignored_directories(options: LintReportOptions): Set<string> {
-		return new Set(
-			options.ignored_directories
-				.map((value) => value.trim())
-				.filter((value) => value.length > 0)
-				.map((value) => resolve(options.repo_root, value).replaceAll("\\", "/")),
 		);
 	}
 
@@ -107,7 +86,10 @@ export class LintRunConfiguration {
 			"startup.project-file-discovery",
 			() => options.inputs.project_files,
 		);
-		const ignored_directories = this.ignored_directories(options);
+		const ignored_directories = this.input_file_selector.ignored_directories(
+			options.repo_root,
+			options.ignored_directories,
+		);
 		const { context, project_names } = this.project_analysis(options, mode, project_files);
 		return {
 			repo_root: options.repo_root,
@@ -126,14 +108,11 @@ export class LintRunConfiguration {
 	}
 
 	/** Responsibilities: _Python bridge dependency initialization_. **/
-	public constructor(
-		project_source_io: ProjectSourceIOContract,
-		project_file_io: IOContract,
-	) {
+	public constructor(project_source_io: ProjectSourceIOContract, project_file_io: IOContract) {
 		this.source_names = new SourceNames();
 		this.source_io = project_source_io;
 		this.file_io = project_file_io;
-		this.text_files = new TextFileDiscovery(new DiagnosticRule("cyrillic-comment"), project_source_io);
+		this.text_files = new TextFileDiscovery(project_source_io);
 		this.input_file_selector = new LintInputFileSelector(this.text_files, project_source_io);
 		this.analysis_identity = new ProjectAnalysisIdentity(project_file_io);
 		this.lint_run_analysis = new LintRunAnalysis(

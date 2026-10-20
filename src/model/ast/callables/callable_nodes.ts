@@ -4,7 +4,7 @@ import type { AstCallableNodeContract, AstClassNode, AstVisibility } from "src/t
 import type { TypeScriptCallableDataContract } from "src/model/protocols";
 import type { CallableDataOptions } from "src/model/types";
 
-import type { CallableNodesContract } from "src/protocols";
+import type { CallableNodesContract } from "src/analysis_protocols";
 import { CONSTRUCTOR_NAME } from "src/metrics/constants";
 import { PROTECTED_VISIBILITY } from "src/constants";
 

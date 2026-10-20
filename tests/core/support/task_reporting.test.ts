@@ -2,7 +2,7 @@ import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import type { TaskDocuments } from "tests/bridge/ts/core/types";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 import type { TaskReportingMemoryWorkspace } from "tests/bridge/ts/core/support/task-reporting-memory-workspace";

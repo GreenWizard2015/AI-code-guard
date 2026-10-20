@@ -3,7 +3,7 @@ import { NamingSupport } from "src/rules/naming_support";
 import { LeadingUnderscoreNaming } from "src/rules/leading_underscore_naming";
 import { TypeScriptModuleDeclarationNaming } from "src/linting/orchestration/runtime/typescript-rule-groups/special-rules/type_script_module_declaration_naming";
 import { Syntax } from "src/parser/analysis/syntax";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TypeScriptAstSpecialRules } from "src/linting/orchestration/runtime/typescript-rule-groups/special-rules/type_script_ast_special_rules";
 import type { TypeScriptAstSpecialRulesContract, TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";

@@ -1,10 +1,7 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { ClassGraph, CodeClass } from "src/types";
-import {
-	MAX_COMPOSITION_DEPTH,
-	MAX_CONSTRUCTOR_DEPENDENCIES,
-} from "src/linting/orchestration/runtime/composition/constants";
+import { MAX_COMPOSITION_DEPTH, MAX_CONSTRUCTOR_DEPENDENCIES } from "src/constants";
 import { CompositionComponents } from "src/linting/orchestration/runtime/composition/components/composition_components";
 import { CompositionChain } from "src/linting/orchestration/runtime/composition/components/composition_chain";
 import type {

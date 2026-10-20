@@ -13,7 +13,7 @@ import type {
 	CodeClass,
 	ImportedSymbol,
 } from "src/types";
-import type { CallableMethodCountsContract, SourceReferenceIndexContract } from "src/protocols";
+import type { CallableMethodCountsContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
 
 export type ClassesByName = Map<string, CodeClass>;
 export type ImportsByName = Map<string, ImportedSymbol>;

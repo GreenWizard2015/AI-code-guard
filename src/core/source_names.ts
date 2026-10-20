@@ -1,5 +1,5 @@
-import type { LintSourceRecord } from "src/types";
-import type { SourceNamesContract } from "src/protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { SourceNamesContract } from "src/runtime_protocols";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _source class names collection_, _source type names collection_. **/

@@ -1,4 +1,4 @@
-import type { DynamicBindingNamesContract } from "src/protocols";
+import type { DynamicBindingNamesContract } from "src/shared_services_protocols";
 import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";

@@ -1,14 +1,8 @@
-import type {
-	LintFileNameContract,
-	NormalizedAstFile,
-	TypeScriptLintSourceRecordOptions,
-} from "src/types";
-import type {
-	LintSourceRecordContract,
-	SourceFileResolver,
-	TypeScriptAstFileContract,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { LintFileNameContract, TypeScriptLintSourceRecordOptions } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
+import type { LintSourceRecordContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _storage normalization TypeScript lint_, _AST access exposure_. **/

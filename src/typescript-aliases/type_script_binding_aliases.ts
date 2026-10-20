@@ -1,6 +1,6 @@
-import type { AliasAppender, BindingAliasAppender, ExpressionNormalizer } from "src/protocols";
+import type { AliasAppender, BindingAliasAppender, ExpressionNormalizer } from "src/runtime_types";
 import ts from "typescript";
-import type { BindingAliasesContract, ExpressionNamesContract } from "src/protocols";
+import type { BindingAliasesContract, ExpressionNamesContract } from "src/runtime_protocols";
 
 /** Responsibilities: _object binding alias collection_, _array binding alias collection_. **/
 export class TypeScriptBindingAliases implements BindingAliasesContract {

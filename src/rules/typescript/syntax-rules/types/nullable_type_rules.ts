@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { NullableTypeRulesContract } from "src/protocols";
+import type { NullableTypeRulesContract } from "src/runtime_protocols";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
 
 /** Responsibilities: _nullable type boundary classification_, _explicit nullish annotation checks_. **/

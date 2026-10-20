@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { AstPropertyBindingIndex } from "src/ast_property_binding_index";
-import type { AstPropertySourceIndexContract, SourceFileDeclarationCache, SourceFileDeclarationMap } from "src/protocols";
+import type { AstPropertySourceIndexContract } from "src/source_protocols";
+import type { SourceFileDeclarationCache, SourceFileDeclarationMap } from "src/source_types";
 
 /** Responsibilities: _shared source declarations_, _shared lexical bindings_. **/
 export class AstPropertySourceIndexCache implements AstPropertySourceIndexContract {

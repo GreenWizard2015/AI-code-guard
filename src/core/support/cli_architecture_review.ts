@@ -1,5 +1,8 @@
-import type { LintStageTimerContract, TaskReportingContract } from "src/protocols";
-import type { CliOptions, ReportViolation, ReviewStatus, TaskReviewRunResult } from "src/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { TaskReportingContract } from "src/task_protocols";
+import type { ReportViolation } from "src/reporting_protocols";
+import type { CliOptions, ReviewStatus } from "src/task_types";
+import type { TaskReviewRunResult } from "src/types";
 
 /** Responsibilities: _review eligibility_, _execution_, _exit status_. **/
 export class CliArchitectureReview {

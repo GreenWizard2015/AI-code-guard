@@ -1,27 +1,16 @@
 from __future__ import annotations
 
-from implementation.ast.imports.python_ast_import_state_options import (
-    PythonAstImportStateOptions,
-)
-from implementation.ast.protocols import (
-    PythonAstCoreStateContract,
-    PythonAstImportStateOptionsContract,
-)
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonStructureIssuesContract,
-)
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,
-    PythonReferenceAliasesContract,
-)
-from implementation.references.aliases.python_container_alias_state import (
-    PythonContainerAliasState,
 )
 from implementation.references.aliases.python_container_aliases import (
     PythonContainerAliases,
+)
+from implementation.references.aliases.python_container_alias_state import (
+    PythonContainerAliasState,
 )
 from implementation.references.aliases.python_container_keys import PythonContainerKeys
 from implementation.references.aliases.python_container_values import (
@@ -30,7 +19,7 @@ from implementation.references.aliases.python_container_values import (
 
 
 class PythonContainerAssembly:
-    """Responsibilities: _container analyzer composition_, _import option configuration_."""
+    """Responsibilities: _container analyzer composition_, _container collection access_."""
 
     aliases: PythonContainerAliasesContract
     values: PythonContainerValuesContract
@@ -57,20 +46,3 @@ class PythonContainerAssembly:
     def container_keys(self) -> PythonContainerKeysContract:
         """Responsibilities: _container key access_."""
         return self.keys
-
-    def import_options(
-        self,
-        core: PythonAstCoreStateContract,
-        reference_aliases: PythonReferenceAliasesContract,
-        structure_issues: PythonStructureIssuesContract,
-    ) -> PythonAstImportStateOptionsContract:
-        """Responsibilities: _import state options_."""
-        return PythonAstImportStateOptions(
-            {
-                "tree": core.source_dependencies().syntax_tree(),
-                "node_index": core.source_dependencies().node_index(),
-                "container_aliases": core.container_aliases(),
-                "reference_aliases": reference_aliases,
-                "structure_issues": structure_issues,
-            }
-        )

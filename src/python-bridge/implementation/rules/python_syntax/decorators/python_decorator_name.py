@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonDecoratorNameContract
-from implementation.references.aliases.protocols import PythonContainerValuesContract
+from implementation.references.protocols import PythonDecoratorNameContract
+from implementation.references.protocols import PythonContainerValuesContract
 
 
 class PythonDecoratorName(PythonDecoratorNameContract):

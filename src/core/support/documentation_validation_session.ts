@@ -6,10 +6,10 @@ import type {
 	DocumentationValidationOperation,
 } from "documentation_validation/types";
 import { LintStageTimer } from "src/lint_stage_timer";
-import type { ViolationContract } from "src/protocols";
-import type { LintExecutionReport } from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintExecutionReport } from "src/runtime_types";
 import { RULE_DATA } from "src/constants";
-import { UnusedCode } from "src/core/unused_code";
+import { UnusedCode } from "src/core/project-source/unused_code";
 import { DOCUMENTATION_PROJECT_ANALYSIS_RULES } from "documentation_validation/constants";
 import type { DocumentationExampleSourceFile } from "documentation_validation/types";
 import { NodeFileIO } from "src/io/node_file_io";

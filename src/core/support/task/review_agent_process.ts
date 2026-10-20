@@ -15,10 +15,9 @@ import {
 	REVIEW_PREFIX_ARGUMENT,
 	REVIEW_RUN_LOCK_DIRECTORY,
 } from "src/core/support/task/review-agent/constants";
+import type { ReviewAgentProcessContract } from "src/core/support/task/review-agent/protocols";
 import { ReviewAgentOutputCollector } from "src/core/support/task/review-agent/review_agent_output_collector";
 import { ReviewAgentProcessState } from "src/core/support/task/review-agent/review_agent_process_state";
-import type { ReviewAgentProcessContract } from "src/core/support/task/review-agent/protocols";
-import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
 import type {
 	ReviewAgentAsyncOutput,
 	ReviewAgentCloseState,
@@ -27,12 +26,15 @@ import type {
 	ReviewAgentProcessStateContract,
 	ReviewAgentResultResolver,
 } from "src/core/support/task/review-agent/types";
+import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import { NodeFileIO } from "src/io/node_file_io";
 import type { ReviewAgentHookEventContract, ReviewAgentProcessResult } from "src/types";
 
 /** Responsibilities: _review-agent process execution_, _agent hook lifecycle handling_. **/
 export class ReviewAgentProcess implements ReviewAgentProcessContract {
 	private readonly process_timeout_ms = 10 * 60 * 1000;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _synchronous subprocess boundary_. **/
 	protected spawn_sync(
@@ -201,6 +203,9 @@ export class ReviewAgentProcess implements ReviewAgentProcessContract {
 			rmSync(path, { force: true });
 			return "";
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return String(error);
 		}
 	}
@@ -214,6 +219,9 @@ export class ReviewAgentProcess implements ReviewAgentProcessContract {
 			}
 			child.kill(signal);
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			void error;
 		}
 	}
@@ -254,12 +262,20 @@ export class ReviewAgentProcess implements ReviewAgentProcessContract {
 				stderr: `${result.stderr}\nReview agent cleanup failed: ${cleanup_error}`,
 			};
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return {
 				exit_code: 1,
 				stdout: result.stdout,
 				stderr: `${result.stderr}\nReview agent cleanup failed: ${String(error)}`,
 			};
 		}
+	}
+
+	/** Responsibilities: _process boundary classifier setup_. **/
+	public constructor() {
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _review-agent parallel process execution_. **/

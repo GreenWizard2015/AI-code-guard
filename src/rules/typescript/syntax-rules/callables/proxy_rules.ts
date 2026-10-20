@@ -1,15 +1,11 @@
 import { ProxyArgumentMatcher } from "src/rules/typescript/syntax-rules/callables/proxy_argument_matcher";
-import type { ProxyCallContract, TypeScriptMemberAliasesContract } from "src/protocols";
-import type { ProxyRulesContract } from "src/protocols";
+import type { ProxyCallContract } from "src/runtime_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
+import type { ProxyRulesContract } from "src/analysis_protocols";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
 import ts from "typescript";
-import type {
-	PlatformImportNameCache,
-	PlatformImportNames,
-	ProxyCallCandidates,
-	ProxyParameterNames,
-} from "src/rules/typescript/syntax-rules/callables/types";
+import type { SourceFileStringSetCache } from "src/source_types";
 
 /** Responsibilities: _proxy callable classification_, _proxy lambda detection_. **/
 export class ProxyRules implements ProxyRulesContract {
@@ -17,10 +13,10 @@ export class ProxyRules implements ProxyRulesContract {
 	private readonly argument_matcher: ProxyArgumentMatcher;
 	private readonly expression_aliases: TypeScriptExpressionAliases;
 	private readonly this_aliases: TypeScriptMemberAliasesContract;
-	private readonly platform_imports: PlatformImportNameCache;
+	private readonly platform_imports: SourceFileStringSetCache;
 
 	/** Responsibilities: _parameter name collection_. **/
-	private parameter_names(node: ts.Node): ProxyParameterNames {
+	private parameter_names(node: ts.Node): readonly string[] {
 		if (!ts.isFunctionLike(node)) {
 			return [];
 		}
@@ -46,7 +42,7 @@ export class ProxyRules implements ProxyRulesContract {
 	}
 
 	/** Responsibilities: _platform import catalog_. **/
-	private platform_names(source_file: ts.SourceFile): PlatformImportNames {
+	private platform_names(source_file: ts.SourceFile): ReadonlySet<string> {
 		const names = new Set<string>();
 		for (const statement of source_file.statements) {
 			if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -112,7 +108,7 @@ export class ProxyRules implements ProxyRulesContract {
 		if (parent.initializer !== node) {
 			return false;
 		}
-		const calls: ProxyCallCandidates = this.proxy_call.proxy_call(node);
+		const calls: readonly ts.Node[] = this.proxy_call.proxy_call(node);
 		if (calls.length === 0) {
 			return false;
 		}
@@ -124,13 +120,13 @@ export class ProxyRules implements ProxyRulesContract {
 		this.argument_matcher = new ProxyArgumentMatcher();
 		this.expression_aliases = new TypeScriptExpressionAliases("");
 		this.this_aliases = new TypeScriptMemberAliases("this", () => "");
-		this.platform_imports = new WeakMap<ts.SourceFile, PlatformImportNames>();
+		this.platform_imports = new WeakMap<ts.SourceFile, ReadonlySet<string>>();
 		this.proxy_call = proxy_call;
 	}
 
 	/** Responsibilities: _callable declaration forwarding_. **/
 	public proxy_callable(node: ts.Node): boolean {
-		const calls: ProxyCallCandidates = this.proxy_call.proxy_call(node);
+		const calls: readonly ts.Node[] = this.proxy_call.proxy_call(node);
 		if (calls.length === 0) {
 			return false;
 		}

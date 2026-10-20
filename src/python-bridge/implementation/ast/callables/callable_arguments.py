@@ -4,7 +4,8 @@ import ast
 from typing import Any
 
 from implementation.ast.constants import BUILTIN_TYPES, STRUCTURAL_TYPE_NAMES
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonScopedTypeAliasesContract
 from implementation.types import JsonObject
 
 
@@ -23,6 +24,24 @@ class CallableArguments:
                     counts[item.id] += 1
         return [{"name": name, "count": count} for name, count in counts.items()]
 
+    def _annotation_type_name(self, argument: ast.arg, annotation: ast.AST) -> str:
+        """Responsibilities: _parameter annotation names_."""
+        type_name = ast.unparse(annotation)
+        if type(annotation) is not ast.Name:
+            return type_name
+        resolved_type = self.type_aliases.resolve(annotation.id, argument)
+        if resolved_type in self.builtin_types:
+            return resolved_type
+        return type_name
+
+    def _annotation_kind(self, annotation: ast.AST, type_name: str) -> str:
+        """Responsibilities: _parameter type classification_."""
+        if type(annotation) is ast.Subscript:
+            return "generic"
+        if type_name in self.builtin_types:
+            return "basic"
+        return "named"
+
     def _typed_argument(self, argument: ast.arg) -> list[JsonObject]:
         """Responsibilities: _normalization typed callable argument_."""
         annotation: Any = argument.annotation
@@ -30,12 +49,9 @@ class CallableArguments:
             return []
         if type(annotation) not in (ast.Name, ast.Attribute, ast.Subscript):
             return []
-        kind: Any = "named"
-        if type(annotation) is ast.Name and annotation.id in self.builtin_types:
-            kind: Any = "basic"
-        if type(annotation) is ast.Subscript:
-            kind: Any = "generic"
-        return [{"name": argument.arg, "type": ast.unparse(annotation), "kind": kind}]
+        type_name = self._annotation_type_name(argument, annotation)
+        kind = self._annotation_kind(annotation, type_name)
+        return [{"name": argument.arg, "type": type_name, "kind": kind}]
 
     def _typed_arguments(self, arguments: list[ast.arg]) -> list[JsonObject]:
         """Responsibilities: _normalization typed callable arguments_."""
@@ -74,9 +90,14 @@ class CallableArguments:
             return False
         return arguments[0].arg == "self"
 
-    def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
+    def __init__(
+        self,
+        node_index: PythonAstNodeIndexContract,
+        type_aliases: PythonScopedTypeAliasesContract,
+    ) -> None:
         """Responsibilities: _initialization reusable Python AST_."""
         self.node_index: Any = node_index
+        self.type_aliases: PythonScopedTypeAliasesContract = type_aliases
         self.builtin_types: Any = BUILTIN_TYPES
         self.structural_type_names: Any = STRUCTURAL_TYPE_NAMES
 

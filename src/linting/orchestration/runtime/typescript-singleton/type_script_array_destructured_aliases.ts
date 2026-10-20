@@ -1,7 +1,8 @@
 import ts from "typescript";
 import { TypeScriptNamespaceAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_namespace_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { TypeScriptArrayDestructuredAliasesContract, TypeScriptNamespaceAliasesContract } from "src/protocols";
+import type { TypeScriptArrayDestructuredAliasesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptNamespaceAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _array alias registration_, _destructured target resolution_. **/
 export class TypeScriptArrayDestructuredAliases implements TypeScriptArrayDestructuredAliasesContract {

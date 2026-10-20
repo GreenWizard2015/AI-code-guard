@@ -3,7 +3,7 @@ import ts from "typescript";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
 
-import { TYPE_NODE_SOURCE, AST_SOURCE } from "tests/core/constants";
+import { TYPE_NODE_SOURCE, AST_SOURCE } from "tests/core/constants/ast_nodes/constants";
 
 describe("TypeScriptAstFile", () => {
 	test("wraps TypeScript type-node predicates and details", () => {

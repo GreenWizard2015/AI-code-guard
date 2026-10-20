@@ -3,14 +3,14 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.imports.python_import_nodes import PythonImportNodes
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.source_segments import SourceSegments
-from implementation.protocols import (
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.source_segments import SourceSegments
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonImportNodesContract,
     PythonSourceSegmentsContract,
     PythonStructureIssuesContract,
 )
+from protocols import PythonImportNodesContract
 from implementation.rules.structure_issues import StructureIssues
 
 

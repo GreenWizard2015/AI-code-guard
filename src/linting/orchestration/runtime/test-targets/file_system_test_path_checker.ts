@@ -1,6 +1,5 @@
 import { dirname, isAbsolute, join } from "node:path";
-import type { TestPathCheckerContract } from "src/core/context/protocols";
-import { SOURCE_DIRECTORY_INDEX_READY } from "src/linting/orchestration/runtime/test-targets/constants";
+import type { TestPathCheckerContract } from "src/testing_protocols";
 
 /** Responsibilities: _test path normalization_, _filesystem path checks_. **/
 export class FileSystemTestPathChecker implements TestPathCheckerContract {
@@ -8,6 +7,7 @@ export class FileSystemTestPathChecker implements TestPathCheckerContract {
 	private readonly source_paths: ReadonlySet<string>;
 	private readonly source_directories: Set<string>;
 	private readonly index_state: Set<symbol>;
+	private readonly directory_index_ready = Symbol("directory index ready");
 
 	/** Responsibilities: _absolute filesystem path_. **/
 	private absolute_path(path: string): string {
@@ -19,7 +19,7 @@ export class FileSystemTestPathChecker implements TestPathCheckerContract {
 
 	/** Responsibilities: _source directory index construction_. **/
 	private index_source_directories(): void {
-		if (this.index_state.has(SOURCE_DIRECTORY_INDEX_READY)) {
+		if (this.index_state.has(this.directory_index_ready)) {
 			return;
 		}
 		for (const source_path of this.source_paths) {
@@ -29,7 +29,7 @@ export class FileSystemTestPathChecker implements TestPathCheckerContract {
 				directory = dirname(directory);
 			}
 		}
-		this.index_state.add(SOURCE_DIRECTORY_INDEX_READY);
+		this.index_state.add(this.directory_index_ready);
 	}
 
 	/** Responsibilities: _initialization filesystem path checker_. **/

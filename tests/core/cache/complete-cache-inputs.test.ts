@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheContext } from "src/core/cache/lint_execution_cache_context";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
-import type { CliOptions } from "src/types";
+import type { CliOptions } from "src/task_types";
 import { ViolationValue } from "src/violation_value";
 import { CompleteCacheFixture } from "tests/bridge/ts/core/complete-cache-fixture";
 

@@ -1,6 +1,9 @@
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
-import type { AstDiskCacheContract, ContextSourceRecordCacheContract, LintStageTimerContract } from "src/protocols";
-import type { LintSourceRecord, NormalizedAstFile } from "src/types";
+import type { AstDiskCacheContract } from "src/source_protocols";
+import type { ContextSourceRecordCacheContract } from "src/cache_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _TypeScript AST retrieval_, _persistent AST cache lifecycle_. **/
 export class ContextSourceRecordCache implements ContextSourceRecordCacheContract {

@@ -2,7 +2,7 @@ import { TypeScriptModuleExports } from "src/module-resolution/type_script_modul
 import type { CallableReferenceIdentity } from "src/types";
 import ts from "typescript";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _imported callable binding collection_, _local alias indexing_. **/
 export class TypeScriptReferenceImportState {

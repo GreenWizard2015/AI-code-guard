@@ -2,15 +2,12 @@ import { dirname, isAbsolute, join, resolve } from "node:path";
 import { SOURCE_UNAVAILABLE } from "src/core/support/task/constants";
 import { TaskRuleLanguageGroups } from "src/core/support/task/reporting/task_rule_language_groups";
 import type { TaskSourceText } from "src/core/support/task/types";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
-import type {
-	TaskBatchReplacementContract,
-	TaskIssueDocumentContract,
-	TaskRuleDocumentationContract,
-	TaskWorkspaceDocumentsContract,
-} from "src/protocols";
-import type { ReportViolation, TaskIssueFileViolationDetails, TaskWorkspaceDocument } from "src/types";
+import type { TaskBatchReplacementContract, TaskIssueDocumentContract, TaskRuleDocumentationContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
+import type { ReportViolation } from "src/reporting_protocols";
+import type { TaskWorkspaceDocument } from "src/task_types";
+import type { TaskIssueFileViolationDetails } from "src/types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _issue formatting_, _source context_. **/
 export class TaskIssueDocument implements TaskIssueDocumentContract {
@@ -19,17 +16,20 @@ export class TaskIssueDocument implements TaskIssueDocumentContract {
 	private readonly batch: TaskBatchReplacementContract;
 	private readonly documentation: TaskRuleDocumentationContract;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _source text loading_. **/
 	private source_text(file: string): TaskSourceText {
 		try {
 			const absolute_file = this.absolute_file(file);
-			if (this.file_io.directory_entries.path_kind(absolute_file) !== "file") {
+			if (!this.file_io.directory_entries.path_is_file(absolute_file)) {
 				return { available: false, lines: [] };
 			}
 			return { available: true, lines: this.file_io.file_content.file_text(absolute_file).split(/\r?\n/u) };
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return { available: false, lines: [] };
 		}
 	}
@@ -60,9 +60,11 @@ export class TaskIssueDocument implements TaskIssueDocumentContract {
 	/** Responsibilities: _directory diagnostic classification_. **/
 	private is_directory(file: string): boolean {
 		try {
-			return this.file_io.directory_entries.path_kind(this.absolute_file(file)) === DIRECTORY_ENTRY_DIRECTORY;
+			return this.file_io.directory_entries.path_is_directory(this.absolute_file(file));
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return false;
 		}
 	}
@@ -201,6 +203,7 @@ export class TaskIssueDocument implements TaskIssueDocumentContract {
 		this.batch = batch;
 		this.documentation = documentation;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _reporting violations task rendering_. **/

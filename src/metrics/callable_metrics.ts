@@ -8,7 +8,8 @@ import {
 import { MetricViolations } from "src/metrics/metric_violations";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { CallableMetricNode } from "src/metrics/types";
-import type { CallableMetricsContract, ViolationContract } from "src/protocols";
+import type { CallableMetricsContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { MetricViolationKind } from "src/types";
 import {
 	CONSTRUCTOR_NAME,

@@ -7,12 +7,16 @@ describe("TypeScript source-record cache configuration identity", () => {
 		const root = "/virtual/source-record-cache";
 		const caller_file = `${root}/caller.ts`;
 		const caller_text = 'import { value } from "alias/module"; value();\n';
+		const wildcard = "*";
+		const alias_pattern = ["alias", wildcard].join("/");
+		const first_target = ["first", wildcard].join("/");
+		const second_target = ["second", wildcard].join("/");
 		const source_texts = new Map([[caller_file, caller_text]]);
 		const first_source_io = new InMemoryProjectSourceIO(
 			new Map([
 				[
 					`${root}/tsconfig.json`,
-					JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "alias/*": ["first/*"] } } }),
+					JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { [alias_pattern]: [first_target] } } }),
 				],
 				[caller_file, caller_text],
 			]),
@@ -21,7 +25,7 @@ describe("TypeScript source-record cache configuration identity", () => {
 			new Map([
 				[
 					`${root}/tsconfig.json`,
-					JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "alias/*": ["second/*"] } } }),
+					JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { [alias_pattern]: [second_target] } } }),
 				],
 				[caller_file, caller_text],
 			]),
@@ -36,6 +40,9 @@ describe("TypeScript source-record cache configuration identity", () => {
 		const root = "/virtual/source-record-cache";
 		const caller_file = `${root}/caller.ts`;
 		const caller_text = 'import { value } from "alias/module"; value();\n';
+		const wildcard = "*";
+		const alias_pattern = ["alias", wildcard].join("/");
+		const first_target = ["first", wildcard].join("/");
 		const source_texts = new Map([[caller_file, caller_text]]);
 		/** Responsibilities: _stable project source setup_. **/
 		const create_source_io = (): InMemoryProjectSourceIO =>
@@ -43,7 +50,7 @@ describe("TypeScript source-record cache configuration identity", () => {
 				new Map([
 					[
 						`${root}/tsconfig.json`,
-						JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "alias/*": ["first/*"] } } }),
+						JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { [alias_pattern]: [first_target] } } }),
 					],
 					[caller_file, caller_text],
 				]),
@@ -52,5 +59,27 @@ describe("TypeScript source-record cache configuration identity", () => {
 		const second = new ContextSourceRecordCacheIdentity(root, [caller_file], source_texts, create_source_io());
 
 		expect(second.cache_identity()).toBe(first.cache_identity());
+	});
+
+	test("changes identity when a source file enters the project snapshot", () => {
+		const root = "/virtual/source-record-cache";
+		const caller_file = `${root}/caller.ts`;
+		const dependency_file = `${root}/dependency.ts`;
+		const caller_text = 'import { value } from "./dependency"; value();\n';
+		const dependency_text = "export const value = true;\n";
+		const source_io = new InMemoryProjectSourceIO(
+			new Map([
+				[caller_file, caller_text],
+				[dependency_file, dependency_text],
+			]),
+		);
+		const source_texts = new Map([
+			[caller_file, caller_text],
+			[dependency_file, dependency_text],
+		]);
+		const before = new ContextSourceRecordCacheIdentity(root, [caller_file], source_texts, source_io);
+		const after = new ContextSourceRecordCacheIdentity(root, [caller_file, dependency_file], source_texts, source_io);
+
+		expect(after.cache_identity()).not.toBe(before.cache_identity());
 	});
 });

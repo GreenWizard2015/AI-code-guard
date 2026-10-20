@@ -1,5 +1,5 @@
-import type { ReportViolation } from "src/types";
-import type { ViolationContract } from "src/protocols";
+import type { ReportViolation } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _diagnostic violation data storage_, _adjusted violation copies creation_. **/
 export class ViolationValue {

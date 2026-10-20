@@ -6,7 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
-from implementation.rules.call_analysis.python_binding_overlay import (
+from implementation.rules.call_analysis.testing.python_binding_overlay import (
     PythonBindingOverlay,
 )
 from implementation.rules.types import PythonTestMutationIndex

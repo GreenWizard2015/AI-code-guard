@@ -1,7 +1,7 @@
 import { dirname, resolve as resolve_path } from "node:path";
 import { extname } from "node:path";
 import type { TypeScriptModuleResolutionContract } from "src/module-resolution/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _module candidate generation_, _source file loading_. **/

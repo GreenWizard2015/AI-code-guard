@@ -1,5 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import "src/linting/orchestration/runtime/composition/constants";
 import { CompositionChain } from "src/linting/orchestration/runtime/composition/components/composition_chain";
 import { CompositionComponents } from "src/linting/orchestration/runtime/composition/components/composition_components";
 import { CompositionBoundaryFixture } from "tests/bridge/ts/core/composition_boundary_fixture";

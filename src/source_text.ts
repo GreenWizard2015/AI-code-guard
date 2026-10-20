@@ -1,6 +1,6 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _source text access_, _source line endings normalization_. **/
 export class SourceText implements ProjectSourceIOContract {
@@ -54,12 +54,11 @@ export class SourceText implements ProjectSourceIOContract {
 
 	/** Responsibilities: _source file availability_. **/
 	public source_available(file: string): boolean {
-		try {
-			return statSync(this.validated_file(file)).isFile();
-		} catch (error) {
-			void error;
+		const source_path = this.validated_file(file);
+		if (!existsSync(source_path)) {
 			return false;
 		}
+		return statSync(source_path).isFile();
 	}
 
 	/** Responsibilities: _output normalization source lines_. **/

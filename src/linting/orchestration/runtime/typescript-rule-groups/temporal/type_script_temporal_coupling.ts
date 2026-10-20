@@ -2,7 +2,7 @@ import ts from "typescript";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TemporalFieldReaderIndex } from "src/linting/orchestration/runtime/typescript-rule-groups/temporal/temporal_field_reader_index";
 import { TemporalFieldStateCollector } from "src/linting/orchestration/runtime/typescript-rule-groups/temporal/temporal_field_state_collector";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type {
 	TemporalCallableState,
 	TemporalAppendCallableInput,

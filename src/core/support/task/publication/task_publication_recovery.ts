@@ -6,8 +6,8 @@ import {
 	REPORT_DOCUMENT_NAME,
 } from "src/core/support/task/constants";
 import type { TaskPublicationRecoveryContract } from "src/core/support/task/types";
-import type { TaskWorkspaceDocumentsContract } from "src/protocols";
-import type { TaskWorkspaceDocument } from "src/types";
+import type { TaskWorkspaceDocumentsContract } from "src/task_protocols";
+import type { TaskWorkspaceDocument } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _task publication rollback_, _workspace document restoration_. **/
@@ -60,7 +60,7 @@ export class TaskPublicationRecovery implements TaskPublicationRecoveryContract 
 	public existing_documents(): ReadonlySet<TaskWorkspaceDocument> {
 		const existing = new Set<TaskWorkspaceDocument>();
 		for (const document of ["issues", "report", LINT_OUTPUT_DOCUMENT] as const) {
-			if (this.file_io.directory_entries.path_kind(this.documents.path_for_document(document)) === "file") {
+			if (this.file_io.directory_entries.path_is_file(this.documents.path_for_document(document))) {
 				existing.add(document);
 			}
 		}

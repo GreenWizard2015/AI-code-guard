@@ -1,6 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstResponsibilityTarget } from "src/types";
-import type { RuleContract, ViolationContract } from "src/protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { ResponsibilityLimits, ResponsibilityValues } from "src/model/types/types";
 import type { ResponsibilityWordingCheckerContract } from "src/linting/orchestration/runtime/protocols";
 import { ResponsibilityDocumentation } from "src/linting/orchestration/runtime/responsibility-wording/responsibility_documentation";

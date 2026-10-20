@@ -1,4 +1,4 @@
-import type { GitIgnoreGlobTokenContract } from "src/protocols";
+import type { GitIgnoreGlobTokenContract } from "src/runtime_protocols";
 
 /** Responsibilities: _directory boundary transitions_, _line separator exclusion_. **/
 export class RecursiveDirectoryGitIgnoreGlobToken implements GitIgnoreGlobTokenContract {
@@ -15,18 +15,18 @@ export class RecursiveDirectoryGitIgnoreGlobToken implements GitIgnoreGlobTokenC
 	public advance(
 		candidate: string,
 		index: number,
-		current_row: readonly boolean[],
-		next_row: readonly boolean[],
+		current_row: Uint8Array,
+		next_row: Uint8Array,
 	): boolean {
-		const can_finish_here = next_row[index] === true;
+		const can_finish_here = next_row[index] === 1;
 		const character = candidate[index];
 		let crosses_directory = false;
-		if (character === this.directory_separator && next_row[index + 1] === true) {
+		if (character === this.directory_separator && next_row[index + 1] === 1) {
 			crosses_directory = true;
 		}
 		let consumes_character = false;
 		if (character !== undefined && !this.line_separator.test(character)) {
-			consumes_character = current_row[index + 1] === true;
+			consumes_character = current_row[index + 1] === 1;
 		}
 		return can_finish_here || crosses_directory || consumes_character;
 	}

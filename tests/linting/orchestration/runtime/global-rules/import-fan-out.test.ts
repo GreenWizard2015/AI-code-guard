@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { AstModel } from "src/core/ast_model";
 import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/import_fan_out";
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 describe("import fan-out", () => {
 	test("reports more than twenty unique module paths for both languages", () => {

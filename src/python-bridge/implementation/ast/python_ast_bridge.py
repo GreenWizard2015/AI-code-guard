@@ -5,7 +5,7 @@ from typing import Any
 
 from implementation.ast.python_ast_timed_result import PythonAstTimedResult
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.protocols import PythonAstTimedResultContract
+from protocols import PythonAstTimedResultContract
 from implementation.types import JsonObject
 from implementation.rules.constants import PYTHON_PARSE_ISSUES_KEY
 

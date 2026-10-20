@@ -1,8 +1,8 @@
 import ts from "typescript";
-import type { TypeScriptExpressionAliasesContract } from "src/protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import type { AstImportIssue, AstImportIssueFlags } from "src/types";
 import type { LineOf } from "src/parser/types";
-import { IMPORT_KINDS } from "src/parser/constants";
+import { IMPORT_KINDS } from "src/constants";
 
 /** Responsibilities: _import diagnostics_, _import positions_. **/
 export class TypeScriptImportIssues {

@@ -6,9 +6,11 @@ import type {
 import type { ReviewAgentExecutionResult, ReviewAgentName, ReviewAgentRequest, ReviewAgentSelection } from "src/types";
 import { ReviewAgentExecution } from "src/core/support/task/review-agent/dialogue/review_agent_execution";
 import { ReviewAgentDialoguePlan } from "src/core/support/task/review-agent/dialogue/review_agent_dialogue_plan";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _initial review dialogue_, _review cleanup dialogue_. **/
 export class ReviewAgentDialogue {
+	private readonly boundary_failures: BoundaryFailureClassifier;
 	private readonly review_documents: ReviewAgentFilesContract;
 	private readonly agent_catalog: ReviewAgentCatalogContract;
 	private readonly execution: ReviewAgentExecution;
@@ -50,20 +52,19 @@ export class ReviewAgentDialogue {
 				dialogue,
 			);
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			const message = String(error);
 			this.review_documents.write_failure(message);
-			return {
-				provider: "none",
-				process: { exit_code: 1, stdout: "", stderr: message },
-				no_issues: false,
-				message,
-			};
+			return this.execution.system_failure(message);
 		}
 	}
 
 	/** Responsibilities: _review-agent dialogue initialization_. **/
 	constructor(options: ReviewAgentDialogueOptions) {
 		this.review_documents = options.collaborators.review_documents;
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.agent_catalog = options.collaborators.agent_catalog;
 		this.execution = new ReviewAgentExecution({
 			root: options.execution.root,
@@ -103,14 +104,12 @@ export class ReviewAgentDialogue {
 			const prompt = this.agent_catalog.cleanup_prompt({ cleanup_request: request });
 			return await this.execution.cleanup_async(selection, { ...request, prompt });
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			const message = String(error);
 			this.review_documents.write_failure(message);
-			return {
-				provider: "none",
-				process: { exit_code: 1, stdout: "", stderr: message },
-				no_issues: false,
-				message,
-			};
+			return this.execution.system_failure(message);
 		}
 	}
 }

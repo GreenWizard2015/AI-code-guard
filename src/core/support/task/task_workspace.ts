@@ -3,11 +3,7 @@ import { LINT_OUTPUT_DOCUMENT } from "src/core/support/task/constants";
 import { TaskBatchReplacement } from "src/core/support/task/task_batch_replacement";
 import { TaskWorkspaceDocuments } from "src/core/support/task/task_workspace_documents";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import type {
-	TaskBatchReplacementContract,
-	TaskWorkspaceContract,
-	TaskWorkspaceDocumentsContract,
-} from "src/protocols";
+import type { TaskBatchReplacementContract, TaskWorkspaceContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _workspace state_, _document preparation_. **/

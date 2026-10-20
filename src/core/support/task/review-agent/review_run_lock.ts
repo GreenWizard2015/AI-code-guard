@@ -7,7 +7,8 @@ import {
 } from "src/core/support/task/review-agent/constants";
 import { ReviewRunLockRecovery } from "src/core/support/task/review-agent/review_run_lock_recovery";
 import type { IOContract } from "src/io/protocols";
-import type { ProcessSignalContract } from "src/protocols";
+import type { ProcessSignalContract } from "src/analysis_protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _single review process ownership_, _lock lifecycle_. **/
 export class ReviewRunLock {
@@ -15,6 +16,7 @@ export class ReviewRunLock {
 	private readonly owner_tokens: Map<string, string>;
 	private readonly file_io: IOContract;
 	private readonly recovery: ReviewRunLockRecovery;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _staging lock publication_. **/
 	private publish_lock(): boolean {
@@ -27,6 +29,9 @@ export class ReviewRunLock {
 			this.owner_tokens.set(this.path, token);
 			return true;
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			this.file_io.directory_operations.remove_path(staging_path);
 			return false;
 		}
@@ -37,7 +42,7 @@ export class ReviewRunLock {
 		if (!this.file_io.file_paths.path_exists(this.path)) {
 			return this.publish_lock();
 		}
-		if (!this.recovery.recover_stale_lock()) {
+		if (!this.recovery.recover_stale_lock(this.boundary_failures)) {
 			return false;
 		}
 		return this.publish_lock();
@@ -54,6 +59,9 @@ export class ReviewRunLock {
 			}
 			return token;
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return "";
 		}
 	}
@@ -63,27 +71,28 @@ export class ReviewRunLock {
 		this.path = join(resolve(root), AI_CODE_GUARD_DIRECTORY, REVIEW_DIRECTORY, REVIEW_RUN_LOCK_DIRECTORY);
 		this.owner_tokens = new Map<string, string>();
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.recovery = new ReviewRunLockRecovery(this.path, `${this.path}.recovery`, file_io, process_signal);
 	}
 
 	/** Responsibilities: _review lock acquisition_. **/
-	public acquire(): void {
+	public try_acquire(): boolean {
 		this.file_io.directory_operations.create_directory(resolve(this.path, ".."));
 		if (this.recovery.recovery_required()) {
-			if (this.recovery.recovery_is_live()) {
-				throw new Error(`Another architecture review is recovering for this project: ${this.path}`);
+			if (this.recovery.recovery_is_live(this.boundary_failures)) {
+				return false;
 			}
-			if (!this.recovery.recover_stale_lock()) {
-				throw new Error(`Another architecture review is recovering for this project: ${this.path}`);
+			if (!this.recovery.recover_stale_lock(this.boundary_failures)) {
+				return false;
 			}
 		}
 		if (this.publish_lock()) {
-			return;
+			return true;
 		}
 		if (this.acquire_existing_lock()) {
-			return;
+			return true;
 		}
-		throw new Error(`Another architecture review is already running for this project: ${this.path}`);
+		return false;
 	}
 
 	/** Responsibilities: _review lock cleanup_. **/

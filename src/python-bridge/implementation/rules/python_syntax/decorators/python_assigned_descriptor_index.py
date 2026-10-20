@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
+from implementation.references.protocols import (
     PythonAssignedDescriptorIndexContract,
     PythonDecoratorNameContract,
 )

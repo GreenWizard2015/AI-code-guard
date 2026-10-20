@@ -1,12 +1,9 @@
-import type {
-	ObjectLiteralReturnsContract,
-	TypeScriptAstNodeCollection,
-	TypeScriptContractNameLookupContract,
-	ViolationContract,
-} from "src/protocols";
+import type { ObjectLiteralReturnsContract, ContractNameAliasLookupContract } from "src/shared_services_protocols";
+import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
+import type { TypeScriptContractNameLookupContract } from "src/typescript_runtime_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { ContractNameLookupSet } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/contract_name_lookup_set";
-import type { ContractNameAliasLookupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/types";
 import { ObjectCallableExpression } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_callable_expression";
 import ts from "typescript";
 

@@ -2,9 +2,10 @@ import { PlacementSupport } from "src/linting/orchestration/runtime/global-rules
 import { ModuleMemberPlacement } from "src/linting/orchestration/runtime/global-analysis/module_member_placement";
 import { relative } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ProjectSourceScannerContract, ViolationContract } from "src/protocols";
-import type { LintProjectContextContract } from "src/protocols";
-import type { ProjectSourceAnalysisOptions } from "src/types";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
 import { CODING_LINT_PATH_PREFIX } from "src/constants";
 
 /** Responsibilities: _module importer collection_, _placement violation analysis_. **/

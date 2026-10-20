@@ -1,8 +1,9 @@
 import { SourceReferenceIndex } from "src/core/source_reference_index";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { IMPLEMENTATION_RELATION } from "src/constants";
-import type { LintProjectContextContract, SourceReferenceIndexContract, ViolationContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { LintProjectContextContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
 
 /** Responsibilities: _project literal constant matching_, _reuse diagnostics_. **/
 export class LiteralConstantRules {

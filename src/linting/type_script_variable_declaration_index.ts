@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptVariableDeclarationIndexContract } from "src/protocols";
+import type { TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptVariableDeclarationsByName } from "src/linting/types";
 
 /** Responsibilities: _source-file variable declarations_, _name-based declaration lookup_. **/

@@ -1,12 +1,7 @@
 import { TestTargetImports } from "src/linting/orchestration/runtime/test-targets/test_target_imports";
 import { TestTargetRoots } from "src/linting/orchestration/runtime/test-targets/test_target_roots";
 import ts from "typescript";
-import type {
-	TestFileOrganizationContract,
-	TestTargetImportResolverContract,
-	TestTargetRootsContract,
-	TestTargetsContract,
-} from "src/protocols";
+import type { TestFileOrganizationContract, TestTargetImportResolverContract, TestTargetRootsContract, TestTargetsContract } from "src/testing_protocols";
 import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
 import type { AstPythonImport } from "src/types";
 import type { TestTargetImport } from "src/types";

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstNodeIndexContract
-from implementation.references.aliases.protocols import PythonScopedTypeAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonScopedTypeAliasesContract
 from implementation.references.constants import UNBOUNDED_TYPE_NAMES
 from implementation.types import JsonObject
 

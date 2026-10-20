@@ -17,7 +17,7 @@ describe("coding-lint facade resolution", () => {
 	const fixture = new TestFixture();
 
 	test("resolves TypeScript function aliases through index.ts", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			TYPESCRIPT_FACADE_FILES,
 			(root, context) => {
 				const consumer_file = join(root, "consumer.ts");
@@ -45,7 +45,7 @@ describe("coding-lint facade resolution", () => {
 			"leaf.ts": "export const target = 1;\n",
 			"barrel.ts": 'import { target } from "./leaf";\nexport { target };\n',
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const source_files = new Map(
@@ -65,7 +65,7 @@ describe("coding-lint facade resolution", () => {
 	});
 
 	test("resolves TypeScript class composition through index.ts", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			TYPESCRIPT_FACADE_FILES,
 			(root, context, files) => {
 				const consumer_file = join(root, "consumer.ts");
@@ -76,7 +76,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(files),
 						resolver: new ProjectSourcePython(),
 					},
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -99,13 +99,13 @@ describe("coding-lint facade resolution", () => {
 			"c.ts": 'import { D } from "./d"; export class C { private d = new D(); }',
 			"d.ts": "export class D {}",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set(paths), resolver: new ProjectSourcePython() },
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -143,14 +143,14 @@ describe("coding-lint facade resolution", () => {
 				"}",
 			].join("\n"),
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const path = join(root, "composition.ts");
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set([path]), resolver: new ProjectSourcePython() },
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -170,14 +170,14 @@ describe("coding-lint facade resolution", () => {
 		const files = {
 			"classes.ts": "export const First = class Shared {}; export const Second = class Shared {};",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const path = join(root, "classes.ts");
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set([path]), resolver: new ProjectSourcePython() },
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -227,7 +227,7 @@ describe("coding-lint facade resolution", () => {
 			"c.ts": 'import { D } from "./d"; export class C { private d: D; constructor() { this.d = new D(); } }',
 			"d.ts": "export class D {}",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_model = new CompositionModel(
@@ -237,7 +237,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(),
 					},
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -260,7 +260,7 @@ describe("coding-lint facade resolution", () => {
 			].join("\n"),
 			"b.ts": "export class B {}",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_parser = new CompositionModel(
@@ -270,7 +270,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(),
 					},
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -293,7 +293,7 @@ describe("coding-lint facade resolution", () => {
 			"pkg/index.ts": 'export { Service } from "./service";\n',
 			"pkg/service.ts": "export class Service {}\n",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_parser = new CompositionModel(
@@ -303,7 +303,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(),
 					},
-					fixture.typescript_source_files(context),
+					fixture.project_source.typescript_source_files(context),
 					false,
 					context.source_io,
 				);
@@ -322,7 +322,7 @@ describe("coding-lint facade resolution", () => {
 			"first.py": "from .helper import Helper\nclass First(Helper):\n    pass\n",
 			"second.py": "from .helper import Helper\nclass Second(Helper):\n    pass\n",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_model = new CompositionModel(
@@ -361,7 +361,7 @@ describe("coding-lint facade resolution", () => {
 				"    def build(self):\n" +
 				"        return Dependency()\n",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context, paths) => {
 				const composition_model = new CompositionModel(

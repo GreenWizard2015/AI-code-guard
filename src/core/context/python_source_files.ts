@@ -1,4 +1,5 @@
-import type { PythonAstDataContract, LintStageTimerContract, PythonSourceFilesContract } from "src/protocols";
+import type { PythonAstDataContract, PythonSourceFilesContract } from "src/python_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { NormalizedAstFile, PythonSourceAstBatch } from "src/types";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
 

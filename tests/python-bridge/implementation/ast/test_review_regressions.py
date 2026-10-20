@@ -39,6 +39,19 @@ def test_result():
 
         self.assertIn("unasserted-async-completion", issues)
 
+    def test_imported_clock_alias_is_a_test_time_dependency(self) -> None:
+        """Responsibilities: _aliased clock dependency detection_."""
+        source = """import time as clock
+
+def test_reads_the_real_clock():
+    current_time = clock.time()
+    assert current_time >= 0
+"""
+        tree = PythonAstTree(source)
+        issues = [issue["kind"] for issue in tree.coding_issues()]
+
+        self.assertIn("test-time-dependency", issues)
+
     def test_local_shadowing_does_not_hide_async_calls_in_sibling_tests(self) -> None:
         """Responsibilities: _async callable binding isolation_."""
         source = """
@@ -230,6 +243,23 @@ def handle():
         if use_primary:
             raise DomainError(code=1) from error
         raise DomainError(code=1) from error
+"""
+        tree = PythonAstTree(source)
+        issues = [issue["kind"] for issue in tree.coding_issues()]
+
+        self.assertIn("duplicate-error-translation", issues)
+
+    def test_equivalent_error_translations_resolve_local_message_aliases(self) -> None:
+        """Responsibilities: _equivalent translated error detection_."""
+        source = """def load_record():
+    try:
+        read_record()
+    except ValueError:
+        if should_retry():
+            retry_message = "record could not be loaded"
+            raise RuntimeError(retry_message)
+        fallback_message = "record could not be loaded"
+        raise RuntimeError(fallback_message)
 """
         tree = PythonAstTree(source)
         issues = [issue["kind"] for issue in tree.coding_issues()]

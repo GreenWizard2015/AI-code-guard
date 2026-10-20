@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.protocols import (
     PythonTypingAliasesContract,
     PythonUnionAnnotationRulesContract,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 
 
 class UnionRulesOptions:

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptProxyExpressionsContract } from "src/protocols";
+import type { TypeScriptProxyExpressionsContract } from "src/typescript_analysis_protocols";
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 

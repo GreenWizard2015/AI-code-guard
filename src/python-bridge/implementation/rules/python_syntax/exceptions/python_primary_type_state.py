@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from implementation.protocols import (
-    PythonDynamicTypeRulesContract,
-    PythonExceptionAliasStateContract,
-    PythonExceptionRulesContract,
-    PythonTypeFactoryNamesContract,
-)
+from implementation.protocols import PythonTypeFactoryNamesContract
+from implementation.references.protocols import PythonExceptionAliasStateContract
+from implementation.rules.protocols import PythonExceptionRulesContract
+from implementation.rules.protocols import PythonDynamicTypeRulesContract
 
 
 class PythonPrimaryTypeState:

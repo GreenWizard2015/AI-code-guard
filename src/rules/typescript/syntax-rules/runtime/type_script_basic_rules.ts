@@ -3,11 +3,8 @@ import { TypeScriptAliasPair } from "src/rules/typescript/syntax-rules/runtime/t
 import { TypeScriptAssignmentValuePredicates } from "src/parser/internals/type_script_assignment_value_predicates";
 import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
 import { DeclarationPredicates } from "src/parser/analysis/declaration_predicates";
-import type {
-	BooleanExpressionContract,
-	TypeScriptAssignmentValuePredicatesContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { BooleanExpressionContract } from "src/runtime_protocols";
+import type { TypeScriptAssignmentValuePredicatesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { RuleAppender } from "src/types";
 import ts from "typescript";
 

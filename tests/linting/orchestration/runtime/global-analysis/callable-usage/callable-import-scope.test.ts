@@ -7,7 +7,7 @@ describe("callable source import scope", () => {
 	const fixture = new TestFixture();
 
 	test("reuses the prepared Python source record", () => {
-		const actual = fixture.with_in_memory_project(
+		const actual = fixture.project_source.with_in_memory_project(
 			{
 				"pkg/service.py": "class Service:\n    pass\n",
 				"pkg/consumer.py": "from pkg.service import Service\n\nclass Consumer:\n    pass\n",
@@ -28,7 +28,7 @@ describe("callable source import scope", () => {
 	});
 
 	test("reuses the prepared TypeScript source record", () => {
-		const actual = fixture.with_in_memory_project(
+		const actual = fixture.project_source.with_in_memory_project(
 			{
 				"service.ts": "export class Service {}\n",
 				"consumer.ts": 'import { Service } from "./service";\nexport class Consumer {}\n',

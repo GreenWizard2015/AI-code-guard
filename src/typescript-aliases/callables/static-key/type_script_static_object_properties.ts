@@ -2,11 +2,8 @@ import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptStaticObjectValues } from "src/typescript-aliases/callables/type_script_static_object_values";
 import { TypeScriptStaticObjectSources } from "src/typescript-aliases/callables/type_script_static_object_sources";
-import type {
-	TypeScriptStaticObjectArgumentsContract,
-	TypeScriptStaticObjectSourcesContract,
-	TypeScriptStaticObjectValuesContract,
-} from "src/protocols";
+import type { TypeScriptStaticObjectArgumentsContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptStaticObjectSourcesContract, TypeScriptStaticObjectValuesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _object property binding collection_, _nested destructuring resolution_. **/
 export class TypeScriptStaticObjectProperties {

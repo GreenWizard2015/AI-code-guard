@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { StaticExpressionArrayContract } from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
 
 /** Responsibilities: _lazy static array values_, _indexed expression access_. **/
 export class StaticExpressionArray implements StaticExpressionArrayContract {

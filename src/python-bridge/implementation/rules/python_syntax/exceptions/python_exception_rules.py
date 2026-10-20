@@ -4,10 +4,10 @@ import ast
 from implementation.rules.constants import PYTHON_MULTI_EXCEPT_KIND
 
 from implementation.protocols import (
-    PythonExceptionAliasStateContract,
     PythonExceptionBroadnessContract,
     PythonExceptionMultiplicityContract,
 )
+from implementation.references.protocols import PythonExceptionAliasStateContract
 from implementation.types import JsonObject
 
 
@@ -55,10 +55,64 @@ class PythonExceptionRules:
         for node in ast.walk(handler):
             if type(node) is not ast.Raise:
                 continue
-            cause = node.cause
-            if type(cause) is ast.Constant and cause.value is None:
+            if node.cause is None:
+                continue
+            if self._explicit_none_cause(
+                node.cause, self._prior_handler_assignments(handler, node)
+            ):
                 return [{"line": node.lineno - 1, "kind": "error-context-loss"}]
         return []
+
+    def _target_names(self, target: ast.AST) -> list[str]:
+        """Responsibilities: _simple assignment target names_."""
+        if type(target) is ast.Name:
+            return [target.id]
+        if type(target) in (ast.Tuple, ast.List):
+            return [name for item in target.elts for name in self._target_names(item)]
+        return []
+
+    def _record_statement_assignment(
+        self, statement: ast.stmt, assignments: dict[str, ast.AST]
+    ) -> None:
+        """Responsibilities: _handler assignment extraction_."""
+        if type(statement) is ast.Assign:
+            self._record_assignment(statement.targets, statement.value, assignments)
+            return
+        if type(statement) is not ast.AnnAssign or statement.value is None:
+            return
+        self._record_assignment([statement.target], statement.value, assignments)
+
+    def _prior_handler_assignments(
+        self, handler: ast.ExceptHandler, raise_node: ast.Raise
+    ) -> dict[str, ast.AST]:
+        """Responsibilities: _preceding handler-local assignments_."""
+        assignments: dict[str, ast.AST] = {}
+        for statement in handler.body:
+            if (statement.lineno, statement.col_offset) >= (
+                raise_node.lineno,
+                raise_node.col_offset,
+            ):
+                break
+            self._record_statement_assignment(statement, assignments)
+        return assignments
+
+    def _record_assignment(
+        self, targets: list[ast.AST], value: ast.AST, assignments: dict[str, ast.AST]
+    ) -> None:
+        """Responsibilities: _preceding handler value binding_."""
+        for target in targets:
+            for name in self._target_names(target):
+                assignments[name] = value
+
+    def _explicit_none_cause(
+        self, cause: ast.AST, assignments: dict[str, ast.AST]
+    ) -> bool:
+        """Responsibilities: _exception cause lookup_."""
+        seen: set[str] = set()
+        while type(cause) is ast.Name and cause.id not in seen:
+            seen.add(cause.id)
+            cause = assignments.get(cause.id)
+        return type(cause) is ast.Constant and cause.value is None
 
     def _append_broad_issue(
         self, issues: list[JsonObject], handler: ast.ExceptHandler

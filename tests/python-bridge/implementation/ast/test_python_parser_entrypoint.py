@@ -3,10 +3,11 @@ import unittest
 
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
 from implementation.references.call_returns import CallReturns
 from implementation.references.python_reference_collector import PythonReferenceCollector
-from implementation.ast.symbol_nodes import PythonAstSymbolNodes, PythonAstSymbolNodesOptions
+from implementation.ast.callables.symbol_nodes import PythonAstSymbolNodes, PythonAstSymbolNodesOptions
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.type_declarations.python_type_declaration_collector import PythonTypeDeclarationCollector
 from implementation.ast.callables.python_module_instance_collector import PythonModuleInstanceCollector
@@ -57,12 +58,16 @@ class PythonParserMetadataTest(unittest.TestCase):
     def test_parser_emits_metadata(self) -> None:
         """Responsibilities: _parser symbol metadata_."""
         tree = ast.parse(ENTRYPOINT_SOURCE)
+        node_index = self._python_ast_node_index()
+        type_aliases = PythonScopedTypeAliases(tree, node_index)
+        type_aliases.collect()
+        arguments = CallableArguments(node_index, type_aliases)
         symbols = PythonAstSymbolNodes(
             PythonAstSymbolNodesOptions(
                 tree,
-                self._python_ast_node_index(),
-                CallableArguments(self._python_ast_node_index()),
-                PythonTypeDeclarationCollector(tree, CallableArguments(self._python_ast_node_index())),
+                node_index,
+                arguments,
+                PythonTypeDeclarationCollector(tree, arguments),
                 PythonModuleInstanceCollector(tree),
             )
         )
@@ -124,35 +129,24 @@ class Service:
         branch_limit = 10
         within_limit = [
             "def within_limit(value: int) -> int:",
-            *[
-                f"    if value == {index}: value += 1"
-                for index in range(branch_limit)
-            ],
+            *[f"    if value == {index}: value += 1" for index in range(branch_limit)],
             "    return value",
         ]
         over_limit = [
             "def over_limit(value: int) -> int:",
-            *[
-                f"    if value == {index}: value += 1"
-                for index in range(branch_limit + 1)
-            ],
+            *[f"    if value == {index}: value += 1" for index in range(branch_limit + 1)],
             "    return value",
         ]
         nested = [
             "def outer(value: int) -> int:",
             "    def nested(value: int) -> int:",
-            *[
-                f"        if value == {index}: value += 1"
-                for index in range(branch_limit + 1)
-            ],
+            *[f"        if value == {index}: value += 1" for index in range(branch_limit + 1)],
             "        return value",
             "    return nested(value)",
         ]
         tree = PythonAstTree("\n".join([*within_limit, *over_limit, *nested]))
         issues = tree.coding_issues()
-        branch_issues = [
-            issue for issue in issues if issue["kind"] == "callable-branch-count"
-        ]
+        branch_issues = [issue for issue in issues if issue["kind"] == "callable-branch-count"]
 
         self.assertEqual(
             sorted(issue["name"] for issue in branch_issues),

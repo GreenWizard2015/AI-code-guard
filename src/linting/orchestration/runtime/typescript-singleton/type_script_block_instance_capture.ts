@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptBlockInstanceCaptureContract } from "src/protocols";
+import type { TypeScriptBlockInstanceCaptureContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _module state_, _closure ownership_. **/
 export class TypeScriptBlockInstanceCapture implements TypeScriptBlockInstanceCaptureContract {

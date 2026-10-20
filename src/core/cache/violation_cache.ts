@@ -1,5 +1,5 @@
-import type { ViolationContract } from "src/protocols";
-import type { ReportViolation } from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ReportViolation } from "src/reporting_protocols";
 import { ViolationValue } from "src/violation_value";
 
 /** Responsibilities: _cache integrity validation_, _violation snapshot access_. **/

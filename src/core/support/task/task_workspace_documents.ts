@@ -4,8 +4,9 @@ import {
 	LINT_OUTPUT_DOCUMENT_NAME,
 	REPORT_DOCUMENT_NAME,
 } from "src/core/support/task/constants";
-import { AI_CODE_GUARD_DIRECTORY, RULE_LANGUAGE_BY_ID } from "src/constants";
-import type { TaskWorkspaceDocument } from "src/types";
+import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
+import { RULE_LANGUAGE_BY_ID } from "src/constants";
+import type { TaskWorkspaceDocument } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _task document path ownership_, _task document writing_. **/

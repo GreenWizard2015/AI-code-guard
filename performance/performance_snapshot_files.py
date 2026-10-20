@@ -5,7 +5,17 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from performance.constants import PROJECT_ROOT_KEY, PYTHON_FILES_KEY, TYPESCRIPT_FILES_KEY
+from performance.constants import (
+    COLD_MODE,
+    PROJECT_ROOT_KEY,
+    PROJECT_ROOT_LABEL,
+    PYTHON_FILES_KEY,
+    PYTHON_LABEL,
+    STAGE_KEY_PREFIX,
+    TYPESCRIPT_FILES_KEY,
+    TYPESCRIPT_LABEL,
+    WARM_MODE,
+)
 from performance.performance_snapshot import PerformanceSnapshot
 from performance.performance_snapshots import PerformanceSnapshots
 from performance.protocols import (
@@ -21,24 +31,24 @@ class PerformanceSnapshotFiles:
     def _snapshot(self, path: Path) -> PerformanceSnapshotContract:
         """Responsibilities: _single snapshot parsing_."""
         values: dict[str, str] = {}
-        for line in self.file_io.snapshot_input(path).content().splitlines():
+        for line in self.file_io.snapshot_text(path).splitlines():
             self._append_file_value(values, line)
             self._append_stage_value(values, line)
         name_parts = path.name.split("_", 1)
         mode = name_parts[0]
-        if mode != "cold":
-            mode = "warm"
+        if mode != COLD_MODE:
+            mode = WARM_MODE
         return PerformanceSnapshot(values, mode, str(path))
 
     def _append_file_value(self, values: dict[str, str], line: str) -> None:
         """Responsibilities: _snapshot file-count parsing_."""
-        match = re.match(r"^- (TypeScript|Python) files: (\d+)$", line)
+        match = re.match(rf"^- ({TYPESCRIPT_LABEL}|{PYTHON_LABEL}) files: (\d+)$", line)
         if match:
-            if match.group(1) == "Python":
+            if match.group(1) == PYTHON_LABEL:
                 values[PYTHON_FILES_KEY] = match.group(2)
             else:
                 values[TYPESCRIPT_FILES_KEY] = match.group(2)
-        root_match = re.match(r"^- Project root: `(.+)`$", line)
+        root_match = re.match(rf"^- {PROJECT_ROOT_LABEL}: `(.+)`$", line)
         if root_match:
             values[PROJECT_ROOT_KEY] = root_match.group(1)
 
@@ -46,7 +56,7 @@ class PerformanceSnapshotFiles:
         """Responsibilities: _snapshot stage parsing_."""
         match = re.match(r"^\| (.+) \| ([0-9]+(?:\.[0-9]+)?) sec \|$", line)
         if match:
-            values[f"stage:{match.group(1)}"] = match.group(2)
+            values[f"{STAGE_KEY_PREFIX}{match.group(1)}"] = match.group(2)
 
     def __init__(self, paths: list[Path], file_io: PerformanceSnapshotIOContract) -> None:
         """Responsibilities: _performance snapshot file-source initialization_."""

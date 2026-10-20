@@ -1,6 +1,6 @@
 import { LintFileName } from "src/core/context/lint_file_name";
 import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import type { AstLanguage } from "src/types";
 
 /** Responsibilities: _rule language labels_, _diagnostic grouping_. **/

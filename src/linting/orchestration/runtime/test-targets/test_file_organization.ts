@@ -1,7 +1,8 @@
 import { join } from "node:path";
-import { DUNDER_TESTS_DIRECTORY_NAME, TEST_SCOPE_DIRECTORIES } from "src/constants";
+import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
+import { TEST_SCOPE_DIRECTORIES } from "src/constants";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type { TestPathCheckerContract } from "src/core/context/protocols";
+import type { TestPathCheckerContract } from "src/testing_protocols";
 
 /** Responsibilities: _test path validation_, _module path derivation_. **/
 export class TestFileOrganization {

@@ -3,12 +3,11 @@ import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheContext } from "src/core/cache/lint_execution_cache_context";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
 import { LintExecutionCachePreparer } from "src/core/cache/lint_execution_cache_preparer";
-import { TextFileDiscovery } from "src/core/text_file_discovery";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { TextFileDiscovery } from "src/core/text_file_discovery";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { LintInputFiles } from "src/types";
+import type { LintInputFiles } from "src/project_analysis_types";
 import { CompleteCacheFixture } from "tests/bridge/ts/core/complete-cache-fixture";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -42,7 +41,7 @@ describe("complete cache result validation", () => {
 
 	test("uses a prepared markdown snapshot after the source changes", () => {
 		const fixture = new CompleteCacheFixture();
-		const discovery = new TextFileDiscovery(new DiagnosticRule("cyrillic-comment"), fixture.source_io);
+		const discovery = new TextFileDiscovery(fixture.source_io);
 		const preparer = new LintExecutionCachePreparer(
 			{ input_files: () => fixture.inputs },
 			fixture.file_io,

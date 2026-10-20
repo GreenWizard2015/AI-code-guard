@@ -5,6 +5,27 @@ import { NodeFileIO } from "src/io/node_file_io";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("duplicate test setup analysis", () => {
+	test("normalizes annotated and plain Python setup assignments", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"duplicate_setup_test.py": [
+					"import unittest",
+					"class TestQueueSetup(unittest.TestCase):",
+					"    def test_repeats_setup(self) -> None:",
+					"        queue: list[str] = []",
+					"        queue = []",
+					"        self.assertEqual(queue, [])",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "test-duplicate-setup")).toHaveLength(1);
+	});
+
 	test("reports adjacent duplicate setup in Jest and unittest methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _attempt limits_, _termination states_. **/
 export class UnboundedRetryLoop {

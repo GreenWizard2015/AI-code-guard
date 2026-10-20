@@ -35,6 +35,56 @@ class RepeatedArrayAccessSource {
 }
 
 describe("single-item array state analysis", () => {
+	test("detects the first result extracted through array destructuring", () => {
+		const fixture = new TestFixture();
+		const violations = fixture
+			.with_lint_request(
+				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				{
+					"destructured-result.ts": [
+						"interface UserRecord { user_id: string; }",
+						"function find_users(owner_id: string): UserRecord[] {",
+						"  if (owner_id.length > 0) {",
+						"    return [{ user_id: owner_id }];",
+						"  }",
+						"  return [];",
+						"}",
+						'const [user] = find_users("owner-17");',
+						'const [, later_user] = find_users("owner-19");',
+						"console.log(user?.user_id);",
+						"function list_users(): UserRecord[] {",
+						'  return [{ user_id: "first" }, { user_id: "second" }];',
+						"}",
+						"const [first_user] = list_users();",
+					].join("\n"),
+					"destructured-call-alias.ts": [
+						"interface UserRecord { user_id: string; }",
+						"function find_users(owner_id: string): UserRecord[] {",
+						"  if (owner_id.length > 0) {",
+						"    return [{ user_id: owner_id }];",
+						"  }",
+						"  return [];",
+						"}",
+						"const get_users = find_users;",
+						'const [user] = get_users("owner-17");',
+					].join("\n"),
+					"destructured-conditional.ts": [
+						"interface UserRecord { user_id: string; }",
+						"function find_users(owner_id: string): UserRecord[] {",
+						"  return owner_id.length > 0 ? [{ user_id: owner_id }] : [];",
+						"}",
+						'const [user] = find_users("owner-17");',
+						'const indexed_user = find_users("owner-18")[0];',
+					].join("\n"),
+				},
+				(production_lint_configuration, options, mode) =>
+					production_lint_configuration.lint_report(options, mode).report.violations,
+			)
+			.filter((item) => item.rule_id === "single-item-array-state");
+
+		expect(violations).toHaveLength(5);
+	});
+
 	test("detects access through call aliases and direct array return types", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
@@ -141,7 +191,7 @@ describe("single-item array state analysis", () => {
 		const inspector = new TypeScriptArrayStateInspector(expression_names, call_aliases);
 		const matching_accesses = source
 			.access_nodes()
-			.filter((node) => inspector.single_item_access(node, source.source_file)).length;
+			.filter((node) => inspector.single_item_expression(node.expression, source.source_file)).length;
 		const alias_inventory_builds = collect.mock.calls.length;
 		collect.mockRestore();
 		expect({ matching_accesses, alias_inventory_builds }).toEqual({

@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { METHOD_GROUP_SOURCES, METHOD_SOURCES } from "tests/bridge/ts/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -271,6 +271,25 @@ describe("coding-lint method and type rules", () => {
 				),
 			},
 			expected_counts: { "typescript-in-operator": 0 },
+			expected_presence: [],
+			absent_presence: [],
+			included_messages: [],
+			excluded_messages: [],
+			expected_locations: [],
+		},
+		{
+			name: "does not treat a shadowed collection type name as a built-in",
+			files: {
+				"shadowed-map-in.ts": [
+					"type Map = Record<string, string>;",
+					"const options: Map = { name: 'Ada' };",
+					"if ('name' in options) { console.log(options.name); }",
+				].join("\n"),
+				"shadowed-map-constructor.ts": ["class Map {}", "if ('name' in new Map()) { console.log('found'); }"].join(
+					"\n",
+				),
+			},
+			expected_counts: { "typescript-in-operator": 4 },
 			expected_presence: [],
 			absent_presence: [],
 			included_messages: [],

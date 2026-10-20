@@ -4,13 +4,14 @@ import ast
 from dataclasses import dataclass
 from typing import Any
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.protocols import (
-    PythonAstNodeIndexContract,
     PythonCallAliasStateContract,
     PythonCallClassificationContract,
     PythonTemporaryResultAccessContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonCallableConditionContextContract
+from implementation.references.protocols import (
     PythonReferenceAliasesContract,
 )
 from implementation.rules.call_analysis.python_call_alias_state import (
@@ -48,6 +49,7 @@ class CallRulesOptions:
     container_aliases: PythonCallAliasStateContract
     reference_aliases: PythonReferenceAliasesContract
     python_call_classification: PythonCallClassificationContract
+    callable_condition_context: PythonCallableConditionContextContract
 
 
 class CallRules:
@@ -129,16 +131,6 @@ class CallRules:
                     self.module_names.add(imported.asname or imported.name)
         self.container_aliases.observe(node)
 
-    def _configure_reflection(self) -> None:
-        """Responsibilities: _builtin reflection configuration_."""
-        self._reset_reflection()
-        if type(self.tree) is not ast.Module:
-            return
-        nodes = self.node_index.nodes(self.tree)
-        for node in nodes:
-            self._observe_reflection_node(node)
-        self._resolve_reflection_assignments(nodes)
-
     def _reset_reflection(self) -> None:
         """Responsibilities: _reflection state reset_."""
         self.reflection_aliases.clear()
@@ -164,7 +156,7 @@ class CallRules:
         if not name:
             return []
         if name == PYTHON_CALLABLE_FUNCTION:
-            if not self.python_call_classification.contains_callable_condition(node):
+            if not self.callable_condition_context.contains_callable_condition(node):
                 return []
             return [{"line": node.lineno - 1, "kind": CALLABLE_FEATURE_DETECTION_RULE}]
         if name == PYTHON_ISINSTANCE_FUNCTION:
@@ -179,26 +171,36 @@ class CallRules:
         self.python_call_classification: PythonCallClassificationContract = (
             options.python_call_classification
         )
+        self.callable_condition_context: PythonCallableConditionContextContract = (
+            options.callable_condition_context
+        )
         self.temporary_result_access: PythonTemporaryResultAccessContract = (
             PythonTemporaryResultAccess(options.reference_aliases, options.node_index)
         )
-        self.test_time_dependency: PythonTestTimeDependency = PythonTestTimeDependency()
+        self.test_time_dependency: PythonTestTimeDependency = PythonTestTimeDependency(
+            options.reference_aliases
+        )
         self.reference_aliases: PythonReferenceAliasesContract = (
             options.reference_aliases
         )
         self.reflection_aliases: dict[str, str] = {}
         self.module_names: set[str] = {PYTHON_BUILTINS_MODULE}
 
-    def prepare(self) -> None:
-        """Responsibilities: _configuration_."""
-        self.python_call_classification.configure(self.tree, self.node_index)
-        self._configure_reflection()
+    def configure_reflection(self) -> None:
+        """Responsibilities: _reflection alias resolution_."""
+        self._reset_reflection()
+        if type(self.tree) is not ast.Module:
+            return
+        nodes = self.node_index.nodes(self.tree)
+        for node in nodes:
+            self._observe_reflection_node(node)
+        self._resolve_reflection_assignments(nodes)
 
     def assertion_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _bare assertion reporting_."""
         if type(node) is not ast.Assert:
             return []
-        if self.python_call_classification.test_function(node):
+        if self.callable_condition_context.test_function(node):
             return [
                 {"line": node.lineno - 1, "kind": PYTHON_TEST_ASSERTION_RULE},
                 {"line": node.lineno - 1, "kind": PYTHON_ASSERTION_IN_TEST_RULE},
@@ -214,7 +216,7 @@ class CallRules:
         if kind:
             return [{"line": node.lineno - 1, "kind": kind}]
         time_issue = self.test_time_dependency.issue(
-            node, self.python_call_classification
+            node, self.callable_condition_context
         )
         if time_issue:
             return time_issue

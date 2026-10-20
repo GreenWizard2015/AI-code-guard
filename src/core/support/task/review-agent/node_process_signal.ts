@@ -1,4 +1,4 @@
-import type { ProcessSignalContract } from "src/protocols";
+import type { ProcessSignalContract } from "src/analysis_protocols";
 
 /** Responsibilities: _process liveness_, _agent process-group termination_. **/
 export class NodeProcessSignal implements ProcessSignalContract {

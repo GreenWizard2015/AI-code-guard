@@ -3,7 +3,7 @@ import { ProjectPathRelation } from "src/core/support/project_path_relation";
 import { MODULE_DECLARATION_FILES } from "src/rules/constants";
 import { IGNORED_DIRECTORIES } from "src/rules/constants";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";
-import type { DirectoryFileSet } from "src/types";
+import type { DirectoryFileSet } from "src/project_analysis_types";
 import type { FileEntryContract, IOContract } from "src/io/protocols";
 
 /** Responsibilities: _directory file inventory_, _directory nesting inspection_. **/

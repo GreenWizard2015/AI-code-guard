@@ -148,7 +148,7 @@ describe("in-memory project source snapshots", () => {
 		let mapped_bases: readonly string[] = [];
 		let expected_base = "";
 		const fixture = new TestFixture();
-		fixture.with_in_memory_project(
+		fixture.project_source.with_in_memory_project(
 			{
 				"tsconfig.json": '{"compilerOptions":{"baseUrl":".","paths":{"@domain/*":["src/domain/*"]}}}',
 				"src/caller.ts": 'import { Model } from "@domain/model";',
@@ -168,7 +168,7 @@ describe("in-memory project source snapshots", () => {
 	test("uses a supplied path configuration override in project module resolution", () => {
 		let target_file = "";
 		const fixture = new TestFixture();
-		fixture.with_in_memory_project(
+		fixture.project_source.with_in_memory_project(
 			{
 				"tsconfig.json": '{"compilerOptions":{"baseUrl":".","paths":{"@target":["src/first.ts"]}}}',
 				"src/caller.ts": 'import { execute } from "@target"; execute();',
@@ -177,7 +177,7 @@ describe("in-memory project source snapshots", () => {
 			},
 			(root, context) => {
 				const caller_file = `${root}/src/caller.ts`;
-				const source_files = fixture.typescript_source_files(context);
+				const source_files = fixture.project_source.typescript_source_files(context);
 				const module_exports = new TypeScriptModuleExports(root, source_files, false, context.source_io);
 				target_file = module_exports.module_symbol(caller_file, "@target");
 			},

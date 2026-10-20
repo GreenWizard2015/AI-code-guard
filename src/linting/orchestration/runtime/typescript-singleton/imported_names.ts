@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ImportedNamesContract } from "src/protocols";
+import type { ImportedNamesContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _imported name collection_, _import binding membership_. **/
 export class ImportedNames implements ImportedNamesContract {

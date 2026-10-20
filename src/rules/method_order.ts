@@ -1,4 +1,5 @@
-import type { MethodOrderContract, ViolationContract } from "src/protocols";
+import type { MethodOrderContract } from "src/analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RuleParameters } from "src/types";
 import type { AstCallableNodeContract, AstClassNode } from "src/types";

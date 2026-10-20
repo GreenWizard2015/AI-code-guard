@@ -36,6 +36,23 @@ describe("coding-lint module constants", () => {
 		}).toEqual({ typescript: 1, python: 1 });
 	});
 
+	test("accepts focused type and protocol modules", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"analysis_types.ts": "export type AnalysisOptions = { enabled: boolean };",
+				"cache_protocols.ts": "export interface CacheContract { read(key: string): string; }",
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.filter((item) => ["module-types-separation", "module-protocols-separation"].includes(item.rule_id)),
+		).toEqual([]);
+	});
+
 	test("reports module declarations without a size threshold", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
@@ -62,7 +79,7 @@ describe("coding-lint module constants", () => {
 		});
 	});
 
-	test("allows unlimited constants file size but rejects non-constant declarations", () => {
+	test("applies the maximum file size to constants modules", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
@@ -90,7 +107,7 @@ describe("coding-lint module constants", () => {
 				}
 				return item.rule_id === "file-max-size";
 			}),
-		}).toEqual({ typescript_content: 3, python_content: 3, typescript_max: false });
+		}).toEqual({ typescript_content: 3, python_content: 3, typescript_max: true });
 	});
 
 	test("suggests the sibling constants file", () => {

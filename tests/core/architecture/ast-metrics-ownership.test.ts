@@ -5,7 +5,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import "src/lint_stage_timer";
 import { MixCollection } from "src/rules/mix_collection";
 import { TestFixture } from "tests/core/test-fixture";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { ClassReporting } from "src/core/support/source-analysis/class_reporting";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";

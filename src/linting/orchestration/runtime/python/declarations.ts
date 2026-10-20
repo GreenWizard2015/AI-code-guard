@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstCallableNodeContract, AstPythonImport } from "src/types";
 

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { TypeScriptOverloadSiblingNames } from "src/rules/typescript/syntax-rules/callables/type_script_overload_sibling_names";
-import type { TypeScriptOverloadSiblingNamesContract } from "src/protocols";
+import type { TypeScriptOverloadSiblingNamesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _overload rules_, _signature checks_. **/
 export class TypeScriptOverloadRules {

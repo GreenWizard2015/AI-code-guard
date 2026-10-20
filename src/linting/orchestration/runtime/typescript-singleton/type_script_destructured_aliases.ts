@@ -1,7 +1,8 @@
 import { TypeScriptNamespaceAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_namespace_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import ts from "typescript";
-import type { TypeScriptDestructuredAliasesContract, TypeScriptNamespaceAliasesContract } from "src/protocols";
+import type { TypeScriptDestructuredAliasesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptNamespaceAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _object binding alias resolution_, _class alias registration_. **/
 export class TypeScriptDestructuredAliases implements TypeScriptDestructuredAliasesContract {

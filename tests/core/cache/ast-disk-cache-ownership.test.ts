@@ -3,8 +3,8 @@ import { describe, expect, test } from "@jest/globals";
 import { AstModel } from "src/core/ast_model";
 import { AstDiskCache } from "src/core/cache/ast_disk_cache";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import type { ProjectAnalysisIdentityContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { LintSourceRecord } from "src/source_types";
 
 /** Responsibilities: _cache analyzer identity_, _cache project scope identity_. **/
 class StaticProjectIdentity implements ProjectAnalysisIdentityContract {

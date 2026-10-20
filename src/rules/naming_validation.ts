@@ -6,7 +6,8 @@ import {
 } from "src/rules/constants";
 import type { ViolationContent } from "src/model/types/types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { NamingValidationContract, ViolationContract } from "src/protocols";
+import type { NamingValidationContract } from "src/analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { NamedSymbol } from "src/types";
 import { MODULE_CONSTANT_KIND, MODULE_TYPE_KIND, TYPE_ALIAS_KIND } from "src/constants";
 import { RULE_IDS } from "src/constants";

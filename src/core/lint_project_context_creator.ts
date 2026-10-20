@@ -1,24 +1,24 @@
 import { extname, resolve } from "node:path";
-import ts from "typescript";
-import { ContextSourceRecordSet } from "src/core/context/context_source_record_set";
-import { TypeScriptSourceFiles } from "src/core/context/type_script_source_files";
-import { PythonSourceFiles } from "src/core/context/python_source_files";
-import type {
-	LintProjectContextContract,
-	LintStageTimerContract,
-	PythonAstDataContract,
-	PythonSourceFilesContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
-import { LintProjectContextStore } from "src/core/lint_project_context_store";
-import type { LintSourceRecord, NormalizedAstFile, PythonSourceAstBatch } from "src/types";
-import type { ProjectContextAssemblyOptions, PythonSourceBatchPreparation } from "src/core/types";
-import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { IGNORED_DIRS, TYPESCRIPT_CONFIG_FILE } from "src/constants";
+import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
+import { ContextSourceRecordSet } from "src/core/context/context_source_record_set";
+import { PythonSourceFiles } from "src/core/context/python_source_files";
+import { TypeScriptSourceFiles } from "src/core/context/type_script_source_files";
+import { LintProjectContextStore } from "src/core/lint_project_context_store";
+import type {
+	ProjectContextAssemblyOptions,
+	ProjectTextSnapshotOptions,
+	PythonSourceBatchPreparation,
+} from "src/core/types";
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import type { IOContract } from "src/io/protocols";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
+import type { PythonAstDataContract, PythonSourceFilesContract } from "src/python_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { NormalizedAstFile, PythonSourceAstBatch } from "src/types";
+import type ts from "typescript";
 
 /** Responsibilities: _source language preparation_, _AST integration_, _project context assembly_. **/
 export class LintProjectContextCreator {
@@ -134,19 +134,14 @@ export class LintProjectContextCreator {
 	}
 
 	/** Responsibilities: _complete project text snapshot_. **/
-	private project_texts(
-		repo_root: string,
-		files: string[],
-		provided_texts: ReadonlyMap<string, string>,
-		stage_timer: LintStageTimerContract,
-		virtual_project: boolean,
-	): Map<string, string> {
+	private project_texts(options: ProjectTextSnapshotOptions): Map<string, string> {
+		const { repo_root, files, provided_texts, stage_timer, virtual_project, source_io } = options;
 		return stage_timer.measure("startup.project-context.read-files", () => {
 			const complete_texts = new Map(provided_texts);
 			const config_file = resolve(repo_root, TYPESCRIPT_CONFIG_FILE);
 			if (!complete_texts.has(config_file)) {
-				if (this.source_io.source_available(config_file)) {
-					complete_texts.set(config_file, this.source_io.source_text(config_file));
+				if (source_io.source_available(config_file)) {
+					complete_texts.set(config_file, source_io.source_text(config_file));
 				}
 			}
 			for (const file of files) {
@@ -156,10 +151,10 @@ export class LintProjectContextCreator {
 				if (virtual_project && provided_texts.size > 0) {
 					throw new Error(`Virtual source snapshot is incomplete: ${file}`);
 				}
-				complete_texts.set(file, this.source_io.source_text(file));
+				complete_texts.set(file, source_io.source_text(file));
 			}
 			for (const path of this.runtime_source_paths(repo_root, complete_texts, provided_texts, virtual_project)) {
-				complete_texts.set(path, this.source_io.source_text(path));
+				complete_texts.set(path, source_io.source_text(path));
 			}
 			return complete_texts;
 		});
@@ -200,7 +195,7 @@ export class LintProjectContextCreator {
 		if (provided_texts.size === 0) {
 			return true;
 		}
-		return this.file_io.directory_entries.path_kind(repo_root) === DIRECTORY_ENTRY_DIRECTORY;
+		return this.file_io.directory_entries.path_is_directory(repo_root);
 	}
 
 	/** Responsibilities: _Python AST data ownership_, _project source identity_. **/
@@ -224,7 +219,18 @@ export class LintProjectContextCreator {
 		provided_texts: ReadonlyMap<string, string>,
 		virtual_project = false,
 	): LintProjectContextContract {
-		const texts = this.project_texts(repo_root, files, provided_texts, stage_timer, virtual_project);
+		let read_source_io = this.source_io;
+		if (virtual_project && provided_texts.size > 0) {
+			read_source_io = new InMemoryProjectSourceIO(provided_texts);
+		}
+		const texts = this.project_texts({
+			repo_root,
+			files,
+			provided_texts,
+			stage_timer,
+			virtual_project,
+			source_io: read_source_io,
+		});
 		const source_io = new InMemoryProjectSourceIO(texts);
 		const python_batch = this.python_source_batch(files, texts, repo_root, stage_timer, virtual_project);
 		const source_files = this.timed_source_files(files, texts, stage_timer);

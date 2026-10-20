@@ -7,7 +7,8 @@ import type { NormalizedAstFile } from "src/types";
 import type { TypeScriptScannerOptions } from "src/model/types/types";
 import type { TypeScriptScannerState } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import { TypeScriptScriptRuleSet } from "src/linting/orchestration/runtime/type_script_script_rule_set";
-import type { TypeScriptScriptRuleServicesContract, ViolationContract } from "src/protocols";
+import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _import binding resolution_, _scanner violation collection_. **/
 export class TypeScriptScannerAssembly {

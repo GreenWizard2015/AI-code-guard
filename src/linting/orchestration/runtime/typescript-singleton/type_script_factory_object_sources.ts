@@ -1,5 +1,6 @@
 import ts from "typescript";
-import type { ObjectSourceVisitor, TypeScriptFactoryObjectSourcesContract } from "src/protocols";
+import type { ObjectSourceVisitor } from "src/analysis_types";
+import type { TypeScriptFactoryObjectSourcesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 
 /** Responsibilities: _object source registration_, _source alias traversal_. **/

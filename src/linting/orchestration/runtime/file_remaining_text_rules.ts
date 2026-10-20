@@ -1,7 +1,7 @@
 import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ReexportsContract } from "src/linting/orchestration/runtime/protocols";
-import type { RuleContract } from "src/protocols";
+import type { RuleContract } from "src/reporting_protocols";
 import type { RemainingViolationOptions } from "src/model/types/types";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 

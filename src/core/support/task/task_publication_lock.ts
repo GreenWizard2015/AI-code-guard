@@ -15,8 +15,7 @@ import type {
 	TaskPublicationRecoveryContract,
 } from "src/core/support/task/types";
 import { TEST_SCOPE_DIRECTORIES } from "src/constants";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
-import type { TaskWorkspaceDocument } from "src/types";
+import type { TaskWorkspaceDocument } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _task publication ownership_, _abandoned transaction recovery_. **/
@@ -44,7 +43,7 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 	/** Responsibilities: _publication owner state_. **/
 	private owner_state(): TaskPublicationOwnerContract {
 		const path = join(this.lock_path, "owner");
-		if (this.file_io.directory_entries.path_kind(path) !== "file") {
+		if (!this.file_io.directory_entries.path_is_file(path)) {
 			return new TaskPublicationOwner(0, "", "");
 		}
 		const [pid_text, transaction = "", token = ""] = this.file_io.file_content.file_text(path).split("\n");
@@ -138,7 +137,7 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 			return true;
 		} catch (error) {
 			if (this.file_io.file_paths.path_exists(this.lock_path)) {
-				if (this.file_io.directory_entries.path_kind(this.lock_path) === DIRECTORY_ENTRY_DIRECTORY) {
+			if (this.file_io.directory_entries.path_is_directory(this.lock_path)) {
 					return false;
 				}
 			}

@@ -1,15 +1,18 @@
 import ts from "typescript";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
-import type { StatementPredicate } from "src/protocols";
+import type { StatementPredicate } from "src/runtime_types";
 import type { RuleContextData } from "src/types";
 import { SINGLE_ARRAY_STATE } from "src/parser/internals/constants";
-import type { ArrayStateInspectorContract } from "src/protocols";
-import type { TypeScriptArrayStateRulesContract } from "src/protocols";
+import { TypeScriptArrayStateInspector } from "src/rules/typescript/syntax-rules/types/type_script_array_state_inspector";
+import { TypeScriptCallAliases } from "src/rules/typescript/syntax-rules/callables/type_script_call_aliases";
+import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
+import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
+import type { TypeScriptArrayStateRulesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _zero-index state diagnostics_, _guard-aware array access classification_. **/
 export class TypeScriptArrayStateRules implements TypeScriptArrayStateRulesContract {
 	private readonly array_rule_id = SINGLE_ARRAY_STATE;
-	private readonly inspector: ArrayStateInspectorContract;
+	private readonly inspector: TypeScriptArrayStateInspector;
 	private readonly strict_undefined_operators: Set<ts.SyntaxKind>;
 
 	/** Responsibilities: _classification expression wrapper_. **/
@@ -197,18 +200,24 @@ export class TypeScriptArrayStateRules implements TypeScriptArrayStateRulesContr
 
 	/** Responsibilities: _reporting node accesses array_. **/
 	/** Responsibilities: _array state composition_. **/
-	public constructor(inspector: ArrayStateInspectorContract) {
+	public constructor() {
 		this.strict_undefined_operators = new Set([
 			ts.SyntaxKind.ExclamationEqualsEqualsToken,
 			ts.SyntaxKind.EqualsEqualsEqualsToken,
 		]);
-		this.inspector = inspector;
+		const expression_names = new TypeScriptExpressionNames();
+		const binding_aliases = new TypeScriptBindingAliases(expression_names);
+		const call_aliases = new TypeScriptCallAliases(expression_names, binding_aliases);
+		this.inspector = new TypeScriptArrayStateInspector(expression_names, call_aliases);
 	}
 
 	/** Responsibilities: _array access detection_. **/
 	public array_access(node: ts.Node, source_file: ts.SourceFile): boolean {
 		if (ts.isElementAccessExpression(node)) {
-			return this.inspector.single_item_access(node, source_file);
+			return this.inspector.single_item_expression(node.expression, source_file);
+		}
+		if (ts.isVariableDeclaration(node) && ts.isArrayBindingPattern(node.name)) {
+			return this.inspector.single_item_binding(node.name, source_file);
 		}
 		if (ts.isCallExpression(node)) {
 			return this.inspector.single_item_method(node, source_file);

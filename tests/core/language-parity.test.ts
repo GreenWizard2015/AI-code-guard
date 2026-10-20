@@ -127,9 +127,11 @@ describe("coding lint language parity", () => {
 		const lint_configuration = new LintRunConfiguration(new SourceText(), new NodeFileIO());
 		const cases = PROJECT_CASES.slice(0, 4);
 		const results = cases.map((item) => {
+			const typescript_files = Object.fromEntries(item.typescript);
+			const python_files = Object.fromEntries(item.python);
 			const violations = fixture.with_shared_lint_request(
 				lint_configuration,
-				{ ...item.typescript, ...item.python },
+				{ ...typescript_files, ...python_files },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			);
@@ -146,9 +148,11 @@ describe("coding lint language parity", () => {
 		const lint_configuration = new LintRunConfiguration(new SourceText(), new NodeFileIO());
 		const cases = PROJECT_CASES.slice(4);
 		const results = cases.map((item) => {
+			const typescript_files = Object.fromEntries(item.typescript);
+			const python_files = Object.fromEntries(item.python);
 			const violations = fixture.with_shared_lint_request(
 				lint_configuration,
-				{ ...item.typescript, ...item.python },
+				{ ...typescript_files, ...python_files },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			);

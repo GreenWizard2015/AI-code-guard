@@ -1,7 +1,7 @@
-import { SharedParameterOrder } from "src/core/support/shared_parameter_order";
+import { MIN_ARGUMENT_USES, MIN_SHARED_METHODS } from "src/constants";
 import { SharedParameterCandidateExplorer } from "src/metrics/shared_parameter_candidate_explorer";
 import { SharedParameterNeighborIndex } from "src/metrics/shared_parameter_neighbor_index";
-import { MIN_ARGUMENT_USES, MIN_SHARED_METHODS } from "src/constants";
+import { SharedParameterOrder } from "src/metrics/shared_parameter_order";
 import type {
 	AnalyzedCallable,
 	AnalyzedParameter,
@@ -14,8 +14,8 @@ import type {
 	SharedParameterOrderContract,
 } from "src/metrics/types";
 
-import type { MutableParameterNode } from "src/metrics/types";
 import { SHARED_PARAMETER_REFERENCE_KIND } from "src/metrics/constants";
+import type { MutableParameterNode } from "src/metrics/types";
 
 /** Responsibilities: _callable parameter grouping_, _shared candidate reduction_. **/
 export class SharedParameterAnalyzer {

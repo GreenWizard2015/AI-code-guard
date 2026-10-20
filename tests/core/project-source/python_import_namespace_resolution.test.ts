@@ -18,6 +18,33 @@ describe("Python namespace import resolution", () => {
 		).toBe("/project/src/mcp_proxy/constants.py");
 	});
 
+	test("discovers an implicit namespace root beside top-level Python modules", () => {
+		const resolver = new ProjectSourcePython();
+		const files = new Set([
+			"/project/src/python-bridge/python_bridge_entrypoint.py",
+			"/project/src/python-bridge/implementation/protocols.py",
+			"/project/src/python-bridge/implementation/ast/tree.py",
+		]);
+
+		expect(resolver.python_import_path("/project", "/project/main.py", "implementation.ast.tree", files)).toBe(
+			"/project/src/python-bridge/implementation/ast/tree.py",
+		);
+	});
+
+	test("discovers a namespace root across a directory without direct Python files", () => {
+		const resolver = new ProjectSourcePython();
+		const files = new Set([
+			"/project/src/python-bridge/python_bridge_entrypoint.py",
+			"/project/src/python-bridge/implementation/ast/tree.py",
+			"/project/src/python-bridge/implementation/ast/callables/dependencies.py",
+			"/project/main.py",
+		]);
+
+		expect(resolver.python_import_path("/project", "/project/main.py", "implementation.ast.tree", files)).toBe(
+			"/project/src/python-bridge/implementation/ast/tree.py",
+		);
+	});
+
 	test("rejects unrelated nested directories as import roots", () => {
 		const resolver = new ProjectSourcePython();
 		const files = new Set(["/project/vendor/email/message.py", "/project/main.py"]);

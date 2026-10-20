@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Sequence
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.protocols import (
     PythonCacheDiagnosticsContract,
     PythonCacheNodeExecutionContract,

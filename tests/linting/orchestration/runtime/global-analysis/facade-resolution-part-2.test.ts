@@ -14,7 +14,7 @@ describe("coding-lint facade resolution part two", () => {
 	const fixture = new TestFixture();
 
 	test("resolves TypeScript type exports through index.ts", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			TYPESCRIPT_FACADE_FILES,
 			(root, context) => {
 				const source_files = new Map(
@@ -38,7 +38,7 @@ describe("coding-lint facade resolution part two", () => {
 			"service.ts": "export class Service {}\n",
 			"consumer.ts": 'import { Service } from "./service.js";\nexport const value = new Service();\n',
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const consumer = context.source_record(join(root, "consumer.ts"));
@@ -68,7 +68,7 @@ describe("coding-lint facade resolution part two", () => {
 			"b.ts": 'export * from "./a";\n',
 			"c.ts": "export class Service {}\n",
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const source_files = new Map(
@@ -97,7 +97,7 @@ describe("coding-lint facade resolution part two", () => {
 				"export const service = new Service();",
 			].join("\n"),
 		};
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) => {
 				const source_files = new Map(
@@ -121,7 +121,7 @@ describe("coding-lint facade resolution part two", () => {
 	});
 
 	test("resolves Python classes through __init__.py", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"pkg/__init__.py": "from .service import Service\n",
 				"pkg/service.py": "class Service:\n    pass\n",
@@ -149,7 +149,7 @@ describe("coding-lint facade resolution part two", () => {
 	});
 
 	test("resolves Python package exports from the loaded source snapshot", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"pkg/__init__.py": "from .service import Service\n",
 				"pkg/service.py": "class Service:\n    pass\n",
@@ -176,7 +176,7 @@ describe("coding-lint facade resolution part two", () => {
 	});
 
 	test("resolves Python classes through project-absolute imports", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"pkg/service.py": "class Service:\n    pass\n",
 				"pkg/consumer.py":
@@ -203,7 +203,7 @@ describe("coding-lint facade resolution part two", () => {
 	});
 
 	test("does not recurse forever through a package self-export", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"pkg/__init__.py": "from . import worker\n",
 				"pkg/worker.py": "class Worker:\n    pass\n",

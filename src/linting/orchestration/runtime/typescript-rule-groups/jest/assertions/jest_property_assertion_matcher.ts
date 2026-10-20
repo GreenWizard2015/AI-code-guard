@@ -1,11 +1,8 @@
 import ts from "typescript";
-import { JEST_DEFINED, JEST_PROPERTY } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JEST_DEFINED, JEST_PROPERTY } from "src/constants";
 import { JestExpressionMatch } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_expression_match";
-import type {
-	JestExpressionMatchContract,
-	JestMatcherAccessContract,
-	TypeScriptExpressionAliasesContract,
-} from "src/protocols";
+import type { JestExpressionMatchContract, JestMatcherAccessContract } from "src/testing_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _Jest property assertions matching_, _received values resolution_. **/
 export class JestPropertyAssertionMatcher {

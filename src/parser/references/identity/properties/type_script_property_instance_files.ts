@@ -2,7 +2,7 @@ import ts from "typescript";
 import type { TypeScriptPropertyInstanceFilesContract } from "src/model/protocols";
 import { DeclarationPredicates } from "src/parser/analysis/declaration_predicates";
 import type { TypeScriptPropertySide } from "src/types";
-import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
 
 /** Responsibilities: _property source file collection_, _unique owner file resolution_. **/
 export class TypeScriptPropertyInstanceFiles implements TypeScriptPropertyInstanceFilesContract {

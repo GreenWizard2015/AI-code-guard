@@ -1,6 +1,6 @@
 import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import { UnusedCode } from "src/core/unused_code";
+import { UnusedCode } from "src/core/project-source/unused_code";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
@@ -174,7 +174,7 @@ describe("coding lint project context", () => {
 	test("unused-file results are equivalent with the shared context", () => {
 		const fixture = new TestFixture();
 		const unused_code = new UnusedCode();
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"tools/coding-lint/index.ts": "export { value } from './dependency';\n",
 				"tools/coding-lint/dependency.ts": "export const value = 1;\n",

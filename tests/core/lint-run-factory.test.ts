@@ -6,7 +6,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { resolve } from "node:path";
 import type { LintReportOptions } from "src/core/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _in-memory lint project ownership_, _configuration lifecycle_. **/
 class InMemoryLintProject {

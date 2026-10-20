@@ -1,11 +1,8 @@
 import { NamingValidation } from "src/rules/naming_validation";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type {
-	LeadingUnderscoreNamingContract,
-	NamingSupportContract,
-	NamingValidationContract,
-	ViolationContract,
-} from "src/protocols";
+import type { LeadingUnderscoreNamingContract } from "src/shared_services_protocols";
+import type { NamingSupportContract, NamingValidationContract } from "src/analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstClassNode, NamedLine, NamedSymbol } from "src/types";
 import { NUMERIC_NAME_PATTERN } from "src/rules/constants";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";

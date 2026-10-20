@@ -1,5 +1,5 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { RuleContract, ViolationContract } from "src/protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { RuleParameters } from "src/types";
 import type { CallableLocation, SharedCallableKind, SharedParameterCandidate } from "src/metrics/types";
 import { RULE_IDS } from "src/constants";

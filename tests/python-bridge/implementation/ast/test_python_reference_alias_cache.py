@@ -43,3 +43,16 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
             [[{"name": "callback", "target": "getattr"}], [{"name": "callback", "target": "setattr"}]],
         )
 
+    def test_collects_annotated_type_alias_targets(self) -> None:
+        """Responsibilities: _generic alias target resolution_."""
+        tree = PythonAstTree(
+            "from typing import TypeAlias as Alias\n"
+            "from collections import UserList\n"
+            "EntryList: Alias = UserList[str]\n"
+        )
+        ast_data = tree.ast()
+
+        self.assertIn(
+            {"name": "EntryList", "target": "UserList[str]"},
+            ast_data["reference_aliases"],
+        )

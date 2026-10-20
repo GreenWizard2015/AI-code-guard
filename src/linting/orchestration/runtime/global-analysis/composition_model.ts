@@ -1,6 +1,7 @@
 import { PythonCompositionImports } from "src/linting/orchestration/runtime/composition/python_composition_imports";
 import type { PythonCompositionImportsContract } from "src/linting/orchestration/runtime/protocols";
-import type { LintSourceRecord, NormalizedAstFile, PythonProjectImportContext } from "src/types";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
 import { ClassDependencyMap } from "src/linting/orchestration/runtime/global-analysis/class_dependency_map";
 import { TypeScriptCompositionModel } from "src/linting/orchestration/runtime/global-analysis/type_script_composition_model";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
@@ -8,7 +9,7 @@ import type { AstPythonImport } from "src/types";
 import type { ClassGraph, CodeClass, CompositionResult } from "src/model/types/types";
 import { resolve } from "node:path";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import type ts from "typescript";
 
 /** Responsibilities: _TypeScript composition parsing_, _Python composition parsing_. **/

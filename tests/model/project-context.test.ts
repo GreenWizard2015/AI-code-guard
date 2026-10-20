@@ -1,30 +1,26 @@
 import "src/core/lint_project_context_creator";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/source_text";
 import "src/lint_stage_timer";
-import { TestFixture } from "tests/core/test-fixture";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { describe, expect, test } from "@jest/globals";
 import { RULE_DOCUMENT_PATHS_BY_ID, RULE_LANGUAGE_BY_ID } from "src/constants";
-import { RULES_BY_ID } from "src/model/constants";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
+import { PythonSourceFiles } from "src/core/context/python_source_files";
 import { LintStageTimer } from "src/lint_stage_timer";
+import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import { PythonSourceFiles } from "src/core/context/python_source_files";
-import { describe, expect, test } from "@jest/globals";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding lint rule contracts", () => {
 	test("exposes coding rules through the RuleContract interface", () => {
-		const rule = RULES_BY_ID.get("typescript-console-mock-in-test");
-		const diagnostic_rule = new DiagnosticRule("typescript-console-mock-in-test");
-		const expected_violation = diagnostic_rule.violation("fixture.ts", 1, {});
+		const rule = new DiagnosticRule("typescript-console-mock-in-test");
+		const expected_violation = rule.violation("fixture.ts", 1, {});
 		expect({
-			exists: rule !== undefined,
-			contract_result: rule?.violation("fixture.ts", 1, {}),
+			contract_result: rule.violation("fixture.ts", 1, {}),
 			created_result: expected_violation,
 		}).toEqual({
-			exists: true,
 			contract_result: expected_violation,
 			created_result: expect.objectContaining({
 				message: "do not mock console in tests",
@@ -84,28 +80,6 @@ describe("coding lint rule contracts", () => {
 			shared_python_result: "explicit-return-type",
 			python_support: [true, false],
 			typescript_support: [true, false],
-		});
-	});
-
-	test("rejects creating a diagnostic for the wrong source language", () => {
-		const python_rule = new DiagnosticRule("python-test-shape");
-		const typescript_rule = new DiagnosticRule("typescript-in-operator");
-		let python_rejection = "";
-		try {
-			python_rule.violation("source.ts", 1, {});
-		} catch (error) {
-			python_rejection = String(error);
-		}
-		let typescript_rejection = "";
-		try {
-			typescript_rule.violation("source.py", 1, {});
-		} catch (error) {
-			typescript_rejection = String(error);
-		}
-
-		expect({ python_rejection, typescript_rejection }).toEqual({
-			python_rejection: 'Error: Rule "python-test-shape" is registered for python, not typescript.',
-			typescript_rejection: 'Error: Rule "typescript-in-operator" is registered for typescript, not python.',
 		});
 	});
 

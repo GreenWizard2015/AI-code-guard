@@ -1,9 +1,11 @@
+import { HOOK_AGENT_OUTPUT, HOOK_AGENT_START } from "src/core/support/task/review-agent/constants";
 import type {
 	ReviewAgentCatalogContract,
 	ReviewAgentDebugLogContract,
 	ReviewAgentExecutionContract,
 	ReviewAgentHooksContract,
 } from "src/core/support/task/review-agent/protocols";
+import type { ReviewAgentExecutionOptions } from "src/core/support/task/review-agent/types";
 import type {
 	ReviewAgentExecutionResult,
 	ReviewAgentHookEventContract,
@@ -13,8 +15,6 @@ import type {
 	ReviewAgentRequest,
 	ReviewAgentSelection,
 } from "src/types";
-import type { ReviewAgentExecutionOptions } from "src/core/support/task/review-agent/types";
-import { HOOK_AGENT_OUTPUT, HOOK_AGENT_START } from "src/core/support/task/review-agent/constants";
 
 /** Responsibilities: _review-agent lifecycle events_, _review-agent process execution_. **/
 export class ReviewAgentExecution implements ReviewAgentExecutionContract {
@@ -26,6 +26,17 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 	private readonly hooks: ReviewAgentHooksContract;
 	private readonly review_stage: string;
 	private readonly review_prefix: string;
+
+	/** Responsibilities: _review-hook denial result_. **/
+	private denied_execution(reason: string, process: ReviewAgentProcessResult): ReviewAgentExecutionResult {
+		const message = `Error: ${reason}`;
+		return {
+			provider: "none",
+			process: { exit_code: 1, stdout: process.stdout, stderr: reason },
+			no_issues: false,
+			message,
+		};
+	}
 
 	/** Responsibilities: _review-agent lifecycle event construction_. **/
 	private event(
@@ -59,10 +70,16 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 		phase: ReviewAgentPhase,
 	): Promise<ReviewAgentExecutionResult> {
 		const empty_process = { exit_code: 0, stdout: "", stderr: "" };
-		this.hooks.run(this.event(HOOK_AGENT_START, selection, empty_process, phase));
+		const start_decision = this.hooks.run(this.event(HOOK_AGENT_START, selection, empty_process, phase));
+		if (!start_decision.allowed) {
+			return this.denied_execution(start_decision.reason, empty_process);
+		}
 		const execution = await this.agent_catalog.run_async(selection, { run_request: request });
 		this.debug_log.append(dialogue, request, execution);
-		this.hooks.run(this.event(HOOK_AGENT_OUTPUT, selection, execution.process, phase));
+		const output_decision = this.hooks.run(this.event(HOOK_AGENT_OUTPUT, selection, execution.process, phase));
+		if (!output_decision.allowed) {
+			return this.denied_execution(output_decision.reason, execution.process);
+		}
 		return execution;
 	}
 
@@ -76,6 +93,16 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 		this.debug_log = options.debug_log;
 		this.agent_catalog = options.agent_catalog;
 		this.hooks = options.hooks;
+	}
+
+	/** Responsibilities: _system failure result construction_. **/
+	public system_failure(message: string): ReviewAgentExecutionResult {
+		return {
+			provider: "none",
+			process: { exit_code: 1, stdout: "", stderr: message },
+			no_issues: false,
+			message,
+		};
 	}
 
 	/** Responsibilities: _initial review-agent dialogue_. **/

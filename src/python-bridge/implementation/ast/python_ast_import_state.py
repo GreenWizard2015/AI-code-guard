@@ -3,17 +3,16 @@ from __future__ import annotations
 import ast
 from functools import cached_property
 
-from implementation.ast.imports.import_rules_factory import PythonImportConfiguration
-from implementation.ast.protocols import PythonAstImportStateOptionsContract
+from implementation.ast.protocols import PythonAstCoreStateContract
 from implementation.ast.imports.python_sys_path_rules import PythonSysPathRules
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
-from implementation.protocols import (
+from protocols import PythonReferenceCollectorContract
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonImportRulesContract,
-    PythonReferenceCollectorContract,
     PythonStructureIssuesContract,
 )
-from implementation.references.aliases.protocols import (
+from protocols import PythonImportRulesContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonReferenceAliasesContract,
 )
@@ -74,15 +73,10 @@ class PythonAstImportState:
         """Responsibilities: _import rule state_."""
         path_state = PythonSysPathRules(self._container_aliases, self._node_index)
         dynamic_names = self._dynamic_names()
-        configuration = PythonImportConfiguration(
+        return ImportRules(
             self._container_aliases,
             dynamic_names,
             path_state,
-        )
-        return ImportRules(
-            configuration.container_aliases,
-            configuration.dynamic_names,
-            configuration.path_rules,
             self._node_index,
         )
 
@@ -97,19 +91,21 @@ class PythonAstImportState:
             state,
         )
 
-    def __init__(self, options: PythonAstImportStateOptionsContract) -> None:
+    def __init__(
+        self,
+        core: PythonAstCoreStateContract,
+        reference_aliases: PythonReferenceAliasesContract,
+        structure_issues: PythonStructureIssuesContract,
+    ) -> None:
         """Responsibilities: _import state initialization_."""
-        self._tree: ast.Module = options.source_tree()
-        self._node_index: PythonAstNodeIndexContract = options.source_node_index()
+        dependencies = core.source_dependencies()
+        self._tree: ast.Module = dependencies.syntax_tree()
+        self._node_index: PythonAstNodeIndexContract = dependencies.node_index()
         self._container_aliases: PythonContainerAliasesContract = (
-            options.source_container_aliases()
+            core.container_aliases()
         )
-        self._structure_issues: PythonStructureIssuesContract = (
-            options.source_structure_issues()
-        )
-        self._reference_aliases: PythonReferenceAliasesContract = (
-            options.source_reference_aliases()
-        )
+        self._structure_issues: PythonStructureIssuesContract = structure_issues
+        self._reference_aliases: PythonReferenceAliasesContract = reference_aliases
 
     def import_rules(self) -> PythonImportRulesContract:
         """Responsibilities: _import rule access_."""

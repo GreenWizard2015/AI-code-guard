@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { TypeScriptStaticKeyAliases } from "src/typescript-aliases/callables/type_script_static_key_aliases";
-import type { TypeScriptCallableTypePropertiesContract, TypeScriptStaticKeyAliasesContract } from "src/protocols";
+import type { TypeScriptCallableTypePropertiesContract, TypeScriptStaticKeyAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _callable object property collection_, _class interface property collection_. **/
 export class TypeScriptCallableTypeProperties implements TypeScriptCallableTypePropertiesContract {

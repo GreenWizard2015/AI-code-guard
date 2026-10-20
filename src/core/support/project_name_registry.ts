@@ -1,5 +1,5 @@
-import type { SourceNamesContract } from "src/protocols";
-import type { ProjectLanguage, ProjectNameContext, ProjectNames } from "src/types";
+import type { SourceNamesContract } from "src/runtime_protocols";
+import type { ProjectLanguage, ProjectNameContext, ProjectNames } from "src/project_analysis_types";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _language symbol collection_, _project name aggregation_. **/

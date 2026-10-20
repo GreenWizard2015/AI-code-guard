@@ -1,12 +1,7 @@
 import { relative } from "node:path";
 import { PythonCompositionImports } from "src/linting/orchestration/runtime/composition/python_composition_imports";
-import type {
-	AstCallableReference,
-	ImportedSymbol,
-	LintSourceRecord,
-	NormalizedAstFile,
-	PythonProjectImportContext,
-} from "src/types";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
+import type { AstCallableReference, ImportedSymbol, NormalizedAstFile } from "src/types";
 import type {
 	PythonCallableReferenceTargetMapperContract,
 	PythonCompositionImportsContract,

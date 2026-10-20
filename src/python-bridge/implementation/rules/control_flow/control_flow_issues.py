@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
 
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonPredicateConditionContract,
     PythonSourceSegmentsContract,
+)
+from implementation.rules.protocols import (
+    PythonPredicateConditionContract,
     PythonTerminalBranchContract,
 )
 from implementation.types import JsonObject

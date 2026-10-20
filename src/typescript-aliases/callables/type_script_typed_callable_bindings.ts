@@ -1,10 +1,7 @@
 import ts from "typescript";
 import { TypeScriptCallableTypeProperties } from "src/typescript-aliases/callables/type_script_callable_type_properties";
-import type {
-	StringSetMap,
-	TypeScriptCallableTypePropertiesContract,
-	TypeScriptTypedCallableBindingsContract,
-} from "src/protocols";
+import type { StringSetMap } from "src/analysis_types";
+import type { TypeScriptCallableTypePropertiesContract, TypeScriptTypedCallableBindingsContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _typed callables_, _binding metadata_. **/
 export class TypeScriptTypedCallableBindings implements TypeScriptTypedCallableBindingsContract {

@@ -4,7 +4,7 @@ import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
 
-import { CALLABLE_LIMIT_FILES, SHORT_CLASS_FILES } from "tests/core/constants";
+import { CALLABLE_LIMIT_FILES, SHORT_CLASS_FILES } from "tests/core/constants/architecture/constants";
 
 describe("coding-lint architecture and metrics rules", () => {
 	test("counts code after a single-line block comment", () => {

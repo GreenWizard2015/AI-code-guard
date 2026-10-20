@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import (
     PythonCallableStatementsContract,
+    PythonTestAssertionAliasesContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
 )
@@ -16,9 +17,6 @@ from implementation.references.aliases.python_reference_aliases import (
 from implementation.references.test_assertions.assertion_aliases import (
     PythonTestAssertionAliases,
     PythonTestAssertionAliasesOptions,
-)
-from implementation.references.test_assertions.protocols import (
-    PythonTestAssertionAliasesContract,
 )
 from implementation.references.test_assertions.python_callable_test_assertions import (
     PythonCallableTestAssertions,

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import ast
 
-from implementation.types import (
-    AstParentIndex,
-    PythonProxyAliasAssignment,
-    PythonProxyAliasRecords,
-)
-from implementation.protocols import PythonProxyScopeAliasIndexContract
+from implementation.references.protocols import PythonProxyScopeAliasIndexContract
 from implementation.references.aliases.python_proxy_scope_alias_index import (
     PythonProxyScopeAliasIndex,
+)
+from implementation.types import (
+    PythonAstParents,
+    PythonProxyAliasAssignment,
+    PythonProxyAliasRecords,
 )
 
 
@@ -19,7 +19,7 @@ class PythonProxyReceiverAliases:
     def _collect_scope_aliases(
         self,
         scope: ast.AST,
-        parents: AstParentIndex,
+        parents: PythonAstParents,
     ) -> list[PythonProxyAliasAssignment]:
         """Responsibilities: _scoped receiver alias assignments_."""
         assignments: list[PythonProxyAliasAssignment] = []
@@ -40,7 +40,7 @@ class PythonProxyReceiverAliases:
     def _scope_alias_index(
         self,
         scope: ast.AST,
-        parents: AstParentIndex,
+        parents: PythonAstParents,
     ) -> PythonProxyScopeAliasIndexContract:
         """Responsibilities: _scoped receiver alias index_."""
         key = id(scope)
@@ -58,7 +58,7 @@ class PythonProxyReceiverAliases:
         self._scope_aliases_by_id[key] = index
         return index
 
-    def _function_scope(self, node: ast.AST, parents: AstParentIndex) -> ast.AST:
+    def _function_scope(self, node: ast.AST, parents: PythonAstParents) -> ast.AST:
         """Responsibilities: _enclosing callable scope_."""
         current = node
         while True:
@@ -83,14 +83,14 @@ class PythonProxyReceiverAliases:
     def __init__(self, tree: ast.AST) -> None:
         """Responsibilities: _initialization receiver aliases_."""
         self.tree: ast.AST = tree
-        self._parents: AstParentIndex = {}
+        self._parents: PythonAstParents = {}
         self._scope_aliases_by_id: dict[int, PythonProxyScopeAliasIndexContract] = {}
 
-    def configure(self) -> AstParentIndex:
+    def configure(self) -> PythonAstParents:
         """Responsibilities: _receiver parent indexing_."""
         if self._parents:
             return self._parents
-        parents: AstParentIndex = {}
+        parents: PythonAstParents = {}
         for parent in ast.walk(self.tree):
             for child in ast.iter_child_nodes(parent):
                 parents.setdefault(id(child), []).append(parent)

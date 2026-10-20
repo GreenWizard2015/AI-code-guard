@@ -113,4 +113,62 @@ describe("dynamic class behavior analysis", () => {
 			).length,
 		}).toEqual({ prototype_assignments: 5, temporary_result_access: 1, repeated_branch_comparisons: 2 });
 	});
+
+	test("reports mutable prototype aliases only while they retain the prototype", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"mutable-prototype.ts": [
+					'class User { load(): string { return "original"; } }',
+					"function replace_load(): void {",
+					"\tlet user_prototype = User.prototype;",
+					'\tuser_prototype.load = function (): string { return "replacement"; };',
+					"}",
+				].join("\n"),
+				"reassigned-prototype.ts": [
+					'class User { load(): string { return "original"; } }',
+					"function replace_load(): void {",
+					"\tlet user_prototype: typeof User.prototype = User.prototype;",
+					"\tuser_prototype = Object.create(null);",
+					'\tuser_prototype.load = function (): string { return "replacement"; };',
+					"}",
+				].join("\n"),
+				"assigned-prototype.ts": [
+					'class User { load(): string { return "original"; } }',
+					"function replace_load(): void {",
+					"\tlet user_prototype: typeof User.prototype = Object.create(null);",
+					"\tuser_prototype = User.prototype;",
+					'\tuser_prototype.load = function (): string { return "replacement"; };',
+					"}",
+				].join("\n"),
+				"conditionally-assigned-prototype.ts": [
+					'class User { load(): string { return "original"; } }',
+					"function replace_load(should_replace: boolean): void {",
+					"\tlet user_prototype: typeof User.prototype = Object.create(null);",
+					"\tif (should_replace) {",
+					"\t\tuser_prototype = User.prototype;",
+					"\t}",
+					'\tuser_prototype.load = function (): string { return "replacement"; };',
+					"}",
+				].join("\n"),
+				"shadowed-prototype.ts": [
+					'class User { load(): string { return "original"; } }',
+					"const user_prototype = User.prototype;",
+					"function replace_load(user_prototype: { load: () => string }): void {",
+					'\tuser_prototype.load = function (): string { return "replacement"; };',
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((item) => item.rule_id === "typescript-prototype-assignment")
+				.map((item) => item.file)
+				.sort(),
+		).toEqual(["assigned-prototype.ts", "conditionally-assigned-prototype.ts", "mutable-prototype.ts"]);
+	});
 });

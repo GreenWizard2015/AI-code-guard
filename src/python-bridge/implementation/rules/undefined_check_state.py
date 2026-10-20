@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from typing import Any, cast
 
-from implementation.references.aliases.protocols import PythonReferenceAliasesContract
+from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.python_inherited_fields import PythonInheritedFields
 from implementation.rules.protocols import AliasWalkStateContract
 from implementation.rules.alias_walk_state import AliasWalkState

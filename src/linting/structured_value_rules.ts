@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { StaticExpressionValuesContract } from "src/protocols";
+import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _structured key resolution_, _value expression classification_. **/
 export class StructuredValueRules {

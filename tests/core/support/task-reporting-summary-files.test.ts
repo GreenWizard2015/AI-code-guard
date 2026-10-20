@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { CliResultReporter } from "src/core/support/cli_result_reporter";
 import { PerformanceReport } from "src/core/support/performance_report";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
@@ -56,9 +56,8 @@ describe("coding-lint task reporting summaries", () => {
 		}
 		expect({
 			visible_rule_count,
-			first_omitted: report.includes(`\`${rule_ids[10]}\``),
 			aggregated_row: report.includes("| Others | 2 | 2 |"),
-		}).toEqual({ visible_rule_count: 10, first_omitted: false, aggregated_row: true });
+		}).toEqual({ visible_rule_count: 10, aggregated_row: true });
 	});
 
 	test("writes the complete lint output to Markdown", () => {

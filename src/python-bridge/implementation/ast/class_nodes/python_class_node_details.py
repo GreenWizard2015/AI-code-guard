@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonCallableStatementsContract,
     PythonClassNodeFieldsContract,
 )
+from implementation.ast.protocols import PythonCallableStatementsContract
 from implementation.types import JsonObject
 from implementation.rules.constants import (
     PYTHON_DATACLASS_DECORATOR,

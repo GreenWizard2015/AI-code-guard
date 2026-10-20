@@ -15,9 +15,9 @@ import { TypeScriptPropertyInstanceFiles } from "src/parser/references/identity/
 import { TypeScriptReferenceFileIndex } from "src/parser/references/identity/references/type_script_reference_file_index";
 import { TypeScriptThisReceiver } from "src/parser/references/instance/type_script_this_receiver";
 import { TypeScriptInheritedMethods } from "src/parser/references/identity/references/type_script_inherited_methods";
-import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
 import type { TypeScriptPropertySide } from "src/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _member identities_, _declaration identities_. **/
 export class TypeScriptReferenceIdentity implements TypeScriptReferenceIdentityContract {

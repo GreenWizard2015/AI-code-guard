@@ -1,9 +1,10 @@
 import { join } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
-import type { GitIgnoredPathsContract, ViolationContract } from "src/protocols";
+import type { GitIgnoredPathsContract } from "src/runtime_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { AI_CODE_GUARD_DIRECTORY, GITIGNORE_FILE_NAME, GITIGNORE_PROBE_NAME } from "src/constants";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _ignore configuration discovery_, _ignored source path filtering_. **/
 export class AiCodeGuardIgnoreRule {

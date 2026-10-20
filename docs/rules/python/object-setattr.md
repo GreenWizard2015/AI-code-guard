@@ -12,9 +12,9 @@ Fix: Assign during construction or expose an explicit transition; do not bypass 
 ## Bad
 
 ```python
-class Token:
-    def __init__(self, value: str) -> None:
-        object.__setattr__(self, "value", value)  # <- error
+class Record:
+    def update_field(self, name: str, value: str) -> None:
+        super().__setattr__(name, value)  # <- error
 ```
 
 ## Good

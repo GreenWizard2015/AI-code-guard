@@ -1,11 +1,11 @@
 import ast
 import unittest
 
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
 from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
-from implementation.python_field_mutation_collector import PythonFieldMutationCollector
+from implementation.rules.python_field_mutation_collector import PythonFieldMutationCollector
 from implementation.rules.alias_walk_state import AliasWalkState
 from implementation.rules.undefined_check_state import UndefinedCheckState
 from implementation.rules.types import AliasWalkStateDataContract

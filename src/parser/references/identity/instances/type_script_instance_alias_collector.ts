@@ -4,7 +4,7 @@ import ts from "typescript";
 
 import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
 import type { TypeScriptInstanceAliasCollectorContract, TypeScriptPropertyStateContract } from "src/model/protocols";
-import type { TypeScriptObjectPropertyCollectorContract } from "src/protocols";
+import type { TypeScriptObjectPropertyCollectorContract } from "src/typescript_runtime_protocols";
 import { TypeScriptObjectPropertyCollector } from "src/parser/references/identity/properties/type_script_object_property_collector";
 import { TypeScriptInstanceAssignment } from "src/parser/references/identity/instances/type_script_instance_assignment";
 

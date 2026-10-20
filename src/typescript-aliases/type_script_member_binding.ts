@@ -1,15 +1,11 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptMemberVariableAliases } from "src/typescript-aliases/type_script_member_variable_aliases";
-import { MEMBER_ALIAS_DECLARATION_CACHE } from "src/typescript-aliases/constants";
-import type {
-	NodeStringSetMapCache,
-	StringSetMap,
-	StaticValueResolver,
-	TypeScriptExpressionAliasesContract,
-	TypeScriptMemberBindingContract,
-	TypeScriptMemberVariableAliasesContract,
-} from "src/protocols";
+import type { NodeStringSetMapCache } from "src/cache_types";
+import type { StringSetMap } from "src/analysis_types";
+import type { StaticValueResolver } from "src/runtime_types";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptMemberBindingContract, TypeScriptMemberVariableAliasesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _member alias collection_, _static member name resolution_. **/
 export class TypeScriptMemberBinding implements TypeScriptMemberBindingContract {
@@ -17,6 +13,7 @@ export class TypeScriptMemberBinding implements TypeScriptMemberBindingContract 
 	private readonly variable_aliases: TypeScriptMemberVariableAliasesContract;
 	private readonly static_value: StaticValueResolver;
 	private readonly alias_cache: NodeStringSetMapCache;
+	private readonly declaration_cache: WeakMap<ts.Node, readonly ts.VariableDeclaration[]>;
 
 	/** Responsibilities: _member expression unwrapping_. **/
 	private unwrap(expression: ts.Expression): ts.Expression {
@@ -103,13 +100,13 @@ export class TypeScriptMemberBinding implements TypeScriptMemberBindingContract 
 
 	/** Responsibilities: _member declaration index resolution_. **/
 	private declarations_for(scope: ts.Node): readonly ts.VariableDeclaration[] {
-		const cached = MEMBER_ALIAS_DECLARATION_CACHE.get(scope);
+		const cached = this.declaration_cache.get(scope);
 		if (cached !== undefined) {
 			return cached;
 		}
 		const declarations: ts.VariableDeclaration[] = [];
 		this.append_declarations(scope, scope, declarations);
-		MEMBER_ALIAS_DECLARATION_CACHE.set(scope, declarations);
+		this.declaration_cache.set(scope, declarations);
 		return declarations;
 	}
 
@@ -134,6 +131,7 @@ export class TypeScriptMemberBinding implements TypeScriptMemberBindingContract 
 		this.target_aliases = new TypeScriptExpressionAliases(target_name);
 		this.static_value = static_value;
 		this.alias_cache = new WeakMap<ts.Node, StringSetMap>();
+		this.declaration_cache = new WeakMap<ts.Node, readonly ts.VariableDeclaration[]>();
 		this.variable_aliases = new TypeScriptMemberVariableAliases(
 			this.target_aliases,
 			(aliases, name, property) => this.add(aliases, name, property),

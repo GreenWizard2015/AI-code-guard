@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { StringSetMap } from "src/protocols";
+import type { StringSetMap } from "src/analysis_types";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import type {
 	TypeScriptInstanceFilesContract,

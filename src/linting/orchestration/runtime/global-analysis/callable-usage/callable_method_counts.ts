@@ -1,5 +1,5 @@
 import type { CallableDefinition } from "src/metrics/types";
-import type { CallableMethodCountsContract } from "src/protocols";
+import type { CallableMethodCountsContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _method counts_, _method names_. **/
 export class CallableMethodCounts implements CallableMethodCountsContract {

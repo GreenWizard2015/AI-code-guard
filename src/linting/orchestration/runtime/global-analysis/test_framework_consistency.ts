@@ -1,8 +1,9 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { LintProjectContextContract, ViolationContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import type { PythonTestFramework, TestFrameworkFile } from "src/model/types/types";
-import { PYTHON_UNITTEST_FRAMEWORK } from "src/linting/orchestration/runtime/test-targets/constants";
+import { PYTHON_UNITTEST_FRAMEWORK } from "src/constants";
 import { PythonTestFrameworkIdentity } from "src/linting/orchestration/runtime/test-targets/python_test_framework_identity";
 
 /** Responsibilities: _Python test frameworks classification_, _report framework inconsistencies_. **/

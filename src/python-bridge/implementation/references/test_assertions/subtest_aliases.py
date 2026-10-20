@@ -3,11 +3,9 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonContainerKeysContract,
-)
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonContainerKeysContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonReferenceAliasesContract,
 )

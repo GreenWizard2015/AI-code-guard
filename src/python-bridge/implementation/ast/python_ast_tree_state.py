@@ -1,24 +1,9 @@
 from __future__ import annotations
 
-from implementation.ast.callables.python_ast_callable_dependencies import (
-    PythonAstCallableDependencies,
-)
 from implementation.ast.protocols import (
     PythonAstCallableStateContract,
-    PythonAstCoreDependenciesContract,
     PythonAstCoreStateContract,
     PythonAstImportStateContract,
-    PythonAstTreeDependenciesContract,
-)
-from implementation.ast.python_ast_callable_state import PythonAstCallableState
-from implementation.ast.python_ast_core_state import PythonAstCoreState
-from implementation.ast.python_ast_import_state import PythonAstImportState
-from implementation.references.aliases.protocols import (
-    PythonContainerAssemblyContract,
-    PythonReferenceAliasesContract,
-)
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
 )
 
 
@@ -31,36 +16,14 @@ class PythonAstTreeState:
 
     def __init__(
         self,
-        core_dependencies: PythonAstCoreDependenciesContract,
-        tree_dependencies: PythonAstTreeDependenciesContract,
-        container_assembly: PythonContainerAssemblyContract,
+        core: PythonAstCoreStateContract,
+        callables: PythonAstCallableStateContract,
+        imports: PythonAstImportStateContract,
     ) -> None:
-        """Responsibilities: _AST analysis state initialization_."""
-        reference_aliases: PythonReferenceAliasesContract = PythonReferenceAliases()
-        self._core: PythonAstCoreStateContract = PythonAstCoreState(
-            core_dependencies,
-            container_assembly.container_aliases(),
-            container_assembly.container_values(),
-            container_assembly.container_keys(),
-        )
-        source_dependencies = core_dependencies
-        callable_dependencies = PythonAstCallableDependencies(
-            source_dependencies.syntax_tree(),
-            source_dependencies.node_index(),
-            source_dependencies.source_segments(),
-            self._core.container_aliases(),
-        )
-        self._callables: PythonAstCallableStateContract = PythonAstCallableState(
-            callable_dependencies,
-            tree_dependencies.callable_statements(),
-        )
-        self._imports: PythonAstImportStateContract = PythonAstImportState(
-            container_assembly.import_options(
-                self._core,
-                reference_aliases,
-                core_dependencies.structure_issues(),
-            )
-        )
+        """Responsibilities: _AST state ownership_."""
+        self._core: PythonAstCoreStateContract = core
+        self._callables: PythonAstCallableStateContract = callables
+        self._imports: PythonAstImportStateContract = imports
 
     def core(self) -> PythonAstCoreStateContract:
         """Responsibilities: _core state access_."""

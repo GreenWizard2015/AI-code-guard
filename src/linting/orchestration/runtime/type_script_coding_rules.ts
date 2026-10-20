@@ -1,5 +1,5 @@
 import { Syntax } from "src/parser/analysis/syntax";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TypeScriptRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_rule_context";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
@@ -7,6 +7,7 @@ import { TypeScriptModuleExports } from "src/module-resolution/type_script_modul
 import { dirname } from "node:path";
 import { AstPropertySourceIndexCache } from "src/ast_property_source_index_cache";
 import { EmptySourceText } from "src/io/empty_source_text";
+import { TypeScriptNodeRules } from "src/rules/typescript/syntax-rules/ast/type_script_node_rules";
 
 /** Responsibilities: _recover TypeScript rule source_, _recovered violations collection_. **/
 export class TypeScriptCodingRules {
@@ -22,6 +23,7 @@ export class TypeScriptCodingRules {
 		const context = new TypeScriptRuleContext(violations, file, source_file, {
 			stage_timer: new LintStageTimer(),
 			source_resolver: new Map(),
+			node_rules: new TypeScriptNodeRules(),
 			module_exports: new TypeScriptModuleExports(dirname(file), new Map(), false, new EmptySourceText()),
 			source_index: new AstPropertySourceIndexCache(),
 			traversal: ast_file.traversal,

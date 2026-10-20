@@ -1,5 +1,6 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type ts from "typescript";
+import type { LintFileNameContract } from "src/source_types";
 import type {
 	LineDepth,
 	AstCallableNodeContract,
@@ -7,7 +8,6 @@ import type {
 	AstParseIssue,
 	AstPythonImport,
 	AstReferenceAlias,
-	LintFileNameContract,
 	NamedLine,
 	NamedSymbol,
 } from "src/types";

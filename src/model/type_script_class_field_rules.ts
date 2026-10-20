@@ -1,16 +1,18 @@
 import { TestPathSyntax } from "src/test_path_syntax";
 import { TypeScriptImportedFunctionAliases } from "src/model/type_script_imported_function_aliases";
-import type { TypeScriptImportedFunctionAliasesContract } from "src/protocols";
+import type { TypeScriptImportedFunctionAliasesContract } from "src/typescript_analysis_types";
 import { relative } from "node:path";
 import ts from "typescript";
 
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { StringSetMap, ViolationContract, TypeScriptClassFieldRulesContract } from "src/protocols";
+import type { StringSetMap } from "src/analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { TypeScriptClassFieldRulesContract } from "src/typescript_analysis_protocols";
 import { SourceText } from "src/source_text";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import type { FieldAssignment, TypeScriptClassFieldContext } from "src/model/types";
-import { VISIBILITY_MODIFIERS } from "src/model/constants";
-import type { LintProjectContextContract } from "src/protocols";
+import { VISIBILITY_MODIFIERS } from "src/constants";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _field visibility validation_, _field assignment analysis_. **/
 export class TypeScriptClassFieldRules implements TypeScriptClassFieldRulesContract {
@@ -254,7 +256,12 @@ export class TypeScriptClassFieldRules implements TypeScriptClassFieldRulesContr
 		const unique_files = [...new Set(files)];
 		const source_files = unique_files.filter((file) => file.endsWith(".ts") || file.endsWith(".tsx"));
 		const functions = this.file_functions(source_files);
-		const imported_function_aliases = new TypeScriptImportedFunctionAliases(repo_root, new Map(), true, this.source_loader);
+		const imported_function_aliases = new TypeScriptImportedFunctionAliases(
+			repo_root,
+			new Map(),
+			true,
+			this.source_loader,
+		);
 		return source_files.flatMap((file) => {
 			const ast = new TypeScriptAstFile(file, this.source_loader.source_text(file));
 			return this.source_fields(file, repo_root, ast.source_file, functions, imported_function_aliases);

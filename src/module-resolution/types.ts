@@ -1,5 +1,5 @@
 import type ts from "typescript";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _TypeScript config host contract_. **/
 export type ResolvedTypeScriptExport = {

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import ast
 from implementation.types import JsonObject
+from implementation.references.aliases.python_annotated_type_alias_collector import (
+    PythonAnnotatedTypeAliasCollector,
+)
 
 
 class PythonReferenceAliases:
@@ -148,9 +151,11 @@ class PythonReferenceAliases:
             self.aliases.extend(self._tree_cache[tree])
             self._rebuild_alias_index()
             return self.aliases
+        type_alias_collector = PythonAnnotatedTypeAliasCollector(self.aliases)
         for node in ast.walk(tree):
             self._collect_import_aliases(node)
-            self._collect_assignment_alias(node)
+            if not type_alias_collector.append_type_alias(node):
+                self._collect_assignment_alias(node)
         self._tree_cache[tree] = tuple(self.aliases)
         self._rebuild_alias_index()
         return self.aliases

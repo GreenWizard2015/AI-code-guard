@@ -1,7 +1,8 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { StaticObjectValueAppender, TypeScriptStaticObjectValuesContract } from "src/protocols";
+import type { StaticObjectValueAppender } from "src/runtime_types";
+import type { TypeScriptStaticObjectValuesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _object property value collection_, _aliased property value resolution_. **/
 export class TypeScriptStaticObjectValues implements TypeScriptStaticObjectValuesContract {

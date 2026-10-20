@@ -13,10 +13,13 @@ boundary translation remain allowed.
 
 
 ```python
-try:
-    return parse_document(text)
-except ValueError:
-    raise DocumentError("Invalid document") from None
+def parse_document(text: str) -> str:
+    try:
+        return text
+    except ValueError:
+        cause = None
+        alias = cause
+        raise DocumentError("Invalid document") from alias  # <- error
 ```
 
 ## Good

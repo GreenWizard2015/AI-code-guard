@@ -1,5 +1,3 @@
-export type FileSystemPathKind = "file" | "directory" | "missing";
-
 /** Responsibilities: _file path lookup_. **/
 export interface FilePathContract {
 	path_exists(path: string): boolean;
@@ -31,7 +29,8 @@ export interface FileContract {
 
 /** Responsibilities: _directory inspection_. **/
 export interface DirectoryEntriesContract {
-	path_kind(path: string): FileSystemPathKind;
+	path_is_file(path: string): boolean;
+	path_is_directory(path: string): boolean;
 	list_files(directory: string): readonly string[];
 	list_entries(directory: string): readonly FileEntryContract[];
 }

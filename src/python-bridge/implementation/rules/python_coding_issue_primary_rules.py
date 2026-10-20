@@ -3,20 +3,25 @@ from __future__ import annotations
 import ast
 from collections.abc import Callable
 
-from implementation.constructor_rules import ConstructorRules
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonCallRulesContract,
-    PythonCodingIssueComponentContextContract,
+from implementation.rules.constructor_rules import ConstructorRules
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.protocols import PythonTypeFactoryNamesContract
+from implementation.references.protocols import PythonExceptionAliasStateContract
+from implementation.references.protocols import (
     PythonDecoratorAliasesContract,
     PythonDecoratorRulesContract,
-    PythonDynamicTypeRulesContract,
-    PythonExceptionAliasStateContract,
-    PythonExceptionRulesContract,
-    PythonTypeFactoryNamesContract,
 )
-from implementation.rules.python_syntax.python_primary_assembly import (
-    PythonPrimaryRuleAssembly,
+from implementation.rules.protocols import (
+    PythonCallRulesContract,
+    PythonCodingIssueComponentContextContract,
+)
+from implementation.rules.protocols import PythonExceptionRulesContract
+from implementation.rules.protocols import PythonDynamicTypeRulesContract
+from implementation.rules.python_syntax.python_primary_call_assembly import (
+    PythonPrimaryCallAssembly,
+)
+from implementation.rules.python_syntax.python_primary_type_assembly import (
+    PythonPrimaryTypeAssembly,
 )
 from implementation.rules.constants import MAX_CALLABLE_BRANCHES
 from implementation.rules.type_rules.type_rules import TypeRules
@@ -76,9 +81,10 @@ class PythonCodingIssuePrimaryRules:
 
     def __init__(self, context: PythonCodingIssueComponentContextContract) -> None:
         """Responsibilities: _primary Python rule construction_."""
-        assembly = PythonPrimaryRuleAssembly(context)
-        call_state = assembly.call_state()
-        type_state = assembly.type_state()
+        call_assembly = PythonPrimaryCallAssembly(context)
+        call_state = call_assembly.call_state()
+        type_assembly = PythonPrimaryTypeAssembly(context)
+        type_state = type_assembly.type_state()
         self.call_rules: PythonCallRulesContract = call_state.call_rules
         self.decorator_rules: PythonDecoratorRulesContract = call_state.decorator_rules
         self.decorator_aliases: PythonDecoratorAliasesContract = (
@@ -136,4 +142,4 @@ class PythonCodingIssuePrimaryRules:
         self.type_rules.prepare()
         self.dynamic_type_rules.configure_imports(tree)
         self.exception_aliases.configure_imports(tree)
-        self.call_rules.prepare()
+        self.call_rules.configure_reflection()

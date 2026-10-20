@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.callable_nodes.python_function_owner import PythonFunctionOwner
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 
 
 class PythonFunctionSelector:

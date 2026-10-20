@@ -3,9 +3,9 @@ import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import type { SharedParameterTypeSource, SharedParameterTypeSourcesContract } from "src/metrics/types";
-import type { LintProjectContextContract } from "src/protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
 import { PythonCompositionImports } from "src/linting/orchestration/runtime/composition/python_composition_imports";
-import type { LintSourceRecord, PythonProjectImportContext } from "src/types";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
 
 /** Responsibilities: _shared type source collection_, _imported type resolution_. **/
 export class SharedParameterTypeSources implements SharedParameterTypeSourcesContract {

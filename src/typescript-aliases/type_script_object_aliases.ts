@@ -1,11 +1,12 @@
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import { OBJECT_ALIAS_DECLARATION_CACHE } from "src/typescript-aliases/constants";
+import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _object alias tracking_, _property value resolution_. **/
 export class TypeScriptObjectAliases {
 	private readonly expression_names: TypeScriptExpressionNames;
 	private readonly aliases: Map<string, ts.ObjectLiteralExpression>;
+	private readonly declaration_index: TypeScriptObjectAliasDeclarationIndexContract;
 
 	/** Responsibilities: _named property value addition_. **/
 	private append_named_value(
@@ -73,22 +74,6 @@ export class TypeScriptObjectAliases {
 		}
 	}
 
-	/** Responsibilities: _object alias declaration collection_. **/
-	private collect_declarations(node: ts.Node, root: ts.Node, declarations: ts.Node[]): void {
-		if (node !== root) {
-			if (ts.isFunctionLike(node)) {
-				return;
-			}
-		}
-		if (ts.isVariableDeclaration(node)) {
-			declarations.push(node);
-		}
-		if (ts.isBinaryExpression(node)) {
-			declarations.push(node);
-		}
-		node.forEachChild((child) => this.collect_declarations(child, root, declarations));
-	}
-
 	/** Responsibilities: _object alias declaration addition_. **/
 	private append_value(name: string, initializer: ts.Expression): boolean {
 		const value = this.value(initializer);
@@ -134,33 +119,16 @@ export class TypeScriptObjectAliases {
 
 	/** Responsibilities: _object aliases collection_. **/
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
+	constructor(declaration_index: TypeScriptObjectAliasDeclarationIndexContract) {
 		this.expression_names = new TypeScriptExpressionNames();
 		this.aliases = new Map<string, ts.ObjectLiteralExpression>();
+		this.declaration_index = declaration_index;
 	}
-	/** Responsibilities: _object alias declaration index_. **/
-	public declarations(scope: ts.Node): readonly ts.Node[] {
-		const cached = OBJECT_ALIAS_DECLARATION_CACHE.get(scope);
-		if (cached !== undefined) {
-			return cached;
-		}
-		const declarations: ts.Node[] = [];
-		this.collect_declarations(scope, scope, declarations);
-		OBJECT_ALIAS_DECLARATION_CACHE.set(scope, declarations);
-		return declarations;
-	}
-
 	/** Responsibilities: _public operation_. **/
 	public collect(scope: ts.Node): void {
-		const declarations = this.declarations(scope);
 		let changed = true;
 		while (changed) {
-			changed = false;
-			for (const declaration of declarations) {
-				if (this.append(declaration)) {
-					changed = true;
-				}
-			}
+			changed = this.declaration_index.append(scope, (declaration) => this.append(declaration));
 		}
 	}
 

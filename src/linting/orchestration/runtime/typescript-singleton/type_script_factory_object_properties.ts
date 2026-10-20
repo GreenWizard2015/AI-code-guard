@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptFactoryArrayAliasesContract, TypeScriptFactoryObjectPropertiesContract } from "src/protocols";
+import type { TypeScriptFactoryArrayAliasesContract, TypeScriptFactoryObjectPropertiesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptFactoryNestedObjectExpressions } from "src/linting/orchestration/runtime/typescript-singleton/type_script_factory_nested_object_expressions";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import type { TypeScriptFactoryNestedObjectExpressionsContract } from "src/linting/orchestration/runtime/protocols";

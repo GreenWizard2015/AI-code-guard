@@ -12,22 +12,15 @@ import { SharedParameterAdapter } from "src/metrics/shared_parameter_adapter";
 import { MethodContractRules } from "src/metrics/method_contract_rules";
 import { PythonTestRuleCollector } from "src/linting/orchestration/runtime/python/python_test_rule_collector";
 import { PythonTypeRuleCollector } from "src/linting/orchestration/runtime/python/python_type_rule_collector";
-import type {
-	ClassReportingContract,
-	MethodContractRulesContract,
-	PythonTestRuleCollectorContract,
-} from "src/protocols";
+import type { ClassReportingContract } from "src/reporting_protocols";
+import type { MethodContractRulesContract } from "src/shared_services_protocols";
+import type { PythonTestRuleCollectorContract } from "src/python_protocols";
 import type { PythonRuleInput } from "src/linting/types";
 import type { AstClassNode } from "src/types";
-import type {
-	MetricViolationsContract,
-	MethodOrderContract,
-	NamingSupportContract,
-	PythonArchitectureContract,
-	PythonHacksContract,
-	PythonTypeRuleCollectorContract,
-	SyntaxContract,
-} from "src/protocols";
+import type { MetricViolationsContract } from "src/reporting_protocols";
+import type { MethodOrderContract, NamingSupportContract } from "src/analysis_protocols";
+import type { PythonArchitectureContract, PythonHacksContract, PythonTypeRuleCollectorContract } from "src/python_protocols";
+import type { SyntaxContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _architecture rule aggregation_, _metric violation collection_. **/
 export class PythonRuleCollector {

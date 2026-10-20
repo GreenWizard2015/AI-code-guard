@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonCallClassificationContract
+from implementation.ast.protocols import PythonCallableConditionContextContract
+from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.types import JsonObject
 from implementation.rules.constants import (
     PYTHON_DATETIME_MODULE,
@@ -22,10 +23,16 @@ class PythonTestTimeDependency:
         owner = function.value
         if type(owner) is not ast.Name:
             return False
-        return (owner.id, function.attr) in self.time_names
+        if (owner.id, function.attr) in self.time_names:
+            return True
+        resolved_owner = self.reference_aliases.resolved_name(
+            owner.id, self.time_modules
+        )
+        return (resolved_owner, function.attr) in self.time_names
 
-    def __init__(self) -> None:
+    def __init__(self, reference_aliases: PythonReferenceAliasesContract) -> None:
         """Responsibilities: _time dependency names_."""
+        self.reference_aliases: PythonReferenceAliasesContract = reference_aliases
         self.time_names: set[tuple[str, str]] = {
             ("time", "time"),
             ("time", "sleep"),
@@ -34,6 +41,9 @@ class PythonTestTimeDependency:
             (PYTHON_DATETIME_MODULE, PYTHON_TODAY_ATTRIBUTE),
             ("date", "today"),
         }
+        self.time_modules: frozenset[str] = frozenset(
+            name for name, _ in self.time_names
+        )
 
     def matches(self, node: ast.AST) -> bool:
         """Responsibilities: _test time dependency matching_."""
@@ -42,7 +52,7 @@ class PythonTestTimeDependency:
         return self._time_call(node)
 
     def issue(
-        self, node: ast.AST, classification: PythonCallClassificationContract
+        self, node: ast.AST, classification: PythonCallableConditionContextContract
     ) -> list[JsonObject]:
         """Responsibilities: _test time violation creation_."""
         if not classification.test_function(node):

@@ -1,6 +1,7 @@
-import type { CallableSourceImportScopeContract, StringReadonlySetMap } from "src/protocols";
+import type { CallableSourceImportScopeContract } from "src/analysis_protocols";
+import type { StringReadonlySetMap } from "src/analysis_types";
 import type { ParsedFile } from "src/metrics/types";
-import type { ProjectSourceScannerContract } from "src/protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
 
 /** Responsibilities: _callable source imports_, _source declaration scope_. **/
 export class CallableSourceImportScope implements CallableSourceImportScopeContract {

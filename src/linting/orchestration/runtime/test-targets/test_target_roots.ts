@@ -1,11 +1,7 @@
 import { dirname, isAbsolute, join, normalize, relative } from "node:path";
 import { PYTHON_EXTERNAL_MODULES } from "src/constants";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
-import type {
-	TestFileOrganizationContract,
-	TestTargetImportResolverContract,
-	TestTargetRootsContract,
-} from "src/protocols";
+import type { TestFileOrganizationContract, TestTargetImportResolverContract, TestTargetRootsContract } from "src/testing_protocols";
 
 /** Responsibilities: _source root matching_, _module path resolution_. **/
 export class TestTargetRoots implements TestTargetRootsContract {

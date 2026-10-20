@@ -1,8 +1,9 @@
 # boolean-flag-parameter
 
 Description: Reports a production TypeScript or Python callable with at least two explicitly
-typed boolean parameters. A single boolean parameter is allowed. Test files are
-not checked by this rule.
+typed boolean parameters, including annotations that resolve through local type
+aliases. A single boolean parameter is allowed. Test files are not checked by
+this rule.
 
 Replace independent positional flags with a named options or state object so
 the call expresses each mode explicitly.
@@ -11,7 +12,10 @@ the call expresses each mode explicitly.
 
 
 ```python
-def publish(article: Article, notify: bool, dry_run: bool) -> None:
+ModeFlag = bool
+
+
+def publish(article: Article, notify: ModeFlag, dry_run: ModeFlag) -> None:
     pass
 
 publish(article, True, False)

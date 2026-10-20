@@ -1,6 +1,6 @@
 import type { UnusedSymbolDefinition } from "src/core/types";
-import type { LintProjectContextContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { LintSourceRecord } from "src/source_types";
 
 export type GlobalViolationCollectorOptions = {
 	repo_root: string;

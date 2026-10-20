@@ -27,6 +27,25 @@ describe("coding-lint local type property resolution", () => {
 		]);
 	});
 
+	test("resolves parenthesized required field comparisons", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"parenthesized-property.ts": [
+					"type Parsed = { attribute_accesses: string[] };",
+					"function has_attributes(parsed: Parsed): boolean {",
+					"\treturn (parsed.attribute_accesses) === undefined;",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toHaveLength(1);
+	});
+
 	test("resolves required fields through local interfaces", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(

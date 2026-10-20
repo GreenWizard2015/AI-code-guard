@@ -1,9 +1,9 @@
 # `unasserted-async-completion`
 
 Description: Await asynchronous work in tests so the test observes completion and failures.
-The rule reports a direct, standalone call to a locally declared async
-function in a test body. Production files and nested callbacks are outside its
-scope.
+The rule reports a discarded call to a locally declared async function in a
+test body, whether the promise is ignored directly or stored and discarded.
+Production files and nested callbacks are outside its scope.
 
 ## Bad
 
@@ -11,8 +11,12 @@ scope.
 // File: tests/completion/async-operation.test.ts
 describe("async completion", () => {
 	test("observes the local asynchronous operation", async () => {
-		async function load_label(): Promise<string> { return "label"; }
-		load_label(); // <- error
+		async function load_label(): Promise<string> {
+			return "label";
+		}
+
+		const pending = load_label();
+		void pending; // <- error
 		expect("label").toBe("label");
 	});
 	test("checks another result", () => { expect(2).toBe(2); });
@@ -27,7 +31,11 @@ import { FileEntry } from "src/file_entry";
 describe("FileEntry", () => {
 	test("awaits the entry operation", async () => {
 		const entry = new FileEntry("notes.txt", "hello world");
-		const label = await Promise.resolve(entry.file_name());
+		async function load_label(): Promise<string> {
+			return entry.file_name();
+		}
+
+		const label = await load_label();
 		expect(label).toBe("notes.txt");
 	});
 

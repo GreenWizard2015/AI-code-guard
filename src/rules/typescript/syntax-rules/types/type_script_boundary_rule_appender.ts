@@ -1,6 +1,6 @@
 import { TypeScriptBasicRules } from "src/rules/typescript/syntax-rules/runtime/type_script_basic_rules";
 import { TypeScriptExpressionRules } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_rules";
-import type { CompositeStateTypeRulesContract, NullableTypeRulesContract } from "src/protocols";
+import type { CompositeStateTypeRulesContract, NullableTypeRulesContract } from "src/runtime_protocols";
 import { UnionContractBypass } from "src/rules/typescript/syntax-rules/types/union_contract_bypass";
 import {
 	COMPOSITE_STATE_TYPE,
@@ -14,12 +14,8 @@ import {
 import ts from "typescript";
 import type { RuleContextData } from "src/types";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import type {
-	TypeScriptBasicRulesContract,
-	TypeScriptBoundaryRuleAppenderContract,
-	TypeScriptExpressionRulesContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { TypeScriptBasicRulesContract, TypeScriptExpressionRulesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptBoundaryRuleAppenderContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 
 /** Responsibilities: _callable boundary diagnostics_, _type boundary diagnostics_. **/

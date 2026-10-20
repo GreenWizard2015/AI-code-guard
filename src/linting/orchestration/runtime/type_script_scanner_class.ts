@@ -1,6 +1,7 @@
 import { MixCollection } from "src/rules/mix_collection";
-import type { LintFileNameContract, NormalizedAstFile } from "src/types";
-import type { ViolationContract } from "src/protocols";
+import type { LintFileNameContract } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type {
 	TypeScriptScannerState,
 	TypeScriptRuleGroupContract,

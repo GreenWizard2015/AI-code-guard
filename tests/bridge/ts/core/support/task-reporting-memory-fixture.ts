@@ -11,10 +11,10 @@ import {
 } from "src/core/support/task/constants";
 import { TaskRuleDocumentation } from "src/core/support/task/reporting/task_rule_documentation";
 import { ON_REVIEW_DOCUMENT } from "src/core/support/task/review-agent/constants";
-import { REPORTING_PROJECT_ROOT, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
+import { REPORTING_PROJECT_ROOT } from "src/constants";
+import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { TaskReportingMemoryWorkspace } from "tests/bridge/ts/core/support/task-reporting-memory-workspace";
-import type { TaskReportingFileIOFactory, TaskReportingFixtureFiles } from "tests/bridge/ts/core/support/types";
 
 /** Responsibilities: _rule documentation registration_, _review workspace preparation_. **/
 export class TaskReportingMemoryFixture {
@@ -48,7 +48,7 @@ export class TaskReportingMemoryFixture {
 	}
 
 	/** Responsibilities: _fixture creation_. **/
-	public create(files: TaskReportingFixtureFiles = {}): TaskReportingMemoryWorkspace {
+	public create(files: Record<string, string> = {}): TaskReportingMemoryWorkspace {
 		return this.create_with_file_io_factory(files, (root, source_files) => {
 			const file_io = new InMemoryFileIO();
 			const absolute_files = new Map(Object.entries(source_files).map(([file, text]) => [resolve(root, file), text]));
@@ -59,8 +59,8 @@ export class TaskReportingMemoryFixture {
 
 	/** Responsibilities: _custom IO fixture creation_. **/
 	public create_with_file_io_factory(
-		files: TaskReportingFixtureFiles,
-		file_io_factory: TaskReportingFileIOFactory,
+		files: Record<string, string>,
+		file_io_factory: (root: string, files: Record<string, string>) => InMemoryFileIO,
 	): TaskReportingMemoryWorkspace {
 		const root = `/virtual/task-reporting-${randomUUID()}`;
 		const file_io = file_io_factory(root, files);

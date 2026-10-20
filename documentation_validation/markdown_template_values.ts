@@ -1,7 +1,9 @@
 import { MARKDOWN_LOOP_OBJECT_ERROR, MARKDOWN_LOOP_VALUE_ERROR } from "documentation_validation/constants";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _Markdown loop value ownership_, _placeholder binding_. **/
 export class MarkdownTemplateValues {
+	private readonly boundary_failures: SystemFailureClassificationContract;
 	private readonly variable: string;
 	private readonly values_literal: string;
 
@@ -11,6 +13,9 @@ export class MarkdownTemplateValues {
 		try {
 			parsed = JSON.parse(this.values_literal);
 		} catch (error) {
+			if (!this.boundary_failures.json_parse_failure(String(error))) {
+				throw error;
+			}
 			throw new Error(`Markdown loop values must be a JSON array of strings, numbers, or booleans: ${String(error)}`);
 		}
 		if (!Array.isArray(parsed)) {
@@ -79,9 +84,10 @@ export class MarkdownTemplateValues {
 	}
 
 	/** Responsibilities: _loop value source initialization_. **/
-	public constructor(values_literal: string, variable: string) {
+	public constructor(values_literal: string, variable: string, boundary_failures: SystemFailureClassificationContract) {
 		this.values_literal = values_literal;
 		this.variable = variable;
+		this.boundary_failures = boundary_failures;
 	}
 
 	/** Responsibilities: _loop iteration bindings_. **/

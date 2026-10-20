@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { PrivateMemberDeclarationNamesContract } from "src/protocols";
+import type { PrivateMemberDeclarationNamesContract } from "src/analysis_protocols";
 
 /** Responsibilities: _private modifier recognition_, _declaration name extraction_. **/
 export class PrivateMemberDeclarationNames implements PrivateMemberDeclarationNamesContract {

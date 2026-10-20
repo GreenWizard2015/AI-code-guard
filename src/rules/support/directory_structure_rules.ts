@@ -1,16 +1,16 @@
 import { relative } from "node:path";
 import { basename } from "node:path";
-import type { ViolationContract } from "src/protocols";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MAX_DIRECTORY_CLASSES, MAX_PER_DIRECTORY, MIN_DIRECTORY_CLASSES, MIN_PER_DIRECTORY } from "src/constants";
-import type { NormalizedAstFile } from "src/types";
-import { DIRECTORY_RULE_IDS } from "src/rules/constants";
+import type { IOContract } from "src/io/protocols";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { DirectoryViolationContext } from "src/model/types/types";
-import type { DirectoryFileSet } from "src/types";
+import type { DirectoryFileSet } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import { DirectoryFacadeRules } from "src/rules/support/directory_facade_rules";
 import { DirectoryFileCatalog } from "src/rules/support/directory_file_catalog";
 import { DirectorySourceStructure } from "src/rules/support/directory_source_structure";
-import type { IOContract } from "src/io/protocols";
+import type { AstClassNode, NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _directory source classification_, _directory size diagnostics_. **/
 export class DirectoryStructureRules {
@@ -36,16 +36,34 @@ export class DirectoryStructureRules {
 	}
 
 	/** Responsibilities: _aggregation class counts direct_. **/
-	private class_count(files: readonly string[], class_counts: ReadonlyMap<string, number>): number {
+	private implementation_class_count(classes: readonly AstClassNode[]): number {
 		let count = 0;
-		for (const file of files) {
-			if (this.file_catalog.special_file_names.has(basename(file))) {
+		for (const class_node of classes) {
+			let is_contract = class_node.protocol;
+			if (class_node.type_contract) {
+				is_contract = true;
+			}
+			if (is_contract) {
 				continue;
 			}
-			const current_count = class_counts.get(file);
-			if (current_count !== undefined) {
-				count += current_count;
+			count += 1;
+		}
+		return count;
+	}
+
+	/** Responsibilities: _aggregation class counts direct_. **/
+	private class_count(files: readonly string[], class_counts: ReadonlyMap<string, readonly AstClassNode[]>): number {
+		let count = 0;
+		for (const file of files) {
+			const is_special_file = this.file_catalog.special_file_names.has(basename(file));
+			if (is_special_file) {
+				continue;
 			}
+			const current_classes = class_counts.get(file);
+			if (current_classes === undefined) {
+				continue;
+			}
+			count += this.implementation_class_count(current_classes);
 		}
 		return count;
 	}
@@ -77,7 +95,7 @@ export class DirectoryStructureRules {
 		directory: string,
 		repo_root: string,
 		source_files: readonly string[],
-		class_counts: ReadonlyMap<string, number>,
+		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
 	): ViolationContract[] {
 		if (source_files.length === 0) {
 			return [];
@@ -148,7 +166,7 @@ export class DirectoryStructureRules {
 		violations: ViolationContract[],
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, number>,
+		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
 		source_asts: ReadonlyMap<string, NormalizedAstFile>,
 	): void {
 		const directory_sources = this.source_structure.source_directories(files);

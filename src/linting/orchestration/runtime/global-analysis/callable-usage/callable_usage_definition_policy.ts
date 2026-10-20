@@ -1,16 +1,15 @@
-import {
-	CALLABLE_FUNCTION_KIND,
-	CODING_LINT_PATH_PREFIX,
-	PROPERTY_DECORATORS,
-} from "src/linting/orchestration/runtime/composition/constants";
+import { CODING_LINT_PATH_PREFIX } from "src/constants";
 import { CONSTRUCTOR_NAME } from "src/metrics/constants";
-import type { CallableDefinition, ParsedFile } from "src/metrics/types";
-import type { CallableSourceImportScopeContract, ReadonlyStringSetMap } from "src/protocols";
+import type { CallableDefinition, ParsedFile, SharedCallableKind } from "src/metrics/types";
+import type { CallableSourceImportScopeContract } from "src/analysis_protocols";
+import type { ReadonlyStringSetMap } from "src/analysis_types";
 import type { AstClassNode } from "src/types";
+import { MODULE_FUNCTION_KIND } from "src/rules/constants";
 
 /** Responsibilities: _callable declaration selection_, _external inheritance classification_. **/
 export class CallableUsageDefinitionPolicy {
-	private readonly property_decorators = PROPERTY_DECORATORS;
+	private readonly property_decorators: ReadonlySet<string>;
+	private readonly function_kind: SharedCallableKind;
 	private readonly source_import_scope: CallableSourceImportScopeContract;
 
 	/** Responsibilities: _source declaration resolution_. **/
@@ -64,6 +63,8 @@ export class CallableUsageDefinitionPolicy {
 
 	/** Responsibilities: _callable policy initialization_. **/
 	public constructor(source_import_scope: CallableSourceImportScopeContract) {
+		this.property_decorators = new Set(["property", "cached_property"]);
+		this.function_kind = MODULE_FUNCTION_KIND;
 		this.source_import_scope = source_import_scope;
 	}
 
@@ -102,12 +103,10 @@ export class CallableUsageDefinitionPolicy {
 
 	/** Responsibilities: _callable definitions collection_. **/
 	public callable_definitions(file: ParsedFile): CallableDefinition[] {
-		const functions = file.ast.functions.map((node) => ({ file: file.file, kind: CALLABLE_FUNCTION_KIND, node }));
+		const functions = file.ast.functions.map((node) => ({ file: file.file, kind: this.function_kind, node }));
 		const methods = file.ast.classes
 			.filter((class_node) => !class_node.type_contract && !class_node.protocol)
-			.flatMap((class_node) =>
-				class_node.methods.map((node) => ({ file: file.file, kind: "method" as const, node })),
-			);
+			.flatMap((class_node) => class_node.methods.map((node) => ({ file: file.file, kind: "method" as const, node })));
 		return [...functions, ...methods];
 	}
 

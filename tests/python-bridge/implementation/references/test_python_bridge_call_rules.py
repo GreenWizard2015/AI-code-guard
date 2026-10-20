@@ -4,9 +4,10 @@ from unittest.mock import patch
 
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.source_segments import SourceSegments
-from implementation.python_default_parameter_issues import PythonDefaultParameterIssues
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.imports.source_segments import SourceSegments
+from implementation.rules.python_default_parameter_issues import PythonDefaultParameterIssues
 from implementation.references.aliases.python_container_aliases import PythonContainerAliases
 from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
 from implementation.references.python_proxy_receiver_aliases import PythonProxyReceiverAliases
@@ -33,7 +34,10 @@ class PythonBridgeCallRuleTest(unittest.TestCase):
             "@classmethod\ndef build(self, value: Payload, /, limit: int = 1, *items: str, **options: object):\n    return value\n"
         )
         function = parsed.body[0]
-        arguments = CallableArguments(self._python_ast_node_index())
+        node_index = self._python_ast_node_index()
+        type_aliases = PythonScopedTypeAliases(parsed, node_index)
+        type_aliases.collect()
+        arguments = CallableArguments(node_index, type_aliases)
         statements = CallableStatements()
         metadata = arguments.argument_metadata(function, arguments.callable_arguments(function), 12)
         function_statement = function.body[0]

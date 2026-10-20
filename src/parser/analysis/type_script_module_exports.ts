@@ -6,9 +6,9 @@ import type {
 	TypeScriptModuleExportsContract,
 	TypeScriptModuleCache,
 } from "src/module-resolution/types";
-import { SHARED_MODULE_CACHES } from "src/module-resolution/constants";
+import { SHARED_MODULE_CACHES } from "src/constants";
 import { TypeScriptProjectResolutionCache } from "src/module-resolution/type_script_project_resolution_cache";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _import declaration inspection_, _export declaration resolution_. **/
 export class TypeScriptModuleExports implements TypeScriptModuleExportLookupContract {
@@ -114,12 +114,7 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportLookupCont
 			resolution,
 			source_io,
 		);
-		this.import_resolver = new TypeScriptModulePathResolver(
-			project_root,
-			source_files,
-			filesystem_fallback,
-			source_io,
-		);
+		this.import_resolver = new TypeScriptModulePathResolver(project_root, source_files, filesystem_fallback, source_io);
 	}
 
 	/** Responsibilities: _collection named import bindings_. **/

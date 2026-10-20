@@ -1,11 +1,8 @@
 import ts from "typescript";
 
-import type {
-	TypeScriptAstTraversalContract,
-	TypeScriptNodeRulesContract,
-	UndefinedCheckRulesContract,
-	TypeScriptRuleTreeTraversalContract,
-} from "src/protocols";
+import type { TypeScriptAstTraversalContract, TypeScriptRuleTreeTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
+import type { UndefinedCheckRulesContract } from "src/shared_services_protocols";
 import type { RuleContextData } from "src/types";
 
 /** Responsibilities: _TypeScript rule-tree traversal_, _constructor state propagation_. **/

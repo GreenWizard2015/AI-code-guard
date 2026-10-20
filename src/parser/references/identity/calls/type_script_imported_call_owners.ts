@@ -1,10 +1,10 @@
 import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
-import type { TypeScriptCallReturnAnalysisContract } from "src/protocols";
+import type { TypeScriptCallReturnAnalysisContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
 import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
 import ts from "typescript";
-import type { TypeScriptImportedCallOwnersContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _external owners_, _owner identity_. **/
 export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwnersContract {

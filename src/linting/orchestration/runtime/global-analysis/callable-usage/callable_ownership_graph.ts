@@ -1,10 +1,12 @@
 import type { CallableClassIndex, CallableProjectIndex, ParsedFile } from "src/metrics/types";
 import type { AstClassNode } from "src/types";
-import type { CallableSymbolIndexContract, NameRelationsResolver, StringReadonlySetMap, StringSetMap } from "src/protocols";
+import type { CallableSymbolIndexContract } from "src/analysis_protocols";
+import type { NameRelationsResolver } from "src/runtime_types";
+import type { StringReadonlySetMap, StringSetMap } from "src/analysis_types";
 import { CallableSymbolIndex } from "src/linting/orchestration/runtime/composition/callable_symbol_index";
 import { CallableSourceIdentityGraph } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_source_identity_graph";
 import { CallableConcreteDescendantIndex } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_concrete_descendant_index";
-import type { CallableSourceIdentityGraphContract } from "src/protocols";
+import type { CallableSourceIdentityGraphContract } from "src/analysis_protocols";
 
 /** Responsibilities: _callable ownership traversal_, _typed relationship matching_. **/
 export class CallableOwnershipGraph {

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ReadonlyStringSetMap, StringReadonlySetMap } from "src/protocols";
+import type { ReadonlyStringSetMap, StringReadonlySetMap } from "src/analysis_types";
 
 /** Responsibilities: _constructor dependency extraction_, _field dependency inference_. **/
 export class TypeScriptConstructorDependencies {

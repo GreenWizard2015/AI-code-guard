@@ -1,11 +1,11 @@
 import ts from "typescript";
-import type { SpreadValueAppender } from "src/protocols";
+import type { SpreadValueAppender } from "src/runtime_types";
 import { TypeScriptStaticArraySources } from "src/type_script_static_array_sources";
 import { TypeScriptStaticArrayValues } from "src/type_script_static_array_values";
 import { TypeScriptStaticArrayMethods } from "src/type_script_static_array_methods";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { StaticExpressionArray } from "src/static_expression_array";
-import type { StaticExpressionArrayContract } from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
 
 /** Responsibilities: _object argument binding collection_, _spread argument extraction_. **/
 export class TypeScriptStaticObjectArguments {

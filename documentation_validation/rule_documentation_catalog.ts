@@ -4,19 +4,22 @@ import { DocumentationLanguage, ExampleKind } from "documentation_validation/typ
 import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 import { RuleDocumentationPaths } from "documentation_validation/rule_documentation_paths";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import type {
 	DocumentationExample,
 	DocumentationExampleSourceFile,
 	RuleDocumentationDocument,
 	RuleDocumentationInventory,
 } from "documentation_validation/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _rule document collection_, _example indexing_. **/
 export class RuleDocumentationCatalog {
 	private readonly root: string;
 	private readonly paths: RuleDocumentationPaths;
 	private readonly loop_expander: MarkdownLoopExpander;
+	private readonly boundary_failures: SystemFailureClassificationContract;
 	private readonly source_io: ProjectSourceIOContract;
 
 	/** Responsibilities: _Markdown section extraction_. **/
@@ -141,7 +144,8 @@ export class RuleDocumentationCatalog {
 		this.root = root;
 		this.source_io = source_io;
 		this.paths = new RuleDocumentationPaths(root, rule_ids, source_io);
-		this.loop_expander = new MarkdownLoopExpander();
+		this.boundary_failures = new BoundaryFailureClassifier();
+		this.loop_expander = new MarkdownLoopExpander(this.boundary_failures);
 	}
 
 	/** Responsibilities: _catalog rule documentation access_. **/

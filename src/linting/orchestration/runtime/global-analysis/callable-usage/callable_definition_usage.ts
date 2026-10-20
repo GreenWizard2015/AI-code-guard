@@ -10,12 +10,8 @@ import type {
 	ParsedFile,
 } from "src/metrics/types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type {
-	CallableDefinitionUsageContract,
-	CallableReferenceMatcherContract,
-	SourceReferenceIndexContract,
-	ViolationContract,
-} from "src/protocols";
+import type { CallableDefinitionUsageContract, CallableReferenceMatcherContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableOwnershipResolver } from "src/types";
 
 /** Responsibilities: _callable usage aggregation_, _unused callable diagnostics_. **/

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { QualityCheck } from "test-runner/types";
-import type { QualityCheckDefinitionsContract, QualityCheckContract } from "src/protocols";
+import type { QualityCheckDefinitionsContract, QualityCheckContract } from "src/task_types";
 import {
 	MIN_CONFIDENCE_ARGUMENT,
 	PYTHON_BRIDGE_DIRECTORY,

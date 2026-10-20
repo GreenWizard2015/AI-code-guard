@@ -3,7 +3,17 @@
 from __future__ import annotations
 
 import statistics
-from performance.constants import PYTHON_FILES_KEY, TYPESCRIPT_FILES_KEY
+from performance.constants import (
+    PERFORMANCE_SUMMARY_TITLE,
+    PYTHON_FILES_KEY,
+    PYTHON_LABEL,
+    STAGE_LABEL,
+    TYPESCRIPT_FILES_KEY,
+    TYPESCRIPT_LABEL,
+    TOTAL_FILES_LABEL,
+    WITH_CACHE_LABEL,
+    WITHOUT_CACHE_LABEL,
+)
 from performance.performance_snapshot_files import PerformanceSnapshotFiles
 from performance.protocols import PerformanceSnapshotIOContract, PerformanceSnapshotsContract
 from performance.constants import NO_PERFORMANCE_SNAPSHOTS_MESSAGE
@@ -16,14 +26,17 @@ class PerformanceReport:
         """Responsibilities: _performance summary header rendering_."""
         typescript_count = file_counts.get(TYPESCRIPT_FILES_KEY, 0)
         python_count = file_counts.get(PYTHON_FILES_KEY, 0)
+        language_file_counts = [(TYPESCRIPT_LABEL, typescript_count), (PYTHON_LABEL, python_count)]
+        language_rows: list[str] = []
+        for label, count in language_file_counts:
+            language_rows.append(f"- {label} files: {count}")
         return [
-            "# Linter performance summary",
+            PERFORMANCE_SUMMARY_TITLE,
             "",
-            f"- TypeScript files: {typescript_count}",
-            f"- Python files: {python_count}",
-            f"- Total files: {typescript_count + python_count}",
+            *language_rows,
+            f"- {TOTAL_FILES_LABEL}: {typescript_count + python_count}",
             "",
-            "| Stage | With cache | Without cache |",
+            f"| {STAGE_LABEL} | {WITH_CACHE_LABEL} | {WITHOUT_CACHE_LABEL} |",
             "| --- | ---: | ---: |",
         ]
 

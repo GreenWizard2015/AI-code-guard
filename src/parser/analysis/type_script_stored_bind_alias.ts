@@ -1,5 +1,6 @@
 import ts from "typescript";
-import type { StaticValueResolver, TypeScriptMemberAliasesContract } from "src/protocols";
+import type { StaticValueResolver } from "src/runtime_types";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _alias targets_, _member chains_. **/
 export class TypeScriptStoredBindAlias {

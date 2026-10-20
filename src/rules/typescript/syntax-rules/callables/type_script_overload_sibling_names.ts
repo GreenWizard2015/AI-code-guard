@@ -1,4 +1,4 @@
-import type { TypeScriptOverloadSiblingNamesContract } from "src/protocols";
+import type { TypeScriptOverloadSiblingNamesContract } from "src/typescript_analysis_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _overload declaration indexing_, _sibling declaration counts_. **/

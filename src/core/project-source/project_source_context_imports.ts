@@ -4,12 +4,8 @@ import { ProjectSourcePython } from "src/core/project-source/project_source_pyth
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import { TypeScriptProjectResolutionCache } from "src/module-resolution/type_script_project_resolution_cache";
 import { TypeScriptImportSpecifierCollector } from "src/parser/analysis/type_script_import_specifier_collector";
-import type {
-	LintProjectContextContract,
-	ProjectSourceContextImportsContract,
-	ProjectSourcePythonContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectSourceContextImportsContract, ProjectSourcePythonContract, ProjectSourceIOContract } from "src/source_protocols";
 import type { NormalizedAstFile } from "src/types";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import type {

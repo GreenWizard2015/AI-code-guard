@@ -2,7 +2,7 @@ import ts from "typescript";
 
 import { MAX_IMPORT_FAN_OUT } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { ImportFanOutContract } from "src/linting/orchestration/runtime/protocols";
 import type { NormalizedAstFile } from "src/types";
 

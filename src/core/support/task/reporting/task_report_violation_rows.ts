@@ -1,6 +1,6 @@
 import { REPORT_OTHER_RULES_LABEL, REPORT_RULE_DISPLAY_LIMIT } from "src/core/support/task/constants";
 import { TaskRuleLanguageGroups } from "src/core/support/task/reporting/task_rule_language_groups";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 
 /** Responsibilities: _rule row formatting_, _overflow summary formatting_. **/
 export class TaskReportViolationRows {

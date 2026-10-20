@@ -5,7 +5,7 @@ import type {
 	TypeScriptFactoryArrayObjectSourcesContract,
 	TypeScriptFactoryObjectBindingSourcesContract,
 } from "src/linting/orchestration/runtime/protocols";
-import type { ArrayElementsResolverContract } from "src/protocols";
+import type { ArrayElementsResolverContract } from "src/analysis_types";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 
 /** Responsibilities: _object binding source resolution_, _array binding source resolution_. **/

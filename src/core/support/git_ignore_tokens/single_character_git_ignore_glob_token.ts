@@ -1,4 +1,4 @@
-import type { GitIgnoreGlobTokenContract } from "src/protocols";
+import type { GitIgnoreGlobTokenContract } from "src/runtime_protocols";
 
 /** Responsibilities: _single character matching_, _path separator exclusion_. **/
 export class SingleCharacterGitIgnoreGlobToken implements GitIgnoreGlobTokenContract {
@@ -13,8 +13,8 @@ export class SingleCharacterGitIgnoreGlobToken implements GitIgnoreGlobTokenCont
 	public advance(
 		candidate: string,
 		index: number,
-		current_row: readonly boolean[],
-		next_row: readonly boolean[],
+		current_row: Uint8Array,
+		next_row: Uint8Array,
 	): boolean {
 		if (current_row.length !== next_row.length) {
 			return false;
@@ -23,6 +23,6 @@ export class SingleCharacterGitIgnoreGlobToken implements GitIgnoreGlobTokenCont
 		if (character === undefined || character === this.path_separator) {
 			return false;
 		}
-		return next_row[index + 1] === true;
+		return next_row[index + 1] === 1;
 	}
 }

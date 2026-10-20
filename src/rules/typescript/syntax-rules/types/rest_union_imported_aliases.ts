@@ -1,11 +1,11 @@
 import ts from "typescript";
 import type { ModulePathResolver } from "src/module-resolution/types";
-import type { SourceFileResolver } from "src/protocols";
+import type { SourceFileResolver } from "src/source_types";
 import type {
 	RestUnionAliasDeclarations,
+	RestUnionPreparedAliasCache,
 	RestUnionResolverAliasCache,
 	RestUnionSourceAliasCache,
-	RestUnionPreparedAliasCache,
 } from "src/rules/typescript/syntax-rules/types/types";
 
 /** Responsibilities: _imported type alias resolution_, _rest-union declaration indexing_. **/

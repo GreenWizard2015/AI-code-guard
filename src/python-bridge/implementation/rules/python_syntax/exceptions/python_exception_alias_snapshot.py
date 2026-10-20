@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from implementation.protocols import (
-    PythonExceptionAliasSnapshotContract,
-    PythonExceptionBroadnessContract,
-)
+from implementation.protocols import PythonExceptionBroadnessContract
+from implementation.references.protocols import PythonExceptionAliasSnapshotContract
 
 
 class PythonExceptionAliasSnapshot(PythonExceptionAliasSnapshotContract):

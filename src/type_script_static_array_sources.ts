@@ -2,13 +2,9 @@ import ts from "typescript";
 import { TypeScriptStaticArrayIndexValues } from "src/typescript-aliases/callables/static-array/type_script_static_array_index_values";
 import { TypeScriptStaticArrayValues } from "src/type_script_static_array_values";
 import { TypeScriptStaticArrayMethods } from "src/type_script_static_array_methods";
-import type { StaticExpressionArrayContract } from "src/protocols";
-import type {
-	ExpressionNamesContract,
-	TypeScriptStaticArrayIndexValuesContract,
-	TypeScriptStaticArrayValuesContract,
-	TypeScriptStaticArraySourcesContract,
-} from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
+import type { TypeScriptStaticArrayIndexValuesContract, TypeScriptStaticArrayValuesContract, TypeScriptStaticArraySourcesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _array source alias tracking_, _numeric source tracking_. **/
 export class TypeScriptStaticArraySources implements TypeScriptStaticArraySourcesContract {

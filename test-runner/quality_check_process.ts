@@ -7,7 +7,7 @@ import type {
 	QualityCheckRunOptions,
 	QualityCheckArgument,
 } from "test-runner/types";
-import type { QualityCheckDefinitionsContract, QualityCheckProcessContract, QualityCheckContract } from "src/protocols";
+import type { QualityCheckDefinitionsContract, QualityCheckProcessContract, QualityCheckContract } from "src/task_types";
 import {
 	FORCE_REVIEW_ARGUMENT,
 	REVIEW_AGENT_OPTION,

@@ -1,6 +1,6 @@
 import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_rule";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { join } from "node:path";
 
 describe("AI Code Guard ignore rule", () => {

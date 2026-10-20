@@ -1,13 +1,11 @@
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { Assignment } from "src/types";
 import { TypeScriptCallableBody } from "src/typescript-aliases/callables/type_script_callable_body";
-import type {
-	PointlessAssignmentsContract,
-	PointlessExpressionContract,
-	TypeScriptAssignmentAnalysisContract,
-} from "src/protocols";
+import type { PointlessAssignmentsContract } from "src/analysis_protocols";
+import type { PointlessExpressionContract } from "src/shared_services_protocols";
+import type { TypeScriptAssignmentAnalysisContract } from "src/typescript_runtime_protocols";
 import { RULE_IDS } from "src/constants";
 
 /** Responsibilities: _pointless assignments identification_, _assignment violations addition_. **/

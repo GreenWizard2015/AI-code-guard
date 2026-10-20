@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
-import type { LintStageDuration, LintStageFormatState } from "src/types";
-import type { AsyncOperation, LintStageTimerContract, Operation } from "src/protocols";
+import type { LintStageDuration, LintStageFormatState } from "src/runtime_types";
+import type { AsyncOperation, Operation } from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _stage duration recording_, _hierarchical timing formatting_. **/
 export class LintStageTimer implements LintStageTimerContract {

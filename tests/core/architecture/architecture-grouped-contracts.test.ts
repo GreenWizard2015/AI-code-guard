@@ -4,10 +4,10 @@ import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
 
-import { GROUPED_PROTOCOL_FILES, COMPOSITION_FILES } from "tests/core/constants";
+import { GROUPED_PROTOCOL_FILES, COMPOSITION_FILES } from "tests/core/constants/architecture/constants";
 
 describe("coding-lint architecture and metrics rules - grouped contracts", () => {
-	test("reports a lone protocol in a small Python contract file", () => {
+	test("applies the ordinary minimum file size to a small Python protocol file", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
@@ -23,10 +23,11 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.rule_id === "python-protocol-grouping")).toBe(true);
+		expect(violations.map((violation) => violation.rule_id)).toContain("file-min-size");
+		expect(violations.some((violation) => violation.rule_id === "python-protocol-grouping")).toBe(false);
 	});
 
-	test("allows small files with grouped protocol contracts", () => {
+	test("applies the ordinary minimum file size to grouped Python protocol files", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
@@ -38,11 +39,9 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 
 		expect({
 			short: violations.some((item) => item.message === "file is too short"),
-			protocol: violations.some(
-				(item) => item.message === "small file contains a protocol contract" && item.priority === 2,
-			),
+			protocol: violations.some((item) => item.rule_id === "python-protocol-grouping"),
 			multiple_classes: violations.some((item) => item.message === "file contains too many top-level classes"),
-		}).toEqual({ short: false, protocol: false, multiple_classes: false });
+		}).toEqual({ short: true, protocol: false, multiple_classes: false });
 	});
 
 	test("suggests grouping a lone exception class", () => {

@@ -4,7 +4,7 @@ import ast
 import unittest
 
 from implementation.rules.python_syntax.python_type_factory_names import PythonTypeFactoryNames
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
 from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
 from implementation.rules.python_syntax.decorators.python_decorator_alias_state import PythonDecoratorAliasState

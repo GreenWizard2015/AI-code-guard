@@ -33,7 +33,7 @@ describe("Python package import resolution", () => {
 			"child.py": "from widget import LocalBase\nclass Child(LocalBase):\n    pass\n",
 		};
 		const fixture = new TestFixture();
-		const project = fixture.source_scanner_fixture(source_files);
+		const project = fixture.project_source.source_scanner_fixture(source_files);
 		const violations = fixture.collect_fixture_violations(source_files);
 		const resolver = new ProjectSourcePython();
 		const imported_module = resolver.python_import_path(
@@ -55,7 +55,7 @@ describe("Python package import resolution", () => {
 			"child.py": "from logging import LocalBase\nclass Child(LocalBase):\n    pass\n",
 		};
 		const fixture = new TestFixture();
-		const project = fixture.source_scanner_fixture(source_files);
+		const project = fixture.project_source.source_scanner_fixture(source_files);
 		const violations = fixture.collect_fixture_violations(source_files);
 		const resolver = new ProjectSourcePython();
 		const imported_module = resolver.python_import_path(

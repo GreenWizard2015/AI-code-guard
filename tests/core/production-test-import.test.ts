@@ -23,7 +23,7 @@ describe("production test import lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		const violations = analyzer.collect_violations();
@@ -52,7 +52,7 @@ describe("production test import lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations().map((item) => item.rule_id)).toEqual(["production-test-import"]);
@@ -73,7 +73,7 @@ describe("production test import lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations().map((item) => item.rule_id)).toEqual(["production-test-import"]);
@@ -95,7 +95,7 @@ describe("production test import lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations().map((item) => item.rule_id)).toEqual(["production-test-import"]);
@@ -116,7 +116,7 @@ describe("production test import lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations()).toEqual([]);

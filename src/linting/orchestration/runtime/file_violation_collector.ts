@@ -1,22 +1,18 @@
 import { DirectoryRules } from "src/rules/support/directory_rules";
-import type { LintSourceRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
 import type { RemainingViolationOptions } from "src/model/types/types";
-import type {
-	CodingRuleLinterContract,
-	FileViolationCollectorContract,
-	TestFileOrganizationContract,
-	TestTargetsContract,
-	ViolationContract,
-} from "src/protocols";
+import type { CodingRuleLinterContract, FileViolationCollectorContract } from "src/shared_services_protocols";
+import type { TestFileOrganizationContract, TestTargetsContract } from "src/testing_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
-import { RULES_BY_ID } from "src/model/constants";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { RULE_IDS } from "src/constants";
 import { TestFileOrganization } from "src/linting/orchestration/runtime/test-targets/test_file_organization";
 import { FileSystemTestPathChecker } from "src/linting/orchestration/runtime/test-targets/file_system_test_path_checker";
 import { TestTargets } from "src/linting/orchestration/runtime/test-targets/test_targets";
 import { FileRemainingViolationCollector } from "src/linting/orchestration/runtime/file_remaining_violation_collector";
-import type { TestTargetImportResolverContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { TestTargetImportResolverContract } from "src/testing_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _test layout validation_, _test target usage validation_. **/
@@ -79,10 +75,8 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 		if (organization.valid(source.relative_path)) {
 			return;
 		}
-		const rule = RULES_BY_ID.get(RULE_IDS.test_file_organization);
-		if (rule !== undefined) {
-			violations.push(rule.violation(file, 1, {}));
-		}
+		const rule = new DiagnosticRule(RULE_IDS.test_file_organization);
+		violations.push(rule.violation(file, 1, {}));
 	}
 
 	/** Responsibilities: _aggregation test target diagnostics_. **/
@@ -103,10 +97,8 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 		if (this.valid_test_targets(targets, source)) {
 			return;
 		}
-		const rule = RULES_BY_ID.get(RULE_IDS.test_targets);
-		if (rule !== undefined) {
-			violations.push(rule.violation(file, 1, {}));
-		}
+		const rule = new DiagnosticRule(RULE_IDS.test_targets);
+		violations.push(rule.violation(file, 1, {}));
 	}
 
 	/** Responsibilities: _test filename eligibility_. **/
@@ -125,10 +117,8 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 		if (this.test_path_syntax.test_file(source.relative_path, true)) {
 			return;
 		}
-		const rule = RULES_BY_ID.get(RULE_IDS.test_file_location);
-		if (rule !== undefined) {
-			violations.push(rule.violation(file, 1, {}));
-		}
+		const rule = new DiagnosticRule(RULE_IDS.test_file_location);
+		violations.push(rule.violation(file, 1, {}));
 	}
 
 	/** Responsibilities: _aggregation remaining file-level violations_. **/

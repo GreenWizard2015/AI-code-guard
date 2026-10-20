@@ -1,8 +1,9 @@
 import ts from "typescript";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MAX_FUNCTION_LINES } from "src/constants";
-import type { JestSetupRulesContract, JestSuiteCollectorContract, ViolationContract } from "src/protocols";
-import type { JestTestSizeContract } from "src/protocols";
+import type { JestSetupRulesContract, JestSuiteCollectorContract } from "src/testing_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { JestTestSizeContract } from "src/testing_protocols";
 import { TypeScriptExpressionIdentity } from "src/model/type_script_expression_identity";
 
 /** Responsibilities: _duplicate setup detection_, _fixture complexity analysis_. **/

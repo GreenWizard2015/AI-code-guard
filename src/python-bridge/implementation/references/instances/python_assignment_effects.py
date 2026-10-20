@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ast
-from implementation.protocols import PythonAssignmentEffectsContract
+from implementation.rules.protocols import PythonAssignmentEffectsContract
 
 
 class PythonAssignmentEffects(PythonAssignmentEffectsContract):

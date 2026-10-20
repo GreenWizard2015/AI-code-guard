@@ -2,7 +2,7 @@ import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
 import { ReportStatus } from "src/core/support/report_status";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 
 /** Responsibilities: _violation fixture creation_, _priority scenario setup_. **/
 class ReportStatusFixture {

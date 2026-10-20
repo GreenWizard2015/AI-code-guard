@@ -8,12 +8,12 @@ from implementation.references.aliases.python_container_aliases import (
 from implementation.rules.control_flow.python_expression_boundary import (
     PythonExpressionBoundary,
 )
-from implementation.ast.scoped_type_aliases import PythonScopedTypeAliases
-from implementation.ast.source_segments import SourceSegments
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.imports.source_segments import SourceSegments
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,
 )
-from implementation.python_coding_issue_collector import (
+from implementation.ast.callables.python_coding_issue_collector import (
     PythonCodingIssueCollector,
 )
 from implementation.rules.python_coding_issue_components import (
@@ -44,7 +44,7 @@ class PythonCollectorFixture:
     def collector(self, tree: ast.AST, source: str) -> PythonCodingIssueCollector:
         """Responsibilities: _coding collector construction_."""
         options = self.options_factory.create(tree, source)
-        context = PythonCodingIssueComponentContext(options.options)
+        context = PythonCodingIssueComponentContext(options)
         primary = PythonCodingIssuePrimaryRules(context)
         components = PythonCodingIssueComponents(context, primary)
         return PythonCodingIssueCollector(

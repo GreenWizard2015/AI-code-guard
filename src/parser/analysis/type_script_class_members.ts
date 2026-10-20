@@ -6,7 +6,7 @@ import { TypeScriptTypeNode } from "src/model/type_script_type_node";
 import { TypeScriptCallbackAliases } from "src/parser/analysis/type_script_callback_aliases";
 
 import type { CallbackCounts, CallbackKind, FieldTypeData } from "src/types";
-import type { TypeScriptClassMembersContract } from "src/protocols";
+import type { TypeScriptClassMembersContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptCallbackAliasesContract } from "src/model/protocols";
 import { PROTECTED_VISIBILITY } from "src/constants";
 

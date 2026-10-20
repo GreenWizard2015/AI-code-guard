@@ -21,13 +21,20 @@ import { RecordingProcess } from "tests/bridge/ts/core/recording-review-process"
 import { StubReviewHooks } from "tests/bridge/ts/core/review-agent/stub-review-hooks";
 import { StubTaskReviewRunner } from "tests/bridge/ts/core/stub_task_review_runner";
 import { COMPLETED_REVIEW_RESULT } from "tests/core/constants";
-import { TaskReviewAgentWorkspace } from "tests/bridge/ts/core/support/task/task-review-agent-workspace";
 
 /** Responsibilities: _review test workspace_, _agent prompt data_. **/
 class TaskReviewAgentFixture {
-	/** Responsibilities: _review test workspace construction_. **/
-	public create(): TaskReviewAgentWorkspace {
-		const root = "/virtual/task-review-agent";
+	public readonly root = "/virtual/task-review-agent";
+	public readonly io: InMemoryFileIO;
+
+	/** Responsibilities: _review workspace state_. **/
+	public constructor() {
+		this.io = new InMemoryFileIO();
+	}
+
+	/** Responsibilities: _review test workspace seeding_. **/
+	public initialize(): void {
+		const root = this.root;
 		const prompt = `# Architecture review agent instructions\n${REVIEW_PATH_PLACEHOLDER}\n${REVIEW_PREAMBLE_PLACEHOLDER}\n`;
 		const files = new Map<string, string>([[join(root, "source.ts"), "export const initial = true;\n"]]);
 		for (const file of REVIEW_DOCUMENT_NAMES) {
@@ -38,16 +45,14 @@ class TaskReviewAgentFixture {
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT), "Cleanup operations.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_FINDING_DOCUMENT), "Finding requirements.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", ON_REVIEW_DOCUMENT), "Defects remaining to find: {N}.\n");
-		const file_io = new InMemoryFileIO();
-		file_io.seed_files(files);
-		return new TaskReviewAgentWorkspace(root, file_io);
+		this.io.seed_files(files);
 	}
 }
 
 describe("task review agent", () => {
-	const fixture_factory = new TaskReviewAgentFixture();
 	test("runs every review stage concurrently and writes completion", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", false, io);
 		const review = new TaskReviewAgent({
@@ -74,7 +79,8 @@ describe("task review agent", () => {
 	});
 
 	test("does not certify completion after a selected stage only", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", false, io);
 		const review = new TaskReviewAgent({
@@ -96,7 +102,8 @@ describe("task review agent", () => {
 	});
 
 	test("runs one initial dialogue per parallel stage when findings are created", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const finding = `${Array.from({ length: 20 }, (_, index) => `line ${index}`).join("\n")}\n`;
 		const runner = new StubTaskReviewRunner({ ...COMPLETED_REVIEW_RESULT, no_issues: false }, finding, false, io);
@@ -117,7 +124,8 @@ describe("task review agent", () => {
 	});
 
 	test("keeps confirmed findings open", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(
 			{ ...COMPLETED_REVIEW_RESULT, no_issues: false },
@@ -147,7 +155,8 @@ describe("task review agent", () => {
 	});
 
 	test("does not certify a source changed during review", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", true, io);
 		const review = new TaskReviewAgent({
@@ -173,7 +182,8 @@ describe("task review agent", () => {
 	});
 
 	test("does not certify a review rejected by the stop hook", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", false, io);
 		const hooks = new StubReviewHooks();
@@ -199,7 +209,8 @@ describe("task review agent", () => {
 	});
 
 	test("does not certify a review when the production hook returns a denial", async () => {
-		const fixture = fixture_factory.create();
+		const fixture = new TaskReviewAgentFixture();
+		fixture.initialize();
 		const { root, io } = fixture;
 		const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", false, io);
 		const process = new RecordingProcess();
@@ -236,7 +247,8 @@ describe("task review agent", () => {
 	test.each(REVIEW_STAGES.map((stage) => stage.id))(
 		"does not certify a review when the %s stage stop hook is rejected",
 		async (stage) => {
-			const fixture = fixture_factory.create();
+			const fixture = new TaskReviewAgentFixture();
+			fixture.initialize();
 			const { root, io } = fixture;
 			const runner = new StubTaskReviewRunner(COMPLETED_REVIEW_RESULT, "", false, io);
 			const hooks = new StubReviewHooks();

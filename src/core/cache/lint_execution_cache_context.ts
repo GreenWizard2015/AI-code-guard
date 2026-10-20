@@ -13,10 +13,17 @@ import {
 } from "src/core/constants";
 import { AI_CODE_GUARD_DIRECTORY, MISSING_CACHE_VALUE } from "src/constants";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import type { LintExecutionCacheContract, ProjectAnalysisIdentityContract } from "src/protocols";
-import type { CliOptions, LintInputFiles } from "src/types";
-import type { LintDirectoryFingerprint, LintExecutionCacheState, LintFileFingerprint } from "src/types";
+import type { LintExecutionCacheContract } from "src/cache_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { CliOptions } from "src/task_types";
+import type {
+	LintDirectoryFingerprint,
+	LintExecutionCacheState,
+	LintFileFingerprint,
+} from "src/project_analysis_types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _cache identity construction_, _lint execution cache access_. **/
 export class LintExecutionCacheContext {
@@ -29,6 +36,7 @@ export class LintExecutionCacheContext {
 	private readonly project_resolution: TypeScriptProjectResolution;
 	private readonly resolution_identity: string;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _file fingerprint metadata equality_. **/
 	private same_metadata(left: LintFileFingerprint, right: LintFileFingerprint): boolean {
@@ -50,7 +58,9 @@ export class LintExecutionCacheContext {
 				return after_fingerprint;
 			}
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 		return { file, size: -1, mtime_ms: -1, ctime_ms: -1, content_hash };
 	}
@@ -68,7 +78,9 @@ export class LintExecutionCacheContext {
 				return after_fingerprint;
 			}
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 		return { file, size: -1, mtime_ms: -1, ctime_ms: -1, content_hash: MISSING_CACHE_VALUE };
 	}
@@ -193,6 +205,7 @@ export class LintExecutionCacheContext {
 		this.project_resolution = new TypeScriptProjectResolution(resolve(options.root), options.source_io);
 		this.resolution_identity = this.project_resolution.configuration_identity();
 		this.file_io = options.file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _lint execution cache state_. **/

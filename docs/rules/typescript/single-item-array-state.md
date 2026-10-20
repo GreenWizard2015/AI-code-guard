@@ -1,15 +1,20 @@
 # `single-item-array-state`
 
-Description: Do not replace a nullable domain result with an array whose first element is treated as the value, including a temporary `[0]` value followed by an `undefined` guard.
+Description: Do not represent a nullable domain result as a zero-or-one array and extract its value with indexing or array destructuring.
 
 **Bad:**
 
 ```ts
-function find_service(): Service[] {
-	return [];
+interface UserRecord {
+	user_id: string;
 }
 
-const service = find_service()[any_index];
+function find_users(owner_id: string): UserRecord[] {
+	return owner_id.length > 0 ? [{ user_id: owner_id }] : [];
+}
+
+const [user] = find_users("owner-17");
+console.log(user?.user_id);
 ```
 
 ### Replacement
@@ -29,7 +34,10 @@ The rule reports any element access on a locally declared function, method, or a
 
 ```ts
 // File: cli.ts
-function find_items(): string[] { return ["item"]; }
+function find_items(): string[] {
+	return ["item"];
+}
+
 const item = find_items()[0];
 console.log(item);
 ```

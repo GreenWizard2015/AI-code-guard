@@ -1,6 +1,6 @@
 import { basename, extname } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { PlacementFunctionNode } from "src/model/types/types";
 import type { FunctionPlacementRulesContract } from "src/linting/orchestration/runtime/protocols";
 import { FUNCTION_MODULE_NAMES } from "src/constants";

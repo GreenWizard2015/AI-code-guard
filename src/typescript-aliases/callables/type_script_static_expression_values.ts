@@ -1,15 +1,12 @@
 import ts from "typescript";
 import { TypeScriptStaticExpressionBindings } from "src/typescript-aliases/callables/type_script_static_expression_bindings";
-import type {
-	StaticExpressionOperationsContract,
-	StaticExpressionValuesContract,
-	TypeScriptStaticExpressionBindingsContract,
-} from "src/protocols";
+import type { StaticExpressionOperationsContract, StaticExpressionValuesContract } from "src/shared_services_protocols";
+import type { TypeScriptStaticExpressionBindingsContract } from "src/typescript_analysis_protocols";
 import type {
 	StaticExpressionBindingNames,
 	StaticExpressionScopeValues,
 	StaticExpressionValueMap,
-} from "src/typescript-aliases/callables/types";
+} from "src/model/types/types";
 
 /** Responsibilities: _scoped expression value resolution_, _shadow binding resolution_. **/
 export class TypeScriptStaticExpressionValues implements StaticExpressionValuesContract {

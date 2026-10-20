@@ -3,7 +3,7 @@ import { TypeScriptDestructuredAliasCollector } from "src/parser/references/iden
 import { DeclarationPredicates } from "src/parser/analysis/declaration_predicates";
 import type { DestructuredAlias } from "src/model/types";
 import type { TypeScriptPropertySide } from "src/types";
-import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
 import ts from "typescript";
 
 import type {
@@ -232,11 +232,7 @@ export class TypeScriptPropertyState implements TypeScriptPropertyStateContract 
 	}
 
 	/** Responsibilities: _lookup recorded property ownership_. **/
-	public property_owner(
-		owner: string,
-		property: string,
-		side: TypeScriptPropertySide,
-	): string {
+	public property_owner(owner: string, property: string, side: TypeScriptPropertySide): string {
 		const entry = this.properties.get(`${side}.${owner}.${property}`);
 		if (entry === undefined) {
 			return "";

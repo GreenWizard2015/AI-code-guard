@@ -8,9 +8,9 @@ import {
 	MIN_PER_DIRECTORY,
 	PLACEMENT_DIAGNOSTIC_GUIDANCE,
 } from "src/constants";
-import { MODULE_FUNCTION_KIND } from "src/rules/constants";
+import { MODULE_FUNCTION_KIND, MODULE_PROTOCOL_NAME } from "src/rules/constants";
 import { PlacementPath } from "src/linting/orchestration/runtime/global-rules/placement_path";
-import type { PlacementSupportContract } from "src/protocols";
+import type { PlacementSupportContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _placement candidate analysis_, _destination path suggestions_. **/
 export class PlacementSupport implements PlacementSupportContract {
@@ -71,7 +71,7 @@ export class PlacementSupport implements PlacementSupportContract {
 		if (kind === MODULE_TYPE_KIND || kind === MODULE_INTERFACE_KIND || kind === MODULE_PROTOCOL_KIND) {
 			let file_name = "types";
 			if (kind === MODULE_PROTOCOL_KIND) {
-				file_name = "protocols";
+				file_name = MODULE_PROTOCOL_NAME;
 			}
 			return `${prefix}${file_name}${extension}`;
 		}

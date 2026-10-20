@@ -1,5 +1,7 @@
-import type { LintSourceRecord, LintFileNameContract, LintSourceRecordOptions, NormalizedAstFile } from "src/types";
-import type { SourceFileResolver, TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/protocols";
+import type { LintSourceRecord, LintFileNameContract, LintSourceRecordOptions } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
 

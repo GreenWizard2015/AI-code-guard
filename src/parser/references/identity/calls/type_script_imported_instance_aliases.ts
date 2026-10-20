@@ -2,7 +2,7 @@ import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/a
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import type { ModulePathResolver, TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
 import ts from "typescript";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _imported instance owner resolution_, _import alias collection_. **/
 export class TypeScriptImportedInstanceAliases {

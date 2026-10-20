@@ -1,5 +1,5 @@
 import type { PerformanceReportOptions } from "src/model/types/types";
-import type { LintStageDuration } from "src/types";
+import type { LintStageDuration } from "src/runtime_types";
 
 /** Responsibilities: _performance document formatting_, _language file counts_. **/
 export class PerformanceReport {

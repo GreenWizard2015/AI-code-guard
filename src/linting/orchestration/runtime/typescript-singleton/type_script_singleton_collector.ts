@@ -1,13 +1,10 @@
 import ts from "typescript";
 import { TypeScriptSingletonExpressions } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_expressions";
 import { TypeScriptBlockInstanceCapture } from "src/linting/orchestration/runtime/typescript-singleton/type_script_block_instance_capture";
-import type {
-	TypeScriptBlockInstanceCaptureContract,
-	TypeScriptSingletonCollectorContract,
-	TypeScriptSingletonExpressionsContract,
-} from "src/protocols";
+import type { TypeScriptBlockInstanceCaptureContract, TypeScriptSingletonExpressionsContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptSingletonCollectorContract } from "src/typescript_analysis_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _module singleton detection_, _singleton violation reporting_. **/
 export class TypeScriptSingletonCollector implements TypeScriptSingletonCollectorContract {

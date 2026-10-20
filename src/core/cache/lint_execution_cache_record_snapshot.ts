@@ -2,8 +2,8 @@ import type {
 	LintDirectoryFingerprint,
 	LintExecutionCacheRecord,
 	LintFileFingerprint,
-} from "src/types";
-import type { LintExecutionCacheRecordSnapshotContract } from "src/protocols";
+} from "src/project_analysis_types";
+import type { LintExecutionCacheRecordSnapshotContract } from "src/cache_protocols";
 import { ViolationCache } from "src/core/cache/violation_cache";
 
 /** Responsibilities: _cache record snapshot_, _cache record validity_. **/

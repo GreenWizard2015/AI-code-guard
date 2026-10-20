@@ -4,17 +4,16 @@ import ast
 from dataclasses import dataclass
 from typing import Any
 
-from implementation.protocols import (
-    PythonScopeAliasHistoryContract,
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonScopeAliasHistoryContract
+from implementation.rules.protocols import (
     PythonArrayTypeInspectorContract,
-    PythonAstNodeIndexContract,
     PythonReturnArrayAnalyzerContract,
 )
-from implementation.references.aliases.protocols import PythonReferenceAliasesContract
+from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.single_item_array_state.python_scope_alias_history import (
     PythonScopeAliasHistory,
 )
-from implementation.types import OperatorTypes
 
 
 @dataclass(frozen=True)
@@ -114,7 +113,7 @@ class PythonArrayCallAnalyzer:
         self.reference_aliases: PythonReferenceAliasesContract = (
             options.assignment_aliases
         )
-        scope_types: OperatorTypes = {
+        scope_types: set[type[ast.AST]] = {
             ast.Module,
             ast.FunctionDef,
             ast.AsyncFunctionDef,

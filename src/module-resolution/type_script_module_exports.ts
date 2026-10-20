@@ -5,11 +5,11 @@ import { TypeScriptDeclarationIndex } from "src/module-resolution/type_script_de
 import { TypeScriptExportLinksTable } from "src/module-resolution/type_script_export_links_table";
 import { TypeScriptLocalImportTable } from "src/module-resolution/type_script_local_import_table";
 import { TypeScriptModulePathCatalog } from "src/module-resolution/type_script_module_path_catalog";
-import { MODULE_CACHE_KEY_SEPARATOR, SHARED_MODULE_CACHES } from "src/module-resolution/constants";
+import { MODULE_CACHE_KEY_SEPARATOR, SHARED_MODULE_CACHES } from "src/constants";
 import { TypeScriptProjectResolutionCache } from "src/module-resolution/type_script_project_resolution_cache";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { TypeScriptDeclarationsContract, TypeScriptExportLinksContract } from "src/module-resolution/protocols";
-import type { TypeScriptDeclarationIndexContract } from "src/protocols";
+import type { TypeScriptDeclarationIndexContract } from "src/typescript_runtime_protocols";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import type {
 	RecursiveExportResolver,

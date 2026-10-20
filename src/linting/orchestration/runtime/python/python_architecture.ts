@@ -1,6 +1,7 @@
 import { ContractFields } from "src/rules/contract_fields";
 import { ContractNames } from "src/rules/contract_names";
-import type { PythonArchitectureContract, ViolationContract } from "src/protocols";
+import type { PythonArchitectureContract } from "src/python_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstClassNode, AstPythonImport } from "src/types";
 

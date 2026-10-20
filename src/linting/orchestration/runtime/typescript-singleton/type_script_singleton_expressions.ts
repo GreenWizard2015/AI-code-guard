@@ -1,10 +1,6 @@
 import ts from "typescript";
-import type {
-	ImportedNamesContract,
-	TypeScriptClassAliasesContract,
-	TypeScriptFactoryAliasesContract,
-	TypeScriptSingletonExpressionsContract,
-} from "src/protocols";
+import type { ImportedNamesContract } from "src/shared_services_protocols";
+import type { TypeScriptClassAliasesContract, TypeScriptFactoryAliasesContract, TypeScriptSingletonExpressionsContract } from "src/typescript_runtime_protocols";
 import { ImportedNames } from "src/linting/orchestration/runtime/typescript-singleton/imported_names";
 import { TypeScriptClassAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_class_aliases";
 import { TypeScriptFactoryAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_factory_aliases";

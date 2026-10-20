@@ -1,11 +1,8 @@
-import type { ProjectSourcePythonContract } from "src/protocols";
-import type { AstPythonImport, LintSourceRecord, NormalizedAstFile } from "src/types";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { AstPythonImport, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { PythonClassNameSet, PythonClassNamesByFile } from "src/model/types/types";
 import type { PythonExportedSymbolResolverContract } from "src/linting/orchestration/runtime/composition/protocols";
-import type {
-	PythonClassBinding,
-	PythonClassNameSet,
-	PythonClassNamesByFile,
-} from "src/linting/orchestration/runtime/python/types";
 
 /** Responsibilities: _project class resolution_, _protocol ownership resolution_. **/
 export class PythonClassOwnership {
@@ -68,7 +65,7 @@ export class PythonClassOwnership {
 	}
 
 	/** Responsibilities: _binding availability_. **/
-	private available(binding: PythonClassBinding): boolean {
+	private available(binding: ImportedSymbol): boolean {
 		if (binding.file.length === 0) {
 			return false;
 		}
@@ -81,7 +78,7 @@ export class PythonClassOwnership {
 		ast: NormalizedAstFile,
 		base: string,
 		resolver: ProjectSourcePythonContract,
-	): PythonClassBinding {
+	): ImportedSymbol {
 		for (const item of ast.python_imports) {
 			const imported_file = resolver.python_import_path(this.root, file, item.module, this.files);
 			if (imported_file.length === 0) {
@@ -115,7 +112,7 @@ export class PythonClassOwnership {
 		ast: NormalizedAstFile,
 		base: string,
 		resolver: ProjectSourcePythonContract,
-	): PythonClassBinding {
+	): ImportedSymbol {
 		if (this.contains(this.classes, file, base)) {
 			return { file, name: base };
 		}
@@ -139,7 +136,7 @@ export class PythonClassOwnership {
 		ast: NormalizedAstFile,
 		base: string,
 		resolver: ProjectSourcePythonContract,
-	): PythonClassBinding {
+	): ImportedSymbol {
 		if (this.contains(this.protocols, file, base)) {
 			return { file, name: base };
 		}

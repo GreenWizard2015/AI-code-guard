@@ -2,14 +2,11 @@ import ts from "typescript";
 import { TypeScriptStaticArrayIndexValues } from "src/typescript-aliases/callables/static-array/type_script_static_array_index_values";
 import { TypeScriptStaticArrayStructure } from "src/typescript-aliases/callables/static-array/type_script_static_array_structure";
 import { StaticExpressionArray } from "src/static_expression_array";
-import type { StaticExpressionArrayContract } from "src/protocols";
-import type {
-	ExpressionNamesContract,
-	StaticArraySourceAppenderContract,
-	StaticArrayMethodsContract,
-	TypeScriptStaticArrayValuesContract,
-	TypeScriptStaticArrayStructureContract,
-} from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
+import type { StaticArraySourceAppenderContract } from "src/analysis_protocols";
+import type { StaticArrayMethodsContract } from "src/shared_services_protocols";
+import type { TypeScriptStaticArrayValuesContract, TypeScriptStaticArrayStructureContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _array values_, _spread values_. **/
 export class TypeScriptStaticArrayValues

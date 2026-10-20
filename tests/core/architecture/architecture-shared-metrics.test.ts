@@ -12,7 +12,7 @@ import {
 	TYPE_OPERATION_FILES,
 	EXTERNAL_TYPE_FILES,
 	GENERIC_SIGNATURE_FILES,
-} from "tests/core/constants";
+} from "tests/core/constants/architecture/constants";
 
 describe("coding-lint architecture and metrics rules", () => {
 	test("reports shared parameter types only after all thresholds", () => {

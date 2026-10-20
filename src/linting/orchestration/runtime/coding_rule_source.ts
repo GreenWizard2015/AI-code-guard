@@ -1,17 +1,13 @@
 import ts from "typescript";
 
 import type {
-	CodingRuleSourceOptions,
 	NormalizedAstFile,
 	ParseLanguage,
-	PreparedCodingRuleSourceOptions,
 } from "src/types";
-import type {
-	CodingRuleSourceContract,
-	CodingRuleSourceData,
-	SourceFileResolver,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { CodingRuleSourceOptions, CodingRuleSourceData } from "src/source_types";
+import type { CodingRuleSourceContract } from "src/shared_services_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _coding-rule source data storage_, _source language exposure parsing_. **/
@@ -24,7 +20,7 @@ export class CodingRuleSource implements CodingRuleSourceContract {
 	public readonly traversal: TypeScriptAstTraversalContract;
 
 	/** Responsibilities: _source text initialization_, _initialization normalization TypeScript ASTs_. **/
-	public constructor(options: CodingRuleSourceOptions, prepared: PreparedCodingRuleSourceOptions) {
+	public constructor(options: CodingRuleSourceOptions, prepared: CodingRuleSourceData) {
 		this.file = options.file;
 		this.text = options.text;
 		this.normalized_ast = prepared.normalized_ast;

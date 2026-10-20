@@ -1,4 +1,4 @@
-import type { AstCacheEntryContract } from "src/protocols";
+import type { AstCacheEntryContract } from "src/source_protocols";
 import type {
 	AstCallableNodeContract,
 	AstClassField,

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import ts from "typescript";
 
 import type { AstClassNode, DuplicateTypeShape, NamedLine, NamedShape } from "src/types";
-import type { DuplicateTypeShapesContract } from "src/protocols";
+import type { DuplicateTypeShapesContract } from "src/analysis_protocols";
 
 /** Responsibilities: _type shape normalization_, _cross-language duplicate grouping_. **/
 export class DuplicateTypeShapes implements DuplicateTypeShapesContract {

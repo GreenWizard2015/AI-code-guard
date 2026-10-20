@@ -1,17 +1,18 @@
 import { dirname, join } from "node:path";
 import { LintExecutionCacheRecordSnapshot } from "src/core/cache/lint_execution_cache_record_snapshot";
 import { LINT_EXECUTION_CACHE_VERSION } from "src/core/constants";
-import type { LintExecutionCacheContract, LintExecutionCacheRecordSnapshotContract } from "src/protocols";
-import type { LintInputFiles, LintRunResult } from "src/types";
+import type { LintExecutionCacheContract, LintExecutionCacheRecordSnapshotContract } from "src/cache_protocols";
+import type { LintInputFiles, LintRunResult } from "src/project_analysis_types";
 import type {
 	CacheState,
 	LintDirectoryFingerprint,
 	LintExecutionCacheRecord,
 	LintExecutionCacheState,
 	LintFileFingerprint,
-} from "src/types";
+} from "src/project_analysis_types";
 import { ViolationValue } from "src/violation_value";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _complete lint result reuse_, _content invalidation_. **/
 export class LintExecutionCache implements LintExecutionCacheContract {
@@ -24,6 +25,7 @@ export class LintExecutionCache implements LintExecutionCacheContract {
 	private readonly ignored_directories: string[];
 	private readonly directories_snapshot: LintDirectoryFingerprint[];
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _cache record construction_. **/
 	private cache_record(result: LintRunResult): LintExecutionCacheRecord {
@@ -90,6 +92,7 @@ export class LintExecutionCache implements LintExecutionCacheContract {
 		this.ignored_directories = state.ignored_directories;
 		this.directories_snapshot = state.directories;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _cached complete result retrieval_. **/
@@ -102,7 +105,9 @@ export class LintExecutionCache implements LintExecutionCacheContract {
 			}
 			return { available: true, value: this.cache_result(record) };
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return { available: false, value: { files: [], violations: [] } };
 		}
 	}
@@ -115,8 +120,9 @@ export class LintExecutionCache implements LintExecutionCacheContract {
 			this.remove_stale_records(directory);
 			this.persist_record(this.cache_record(result));
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 }

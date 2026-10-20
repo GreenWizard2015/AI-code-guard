@@ -4,7 +4,7 @@ import ast
 from collections.abc import Iterable
 from typing import Any
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.types import JsonObject
 from implementation.rules.constants import PYTHON_FUNCTION_KIND, PYTHON_PROTOCOL_NAME
 

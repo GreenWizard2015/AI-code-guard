@@ -2,7 +2,7 @@ import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
 from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
@@ -15,7 +15,7 @@ from implementation.rules.union.union_annotation_rules import UnionAnnotationRul
 from implementation.rules.union.union_rules import UnionRules
 from implementation.rules.union.union_rules_options import UnionRulesOptions
 from implementation.types import JsonObject
-from tests.python.constants import OPTIONAL_ALIAS_SOURCE, TYPE_SOURCE
+from tests.python.constants import BUILTIN_DECORATOR_ALIAS_SOURCE, OPTIONAL_ALIAS_SOURCE, TYPE_SOURCE
 
 
 class PythonBridgeTypeRuleTest(unittest.TestCase):
@@ -82,6 +82,28 @@ class PythonBridgeTypeRuleTest(unittest.TestCase):
             6,
         )
 
+    def test_optional_alias_resolution(self) -> None:
+        """Responsibilities: _module alias state_."""
+        source = """
+from typing import Optional as Maybe
+
+class Unrelated:
+    pass
+
+"module expression"
+Choice = Maybe
+
+def read(value: Choice[str]) -> Choice[str]:
+    return value
+"""
+        parser = PythonAstTree(source)
+        issues = parser.coding_issues()
+        nullable = [
+            issue for issue in issues if issue["kind"] == "nullable-domain-type"
+        ]
+
+        self.assertEqual(len(nullable), 2)
+
     def test_collects_composite_union_issues(self) -> None:
         """Responsibilities: _composite union diagnostics verification_."""
         source = "Value = A | B\ndef read(value: A | B) -> A | B:\n    return value\n"
@@ -118,3 +140,15 @@ class PythonBridgeTypeRuleTest(unittest.TestCase):
             },
             {"plain": "Payload", "generic": "Payload", "quoted": "Payload", "constructor": "Payload"},
         )
+
+    def test_recognizes_static_method_aliases(self) -> None:
+        """Responsibilities: _static decorator classification_."""
+        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE)
+        kinds = [issue["kind"] for issue in tree.coding_issues()]
+        self.assertIn("python-static-method", kinds)
+
+    def test_recognizes_class_method_aliases(self) -> None:
+        """Responsibilities: _class decorator classification_."""
+        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE)
+        kinds = [issue["kind"] for issue in tree.coding_issues()]
+        self.assertEqual(kinds.count("python-class-method"), 3)

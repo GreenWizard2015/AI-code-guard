@@ -1,9 +1,8 @@
-import type {
-	LintExecutionCacheContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
-import type { CliOptions, LintInputFiles } from "src/types";
+import type { LintExecutionCacheContract } from "src/cache_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { CliOptions } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 export type CompleteCachePreparation = {

@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
-    PythonContainerKeysContract,
-    PythonPropertyDecoratorContract,
-    PythonSubtestAliasesContract,
-)
+from implementation.ast.protocols import PythonSubtestAliasesContract
+from implementation.references.protocols import PythonContainerKeysContract
+from implementation.references.protocols import PythonPropertyDecoratorContract
 from implementation.rules.constants import SPECIAL_NAMES
 from implementation.types import JsonObject
 
@@ -20,6 +18,14 @@ class PythonCodingIssueStages:
             return node.id
         if type(node) is ast.Attribute:
             return node.attr
+        if type(node) is ast.Call:
+            if (
+                type(node.func) is ast.Attribute
+                and node.func.attr == "get"
+                and node.args
+            ):
+                return self.container_keys.static_key(node.args[0])
+            return ""
         if type(node) is not ast.Subscript:
             return ""
         return self.container_keys.static_key(node.slice)

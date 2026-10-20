@@ -1,11 +1,8 @@
 import { PythonAstData } from "src/core/python_ast_data";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
-import type {
-	PythonAstDataContract,
-	PythonClassVariableSingletonsContract,
-	TypeScriptSingletonCollectorContract,
-	ViolationContract,
-} from "src/protocols";
+import type { PythonAstDataContract, PythonClassVariableSingletonsContract } from "src/python_protocols";
+import type { TypeScriptSingletonCollectorContract } from "src/typescript_analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type ts from "typescript";
 
 import type { AstModuleInstance, NormalizedAstFile } from "src/types";

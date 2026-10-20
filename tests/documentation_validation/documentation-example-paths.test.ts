@@ -9,7 +9,7 @@ import type {
 	DocumentationExampleLintContract,
 	DocumentationValidationOperation,
 } from "documentation_validation/types";
-import { DocumentationFixture } from "tests/documentation_validation/documentation-fixture";
+import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 import { CLI_FILE_ORDER_EXAMPLES, MULTI_FILE_MARKDOWN_EXAMPLE } from "tests/documentation_validation/constants";
 import { ViolationValue } from "src/violation_value";
 
@@ -73,7 +73,7 @@ describe("documentation example paths", () => {
 	});
 
 	test("requires cli files to be the last marked file in every language block", () => {
-		const fixture = new DocumentationFixture("/virtual/cli-order", {
+		const fixture = new DocumentationProjectFixture("/virtual/cli-order", {
 			"docs/rules/cli-order.md": CLI_FILE_ORDER_EXAMPLES,
 		});
 		const lint_runner: DocumentationExampleLintContract = {
@@ -123,7 +123,7 @@ describe("documentation example paths", () => {
 	});
 
 	test("keeps all marked files in one documentation example", () => {
-		const fixture = new DocumentationFixture("/virtual/multi-file-example", {
+		const fixture = new DocumentationProjectFixture("/virtual/multi-file-example", {
 			"docs/rules/typescript-multi-file-example.md": MULTI_FILE_MARKDOWN_EXAMPLE,
 		});
 		const documentation_catalog = new RuleDocumentationCatalog(
@@ -142,7 +142,7 @@ describe("documentation example paths", () => {
 	});
 
 	test("selects production, test, and analysis paths from marked files", () => {
-		const fixture = new DocumentationFixture("/virtual/multi-file-paths", {
+		const fixture = new DocumentationProjectFixture("/virtual/multi-file-paths", {
 			"docs/rules/typescript-multi-file-example.md": MULTI_FILE_MARKDOWN_EXAMPLE,
 		});
 		const documentation_catalog = new RuleDocumentationCatalog(

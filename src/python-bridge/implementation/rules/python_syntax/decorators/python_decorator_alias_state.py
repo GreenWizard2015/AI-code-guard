@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonDecoratorAliasGroups
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import PythonDecoratorAliasGroups
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerValuesContract,
     PythonReferenceAliasesContract,

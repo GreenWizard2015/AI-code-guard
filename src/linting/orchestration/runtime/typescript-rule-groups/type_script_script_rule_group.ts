@@ -1,10 +1,8 @@
 import { ObjectLiteralReturns } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_literal_returns";
 import { TypeScriptAstNodeIndex } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/type_script_ast_node_index";
-import type {
-	ObjectLiteralReturnsContract,
-	TypeScriptScriptRuleServicesContract,
-	ViolationContract,
-} from "src/protocols";
+import type { ObjectLiteralReturnsContract } from "src/shared_services_protocols";
+import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import type { TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 

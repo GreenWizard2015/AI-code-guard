@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task_reporting";
 import { LintStageTimer } from "src/lint_stage_timer";
-import type { CliOptions } from "src/types";
+import type { CliOptions } from "src/task_types";
 import { TaskReviewMemoryFixture } from "tests/bridge/ts/core/task-review-memory-fixture";
 
 /** Responsibilities: _review state_, _provider responses_. **/

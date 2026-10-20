@@ -3,10 +3,8 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import (
-    PythonArrayCallAnalyzerContract,
-    PythonAstNodeIndexContract,
-)
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.protocols import PythonArrayCallAnalyzerContract
 from implementation.types import JsonObject
 
 

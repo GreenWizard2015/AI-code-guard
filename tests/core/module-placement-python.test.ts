@@ -26,7 +26,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations().map((item) => item.file)).toEqual(["a/c/b/parser.py"]);
 	});
@@ -47,7 +47,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations().map((item) => item.file)).toEqual(["a/parser.ts"]);
 	});
@@ -68,7 +68,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations()).toEqual([]);
 	});
@@ -90,7 +90,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		const violations = analyzer.collect_violations();
 		const first_violation = violations[0];
@@ -117,7 +117,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations()).toEqual([]);
 	});
@@ -139,7 +139,7 @@ describe("cross-language module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		const violations = analyzer.collect_violations();
 		const violation = violations[0];

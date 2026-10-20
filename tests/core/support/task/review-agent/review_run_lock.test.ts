@@ -21,7 +21,7 @@ describe("review run lock", () => {
 		file_io.directory_operations.create_directory(lock_path);
 		const lock = new ReviewRunLock(root, file_io, process_signal);
 
-		lock.acquire();
+		lock.try_acquire();
 		lock.release();
 
 		expect(file_io.file_paths.path_exists(lock_path)).toBe(false);
@@ -30,7 +30,7 @@ describe("review run lock", () => {
 	test("does not release another owner's replacement lock", () => {
 		const lock_path = join(root, ".ai-code-guard", "review", ".review-run-lock");
 		const lock = new ReviewRunLock(root, file_io, process_signal);
-		lock.acquire();
+		lock.try_acquire();
 		file_io.file_content.write_text(join(lock_path, "owner"), "999999999\nother-owner\n");
 
 		lock.release();
@@ -46,7 +46,7 @@ describe("review run lock", () => {
 		const live_process_signal = new ReviewRunLockProcessSignalFixture(new Set([process.pid]), new Set());
 		const lock = new ReviewRunLock(root, file_io, live_process_signal);
 
-		expect(() => lock.acquire()).toThrow("is recovering");
+		expect(lock.try_acquire()).toBe(false);
 		expect(file_io.file_paths.path_exists(lock_path)).toBe(false);
 	});
 
@@ -56,7 +56,7 @@ describe("review run lock", () => {
 		file_io.file_content.write_text(join(lock_path, "owner"), "999999999\nstale-owner\n");
 		const lock = new ReviewRunLock(root, file_io, process_signal);
 
-		lock.acquire();
+		lock.try_acquire();
 		lock.release();
 
 		expect(file_io.file_paths.path_exists(lock_path)).toBe(false);
@@ -68,7 +68,7 @@ describe("review run lock", () => {
 		const process_watch = process_fixture.watch_recycled_agent(root, file_io);
 		const lock = new ReviewRunLock(root, file_io, process_signal);
 
-		lock.acquire();
+		lock.try_acquire();
 		process_watch.restore();
 
 		expect(process_watch.terminated_pids).not.toContain(-4321);
@@ -83,7 +83,7 @@ describe("review run lock", () => {
 		file_io.file_content.write_text(join(agents_path, "4321"), "4321\nold-start\nold-boot\n");
 		const process_signal = new ReviewRunLockProcessSignalFixture(new Set(), new Set([4321]));
 		const lock = new ReviewRunLock(root, file_io, process_signal);
-		lock.acquire();
+		lock.try_acquire();
 		lock.release();
 
 		expect(process_signal.terminated_signals).toEqual(["4321:SIGTERM", "4321:SIGKILL"]);
@@ -100,7 +100,7 @@ describe("review run lock", () => {
 		file_io.file_content.write_text(join(stale_path, "owner"), "999999998\nabandoned\n");
 		const lock = new ReviewRunLock(root, file_io, process_signal);
 
-		lock.acquire();
+		lock.try_acquire();
 		const stale_path_remains = file_io.file_paths.path_exists(stale_path);
 		lock.release();
 

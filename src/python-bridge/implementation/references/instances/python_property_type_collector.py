@@ -6,10 +6,8 @@ from typing import Any, cast
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonPropertyTypeContract,
-)
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.protocols import PythonPropertyTypeContract
 from implementation.rules.constants import (
     PYTHON_CACHED_PROPERTY_DECORATOR,
     PYTHON_INIT_METHOD,

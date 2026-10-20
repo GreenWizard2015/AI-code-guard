@@ -10,15 +10,14 @@ import type { FileLintRunOptions } from "src/core/types";
 import type {
 	CodingRuleLinterContract,
 	DirectoryRulesContract,
-	GlobalAnalysisCacheContract,
-	LintRunAnalysisContract,
 	LintStageTimerContract,
-	ProjectSourceIOContract,
-	TextFileDiscoveryContract,
-} from "src/protocols";
-import type { ViolationContract } from "src/protocols";
-import type { ProjectAnalysisIdentityContract } from "src/protocols";
-import type { LintAnalysisStage, LintRunResult, LintRunState } from "src/types";
+} from "src/shared_services_protocols";
+import type { GlobalAnalysisCacheContract } from "src/cache_protocols";
+import type { LintRunAnalysisContract, TextFileDiscoveryContract } from "src/runtime_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { LintAnalysisStage, LintRunResult, LintRunState } from "src/project_analysis_types";
 import type { FileLinterOptions } from "src/model/types/types";
 import type { IOContract } from "src/io/protocols";
 
@@ -140,7 +139,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 	public collect_directory(state: LintRunState): ViolationContract[] {
 		const analyzed_files = state.files.filter((file) => !state.ignored_files.has(file));
 		const class_counts = new Map(
-			analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast.classes.length]),
+			analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast.classes]),
 		);
 		const source_asts = new Map(analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast]));
 		return this.directory_rules.collect_directory_violations(

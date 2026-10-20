@@ -3,8 +3,9 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import PythonSysPathAliasesContract
-from implementation.references.aliases.protocols import PythonContainerValuesContract
+from implementation.ast.protocols import PythonSysPathImportAliasesContract
+from protocols import PythonSysPathAliasesContract
+from implementation.references.protocols import PythonContainerValuesContract
 from implementation.rules.constants import PYTHON_DICT_ATTRIBUTE
 
 
@@ -16,7 +17,7 @@ class PythonSysPathReferences:
         value: Any = target.value
         if type(value) is not ast.Name:
             return False
-        if not self.aliases.system_name(value.id):
+        if not self.import_aliases.system_name(value.id):
             return False
         return target.attr == "path"
 
@@ -24,21 +25,21 @@ class PythonSysPathReferences:
         """Responsibilities: _sys.path subscript target_."""
         value: Any = target.value
         if type(value) is ast.Name:
-            return self.aliases.path_name(value.id)
+            return self.import_aliases.path_name(value.id)
         if type(value) is not ast.Attribute:
             return False
         if value.attr != "path":
             return False
         if type(value.value) is not ast.Name:
             return False
-        return self.aliases.system_name(value.value.id)
+        return self.import_aliases.system_name(value.value.id)
 
     def _path_reference(self, value: ast.AST) -> bool:
         """Responsibilities: _sys.path reference resolution_."""
         if type(value) is ast.Name:
-            return self.aliases.path_name(value.id)
+            return self.import_aliases.path_name(value.id)
         if type(value) is ast.Attribute:
-            return self._path_attribute_target(value)
+            return self.aliases.path_target(value)
         if type(value) is ast.Call:
             return self._path_call_reference(value)
         if type(value) is ast.Subscript:
@@ -55,7 +56,7 @@ class PythonSysPathReferences:
             return False
         if type(value.args[0]) is not ast.Name:
             return False
-        if not self.aliases.system_name(value.args[0].id):
+        if not self.import_aliases.system_name(value.args[0].id):
             return False
         return self.aliases.container_keys.static_key(value.args[1]) == "path"
 
@@ -71,7 +72,7 @@ class PythonSysPathReferences:
             return self._path_subscript_target(value)
         if type(owner.value) is not ast.Name:
             return self._path_subscript_target(value)
-        if not self.aliases.system_name(owner.value.id):
+        if not self.import_aliases.system_name(owner.value.id):
             return self._path_subscript_target(value)
         return self.aliases.container_keys.static_key(value.slice) == "path"
 
@@ -92,10 +93,12 @@ class PythonSysPathReferences:
     def __init__(
         self,
         aliases: PythonSysPathAliasesContract,
+        import_aliases: PythonSysPathImportAliasesContract,
         container_values: PythonContainerValuesContract,
     ) -> None:
         """Responsibilities: _sys.path reference setup_."""
         self.aliases: PythonSysPathAliasesContract = aliases
+        self.import_aliases: PythonSysPathImportAliasesContract = import_aliases
         self.container_values: PythonContainerValuesContract = container_values
 
     def path_alias_assignment(self, node: ast.AST) -> bool:

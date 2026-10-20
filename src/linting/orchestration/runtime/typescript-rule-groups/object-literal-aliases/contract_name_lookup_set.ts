@@ -1,4 +1,4 @@
-import type { ContractNameAliasLookupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/types";
+import type { ContractNameAliasLookupContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _project contract lookup_, _local alias overlay_. **/
 export class ContractNameLookupSet implements ContractNameAliasLookupContract {

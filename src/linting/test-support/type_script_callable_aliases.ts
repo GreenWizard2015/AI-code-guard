@@ -1,10 +1,7 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import type {
-	NodeReadonlyStringSetCache,
-	TypeScriptCallableAliasesContract,
-	TypeScriptExpressionAliasesContract,
-} from "src/protocols";
+import type { NodeReadonlyStringSetCache } from "src/cache_types";
+import type { TypeScriptCallableAliasesContract, TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _callable alias collection_, _lexical alias lookup_. **/
 export class TypeScriptCallableAliases implements TypeScriptCallableAliasesContract {

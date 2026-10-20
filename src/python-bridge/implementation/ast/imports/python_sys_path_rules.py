@@ -6,12 +6,16 @@ from implementation.ast.imports.python_sys_path_aliases import PythonSysPathAlia
 from implementation.ast.imports.python_sys_path_references import (
     PythonSysPathReferences,
 )
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
+from implementation.ast.imports.python_sys_path_import_aliases import (
+    PythonSysPathImportAliases,
+)
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from protocols import (
     PythonSysPathAliasesContract,
     PythonSysPathReferencesContract,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.ast.protocols import PythonSysPathImportAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 
 
 class PythonSysPathRules:
@@ -23,9 +27,12 @@ class PythonSysPathRules:
         node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _sys.path diagnostics setup_."""
-        aliases = PythonSysPathAliases(container_aliases, node_index)
+        import_aliases: PythonSysPathImportAliasesContract = (
+            PythonSysPathImportAliases()
+        )
+        aliases = PythonSysPathAliases(container_aliases, node_index, import_aliases)
         references = PythonSysPathReferences(
-            aliases, container_aliases.container_values
+            aliases, import_aliases, container_aliases.container_values
         )
         self.aliases: PythonSysPathAliasesContract = aliases
         self.references: PythonSysPathReferencesContract = references

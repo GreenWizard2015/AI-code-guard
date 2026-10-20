@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonTypingAliasesContract,
-)
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.protocols import PythonTypingAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.constants import PYTHON_UNION_NAME
 
 

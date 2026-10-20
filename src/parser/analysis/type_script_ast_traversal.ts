@@ -1,11 +1,7 @@
 import ts from "typescript";
 
-import type {
-	TypeScriptAstTraversalContract,
-	TypeScriptAstTraversalNode,
-	TypeScriptAstTraversalVisitor,
-	TypeScriptFunctionOwnerVisitor,
-} from "src/protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptAstTraversalNode, TypeScriptAstTraversalVisitor, TypeScriptFunctionOwnerVisitor } from "src/typescript_runtime_types";
 
 /** Responsibilities: _TypeScript AST traversal order_, _constructor context_. **/
 export class TypeScriptAstTraversal implements TypeScriptAstTraversalContract {

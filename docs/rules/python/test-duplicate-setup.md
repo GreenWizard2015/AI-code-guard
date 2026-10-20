@@ -31,7 +31,7 @@ import unittest
 from src.documentation.status import Status
 class TestStatus(unittest.TestCase):
     def test_normalizes_an_input(self) -> None:
-        status = Status(' READY ')
+        status: Status = Status(' READY ')
         status = Status(' READY ')  # <- error
         normalized = status.normalized()
         self.assertEqual(normalized, 'ready')

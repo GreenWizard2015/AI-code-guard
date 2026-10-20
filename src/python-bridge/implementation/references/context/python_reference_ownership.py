@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import UNKNOWN_OWNER_TYPES
 from implementation.references.protocols import (
     PythonLexicalScopeContract,
@@ -10,9 +10,8 @@ from implementation.references.protocols import (
     PythonReferenceNameResolverContract,
     PythonScopedOwnerStateContract,
 )
-from implementation.references.python_lexical_scope import PythonLexicalScope
-from implementation.references.python_scoped_owner_state import (
-    PythonScopedOwnerRecords,
+from implementation.references.context.python_lexical_scope import PythonLexicalScope
+from implementation.references.context.python_scoped_owner_state import (
     PythonScopedOwnerState,
 )
 from implementation.references.context.python_reference_name_index import (
@@ -135,13 +134,13 @@ class PythonReferenceOwnership:
             )
         )
         self.instance_state: PythonScopedOwnerStateContract = PythonScopedOwnerState(
-            PythonScopedOwnerRecords({}, {}, self._instances, True)
+            {}, {}, self._instances, True
         )
         self.collection_state: PythonScopedOwnerStateContract = PythonScopedOwnerState(
-            PythonScopedOwnerRecords({}, {}, self._collection_elements, False)
+            {}, {}, self._collection_elements, False
         )
         self.property_state: PythonScopedOwnerStateContract = PythonScopedOwnerState(
-            PythonScopedOwnerRecords({}, {}, dict(self._properties), True)
+            {}, {}, dict(self._properties), True
         )
 
     def instance_owner(self, name: str, node: ast.AST) -> str:

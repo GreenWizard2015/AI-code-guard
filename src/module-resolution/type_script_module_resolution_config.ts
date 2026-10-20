@@ -1,5 +1,5 @@
 import { resolve as resolve_path } from "node:path";
-import { MODULE_CACHE_DISK_SCOPE, MODULE_CACHE_SNAPSHOT_SCOPE } from "src/module-resolution/constants";
+import { MODULE_CACHE_DISK_SCOPE, MODULE_CACHE_SNAPSHOT_SCOPE } from "src/constants";
 import type {
 	TypeScriptModuleResolutionContract,
 	TypeScriptModuleResolutionOptions,

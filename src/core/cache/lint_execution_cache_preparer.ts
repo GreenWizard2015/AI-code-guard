@@ -4,14 +4,11 @@ import { ProjectSourceSnapshot } from "src/core/cache/project_source_snapshot";
 import type { CompleteCachePreparation } from "src/core/cache/types";
 import { CACHE_INPUT_CONFIRMATION_STAGE, EMPTY_SOURCE_TEXTS, INPUT_TOPOLOGY_CHANGED_MESSAGE } from "src/core/constants";
 import { CACHE_INPUT_STABILITY_ATTEMPTS } from "src/core/constants";
-import type {
-	LintInputDiscoveryContract,
-	LintStageTimerContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourceIOContract,
-	ProjectSourceSnapshotContract,
-} from "src/protocols";
-import type { CliOptions, LintInputFiles } from "src/types";
+import type { LintInputDiscoveryContract, ProjectSourceIOContract, ProjectSourceSnapshotContract } from "src/source_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { CliOptions } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _stable source input preparation_, _complete-run cache selection_. **/

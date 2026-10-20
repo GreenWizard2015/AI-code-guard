@@ -4,11 +4,8 @@ import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_memb
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 import { DynamicObjectMemberAliases } from "src/typescript-aliases/dynamic_object_member_aliases";
-import type {
-	DynamicObjectMemberAliasesContract,
-	ObjectValueRulesContract,
-	TypeScriptMemberAliasesContract,
-} from "src/protocols";
+import type { DynamicObjectMemberAliasesContract, ObjectValueRulesContract } from "src/runtime_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import { TYPESCRIPT_PROTOTYPE_NAME } from "src/constants";
 
 /** Responsibilities: _object alias resolution_, _object value diagnostics_. **/
@@ -17,7 +14,11 @@ export class ObjectValueRules implements ObjectValueRulesContract {
 	private readonly nested_object_aliases: DynamicObjectMemberAliasesContract;
 	private readonly static_expression_values: TypeScriptStaticExpressionValues;
 	private readonly object_member_aliases: TypeScriptMemberAliasesContract;
+	private readonly prototype_member_aliases: TypeScriptMemberAliasesContract;
+	private readonly prototype_object_aliases: DynamicObjectMemberAliases;
 	private readonly prototype_name = TYPESCRIPT_PROTOTYPE_NAME;
+	private readonly prototype_path: string;
+	private readonly string_conversion_name: string;
 	private readonly call_name = "call";
 
 	/** Responsibilities: _Object receiver resolution_. **/
@@ -60,9 +61,15 @@ export class ObjectValueRules implements ObjectValueRulesContract {
 	}
 
 	/** Responsibilities: _classification expression invocation object_. **/
-	private object_string_call(expression: ts.Expression): boolean {
+	private object_string_call(expression: ts.Expression, source: ts.Node): boolean {
 		expression = this.object_aliases.unwrapped(expression);
-		if (this.member_name(expression, expression) !== "toString") {
+		if (ts.isIdentifier(expression)) {
+			return this.prototype_member_aliases.property(expression, source, this.string_conversion_name);
+		}
+		if (this.prototype_object_aliases.member(expression, source, this.string_conversion_name)) {
+			return true;
+		}
+		if (this.member_name(expression, expression) !== this.string_conversion_name) {
 			return false;
 		}
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
@@ -131,9 +138,15 @@ export class ObjectValueRules implements ObjectValueRulesContract {
 	public constructor() {
 		this.object_aliases = new TypeScriptExpressionAliases("Object");
 		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
+		this.prototype_path = `Object.${this.prototype_name}`;
+		this.string_conversion_name = "toString";
 		this.object_member_aliases = new TypeScriptMemberAliases("Object", (expression, node) =>
 			this.static_expression_values.value(expression, node),
 		);
+		this.prototype_member_aliases = new TypeScriptMemberAliases(this.prototype_path, (expression, node) =>
+			this.static_expression_values.value(expression, node),
+		);
+		this.prototype_object_aliases = new DynamicObjectMemberAliases(this.prototype_path);
 		this.nested_object_aliases = new DynamicObjectMemberAliases("Object");
 	}
 
@@ -145,7 +158,7 @@ export class ObjectValueRules implements ObjectValueRulesContract {
 		if (!ts.isPropertyAccessExpression(node.expression) && !ts.isElementAccessExpression(node.expression)) {
 			return false;
 		}
-		return this.object_string_call(node.expression.expression);
+		return this.object_string_call(node.expression.expression, node);
 	}
 
 	/** Responsibilities: _reporting object assignment operations_. **/

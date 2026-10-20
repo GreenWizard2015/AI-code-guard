@@ -1,38 +1,24 @@
 import { dirname, resolve } from "node:path";
+import type { LintFileDiscoveryContract } from "src/analysis_protocols";
 import { LintFileDiscovery } from "src/core/lint_file_discovery";
 import { ProjectPathRelation } from "src/core/support/project_path_relation";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
-import type {
-	LintFileDiscoveryContract,
-	LintInputFileSelectorContract,
-	TextFileDiscoveryContract,
-} from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
 import type {
 	LintInputCandidateState,
 	LintInputSelection,
 	LintProjectCandidates,
 	LintRawInputCandidates,
-} from "src/types";
-import type { LintInputFiles } from "src/types";
+} from "src/project_analysis_types";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { TextFileDiscoveryContract } from "src/runtime_protocols";
+import type { LintInputFileSelectorContract } from "src/source_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _complete-cache input file discovery_, _Git-ignore filtering_. **/
 export class LintInputFileSelector implements LintInputFileSelectorContract {
 	private readonly empty_ignored_directories: Set<string>;
 	private readonly text_files: TextFileDiscoveryContract;
 	private readonly source_io: ProjectSourceIOContract;
-
-	/** Responsibilities: _ignored directory normalization_. **/
-	private configured_ignored_directories(repo_root: string, configured: readonly string[]): ReadonlySet<string> {
-		const paths: string[] = [];
-		for (const value of configured) {
-			const trimmed = value.trim();
-			if (trimmed.length > 0) {
-				paths.push(resolve(repo_root, trimmed).replaceAll("\\", "/"));
-			}
-		}
-		return new Set(paths);
-	}
 
 	/** Responsibilities: _ignored path classification_. **/
 	private is_ignored_file(file: string, ignored_directories: ReadonlySet<string>): boolean {
@@ -146,7 +132,7 @@ export class LintInputFileSelector implements LintInputFileSelectorContract {
 		configured: readonly string[],
 		explicit_files: readonly string[] = [],
 	): LintRawInputCandidates {
-		const ignored_directories = this.configured_ignored_directories(repo_root, configured);
+		const ignored_directories = this.ignored_directories(repo_root, configured);
 		const discovery = new LintFileDiscovery(this.source_io);
 		const source_candidates = this.raw_file_candidates(repo_root, explicit_files, ignored_directories, discovery);
 		const target_candidates = source_candidates.target_candidates;
@@ -205,6 +191,18 @@ export class LintInputFileSelector implements LintInputFileSelectorContract {
 		this.empty_ignored_directories = new Set<string>();
 		this.text_files = text_files;
 		this.source_io = source_io;
+	}
+
+	/** Responsibilities: _ignored directory normalization_. **/
+	public ignored_directories(repo_root: string, configured: readonly string[]): ReadonlySet<string> {
+		const paths: string[] = [];
+		for (const value of configured) {
+			const trimmed = value.trim();
+			if (trimmed.length > 0) {
+				paths.push(resolve(repo_root, trimmed).replaceAll("\\", "/"));
+			}
+		}
+		return new Set(paths);
 	}
 
 	/** Responsibilities: _project file selection_. **/

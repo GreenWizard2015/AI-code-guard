@@ -2,7 +2,7 @@ import ts from "typescript";
 import { ConsoleMock } from "src/rules/typescript/syntax-rules/runtime/console_mock";
 import type { RuleContextData } from "src/types";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import type { TypeScriptTestNodeRulesContract } from "src/protocols";
+import type { TypeScriptTestNodeRulesContract } from "src/typescript_runtime_protocols";
 import { RULE_IDS } from "src/constants";
 
 /** Responsibilities: _Jest assertion checks_, _console mock policy checks_. **/

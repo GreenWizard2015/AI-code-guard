@@ -3,6 +3,7 @@ import ast
 PYTHON_ISINSTANCE_FUNCTION = "isinstance"
 PYTHON_CALLABLE_FUNCTION = "callable"
 CALLABLE_FEATURE_DETECTION_RULE = "callable-feature-detection"
+SYS_PATH_INSTANCE_OWNER = "instance"
 PYTHON_ATTRIBUTE_REFLECTION_CALLS: frozenset[str] = frozenset({"getattr", "setattr"})
 REFLECTION_CALLS: frozenset[str] = (
     frozenset({PYTHON_ISINSTANCE_FUNCTION, PYTHON_CALLABLE_FUNCTION})
@@ -136,7 +137,7 @@ STATEMENT_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
     ast.AugAssign: (15,),
     ast.Try: (3,),
     ast.TryStar: (3,),
-    ast.Call: (4, 10),
+    ast.Call: (4, 5, 10),
     ast.Name: (5,),
     ast.Attribute: (5, 10),
     ast.Subscript: (5, 10, 18),

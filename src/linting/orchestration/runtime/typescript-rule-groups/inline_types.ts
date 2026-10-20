@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { InlineViolationFlags } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 /** Responsibilities: _inline type classification_, _nested object diagnostics_. **/

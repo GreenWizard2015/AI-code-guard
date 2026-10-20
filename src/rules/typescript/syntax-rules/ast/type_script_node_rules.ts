@@ -6,27 +6,17 @@ import { ProxyCall } from "src/rules/typescript/syntax-rules/callables/proxy_cal
 import { TypeScriptAssignmentPredicates } from "src/parser/internals/type_script_assignment_predicates";
 import { TypeScriptTypeRules } from "src/rules/typescript/syntax-rules/types/type_script_type_rules";
 import { TypeScriptArrayStateRules } from "src/rules/typescript/syntax-rules/types/type_script_array_state_rules";
-import type {
-	TypeScriptArrayStateRulesContract,
-	TypeScriptAssignmentPredicatesContract,
-	ProxyRulesContract,
-	ValueRulesContract,
-	RestUnionContractRuleContract,
-	TypeScriptClassNodeRulesContract,
-	TypeScriptNodeTypeRulesContract,
-} from "src/protocols";
-import type { DynamicRuntimeUsageContract } from "src/protocols";
+import type { TypeScriptArrayStateRulesContract, TypeScriptAssignmentPredicatesContract, TypeScriptClassNodeRulesContract, TypeScriptNodeTypeRulesContract } from "src/typescript_analysis_protocols";
+import type { ProxyRulesContract, ValueRulesContract, RestUnionContractRuleContract } from "src/analysis_protocols";
+import type { DynamicRuntimeUsageContract } from "src/runtime_protocols";
 import { ValueRules } from "src/linting/value_rules";
 import { RestUnionContractRule } from "src/rules/typescript/syntax-rules/types/rest_union_contract_rule";
 import ts from "typescript";
 import { RULE_IDS } from "src/constants";
 import type { RuleContextData } from "src/types";
-import type { TypeScriptNodeRulesContract } from "src/protocols";
-import type { TypeScriptTestNodeRulesContract } from "src/protocols";
+import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptTestNodeRulesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptCallExpressionInspector } from "src/parser/analysis/type_script_call_expression_inspector";
-import { TypeScriptArrayStateInspector } from "src/rules/typescript/syntax-rules/types/type_script_array_state_inspector";
-import { TypeScriptCallAliases } from "src/rules/typescript/syntax-rules/callables/type_script_call_aliases";
-import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { TypeScriptVariableDeclarationIndex } from "src/linting/type_script_variable_declaration_index";
 
@@ -91,6 +81,7 @@ export class TypeScriptNodeRules implements TypeScriptNodeRulesContract {
 	private readonly call_rule_kinds = this.syntax_kind_flags([
 		ts.SyntaxKind.CallExpression,
 		ts.SyntaxKind.ElementAccessExpression,
+		ts.SyntaxKind.VariableDeclaration,
 		ts.SyntaxKind.IfStatement,
 	]);
 	private readonly guard_rule_kinds = this.syntax_kind_flags([
@@ -179,6 +170,10 @@ export class TypeScriptNodeRules implements TypeScriptNodeRulesContract {
 			this.array_state_rules.append(node, context);
 			return;
 		}
+		if (kind === ts.SyntaxKind.VariableDeclaration) {
+			this.array_state_rules.append(node, context);
+			return;
+		}
 		if (kind === ts.SyntaxKind.IfStatement) {
 			this.array_state_rules.append(node, context);
 		}
@@ -240,10 +235,7 @@ export class TypeScriptNodeRules implements TypeScriptNodeRulesContract {
 		this.class_rules = new TypeScriptClassNodeRules(this.value_rules);
 		this.script_type_rules = new TypeScriptTypeRules(variable_declaration_index);
 		const expression_names = new TypeScriptExpressionNames();
-		const binding_aliases = new TypeScriptBindingAliases(expression_names);
-		const call_aliases = new TypeScriptCallAliases(expression_names, binding_aliases);
-		const inspector = new TypeScriptArrayStateInspector(expression_names, call_aliases);
-		this.array_state_rules = new TypeScriptArrayStateRules(inspector);
+		this.array_state_rules = new TypeScriptArrayStateRules();
 		this.proxy_rules = new ProxyRules(new ProxyCall(expression_names));
 	}
 

@@ -1,7 +1,8 @@
 import ts from "typescript";
-import type { TypeScriptCallExpressionInspectorContract, TypeScriptMemberAliasesContract } from "src/protocols";
+import type { TypeScriptCallExpressionInspectorContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import type { TypeScriptExpressionAliasesContract } from "src/protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";

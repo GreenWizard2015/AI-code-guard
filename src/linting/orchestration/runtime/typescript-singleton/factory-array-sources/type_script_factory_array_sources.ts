@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ArrayValuesVisitor } from "src/protocols";
+import type { ArrayValuesVisitor } from "src/runtime_types";
 import { TypeScriptFactoryArrayObjectSources } from "src/linting/orchestration/runtime/typescript-singleton/factory-array-sources/type_script_factory_array_object_sources";
 import type {
 	FactoryObjectSourcesContract,

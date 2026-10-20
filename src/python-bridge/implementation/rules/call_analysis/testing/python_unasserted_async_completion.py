@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAsyncNameOverlayContract,
     PythonAstNodeIndexContract,
 )
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
-from implementation.rules.call_analysis.python_async_name_overlay import (
+from implementation.rules.call_analysis.testing.python_async_name_overlay import (
     PythonAsyncNameOverlay,
 )
 from implementation.rules.call_analysis.testing.python_test_execution_region import (

@@ -1,13 +1,10 @@
 import { PrivateAccessAnalysis } from "src/linting/orchestration/runtime/typescript-rule-groups/private-member-access/private_access_analysis";
 import { PrivateMemberDeclarationNames } from "src/linting/orchestration/runtime/typescript-rule-groups/private-member-access/private_member_declaration_names";
 import { PrivateMemberKeys } from "src/linting/orchestration/runtime/typescript-rule-groups/private-member-access/private_member_keys";
-import type {
-	PrivateMemberAccessContract,
-	PrivateMemberDeclarationNamesContract,
-	PrivateMemberKeysContract,
-	ViolationContract,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { PrivateMemberAccessContract, PrivateMemberDeclarationNamesContract } from "src/analysis_protocols";
+import type { PrivateMemberKeysContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _private access analysis_, _rule dependency setup_. **/

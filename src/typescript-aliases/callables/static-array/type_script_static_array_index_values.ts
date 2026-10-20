@@ -1,11 +1,9 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptStaticArrayIndexOperations } from "src/typescript-aliases/callables/static-array/type_script_static_array_index_operations";
-import type { StaticExpressionArrayContract } from "src/protocols";
-import type {
-	StaticArraySourceAppenderContract,
-	TypeScriptStaticArrayIndexValuesContract,
-} from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { StaticArraySourceAppenderContract } from "src/analysis_protocols";
+import type { TypeScriptStaticArrayIndexValuesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _static index expression resolution_, _indexed value collection_. **/
 export class TypeScriptStaticArrayIndexValues implements TypeScriptStaticArrayIndexValuesContract {

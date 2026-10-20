@@ -1,5 +1,5 @@
 import { ContractNames } from "src/rules/contract_names";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstClassNode } from "src/types";
 import { describe, expect, test } from "@jest/globals";
 

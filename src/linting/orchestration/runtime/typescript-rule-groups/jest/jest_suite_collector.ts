@@ -1,11 +1,11 @@
 import ts from "typescript";
-import type { CallableConsumer } from "src/protocols";
+import type { CallableConsumer } from "src/runtime_types";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 
 import type { JestSuite } from "src/types";
-import { JEST_DESCRIBE_NAME } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JEST_DESCRIBE_NAME } from "src/constants";
 
 /** Responsibilities: _Jest suite discovery_, _Jest suite alias resolution_. **/
 export class JestSuiteCollector {

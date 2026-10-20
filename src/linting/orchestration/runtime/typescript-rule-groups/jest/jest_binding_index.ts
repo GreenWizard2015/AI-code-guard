@@ -1,6 +1,6 @@
 import ts from "typescript";
-import type { JestNodeScopes, JestScopeBindingMaps, JestScopeParents } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/types";
-import type { JestBindingIndexContract } from "src/protocols";
+import type { JestNodeScopes, JestScopeBindingMaps, JestScopeParents } from "src/model/types/types";
+import type { JestBindingIndexContract } from "src/testing_protocols";
 
 /** Responsibilities: _Jest lexical declaration identity_, _scope shadow resolution_. **/
 export class JestBindingIndex implements JestBindingIndexContract {
@@ -9,6 +9,7 @@ export class JestBindingIndex implements JestBindingIndexContract {
 	private readonly node_scopes: JestNodeScopes;
 	private readonly source_file: ts.SourceFile;
 	private readonly indexed_sources: WeakSet<ts.SourceFile>;
+	public readonly async_declarations: Set<ts.Declaration>;
 
 	/** Responsibilities: _lexical scope boundary selection_. **/
 	private scope_boundary(node: ts.Node, inherited_scope: ts.Node): ts.Node {
@@ -45,6 +46,9 @@ export class JestBindingIndex implements JestBindingIndexContract {
 		}
 		if ((ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name !== undefined) {
 			this.register(scope, node.name.text, node);
+			if (this.async_callable(node)) {
+				this.async_declarations.add(node);
+			}
 		}
 	}
 
@@ -90,34 +94,21 @@ export class JestBindingIndex implements JestBindingIndexContract {
 		this.node_scopes = new WeakMap<ts.Node, ts.Node>();
 		this.source_file = source_file;
 		this.indexed_sources = new WeakSet<ts.SourceFile>();
+		this.async_declarations = new Set<ts.Declaration>();
 	}
 
-	/** Responsibilities: _identifier declaration membership_. **/
-	public module_binding(identifier: ts.Identifier, declarations: ReadonlySet<ts.Declaration>): boolean {
+	/** Responsibilities: _lexical declaration membership resolution_. **/
+	public binding_is(identifier: ts.Identifier, declarations: ReadonlySet<ts.Declaration>): boolean {
 		this.ensure_indexed();
 		let scope = this.node_scopes.get(identifier);
 		while (scope !== undefined) {
-			const declaration = this.bindings.get(scope)?.get(identifier.text);
-			if (declaration !== undefined) {
-				return declarations.has(declaration);
+			const scope_bindings = this.bindings.get(scope);
+			if (scope_bindings?.has(identifier.text)) {
+				const declaration = scope_bindings.get(identifier.text);
+				return declaration !== undefined && declarations.has(declaration);
 			}
 			scope = this.parent_scopes.get(scope);
 		}
 		return false;
 	}
-
-	/** Responsibilities: _async binding classification_. **/
-	public async_binding(identifier: ts.Identifier): boolean {
-		this.ensure_indexed();
-		let scope = this.node_scopes.get(identifier);
-		while (scope !== undefined) {
-			const declaration = this.bindings.get(scope)?.get(identifier.text);
-			if (declaration !== undefined) {
-				return this.async_callable(declaration);
-			}
-			scope = this.parent_scopes.get(scope);
-		}
-		return false;
-	}
-
 }

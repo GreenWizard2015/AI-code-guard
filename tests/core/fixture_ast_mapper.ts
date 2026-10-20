@@ -1,7 +1,7 @@
 import { LintFileName } from "src/core/context/lint_file_name";
 import { ClassReporting } from "src/core/support/source-analysis/class_reporting";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstCallableNodeContract, AstClassNode, AstTypeKind, AstVisibility } from "src/types";
 import { FixtureLists } from "tests/core/fixture-lists";
 import type { FixtureCallableNode, FixtureClassNode } from "tests/core/types";

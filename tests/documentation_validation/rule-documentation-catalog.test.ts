@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
-import { DocumentationFixture } from "tests/documentation_validation/documentation-fixture";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
 import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
 import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
@@ -15,7 +16,7 @@ describe("rule documentation catalog", () => {
 			"{% endfor %}",
 			"```",
 		].join("\n");
-		const expander = new MarkdownLoopExpander();
+		const expander = new MarkdownLoopExpander(new BoundaryFailureClassifier());
 		const expanded = expander.expand(markdown);
 
 		const item_lines = expanded.split("\n").filter((line) => line.startsWith("const item_"));
@@ -23,7 +24,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("extracts each documented language and its good and bad examples", () => {
-		const fixture = new DocumentationFixture("/virtual/docs", {
+		const fixture = new DocumentationProjectFixture("/virtual/docs", {
 			"docs/rules/typescript/empty-error-handler.md": [
 				"# empty-error-handler",
 				"## Bad",
@@ -80,7 +81,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("uses the rule document folder as the language boundary", () => {
-		const fixture = new DocumentationFixture("/virtual/docs", {
+		const fixture = new DocumentationProjectFixture("/virtual/docs", {
 			"docs/rules/typescript/in-operator.md": "# in-operator\n",
 			"docs/rules/python/test-shape.md": "# test-shape\n",
 		});
@@ -105,7 +106,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("requires separate shared-rule documents for both languages", () => {
-		const fixture = new DocumentationFixture("/virtual/shared-rule", {
+		const fixture = new DocumentationProjectFixture("/virtual/shared-rule", {
 			"docs/rules/typescript/empty-error-handler.md": [
 				"# empty-error-handler",
 				"## Bad",
@@ -154,7 +155,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("collects only present shared-rule documents and reports the missing counterpart", () => {
-		const typescript_fixture = new DocumentationFixture("/virtual/typescript-only", {
+		const typescript_fixture = new DocumentationProjectFixture("/virtual/typescript-only", {
 			"docs/rules/typescript/empty-error-handler.md": "# empty-error-handler\n",
 		});
 		const typescript_catalog = new RuleDocumentationCatalog(
@@ -163,7 +164,7 @@ describe("rule documentation catalog", () => {
 			typescript_fixture.source_io,
 		);
 		const typescript_inventory = typescript_catalog.collect([]);
-		const python_fixture = new DocumentationFixture("/virtual/python-only", {
+		const python_fixture = new DocumentationProjectFixture("/virtual/python-only", {
 			"docs/rules/python/empty-error-handler.md": "# empty-error-handler\n",
 		});
 		const python_catalog = new RuleDocumentationCatalog(
@@ -187,7 +188,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("checks only Bad and Good sections in root-level rule documents", () => {
-		const fixture = new DocumentationFixture("/virtual/neutral-rule", {
+		const fixture = new DocumentationProjectFixture("/virtual/neutral-rule", {
 			"docs/rules/ai-code-guard-directory-ignored.md": [
 				"# ai-code-guard-directory-ignored",
 				"## Bad",
@@ -226,7 +227,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("reports a requested rule that has no documentation file", () => {
-		const fixture = new DocumentationFixture("/virtual/docs", {});
+		const fixture = new DocumentationProjectFixture("/virtual/docs", {});
 		const catalog = new RuleDocumentationCatalog(fixture.root, ["empty-error-handler"], fixture.source_io);
 		const inventory = catalog.collect(["missing-rule"]);
 
@@ -237,7 +238,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("requires a language-specific rule document in its registered directory", () => {
-		const fixture = new DocumentationFixture("/virtual/language-rule", {
+		const fixture = new DocumentationProjectFixture("/virtual/language-rule", {
 			"docs/rules/typescript/in-operator.md": "# in-operator\n",
 			"docs/rules/in-operator.md": "# misplaced\n",
 			"docs/rules/python/in-operator.md": "# wrong-language-copy\n",
@@ -263,7 +264,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("reports the canonical nested path when a language-specific document is missing", () => {
-		const fixture = new DocumentationFixture("/virtual/missing-language-rule", {
+		const fixture = new DocumentationProjectFixture("/virtual/missing-language-rule", {
 			"docs/rules/placeholder.md": "",
 		});
 		const documentation_catalog = new RuleDocumentationCatalog(fixture.root, ["python-test-shape"], fixture.source_io);
@@ -273,7 +274,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("reads multi-file source directly from Markdown", () => {
-		const fixture = new DocumentationFixture("/virtual/inline-example", {
+		const fixture = new DocumentationProjectFixture("/virtual/inline-example", {
 			"docs/rules/example-inline.md": [
 				"## Bad",
 				"```ts",
@@ -312,7 +313,7 @@ describe("rule documentation catalog", () => {
 	});
 
 	test("expands literal loops before extracting source files and removes empty loops", () => {
-		const fixture = new DocumentationFixture("/virtual/loop-example", {
+		const fixture = new DocumentationProjectFixture("/virtual/loop-example", {
 			"docs/rules/example-loop.md": [
 				"## Bad",
 				"```ts",

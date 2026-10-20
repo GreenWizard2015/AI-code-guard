@@ -1,8 +1,9 @@
 import ts from "typescript";
 import { AstNamespaceTypeImports } from "src/rules/typescript/syntax-rules/ast/ast_namespace_type_imports";
 import { AstPropertySourceGraph } from "src/rules/typescript/syntax-rules/ast/ast_property_source_graph";
-import type { AstPropertySourceGraphContract, AstPropertySourceIndexContract, SourceFileResolver } from "src/protocols";
-import type { AstNamespaceTypeImportsContract, AstPropertySourcesContract } from "src/protocols";
+import type { AstPropertySourceGraphContract, AstPropertySourceIndexContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { AstNamespaceTypeImportsContract, AstPropertySourcesContract } from "src/source_protocols";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 
 /** Responsibilities: _declaration sources_, _import sources_. **/

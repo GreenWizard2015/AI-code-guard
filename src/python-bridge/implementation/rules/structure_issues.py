@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.types import JsonObject
 from implementation.rules.branch_summary import BranchSummary
 from implementation.rules.protocols import BranchSummaryContract

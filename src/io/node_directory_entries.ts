@@ -1,22 +1,22 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { DIRECTORY_ENTRY_DIRECTORY, DIRECTORY_ENTRY_FILE } from "src/io/constants";
-import type { DirectoryEntriesContract, FileEntryContract, FileSystemPathKind } from "src/io/protocols";
+import type { DirectoryEntriesContract, FileEntryContract } from "src/io/protocols";
 
 /** Responsibilities: _path classification_, _directory inventory_. **/
 export class NodeDirectoryEntries implements DirectoryEntriesContract {
-	/** Responsibilities: _filesystem path classification_. **/
-	public path_kind(path: string): FileSystemPathKind {
+	/** Responsibilities: _filesystem file detection_. **/
+	public path_is_file(path: string): boolean {
 		if (!existsSync(path)) {
-			return "missing";
+			return false;
 		}
-		const stats = statSync(path);
-		if (stats.isFile()) {
-			return DIRECTORY_ENTRY_FILE;
+		return statSync(path).isFile();
+	}
+
+	/** Responsibilities: _filesystem directory detection_. **/
+	public path_is_directory(path: string): boolean {
+		if (!existsSync(path)) {
+			return false;
 		}
-		if (stats.isDirectory()) {
-			return DIRECTORY_ENTRY_DIRECTORY;
-		}
-		return "missing";
+		return statSync(path).isDirectory();
 	}
 
 	/** Responsibilities: _directory file inventory_. **/

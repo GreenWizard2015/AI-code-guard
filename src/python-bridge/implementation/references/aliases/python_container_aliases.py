@@ -3,12 +3,12 @@ from __future__ import annotations
 import ast
 
 from implementation.rules.constants import PYTHON_BUILTINS_MODULE
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasStateContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,
 )
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 
 
 class PythonContainerAliases:

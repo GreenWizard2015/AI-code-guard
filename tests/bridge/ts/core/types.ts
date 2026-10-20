@@ -1,5 +1,5 @@
-import type { LintInputFiles } from "src/types";
-import type { ProjectAnalysisIdentityContract } from "src/protocols";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { TypeScriptLintSourceRecord } from "src/core/context/type_script_lint_source_record";
 import type { LintStageTimer } from "src/lint_stage_timer";
 

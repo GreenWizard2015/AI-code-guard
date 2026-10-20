@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { TypeScriptReferenceType } from "src/parser/analysis/type_script_reference_type";
-import type { TypeScriptCallReturnAnalysisContract } from "src/protocols";
+import type { TypeScriptCallReturnAnalysisContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _invocation result expressions_, _reference owner resolution_. **/
 export class TypeScriptCallReturnAnalysis implements TypeScriptCallReturnAnalysisContract {

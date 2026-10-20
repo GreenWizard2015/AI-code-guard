@@ -1,10 +1,8 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliasCollector } from "src/typescript-aliases/type_script_expression_alias_collector";
-import type {
-	NodeReadonlyStringSetCache,
-	TypeScriptExpressionAliasCollectorContract,
-	TypeScriptExpressionAliasesContract,
-} from "src/protocols";
+import type { NodeReadonlyStringSetCache } from "src/cache_types";
+import type { TypeScriptExpressionAliasCollectorContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _expression alias resolution_, _transparent expression unwrapping_. **/
 export class TypeScriptExpressionAliases implements TypeScriptExpressionAliasesContract {
@@ -20,10 +18,32 @@ export class TypeScriptExpressionAliases implements TypeScriptExpressionAliasesC
 		if (this.target_name === "this") {
 			return expression.kind === ts.SyntaxKind.ThisKeyword;
 		}
+		if (this.target_name.includes(".")) {
+			return this.matches_qualified_target(expression);
+		}
 		if (!ts.isIdentifier(expression)) {
 			return false;
 		}
 		return expression.text === this.target_name;
+	}
+
+	/** Responsibilities: _qualified target path matching_. **/
+	private matches_qualified_target(expression: ts.Expression): boolean {
+		const members: string[] = [];
+		let current = this.unwrapped(expression);
+		while (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+			const member = this.member_name(current);
+			if (member === "") {
+				return false;
+			}
+			members.unshift(member);
+			current = this.unwrapped(current.expression);
+		}
+		if (!ts.isIdentifier(current)) {
+			return false;
+		}
+		members.unshift(current.text);
+		return members.join(".") === this.target_name;
 	}
 
 	/** Responsibilities: _target alias extension_. **/

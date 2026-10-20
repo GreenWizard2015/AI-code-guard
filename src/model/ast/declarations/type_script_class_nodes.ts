@@ -5,7 +5,7 @@ import type { TypeScriptClassCallableNodesContract } from "src/model/protocols";
 import { TypeScriptClassMembers } from "src/parser/analysis/type_script_class_members";
 
 import type { ClassNodeData, ClassNodeOptions, SourceRange } from "src/types";
-import type { TypeScriptClassMembersContract, TypeScriptClassNodesContract } from "src/protocols";
+import type { TypeScriptClassMembersContract, TypeScriptClassNodesContract } from "src/typescript_analysis_protocols";
 import { ANONYMOUS_CLASS_NAME } from "src/constants";
 
 /** Responsibilities: _class node construction_, _interface node construction_. **/

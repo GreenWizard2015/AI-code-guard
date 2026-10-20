@@ -117,4 +117,70 @@ describe("Jest setup and effect rules", () => {
 			order_dependency: violations.filter((item) => item.rule_id === "test-order-dependency").length,
 		}).toEqual({ async_completion: 0, time_dependency: 0, order_dependency: 0 });
 	});
+
+	test("reports discarded or conditionally awaited async results", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"tests/discarded-async-results.test.ts": [
+					"async function persist_record(): Promise<string> { return 'saved'; }",
+					"describe('async completion', () => {",
+					"\ttest('discards a pending result', () => {",
+					"\t\tconst pending = persist_record();",
+					"\t\tvoid pending;",
+					"\t\texpect(true).toBe(true);",
+					"\t});",
+					"\ttest('conditionally awaits the result', async () => {",
+					"\t\tconst pending = persist_record();",
+					"\t\tif (Math.random() > 0) {",
+					"\t\t\tawait pending;",
+					"\t\t}",
+					"\t\texpect(true).toBe(true);",
+					"\t});",
+					"\ttest('returns the result to Jest', () => {",
+					"\t\tconst pending = persist_record();",
+					"\t\texpect(true).toBe(true);",
+					"\t\treturn pending;",
+					"\t});",
+					"\ttest('awaits the result', async () => {",
+					"\t\tconst pending = persist_record();",
+					"\t\tawait pending;",
+					"\t\texpect(true).toBe(true);",
+					"\t});",
+					"});",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "unasserted-async-completion")).toHaveLength(2);
+	});
+
+	test("reports order-dependent mutation through a module object property", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"tests/shared-property-state.test.ts": [
+					"const shared_state = { labels: [] as string[] };",
+					"describe('shared labels', () => {",
+					"\ttest('records the first label', () => {",
+					"\t\tshared_state.labels.push('first');",
+					"\t\texpect(shared_state.labels).toHaveLength(1);",
+					"\t});",
+					"\ttest('records the second label', () => {",
+					"\t\tshared_state.labels.push('second');",
+					"\t\texpect(shared_state.labels).toHaveLength(1);",
+					"\t});",
+					"});",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "test-order-dependency")).toHaveLength(1);
+	});
 });

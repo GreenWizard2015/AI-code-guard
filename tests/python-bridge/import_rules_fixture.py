@@ -1,4 +1,4 @@
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.python_sys_path_rules import PythonSysPathRules
 from implementation.references.aliases.python_container_aliases import (
     PythonContainerAliases,

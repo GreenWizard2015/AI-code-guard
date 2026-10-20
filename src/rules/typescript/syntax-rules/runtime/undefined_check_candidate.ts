@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import type { UndefinedCheckCandidateContract } from "src/protocols";
+import type { UndefinedCheckCandidateContract } from "src/analysis_protocols";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
 
 /** Responsibilities: _comparison candidate detection_, _optional access candidate detection_. **/

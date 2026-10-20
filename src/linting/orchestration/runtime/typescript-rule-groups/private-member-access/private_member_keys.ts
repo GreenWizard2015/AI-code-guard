@@ -3,11 +3,8 @@ import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callabl
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
 import { TypeScriptStaticKeyAliases } from "src/typescript-aliases/callables/type_script_static_key_aliases";
 import { TypeScriptStaticArrayKeys } from "src/type_script_static_array_keys";
-import type {
-	PrivateMemberKeysContract,
-	TypeScriptStaticArrayKeysContract,
-	TypeScriptStaticKeyAliasesContract,
-} from "src/protocols";
+import type { PrivateMemberKeysContract } from "src/shared_services_protocols";
+import type { TypeScriptStaticArrayKeysContract, TypeScriptStaticKeyAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _literal member resolution_, _aliased key resolution_. **/
 export class PrivateMemberKeys implements PrivateMemberKeysContract {

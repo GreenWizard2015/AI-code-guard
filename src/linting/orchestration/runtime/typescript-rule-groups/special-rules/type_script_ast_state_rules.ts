@@ -1,6 +1,6 @@
-import { RULES_BY_ID } from "src/model/constants";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import ts from "typescript";
-import type { RuleContract, ViolationContract } from "src/protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptAstStateRulesContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import { RULE_IDS } from "src/constants";
@@ -61,10 +61,7 @@ export class TypeScriptAstStateRules implements TypeScriptAstStateRulesContract 
 			return;
 		}
 		const source_file = this.context.ast_file.source_file_node();
-		const rule = RULES_BY_ID.get(RULE_IDS.public_state_exposure);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.public_state_exposure);
 		const visit = (node: ts.Node): void => {
 			if (ts.isPropertyDeclaration(node)) {
 				this.append_state_field(violations, rule, source_file, node);
@@ -79,10 +76,7 @@ export class TypeScriptAstStateRules implements TypeScriptAstStateRulesContract 
 		if (!ts.isPropertyDeclaration(node)) {
 			return;
 		}
-		const rule = RULES_BY_ID.get(RULE_IDS.public_state_exposure);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.public_state_exposure);
 		this.append_state_field(violations, rule, source_file, node);
 	}
 }

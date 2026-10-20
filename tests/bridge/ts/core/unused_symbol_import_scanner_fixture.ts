@@ -1,4 +1,4 @@
-import type { ProjectSourceScannerContract } from "src/protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
 
 /** Responsibilities: _project import fixture_, _source scanner contract_. **/
 export class ImportedSourceScanner implements ProjectSourceScannerContract {

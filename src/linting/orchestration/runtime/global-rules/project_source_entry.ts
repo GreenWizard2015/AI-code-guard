@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { PythonAstData } from "src/core/python_ast_data";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
 import type { ProjectContextState, ProjectSourceOptions } from "src/model/types/types";
-import type { ProjectSourceEntryContract } from "src/protocols";
+import type { ProjectSourceEntryContract } from "src/source_protocols";
 import { FUNCTION_MODULE_NAMES, PYTHON_PACKAGE_SUFFIX } from "src/constants";
 
 /** Responsibilities: _entry point classification_, _project-relative path resolution_. **/

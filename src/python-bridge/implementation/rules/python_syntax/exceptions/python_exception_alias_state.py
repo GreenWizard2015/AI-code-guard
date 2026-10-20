@@ -5,9 +5,9 @@ import ast
 from implementation.protocols import (
     PythonExceptionBroadnessContract,
     PythonExceptionMultiplicityContract,
-    PythonExceptionAliasSnapshotContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import PythonExceptionAliasSnapshotContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerValuesContract,
     PythonReferenceAliasesContract,

@@ -7,13 +7,59 @@ is informational: check whether the API represents one cohesive responsibility.
 
 
 ```python
+# File: src/status_labels.py
 class StatusLabels:
-    def label(self, status: str) -> str: return status
-    def label_with_prefix(self, prefix: str, status: str) -> str: return f"{prefix}: {status}"
-    def uppercase_fallback(self) -> str: return "UNKNOWN"
-    def status_count(self) -> int: return 0
-    def contains_status(self, status: str) -> bool: return bool(status)
-    def first_status(self) -> str: return "ready"
+    def __init__(self, labels: dict[str, str], fallback: str) -> None:
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
+
+    def label(self, status: str) -> str:
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
+
+    def label_with_prefix(self, prefix: str, status: str) -> str:
+        label = self.label(status)
+        return f"{prefix}: {label}"
+
+    def uppercase_fallback(self) -> str:
+        normalized = self._fallback.strip()
+        uppercase = ""
+        for character in normalized:
+            uppercase += character.upper()
+        return uppercase
+
+    def status_count(self) -> int:
+        count = 0
+        for status_name in self._labels:
+            if status_name:
+                count += 1
+        return count
+
+    def contains_status(self, status: str) -> bool:
+        return status in self._labels
+
+    def first_status(self) -> str:
+        for status_name in self._labels:
+            return status_name
+        return self._fallback
+
+    def status_from_row(self, row: str) -> str:
+        fields = row.split(",")
+        return fields[0]
+# File: cli.py
+from status_labels import StatusLabels
+
+if __name__ == "__main__":
+    status_labels = StatusLabels({"ready": "Ready"}, "Unknown")
+    label = status_labels.label("ready")
+    detailed = status_labels.label_with_prefix("State", "ready")
+    fallback = status_labels.uppercase_fallback()
+    count = status_labels.status_count()
+    contains = status_labels.contains_status("ready")
+    first = status_labels.first_status()
+    parsed = status_labels.status_from_row("ready,Ready")
+    print(f"{label} {detailed} {fallback} {count} {contains} {first} {parsed}")
 ```
 
 ## Good

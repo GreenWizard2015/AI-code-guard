@@ -74,4 +74,25 @@ describe("coding-lint nested type declarations", () => {
 			expect.objectContaining({ priority: 8 }),
 		]);
 	});
+
+	test("does not treat a module constant used inside a method as a nested type alias", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"config.py": 'WARM_MODE = "warm"',
+				"snapshot.py": [
+					"from config import WARM_MODE",
+					"class Snapshot:",
+					"    def mode(self) -> str:",
+					"        mode = WARM_MODE",
+					"        return mode",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "nested-type")).toEqual([]);
+	});
 });

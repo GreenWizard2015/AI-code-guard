@@ -2,15 +2,15 @@ import { describe, expect, test } from "@jest/globals";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceText } from "src/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { ParsedTypeScriptSource } from "tests/bridge/ts/runner/orchestration/runtime/parsed_typescript_source";
+import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
 
 describe("AST-detectable object source aliases", () => {
-	const source_files = new ParsedTypeScriptSource();
+	const source_files = new ParsedSourceFiles();
 
 	test("detects destructured Object.assign aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-alias.ts",
 				[
 					"const object_alias = Object;",
@@ -32,7 +32,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects transitive destructured Object.assign aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-transitive.ts",
 				[
 					"const { assign } = Object;",
@@ -53,7 +53,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects computed Object.assign calls", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-computed.ts",
 				[
 					'const source = Object["assign"]({ computed_key: "computed_run" }, {});',
@@ -72,7 +72,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-key-alias.ts",
 				[
 					'const assign_key = "assign";',
@@ -92,7 +92,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects nested array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-nested-array.ts",
 				[
 					'const [[assign_key]] = [["assign"]];',
@@ -112,7 +112,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects array-rest computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-rest.ts",
 				[
 					'const [...assign_keys] = ["assign"];',
@@ -133,7 +133,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects array-spread computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-spread.ts",
 				[
 					'const spread_keys = [...["assign"]];',
@@ -154,7 +154,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects conditional array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-conditional-array.ts",
 				[
 					"declare const use_first: boolean;",
@@ -176,7 +176,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects assigned array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-assignment.ts",
 				[
 					"let assign_keys: string[] = [];",
@@ -198,7 +198,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects concatenated array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-concat.ts",
 				[
 					'const keys = ["ass" + "ign"];',
@@ -219,7 +219,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects aliased concatenated array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-alias-concat.ts",
 				[
 					'const suffix = "ign";',
@@ -241,7 +241,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects template array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-template.ts",
 				[
 					'const suffix = "ign";',
@@ -263,7 +263,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-spread.ts",
 				[
 					'const source = Object.assign(...[{ spread_object_key: "spread_object_run" }]);',
@@ -282,7 +282,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects aliased spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-spread-alias.ts",
 				[
 					'const sources = [{ aliased_spread_key: "aliased_spread_run" }];',
@@ -302,7 +302,7 @@ describe("AST-detectable object source aliases", () => {
 	test("detects indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread.ts",
 				[
 					'const sources = [[{ indexed_spread_key: "indexed_spread_run" }]][0];',

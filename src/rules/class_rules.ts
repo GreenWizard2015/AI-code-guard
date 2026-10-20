@@ -1,11 +1,13 @@
 import { ClassReferenceMetric } from "src/rules/class_reference_metric";
 import { ClassStructure } from "src/rules/class_structure";
 import { PythonClassFieldScanner } from "src/rules/python_class_field_scanner";
-import type { LintProjectContextContract, LintStageTimerContract, ViolationContract } from "src/protocols";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptClassFieldRules } from "src/model/type_script_class_field_rules";
 import { NestedTypeStructure } from "src/rules/nested_type_structure";
-import type { ClassFieldFiles, LintSourceRecord, PythonProjectImportContext } from "src/types";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
+import type { ClassFieldFiles } from "src/types";
 import type { ClassSummaryOptions, PythonClassSummaryOptions } from "src/model/types/types";
 import ts from "typescript";
 import { TestPathSyntax } from "src/test_path_syntax";

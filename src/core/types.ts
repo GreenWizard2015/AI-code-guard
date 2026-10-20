@@ -1,12 +1,3 @@
-import type {
-	CodingRuleLinterContract,
-	FileViolationCollectorContract,
-	LintStageTimerContract,
-	PythonSourceFilesContract,
-	LintProjectContextContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
 import {
 	MODULE_CLASS_KIND,
 	MODULE_CONSTANT_KIND,
@@ -14,10 +5,20 @@ import {
 	MODULE_VARIABLE_KIND,
 	PUBLIC_FIELD_KIND,
 } from "src/constants";
-import type { PythonSourceAstBatch, ProjectNames } from "src/types";
 import type { PythonProjectNames } from "src/model/types/types";
+import type { ProjectNames } from "src/project_analysis_types";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { PythonSourceFilesContract } from "src/python_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type {
+	CodingRuleLinterContract,
+	FileViolationCollectorContract,
+	LintProjectContextContract,
+	LintStageTimerContract,
+} from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { PythonSourceAstBatch } from "src/types";
 import type ts from "typescript";
-import type { LintInputFiles } from "src/types";
 
 export type ContextProjectPaths = ReadonlySet<string>;
 
@@ -86,6 +87,15 @@ export type ProjectContextAssemblyOptions = {
 	texts: ReadonlyMap<string, string>;
 	source_files: Map<string, ts.SourceFile>;
 	python_batch: PythonSourceBatchPreparation;
+	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	source_io: ProjectSourceIOContract;
+};
+
+export type ProjectTextSnapshotOptions = {
+	repo_root: string;
+	files: string[];
+	provided_texts: ReadonlyMap<string, string>;
 	stage_timer: LintStageTimerContract;
 	virtual_project: boolean;
 	source_io: ProjectSourceIOContract;

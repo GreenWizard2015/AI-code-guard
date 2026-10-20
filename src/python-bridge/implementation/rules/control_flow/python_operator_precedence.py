@@ -5,11 +5,10 @@ from implementation.rules.constants import PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
 from dataclasses import dataclass
 from typing import Any
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonExpressionBoundaryContract,
-)
-from implementation.types import JsonObject, OperatorTypes
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.protocols import PythonExpressionBoundaryContract
+from implementation.types import JsonObject
+from implementation.types import PythonOperatorKinds
 
 
 @dataclass(frozen=True)
@@ -55,7 +54,7 @@ class PythonOperatorPrecedence:
     def _append_boolean_operators(
         self,
         node: ast.AST,
-        operators: OperatorTypes,
+        operators: PythonOperatorKinds,
         root_parenthesized: bool = False,
     ) -> None:
         """Responsibilities: _boolean operators collection_."""
@@ -74,7 +73,7 @@ class PythonOperatorPrecedence:
     def _append_arithmetic_operators(
         self,
         node: ast.AST,
-        operators: OperatorTypes,
+        operators: PythonOperatorKinds,
         root_parenthesized: bool = False,
     ) -> None:
         """Responsibilities: _arithmetic operators collection_."""
@@ -90,7 +89,7 @@ class PythonOperatorPrecedence:
     def _append_operators(
         self,
         node: ast.AST,
-        operators: OperatorTypes,
+        operators: PythonOperatorKinds,
         options: OperatorAppendOptions,
     ) -> None:
         """Responsibilities: _collection operators expression_."""
@@ -113,9 +112,9 @@ class PythonOperatorPrecedence:
 
     def _expression_operators(
         self, node: ast.AST, boolean_group: bool
-    ) -> OperatorTypes:
+    ) -> PythonOperatorKinds:
         """Responsibilities: _expression operator collection_."""
-        operators: OperatorTypes = set()
+        operators: set[type[ast.AST]] = set()
         self._append_operators(
             node,
             operators,
@@ -126,7 +125,9 @@ class PythonOperatorPrecedence:
         )
         return operators
 
-    def _mixed_boolean_operators(self, node: ast.AST, operators: OperatorTypes) -> bool:
+    def _mixed_boolean_operators(
+        self, node: ast.AST, operators: PythonOperatorKinds
+    ) -> bool:
         """Responsibilities: _mixed boolean operator classification_."""
         if ast.Not not in operators:
             return len(operators) > 1

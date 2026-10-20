@@ -1,12 +1,14 @@
 import { join } from "node:path";
 import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _recovery claim acquisition_, _stale claim reclamation_. **/
 export class TaskPublicationRecoveryClaim {
 	private readonly lock_path: string;
 	private readonly owner_token: string;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _process liveness_. **/
 	private process_live(pid: number): boolean {
@@ -15,10 +17,13 @@ export class TaskPublicationRecoveryClaim {
 			return true;
 		} catch (error) {
 			const message = String(error);
-			if (message.includes("ESRCH")) {
+			if (!this.boundary_failures.system_failure_message(message)) {
+				throw error;
+			}
+			if (this.boundary_failures.missing_process(message)) {
 				return false;
 			}
-			if (message.includes("EPERM")) {
+			if (this.boundary_failures.permission_denied(message)) {
 				return true;
 			}
 			throw error;
@@ -28,7 +33,7 @@ export class TaskPublicationRecoveryClaim {
 	/** Responsibilities: _stale claim detection_. **/
 	private stale_claim(path: string): boolean {
 		const claim_owner = join(path, "owner");
-		if (this.file_io.directory_entries.path_kind(claim_owner) !== "file") {
+		if (!this.file_io.directory_entries.path_is_file(claim_owner)) {
 			return true;
 		}
 		const [pid_text] = this.file_io.file_content.file_text(claim_owner).split("\n");
@@ -61,6 +66,9 @@ export class TaskPublicationRecoveryClaim {
 		try {
 			this.file_io.directory_operations.remove_path(path);
 		} catch (cleanup_error) {
+			if (!this.boundary_failures.system_failure_message(String(cleanup_error))) {
+				throw cleanup_error;
+			}
 			void cleanup_error;
 		}
 	}
@@ -70,6 +78,7 @@ export class TaskPublicationRecoveryClaim {
 		this.lock_path = lock_path;
 		this.owner_token = owner_token;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _owner identity comparison_. **/
@@ -90,6 +99,9 @@ export class TaskPublicationRecoveryClaim {
 			this.file_io.file_content.write_text(join(path, "owner"), `${process.pid}\n${this.owner_token}\n`);
 		} catch (error) {
 			this.cleanup_failed_claim(path, created);
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			throw new Error(`Task publication recovery claim failed: ${this.lock_path} (${String(error)})`);
 		}
 	}

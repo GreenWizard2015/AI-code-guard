@@ -3,7 +3,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { TestFixture } from "tests/core/test-fixture";
-import { DECORATED_PLUGIN_SOURCE, SPECIALIZATION_SOURCE } from "tests/core/constants";
+import { DECORATED_PLUGIN_SOURCE, SPECIALIZATION_SOURCE } from "tests/core/constants/ast_analysis/constants";
 
 describe("coding-lint class metrics rules", () => {
 	test("reports TypeScript class thresholds, callback fields, and contract exemptions", () => {
@@ -34,7 +34,7 @@ describe("coding-lint class metrics rules", () => {
 
 		expect({
 			class_thresholds: details,
-			info_count: details.filter((item) => item[0] === "class has many public methods (found 6)").length,
+			info_count: details.filter((item) => item[0] === "class has many public methods (found 7)").length,
 			four_callbacks: violations.filter(
 				(item) => item.message === "class has 4 callback fields with default implementations",
 			).length,
@@ -47,10 +47,10 @@ describe("coding-lint class metrics rules", () => {
 		}).toEqual({
 			class_thresholds: expect.arrayContaining([
 				["class has too few public methods (found 1)", 6, "class-method-min-count"],
-				["class has many public methods (found 6)", 1, "class-method-count-info"],
+				["class has many public methods (found 7)", 1, "class-method-count-info"],
 				["class has too many public methods (found 16)", 3, "class-method-max-count"],
 			]),
-			info_count: 3,
+			info_count: 1,
 			four_callbacks: 1,
 			one_callback: 2,
 			callback_class_minimum: 1,

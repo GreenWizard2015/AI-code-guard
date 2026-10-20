@@ -25,6 +25,14 @@ export class InMemoryFileIO implements IOContract {
 	private clock = 1;
 	private temporary_directory_sequence = 0;
 
+	/** Responsibilities: _virtual filesystem error construction_. **/
+	private failure(message: string): Error {
+		const error = new Error(message);
+		error.name = "ENOENT";
+		Object.defineProperty(error, "code", { value: "ENOENT" });
+		return error;
+	}
+
 	/** Responsibilities: _virtual metadata versioning_. **/
 	private touch(path: string, size = 0): void {
 		const absolute_path = resolve(path);
@@ -84,7 +92,7 @@ export class InMemoryFileIO implements IOContract {
 	public metadata(path: string): FileMetadataContract {
 		const value = this.metadata_values.get(this.real_path(path));
 		if (value === undefined) {
-			throw new Error(`Path does not exist: ${path}`);
+			throw this.failure(`Path does not exist: ${path}`);
 		}
 		return value;
 	}
@@ -130,35 +138,35 @@ export class InMemoryFileIO implements IOContract {
 			}
 			resolved_path = resolve(matching_target, relative(matching_link, resolved_path));
 		}
-		throw new Error(`Symbolic link cycle: ${path}`);
+		throw this.failure(`Symbolic link cycle: ${path}`);
 	}
 
 	/** Responsibilities: _virtual symbolic link creation_. **/
 	public create_symbolic_link(path: string, target: string): void {
 		const absolute_path = resolve(path);
 		if (!this.directory_paths.has(dirname(absolute_path))) {
-			throw new Error(`Parent directory does not exist: ${dirname(absolute_path)}`);
+			throw this.failure(`Parent directory does not exist: ${dirname(absolute_path)}`);
 		}
 		this.symbolic_links.set(absolute_path, resolve(dirname(absolute_path), target));
 	}
 
-	/** Responsibilities: _virtual path classification_. **/
-	public path_kind(path: string): "file" | "directory" | "missing" {
+	/** Responsibilities: _virtual file lookup_. **/
+	public path_is_file(path: string): boolean {
 		const absolute_path = this.real_path(path);
-		if (this.file_contents.has(absolute_path)) {
-			return "file";
-		}
-		if (this.directory_paths.has(absolute_path)) {
-			return "directory";
-		}
-		return "missing";
+		return this.file_contents.has(absolute_path);
+	}
+
+	/** Responsibilities: _virtual directory lookup_. **/
+	public path_is_directory(path: string): boolean {
+		const absolute_path = this.real_path(path);
+		return this.directory_paths.has(absolute_path);
 	}
 
 	/** Responsibilities: _virtual text retrieval_. **/
 	public file_text(file: string): string {
 		const text = this.file_contents.get(this.real_path(file));
 		if (text === undefined) {
-			throw new Error(`File does not exist: ${file}`);
+			throw this.failure(`File does not exist: ${file}`);
 		}
 		return text;
 	}
@@ -167,7 +175,7 @@ export class InMemoryFileIO implements IOContract {
 	public write_text(file: string, text: string): void {
 		const absolute_file = resolve(file);
 		if (!this.directory_paths.has(dirname(absolute_file))) {
-			throw new Error(`Parent directory does not exist: ${dirname(absolute_file)}`);
+			throw this.failure(`Parent directory does not exist: ${dirname(absolute_file)}`);
 		}
 		this.file_contents.set(absolute_file, text);
 		this.touch(absolute_file, Buffer.byteLength(text, "utf8"));
@@ -196,10 +204,10 @@ export class InMemoryFileIO implements IOContract {
 	public create_directory_exclusive(directory: string): void {
 		const absolute_directory = resolve(directory);
 		if (this.path_exists(absolute_directory)) {
-			throw new Error(`Path already exists: ${directory}`);
+			throw this.failure(`Path already exists: ${directory}`);
 		}
 		if (!this.directory_paths.has(dirname(absolute_directory))) {
-			throw new Error(`Parent directory does not exist: ${dirname(absolute_directory)}`);
+			throw this.failure(`Parent directory does not exist: ${dirname(absolute_directory)}`);
 		}
 		this.directory_paths.add(absolute_directory);
 		this.touch(absolute_directory);
@@ -210,7 +218,7 @@ export class InMemoryFileIO implements IOContract {
 	public list_files(directory: string): readonly string[] {
 		const absolute_directory = resolve(directory);
 		if (!this.directory_paths.has(absolute_directory)) {
-			throw new Error(`Directory does not exist: ${directory}`);
+			throw this.failure(`Directory does not exist: ${directory}`);
 		}
 		return Array.from(this.file_contents.keys())
 			.filter((file) => dirname(file) === absolute_directory)
@@ -221,7 +229,7 @@ export class InMemoryFileIO implements IOContract {
 	public list_entries(directory: string): readonly FileEntryContract[] {
 		const absolute_directory = resolve(directory);
 		if (!this.directory_paths.has(absolute_directory)) {
-			throw new Error(`Directory does not exist: ${directory}`);
+			throw this.failure(`Directory does not exist: ${directory}`);
 		}
 		const entries = new Map<string, FileEntryContract>();
 		for (const file of this.file_contents.keys()) {
@@ -263,14 +271,14 @@ export class InMemoryFileIO implements IOContract {
 			return;
 		}
 		if (this.path_exists(absolute_destination)) {
-			throw new Error(`Destination already exists: ${destination}`);
+			throw this.failure(`Destination already exists: ${destination}`);
 		}
 		if (!this.directory_paths.has(absolute_source)) {
-			throw new Error(`Path does not exist: ${source}`);
+			throw this.failure(`Path does not exist: ${source}`);
 		}
 		const parent = dirname(absolute_destination);
 		if (!this.directory_paths.has(parent)) {
-			throw new Error(`Parent directory does not exist: ${parent}`);
+			throw this.failure(`Parent directory does not exist: ${parent}`);
 		}
 		const source_prefix = `${absolute_source}${sep}`;
 		const file_entries = [...this.file_contents.entries()];
@@ -292,7 +300,7 @@ export class InMemoryFileIO implements IOContract {
 	public temporary_directory(parent: string, prefix: string): string {
 		const absolute_parent = resolve(parent);
 		if (!this.directory_paths.has(absolute_parent)) {
-			throw new Error(`Parent directory does not exist: ${parent}`);
+			throw this.failure(`Parent directory does not exist: ${parent}`);
 		}
 		const directory = resolve(absolute_parent, `${prefix}${this.temporary_directory_sequence}`);
 		this.temporary_directory_sequence += 1;
@@ -304,7 +312,7 @@ export class InMemoryFileIO implements IOContract {
 	public remove_file(file: string): void {
 		const absolute_file = resolve(file);
 		if (!this.file_contents.delete(absolute_file)) {
-			throw new Error(`File does not exist: ${file}`);
+			throw this.failure(`File does not exist: ${file}`);
 		}
 		this.metadata_values.delete(absolute_file);
 		this.touch(dirname(absolute_file));

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import PythonUndefinedCheckStateContract
+from implementation.rules.protocols import PythonUndefinedCheckStateContract
 from implementation.types import JsonObject
 from implementation.rules.constants import PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME
 

@@ -2,13 +2,8 @@ import ts from "typescript";
 import { TypeScriptAssignmentValuePredicates } from "src/parser/internals/type_script_assignment_value_predicates";
 import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
 import { TypeScriptExpressionContainers } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_containers";
-import type { BooleanExpressionContract } from "src/protocols";
-import type {
-	TypeScriptAssignmentPredicatesContract,
-	TypeScriptAssignmentValuePredicatesContract,
-	TypeScriptConditionalRulesContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { BooleanExpressionContract } from "src/runtime_protocols";
+import type { TypeScriptAssignmentPredicatesContract, TypeScriptAssignmentValuePredicatesContract, TypeScriptConditionalRulesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { RuleAppender } from "src/types";
 import {
 	POINTLESS_BOOLEAN_OPERATION,

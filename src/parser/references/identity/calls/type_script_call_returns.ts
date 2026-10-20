@@ -1,11 +1,11 @@
 import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
 import type { TypeScriptCallReturnsContract } from "src/model/protocols";
-import type { TypeScriptImportedCallOwnersContract } from "src/protocols";
+import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptPropertySide } from "src/types";
 import { TypeScriptImportedCallOwners } from "src/parser/references/identity/calls/type_script_imported_call_owners";
-import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
 import ts from "typescript";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _callable results_, _owner identity_. **/
 export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {

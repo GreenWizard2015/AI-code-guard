@@ -1,4 +1,4 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { UPPER_SNAKE_CASE_PATTERN } from "src/rules/constants";
 import type { NamedSymbol } from "src/types";

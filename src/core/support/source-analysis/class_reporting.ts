@@ -1,6 +1,8 @@
 import { CallableMetrics } from "src/metrics/callable_metrics";
-import type { CallableMetricsContract, ClassReportingContract, ViolationContract } from "src/protocols";
-import type { AstClassNode, LintFileNameContract } from "src/types";
+import type { CallableMetricsContract } from "src/reporting_protocols";
+import type { ClassReportingContract, ViolationContract } from "src/reporting_protocols";
+import type { LintFileNameContract } from "src/source_types";
+import type { AstClassNode } from "src/types";
 import { MethodSpecializationReporter } from "src/core/support/source-analysis/method_specialization_reporter";
 import type { MaxMethodMetricInput } from "src/types";
 

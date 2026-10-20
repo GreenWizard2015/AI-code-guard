@@ -1,7 +1,6 @@
 import { NodeDirectoryEntries } from "src/io/node_directory_entries";
 import { NodeDirectoryOperations } from "src/io/node_directory_operations";
-import { NodeFileContent } from "src/io/node_file_content";
-import { NodeFileOperations } from "src/io/node_file_operations";
+import { NodeFileStorage } from "src/io/node_file_storage";
 import { NodeFilePaths } from "src/io/node_file_paths";
 import type {
 	DirectoryEntriesContract,
@@ -22,9 +21,10 @@ export class NodeFileIO implements IOContract {
 
 	/** Responsibilities: _file and directory setup_. **/
 	public constructor() {
+		const file_storage = new NodeFileStorage();
 		this.file_paths = new NodeFilePaths();
-		this.file_content = new NodeFileContent();
-		this.file_operations = new NodeFileOperations();
+		this.file_content = file_storage;
+		this.file_operations = file_storage;
 		this.directory_entries = new NodeDirectoryEntries();
 		this.directory_operations = new NodeDirectoryOperations();
 	}

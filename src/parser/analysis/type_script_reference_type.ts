@@ -1,7 +1,7 @@
 import type ts from "typescript";
 
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
-import type { TypeScriptTypeNodeContract } from "src/protocols";
+import type { TypeScriptTypeNodeContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _reference owner resolution_, _aliased type name resolution_. **/
 export class TypeScriptReferenceType {

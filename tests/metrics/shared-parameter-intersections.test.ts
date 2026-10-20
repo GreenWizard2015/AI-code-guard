@@ -1,10 +1,10 @@
 import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
-import { TestDataFactory } from "tests/core/test-data-factory";
 import { describe, expect, jest, test } from "@jest/globals";
+import { TestDataFactory } from "tests/core/test-data-factory";
 
-import { SharedParameterOrder } from "src/core/support/shared_parameter_order";
 import { SharedParameterAnalyzer } from "src/metrics/shared_parameter_analyzer";
+import { SharedParameterOrder } from "src/metrics/shared_parameter_order";
 import type { AnalyzedParameter } from "src/metrics/types";
 
 /** Responsibilities: _overlapping parameter construction_, _intersection scenario access_. **/

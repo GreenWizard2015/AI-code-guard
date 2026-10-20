@@ -9,7 +9,7 @@ import type {
 } from "src/types";
 import type { CallableTypeData, DestructuredAlias, DestructuredInstanceOptions, TypedArgument } from "src/model/types";
 import type { CallbackKind } from "src/types";
-import type { AstCallableReferenceContract } from "src/protocols";
+import type { AstCallableReferenceContract } from "src/source_types";
 import type { TypeScriptInstanceLookup } from "src/model/types";
 
 /** Responsibilities: _callable reference collection_. **/

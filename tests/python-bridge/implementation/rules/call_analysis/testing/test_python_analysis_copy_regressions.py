@@ -4,8 +4,8 @@ import ast
 import unittest
 from collections.abc import Iterable, Iterator, Mapping
 
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.call_analysis.testing.python_test_execution_region import (
     PythonTestExecutionRegion,
 )

@@ -1,5 +1,4 @@
 import ts from "typescript";
-import { TYPED_FIELD_EXPECTED_MESSAGE } from "src/rules/typescript/syntax-rules/runtime/constants";
 
 /** Responsibilities: _singular-plural field pairing_, _field type equivalence checks_. **/
 export class TypeScriptAliasPair {
@@ -7,11 +6,8 @@ export class TypeScriptAliasPair {
 
 	/** Responsibilities: _retrieval type node field_. **/
 	private field_type(node: ts.Node): ts.TypeNode {
-		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
-			throw new Error(TYPED_FIELD_EXPECTED_MESSAGE);
-		}
-		if (node.type === undefined) {
-			throw new Error(TYPED_FIELD_EXPECTED_MESSAGE);
+		if ((!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) || node.type === undefined) {
+			throw new Error("Typed field expected.");
 		}
 		return node.type;
 	}

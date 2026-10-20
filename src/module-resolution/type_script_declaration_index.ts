@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import type { TypeScriptModuleCache } from "src/module-resolution/types";
-import type { TypeScriptDeclarationIndexContract } from "src/protocols";
+import type { TypeScriptDeclarationIndexContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _symbol declaration indexing_, _declaration kind resolution_. **/
 export class TypeScriptDeclarationIndex implements TypeScriptDeclarationIndexContract {

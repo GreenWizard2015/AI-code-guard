@@ -1,6 +1,6 @@
 import { FunctionPlacementRules } from "src/linting/orchestration/runtime/test-targets/function_placement_rules";
 import type { PlacementFunctionNode } from "src/model/types/types";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { describe, expect, test } from "@jest/globals";
 
 describe("function placement rules", () => {

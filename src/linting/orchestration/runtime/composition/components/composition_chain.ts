@@ -5,7 +5,7 @@ import type {
 	CompositionFrameContext,
 } from "src/linting/orchestration/runtime/composition/components/types";
 import type { CompositionChainContract } from "src/linting/orchestration/runtime/composition/protocols";
-import { MAX_COMPOSITION_DEPTH } from "src/linting/orchestration/runtime/composition/constants";
+import { MAX_COMPOSITION_DEPTH } from "src/constants";
 
 /** Responsibilities: _composition chain state_, _iterative dependency traversal_. **/
 export class CompositionChain implements CompositionChainContract {
@@ -157,9 +157,7 @@ export class CompositionChain implements CompositionChainContract {
 		}
 		const context: CompositionFrameContext = {
 			active: new Set<string>(),
-			frames: [
-				{ key, next_index: 0, best_depth: 0, best_next: "", cycle_dependent: false, waiting_for: "" },
-			],
+			frames: [{ key, next_index: 0, best_depth: 0, best_next: "", cycle_dependent: false, waiting_for: "" }],
 			states,
 			contextual: new Set<string>(),
 		};

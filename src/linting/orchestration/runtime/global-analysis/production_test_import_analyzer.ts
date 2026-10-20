@@ -1,7 +1,9 @@
 import { relative } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { LintProjectContextContract, ProjectSourceScannerContract, ViolationContract } from "src/protocols";
-import type { ProjectSourceAnalysisOptions } from "src/types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
 
 /** Responsibilities: _production importer classification_, _test import diagnostics_. **/
 export class ProductionTestImportAnalyzer {

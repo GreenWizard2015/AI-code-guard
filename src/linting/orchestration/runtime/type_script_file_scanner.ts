@@ -1,12 +1,9 @@
-import type {
-	LintStageTimerContract,
-	SourceFileResolver,
-	TypeScriptAstFileContract,
-	TypeScriptAstTraversalContract,
-	TypeScriptFileScannerContract,
-	ViolationContract,
-} from "src/protocols";
-import type { LintFileNameContract, LintSourceRecord } from "src/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptFileScannerContract } from "src/typescript_analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
 import type { FileLinterOptions, TypeScriptScannerOptions } from "src/model/types/types";
 import { TypeScriptScannerAssembly } from "src/linting/orchestration/runtime/type_script_scanner_assembly";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";

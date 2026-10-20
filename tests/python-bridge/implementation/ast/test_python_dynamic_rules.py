@@ -3,14 +3,14 @@ import unittest
 
 from python_bridge_entrypoint import PythonBridgeEntrypoint
 from python_bridge_input import PythonBridgeInput
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.rules.control_flow.python_expression_boundary import PythonExpressionBoundary
-from implementation.ast.source_segments import SourceSegments
+from implementation.ast.imports.source_segments import SourceSegments
 from implementation.rules.control_flow.python_terminal_branch_rules import PythonTerminalBranchRules
-from implementation.ast.scoped_type_aliases import PythonScopedTypeAliases
-from implementation.coding_issue_options import PythonCodingIssueCollectorOptions
-from implementation.python_coding_issue_collector import PythonCodingIssueCollector
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.coding_issue_options import PythonCodingIssueCollectorOptions
+from implementation.ast.callables.python_coding_issue_collector import PythonCodingIssueCollector
 from implementation.references.aliases.python_container_aliases import PythonContainerAliases
 from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
 from implementation.rules.import_rules import ImportRules
@@ -170,6 +170,38 @@ class PythonDynamicRulesTest(unittest.TestCase):
 
 class PythonExceptionAliasRulesTest(unittest.TestCase):
     """Responsibilities: _exception-handler forms_, _dynamic-type contexts_."""
+
+    def test_collects_error_context_suppression_through_none_alias(self) -> None:
+        """Responsibilities: _aliased exception cause diagnostics_."""
+        source = (
+            "try:\n"
+            "    int('invalid')\n"
+            "except ValueError:\n"
+            "    cause = None\n"
+            "    alias = cause\n"
+            "    raise RuntimeError('invalid input') from alias\n"
+        )
+        collector = PythonAstTree(source)
+        self.assertEqual(
+            [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "error-context-loss"],
+            ["error-context-loss"],
+        )
+
+    def test_ignores_none_alias_overwritten_with_an_exception(self) -> None:
+        """Responsibilities: _overwritten exception cause filtering_."""
+        source = (
+            "try:\n"
+            "    int('invalid')\n"
+            "except ValueError as error:\n"
+            "    cause = None\n"
+            "    cause = error\n"
+            "    raise RuntimeError('invalid input') from cause\n"
+        )
+        collector = PythonAstTree(source)
+        self.assertEqual(
+            [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "error-context-loss"],
+            [],
+        )
 
     def test_collects_direct_converted_broad_exception(self) -> None:
         """Responsibilities: _exception alias_."""

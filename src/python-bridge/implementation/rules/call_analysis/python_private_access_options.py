@@ -3,12 +3,10 @@ from __future__ import annotations
 import ast
 from typing import cast
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonPrivateVarsMappingContract,
-    PythonReflectionNamesContract,
-)
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.protocols import PythonReflectionNamesContract
+from implementation.references.protocols import PythonPrivateVarsMappingContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
 )

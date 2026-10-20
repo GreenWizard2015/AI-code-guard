@@ -3,8 +3,8 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.constants import CLASS_BUILTIN_TYPES
-from implementation.protocols import PythonAstNodeIndexContract
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.types import JsonObject
 from implementation.rules.constants import PYTHON_CLASSVAR_NAME
 

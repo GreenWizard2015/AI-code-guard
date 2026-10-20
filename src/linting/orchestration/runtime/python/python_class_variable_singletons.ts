@@ -1,6 +1,7 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstClassField, NormalizedAstFile } from "src/types";
-import type { PythonClassVariableSingletonsContract, ViolationContract } from "src/protocols";
+import type { PythonClassVariableSingletonsContract } from "src/python_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { PYTHON_CLASSVAR_NAME } from "src/constants";
 
 /** Responsibilities: _class variable resolution_, _singleton diagnostics_. **/

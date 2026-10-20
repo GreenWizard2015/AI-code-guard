@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { AstCallableReference } from "src/types";
-import type { TypeScriptReferenceContextContract } from "src/protocols";
+import type { TypeScriptReferenceContextContract } from "src/typescript_runtime_protocols";
 import type { CallReferenceOptions } from "src/parser/types";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 

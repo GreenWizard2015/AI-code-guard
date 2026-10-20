@@ -6,14 +6,58 @@ is informational: check whether the API represents one cohesive responsibility.
 ## Bad
 
 ```ts
+// File: src/status_labels.ts
 class StatusLabels {
-	public label(status: string): string { return status; }
-	public label_with_prefix(prefix: string, status: string): string { return `${prefix}: ${status}`; }
-	public uppercase_fallback(): string { return "UNKNOWN"; }
-	public status_count(): number { return 0; }
-	public contains_status(status: string): boolean { return status.length > 0; }
-	public first_status(): string { return "ready"; }
+	private readonly labels: ReadonlyMap<string, string>;
+	private readonly fallback: string;
+	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
+		this.labels = labels;
+		this.fallback = fallback;
+	}
+	public label(status: string): string {
+		const label = this.labels.get(status);
+		if (label === undefined) { return this.fallback; }
+		return label;
+	}
+	public label_with_prefix(prefix: string, status: string): string {
+		return `${prefix}: ${this.label(status)}`;
+	}
+	public uppercase_fallback(): string {
+		const normalized = this.fallback.trim();
+		let uppercase = "";
+		for (const character of normalized) { uppercase += character.toUpperCase(); }
+		return uppercase;
+	}
+	public status_count(): number {
+		let count = 0;
+		for (const status_name of this.labels.keys()) { if (status_name.length > 0) { count += 1; } }
+		return count;
+	}
+	public contains_status(status: string): boolean { return this.labels.has(status); }
+	public first_status(): string {
+		for (const status_name of this.labels.keys()) { return status_name; }
+		return this.fallback;
+	}
+	public status_from_row(row: string): string {
+		const fields = row.split(",");
+		return fields[0];
+	}
 }
+// File: cli.ts
+import { StatusLabels } from "src/status_labels";
+(function () {
+	const labels = new Map<string, string>();
+	labels.set("ready", "Ready");
+	const status_labels = new StatusLabels(labels, "Unknown");
+	const label = status_labels.label("ready");
+	const detailed = status_labels.label_with_prefix("State", "ready");
+	const fallback = status_labels.uppercase_fallback();
+	const count = status_labels.status_count();
+	const contains = status_labels.contains_status("ready");
+	const first = status_labels.first_status();
+	const parsed = status_labels.status_from_row("ready,Ready");
+	console.log(`${label} ${detailed} ${fallback} ${count} ${contains} ${first} ${parsed}`);
+})();
 ```
 
 

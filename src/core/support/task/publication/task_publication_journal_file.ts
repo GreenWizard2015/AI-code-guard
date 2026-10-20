@@ -9,7 +9,7 @@ import type {
 	TaskPublicationJournalPhase,
 	TaskPublicationJournalState,
 } from "src/core/support/task/types";
-import type { TaskWorkspaceDocument } from "src/types";
+import type { TaskWorkspaceDocument } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _journal file availability_, _publication state parsing_. **/
@@ -93,7 +93,7 @@ export class TaskPublicationJournalFile {
 
 	/** Responsibilities: _journal file availability_. **/
 	public available(): boolean {
-		return this.file_io.directory_entries.path_kind(this.path) === "file";
+		return this.file_io.directory_entries.path_is_file(this.path);
 	}
 
 	/** Responsibilities: _journal state_. **/

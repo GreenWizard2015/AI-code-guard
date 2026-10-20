@@ -6,12 +6,8 @@ import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/cal
 import { ObjectValueRules } from "src/linting/object_value_rules";
 import { DynamicObjectMemberAliases } from "src/typescript-aliases/dynamic_object_member_aliases";
 import { DynamicRuntimeMemberExpressions } from "src/rules/typescript/syntax-rules/runtime/dynamic_runtime_member_expressions";
-import type {
-	DynamicObjectMemberAliasesContract,
-	DynamicRuntimeMembersContract,
-	ObjectValueRulesContract,
-	TypeScriptMemberAliasesContract,
-} from "src/protocols";
+import type { DynamicObjectMemberAliasesContract, DynamicRuntimeMembersContract, ObjectValueRulesContract } from "src/runtime_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _dynamic object access detection_, _runtime member alias resolution_. **/
 export class DynamicRuntimeMembers implements DynamicRuntimeMembersContract {

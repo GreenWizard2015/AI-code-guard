@@ -1,6 +1,6 @@
 import { MAX_REVIEW_LINES, MIN_REVIEW_LINES } from "src/constants";
 import { ZERO_ISSUES_SUMMARY } from "src/core/support/task/review-agent/constants";
-import type { TaskCleanReportContract, TaskReviewContract } from "src/protocols";
+import type { TaskCleanReportContract, TaskReviewContract } from "src/task_protocols";
 
 /** Responsibilities: _task review formatting_, _empty issue report formatting_. **/
 export class TaskCleanReport implements TaskCleanReportContract {

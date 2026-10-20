@@ -1,8 +1,13 @@
-import type { CallableMatcherContext, CallableMatcherIndexes, CallableReferencesByFile, ParsedFile } from "src/metrics/types";
+import type {
+	CallableMatcherContext,
+	CallableMatcherIndexes,
+	CallableReferencesByFile,
+	ParsedFile,
+} from "src/metrics/types";
 import type { AstCallableReference, CallableOwnershipResolver, SourceReference } from "src/types";
-import type { CallableReferenceMatcherContract, SourceReferenceIndexContract } from "src/protocols";
+import type { CallableReferenceMatcherContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
 import { MIN_USAGE_FILES } from "src/constants";
-import { FUNCTION_KIND } from "src/linting/orchestration/runtime/global-analysis/callable-usage/constants";
+import { MODULE_FUNCTION_KIND } from "src/rules/constants";
 
 /** Responsibilities: _callable reference matching_, _external target resolution_. **/
 export class CallableReferenceMatcher implements CallableReferenceMatcherContract {
@@ -44,7 +49,7 @@ export class CallableReferenceMatcher implements CallableReferenceMatcherContrac
 		if (definition.kind !== reference.kind || definition.node.name !== reference.name) {
 			return false;
 		}
-		if (this.context.definition.kind === FUNCTION_KIND) {
+		if (this.context.definition.kind === MODULE_FUNCTION_KIND) {
 			return this.matches_function(reference);
 		}
 		return this.matches_method(reference, method_count);
@@ -128,7 +133,7 @@ export class CallableReferenceMatcher implements CallableReferenceMatcherContrac
 			`${definition_kind}:${definition.file}:${definition_name}`,
 			"usage",
 		);
-		if (definition_kind === FUNCTION_KIND) {
+		if (definition_kind === MODULE_FUNCTION_KIND) {
 			return this.reference_files(exact);
 		}
 		const unresolved = this.reference_index.references_for(`${definition_kind}::${definition_name}`, "usage");

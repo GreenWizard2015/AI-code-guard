@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { SourceFileCallableCache, SourceFileCallableMap } from "src/protocols";
+import type { SourceFileCallableCache, SourceFileCallableMap } from "src/source_types";
 
 /** Responsibilities: _callable declaration indexing_, _array result lookup_. **/
 export class TypeScriptArrayCallableDeclarations {

@@ -1,5 +1,5 @@
 import { SharedParameterAdapter } from "src/metrics/shared_parameter_adapter";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import type { TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import type { SharedParameterTypeSource } from "src/metrics/types";

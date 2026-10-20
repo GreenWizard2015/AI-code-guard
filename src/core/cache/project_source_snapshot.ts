@@ -1,5 +1,5 @@
-import type { ProjectSourceContentIOContract, ProjectSourceSnapshotContract } from "src/protocols";
-import type { LintInputFiles } from "src/types";
+import type { ProjectSourceContentIOContract, ProjectSourceSnapshotContract } from "src/source_protocols";
+import type { LintInputFiles } from "src/project_analysis_types";
 
 /** Responsibilities: _project source snapshot preparation_, _source text collection_. **/
 export class ProjectSourceSnapshot implements ProjectSourceSnapshotContract {

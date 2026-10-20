@@ -2,11 +2,14 @@ import ast
 from bisect import bisect_right
 from typing import Any
 
-from implementation.protocols import (
-    PythonAssignmentAliasContract,
-    PythonAstNodeIndexContract,
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonAssignmentAliasContract
+from implementation.types import JsonObject
+from implementation.rules.types import (
+    PythonScopeAliasHistories,
+    PythonScopeAliasHistoryData,
+    PythonScopeTypes,
 )
-from implementation.types import JsonObject, OperatorTypes, PythonAliasHistoryData
 
 
 class PythonScopeAliasHistory:
@@ -43,7 +46,7 @@ class PythonScopeAliasHistory:
         return ordered
 
     def _lookup(
-        self, history: PythonAliasHistoryData, name: str, line: int
+        self, history: PythonScopeAliasHistoryData, name: str, line: int
     ) -> JsonObject:
         """Responsibilities: _alias timeline lookup_."""
         timeline = history.get(name)
@@ -55,12 +58,12 @@ class PythonScopeAliasHistory:
             return {"found": False, "target": name}
         return {"found": True, "target": timeline[index]["target"]}
 
-    def _scope_history(self, scope: ast.AST) -> PythonAliasHistoryData:
+    def _scope_history(self, scope: ast.AST) -> PythonScopeAliasHistoryData:
         """Responsibilities: _scoped alias history construction_."""
         cached = self._history_cache.get(scope)
         if cached is not None:
             return cached
-        history: PythonAliasHistoryData = {}
+        history: PythonScopeAliasHistoryData = {}
         for item in self._ordered_assignments(scope):
             for name, target in self.alias_source.assignment_aliases(item).items():
                 history.setdefault(name, []).append(
@@ -72,15 +75,15 @@ class PythonScopeAliasHistory:
     def __init__(
         self,
         node_index: PythonAstNodeIndexContract,
-        scope_types: OperatorTypes,
+        scope_types: PythonScopeTypes,
         alias_source: PythonAssignmentAliasContract,
     ) -> None:
         """Responsibilities: _alias index initialization_."""
         self.node_index: PythonAstNodeIndexContract = node_index
-        self.scope_types: OperatorTypes = scope_types
+        self.scope_types: PythonScopeTypes = scope_types
         self.alias_source: PythonAssignmentAliasContract = alias_source
         self._assignment_cache: dict[ast.AST, list[ast.AST]] = {}
-        self._history_cache: dict[ast.AST, PythonAliasHistoryData] = {}
+        self._history_cache: PythonScopeAliasHistories = {}
 
     def resolve_scope(self, scope: ast.AST, name: str, line: int) -> JsonObject:
         """Responsibilities: _scope alias chain_."""

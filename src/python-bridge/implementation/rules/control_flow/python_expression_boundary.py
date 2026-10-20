@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonSourceSegmentsContract
+from implementation.ast.protocols import PythonSourceSegmentsContract
 
 
 class PythonExpressionBoundary:

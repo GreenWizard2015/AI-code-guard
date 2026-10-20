@@ -4,19 +4,13 @@ import { TypeScriptImportSymbolDeclaration } from "src/model/ast/declarations/ty
 import { TypeScriptSymbolDeclaration } from "src/model/ast/declarations/type_script_symbol_declaration";
 import { TypeScriptTypeDeclarations } from "src/parser/type_script_type_declarations";
 import { TypeScriptLiteralMetadata } from "src/model/ast/type_script_literal_metadata";
-import type {
-	SourceLineResolver,
-	TypeScriptExpressionAliasesContract,
-	TypeScriptAstTraversalContract,
-	TypeScriptTreeMetadataCollectorContract,
-	TypeScriptMetadataNodeVisitor,
-} from "src/protocols";
-import type {
-	AstLiteralConstant,
-	AstLiteralReference,
-	TypeScriptTreeMetadata,
-} from "src/types";
-import type { TreeMetadataState, TypeScriptMetadataNodeOptions } from "src/model/types";
+import type { SourceLineResolver } from "src/runtime_types";
+import type { TypeScriptExpressionAliasesContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptTreeMetadataCollectorContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptMetadataNodeVisitor } from "src/typescript_analysis_types";
+import type { TypeScriptTreeMetadata } from "src/source_types";
+import type { AstLiteralConstant, AstLiteralReference } from "src/types";
+import type { TreeMetadataState, TypeScriptMetadataCollectionOptions } from "src/model/types";
 
 /** Responsibilities: _TypeScript tree metadata traversal_, _AST metadata assembly_. **/
 export class TypeScriptTreeMetadataCollector implements TypeScriptTreeMetadataCollectorContract {
@@ -156,13 +150,14 @@ export class TypeScriptTreeMetadataCollector implements TypeScriptTreeMetadataCo
 
 	/** Responsibilities: _metadata node collection_. **/
 	private append_metadata_node(
-		options: TypeScriptMetadataNodeOptions,
+		node: ts.Node,
+		owner: string,
+		options: TypeScriptMetadataCollectionOptions,
 	): void {
-		const { node, line_for, owner, state, literal_references, literal_constants, on_node } = options;
-		this.append_node(node, line_for, state);
-		on_node(node, owner);
+		this.append_node(node, options.line_for, options.state);
+		options.on_node(node, owner);
 		if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-			this.literal_metadata.append(node, line_for, literal_references, literal_constants);
+			this.literal_metadata.append(node, options.line_for, options.literal_references, options.literal_constants);
 		}
 	}
 
@@ -241,16 +236,9 @@ export class TypeScriptTreeMetadataCollector implements TypeScriptTreeMetadataCo
 		const state = this.metadata_state(line_for);
 		const literal_references: AstLiteralReference[] = [];
 		const literal_constants: AstLiteralConstant[] = [];
+		const options = { line_for, state, literal_references, literal_constants, on_node };
 		this.traversal.visit((node, _, owner) => {
-			this.append_metadata_node({
-				node,
-				line_for,
-				owner,
-				state,
-				literal_references,
-				literal_constants,
-				on_node,
-			});
+			this.append_metadata_node(node, owner, options);
 		});
 		return this.metadata_result(state, literal_references, literal_constants);
 	}

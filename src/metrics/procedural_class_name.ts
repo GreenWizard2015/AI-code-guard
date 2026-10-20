@@ -1,5 +1,5 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstClassNode } from "src/types";
 import { RESOLVER_SUFFIX } from "src/metrics/constants";
 

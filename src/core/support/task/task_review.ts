@@ -11,7 +11,7 @@ import {
 import type { ReviewStateIdentityContract } from "src/core/support/task/review-agent/protocols";
 import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
 import { ResolvedReviewArchive } from "src/core/support/task/resolved_review_archive";
-import type { TaskReviewContract } from "src/protocols";
+import type { TaskReviewContract } from "src/task_protocols";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _discovery architecture review files_, _completion verification_. **/

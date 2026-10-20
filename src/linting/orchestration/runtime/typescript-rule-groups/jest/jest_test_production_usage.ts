@@ -1,7 +1,8 @@
 import ts from "typescript";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { TestPathSyntaxContract, JestSuiteCollectorContract, ViolationContract } from "src/protocols";
+import type { TestPathSyntaxContract, JestSuiteCollectorContract } from "src/testing_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 
 /** Responsibilities: _production import extraction_, _behavior usage validation_. **/

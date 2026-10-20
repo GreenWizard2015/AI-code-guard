@@ -7,11 +7,13 @@ import { REVIEW_PHASE_ARGUMENT, REVIEW_PREFIX_ARGUMENT } from "src/core/support/
 import { HookPayloadNormalizer } from "src/core/support/task/review-agent/hook_payload_normalizer";
 import type { RawHookPayload } from "src/core/support/task/review-agent/types";
 import { NodeFileIO } from "src/io/node_file_io";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 if (process.argv.length > 1) {
 	const SCRIPT = process.argv[1];
 	if (resolve(SCRIPT) === fileURLToPath(import.meta.url)) {
 		(() => {
+			const boundary_failures = new BoundaryFailureClassifier();
 			try {
 				const application = new AgentHookApplication(new NodeFileIO());
 				const raw_payload: RawHookPayload = JSON.parse(readFileSync(0, "utf8"));
@@ -41,6 +43,9 @@ if (process.argv.length > 1) {
 				}
 				process.stdout.write(JSON.stringify(decision));
 			} catch (error) {
+				if (!boundary_failures.cache_read_failure(String(error))) {
+					throw error;
+				}
 				process.exitCode = 2;
 				process.stderr.write(`Review hook failed: ${String(error)}\n`);
 			}

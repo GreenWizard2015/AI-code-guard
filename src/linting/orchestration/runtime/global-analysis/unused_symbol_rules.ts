@@ -1,7 +1,8 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type { ProjectSourceScannerContract, ViolationContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import { UNUSED_SYMBOL_KIND } from "src/core/types";
 import type { UnusedSymbolKind } from "src/core/types";
 import type { UnusedSymbolDefinition } from "src/core/types";

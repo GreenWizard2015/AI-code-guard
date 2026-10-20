@@ -1,12 +1,8 @@
-import { TypeScriptArrayCallableDeclarations } from "src/rules/typescript/syntax-rules/types/type_script_array_callable_declarations";
-import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
-import type {
-	ArrayStateInspectorContract,
-	CallAliasesContract,
-	ExpressionNamesContract,
-	TypeScriptTypeAliasesContract,
-} from "src/protocols";
 import { READONLY_BUILTIN_TYPES, TYPESCRIPT_ARRAY_TYPE_NAME } from "src/metrics/constants";
+import { TypeScriptArrayCallableDeclarations } from "src/rules/typescript/syntax-rules/types/type_script_array_callable_declarations";
+import type { ArrayStateInspectorContract, CallAliasesContract, ExpressionNamesContract } from "src/runtime_protocols";
+import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
+import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _array results_, _callable resolution_. **/
@@ -153,6 +149,11 @@ export class TypeScriptArrayStateInspector implements ArrayStateInspectorContrac
 	/** Responsibilities: _classification single-item array expression_. **/
 	private single_item_array(expression: ts.Expression): boolean {
 		const unwrapped_expression = this.expression_names.unwrap_transparent_expression(expression);
+		if (ts.isConditionalExpression(unwrapped_expression)) {
+			const true_single_item = this.single_item_array(unwrapped_expression.whenTrue);
+			const false_single_item = this.single_item_array(unwrapped_expression.whenFalse);
+			return true_single_item && false_single_item;
+		}
 		if (!ts.isArrayLiteralExpression(unwrapped_expression)) {
 			return false;
 		}
@@ -198,6 +199,16 @@ export class TypeScriptArrayStateInspector implements ArrayStateInspectorContrac
 		this.call_aliases = call_aliases;
 	}
 
+	/** Responsibilities: _single-item array classification_. **/
+	public single_item_expression(expression: ts.Expression, source_file: ts.SourceFile): boolean {
+		const name = this.indexed_call_name(expression, this.call_aliases.names(source_file));
+		if (name.length === 0) {
+			return false;
+		}
+		const callables = this.callable_declarations.collect(source_file, name);
+		return callables.some((callable) => this.single_item_callable(callable));
+	}
+
 	/** Responsibilities: _single-item method detection_. **/
 	public single_item_method(node: ts.CallExpression, source_file: ts.SourceFile): boolean {
 		const name = this.at_access_name(node, source_file);
@@ -219,13 +230,18 @@ export class TypeScriptArrayStateInspector implements ArrayStateInspectorContrac
 		return result;
 	}
 
-	/** Responsibilities: _single-item access detection_. **/
-	public single_item_access(node: ts.ElementAccessExpression, source_file: ts.SourceFile): boolean {
-		const name = this.indexed_call_name(node.expression, this.call_aliases.names(source_file));
-		if (name.length === 0) {
+	/** Responsibilities: _single-item result binding detection_. **/
+	public single_item_binding(node: ts.ArrayBindingPattern, source_file: ts.SourceFile): boolean {
+		const has_indexed_binding = node.elements.some(
+			(element) => !ts.isOmittedExpression(element) && element.dotDotDotToken === undefined,
+		);
+		if (!has_indexed_binding) {
 			return false;
 		}
-		const callables = this.callable_declarations.collect(source_file, name);
-		return callables.some((callable) => this.single_item_callable(callable));
+		const declaration = node.parent;
+		if (!ts.isVariableDeclaration(declaration) || declaration.initializer === undefined) {
+			return false;
+		}
+		return this.single_item_expression(declaration.initializer, source_file);
 	}
 }

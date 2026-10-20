@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { ALIAS_RULE_FILES, ALIAS_TEST_FILES } from "tests/core/constants";
+import { ALIAS_RULE_FILES, ALIAS_TEST_FILES } from "tests/core/constants/alias_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("architecture and alias analysis", () => {

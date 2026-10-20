@@ -11,7 +11,8 @@ import type {
 	CallableOwnershipResolver,
 	NormalizedAstFile,
 } from "src/types";
-import type { SourceReferenceIndexContract, ViolationContract } from "src/protocols";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 export type ParsedFile = {
 	file: string;
 	absolute_file: string;

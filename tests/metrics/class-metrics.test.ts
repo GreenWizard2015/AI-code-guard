@@ -3,7 +3,7 @@ import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { ClassReporting } from "src/core/support/source-analysis/class_reporting";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 describe("normalized AST class metrics", () => {
 	test("reports short class and method metrics from normalized nodes", () => {

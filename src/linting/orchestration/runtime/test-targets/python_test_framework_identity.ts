@@ -1,8 +1,5 @@
 import type { AstPythonImport, AstReferenceAlias } from "src/types";
-import {
-	PYTHON_TESTCASE_BASE,
-	PYTHON_UNITTEST_FRAMEWORK,
-} from "src/linting/orchestration/runtime/test-targets/constants";
+import { PYTHON_TESTCASE_BASE, PYTHON_UNITTEST_FRAMEWORK } from "src/constants";
 
 /** Responsibilities: _Python framework import resolution_, _unittest base identification_. **/
 export class PythonTestFrameworkIdentity {
@@ -32,8 +29,7 @@ export class PythonTestFrameworkIdentity {
 		while (!seen.has(resolved)) {
 			seen.add(resolved);
 			const alias = this.aliases.find(
-				(candidate) =>
-					(resolved === candidate.name) || resolved.startsWith(`${candidate.name}.`),
+				(candidate) => resolved === candidate.name || resolved.startsWith(`${candidate.name}.`),
 			);
 			if (alias === undefined) {
 				return resolved;

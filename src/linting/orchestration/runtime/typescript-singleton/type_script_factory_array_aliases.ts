@@ -7,7 +7,7 @@ import type {
 	TypeScriptFactoryArraySourcesContract,
 } from "src/linting/orchestration/runtime/protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { TypeScriptFactoryArrayAliasesContract } from "src/protocols";
+import type { TypeScriptFactoryArrayAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _array factory alias indexing_, _binding expression resolution_. **/
 export class TypeScriptFactoryArrayAliases implements TypeScriptFactoryArrayAliasesContract {

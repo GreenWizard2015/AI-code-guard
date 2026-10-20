@@ -3,7 +3,9 @@ from __future__ import annotations
 import ast
 from collections.abc import Mapping
 
-from implementation.rules.call_analysis.python_callable_scope import PythonCallableScope
+from implementation.rules.call_analysis.testing.python_callable_scope import (
+    PythonCallableScope,
+)
 
 PythonTestExecutionNodes = list[ast.AST]
 

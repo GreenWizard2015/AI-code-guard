@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import type { TypeScriptAssignmentContext } from "src/types";
-import type { TypeScriptAssignmentPredicatesContract } from "src/protocols";
+import type { TypeScriptAssignmentPredicatesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _property assignments classification_, _primitive assignments classification_. **/
 export class TypeScriptAssignmentPredicates implements TypeScriptAssignmentPredicatesContract {

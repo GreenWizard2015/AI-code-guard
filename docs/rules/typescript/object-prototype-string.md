@@ -14,8 +14,16 @@ Fix: Use a named type guard or an explicit value check.
 ```ts
 // File: cli.ts
 (function () {
-	const label = Object.prototype.toString.call("value");
-	console.log(label);
+	const object_string = Object.prototype.toString;
+	const values: object[] = ["value", 42];
+	for (const value of values) {
+		const tag = object_string.call(value); // <- error
+		if (tag === "[object String]") {
+			console.log("string value");
+		} else {
+			console.log("other value");
+		}
+	}
 })();
 ```
 

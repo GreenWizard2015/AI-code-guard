@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { JestExpressionMatchContract } from "src/protocols";
+import type { JestExpressionMatchContract } from "src/testing_protocols";
 
 /** Responsibilities: _storage matched Jest expression_, _report value availability_. **/
 export class JestExpressionMatch implements JestExpressionMatchContract {

@@ -1,12 +1,9 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type {
-	PrivateMemberDeclarationNamesContract,
-	PrivateMemberKeysContract,
-	StringSetMap,
-	TypeScriptAstTraversalContract,
-	TypeScriptReferenceContextContract,
-	ViolationContract,
-} from "src/protocols";
+import type { PrivateMemberDeclarationNamesContract } from "src/analysis_protocols";
+import type { PrivateMemberKeysContract } from "src/shared_services_protocols";
+import type { StringSetMap } from "src/analysis_types";
+import type { TypeScriptAstTraversalContract, TypeScriptReferenceContextContract } from "src/typescript_runtime_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TypeScriptReferenceOwnership } from "src/parser/references/identity/references/type_script_reference_ownership";
 import { EmptySourceText } from "src/io/empty_source_text";
 import { RULE_IDS } from "src/constants";

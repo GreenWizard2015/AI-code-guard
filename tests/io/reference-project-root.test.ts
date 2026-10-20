@@ -99,7 +99,7 @@ describe("TypeScript reference project root", () => {
 
 	test("resolves compiler path aliases from a shared source context", () => {
 		const fixture = new TestFixture();
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"src/domain/worker.ts": "export const value = 1;\n",
 				"entry.ts": 'import { value } from "@domain/worker";\n',

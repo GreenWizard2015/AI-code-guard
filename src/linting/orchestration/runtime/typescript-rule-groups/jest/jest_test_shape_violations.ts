@@ -1,16 +1,11 @@
 import ts from "typescript";
-import { JestAssertionGroupingRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_assertion_grouping_rule";
+import { JestAssertionGroupingRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_assertion_grouping_rule";
 import { JestTestShapeRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_test_shape_rule";
-import { JestTestResultShapeRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_test_result_shape_rule";
-import type { ViolationContract } from "src/protocols";
+import { JestTestResultShapeRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_test_result_shape_rule";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MAX_TEST_ASSERTIONS, MIN_JEST_ASSERTIONS } from "src/constants";
-import type {
-	JestAssertionAnalysisContract,
-	JestTestAssertionContract,
-	JestTestShapeRuleContract,
-	JestTestShapeViolationsContract,
-} from "src/protocols";
+import type { JestAssertionAnalysisContract, JestTestAssertionContract, JestTestShapeRuleContract, JestTestShapeViolationsContract } from "src/testing_protocols";
 
 /** Responsibilities: _test shape diagnostics_, _test result diagnostics_. **/
 export class JestTestShapeViolations implements JestTestShapeViolationsContract {

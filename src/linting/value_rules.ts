@@ -3,11 +3,9 @@ import { ObjectValueRules } from "src/linting/object_value_rules";
 import ts from "typescript";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
 import { TypeScriptVariableBinding } from "src/linting/type_script_variable_binding";
-import type {
-	SourceFileBooleanMapCache,
-	TypeScriptVariableBindingContract,
-	TypeScriptVariableDeclarationIndexContract,
-} from "src/protocols";
+import type { SourceFileBooleanMapCache } from "src/source_types";
+import type { TypeScriptVariableBindingContract } from "src/typescript_analysis_types";
+import type { TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptCallableBody } from "src/typescript-aliases/callables/type_script_callable_body";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
@@ -15,8 +13,9 @@ import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callabl
 import { StructuredValueRules } from "src/linting/structured_value_rules";
 
 import type { RuleAppender } from "src/types";
-import type { FakeObjectContract, ObjectValueRulesContract } from "src/protocols";
-import type { ValueRulesContract } from "src/protocols";
+import type { FakeObjectContract } from "src/shared_services_protocols";
+import type { ObjectValueRulesContract } from "src/runtime_protocols";
+import type { ValueRulesContract } from "src/analysis_protocols";
 import { RULE_IDS } from "src/constants";
 
 /** Responsibilities: _object value checks_, _primitive property analysis_. **/

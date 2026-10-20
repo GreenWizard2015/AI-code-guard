@@ -1,13 +1,13 @@
 import ts from "typescript";
-import type { FakeObjectContract, ObjectCallableBindingContract } from "src/protocols";
-import type { ObjectCallableAliasesContract } from "src/protocols";
-import type { ObjectScopeAliasCache } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/types";
+import type { FakeObjectContract, ObjectCallableBindingContract } from "src/shared_services_protocols";
+import type { ObjectCallableAliasesContract } from "src/shared_services_protocols";
+import type { NodeReadonlyStringSetCache } from "src/cache_types";
 import { ObjectCallableBinding } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_callable_binding";
 
 /** Responsibilities: _callable object alias resolution_, _alias usage matching_. **/
 export class ObjectCallableAliases implements ObjectCallableAliasesContract {
 	private readonly binding: ObjectCallableBindingContract;
-	private readonly scope_aliases: ObjectScopeAliasCache;
+	private readonly scope_aliases: NodeReadonlyStringSetCache;
 
 	/** Responsibilities: _enclosing callable scope lookup_. **/
 	private enclosing_scope(node: ts.Node): ts.Node {

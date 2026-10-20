@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
 
-from implementation.coding_issue_options import (
+from implementation.ast.callables.coding_issue_options import (
     PythonCodingIssueAliases,
     PythonCodingIssueCollectorOptions,
     PythonCodingIssueContainerAliases,
@@ -13,15 +13,19 @@ from implementation.coding_issue_options import (
     PythonCodingIssueSource,
     PythonCodingIssueValueAliases,
 )
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
+    PythonSourceSegmentsContract,
+)
+from implementation.rules.protocols import (
     PythonCodingIssueAliasesContract,
     PythonCodingIssueOptionsContract,
     PythonCodingIssueSourceContract,
-    PythonSourceSegmentsContract,
 )
-from implementation.python_coding_issue_collector import PythonCodingIssueCollector
-from implementation.references.aliases.protocols import (
+from implementation.ast.callables.python_coding_issue_collector import (
+    PythonCodingIssueCollector,
+)
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,

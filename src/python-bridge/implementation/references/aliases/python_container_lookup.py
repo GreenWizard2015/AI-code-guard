@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.aliases.protocols import PythonContainerLookupContract
+from implementation.references.protocols import PythonContainerLookupContract
 
 
 class PythonContainerLookup(PythonContainerLookupContract):

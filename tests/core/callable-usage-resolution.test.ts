@@ -12,7 +12,7 @@ import {
 	PROTOCOL_CONTAINER_FILES,
 	TYPE_CHECKING_PROPERTY_FILES,
 	FORWARD_ANNOTATION_FILES,
-} from "tests/core/constants";
+} from "tests/core/constants/callable_usage/constants";
 
 describe("coding-lint callable usage rule", () => {
 	const test_fixture = new TestFixture();

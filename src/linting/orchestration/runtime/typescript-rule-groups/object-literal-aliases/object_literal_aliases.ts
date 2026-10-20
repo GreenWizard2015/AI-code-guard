@@ -1,6 +1,7 @@
 import ts from "typescript";
-import type { FakeObjectContract, NodeReadonlyStringSetMap } from "src/protocols";
-import type { ObjectLiteralAliasesContract } from "src/protocols";
+import type { FakeObjectContract } from "src/shared_services_protocols";
+import type { NodeReadonlyStringSetMap } from "src/analysis_types";
+import type { ObjectLiteralAliasesContract } from "src/shared_services_protocols";
 import type { ObjectDestructuredAliasesContract } from "src/linting/orchestration/runtime/protocols";
 import { ObjectDestructuredAliases } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_destructured_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";

@@ -26,7 +26,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		const violations = analyzer.collect_violations();
 		const first = violations[0];
@@ -65,7 +65,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		const violations = analyzer.collect_violations();
 		const first_violation = violations[0];
@@ -105,7 +105,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations()).toEqual([]);
 	});
@@ -126,7 +126,7 @@ describe("module placement lint", () => {
 		value.paths = value.paths.filter((path) => path.endsWith(".ts"));
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations()).toEqual([]);
@@ -151,7 +151,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations().map((item) => item.file)).toEqual([]);
@@ -174,7 +174,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 
 		expect(analyzer.collect_violations().map((item) => item.file)).toEqual([]);
@@ -198,7 +198,7 @@ describe("module placement lint", () => {
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const ignored_files = new Set(value.paths.filter((path) => path.endsWith("parser.ts")));
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, ignored_files),
+			test_fixture.project_source.project_source_analysis_options(value, context, ignored_files),
 		);
 
 		expect(analyzer.collect_violations()).toEqual([]);
@@ -220,7 +220,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		const violations = analyzer.collect_violations();
 
@@ -244,7 +244,7 @@ describe("module placement lint", () => {
 		});
 		const context = context_factory.lint_context(value.root, value.paths, new LintStageTimer(), value.source_texts);
 		const analyzer = new ModulePlacementAnalyzer(
-			test_fixture.project_source_analysis_options(value, context, new Set<string>()),
+			test_fixture.project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
 		expect(analyzer.collect_violations()).toEqual([]);
 	});

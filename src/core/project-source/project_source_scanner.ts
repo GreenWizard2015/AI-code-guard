@@ -4,14 +4,9 @@ import { ProjectSourceContextImports } from "src/core/project-source/project_sou
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { ProjectSourceEntry } from "src/linting/orchestration/runtime/global-rules/project_source_entry";
 import type { UnresolvedSpecifierInput, ProjectContextState, ProjectSourceOptions } from "src/model/types/types";
-import type {
-	ProjectSourceEntryContract,
-	ProjectSourceContextImportsContract,
-	ProjectSourceScannerContract,
-	StringSet,
-	StringStringMap,
-	StringSetToStringMapCache,
-} from "src/protocols";
+import type { ProjectSourceEntryContract, ProjectSourceContextImportsContract, ProjectSourceScannerContract } from "src/source_protocols";
+import type { StringSet, StringStringMap } from "src/analysis_types";
+import type { StringSetToStringMapCache } from "src/cache_types";
 
 /** Responsibilities: _project source graph scanning_, _unresolved import reporting_. **/
 export class ProjectSourceScanner implements ProjectSourceScannerContract {

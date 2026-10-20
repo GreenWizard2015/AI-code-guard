@@ -1,5 +1,7 @@
-import type { AstPythonImport, AstPythonImportName, ImportedFunction, PythonProjectImportContext } from "src/types";
-import type { ProjectSourcePythonContract, PythonImportResolutionContract } from "src/protocols";
+import type { PythonProjectImportContext } from "src/source_types";
+import type { AstPythonImport, AstPythonImportName, ImportedFunction } from "src/types";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { PythonImportResolutionContract } from "src/python_protocols";
 
 /** Responsibilities: _Python module path resolution_, _imported symbol resolution_. **/
 export class PythonImportResolution implements PythonImportResolutionContract {

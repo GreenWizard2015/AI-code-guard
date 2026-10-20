@@ -4,11 +4,9 @@ import ast
 from implementation.rules.constants import PYTHON_TYPE_FACTORY_KIND
 from typing import Any
 
-from implementation.protocols import (
-    PythonDecoratorRulesContract,
-    PythonDuplicateSetupContract,
-    PythonTypeFactoryNamesContract,
-)
+from implementation.protocols import PythonTypeFactoryNamesContract
+from implementation.references.protocols import PythonDecoratorRulesContract
+from implementation.rules.protocols import PythonDuplicateSetupContract
 from implementation.rules.type_rules.python_duplicate_setup import PythonDuplicateSetup
 from implementation.types import JsonObject
 

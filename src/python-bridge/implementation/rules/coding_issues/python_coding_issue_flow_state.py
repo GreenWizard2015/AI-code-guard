@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.protocols import (
-    PythonCodingIssueComponentContextContract,
+from implementation.rules.protocols import PythonCodingIssueComponentContextContract
+from implementation.rules.protocols import (
     PythonControlFlowIssuesContract,
     PythonOperatorPrecedenceContract,
 )

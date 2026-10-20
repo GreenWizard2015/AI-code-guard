@@ -4,13 +4,9 @@ import { TypeScriptNamespaceAliases } from "src/linting/orchestration/runtime/ty
 import { TypeScriptDestructuredAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_destructured_aliases";
 import { TypeScriptArrayDestructuredAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_array_destructured_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type {
-	ImportedNamesContract,
-	TypeScriptArrayDestructuredAliasesContract,
-	TypeScriptClassAliasesContract,
-	TypeScriptDestructuredAliasesContract,
-	TypeScriptNamespaceAliasesContract,
-} from "src/protocols";
+import type { ImportedNamesContract } from "src/shared_services_protocols";
+import type { TypeScriptArrayDestructuredAliasesContract, TypeScriptDestructuredAliasesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptClassAliasesContract, TypeScriptNamespaceAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _class alias collection_, _alias access resolution_. **/
 export class TypeScriptClassAliases implements TypeScriptClassAliasesContract {

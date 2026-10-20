@@ -1,14 +1,11 @@
-import type { ArraySourceResolver, ViolationContract } from "src/protocols";
-import type {
-	AstCallableReference,
-	AstPythonImport,
-	ImportedSymbol,
-	LintSourceRecord,
-	NormalizedAstFile,
-} from "src/types";
+import type { ArraySourceResolver } from "src/analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { AstCallableReference, AstPythonImport, ImportedSymbol, NormalizedAstFile } from "src/types";
 import type { PlacementFunctionNode } from "src/model/types/types";
 import ts from "typescript";
-import type { ArrayValuesVisitor, ObjectSourceVisitor } from "src/protocols";
+import type { ArrayValuesVisitor } from "src/runtime_types";
+import type { ObjectSourceVisitor } from "src/analysis_types";
 
 /** Responsibilities: _define responsibility wording validation_. **/
 export interface ResponsibilityWordingCheckerContract {

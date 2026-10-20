@@ -1,11 +1,6 @@
-import type {
-	CodingRuleLinterContract,
-	FileAnalysisCacheContract,
-	FileViolationCollectorContract,
-	LintStageTimerContract,
-	LintProjectContextContract,
-} from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { CodingRuleLinterContract, FileViolationCollectorContract, LintStageTimerContract, LintProjectContextContract } from "src/shared_services_protocols";
+import type { FileAnalysisCacheContract } from "src/cache_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import type { PythonProjectNames } from "src/model/types/types";
 
 export type CachedFileOptions = {

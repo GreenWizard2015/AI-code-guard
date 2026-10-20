@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { JestBindingIndexContract } from "src/protocols";
+import type { JestBindingIndexContract } from "src/testing_protocols";
 import { JestExecutionRegion } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_execution_region";
 
 /** Responsibilities: _mutable state classification_, _mutation detection_. **/
@@ -36,7 +36,7 @@ export class JestModuleState {
 			return;
 		}
 		if (ts.isIdentifier(node.left)) {
-			if (bindings.module_binding(node.left, module_declarations)) {
+			if (bindings.binding_is(node.left, module_declarations)) {
 				mutations.add(node.left.text);
 			}
 		}
@@ -52,11 +52,14 @@ export class JestModuleState {
 		if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
 			return;
 		}
-		const owner = node.expression.expression;
+		let owner = node.expression.expression;
+		while (ts.isPropertyAccessExpression(owner) || ts.isElementAccessExpression(owner)) {
+			owner = owner.expression;
+		}
 		if (!ts.isIdentifier(owner)) {
 			return;
 		}
-		const module_binding = bindings.module_binding(owner, module_declarations);
+		const module_binding = bindings.binding_is(owner, module_declarations);
 		const mutation_method = this.shared_mutation_methods.has(node.expression.name.text);
 		if (module_binding && mutation_method) {
 			mutations.add(owner.text);

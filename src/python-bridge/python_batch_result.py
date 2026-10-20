@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from implementation.protocols import PythonAstTimedResultContract
-from implementation.types import JsonObject, JsonValue
+from protocols import PythonAstTimedResultContract
+from implementation.types import (
+    JsonObject,
+    JsonValue,
+)
 
 
 class PythonBatchResult:

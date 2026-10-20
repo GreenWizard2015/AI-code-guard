@@ -1,8 +1,8 @@
 import type { Dirent } from "node:fs";
 import { readdirSync } from "node:fs";
 import { relative, join, extname } from "node:path";
-import type { LintProjectContextContract } from "src/protocols";
-import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from "src/parser/constants";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from "src/constants";
 
 /** Responsibilities: _source files discovery projection_, _ignored paths filtering_. **/
 export class ProjectSourceDiscovery {

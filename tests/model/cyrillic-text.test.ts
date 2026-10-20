@@ -1,8 +1,8 @@
-import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
-import { TextFileDiscovery } from "src/core/text_file_discovery";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { describe, expect, test } from "@jest/globals";
+import { TextFileDiscovery } from "src/core/text_file_discovery";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
 
 describe("Cyrillic comment and text file rules", () => {
 	test("reports Cyrillic in TypeScript comments but not strings", () => {
@@ -77,7 +77,7 @@ describe("Cyrillic comment and text file rules", () => {
 	test("discovers text files regardless of suffix case", () => {
 		const root = "/virtual/cyrillic-text-case";
 		const source_io = new InMemoryProjectSourceIO(new Map([[`${root}/NOTES.TXT`, "Привет"]]));
-		const text_file_discovery = new TextFileDiscovery(new DiagnosticRule("cyrillic-comment"), source_io);
+		const text_file_discovery = new TextFileDiscovery(source_io);
 		const violations = text_file_discovery.violations(root, new Set(), new Map());
 
 		expect(violations).toHaveLength(1);
@@ -86,7 +86,7 @@ describe("Cyrillic comment and text file rules", () => {
 	test("discovers plain text files for Cyrillic analysis", () => {
 		const root = "/virtual/cyrillic-text";
 		const source_io = new InMemoryProjectSourceIO(new Map([[`${root}/notes.txt`, "Привет\nМир"]]));
-		const text_file_discovery = new TextFileDiscovery(new DiagnosticRule("cyrillic-comment"), source_io);
+		const text_file_discovery = new TextFileDiscovery(source_io);
 		const violations = text_file_discovery.violations(root, new Set(), new Map());
 
 		expect(violations).toHaveLength(1);

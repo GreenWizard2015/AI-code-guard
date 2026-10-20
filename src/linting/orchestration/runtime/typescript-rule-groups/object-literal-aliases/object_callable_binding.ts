@@ -1,4 +1,4 @@
-import type { FakeObjectContract, ObjectCallableBindingContract } from "src/protocols";
+import type { FakeObjectContract, ObjectCallableBindingContract } from "src/shared_services_protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import ts from "typescript";
 

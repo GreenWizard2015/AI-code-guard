@@ -3,7 +3,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { TestFixture } from "tests/core/test-fixture";
-import { SINGLETON_FILES } from "tests/core/constants";
+import { SINGLETON_FILES } from "tests/core/constants/architecture/constants";
 
 describe("project singleton analysis", () => {
 	test("reports singleton-like instances and Python class variables", () => {

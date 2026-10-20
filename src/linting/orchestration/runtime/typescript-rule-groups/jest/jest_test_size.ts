@@ -3,7 +3,7 @@ import { TypeScriptStatementSloc } from "src/metrics/type_script_statement_sloc"
 import { JestSuiteCollector } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_suite_collector";
 import type { JestSuite } from "src/types";
 import { MAX_CLASS_LINES } from "src/constants";
-import type { JestTestSizeContract } from "src/protocols";
+import type { JestTestSizeContract } from "src/testing_protocols";
 
 /** Responsibilities: _test size_, _suite size_. **/
 export class JestTestSize implements JestTestSizeContract {

@@ -13,17 +13,9 @@ class PerformanceSnapshotIOContract(Protocol):
         """Responsibilities: _snapshot path discovery_."""
         ...
 
-    def snapshot_input(self, path: Path) -> PerformanceSnapshotInputContract:
-        """Responsibilities: _snapshot input access_."""
+    def snapshot_text(self, path: Path) -> str:
+        """Responsibilities: _snapshot source text access_."""
         ...
-
-
-class PerformanceSnapshotInputContract(Protocol):
-    """Responsibilities: _snapshot source identity_, _snapshot content contract_."""
-
-    def path(self) -> Path: ...
-
-    def content(self) -> str: ...
 
 
 class PerformanceWorkloadIdentityContract(Protocol):

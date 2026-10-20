@@ -1,11 +1,7 @@
 import ts from "typescript";
-import type {
-	BindingAliasesContract,
-	CallAliasesContract,
-	ExpressionNamesContract,
-	ReadonlyStringMap,
-	SourceFileReadonlyStringMapCache,
-} from "src/protocols";
+import type { BindingAliasesContract, CallAliasesContract, ExpressionNamesContract } from "src/runtime_protocols";
+import type { ReadonlyStringMap } from "src/analysis_types";
+import type { SourceFileReadonlyStringMapCache } from "src/source_types";
 
 /** Responsibilities: _invocation aliases_, _scope-aware aliases_. **/
 export class TypeScriptCallAliases implements CallAliasesContract {

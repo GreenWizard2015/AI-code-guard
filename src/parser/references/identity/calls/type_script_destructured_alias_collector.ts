@@ -6,7 +6,7 @@ import type {
 } from "src/model/protocols";
 import type { CallOwnerResolverContract, TypeScriptPropertyStateContract } from "src/model/protocols";
 import type { DestructuredAlias } from "src/model/types";
-import { INSTANCE_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE } from "src/constants";
 
 /** Responsibilities: _destructured binding name resolution_, _nested owner propagation_. **/
 export class TypeScriptDestructuredAliasCollector implements TypeScriptDestructuredAliasCollectorContract {

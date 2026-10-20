@@ -5,14 +5,9 @@ import type {
 	PropertyAccessExpression as TypeScriptPropertyAccessExpression,
 	SourceFile as TypeScriptSourceFile,
 } from "typescript";
-import type { ViolationContract } from "src/protocols";
-import type {
-	AstCallableNodeContract,
-	AstClassField,
-	AstClassNode,
-	LintFileNameContract,
-	NormalizedAstFile,
-} from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintFileNameContract } from "src/source_types";
+import type { AstCallableNodeContract, AstClassField, AstClassNode, NormalizedAstFile } from "src/types";
 
 export type RepeatedBranchSummary = { length: number; all_same: boolean; line: number };
 export type RepeatedBranchVisitState = {

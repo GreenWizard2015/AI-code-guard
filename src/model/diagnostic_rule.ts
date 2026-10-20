@@ -1,6 +1,7 @@
 import { ViolationValue } from "src/violation_value";
-import { PYTHON_LANGUAGE, RULE_DATA_BY_ID, RULE_LANGUAGE_BY_ID, TYPESCRIPT_LANGUAGE } from "src/constants";
-import type { RuleContract, ViolationContract } from "src/protocols";
+import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
+import { RULE_DATA_BY_ID, RULE_LANGUAGE_BY_ID } from "src/constants";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { AstLanguage, RuleParameters } from "src/types";
 
 /** Responsibilities: _rule metadata resolution_, _diagnostic violations rendering_. **/

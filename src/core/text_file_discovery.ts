@@ -1,15 +1,13 @@
 import { dirname, relative, resolve } from "node:path";
-import { GitIgnoredPaths } from "src/git_ignored_paths";
-import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
 import { IGNORED_DIRS, MARKDOWN_TEXT_SUFFIXES } from "src/constants";
-import type {
-	CyrillicTextRulesContract,
-	RuleContract,
-	TextFileDiscoveryContract,
-	ViolationContract,
-} from "src/protocols";
-import type { GitIgnoredPathsContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import { GitIgnoredPaths } from "src/git_ignored_paths";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { ViolationContract } from "src/reporting_protocols";
+import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
+import type { TextFileDiscoveryContract } from "src/runtime_protocols";
+import type { GitIgnoredPathsContract } from "src/runtime_protocols";
+import type { CyrillicTextRulesContract } from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _text file traversal_, _Cyrillic text diagnostics_. **/
 export class TextFileDiscovery implements TextFileDiscoveryContract {
@@ -50,9 +48,9 @@ export class TextFileDiscovery implements TextFileDiscoveryContract {
 	}
 
 	/** Responsibilities: _text discovery rule initialization_. **/
-	public constructor(cyrillic_rule: RuleContract, source_io: ProjectSourceIOContract) {
+	public constructor(source_io: ProjectSourceIOContract) {
 		this.git_ignored_paths = new Map<string, GitIgnoredPathsContract>();
-		this.text_rules = new CyrillicTextRules(cyrillic_rule);
+		this.text_rules = new CyrillicTextRules(new DiagnosticRule("cyrillic-comment"));
 		this.source_io = source_io;
 	}
 

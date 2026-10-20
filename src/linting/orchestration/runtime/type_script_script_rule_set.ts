@@ -11,21 +11,13 @@ import { TypeScriptDeclarations } from "src/linting/orchestration/runtime/typesc
 import { InlineTypes } from "src/linting/orchestration/runtime/typescript-rule-groups/inline_types";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type {
-	JestTestRulesContract,
-	LintStageTimerContract,
-	PointlessAssignmentsContract,
-	PrivateMemberAccessContract,
-	TypeScriptAstTraversalContract,
-	TypeScriptDictionaryReturnsContract,
-	TypeScriptInlineRulesContract,
-	TypeScriptRepeatedBranchContract,
-	TypeScriptScriptDeclarationRulesContract,
-	TypeScriptScriptRuleServicesContract,
-	TypeScriptScriptRuleOptions,
-	TypeScriptTypeOperationsContract,
-	ViolationContract,
-} from "src/protocols";
+import type { JestTestRulesContract } from "src/testing_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { PointlessAssignmentsContract, PrivateMemberAccessContract } from "src/analysis_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptDictionaryReturnsContract, TypeScriptInlineRulesContract, TypeScriptRepeatedBranchContract, TypeScriptScriptDeclarationRulesContract, TypeScriptScriptRuleServicesContract, TypeScriptTypeOperationsContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptScriptRuleOptions } from "src/typescript_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _declaration rule application_, _Jest rule application_, _quality rule application_. **/
 export class TypeScriptScriptRuleSet implements TypeScriptScriptRuleServicesContract {

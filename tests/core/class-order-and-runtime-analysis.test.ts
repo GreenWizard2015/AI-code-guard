@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { FORBIDDEN_SYNTAX_PROBE_FILES } from "tests/core/constants";
+import { FORBIDDEN_SYNTAX_PROBE_FILES } from "tests/core/constants/ast_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("class ordering and runtime analysis", () => {

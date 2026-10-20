@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from implementation.protocols import (
+from implementation.references.protocols import PythonDecoratorRulesContract
+from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonCodingIssueFlowStateContract,
     PythonCodingIssueTestStateContract,
-    PythonDecoratorRulesContract,
 )
 from implementation.rules.coding_issues.python_coding_issue_flow_state import (
     PythonCodingIssueFlowState,
 )
-from implementation.rules.python_coding_issue_test_state import (
+from implementation.rules.coding_issues.python_coding_issue_test_state import (
     PythonCodingIssueTestState,
 )
 

@@ -10,8 +10,7 @@ import {
 import type { ReviewPathPolicyContract, ReviewReadCommandContext } from "src/core/support/task/review-agent/protocols";
 import { RecursiveReviewSearchPolicy } from "src/core/support/task/review-agent/policy/recursive_review_search_policy";
 import { ResolvedReviewPathPolicy } from "src/core/support/task/review-agent/policy/resolved_review_path_policy";
-import { DIRECTORY_ENTRY_DIRECTORY } from "src/io/constants";
-import type { StringSetMap } from "src/protocols";
+import type { StringSetMap } from "src/analysis_types";
 import type { HookDecision } from "src/model/types/types";
 import type { IOContract } from "src/io/protocols";
 
@@ -24,7 +23,7 @@ export class ReviewPathPolicy implements ReviewPathPolicyContract {
 
 	/** Responsibilities: _review directory boundary_. **/
 	private review_root_directory(review_root: string): boolean {
-		if (this.io.directory_entries.path_kind(review_root) !== DIRECTORY_ENTRY_DIRECTORY) {
+		if (!this.io.directory_entries.path_is_directory(review_root)) {
 			return false;
 		}
 		if (this.io.file_paths.symbolic_link(review_root)) {
@@ -80,7 +79,7 @@ export class ReviewPathPolicy implements ReviewPathPolicyContract {
 		if (this.io.file_paths.symbolic_link(ancestor)) {
 			return false;
 		}
-		if (this.io.directory_entries.path_kind(ancestor) !== DIRECTORY_ENTRY_DIRECTORY) {
+		if (!this.io.directory_entries.path_is_directory(ancestor)) {
 			return false;
 		}
 		return this.within_project_root(review_root, cwd);
@@ -246,7 +245,7 @@ export class ReviewPathPolicy implements ReviewPathPolicyContract {
 		if (this.io.file_paths.symbolic_link(absolute_path)) {
 			return false;
 		}
-		return this.io.directory_entries.path_kind(absolute_path) === "file";
+		return this.io.directory_entries.path_is_file(absolute_path);
 	}
 
 	/** Responsibilities: _review file authorization_. **/

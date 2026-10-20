@@ -4,7 +4,7 @@ import {
 	CONTRACT_FIELD_FILES,
 	COVERAGE_CONTROL_FLOW_SOURCE,
 	STRUCTURE_SOURCE,
-} from "tests/core/constants";
+} from "tests/core/constants/ast_nodes/constants";
 
 export const COVERAGE_FILES = {
 	"coverage-flow.py": COVERAGE_CONTROL_FLOW_SOURCE,

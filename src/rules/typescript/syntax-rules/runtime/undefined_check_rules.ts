@@ -3,7 +3,7 @@ import ts from "typescript";
 import { UnnecessaryUndefinedCheck } from "src/rules/typescript/syntax-rules/runtime/unnecessary_undefined_check";
 import { UndefinedCheckCandidate } from "src/rules/typescript/syntax-rules/runtime/undefined_check_candidate";
 import type { RuleAppender, TypeScriptRuleContextOptions } from "src/types";
-import type { UndefinedCheckCandidateContract, UnnecessaryUndefinedCheckContract } from "src/protocols";
+import type { UndefinedCheckCandidateContract, UnnecessaryUndefinedCheckContract } from "src/analysis_protocols";
 
 /** Responsibilities: _candidate matching_, _undefined diagnostic emission_. **/
 export class UndefinedCheckRules {

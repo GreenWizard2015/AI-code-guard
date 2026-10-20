@@ -3,12 +3,9 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { GitIgnorePatternCatalog } from "src/core/support/git_ignore_pattern_catalog";
 import { ProjectPathRelation } from "src/core/support/project_path_relation";
 import { GITIGNORE_FILE_NAME } from "src/constants";
-import type {
-	ParsedConfigurationFilesContract,
-	ProjectPathRelationContract,
-	ProjectSourceIOContract,
-} from "src/protocols";
-import type { GitIgnorePattern, GitIgnoreSourceFile } from "src/types";
+import type { ParsedConfigurationFilesContract, ProjectSourceIOContract } from "src/source_protocols";
+import type { ProjectPathRelationContract } from "src/shared_services_protocols";
+import type { GitIgnorePattern, GitIgnoreSourceFile } from "src/project_analysis_types";
 
 /** Responsibilities: _Gitignore configuration selection_, _ignored path filtering_. **/
 export class GitIgnoredPaths {

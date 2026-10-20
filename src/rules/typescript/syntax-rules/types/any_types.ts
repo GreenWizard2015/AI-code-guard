@@ -1,13 +1,28 @@
-import type { AnyTypesContract, ViolationContract } from "src/protocols";
+import type { AnyTypesContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstCallableNodeContract, AstClassNode } from "src/types";
-import { GENERIC_TYPES } from "src/rules/typescript/constants";
-import type { TypeScriptTypeAliasesContract } from "src/protocols";
+import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _any parameter diagnostics_, _any field diagnostics_. **/
 export class AnyTypes implements AnyTypesContract {
-	private readonly generic_types = GENERIC_TYPES;
 	private readonly type_aliases: TypeScriptTypeAliasesContract;
+
+	/** Responsibilities: _generic type classification_. **/
+	private is_generic_type(type: string): boolean {
+		switch (type) {
+			case "Any":
+			case "any":
+			case "object":
+			case "Object":
+			case "unknown":
+			case "typing.Any":
+			case "typing_extensions.Any":
+				return true;
+			default:
+				return false;
+		}
+	}
 
 	/** Responsibilities: _aggregation any diagnostics callable_. **/
 	private append_parameter_infos(
@@ -34,7 +49,7 @@ export class AnyTypes implements AnyTypesContract {
 	): void {
 		const is_receiver = name === "self" || name === "cls" || name === "_";
 		const resolved_type = this.type_aliases.resolve(type);
-		if (!this.generic_types.has(resolved_type) || is_receiver) {
+		if (!this.is_generic_type(resolved_type) || is_receiver) {
 			return;
 		}
 		const subject = `parameter "${name}"`;
@@ -55,7 +70,7 @@ export class AnyTypes implements AnyTypesContract {
 			return;
 		}
 		const resolved_type = this.type_aliases.resolve(return_type);
-		if (!this.generic_types.has(resolved_type)) {
+		if (!this.is_generic_type(resolved_type)) {
 			return;
 		}
 		this.append_info(violations, file, callable, "return type", resolved_type);
@@ -83,7 +98,7 @@ export class AnyTypes implements AnyTypesContract {
 		line: number,
 	): void {
 		const resolved_type = this.type_aliases.resolve(type);
-		if (!this.generic_types.has(resolved_type)) {
+		if (!this.is_generic_type(resolved_type)) {
 			return;
 		}
 		const rule = new DiagnosticRule("type-warning");

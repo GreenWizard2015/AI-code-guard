@@ -1,17 +1,16 @@
 import { join, resolve } from "node:path";
 import { FILE_ANALYSIS_CACHE_VERSION } from "src/core/constants";
 import { ViolationCache } from "src/core/cache/violation_cache";
-import type { LintSourceRecord } from "src/types";
-import type {
-	FileAnalysisCacheContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourceIOContract,
-	ViolationContract,
-} from "src/protocols";
-import type { CacheState, FileAnalysisCacheRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
+import type { FileAnalysisCacheContract } from "src/cache_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { CacheState, FileAnalysisCacheRecord } from "src/project_analysis_types";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _persistent file-analysis cache_, _project-context invalidation_. **/
 export class FileAnalysisCache implements FileAnalysisCacheContract {
@@ -20,6 +19,7 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 	private readonly analysis_identity: ProjectAnalysisIdentityContract;
 	private readonly resolution_identity: string;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _cache filename construction_. **/
 	private cache_path(file: string, source_hash: string, ignored: boolean): string {
@@ -49,6 +49,24 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 		return resolve(path) === resolve(this.cache_path(file, record.source_hash, ignored));
 	}
 
+	/** Responsibilities: _cached file violation validation_. **/
+	private record_violations(
+		record: FileAnalysisCacheRecord,
+		file: string,
+		text: string,
+		ignored: boolean,
+		path: string,
+	): CacheState<ViolationContract[]> {
+		if (!this.valid_record(record, file, text, ignored, path)) {
+			return { available: false, value: [] };
+		}
+		const cache = new ViolationCache(record.violations);
+		if (!cache.valid_cache()) {
+			return { available: false, value: [] };
+		}
+		return { available: true, value: [...cache.values()] };
+	}
+
 	/** Responsibilities: _atomic cache persistence_. **/
 	private persist(path: string, record: FileAnalysisCacheRecord): void {
 		const temporary = `${path}.${process.pid}.tmp`;
@@ -67,7 +85,9 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 			}
 			return !this.valid_record(record, source_file, text, record.ignored, path);
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return true;
 		}
 	}
@@ -89,6 +109,7 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 	) {
 		this.analysis_identity = analysis_identity;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 		const project_resolution = new TypeScriptProjectResolution(resolve(repo_root), source_io);
 		this.resolution_identity = project_resolution.configuration_identity();
 		this.cache_directory = join(resolve(repo_root), AI_CODE_GUARD_DIRECTORY, "cache", "file");
@@ -103,16 +124,11 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 		const path = this.cache_path(file, source_hash, ignored);
 		try {
 			const record: FileAnalysisCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
-			if (!this.valid_record(record, file, text, ignored, path)) {
-				return { available: false, value: [] };
-			}
-			const cache = new ViolationCache(record.violations);
-			if (!cache.valid_cache()) {
-				return { available: false, value: [] };
-			}
-			return { available: true, value: [...cache.values()] };
+			return this.record_violations(record, file, text, ignored, path);
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return { available: false, value: [] };
 		}
 	}
@@ -133,8 +149,9 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 			this.file_io.directory_operations.create_directory(this.cache_directory);
 			this.persist(path, record);
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 
@@ -149,8 +166,9 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 				this.remove_unused_record(join(this.cache_directory, entry.name), current);
 			}
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 }

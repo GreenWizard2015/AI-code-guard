@@ -1,4 +1,4 @@
-import type { GitIgnoreGlobTokenContract } from "src/protocols";
+import type { GitIgnoreGlobTokenContract } from "src/runtime_protocols";
 
 /** Responsibilities: _Gitignore character-class matching_, _parser token boundary_. **/
 export class CharacterClassGitIgnoreGlobToken implements GitIgnoreGlobTokenContract {
@@ -15,8 +15,8 @@ export class CharacterClassGitIgnoreGlobToken implements GitIgnoreGlobTokenContr
 	public advance(
 		candidate: string,
 		index: number,
-		current_row: readonly boolean[],
-		next_row: readonly boolean[],
+		current_row: Uint8Array,
+		next_row: Uint8Array,
 	): boolean {
 		if (current_row.length !== next_row.length) {
 			return false;
@@ -25,6 +25,6 @@ export class CharacterClassGitIgnoreGlobToken implements GitIgnoreGlobTokenContr
 		if (character === undefined || !this.expression.test(character)) {
 			return false;
 		}
-		return next_row[index + 1] === true;
+		return next_row[index + 1] === 1;
 	}
 }

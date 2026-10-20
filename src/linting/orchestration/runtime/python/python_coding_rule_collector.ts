@@ -2,18 +2,15 @@ import { PythonAstData } from "src/core/python_ast_data";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
 import { PythonCodingLineRules } from "src/linting/orchestration/runtime/python/python_coding_line_rules";
 import { MAX_FUNCTION_LINES } from "src/constants";
+import { RULE_DATA_BY_ID } from "src/constants";
 import { Syntax } from "src/parser/analysis/syntax";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type {
-	CodingRuleSourceData,
-	DuplicateTypeShapesContract,
-	PythonAstDataContract,
-	PythonCodingRuleCollectorContract,
-	RuleContract,
-	TestPathSyntaxContract,
-	ViolationContract,
-} from "src/protocols";
-import { RULES_BY_ID } from "src/model/constants";
+import type { CodingRuleSourceData } from "src/source_types";
+import type { DuplicateTypeShapesContract } from "src/analysis_protocols";
+import type { PythonAstDataContract, PythonCodingRuleCollectorContract } from "src/python_protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
+import type { TestPathSyntaxContract } from "src/testing_protocols";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstCallableNodeContract, AstCodingIssue, NormalizedAstFile } from "src/types";
 import { DuplicateTypeShapes } from "src/duplicate_type_shapes";
 import { RULE_IDS } from "src/constants";
@@ -34,20 +31,18 @@ export class PythonCodingRuleCollector implements PythonCodingRuleCollectorContr
 		const coding_line_rules = new PythonCodingLineRules();
 		for (const [line, text] of syntax.split_lines(source.text).entries()) {
 			for (const kind of coding_line_rules.invalid_line_kinds(text)) {
-				const rule = RULES_BY_ID.get(kind);
-				if (rule) {
-					violations.push(rule.violation(source.file, line + 1, {}));
+				if (!RULE_DATA_BY_ID.has(kind)) {
+					continue;
 				}
+				const rule = new DiagnosticRule(kind);
+				violations.push(rule.violation(source.file, line + 1, {}));
 			}
 		}
 	}
 
 	/** Responsibilities: _aggregation structural shape violations_. **/
 	private append_shapes(violations: ViolationContract[], source: CodingRuleSourceData, ast: NormalizedAstFile): void {
-		const rule = RULES_BY_ID.get(RULE_IDS.duplicate_type_shape);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.duplicate_type_shape);
 		for (const duplicate of this.duplicate_type_shapes.python(ast.classes)) {
 			violations.push(rule.violation(source.file, duplicate.line, { names: duplicate.names.join(", ") }));
 		}
@@ -70,10 +65,7 @@ export class PythonCodingRuleCollector implements PythonCodingRuleCollectorContr
 
 	/** Responsibilities: _unittest fixture complexity_. **/
 	private append_fixture_complexity(violations: ViolationContract[], source: CodingRuleSourceData): void {
-		const rule = RULES_BY_ID.get(RULE_IDS.fixture_complexity);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.fixture_complexity);
 		const methods = source.normalized_ast.classes.flatMap((node) => node.methods);
 		for (const method of methods) {
 			this.append_fixture_method(violations, source, rule, method);
@@ -151,14 +143,15 @@ export class PythonCodingRuleCollector implements PythonCodingRuleCollectorContr
 			if (this.skip_issue(issue, source, this.test_path_syntax)) {
 				continue;
 			}
-			const rule = RULES_BY_ID.get(issue.kind);
-			if (rule) {
-				const parameters: Record<string, string> = {};
-				if (issue.kind === RULE_IDS.test_order_dependency) {
-					parameters.name = issue.name;
-				}
-				violations.push(rule.violation(source.file, issue.line + 1, parameters));
+			if (!RULE_DATA_BY_ID.has(issue.kind)) {
+				continue;
 			}
+			const rule = new DiagnosticRule(issue.kind);
+			const parameters: Record<string, string> = {};
+			if (issue.kind === RULE_IDS.test_order_dependency) {
+				parameters.name = issue.name;
+			}
+			violations.push(rule.violation(source.file, issue.line + 1, parameters));
 		}
 	}
 

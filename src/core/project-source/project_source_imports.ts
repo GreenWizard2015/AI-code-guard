@@ -12,7 +12,7 @@ import type {
 	TypeScriptModuleExportsContract,
 	TypeScriptModuleResolutionContract,
 } from "src/module-resolution/types";
-import type { ProjectSourceIOContract, ProjectSourcePythonContract } from "src/protocols";
+import type { ProjectSourceIOContract, ProjectSourcePythonContract } from "src/source_protocols";
 import { SourceText } from "src/source_text";
 
 /** Responsibilities: _project import specifier resolution_, _language-specific import expansion_. **/

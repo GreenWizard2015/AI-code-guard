@@ -7,7 +7,7 @@ import {
 	MODULE_VARIABLE_KIND,
 } from "src/constants";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";
-import type { LintProjectContextContract, PlacementSupportContract } from "src/protocols";
+import type { LintProjectContextContract, PlacementSupportContract } from "src/shared_services_protocols";
 import type { NamedSymbol, NormalizedAstFile } from "src/types";
 
 /** Responsibilities: _module member classification_, _destination path resolution_. **/

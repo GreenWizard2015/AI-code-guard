@@ -1,10 +1,8 @@
 import { relative, resolve } from "node:path";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
-import type {
-	LintProjectContextContract,
-	ProjectSourceContextImportsContract,
-	TestTargetImportResolverContract,
-} from "src/protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectSourceContextImportsContract } from "src/source_protocols";
+import type { TestTargetImportResolverContract } from "src/testing_protocols";
 import type { AstCallableNodeContract, TestTargetImport } from "src/types";
 
 /** Responsibilities: _test import path resolution_, _declaration target lookup_. **/

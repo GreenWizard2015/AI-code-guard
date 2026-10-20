@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { TypeScriptPropertySide } from "src/types";
-import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
 
 /** Responsibilities: _lexical this owner resolution_, _receiver property side classification_. **/
 export class TypeScriptThisReceiver {
@@ -180,5 +180,4 @@ export class TypeScriptThisReceiver {
 		}
 		return "";
 	}
-
 }

@@ -6,7 +6,8 @@ import "src/linting/orchestration/runtime/global-analysis/callable-usage/callabl
 import { TestFixture } from "tests/core/test-fixture";
 import { describe, expect, test } from "@jest/globals";
 
-import { INTERFACE_PORT_FILES, EXPORT_USAGE_FILES, AWAITED_RETURN_FILES } from "tests/core/constants";
+import { INTERFACE_PORT_FILES } from "tests/core/constants/architecture/constants";
+import { EXPORT_USAGE_FILES, AWAITED_RETURN_FILES } from "tests/core/constants/callable_usage/constants";
 
 describe("coding-lint callable usage resolution - class boundaries", () => {
 	const test_fixture = new TestFixture();

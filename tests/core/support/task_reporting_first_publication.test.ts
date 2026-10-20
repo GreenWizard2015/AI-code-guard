@@ -1,7 +1,7 @@
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { ReportPublicationFailureIO } from "tests/bridge/ts/core/support/report_publication_failure_io";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
@@ -30,21 +30,16 @@ describe("task reporting first publication", () => {
 			documentation: fixture.documentation,
 		});
 		io?.fail_next_report_write();
-		let error_message = "";
-		try {
-			reporting.format([violation], { batch_size: 10, policy: "all", skip_review: false });
-		} catch (error) {
-			error_message = String(error);
-		}
+		expect(() => reporting.format([violation], { batch_size: 10, policy: "all", skip_review: false })).toThrow(
+			"Injected report publication failure",
+		);
 
 		expect({
-			error: error_message,
 			issues: fixture.file_io.file_paths.path_exists(fixture.task_path("issues.md")),
 			report: fixture.file_io.file_paths.path_exists(fixture.task_path("report.md")),
 			lint_output: fixture.file_io.file_paths.path_exists(fixture.task_path("lint-output.md")),
 			rule: fixture.file_io.file_paths.path_exists(fixture.task_path("rules/typescript-parse-error.md")),
 		}).toEqual({
-			error: expect.stringContaining("Injected report publication failure"),
 			issues: false,
 			report: false,
 			lint_output: false,

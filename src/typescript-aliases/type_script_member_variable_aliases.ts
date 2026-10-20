@@ -1,13 +1,9 @@
 import ts from "typescript";
 import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
-import type {
-	ExpressionUnwrapper,
-	MemberAliasAppender,
-	MemberValueAppender,
-	StringSetMap,
-	TypeScriptMemberVariableAliasesContract,
-	TypeScriptExpressionAliasesContract,
-} from "src/protocols";
+import type { ExpressionUnwrapper, MemberAliasAppender, MemberValueAppender } from "src/runtime_types";
+import type { StringSetMap } from "src/analysis_types";
+import type { TypeScriptMemberVariableAliasesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 
 /** Responsibilities: _property variable alias collection_, _destructured binding resolution_. **/

@@ -1,11 +1,12 @@
 import ts from "typescript";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import type { AstReferenceAlias } from "src/types";
+import type { TypeScriptBoundaryAliasesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptDefaultBoundaryAliases } from "src/linting/orchestration/runtime/typescript-rule-groups/type_script_boundary_aliases/type_script_default_boundary_aliases";
 import { TypeScriptNamedBoundaryAliases } from "src/linting/orchestration/runtime/typescript-rule-groups/type_script_boundary_aliases/type_script_named_boundary_aliases";
 
 /** Responsibilities: _import alias collection_, _module identity resolution_. **/
-export class TypeScriptBoundaryAliases {
+export class TypeScriptBoundaryAliases implements TypeScriptBoundaryAliasesContract {
 	private readonly resolver: TypeScriptModuleResolverContract;
 	private readonly default_aliases: TypeScriptDefaultBoundaryAliases;
 	private readonly named_aliases: TypeScriptNamedBoundaryAliases;

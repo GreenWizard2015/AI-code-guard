@@ -8,7 +8,7 @@ from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
 from implementation.references.protocols import PythonAnnotationResolverContract
-from implementation.protocols import PythonAssignmentEffectsContract
+from implementation.rules.protocols import PythonAssignmentEffectsContract
 from implementation.rules.constants import PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME
 
 

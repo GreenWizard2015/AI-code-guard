@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
 )
 from implementation.references.aliases.python_reference_aliases import (

@@ -15,22 +15,31 @@ if (options.has(name)) {
 }
 ```
 
-The rule allows the right-hand side when it is explicitly typed as `Map`, `Set`, `WeakMap`,
-or `WeakSet` (including read-only variants). Use the collection's named API for membership.
+The rule allows the right-hand side only when its annotation resolves to a built-in `Map`,
+`Set`, `WeakMap`, or `WeakSet` (including read-only variants). A local type with one of
+those names is not a collection. Use the collection's named API for membership.
 
 ## Bad
 
 ```ts
-if (name in options) {
-	return options[name];
+
+type Map = Record<string, string>;
+const options: Map = { name: "Ada" };
+
+if ("name" in options) { // <- error
+	console.log(options.name);
 }
 ```
 
 ## Good
 
 ```ts
-// File: cli.ts
 (function () {
-	const value: string = "ready";
+	const options: Map<string, string> = new Map();
+	const name = "Ada";
+
+	if (options.has(name)) {
+		console.log(options.get(name));
+	}
 })();
 ```

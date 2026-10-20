@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.aliases.protocols import PythonContainerLookupContract
+from implementation.references.protocols import PythonContainerLookupContract
 from implementation.references.aliases.python_container_lookup import (
     PythonContainerLookup,
 )
@@ -20,12 +20,8 @@ class PythonCallAliasState:
             return ""
         return str(value.value)
 
-    def _items(self, value: ast.AST) -> dict[str, ast.AST]:
-        """Responsibilities: _container items resolution_."""
-        if type(value) is ast.Name:
-            return dict(self.aliases.get(value.id, {}))
-        if type(value) is not ast.Dict:
-            return {}
+    def _literal_items(self, value: ast.Dict) -> dict[str, ast.AST]:
+        """Responsibilities: _literal dictionary entry resolution_."""
         items: dict[str, ast.AST] = {}
         for key, item in zip(value.keys, value.values):
             if key is None:
@@ -34,6 +30,19 @@ class PythonCallAliasState:
             if name:
                 items[name] = item
         return items
+
+    def _items(self, value: ast.AST) -> dict[str, ast.AST]:
+        """Responsibilities: _container items resolution_."""
+        if type(value) is ast.Name:
+            return dict(self.aliases.get(value.id, {}))
+        if type(value) is ast.Subscript:
+            resolved = self.container_value(value)
+            if not resolved.found():
+                return {}
+            return self._items(resolved.expression_node())
+        if type(value) is not ast.Dict:
+            return {}
+        return self._literal_items(value)
 
     def _observe_assignment(self, node: ast.Assign) -> None:
         """Responsibilities: _assignment observation_."""

@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { SourceReferenceIndex } from "src/core/source_reference_index";
-import type { ProjectSourceScannerContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import type {
 	UnusedSymbolDefinition,
 	UnusedSymbolFileBuckets,

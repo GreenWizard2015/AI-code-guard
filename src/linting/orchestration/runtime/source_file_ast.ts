@@ -1,17 +1,13 @@
 import { CodingRuleSource } from "src/linting/orchestration/runtime/coding_rule_source";
 import type ts from "typescript";
 import type {
-	CodingRuleSourceOptions,
 	NormalizedAstFile,
 	ParseLanguage,
-	PreparedCodingRuleSourceOptions,
 } from "src/types";
-import type {
-	CodingRuleSourceData,
-	SourceFileAstContract,
-	SourceFileResolver,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { CodingRuleSourceOptions, CodingRuleSourceData } from "src/source_types";
+import type { SourceFileAstContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _source data storage parsing_, _source language exposure_. **/
@@ -26,7 +22,7 @@ export class SourceFileAst implements SourceFileAstContract {
 		source_resolver: SourceFileResolver,
 		traversal: TypeScriptAstTraversalContract,
 	) {
-		const prepared: PreparedCodingRuleSourceOptions = {
+		const prepared: CodingRuleSourceData = {
 			file: source.file,
 			text: source.text,
 			normalized_ast,

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ExpressionNamesContract } from "src/protocols";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
 
 /** Responsibilities: _transparent expression unwrapping_, _static binding name extraction_. **/
 export class TypeScriptExpressionNames implements ExpressionNamesContract {

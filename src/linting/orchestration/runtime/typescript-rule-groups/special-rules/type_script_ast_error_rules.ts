@@ -1,8 +1,7 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import { RULES_BY_ID } from "src/model/constants";
 import { RULE_IDS } from "src/constants";
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptAstErrorRulesContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 
@@ -181,10 +180,7 @@ export class TypeScriptAstErrorRules implements TypeScriptAstErrorRulesContract 
 			return;
 		}
 		const source_file = this.context.ast_file.source_file_node();
-		const rule = RULES_BY_ID.get(RULE_IDS.duplicate_error_translation);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.duplicate_error_translation);
 		const visit = (node: ts.Node): void => {
 			if (ts.isCatchClause(node)) {
 				if (!this.duplicate_errors(node, source_file)) {
@@ -202,16 +198,14 @@ export class TypeScriptAstErrorRules implements TypeScriptAstErrorRulesContract 
 	/** Responsibilities: _shared TypeScript error-rule traversal_. **/
 	public append_error_rules(violations: ViolationContract[]): void {
 		const source_file = this.context.ast_file.source_file_node();
-		const duplicate_rule = RULES_BY_ID.get(RULE_IDS.duplicate_error_translation);
+		const duplicate_rule = new DiagnosticRule(RULE_IDS.duplicate_error_translation);
 		const visit = (node: ts.Node): void => {
 			if (ts.isCatchClause(node)) {
 				this.append_catch_context(violations, source_file, node);
 				if (!this.context.file_name.test()) {
-					if (duplicate_rule !== undefined) {
-						if (this.duplicate_errors(node, source_file)) {
-							const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
-							violations.push(duplicate_rule.violation(this.context.file_name.value, line, {}));
-						}
+					if (this.duplicate_errors(node, source_file)) {
+						const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
+						violations.push(duplicate_rule.violation(this.context.file_name.value, line, {}));
 					}
 				}
 			}

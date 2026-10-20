@@ -3,7 +3,7 @@ import { FakeObject } from "src/linting/test-support/fake_object";
 import { ObjectCallableAliases } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_callable_aliases";
 import { ObjectLiteralAliases } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/object_literal_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { FakeObjectContract, ObjectCallableAliasesContract, ObjectLiteralAliasesContract } from "src/protocols";
+import type { FakeObjectContract, ObjectCallableAliasesContract, ObjectLiteralAliasesContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _conditional callable detection_, _indexed callback detection_. **/
 export class ObjectCallableExpression {

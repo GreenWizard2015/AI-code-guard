@@ -1,7 +1,7 @@
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { StaticExpressionArray } from "src/static_expression_array";
-import type { StaticExpressionArrayContract } from "src/protocols";
+import type { StaticExpressionArrayContract } from "src/analysis_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _array source alias tracking_, _destructured element alias collection_. **/

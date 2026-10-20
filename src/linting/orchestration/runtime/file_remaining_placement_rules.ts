@@ -4,8 +4,8 @@ import type {
 	FunctionPlacementRulesContract,
 	ImportFanOutContract,
 } from "src/linting/orchestration/runtime/protocols";
-import type { ViolationContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import type { PlacementFunctionNode } from "src/model/types/types";
 
 /** Responsibilities: _file placement_, _import fan-out_. **/

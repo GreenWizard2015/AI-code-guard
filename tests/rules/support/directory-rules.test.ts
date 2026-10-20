@@ -1,8 +1,8 @@
 import "src/rules/support/cyrillic_text_rules";
 import "src/rules/support/directory_rules";
 import { DirectoryRules } from "src/rules/support/directory_rules";
-import type { DirectoryFileSet } from "src/types";
-import type { ViolationContract } from "src/protocols";
+import type { DirectoryFileSet } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { DirectoryFileCatalog } from "src/rules/support/directory_file_catalog";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
@@ -53,18 +53,12 @@ describe("coding-lint directory rules", () => {
 		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
 		const file = join(root, "tests/one.test.ts");
 		const files: DirectoryFileSet = { virtual_project: true, files: [file] };
-		const violations = directory_rules.collect_directory_violations(
-			[file],
-			root,
-			new Map([[file, 1]]),
-			new Map(),
-			files,
-		);
+		const violations = directory_rules.collect_directory_violations([file], root, new Map(), new Map(), files);
 
 		expect(violations).toEqual([]);
 	});
 
-	test("allows a small class in its required class-named module", () => {
+	test("applies the file-size limit to a class-named module", () => {
 		const file = join(root, "path_python_bridge_file_io.ts");
 		const text = "export class PathPythonBridgeFileIO { public file_present(): boolean { return true; } }\n";
 		const ast_file = new TypeScriptAstFile(file, text);
@@ -81,6 +75,6 @@ describe("coding-lint directory rules", () => {
 			normalized_ast,
 		});
 
-		expect(violations.map((item) => item.rule_id)).not.toContain("file-min-size");
+		expect(violations.map((item) => item.rule_id)).toContain("file-min-size");
 	});
 });

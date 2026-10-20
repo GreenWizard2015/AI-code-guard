@@ -3,7 +3,7 @@ import "src/lint_stage_timer";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { ReportPublicationFailureIO } from "tests/bridge/ts/core/support/report_publication_failure_io";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
@@ -33,23 +33,18 @@ describe("task publication staging", () => {
 		});
 		reporting.documents.write_document("issues", "previous issues");
 		reporting.documents.write_document("report", "previous report");
-		let failure_message = "";
-		try {
+		expect(() =>
 			reporting.format([violation("a.ts", 1, "missing-rule", 3)], {
 				batch_size: 10,
 				policy: "all",
 				skip_review: false,
-			});
-		} catch (error) {
-			failure_message = String(error);
-		}
+			}),
+		).toThrow("missing-rule");
 
 		expect({
-			failure_message,
 			issues: fixture.task_text("issues.md"),
 			report: fixture.task_text("report.md"),
 		}).toEqual({
-			failure_message: expect.stringContaining("missing-rule"),
 			issues: "previous issues\n",
 			report: "previous report\n",
 		});
@@ -116,25 +111,22 @@ describe("task publication staging", () => {
 			lint_output: fixture.task_text("lint-output.md"),
 		};
 		file_io?.fail_next_report_write();
-		let failure_message = "";
-		try {
-			reporting.format([violation("b.ts", 1, "unused-file", 3)], {
-				batch_size: 10,
-				policy: "all",
-				skip_review: false,
-			});
-		} catch (error) {
-			failure_message = String(error);
-		}
-		const current = {
-			issues: fixture.task_text("issues.md"),
-			report: fixture.task_text("report.md"),
-			lint_output: fixture.task_text("lint-output.md"),
-		};
-
-		expect({ failure_message, current }).toEqual({
-			failure_message: expect.stringContaining("Injected report publication failure"),
-			current: previous,
-		});
+		let current = previous;
+		expect(() => {
+			try {
+				reporting.format([violation("b.ts", 1, "unused-file", 3)], {
+					batch_size: 10,
+					policy: "all",
+					skip_review: false,
+				});
+			} finally {
+				current = {
+					issues: fixture.task_text("issues.md"),
+					report: fixture.task_text("report.md"),
+					lint_output: fixture.task_text("lint-output.md"),
+				};
+			}
+		}).toThrow("Injected report publication failure");
+		expect(current).toEqual(previous);
 	});
 });

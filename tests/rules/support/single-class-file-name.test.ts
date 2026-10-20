@@ -1,7 +1,7 @@
 import { SingleClassFileNameRule } from "src/rules/support/single_class_file_name_rule";
 import { describe, expect, test } from "@jest/globals";
 import { CLASS_NODE } from "tests/bridge/ts/rules/support/constants";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 describe("single class file name rule", () => {
 	test("requires the snake_case TypeScript file name", () => {

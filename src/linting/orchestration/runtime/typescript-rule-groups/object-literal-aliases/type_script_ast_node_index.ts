@@ -1,10 +1,7 @@
 import ts from "typescript";
 
-import type {
-	TypeScriptAstNodeCollection,
-	TypeScriptAstNodeIndexContract,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
+import type { TypeScriptAstNodeIndexContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _AST node indexing_, _source traversal collection_. **/
 export class TypeScriptAstNodeIndex implements TypeScriptAstNodeIndexContract {

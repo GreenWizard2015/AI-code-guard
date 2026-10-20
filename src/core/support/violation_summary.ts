@@ -1,6 +1,6 @@
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import type { ViolationCounts } from "src/model/types/types";
-import type { ViolationSummaryContract } from "src/protocols";
+import type { ViolationSummaryContract } from "src/reporting_protocols";
 
 /** Responsibilities: _priority violation count_, _failure status determination_. **/
 export class ViolationSummary implements ViolationSummaryContract {

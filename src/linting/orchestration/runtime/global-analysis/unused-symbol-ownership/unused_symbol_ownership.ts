@@ -1,6 +1,6 @@
 import ts from "typescript";
-import type { ProjectSourceScannerContract } from "src/protocols";
-import type { LintSourceRecord } from "src/types";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
 import type {
 	UnusedFieldOwner,
 	UnusedParameterInterval,

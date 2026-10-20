@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { CliApplication } from "src/core/cli_application";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
-import type { CliOptions } from "src/types";
+import type { CliOptions } from "src/task_types";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _CLI virtual project state_, _in-memory report access_. **/

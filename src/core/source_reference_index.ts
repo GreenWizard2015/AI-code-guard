@@ -1,4 +1,4 @@
-import type { SourceReferenceIndexContract } from "src/protocols";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
 import type { SourceReference, SourceReferenceMap, SourceReferenceRelation } from "src/types";
 import { IMPLEMENTATION_RELATION } from "src/constants";
 

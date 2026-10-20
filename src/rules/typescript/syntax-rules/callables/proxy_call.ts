@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { ExpressionNamesContract } from "src/protocols";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
 
 /** Responsibilities: _forwarding callable detection_, _target expression support_. **/
 export class ProxyCall {

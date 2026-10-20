@@ -1,7 +1,7 @@
 import ts from "typescript";
-import type { FakeObjectContract } from "src/protocols";
+import type { FakeObjectContract } from "src/shared_services_protocols";
 import type { ObjectDestructuredAliasesContract } from "src/linting/orchestration/runtime/protocols";
-import type { ObjectScopeAliasCache } from "src/linting/orchestration/runtime/typescript-rule-groups/object-literal-aliases/types";
+import type { NodeReadonlyStringSetCache } from "src/cache_types";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 
@@ -10,7 +10,7 @@ export class ObjectDestructuredAliases implements ObjectDestructuredAliasesContr
 	private readonly expression_names: TypeScriptExpressionNames;
 	private readonly fake_object: FakeObjectContract;
 	private readonly expression_aliases: TypeScriptExpressionAliases;
-	private readonly scope_aliases: ObjectScopeAliasCache;
+	private readonly scope_aliases: NodeReadonlyStringSetCache;
 
 	/** Responsibilities: _enclosing callable scope lookup_. **/
 	private enclosing_scope(node: ts.Node): ts.Node {

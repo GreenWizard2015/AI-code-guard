@@ -1,11 +1,11 @@
 import ts from "typescript";
-import type { CallableBodyKind } from "src/typescript-aliases/callables/types";
-import type { NodeBodyResolver } from "src/protocols";
+import type { NodeBodyResolver } from "src/runtime_types";
 import {
 	CALLABLE_BODY_KIND_DECLARATION,
 	CALLABLE_BODY_KIND_EXPRESSION,
 	CALLABLE_BODY_KIND_UNSUPPORTED,
 } from "src/constants";
+import type { CallableBodyKind } from "src/model/types/types";
 
 /** Responsibilities: _block body classification_, _expression body classification_. **/
 export class TypeScriptCallableBody {

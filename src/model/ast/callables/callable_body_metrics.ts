@@ -1,7 +1,7 @@
 import { TypeScriptStatementSloc } from "src/metrics/type_script_statement_sloc";
 import { TypeScriptCallableBody } from "src/typescript-aliases/callables/type_script_callable_body";
 import ts from "typescript";
-import type { CallableBodyMetricsContract } from "src/protocols";
+import type { CallableBodyMetricsContract } from "src/runtime_protocols";
 
 /** Responsibilities: _callable source measurement_, _control flow depth analysis_. **/
 export class CallableBodyMetrics implements CallableBodyMetricsContract {

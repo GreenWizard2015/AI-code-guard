@@ -2,7 +2,8 @@ import ts from "typescript";
 import { TypeScriptCallableAliases } from "src/linting/test-support/type_script_callable_aliases";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptObjectCallableAliases } from "src/linting/test-support/type_script_object_callable_aliases";
-import type { FakeObjectContract, TypeScriptObjectCallableAliasesContract } from "src/protocols";
+import type { FakeObjectContract } from "src/shared_services_protocols";
+import type { TypeScriptObjectCallableAliasesContract } from "src/typescript_runtime_protocols";
 import { ExternalContractTypes } from "src/linting/test-support/external_contract_types";
 
 /** Responsibilities: _callable object properties identification_, _fake objects classification_. **/

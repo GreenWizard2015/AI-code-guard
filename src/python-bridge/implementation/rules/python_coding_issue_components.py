@@ -3,24 +3,32 @@ from __future__ import annotations
 import ast
 from collections.abc import Callable
 
-from implementation.protocols import (
+from implementation.protocols import PythonProxyCallableAnalyzerContract
+from implementation.ast.protocols import (
+    PythonSubtestAliasesContract,
+    PythonTestOrderDependencyContract,
+)
+from implementation.rules.protocols import (
     PythonCallRulesContract,
     PythonCodingIssueComponentContextContract,
     PythonCodingIssueStagesContract,
-    PythonControlFlowIssuesContract,
     PythonFieldMutationCollectorContract,
+)
+from implementation.rules.protocols import (
+    PythonControlFlowIssuesContract,
     PythonOperatorPrecedenceContract,
     PythonPrimaryRulesContract,
-    PythonProxyCallableAnalyzerContract,
+)
+from implementation.rules.protocols import (
     PythonSingleItemArrayStateRulesContract,
-    PythonSubtestAliasesContract,
-    PythonTestOrderDependencyContract,
     PythonUnboundedTypeRulesContract,
     PythonIncompleteCacheKeyContract,
     PythonUnionRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.python_default_parameter_issues import PythonDefaultParameterIssues
+from implementation.rules.python_default_parameter_issues import (
+    PythonDefaultParameterIssues,
+)
 from implementation.rules.python_coding_issue_assembly import PythonCodingIssueAssembly
 from implementation.rules.python_hidden_global_state_rules import (
     PythonHiddenGlobalStateRules,

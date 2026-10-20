@@ -7,12 +7,16 @@ import { TestFixture } from "tests/core/test-fixture";
 import { TypeScriptScannerAssembly } from "src/linting/orchestration/runtime/type_script_scanner_assembly";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { CallableMetrics } from "src/metrics/callable_metrics";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import { EmptySourceText } from "src/io/empty_source_text";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import { ARGUMENT_FUNCTION_NODE, SHORT_FUNCTION_NODE, SHORT_METHOD_CLASS } from "tests/core/constants";
+import {
+	ARGUMENT_FUNCTION_NODE,
+	SHORT_FUNCTION_NODE,
+	SHORT_METHOD_CLASS,
+} from "tests/core/constants/ast_nodes/constants";
 
 describe("AST metric rules", () => {
 	test("applies function metrics from normalized nodes", () => {

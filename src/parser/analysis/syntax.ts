@@ -1,10 +1,10 @@
 import type ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { AstParseIssue, AstTypeKind } from "src/types";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
 import type { ParseLanguage } from "src/types";
-import type { SyntaxContract } from "src/protocols";
+import type { SyntaxContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _TypeScript syntax classification_, _diagnostics addition parsing_. **/
 export class Syntax implements SyntaxContract {

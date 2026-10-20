@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { PROTOCOL_REFERENCE_FILES } from "tests/core/constants";
+import { PROTOCOL_REFERENCE_FILES } from "tests/core/constants/ast_nodes/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("type boundary policies", () => {

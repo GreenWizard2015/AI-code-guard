@@ -4,7 +4,7 @@ import type {
 	ResolvedTypeScriptExport,
 } from "src/module-resolution/types";
 import type { TypeScriptExportLinksContract } from "src/module-resolution/protocols";
-import type { TypeScriptDeclarationIndexContract } from "src/protocols";
+import type { TypeScriptDeclarationIndexContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _direct export resolution_, _default export resolution_. **/
 export class TypeScriptDeclarationTable {

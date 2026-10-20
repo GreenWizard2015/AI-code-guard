@@ -1,6 +1,7 @@
 import ts from "typescript";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { StringNumberSetMap, ViolationContract } from "src/protocols";
+import type { StringNumberSetMap } from "src/analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _module collection discovery_, _shared state mutation detection_. **/
 export class TypeScriptHiddenGlobalState {

@@ -2,15 +2,15 @@ import { describe, expect, test } from "@jest/globals";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceText } from "src/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { ParsedTypeScriptSource } from "tests/bridge/ts/runner/orchestration/runtime/parsed_typescript_source";
+import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
 
 describe("AST-detectable array constructor sources", () => {
-	const source_files = new ParsedTypeScriptSource();
+	const source_files = new ParsedSourceFiles();
 
 	test("detects Array.of computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-of.ts",
 				[
 					"const array_alias = Array;",
@@ -33,7 +33,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects Array.from computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-from.ts",
 				[
 					'const keys = Array.from(["assign"]);',
@@ -54,7 +54,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects aliased Array.from computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-from-alias.ts",
 				[
 					"const array_alias = Array;",
@@ -78,7 +78,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects Array constructor computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-constructor.ts",
 				[
 					"const array_alias = Array;",
@@ -100,7 +100,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects new Array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-new-array.ts",
 				[
 					'const keys = new Array("assign");',
@@ -121,7 +121,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects spread new Array computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-new-array-spread.ts",
 				[
 					'const keys = new Array(...["assign"]);',
@@ -142,7 +142,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects spread Array.from computed Object.assign key aliases", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-array-from-spread.ts",
 				[
 					'const keys = Array.from(...[["assign"]]);',
@@ -163,7 +163,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects aliased indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-alias.ts",
 				[
 					"const index = 0;",
@@ -184,7 +184,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects transitive indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-transitive.ts",
 				[
 					"const base_index = 0;",
@@ -206,7 +206,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects unary indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-unary.ts",
 				[
 					"const index = +0;",
@@ -227,7 +227,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects arithmetic indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-arithmetic.ts",
 				[
 					"const index = 1 - 1;",
@@ -248,7 +248,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects bitwise indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-bitwise.ts",
 				[
 					"const index = 0 | 0;",
@@ -269,7 +269,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects conditional indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-conditional.ts",
 				[
 					"const index = true ? 0 : 0;",
@@ -290,7 +290,7 @@ describe("AST-detectable array constructor sources", () => {
 	test("detects logical indexed spread Object.assign object sources", () => {
 		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
 		const violations = coding_rule_linter.lint_typescript(
-			source_files.parse(
+			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-logical.ts",
 				[
 					"const index = 0 || 0;",

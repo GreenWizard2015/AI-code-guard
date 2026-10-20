@@ -1,10 +1,11 @@
 import ts from "typescript";
-import { JEST_EXCEPTIONS } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JEST_EXCEPTIONS } from "src/constants";
 import { JestObjectShapeMatcher } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_object_shape_matcher";
 import { JestPropertyAssertionMatcher } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_property_assertion_matcher";
 import { JestTypeAssertionMatcher } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_type_assertion_matcher";
 import { JestMatcherAccess } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_matcher_access";
-import type { JestAssertionMatcherContract, TypeScriptExpressionAliasesContract } from "src/protocols";
+import type { JestAssertionMatcherContract } from "src/testing_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _Jest shape assertions matching_, _Jest exception assertions matching_. **/
 export class JestAssertionShapeMatcher implements JestAssertionMatcherContract {

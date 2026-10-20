@@ -1,12 +1,7 @@
 import ts from "typescript";
 import { StaticExpressionArray } from "src/static_expression_array";
-import type {
-	StaticArrayExpressionOwnerContract,
-	StaticExpressionArrayContract,
-	TypeScriptStaticArrayIndexValuesContract,
-	TypeScriptStaticArrayValuesContract,
-	TypeScriptStaticArrayStructureContract,
-} from "src/protocols";
+import type { StaticArrayExpressionOwnerContract, StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { TypeScriptStaticArrayIndexValuesContract, TypeScriptStaticArrayValuesContract, TypeScriptStaticArrayStructureContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _structural array expression expansion_, _composed sequence reconstruction_. **/
 export class TypeScriptStaticArrayStructure implements TypeScriptStaticArrayStructureContract {

@@ -1,5 +1,5 @@
 import { resolve, isAbsolute } from "node:path";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 
 /** Responsibilities: _violation priority filtering_, _rule and file grouping_. **/
 export class TaskViolationGroups {

@@ -2,8 +2,10 @@ import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LIN
 import { MetricViolations } from "src/metrics/metric_violations";
 import { ProceduralClassName } from "src/metrics/procedural_class_name";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ClassStructureReporterContract, ViolationContract } from "src/protocols";
-import type { AstClassNode, LintFileNameContract } from "src/types";
+import type { ClassStructureReporterContract } from "src/runtime_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintFileNameContract } from "src/source_types";
+import type { AstClassNode } from "src/types";
 import {
 	CONSTRUCTOR_NAME,
 	CONTRACT_SUFFIX,

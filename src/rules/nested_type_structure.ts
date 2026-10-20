@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { NamedLine } from "src/types";
 
 /** Responsibilities: _nested type discovery_, _nested declaration diagnostics_. **/

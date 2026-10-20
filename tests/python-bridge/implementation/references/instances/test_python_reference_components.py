@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import unittest
 
-from implementation.ast.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.references.call_returns import CallReturns
 from implementation.references.instances.python_instance_collector import (

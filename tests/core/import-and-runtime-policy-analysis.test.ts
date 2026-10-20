@@ -2,10 +2,75 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { DYNAMIC_IMPORT_FILES } from "tests/core/constants";
+import { DYNAMIC_IMPORT_FILES } from "tests/core/constants/alias_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("import and runtime policy analysis", () => {
+	test("detects Object.prototype.toString through a local alias", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"object-string-alias.ts": [
+					"export class ObjectTagReader {",
+					"\tpublic read(value: object): string {",
+					"\t\tconst object_string = Object.prototype.toString;",
+					"\t\treturn object_string.call(value);",
+					"\t}",
+					"\tpublic read_through_prototype_alias(value: object): string {",
+					"\t\tconst object_prototype = Object.prototype;",
+					"\t\tconst object_string = object_prototype.toString;",
+					"\t\treturn object_string.call(value);",
+					"\t}",
+					"\tpublic read_through_destructuring(value: object): string {",
+					"\t\tconst { toString: object_string } = Object.prototype;",
+					"\t\treturn object_string.call(value);",
+					"\t}",
+					"\tpublic read_from_object(value: object): string {",
+					"\t\tconst object_methods = { stringify: Object.prototype.toString };",
+					"\t\treturn object_methods.stringify.call(value);",
+					"\t}",
+					"\tpublic read_from_array(value: object): string {",
+					"\t\tconst object_methods = [Object.prototype.toString];",
+					"\t\treturn object_methods[0].call(value);",
+					"\t}",
+					"\tpublic read_from_computed_members(value: object): string {",
+					'\t\tconst object_string = Object["prototype"]["toString"];',
+					"\t\treturn object_string.call(value);",
+					"\t}",
+					"}",
+					"",
+				].join("\n"),
+				"custom-object-string.ts": [
+					"export class CustomTag {",
+					"\tpublic toString(): string {",
+					'\t\treturn "custom";',
+					"\t}",
+					"\tpublic label(): string {",
+					"\t\tconst custom_string = this.toString;",
+					"\t\treturn custom_string.call(this);",
+					"\t}",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.filter(
+				(violation) =>
+					violation.file === "object-string-alias.ts" && violation.rule_id === "typescript-object-prototype-string",
+			),
+		).toHaveLength(6);
+		expect(
+			violations.filter(
+				(violation) =>
+					violation.file === "custom-object-string.ts" && violation.rule_id === "typescript-object-prototype-string",
+			),
+		).toHaveLength(0);
+	});
+
 	test("detects dynamic, nested, late, and relative imports", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

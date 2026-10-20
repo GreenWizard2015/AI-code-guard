@@ -1,5 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { MethodContractRulesContract, ViolationContract } from "src/protocols";
+import type { MethodContractRulesContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstCallableNodeContract } from "src/types";
 import { MAX_CAMEL_WORDS } from "src/metrics/constants";
 import { PYTHON_TEST_SUFFIXES, TYPESCRIPT_LEGACY_TEST_SUFFIX, TYPESCRIPT_TEST_SUFFIXES } from "src/constants";

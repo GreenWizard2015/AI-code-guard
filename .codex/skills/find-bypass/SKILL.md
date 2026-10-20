@@ -10,50 +10,52 @@ evades a project rule, then close the whole underlying pattern rather than only
 the discovered example. Search all linter rules; do not focus in advance on
 aliases, types, one language, or one subsystem.
 
-## Required target argument
+## Project and temporary workspace
 
-The skill takes one required argument, `target_project_path`: the absolute path
-to the project being audited. Use the path supplied by the user; never silently
-replace it with the current working directory.
+No path argument is required. Audit the repository/workspace provided by the
+current session; do not ask the user to repeat its path or infer it from the
+shell's current directory. Before starting, confirm the project root from the
+session's workspace context.
 
-For an invocation written as:
-
-```text
-$find-bypass /absolute/path/to/target-project
-```
-
-interpret the positional value as `target_project_path`. Validate that it is an
-existing directory before starting. Keep it separate from the linter workspace
-that contains this skill. If the argument is missing, ask for it rather than
-auditing an implicit directory.
+Create a fresh temporary copy of that project for each audit cycle. The audit
+agent reads and runs the linter only in this temporary copy. Keep temporary
+logs and reports there, under its `.ai-code-guard/` directory. Put executable
+fixtures in a temporary source or test path that the linter actually analyzes;
+do not put them under `.ai-code-guard/` when that path is ignored by project
+discovery. Confirm fixture inclusion through the lint cache before interpreting
+diagnostics. Do not modify the original project while searching. Persistent
+audit history belongs in the original project's `.ai-code-guard/lint-bypass-findings.md`
+and is append-only.
 
 Architecture review runs only when a review agent is selected. Do not select a
 review agent for audit lint invocations; this skips architecture review without
-disabling lint rules, analysis, fixture execution, or attempt reporting.
+disabling lint rules, analysis, fixture execution, or attempt reporting. Do not
+pass the removed `--skip-review` flag; omit the review-agent option entirely.
 
-All fixtures, reports, and temporary copies must be scoped to
-`target_project_path`. Never modify the target project while searching for a
-bypass; fixes belong to the linter workspace unless the user explicitly
-requests changes to the target.
-
-All persistent Markdown output created by this skill must be under
-`target_project_path/.ai-code-guard/`. This includes the audit history and any
-reports. Do not create Markdown logs or reports in the project root, `docs/`,
-the linter workspace root, or the skill directory. Temporary Markdown files
-must stay inside the temporary copy's `.ai-code-guard/` directory. The skill's
-own `SKILL.md` is instruction text and is the only intentional exception.
+Never write fixtures or exploratory edits into the original project. Fixes
+belong in the linter workspace only after a finding package is handed back and
+the user has requested fixes. Persistent Markdown output created by this skill
+must be under the original project's `.ai-code-guard/`; temporary Markdown
+files must stay under the temporary copy's `.ai-code-guard/`. Do not create
+Markdown logs or reports in the project root, `docs/`, or the skill directory.
+The skill's own `SKILL.md` is instruction text and is the only intentional
+exception.
 
 ## Participants and boundaries
 
 Use one primary agent and one temporary audit agent.
+Track the temporary agent's ID and do not launch or resume another audit agent
+until it has completed or been explicitly stopped. Never run two linter
+invocations concurrently.
 
 The temporary agent receives a fresh copy of the project in a dedicated
 temporary directory. It may:
 
 - read linter source code, rules, resolvers, and tests;
 - read the code being checked;
-- create small fixtures in its temporary directory and keep any temporary
-  Markdown drafts or reports under that copy's `.ai-code-guard/` directory;
+- create small executable fixtures in temporary source/test paths in its copy,
+  and keep temporary Markdown drafts, logs, or reports under that copy's
+  `.ai-code-guard/` directory;
 - run the linter against those fixtures.
 
 The temporary agent must not:
@@ -78,10 +80,10 @@ not modify the shared workspace or reset the attempt counter.
 ## Preparing the copy
 
 Before the first attempt and after every fix, the primary agent creates a fresh
-copy in the temporary directory. Remove only external artifacts that are not
-the subject of the audit: `.git`, dependencies, build output, coverage data,
-and the report directory itself. Do not copy or read `.gitignore` from the
-temporary agent.
+copy of the session's project root in an OS temporary directory. Remove only
+external artifacts that are not the subject of the audit: `.git`, dependencies,
+build output, coverage data, and the report directory itself. Do not use
+`.gitignore` to narrow the audit or assume ignored files are out of scope.
 
 The temporary agent always works in this copy, never in the shared working
 directory. After a fix, do not continue with the old copy: it may repeat a
@@ -98,14 +100,30 @@ fix, a fresh copy, a zero-finding attempt, or a reporting checkpoint.
 Perform every attempt completely:
 
 1. Read the rules and the existing `.ai-code-guard/lint-bypass-findings.md` so already closed
-   bypasses are not repeated.
-2. Select a rule or a related group of rules. Do not stop at the first obvious
-   location; also inspect rules that use the same AST node, resolver, or source
-   model.
-3. Find a boundary where the rule may lose information: AST depth, scope,
+   bypasses are not repeated. Count recorded findings per diagnostic ID.
+2. Read `.ai-code-guard/diagnostic-test-variations.md` and
+   `.ai-code-guard/lint-bypass-findings.md`. Select candidates from diagnostic
+   IDs listed in `diagnostic-test-variations.md`; do not choose an unrelated
+   rule outside that inventory. Rank candidates by the number of already
+   confirmed bypasses in the findings log (fewest first), then by verified
+   `Test variations` in the table (fewest first). Thus, prefer rules with few
+   known bypasses and weak test-variation coverage. Verify apparent zeroes
+   against the tests before relying on them; the table may miss indirect
+   assertions. Before designing a fixture, trace the selected diagnostic ID
+   from its registry/dispatch entry to the actual rule implementation. Read
+   the implementation that decides whether to report, including its AST
+   traversal, resolver calls, filters, and diagnostic emission path. Identify
+   what inputs or syntax forms that code skips; do not infer implementation
+   coverage from the test table or test names alone. Then prefer a different
+   analysis mechanism from the immediately preceding attempts. Inspect related
+   implementations that use the same AST node, resolver, or source model, but
+   do not count an already-covered manifestation as a new finding.
+3. Find a boundary where the inspected implementation may lose information:
+   AST depth, scope,
    condition, expression wrapper, alias, type, structure, list, object
    property, index, import, inheritance, or traversal order.
-4. Build a minimal fixture from ordinary user code. It must be syntactically
+4. Build a minimal fixture from ordinary user code, grounded in the specific
+   implementation gap. It must be syntactically
    and type-correct to the extent required by the project.
 5. Run the linter exactly once for this attempt.
 6. Compare the expected diagnostic with the actual output and verify that a

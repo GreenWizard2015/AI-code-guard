@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { REMOVED_SKIP_REVIEW_MESSAGE } from "src/constants";
-import type { CliOptions } from "src/types";
+import type { CliOptions } from "src/task_types";
 import { POLICY_ALL, POLICY_TOP_CATEGORY } from "src/constants";
 import { REVIEW_STAGES } from "src/constants";
 

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import { PythonRuleCollector } from "src/linting/orchestration/runtime/python/python_rule_collector";
-import { ParsedPythonSource } from "tests/bridge/ts/runner/orchestration/runtime/parsed_python_source";
+import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
 
 describe("coding-lint Python callable boundaries", () => {
-	const source_files = new ParsedPythonSource();
+	const source_files = new ParsedSourceFiles();
 
 	test("requires return types on nested Python functions", () => {
 		const input = source_files.rule_input(

@@ -1,7 +1,7 @@
 import ts from "typescript";
 import type { RuleContextData } from "src/types";
 import { REST_UNION_CONTRACT } from "src/parser/internals/constants";
-import type { RestUnionContractRuleContract } from "src/protocols";
+import type { RestUnionContractRuleContract } from "src/analysis_protocols";
 import { RestUnionImportedAliases } from "src/rules/typescript/syntax-rules/types/rest_union_imported_aliases";
 
 /** Responsibilities: _rest-parameter unions identification_, _contract violations addition_. **/

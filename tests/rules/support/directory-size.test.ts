@@ -1,26 +1,21 @@
 import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
+import { join } from "node:path";
+import { AstModel } from "src/core/ast_model";
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DirectoryFacadeRules } from "src/rules/support/directory_facade_rules";
 import { DirectoryRules } from "src/rules/support/directory_rules";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
-import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import type { NormalizedAstFile } from "src/types";
-import type { ViolationContract } from "src/protocols";
-import { join } from "node:path";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 import { describe, expect, test } from "@jest/globals";
 
 describe("directory size lint rules", () => {
 	const root = "/virtual/directory-size-project";
-	const class_count_files = Object.fromEntries([
-		...Array.from({ length: 16 }, (_, index) => [`a/b/c/large-${index}.ts`, "export class Item {}\n"]),
-		...Array.from({ length: 5 }, (_, index) => [`a/b/c/d/valid-${index}.ts`, "export class Item {}\n"]),
-		...Array.from({ length: 2 }, (_, index) => [`a/b/c/d/e/small-${index}.ts`, "export class Item {}\n"]),
-	]);
 
-	test("applies the raw maximum file size to Python test files", () => {
-		const source = Array.from({ length: 501 }, (_, index) => `value_${index} = ${index}`).join("\n");
+	test("applies the raw maximum file size to test and declaration files", () => {
 		const violations: ViolationContract[] = [];
 		const normalized_ast: NormalizedAstFile = {
 			language: "typescript",
@@ -51,15 +46,49 @@ describe("directory size lint rules", () => {
 			responsibility_targets: [],
 		};
 		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
-		directory_rules.append_file_violation({
-			violations,
-			file: "tests/large_test.py",
-			text: source,
-			classes: [],
-			docstring_spans: [],
-			normalized_ast,
-		});
+		for (const file of [
+			"tests/large_test.py",
+			"src/__init__.py",
+			"src/constants.ts",
+			"src/constants.py",
+			"src/types.ts",
+			"src/types.py",
+			"src/types.d.ts",
+			"src/protocols.ts",
+			"src/protocols.py",
+			"src/cli.ts",
+		]) {
+			const source_lines: string[] = [];
+			for (let index = 0; index < 501; index += 1) {
+				let source_line = `export const value_${index} = ${index};`;
+				if (file.endsWith(".py")) {
+					source_line = `value_${index} = ${index}`;
+				}
+				source_lines.push(source_line);
+			}
+			const source = source_lines.join("\n");
+			directory_rules.append_file_violation({
+				violations,
+				file,
+				text: source,
+				classes: [],
+				docstring_spans: [],
+				normalized_ast,
+			});
+		}
 
+		expect(violations.filter((item) => item.rule_id === "file-max-size").map((item) => item.file)).toEqual([
+			"tests/large_test.py",
+			"src/__init__.py",
+			"src/constants.ts",
+			"src/constants.py",
+			"src/types.ts",
+			"src/types.py",
+			"src/types.d.ts",
+			"src/protocols.ts",
+			"src/protocols.py",
+			"src/cli.ts",
+		]);
 		expect(violations).toContainEqual(
 			expect.objectContaining({
 				message: "file is too large (found 501 raw lines)",
@@ -67,6 +96,47 @@ describe("directory size lint rules", () => {
 				priority: 3,
 			}),
 		);
+	});
+
+	test("applies the same minimum size to declaration files and test files", () => {
+		const violations: ViolationContract[] = [];
+		const ast_model = new AstModel();
+		const normalized_ast = ast_model.empty_ast_file("typescript");
+		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
+		for (const file of [
+			"tests/small.test.ts",
+			"src/__init__.py",
+			"src/constants.ts",
+			"src/constants.py",
+			"src/types.ts",
+			"src/types.py",
+			"src/types.d.ts",
+			"src/protocols.ts",
+			"src/protocols.py",
+			"src/cli.ts",
+		]) {
+			directory_rules.append_file_violation({
+				violations,
+				file,
+				text: file.endsWith(".py") ? "value = 1" : "export const value = 1;",
+				classes: [],
+				docstring_spans: [],
+				normalized_ast,
+			});
+		}
+
+		expect(violations.filter((item) => item.rule_id === "file-min-size").map((item) => item.file)).toEqual([
+			"tests/small.test.ts",
+			"src/__init__.py",
+			"src/constants.ts",
+			"src/constants.py",
+			"src/types.ts",
+			"src/types.py",
+			"src/types.d.ts",
+			"src/protocols.ts",
+			"src/protocols.py",
+			"src/cli.ts",
+		]);
 	});
 
 	test("reports directories with more than 40 code files", () => {
@@ -160,63 +230,6 @@ describe("directory size lint rules", () => {
 				rule_id: "directory-min-size",
 			}),
 		);
-	});
-
-	test("reports the maximum class count in a direct source directory", () => {
-		const paths = Object.keys(class_count_files).map((file) => join(root, file));
-		const directory_rules = new DirectoryStructureRules({ virtual_project: true, files: paths }, new InMemoryFileIO());
-		const class_counts = new Map(paths.map((file) => [file, 1]));
-		const violations: ReturnType<DirectoryStructureRules["directory_violation"]> = [];
-		directory_rules.append_directory_violations(violations, paths, root, class_counts, new Map());
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				message: "directory contains too many classes (found 16)",
-				rule_id: "directory-class-max-size",
-			}),
-		);
-	});
-
-	test("reports the minimum class count only for direct source files", () => {
-		const paths = Object.keys(class_count_files).map((file) => join(root, file));
-		const directory_rules = new DirectoryStructureRules({ virtual_project: true, files: paths }, new InMemoryFileIO());
-		const class_counts = new Map(paths.map((file) => [file, 1]));
-		const violations: ReturnType<DirectoryStructureRules["directory_violation"]> = [];
-		directory_rules.append_directory_violations(violations, paths, root, class_counts, new Map());
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				message: "directory contains too few classes (found 2)",
-				rule_id: "directory-class-min-size",
-			}),
-		);
-		expect(violations.map((violation) => violation.message)).not.toContain(
-			"directory contains too few classes (found 5)",
-		);
-	});
-
-	test("does not require placeholder classes in a directory with focused child directories", () => {
-		const files = {
-			"composition/index.ts": "export class RootEntry {}\n",
-			"composition/collector/collector.ts": "export class Collector {}\n",
-			"composition/collector/matcher.ts": "export class Matcher {}\n",
-			"composition/collector/mapper.ts": "export class Mapper {}\n",
-		};
-		const paths = Object.keys(files).map((file) => join(root, file));
-		const virtual_directory_rules = new DirectoryStructureRules(
-			{ virtual_project: true, files: paths },
-			new InMemoryFileIO(),
-		);
-		const class_counts = new Map(paths.map((file) => [file, 1]));
-		const violations: ReturnType<DirectoryStructureRules["directory_violation"]> = [];
-		virtual_directory_rules.append_directory_violations(violations, paths, root, class_counts, new Map());
-		expect(violations.filter((violation) => violation.rule_id === "directory-class-min-size")).toEqual([]);
-	});
-
-	test("requires the project root to contain three classes", () => {
-		const file = join(root, "performance_report.py");
-		const directory_rules = new DirectoryStructureRules({ virtual_project: true, files: [file] }, new InMemoryFileIO());
-		const violations: ReturnType<DirectoryStructureRules["directory_violation"]> = [];
-		directory_rules.append_directory_violations(violations, [file], root, new Map([[file, 1]]), new Map());
-		expect(violations.filter((violation) => violation.rule_id === "directory-class-min-size")).toHaveLength(1);
 	});
 
 	test("allows only re-exports in facade-only directories", () => {

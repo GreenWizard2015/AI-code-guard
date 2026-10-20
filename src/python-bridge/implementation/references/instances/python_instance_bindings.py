@@ -18,7 +18,7 @@ from implementation.references.protocols import (
     PythonInstanceOwnerContract,
     PythonReferenceContextContract,
 )
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 
 
 class PythonInstanceBindings:

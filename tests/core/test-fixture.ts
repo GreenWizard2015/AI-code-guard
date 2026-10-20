@@ -1,30 +1,29 @@
-import { resolve } from "node:path";
-import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { PythonAstData } from "src/core/python_ast_data";
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
-import { LintStageTimer } from "src/lint_stage_timer";
-import type { PythonAstDataOptions, ViolationContract } from "src/protocols";
-import type { IOContract } from "src/io/protocols";
-import type { LintExecutionReport, LintRunResult } from "src/types";
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import { PythonAstData } from "src/core/python_ast_data";
+import { LintReportMode, type LintReportOptions } from "src/core/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { NodeFileIO } from "src/io/node_file_io";
+import type { IOContract } from "src/io/protocols";
+import { LintStageTimer } from "src/lint_stage_timer";
+import type { LintRunResult } from "src/project_analysis_types";
+import type { PythonAstDataOptions } from "src/python_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintExecutionReport } from "src/runtime_types";
 import { SourceText } from "src/source_text";
-import { LintReportMode, type LintReportOptions } from "src/core/types";
-import type { LintProjectContextContract, LintStageTimerContract } from "src/protocols";
-import type { ProjectSourceAnalysisOptions } from "src/types";
 import { FixtureAstMapper } from "tests/core/fixture_ast_mapper";
+import { ProjectSourceFixture } from "tests/core/project_source_fixture";
 import type { Fixture } from "tests/core/types";
-import type ts from "typescript";
 
 /** Responsibilities: _in-memory project fixtures_, _lint execution fixtures_, _AST fixtures_. **/
 export class TestFixture {
 	private readonly placement_fixture_prefix = "module-placement-";
 	private readonly python_ast_worker: PythonAstWorkerContract;
 	public readonly ast_nodes: FixtureAstMapper;
+	public readonly project_source: ProjectSourceFixture;
 
 	/** Responsibilities: _fixture lint configuration creation_. **/
 	private lint_configuration(): LintRunConfiguration {
@@ -35,6 +34,7 @@ export class TestFixture {
 	public constructor() {
 		this.python_ast_worker = this.lint_configuration().python_ast_worker;
 		this.ast_nodes = new FixtureAstMapper();
+		this.project_source = new ProjectSourceFixture(this.python_ast_worker);
 	}
 
 	/** Responsibilities: _fixture file access_. **/
@@ -45,6 +45,11 @@ export class TestFixture {
 	/** Responsibilities: _shared Python worker access_. **/
 	public worker(): PythonAstWorkerContract {
 		return this.python_ast_worker;
+	}
+
+	/** Responsibilities: _test stage timer creation_. **/
+	public stage_timer(): LintStageTimer {
+		return new LintStageTimer();
 	}
 
 	/** Responsibilities: _Python AST parser options_. **/
@@ -63,11 +68,6 @@ export class TestFixture {
 		return new PythonAstData(this.python_ast_options(split_batch_enabled));
 	}
 
-	/** Responsibilities: _test stage timer creation_. **/
-	public stage_timer(): LintStageTimer {
-		return new LintStageTimer();
-	}
-
 	/** Responsibilities: _isolated PATH configuration_. **/
 	public with_empty_path<T>(callback: () => T): T {
 		const original_path = process.env.PATH;
@@ -76,7 +76,7 @@ export class TestFixture {
 			return callback();
 		} finally {
 			if (original_path === undefined) {
-				delete process.env.PATH;
+				process.env.PATH = undefined;
 			} else {
 				process.env.PATH = original_path;
 			}
@@ -184,57 +184,6 @@ export class TestFixture {
 		return callback(configuration, request.options, request.mode);
 	}
 
-	/** Responsibilities: _in-memory project context creation_, _Python bridge cleanup_. **/
-	public with_in_memory_project<T>(
-		files: Record<string, string>,
-		callback: (
-			root: string,
-			context: LintProjectContextContract,
-			files: readonly string[],
-			source_texts: Map<string, string>,
-			stage_timer: LintStageTimerContract,
-		) => T,
-		configuration_overrides: ReadonlyMap<string, string>,
-	): T {
-		const root = `/virtual/ai-code-guard-project/${randomUUID()}`;
-		const source_texts = new Map(Object.entries(files).map(([file, text]) => [resolve(root, file), text]));
-		const source_paths = [...source_texts.keys()];
-		const project_files = source_paths.filter((file) =>
-			[".ts", ".tsx", ".py"].some((extension) => file.endsWith(extension)),
-		);
-		const worker = this.worker();
-		const file_io = new NodeFileIO();
-		const analysis_identity = new ProjectAnalysisIdentity(file_io);
-		const context_factory = new LintProjectContextCreator(
-			new PythonAstData({
-				worker,
-				analysis_identity,
-				split_batch_enabled: true,
-				file_io,
-			}),
-			analysis_identity,
-			new InMemoryProjectSourceIO(source_texts),
-			file_io,
-		);
-		const stage_timer = new LintStageTimer();
-		const project_texts = new Map(source_texts);
-		for (const [file, text] of configuration_overrides) {
-			project_texts.set(resolve(root, file), text);
-		}
-		const context = context_factory.lint_context(root, project_files, stage_timer, project_texts, true);
-		return callback(root, context, project_files, project_texts, stage_timer);
-	}
-
-	/** Responsibilities: _in-memory TypeScript source lookup_. **/
-	public typescript_source_files(context: LintProjectContextContract): Map<string, ts.SourceFile> {
-		return new Map(
-			context
-				.files()
-				.filter((source) => source.typescript())
-				.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
-		);
-	}
-
 	/** Responsibilities: _fixture report collection_. **/
 	public collect_fixture_report(
 		files: Record<string, string>,
@@ -260,51 +209,6 @@ export class TestFixture {
 		return [...messages];
 	}
 
-	/** Responsibilities: _virtual source fixture creation_. **/
-	public fixture(files: Record<string, string>): Fixture {
-		const root = resolve(`/virtual/${this.placement_fixture_prefix}${randomUUID()}`);
-		const source_texts = new Map(Object.entries(files).map(([file, text]) => [resolve(root, file), text]));
-		return { root, paths: [...source_texts.keys()], source_texts };
-	}
-
-	/** Responsibilities: _in-memory source scanner fixture_. **/
-	public source_scanner_fixture(
-		files: Record<string, string>,
-		entry_files: readonly string[] = [],
-	): { root: string; scanner: ProjectSourceScanner; files: string[] } {
-		return this.with_in_memory_project(
-			files,
-			(root, context, project_files) => ({
-				root,
-				scanner: new ProjectSourceScanner(root, {
-					context_state: { available: true, value: context },
-					entry_files,
-				}),
-				files: [...project_files],
-			}),
-			new Map(),
-		);
-	}
-
-	/** Responsibilities: _project source analysis options_. **/
-	public project_source_analysis_options(
-		fixture: Fixture,
-		context: LintProjectContextContract,
-		ignored_files: ReadonlySet<string>,
-	): ProjectSourceAnalysisOptions {
-		return {
-			root: fixture.root,
-			project_files: fixture.paths,
-			context,
-			ignored_files,
-			scanner: new ProjectSourceScanner(fixture.root, {
-				context_state: { available: true, value: context },
-				entry_files: [],
-			}),
-			files: new Set(fixture.paths),
-		};
-	}
-
 	/** Responsibilities: _shared-parameter violations selection_. **/
 	public shared_violations(violations: readonly ViolationContract[]): ViolationContract[] {
 		const shared = violations.filter((violation) => violation.message.includes("share parameter"));
@@ -312,5 +216,12 @@ export class TestFixture {
 			return [];
 		}
 		return [...shared];
+	}
+
+	/** Responsibilities: _virtual source snapshot creation_. **/
+	public fixture(files: Record<string, string>): Fixture {
+		const root = resolve(`/virtual/${this.placement_fixture_prefix}${randomUUID()}`);
+		const source_texts = new Map(Object.entries(files).map(([file, text]) => [resolve(root, file), text]));
+		return { root, paths: [...source_texts.keys()], source_texts };
 	}
 }

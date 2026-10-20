@@ -2,7 +2,7 @@ import { resolve as resolve_path } from "node:path";
 import ts from "typescript";
 import { TYPESCRIPT_CONFIG_FILE } from "src/constants";
 import { TypeScriptModuleResolutionConfig } from "src/module-resolution/type_script_module_resolution_config";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import type {
 	TypeScriptModuleResolutionContract,
 	TypeScriptModuleResolutionOptions,

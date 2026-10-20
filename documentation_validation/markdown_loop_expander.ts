@@ -1,8 +1,10 @@
 import { MARKDOWN_CONSTANT_ERROR, MARKDOWN_RANGE_ERROR } from "documentation_validation/constants";
 import { MarkdownTemplateValues } from "documentation_validation/markdown_template_values";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _Markdown template parsing_, _loop expansion_, _placeholder substitution_. **/
 export class MarkdownLoopExpander {
+	private readonly boundary_failures: SystemFailureClassificationContract;
 	private readonly loop_pattern =
 		/\{%[\t ]*for[\t ]+([A-Za-z_][A-Za-z0-9_]*)[\t ]+in[\t ]+(range\([0-9]+\)|\[[\s\S]*?\]|[A-Za-z_][A-Za-z0-9_]*)[\t ]*%\}([\s\S]*?)\{%[\t ]*endfor[\t ]*%\}/u;
 	private readonly constant_pattern = /\{%[\t ]*const[\t ]+([A-Za-z_][A-Za-z0-9_]*)[\t ]*=[\t ]*([\s\S]*?)[\t ]*%\}/gu;
@@ -44,6 +46,9 @@ export class MarkdownLoopExpander {
 			JSON.parse(literal);
 			return literal;
 		} catch (error) {
+			if (!this.boundary_failures.json_parse_failure(String(error))) {
+				throw error;
+			}
 			throw new Error(`Markdown constant ${name} must have a JSON value: ${String(error)}`);
 		}
 	}
@@ -82,7 +87,7 @@ export class MarkdownLoopExpander {
 			throw new Error("Nested Markdown loops are not supported.");
 		}
 		const values_literal = this.loop_values(values_expression, constants);
-		const template_values = new MarkdownTemplateValues(values_literal, variable);
+		const template_values = new MarkdownTemplateValues(values_literal, variable, this.boundary_failures);
 		return template_values.render(body);
 	}
 
@@ -140,6 +145,11 @@ export class MarkdownLoopExpander {
 			return fence;
 		}
 		return opening + this.expand_block(body) + closing;
+	}
+
+	/** Responsibilities: _template parser dependency ownership_. **/
+	public constructor(boundary_failures: SystemFailureClassificationContract) {
+		this.boundary_failures = boundary_failures;
 	}
 
 	/** Responsibilities: _loop template expansion_. **/

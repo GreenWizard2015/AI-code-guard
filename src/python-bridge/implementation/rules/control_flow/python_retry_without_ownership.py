@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.types import JsonObject
 
 
@@ -113,7 +113,7 @@ class PythonRetryWithoutOwnership:
             for node in self._node_index.nodes(tree)
             if type(node) is ast.While
             and type(node.test) is ast.Constant
-            and node.test.value is True
+            and bool(node.test.value)
         ]
 
     def issues(self, tree: ast.Module) -> list[JsonObject]:

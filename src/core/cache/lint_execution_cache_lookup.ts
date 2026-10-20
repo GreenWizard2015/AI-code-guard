@@ -4,42 +4,57 @@ import { CacheDirectoryTree } from "src/core/cache/cache_directory_tree";
 import { LintExecutionCacheRecordSnapshot } from "src/core/cache/lint_execution_cache_record_snapshot";
 import {
 	CACHE_DIRECTORY,
+	CACHE_DIRECTORY_ENTRY_KIND,
 	LINT_EXECUTION_CACHE_DIRECTORY,
 	LINT_EXECUTION_CACHE_FILE,
 	LINT_EXECUTION_CACHE_VERSION,
 } from "src/core/constants";
-import { DIRECTORY_ENTRY_DIRECTORY, DIRECTORY_ENTRY_FILE, DIRECTORY_ENTRY_OTHER } from "src/io/constants";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import type { CliOptions, LintInputFiles } from "src/types";
-import type { CacheState, LintDirectoryFingerprint, LintExecutionCacheRecord, LintFileFingerprint } from "src/types";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { CliOptions } from "src/task_types";
+import type {
+	CacheState,
+	LintDirectoryFingerprint,
+	LintExecutionCacheRecord,
+	LintFileFingerprint,
+} from "src/project_analysis_types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _complete-cache lookup_, _input reuse validation_. **/
 export class LintExecutionCacheLookup {
 	private readonly root: string;
 	private readonly directory_tree: CacheDirectoryTree;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
+
+	/** Responsibilities: _cache record validation_. **/
+	private parse_record(text: string): CacheState<LintExecutionCacheRecord> {
+		const record: LintExecutionCacheRecord = JSON.parse(text);
+		const snapshot = new LintExecutionCacheRecordSnapshot(record);
+		if (!snapshot.valid()) {
+			return { available: false, value: this.empty_record() };
+		}
+		return { available: true, value: record };
+	}
 
 	/** Responsibilities: _cache record loading_. **/
 	private load_record(): CacheState<LintExecutionCacheRecord> {
 		try {
-			const record: LintExecutionCacheRecord = JSON.parse(
-				this.file_io.file_content.file_text(
-					join(
-						this.root,
-						AI_CODE_GUARD_DIRECTORY,
-						CACHE_DIRECTORY,
-						LINT_EXECUTION_CACHE_DIRECTORY,
-						LINT_EXECUTION_CACHE_FILE,
-					),
+			const text = this.file_io.file_content.file_text(
+				join(
+					this.root,
+					AI_CODE_GUARD_DIRECTORY,
+					CACHE_DIRECTORY,
+					LINT_EXECUTION_CACHE_DIRECTORY,
+					LINT_EXECUTION_CACHE_FILE,
 				),
 			);
-			const snapshot = new LintExecutionCacheRecordSnapshot(record);
-			if (!snapshot.valid()) {
-				return { available: false, value: this.empty_record() };
-			}
-			return { available: true, value: record };
+			return this.parse_record(text);
 		} catch (error) {
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return { available: false, value: this.empty_record() };
 		}
 	}
@@ -76,11 +91,11 @@ export class LintExecutionCacheLookup {
 		return this.file_io.directory_entries
 			.list_entries(directory)
 			.map((entry) => {
-				let kind = DIRECTORY_ENTRY_OTHER;
+				let kind = "other";
 				if (entry.is_directory) {
-					kind = DIRECTORY_ENTRY_DIRECTORY;
+					kind = CACHE_DIRECTORY_ENTRY_KIND;
 				} else if (entry.is_file) {
-					kind = DIRECTORY_ENTRY_FILE;
+					kind = "file";
 				}
 				return `${entry.name}\u0000${kind}`;
 			})
@@ -92,6 +107,9 @@ export class LintExecutionCacheLookup {
 		try {
 			return JSON.stringify(this.directory_entries(expected.directory)) === JSON.stringify(expected.entries);
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return false;
 		}
 	}
@@ -132,6 +150,9 @@ export class LintExecutionCacheLookup {
 				},
 			};
 		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 			return {
 				available: false,
 				value: { file, size: -1, mtime_ms: -1, ctime_ms: -1, content_hash: "" },
@@ -196,6 +217,7 @@ export class LintExecutionCacheLookup {
 		this.directory_tree = new CacheDirectoryTree(file_io);
 		this.root = resolve(root);
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 
 	/** Responsibilities: _previous cache record access_. **/

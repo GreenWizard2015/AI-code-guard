@@ -4,7 +4,7 @@ import { TypeScriptAstTypeRules } from "src/linting/orchestration/runtime/typesc
 import { UnboundedRetryLoop } from "src/linting/orchestration/runtime/typescript-rule-groups/special-rules/unbounded_retry_loop";
 import { InconsistentCacheKey } from "src/linting/orchestration/runtime/typescript-rule-groups/special-rules/inconsistent_cache_key";
 import ts from "typescript";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type {
 	TypeScriptAstErrorRulesContract,
 	TypeScriptAstSpecialRulesContract,

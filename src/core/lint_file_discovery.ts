@@ -2,8 +2,9 @@ import { dirname, relative, resolve } from "node:path";
 import { SKIPPED_PATH_PARTS } from "src/core/constants";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
 import { IGNORED_DIRS } from "src/constants";
-import type { GitIgnoredPathsContract, LintFileDiscoveryContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { GitIgnoredPathsContract } from "src/runtime_protocols";
+import type { LintFileDiscoveryContract } from "src/analysis_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _supported source file discovery_, _ignored path filtering_. **/
 export class LintFileDiscovery implements LintFileDiscoveryContract {

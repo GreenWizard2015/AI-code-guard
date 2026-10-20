@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.types import JsonObject
 from implementation.rules.protocols import PythonMethodRecordContract
 from implementation.rules.control_flow.python_method_record_value import (
@@ -16,7 +16,8 @@ from implementation.rules.constants import (
     PYTHON_FIELD_WRITE_EFFECT,
     PYTHON_FIELD_WRITE_EFFECTS,
 )
-from implementation.rules.control_flow.types import FieldReaderIndex
+
+FieldReaderIndex = dict[str, set[str]]
 
 
 class PythonTemporalCoupling:

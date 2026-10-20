@@ -4,10 +4,13 @@ import { AstCacheHit } from "src/core/cache/ast_cache_hit";
 import { AstCacheMiss } from "src/core/cache/ast_cache_miss";
 import { AST_ANALYSIS_CACHE_VERSION, CACHE_DIRECTORY } from "src/core/constants";
 import { AI_CODE_GUARD_DIRECTORY, TYPESCRIPT_CACHE_OWNER } from "src/constants";
-import type { AstCacheEntryContract, AstDiskCacheContract, ProjectAnalysisIdentityContract } from "src/protocols";
-import type { AstCacheAst, AstTypeMembers, AstTypeMembersSerialized, NormalizedAstFile } from "src/types";
+import type { AstCacheEntryContract, AstDiskCacheContract } from "src/source_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { AstCacheAst } from "src/cache_types";
+import type { AstTypeMembers, AstTypeMembersSerialized, NormalizedAstFile } from "src/types";
 import type { AstCacheRecord } from "src/model/types/types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _AST cache storage_, _source freshness_. **/
 export class AstDiskCache implements AstDiskCacheContract {
@@ -15,6 +18,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 	private readonly project_identity: string;
 	private readonly analysis_identity: ProjectAnalysisIdentityContract;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _type-member metadata serialization_. **/
 	private serialized_type_members(members: AstTypeMembers): AstTypeMembersSerialized {
@@ -134,7 +138,9 @@ export class AstDiskCache implements AstDiskCacheContract {
 				.digest("hex");
 			return !this.current_record(file, record, source_hash, record.source_file);
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return true;
 		}
 	}
@@ -148,7 +154,9 @@ export class AstDiskCache implements AstDiskCacheContract {
 			try {
 				this.file_io.file_operations.remove_file(file);
 			} catch (error) {
-				void error;
+				if (!this.boundary_failures.system_failure_message(String(error))) {
+					throw error;
+				}
 			}
 		}
 	}
@@ -192,6 +200,20 @@ export class AstDiskCache implements AstDiskCacheContract {
 		};
 	}
 
+	/** Responsibilities: _failed atomic-write temporary cleanup_. **/
+	private clean_temporary_record(path: string): void {
+		if (!this.file_io.file_paths.path_exists(path)) {
+			return;
+		}
+		try {
+			this.file_io.file_operations.remove_file(path);
+		} catch (error) {
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
+		}
+	}
+
 	/** Responsibilities: _atomic cache record persistence_. **/
 	private persist_record(path: string, record: AstCacheRecord): void {
 		const temporary_path = `${path}.${process.pid}.${randomUUID()}.tmp`;
@@ -200,13 +222,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 			this.file_io.file_content.write_text(temporary_path, serialized);
 			this.file_io.file_operations.move_file(temporary_path, path);
 		} finally {
-			if (this.file_io.file_paths.path_exists(temporary_path)) {
-				try {
-					this.file_io.file_operations.remove_file(temporary_path);
-				} catch (error) {
-					void error;
-				}
-			}
+			this.clean_temporary_record(temporary_path);
 		}
 	}
 
@@ -231,6 +247,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 		);
 		this.analysis_identity = analysis_identity;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.project_identity = `${project_identity}\u0000${this.analysis_identity.analyzer()}`;
 	}
 
@@ -256,7 +273,9 @@ export class AstDiskCache implements AstDiskCacheContract {
 			const record: AstCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
 			return this.cached_entry(source_file, path, record, source_file_hash);
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return new AstCacheMiss(source_file, "cache file unavailable");
 		}
 	}
@@ -270,8 +289,9 @@ export class AstDiskCache implements AstDiskCacheContract {
 			this.file_io.directory_operations.create_directory(this.cache_directory);
 			this.persist_record(path, this.cache_record(source_file, source_text, ast));
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 }

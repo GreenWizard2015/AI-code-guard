@@ -37,14 +37,14 @@ export class Status {
 }
 // File: tests/domain/status.test.ts
 import { Status } from "src/domain/status";
-let sent_ids: string[] = [];
+const shared_state = { sent_ids: [] as string[] };
 describe("Status", () => {
 	test("sends the first message", () => {
-		sent_ids.push("first"); // <- error
+		shared_state.sent_ids.push("first"); // <- error
 		const status = new Status("ready"); expect(status.ready()).toBe(true);
     });
 	test("sends the second message", () => {
-		sent_ids.push("second"); // <- error
+		shared_state.sent_ids.push("second"); // <- error
 		const status = new Status("queued"); expect(status.ready()).toBe(false);
     });
 });

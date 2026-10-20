@@ -2,9 +2,10 @@ import ts from "typescript";
 import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptObjectAliases } from "src/typescript-aliases/type_script_object_aliases";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/typescript-aliases/type_script_object_alias_declaration_index";
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
-import type { TypeScriptMemberAliasesContract, TypeScriptObjectAliasesContract } from "src/protocols";
+import type { TypeScriptMemberAliasesContract, TypeScriptObjectAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _console mock identification_, _mock alias scope tracking_. **/
 export class ConsoleMock {
@@ -15,6 +16,7 @@ export class ConsoleMock {
 	private readonly expression_aliases: TypeScriptExpressionAliases;
 	private readonly static_expression_values: TypeScriptStaticExpressionValues;
 	private readonly aliases_by_scope: Map<ts.Node, TypeScriptObjectAliasesContract>;
+	private readonly declaration_index: TypeScriptObjectAliasDeclarationIndex;
 
 	/** Responsibilities: _source object aliases_. **/
 	private scope_key(node: ts.Node): ts.Node {
@@ -49,7 +51,7 @@ export class ConsoleMock {
 		if (cached !== undefined) {
 			return cached;
 		}
-		const aliases = new TypeScriptObjectAliases();
+		const aliases = new TypeScriptObjectAliases(this.declaration_index);
 		for (const scope of this.scope_nodes(source)) {
 			aliases.collect(scope);
 		}
@@ -164,6 +166,7 @@ export class ConsoleMock {
 		this.expression_aliases = new TypeScriptExpressionAliases("");
 		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
 		this.aliases_by_scope = new Map<ts.Node, TypeScriptObjectAliasesContract>();
+		this.declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 	}
 	/** Responsibilities: _public operation_. **/
 	public console_expression(node: ts.Expression, source: ts.Node): boolean {

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from implementation.ast.protocols import PythonAstCoreDependenciesContract
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,

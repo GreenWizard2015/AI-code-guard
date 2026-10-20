@@ -3,7 +3,7 @@ import { DirectoryCommentSegments } from "src/core/support/source-analysis/direc
 import { MethodOrder } from "src/rules/method_order";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { MIN_FILE_LINES } from "src/constants";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstClassNode } from "src/types";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import type { TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";

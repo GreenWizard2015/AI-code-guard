@@ -21,8 +21,8 @@ import type {
 	DocumentationExampleSourceFile,
 	RuleDocumentationDocument,
 } from "documentation_validation/types";
-import type { ViolationContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _rule validation coordination_, _isolated example analysis_, _validation result delivery_. **/
 export class CliDocumentationValidation {

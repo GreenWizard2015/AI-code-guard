@@ -6,12 +6,9 @@ import type { AstCallableReference } from "src/types";
 import { TypeScriptReferenceOwnership } from "src/parser/references/identity/references/type_script_reference_ownership";
 
 import type { CallTargetKind } from "src/types";
-import type {
-	AstCallableReferenceContract,
-	TypeScriptAstTraversalContract,
-	TypeScriptCallExpressionInspectorContract,
-	TypeScriptReferenceOwnershipContract,
-} from "src/protocols";
+import type { AstCallableReferenceContract } from "src/source_types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptCallExpressionInspectorContract, TypeScriptReferenceOwnershipContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
 import type { TypeScriptCallReferenceCollectorOptions } from "src/model/types";
 

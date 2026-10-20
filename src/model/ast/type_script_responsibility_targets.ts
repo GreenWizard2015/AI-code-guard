@@ -2,7 +2,7 @@ import ts from "typescript";
 import type { AstResponsibilityKind, AstResponsibilityTarget } from "src/types";
 import { RESPONSIBILITY_CONTAINER_KIND } from "src/model/types";
 import type { ResponsibilityContainer } from "src/model/types";
-import type { TypeScriptResponsibilityTargetsContract } from "src/protocols";
+import type { TypeScriptResponsibilityTargetsContract } from "src/typescript_analysis_protocols";
 import { MODULE_INTERFACE_KIND } from "src/constants";
 import { CONSTRUCTOR_NAME, METRIC_KIND_FUNCTION } from "src/metrics/constants";
 

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from implementation.protocols import (
+from implementation.protocols import PythonProxyCallableAnalyzerContract
+from implementation.rules.protocols import (
     PythonCodingIssueBoundaryStateContract,
     PythonCodingIssueComponentContextContract,
     PythonFieldMutationCollectorContract,
-    PythonPrimaryRulesContract,
-    PythonProxyCallableAnalyzerContract,
+)
+from implementation.rules.protocols import PythonPrimaryRulesContract
+from implementation.rules.protocols import (
     PythonSingleItemArrayStateRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.python_field_mutation_collector import PythonFieldMutationCollector
+from implementation.rules.python_field_mutation_collector import (
+    PythonFieldMutationCollector,
+)
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )

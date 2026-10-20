@@ -1,5 +1,5 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import type { ProjectPathRelationContract } from "src/protocols";
+import type { ProjectPathRelationContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _rooted path classification_, _directory segment lookup_. **/
 export class ProjectPathRelation implements ProjectPathRelationContract {

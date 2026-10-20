@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptTypeNodeContract } from "src/protocols";
+import type { TypeScriptTypeNodeContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptReferenceShape, TypeScriptTypeDetails } from "src/model/types";
 
 /** Responsibilities: _primitive type classification_, _type detail extraction_. **/

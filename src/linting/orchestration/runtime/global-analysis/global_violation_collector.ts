@@ -1,7 +1,9 @@
 import { ModulePlacementAnalyzer } from "src/linting/orchestration/runtime/global-analysis/module_placement_analyzer";
 import { ProductionTestImportAnalyzer } from "src/linting/orchestration/runtime/global-analysis/production_test_import_analyzer";
 import { TestFrameworkConsistency } from "src/linting/orchestration/runtime/global-analysis/test_framework_consistency";
-import type { LintProjectContextContract, LintStageTimerContract, ProjectSourceScannerContract, ViolationContract } from "src/protocols";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { GlobalAnalysisStages } from "src/linting/orchestration/runtime/global-analysis/global_analysis_stages";
 import { UnusedSymbolRules } from "src/linting/orchestration/runtime/global-analysis/unused_symbol_rules";
 import { LiteralConstantRules } from "src/linting/orchestration/runtime/global-analysis/literal_constant_rules";

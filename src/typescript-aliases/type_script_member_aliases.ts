@@ -1,12 +1,10 @@
 import ts from "typescript";
 import { TypeScriptMemberBinding } from "src/typescript-aliases/type_script_member_binding";
-import type {
-	NodeStringSetMapCache,
-	StringSetMap,
-	StaticValueResolver,
-	TypeScriptMemberAliasesContract,
-	TypeScriptMemberBindingContract,
-} from "src/protocols";
+import type { NodeStringSetMapCache } from "src/cache_types";
+import type { StringSetMap } from "src/analysis_types";
+import type { StaticValueResolver } from "src/runtime_types";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptMemberBindingContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _member alias matching_, _property alias resolution_. **/
 export class TypeScriptMemberAliases implements TypeScriptMemberAliasesContract {

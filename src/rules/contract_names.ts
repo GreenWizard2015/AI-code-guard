@@ -1,7 +1,7 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MODULE_INTERFACE_KIND, MODULE_PROTOCOL_KIND, PROTOCOL_NAME_PREFIX } from "src/constants";
 import { CONTRACT_SUFFIX } from "src/metrics/constants";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstClassNode } from "src/types";
 
 /** Responsibilities: _contract naming validation_, _forbidden protocol term diagnostics_. **/

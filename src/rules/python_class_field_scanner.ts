@@ -3,19 +3,15 @@ import { PythonAstBridge } from "src/core/python_ast_bridge";
 import { PythonImportResolution } from "src/rules/python_import_resolution";
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
-import type { StringSetMap, ViolationContract } from "src/protocols";
-import type { LintProjectContextContract } from "src/protocols";
+import type { StringSetMap } from "src/analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { LintSourceRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
 import type { PythonClassFieldCollectionOptions } from "src/model/types/types";
 import { RULE_IDS } from "src/constants";
-import type {
-	AstClassNode,
-	ClassFieldFiles,
-	ImportedFunction,
-	NormalizedAstFile,
-	PythonProjectImportContext,
-} from "src/types";
+import type { PythonProjectImportContext } from "src/source_types";
+import type { AstClassNode, ClassFieldFiles, ImportedFunction, NormalizedAstFile } from "src/types";
 import type { ClassField, FieldContext } from "src/model/types/types";
 
 /** Responsibilities: _Python class field analysis_, _annotation and initializer collection_. **/

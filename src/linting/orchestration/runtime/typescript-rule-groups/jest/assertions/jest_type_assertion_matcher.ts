@@ -1,10 +1,7 @@
 import ts from "typescript";
-import {
-	JEST_ANY,
-	JEST_INSTANCE,
-	JEST_SHAPES,
-} from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
-import type { JestMatcherAccessContract, TypeScriptExpressionAliasesContract } from "src/protocols";
+import { JEST_ANY, JEST_INSTANCE, JEST_SHAPES } from "src/constants";
+import type { JestMatcherAccessContract } from "src/testing_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _Jest type assertions matching_, _instance matchers identification_. **/
 export class JestTypeAssertionMatcher {

@@ -1,13 +1,9 @@
 import ts from "typescript";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
-import type {
-	AstPropertyBindingResolverContract,
-	AstPropertySourceGraphContract,
-	AstPropertySourceIndexContract,
-	SourceFileResolver,
-} from "src/protocols";
+import type { AstPropertyBindingResolverContract, AstPropertySourceGraphContract, AstPropertySourceIndexContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
 import { AstDeclarationLookup } from "src/rules/typescript/syntax-rules/ast/ast_declaration_lookup";
-import type { AstDeclarationLookupContract } from "src/protocols";
+import type { AstDeclarationLookupContract } from "src/source_protocols";
 
 /** Responsibilities: _imported declaration graph assembly_, _re-export traversal_. **/
 export class AstPropertySourceGraph implements AstPropertySourceGraphContract {

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
-import type { AstNamespaceTypeImportsContract } from "src/protocols";
+import type { AstNamespaceTypeImportsContract } from "src/source_protocols";
 
 /** Responsibilities: _namespace module path resolution_, _qualified type key construction_. **/
 export class AstNamespaceTypeImports implements AstNamespaceTypeImportsContract {

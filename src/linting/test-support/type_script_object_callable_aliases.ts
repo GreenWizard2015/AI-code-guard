@@ -3,15 +3,9 @@ import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_
 import { TypeScriptContractBindings } from "src/linting/test-support/type_script_contract_bindings";
 import { TypeScriptCallableTypeProperties } from "src/typescript-aliases/callables/type_script_callable_type_properties";
 import { TypeScriptTypedCallableBindings } from "src/typescript-aliases/callables/type_script_typed_callable_bindings";
-import type {
-	TypeScriptContractBindingsContract,
-	TypeScriptExpressionAliasesContract,
-	TypeScriptCallableTypePropertiesContract,
-	TypeScriptObjectCallableAliasesContract,
-	TypeScriptTypedCallableBindingsContract,
-	StringSetMap,
-	NodeReadonlyStringSetCache,
-} from "src/protocols";
+import type { TypeScriptContractBindingsContract, TypeScriptExpressionAliasesContract, TypeScriptCallableTypePropertiesContract, TypeScriptObjectCallableAliasesContract, TypeScriptTypedCallableBindingsContract } from "src/typescript_runtime_protocols";
+import type { StringSetMap } from "src/analysis_types";
+import type { NodeReadonlyStringSetCache } from "src/cache_types";
 
 /** Responsibilities: _object callable alias collection_, _scoped callable lookup_. **/
 export class TypeScriptObjectCallableAliases implements TypeScriptObjectCallableAliasesContract {

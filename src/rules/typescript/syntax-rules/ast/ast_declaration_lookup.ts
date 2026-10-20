@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { AstDeclarationLookupContract } from "src/protocols";
+import type { AstDeclarationLookupContract } from "src/source_protocols";
 
 /** Responsibilities: _AST declaration lookup state_, _type and interface classification_. **/
 export class AstDeclarationLookup implements AstDeclarationLookupContract {

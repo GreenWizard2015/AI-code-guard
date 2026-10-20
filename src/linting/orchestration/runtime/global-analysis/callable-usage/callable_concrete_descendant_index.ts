@@ -1,4 +1,5 @@
-import type { CallableSourceIdentityGraphContract, ReadonlyStringSetMap } from "src/protocols";
+import type { CallableSourceIdentityGraphContract } from "src/analysis_protocols";
+import type { ReadonlyStringSetMap } from "src/analysis_types";
 
 /** Responsibilities: _concrete class descendant indexing_, _shared descendant lookup_. **/
 export class CallableConcreteDescendantIndex {

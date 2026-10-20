@@ -3,8 +3,8 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-from implementation.protocols import PythonDynamicTypeReferencesContract
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import PythonDynamicTypeReferencesContract
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerLookupContract,
     PythonContainerValuesContract,

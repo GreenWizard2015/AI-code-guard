@@ -10,19 +10,14 @@ import type {
 	CallableDefinition,
 	ParsedFile,
 } from "src/metrics/types";
-import type {
-	CallableMethodCountsContract,
-	CallableSourceImportScopeContract,
-	ProjectSourceScannerContract,
-	ViolationContract,
-} from "src/protocols";
+import type { CallableMethodCountsContract } from "src/shared_services_protocols";
+import type { CallableSourceImportScopeContract } from "src/analysis_protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { PythonCallableReferenceTargetMapperContract } from "src/linting/orchestration/runtime/protocols";
-import type { LintStageTimerContract } from "src/protocols";
-import type {
-	LintSourceRecord,
-	NormalizedAstFile,
-	PythonProjectImportContext,
-} from "src/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { CallableSourceImportScope } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_source_import_scope";
 import { CallableOwnership } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_ownership";

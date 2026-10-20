@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { AstPropertyBindingIndexContract } from "src/protocols";
+import type { AstPropertyBindingIndexContract } from "src/source_protocols";
 
 /** Responsibilities: _typed lexical binding indexing_, _alias ownership tracking_. **/
 export class AstPropertyBindingIndex implements AstPropertyBindingIndexContract {

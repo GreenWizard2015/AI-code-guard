@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,
@@ -10,45 +10,27 @@ from implementation.references.aliases.protocols import (
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.imports.python_sys_path_attribute_aliases import (
+    PythonSysPathAttributeAliases,
+)
+from implementation.ast.protocols import PythonSysPathImportAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import SYS_PATH_MUTATING
 
 
 class PythonSysPathAliases:
     """Responsibilities: _sys.path alias tracking_, _mutator alias detection_."""
 
-    def _imported_system_name(self, node: ast.AST) -> None:
-        """Responsibilities: _sys module alias tracking_."""
-        if type(node) is not ast.Import:
-            return
-        for imported in node.names:
-            if imported.name != "sys":
-                continue
-            local_name = imported.name
-            if imported.asname is not None:
-                local_name = imported.asname
-            self.system_names.add(local_name)
-
-    def _imported_path_name(self, node: ast.AST) -> None:
-        """Responsibilities: _sys.path alias tracking_."""
-        if type(node) is not ast.ImportFrom:
-            return
-        if node.module != "sys":
-            return
-        for imported in node.names:
-            if imported.name != "path":
-                continue
-            local_name = imported.name
-            if imported.asname is not None:
-                local_name = imported.asname
-            self.path_names.add(local_name)
-
-    def _assigned_path_name(self, node: ast.AST) -> None:
+    def _assigned_path_name(self, node: ast.AST) -> bool:
         """Responsibilities: _assigned path alias tracking_."""
+        changed = False
         target_values = self._assigned_path_values(node)
         for target, value in target_values.items():
             if self.path_target(value):
-                self.path_names.add(target)
+                added_alias = self.import_aliases.add_path_alias(target)
+                if added_alias:
+                    changed = True
+        return changed
 
     def _assigned_path_values(self, node: ast.AST) -> dict[str, ast.AST]:
         """Responsibilities: _assigned path alias values_."""
@@ -70,7 +52,7 @@ class PythonSysPathAliases:
         """Responsibilities: _sys.path attribute target_."""
         if type(target.value) is not ast.Name:
             return False
-        if not self.system_name(target.value.id):
+        if not self.import_aliases.system_name(target.value.id):
             return False
         return target.attr == "path"
 
@@ -78,14 +60,14 @@ class PythonSysPathAliases:
         """Responsibilities: _sys.path subscript target_."""
         value = target.value
         if type(value) is ast.Name:
-            return self.path_name(value.id)
+            return self.import_aliases.path_name(value.id)
         if type(value) is not ast.Attribute:
             return False
         if value.attr != "path":
             return False
         if type(value.value) is not ast.Name:
             return False
-        return self.system_name(value.value.id)
+        return self.import_aliases.system_name(value.value.id)
 
     def _assigned_mutator(self, node: ast.AST) -> None:
         """Responsibilities: _sys.path mutator alias tracking_."""
@@ -94,26 +76,64 @@ class PythonSysPathAliases:
                 continue
             if value.attr not in self.path_mutating:
                 continue
-            if self._path_target_value(value.value):
+            if self.path_target(value.value):
                 self.path_mutator_names.add(target)
 
-    def _path_target_value(self, value: ast.AST) -> bool:
-        """Responsibilities: _sys.path value classification_."""
-        if type(value) is ast.Attribute:
-            return self._attribute_path_target(value)
-        if type(value) is ast.Name:
-            return self.path_name(value.id)
-        return False
+    def _attribute_alias_record(
+        self, target: ast.AST, value: ast.AST, context: ast.AST
+    ) -> None:
+        """Responsibilities: _attribute alias storage_."""
+        if type(target) is not ast.Attribute:
+            return
+        if not self.path_target(value):
+            return
+        self.attribute_aliases.record(target, context)
+
+    def _collect_attribute_aliases(self, node: ast.AST) -> None:
+        """Responsibilities: _instance path alias collection_."""
+        if type(node) is ast.Assign:
+            if len(node.targets) != 1:
+                return
+            self._attribute_alias_record(node.targets[0], node.value, node)
+            return
+        if type(node) is ast.AnnAssign:
+            if node.value is not None:
+                self._attribute_alias_record(node.target, node.value, node)
+
+    def _import_alias_collection(self, nodes: list[ast.AST]) -> None:
+        """Responsibilities: _sys path import aliases_."""
+        self.import_aliases.observe_imports(nodes)
+        for node in nodes:
+            self.container_aliases.observe(node)
+
+    def _collect_path_aliases(self, nodes: list[ast.AST]) -> None:
+        """Responsibilities: _transitive path alias collection_."""
+        for _ in nodes:
+            changed = False
+            previous_attribute_count = len(self.attribute_aliases.keys)
+            for node in nodes:
+                added_alias = self._assigned_path_name(node)
+                if added_alias:
+                    changed = True
+                self._collect_attribute_aliases(node)
+            if (
+                not changed
+                and len(self.attribute_aliases.keys) == previous_attribute_count
+            ):
+                return
 
     def __init__(
         self,
         container_aliases: PythonContainerAliasesContract,
         node_index: PythonAstNodeIndexContract,
+        import_aliases: PythonSysPathImportAliasesContract,
     ) -> None:
         """Responsibilities: _sys.path alias setup_."""
-        self.system_names: set[str] = {"sys"}
-        self.path_names: set[str] = set()
         self.path_mutator_names: set[str] = set()
+        self.import_aliases: PythonSysPathImportAliasesContract = import_aliases
+        self.attribute_aliases: PythonSysPathAttributeAliases = (
+            PythonSysPathAttributeAliases(node_index)
+        )
         self.path_mutating: frozenset[str] = SYS_PATH_MUTATING
         self.reference_aliases: PythonReferenceAliases = PythonReferenceAliases()
         self.container_aliases: PythonContainerAliasesContract = container_aliases
@@ -127,27 +147,14 @@ class PythonSysPathAliases:
 
     def configure(self, tree: ast.Module) -> None:
         """Responsibilities: _sys.path alias configuration_."""
-        self.system_names.clear()
-        self.system_names.add("sys")
-        self.path_names.clear()
         self.path_mutator_names.clear()
+        self.attribute_aliases.keys.clear()
         self.container_aliases.clear()
         nodes = self.node_index.nodes(tree)
+        self._import_alias_collection(nodes)
+        self._collect_path_aliases(nodes)
         for node in nodes:
-            self._imported_system_name(node)
-            self._imported_path_name(node)
-            self.container_aliases.observe(node)
-        for node in nodes:
-            self._assigned_path_name(node)
             self._assigned_mutator(node)
-
-    def system_name(self, name: str) -> bool:
-        """Responsibilities: _sys alias membership_."""
-        return name in self.system_names
-
-    def path_name(self, name: str) -> bool:
-        """Responsibilities: _path alias membership_."""
-        return name in self.path_names
 
     def path_mutator_name(self, name: str) -> bool:
         """Responsibilities: _sys.path mutator membership_."""
@@ -156,9 +163,11 @@ class PythonSysPathAliases:
     def path_target(self, target: ast.AST) -> bool:
         """Responsibilities: _sys.path target analysis_."""
         if type(target) is ast.Name:
-            return self.path_name(target.id)
+            return self.import_aliases.path_name(target.id)
         if type(target) is ast.Attribute:
-            return self._attribute_path_target(target)
+            if self._attribute_path_target(target):
+                return True
+            return self.attribute_aliases.contains(target)
         if type(target) is ast.Subscript:
             resolved = self.container_values.container_value(target)
             if resolved.found():

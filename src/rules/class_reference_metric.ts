@@ -1,7 +1,10 @@
 import { SourceReferenceIndex } from "src/core/source_reference_index";
-import type { SourceReferenceIndexContract, TestPathSyntaxContract, ViolationContract } from "src/protocols";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
+import type { TestPathSyntaxContract } from "src/testing_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstClassNode, LintSourceRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
+import type { AstClassNode } from "src/types";
 import type { ClassDefinition, ParsedClassFile } from "src/model/types/types";
 import { CLASS_REFERENCE_INFO, CLASS_REFERENCE_WARNING } from "src/rules/constants";
 import { CONSTRUCTOR_NAME, CONTRACT_SUFFIX, PYTHON_CONSTRUCTOR_NAME } from "src/metrics/constants";

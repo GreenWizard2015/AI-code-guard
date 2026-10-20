@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptTypeAliasesContract } from "src/protocols";
+import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _local type alias collection_, _alias name resolution_. **/
 export class TypeScriptTypeAliases implements TypeScriptTypeAliasesContract {

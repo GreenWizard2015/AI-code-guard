@@ -6,7 +6,7 @@ import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { GlobalAnalysisCache } from "src/core/support/global_analysis_cache";
 import { FileAnalysisCache } from "src/linting/orchestration/runtime/file_analysis_cache";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import type { LintSourceRecord } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
 import { ViolationValue } from "src/violation_value";
 import { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 import { FileAnalysisCacheWorkspace } from "tests/bridge/ts/runner/orchestration/runtime/file-analysis-cache-workspace";

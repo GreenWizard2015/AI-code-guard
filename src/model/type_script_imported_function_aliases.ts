@@ -2,8 +2,8 @@ import ts from "typescript";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import type { ImportedFunction } from "src/types";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type { TypeScriptImportedFunctionAliasesContract } from "src/protocols";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { TypeScriptImportedFunctionAliasesContract } from "src/typescript_analysis_types";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _imported function indexing_, _imported name collection_. **/
 export class TypeScriptImportedFunctionAliases implements TypeScriptImportedFunctionAliasesContract {

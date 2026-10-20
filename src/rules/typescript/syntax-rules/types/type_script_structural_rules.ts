@@ -5,7 +5,8 @@ import ts from "typescript";
 import type { CallableShapeCounts, RuleAppender, RuleContextData } from "src/types";
 import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
 import { TypeScriptCallableBody } from "src/typescript-aliases/callables/type_script_callable_body";
-import type { TypeScriptOperatorPrecedenceContract, TypeScriptStructuralRulesContract } from "src/protocols";
+import type { TypeScriptOperatorPrecedenceContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptStructuralRulesContract } from "src/typescript_runtime_protocols";
 import { RULE_IDS } from "src/constants";
 
 /** Responsibilities: _type shapes_, _syntax rules_. **/

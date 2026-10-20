@@ -1,4 +1,4 @@
-import type { GitIgnoreGlobTokenContract } from "src/protocols";
+import type { GitIgnoreGlobTokenContract } from "src/runtime_protocols";
 
 /** Responsibilities: _recursive character transitions_, _line separator exclusion_. **/
 export class RecursiveStarGitIgnoreGlobToken implements GitIgnoreGlobTokenContract {
@@ -13,14 +13,14 @@ export class RecursiveStarGitIgnoreGlobToken implements GitIgnoreGlobTokenContra
 	public advance(
 		candidate: string,
 		index: number,
-		current_row: readonly boolean[],
-		next_row: readonly boolean[],
+		current_row: Uint8Array,
+		next_row: Uint8Array,
 	): boolean {
-		const can_finish_here = next_row[index] === true;
+		const can_finish_here = next_row[index] === 1;
 		const character = candidate[index];
 		if (character === undefined || this.line_separator.test(character)) {
 			return can_finish_here;
 		}
-		return can_finish_here || current_row[index + 1] === true;
+		return can_finish_here || current_row[index + 1] === 1;
 	}
 }

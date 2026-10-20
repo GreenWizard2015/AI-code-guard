@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import (
+from implementation.references.protocols import (
     PythonContainerKeysContract,
     PythonExceptionAliasSnapshotContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerValuesContract,
 )
 from implementation.rules.constants import (

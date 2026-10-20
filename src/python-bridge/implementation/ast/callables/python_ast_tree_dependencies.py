@@ -3,16 +3,16 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.ast.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
 from implementation.ast.type_declarations.python_module_constant_spans import (
     PythonModuleConstantSpans,
 )
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonCallableStatementsContract,
     PythonModuleConstantSpansContract,
 )
-from implementation.references.aliases.protocols import (
+from implementation.ast.protocols import PythonCallableStatementsContract
+from implementation.references.protocols import (
     PythonScopedTypeAliasesContract,
 )
 

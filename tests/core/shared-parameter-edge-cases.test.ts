@@ -3,7 +3,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
-import { DETERMINISTIC_FUNCTION_FILES } from "tests/core/constants";
+import { DETERMINISTIC_FUNCTION_FILES } from "tests/core/constants/ast_nodes/constants";
 
 describe("shared parameter lint integration", () => {
 	test("ignores unconstrained TypeScript template parameters at the support threshold", () => {

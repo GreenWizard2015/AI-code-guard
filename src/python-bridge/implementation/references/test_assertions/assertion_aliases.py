@@ -4,9 +4,9 @@ import ast
 from dataclasses import dataclass
 from functools import cached_property
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import PYTHON_ASSERT_RAISES_NAME
-from implementation.references.aliases.protocols import (
+from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonReferenceAliasesContract,

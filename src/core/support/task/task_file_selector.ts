@@ -1,5 +1,5 @@
 import { isAbsolute, resolve } from "node:path";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { TaskViolationGroups } from "src/core/support/task/task_violation_groups";
 import type { TaskFileSelection } from "src/model/types/types";
 

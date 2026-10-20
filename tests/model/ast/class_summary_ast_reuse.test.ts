@@ -2,7 +2,7 @@ import { describe, expect, jest, test } from "@jest/globals";
 import { ClassRules } from "src/rules/class_rules";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
 describe("class summary AST reuse", () => {
 	test("uses the prepared empty class result for a contract module", () => {

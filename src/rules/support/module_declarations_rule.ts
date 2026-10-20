@@ -1,13 +1,16 @@
 import { basename, dirname, join } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ModuleDeclarationsRuleContract, RuleContract, ViolationContract } from "src/protocols";
+import type { ModuleDeclarationsRuleContract } from "src/shared_services_protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { AstSourceSpan, NormalizedAstFile } from "src/types";
 import {
 	MODULE_CONSTANT_FILES,
 	MODULE_DECLARATION_FILES,
 	MODULE_FUNCTION_KIND,
 	MODULE_PROTOCOL_FILES,
+	MODULE_PROTOCOL_NAME,
 	MODULE_TYPE_FILES,
+	MODULE_TYPE_NAME,
 } from "src/rules/constants";
 
 /** Responsibilities: _module content classification_, _declaration placement diagnostics_. **/
@@ -18,6 +21,15 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 	private readonly types_rule: RuleContract;
 	private readonly protocols_rule: RuleContract;
 	private readonly content_rule: DiagnosticRule;
+
+	/** Responsibilities: _focused declaration module classification_. **/
+	private focused_module(name: string, declarations: ReadonlySet<string>, kind: string): boolean {
+		if (declarations.has(name)) {
+			return true;
+		}
+		const pattern = new RegExp(`(?:^|[_-])${kind}\\.(?:ts|py)$`, "u");
+		return pattern.test(name);
+	}
 
 	/** Responsibilities: _aggregation constants-file violation misplaced_. **/
 	private append_constants_violation(
@@ -52,7 +64,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 		if (spans.length === 0) {
 			return;
 		}
-		if (MODULE_TYPE_FILES.has(basename(file))) {
+		if (this.focused_module(basename(file), MODULE_TYPE_FILES, MODULE_TYPE_NAME)) {
 			return;
 		}
 		const extension = file.endsWith(".py") ? "py" : "ts";
@@ -73,7 +85,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 		if (spans.length === 0) {
 			return;
 		}
-		if (MODULE_PROTOCOL_FILES.has(basename(file))) {
+		if (this.focused_module(basename(file), MODULE_PROTOCOL_FILES, MODULE_PROTOCOL_NAME)) {
 			return;
 		}
 		const extension = file.endsWith(".py") ? "py" : "ts";
@@ -122,10 +134,10 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 			return;
 		}
 		const file_name = basename(file);
-		if (MODULE_TYPE_FILES.has(file_name)) {
+		if (this.focused_module(file_name, MODULE_TYPE_FILES, MODULE_TYPE_NAME)) {
 			return;
 		}
-		if (MODULE_PROTOCOL_FILES.has(file_name)) {
+		if (this.focused_module(file_name, MODULE_PROTOCOL_FILES, MODULE_PROTOCOL_NAME)) {
 			return;
 		}
 		this.append_module_moves(violations, file, ast);
@@ -134,7 +146,13 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 	/** Responsibilities: _classification dedicated declaration module_. **/
 	public declaration_module(file: string): boolean {
 		const name = basename(file);
-		const extension = name.endsWith(".py") ? ".py" : ".ts";
-		return this.special_files.has(name) && name.endsWith(extension);
+		if (this.special_files.has(name)) {
+			return true;
+		}
+		const is_type_module = this.focused_module(name, MODULE_TYPE_FILES, MODULE_TYPE_NAME);
+		if (is_type_module) {
+			return true;
+		}
+		return this.focused_module(name, MODULE_PROTOCOL_FILES, MODULE_PROTOCOL_NAME);
 	}
 }

@@ -1,5 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { PythonTestRuleCollectorContract, RuleContract, ViolationContract } from "src/protocols";
+import type { PythonTestRuleCollectorContract } from "src/python_protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { AstCallableNodeContract, AstClassNode, NamedLine } from "src/types";
 import type { PythonRuleInput } from "src/linting/types";
 import {
@@ -9,7 +10,7 @@ import {
 	MIN_TEST_LINES,
 	MIN_TESTS_PER_SUITE,
 } from "src/constants";
-import { PYTHON_UNITTEST_FRAMEWORK } from "src/linting/orchestration/runtime/test-targets/constants";
+import { PYTHON_UNITTEST_FRAMEWORK } from "src/constants";
 import { PythonTestFrameworkIdentity } from "src/linting/orchestration/runtime/test-targets/python_test_framework_identity";
 
 /** Responsibilities: _Python test assertion checks_, _production usage checks_. **/

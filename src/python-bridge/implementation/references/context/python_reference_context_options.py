@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from implementation.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import (
     PythonCallReturnStateContract,
     PythonReferenceSymbolTablesContract,

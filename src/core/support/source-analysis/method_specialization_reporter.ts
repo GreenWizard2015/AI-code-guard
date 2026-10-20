@@ -1,5 +1,5 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstCallableNodeContract, AstClassNode } from "src/types";
 import {
 	CONSTRUCTOR_NAME,
@@ -96,7 +96,7 @@ export class MethodSpecializationReporter {
 		if (count > 15) {
 			return RULE_IDS.class_method_max_count;
 		}
-		if (count > 5) {
+		if (count > 6) {
 			return RULE_IDS.class_method_count_info;
 		}
 		return "";

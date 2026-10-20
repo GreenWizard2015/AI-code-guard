@@ -1,15 +1,8 @@
 import ts from "typescript";
-import {
-	JEST_ANY_VALUES,
-	JEST_OBJECT,
-	JEST_SHAPES,
-} from "src/linting/orchestration/runtime/typescript-rule-groups/jest/constants";
+import { JEST_ANY_VALUES, JEST_OBJECT, JEST_SHAPES } from "src/constants";
 import { JestExpressionMatch } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_expression_match";
-import type {
-	JestExpressionMatchContract,
-	JestMatcherAccessContract,
-	TypeScriptExpressionAliasesContract,
-} from "src/protocols";
+import type { JestExpressionMatchContract, JestMatcherAccessContract } from "src/testing_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _objectContaining shape extraction_, _Jest shape matching_. **/
 export class JestObjectShapeMatcher {

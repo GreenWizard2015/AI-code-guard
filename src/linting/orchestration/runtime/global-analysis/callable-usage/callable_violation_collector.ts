@@ -1,5 +1,6 @@
 import { CallableDefinitionUsage } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_definition_usage";
-import type { CallableDefinitionUsageContract, ViolationContract } from "src/protocols";
+import type { CallableDefinitionUsageContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableDefinition, ParsedFile } from "src/metrics/types";
 import type { CallableUsageCollectorState } from "src/linting/orchestration/runtime/composition/types";
 import { TestPathSyntax } from "src/test_path_syntax";

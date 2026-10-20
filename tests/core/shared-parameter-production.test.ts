@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/source_text";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("shared parameter integration - production boundaries", () => {

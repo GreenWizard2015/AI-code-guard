@@ -1,5 +1,6 @@
 import ts from "typescript";
-import type { TypeScriptAstNodeCollection, ViolationContract } from "src/protocols";
+import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { RULE_IDS } from "src/constants";
 

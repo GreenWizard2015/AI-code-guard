@@ -3,12 +3,9 @@ import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_
 import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
 import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
 import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
-import type {
-	StaticObjectBranchAppender,
-	TypeScriptStaticObjectArgumentsContract,
-	TypeScriptStaticObjectSourcesContract,
-	TypeScriptMemberAliasesContract,
-} from "src/protocols";
+import type { StaticObjectBranchAppender } from "src/runtime_types";
+import type { TypeScriptStaticObjectArgumentsContract, TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptStaticObjectSourcesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _object property source expansion_, _conditional binding source collection_. **/
 export class TypeScriptStaticObjectSources implements TypeScriptStaticObjectSourcesContract {

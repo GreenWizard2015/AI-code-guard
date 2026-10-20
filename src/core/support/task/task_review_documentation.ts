@@ -11,7 +11,7 @@ import {
 import { MarkdownTemplate } from "src/core/support/task/markdown_template";
 import { ARCHITECTURE_REVIEW_INSTRUCTIONS_HEADING } from "src/core/support/task/review-agent/constants";
 import type { IOContract } from "src/io/protocols";
-import type { TaskReviewDocumentationContract } from "src/protocols";
+import type { TaskReviewDocumentationContract } from "src/task_protocols";
 
 /** Responsibilities: _review templates_, _instruction rendering_. **/
 export class TaskReviewDocumentation implements TaskReviewDocumentationContract {

@@ -1,11 +1,6 @@
 import { dirname, join, relative, sep } from "node:path";
-import type {
-	PythonDirectoryFilesCache,
-	PythonImportFileIndexContract,
-	PythonImportPartCache,
-	PythonImportRootCache,
-	PythonImportRootMap,
-} from "src/protocols";
+import type { PythonDirectoryFilesCache, PythonImportPartCache, PythonImportRootCache, PythonImportRootMap } from "src/python_types";
+import type { PythonImportFileIndexContract } from "src/python_protocols";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";
 
 /** Responsibilities: _project files_, _import indexes_. **/
@@ -65,6 +60,7 @@ export class PythonImportFileIndex implements PythonImportFileIndexContract {
 		if (directories.has(source_root)) {
 			roots.push(source_root);
 		}
+		this.append_namespace_roots(roots, root, directories);
 		for (const directory of directories.keys()) {
 			const package_root = this.package_root(root, directory, files);
 			if (package_root.length > 0) {
@@ -72,6 +68,62 @@ export class PythonImportFileIndex implements PythonImportFileIndexContract {
 			}
 		}
 		return roots;
+	}
+
+	/** Responsibilities: _namespace package root discovery_. **/
+	private append_namespace_roots(
+		roots: string[],
+		root: string,
+		directories: ReadonlyMap<string, readonly string[]>,
+	): void {
+		const namespace_roots = this.namespace_roots(root, this.module_directories(directories));
+		const ordered_roots = this.ordered_namespace_roots(root, namespace_roots);
+		for (const namespace_root of ordered_roots) {
+			if (!roots.includes(namespace_root)) {
+				roots.push(namespace_root);
+			}
+		}
+	}
+
+	/** Responsibilities: _Python module directory discovery_. **/
+	private module_directories(directories: ReadonlyMap<string, readonly string[]>): Set<string> {
+		const module_directories = new Set<string>();
+		for (const [directory, files] of directories) {
+			if (files.some((file) => file.endsWith(".py") && dirname(file) === directory)) {
+				module_directories.add(directory);
+			}
+		}
+		return module_directories;
+	}
+
+	/** Responsibilities: _namespace package ancestor selection_. **/
+	private namespace_roots(root: string, module_directories: ReadonlySet<string>): Set<string> {
+		const namespace_roots = new Set<string>();
+		for (const directory of module_directories) {
+			let ancestor = dirname(directory);
+			while (ancestor !== root && ancestor.startsWith(`${root}${sep}`)) {
+				if (module_directories.has(ancestor)) {
+					namespace_roots.add(ancestor);
+				}
+				const parent = dirname(ancestor);
+				if (parent === ancestor) {
+					break;
+				}
+				ancestor = parent;
+			}
+		}
+		return namespace_roots;
+	}
+
+	/** Responsibilities: _namespace root depth ordering_. **/
+	private ordered_namespace_roots(root: string, namespace_roots: ReadonlySet<string>): string[] {
+		const ordered_roots = [...namespace_roots];
+		ordered_roots.sort((left, right) => {
+			const left_depth = relative(root, left).split(sep).length;
+			const right_depth = relative(root, right).split(sep).length;
+			return left_depth - right_depth;
+		});
+		return ordered_roots;
 	}
 
 	/** Responsibilities: _Python import file index_. **/

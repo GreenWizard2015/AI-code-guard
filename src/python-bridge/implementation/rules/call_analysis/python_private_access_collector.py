@@ -3,10 +3,8 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import (
-    PythonPrivateAccessClassifierContract,
-    PythonPrivateAccessOptionsContract,
-)
+from implementation.ast.protocols import PythonPrivateAccessOptionsContract
+from implementation.protocols import PythonPrivateAccessClassifierContract
 from implementation.types import JsonObject
 from implementation.rules.call_analysis.python_private_access_classifier import (
     PythonPrivateAccessClassifier,

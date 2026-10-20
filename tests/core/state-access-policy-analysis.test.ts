@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { TYPEOF_CASES } from "tests/core/constants";
+import { TYPEOF_CASES } from "tests/core/constants/ast_nodes/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("state access policy analysis", () => {

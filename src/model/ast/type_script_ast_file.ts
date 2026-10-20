@@ -6,14 +6,10 @@ import { TypeScriptCallReferenceCollector } from "src/model/ast/declarations/typ
 import { TypeScriptClassNodes } from "src/model/ast/declarations/type_script_class_nodes";
 import type { AstCallableNodeContract, AstClassNode, NormalizedAstFile } from "src/types";
 import type { TypeScriptAstOptions, TypeScriptSourceResolver } from "src/model/types";
-import type {
-	CallableNodesContract,
-	LintStageTimerContract,
-	TypeScriptAstFileContract,
-	TypeScriptAstMetadataContract,
-	TypeScriptClassNodesContract,
-	TypeScriptAstTraversalContract,
-} from "src/protocols";
+import type { CallableNodesContract } from "src/analysis_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptAstMetadataContract, TypeScriptClassNodesContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptCallableDataContract, TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
 import { TypeScriptCallableData } from "src/model/ast/callables/type_script_callable_data";
 import { CallableNodes } from "src/model/ast/callables/callable_nodes";
@@ -21,7 +17,7 @@ import { TypeScriptAstMetadata } from "src/model/ast/type_script_ast_metadata";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
 import { EmptySourceText } from "src/io/empty_source_text";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _AST syntax tree_, _node hierarchy_. **/
 export class TypeScriptAstFile implements TypeScriptAstFileContract {

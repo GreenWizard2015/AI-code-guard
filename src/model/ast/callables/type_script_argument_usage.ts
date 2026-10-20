@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { TypeScriptArgumentUsageContract } from "src/model/protocols";
-import type { TypeScriptNodeVisitor } from "src/protocols";
+import type { TypeScriptNodeVisitor } from "src/typescript_analysis_types";
 
 /** Responsibilities: _parameter usage_, _callable scopes_. **/
 export class TypeScriptArgumentUsage implements TypeScriptArgumentUsageContract {

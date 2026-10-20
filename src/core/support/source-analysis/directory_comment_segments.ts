@@ -1,7 +1,7 @@
 import type { AstSourceSpan } from "src/types";
 import type { CommentScanOptions, CommentScanResult, SourceRange } from "src/types";
 import type { CommentSegment } from "src/types";
-import type { DirectoryCommentSegmentsContract } from "src/protocols";
+import type { DirectoryCommentSegmentsContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _comment segment parsing_, _source line metric calculation_. **/
 export class DirectoryCommentSegments implements DirectoryCommentSegmentsContract {

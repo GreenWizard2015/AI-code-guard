@@ -2,7 +2,7 @@ import { ClassRules } from "src/rules/class_rules";
 import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceText } from "src/source_text";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
@@ -46,7 +46,7 @@ describe("coding-lint class rules", () => {
 	});
 
 	test("rejects imported functions assigned as Python class fields", () => {
-		const violations = fixture.with_in_memory_project(
+		const violations = fixture.project_source.with_in_memory_project(
 			{
 				"helper.py": "def execute():\n    return 1\n\nVALUE = 1\n",
 				"model.py": "from .helper import execute, VALUE\n\nclass Service:\n    run = execute\n    value = VALUE\n",
@@ -69,7 +69,7 @@ describe("coding-lint class rules", () => {
 	});
 
 	test("rejects imported functions assigned as TypeScript class fields", () => {
-		const violations = fixture.with_in_memory_project(
+		const violations = fixture.project_source.with_in_memory_project(
 			{
 				"helper.ts": "export function execute(): number { return 1; }\nexport const VALUE = 1;\n",
 				"model.ts":
@@ -93,7 +93,7 @@ describe("coding-lint class rules", () => {
 	});
 
 	test("preserves cross-file import resolution when reusing the TypeScript AST", () => {
-		const result = fixture.with_in_memory_project(
+		const result = fixture.project_source.with_in_memory_project(
 			{
 				"tools/coding-lint/helper.ts": "export function execute(): number { return 1; }\n",
 				"tools/coding-lint/model.ts": "import { execute } from './helper';\n\nclass Service {\n  run = execute;\n}\n",

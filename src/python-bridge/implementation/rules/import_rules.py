@@ -3,11 +3,9 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import (
-    PythonAstNodeIndexContract,
-    PythonSysPathRulesContract,
-)
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from protocols import PythonSysPathRulesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.constants import IMPORT_SCOPE_TYPES
 from implementation.rules.python_syntax.protocols import (
     PythonDynamicImportNamesContract,

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { TypeScriptTerminalBranchesContract } from "src/protocols";
+import type { TypeScriptTerminalBranchesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _terminal statement analysis_, _early exit branch classification_. **/
 export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesContract {

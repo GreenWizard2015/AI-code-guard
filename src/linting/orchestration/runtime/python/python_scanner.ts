@@ -1,5 +1,7 @@
-import type { ProjectSourcePythonContract, ViolationContract } from "src/protocols";
-import type { AstClassNode, LintSourceRecord, NormalizedAstFile } from "src/types";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { AstClassNode, NormalizedAstFile } from "src/types";
 import { PythonAstFileRuleCollector } from "src/linting/orchestration/runtime/python/python_ast_file_rule_collector";
 import { PythonClassOwnership } from "src/linting/orchestration/runtime/python/python_class_ownership";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";

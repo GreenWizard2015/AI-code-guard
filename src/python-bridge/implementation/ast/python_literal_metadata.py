@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import ast
 
-from implementation.protocols import PythonAstContentTreeContract
+from protocols import PythonAstContentTreeContract
 from implementation.rules.constants import (
     PYTHON_MAIN_NAME,
     PYTHON_MAIN_VALUE,
     PYTHON_TYPE_ALIAS_NAME,
 )
-from implementation.types import JsonObject, LiteralMetadata
+from implementation.types import JsonObject
+from implementation.types import LiteralMetadata
 
 
 class PythonLiteralMetadata:

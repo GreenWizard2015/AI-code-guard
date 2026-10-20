@@ -1,9 +1,5 @@
 import ts from "typescript";
-import type {
-	TypeScriptFactoryAliasesContract,
-	TypeScriptFactoryArrayAliasesContract,
-	TypeScriptFactoryObjectAliasesContract,
-} from "src/protocols";
+import type { TypeScriptFactoryAliasesContract, TypeScriptFactoryArrayAliasesContract, TypeScriptFactoryObjectAliasesContract } from "src/typescript_runtime_protocols";
 import { TypeScriptFactoryArrayAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_factory_array_aliases";
 import { TypeScriptFactoryObjectAliases } from "src/linting/orchestration/runtime/typescript-singleton/type_script_factory_object_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";

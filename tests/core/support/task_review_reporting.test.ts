@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
 import { TaskReporting } from "src/core/support/task_reporting";
-import type { ReportViolation } from "src/types";
+import type { ReportViolation } from "src/reporting_protocols";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
 describe("coding-lint architecture review reporting", () => {

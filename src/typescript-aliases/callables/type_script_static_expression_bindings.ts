@@ -1,15 +1,12 @@
 import ts from "typescript";
-import type {
-	MapValueAppender,
-	ExpressionNamesContract,
-	TypeScriptExpressionAliasesContract,
-	TypeScriptStaticArrayExpressionBindingsContract,
-	TypeScriptStaticExpressionBindingsContract,
-} from "src/protocols";
+import type { MapValueAppender } from "src/runtime_types";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptStaticArrayExpressionBindingsContract, TypeScriptStaticExpressionBindingsContract } from "src/typescript_analysis_protocols";
 import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { TypeScriptStaticArrayExpressionBindings } from "src/typescript-aliases/callables/static-array/type_script_static_array_expression_bindings";
-import type { ObjectPropertyIndex } from "src/typescript-aliases/callables/types";
+import type { ObjectPropertyIndex } from "src/model/types/types";
 
 /** Responsibilities: _object destructuring alias collection_, _assignment alias collection_. **/
 export class TypeScriptStaticExpressionBindings implements TypeScriptStaticExpressionBindingsContract {

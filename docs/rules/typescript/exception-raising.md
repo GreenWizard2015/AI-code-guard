@@ -25,6 +25,12 @@ describe("reader", () => {
 ```ts
 // File: cli.ts
 #!/usr/bin/env node
-(function () { try { read(); } catch (error) { console.error(error); } })();
+(function () {
+	try {
+		read();
+	} catch (error) {
+		throw new Error("Unable to read input", { cause: error });
+	}
+})();
 ```
 

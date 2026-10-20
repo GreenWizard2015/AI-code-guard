@@ -14,8 +14,10 @@ if __name__ == "__main__":
         raise ValueError("source failure")
     except ValueError as error:
         if isinstance(error, ValueError):
-            raise RuntimeError("document parsing failed")
-        raise RuntimeError("document parsing failed")
+            retry_message = "document parsing failed"
+            raise RuntimeError(retry_message)
+        fallback_message = "document parsing failed"
+        raise RuntimeError(fallback_message)
 ```
 
 ## Good

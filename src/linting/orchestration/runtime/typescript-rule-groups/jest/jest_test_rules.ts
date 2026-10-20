@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { JestTestEndingRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_test_ending_rule";
+import { JestTestEndingRule } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/assertions/jest_test_ending_rule";
 import { JestTestShapeViolations } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_test_shape_violations";
 import { JestSuiteCollector } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_suite_collector";
 import { JestTestSize } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_test_size";
@@ -7,16 +7,8 @@ import { JestModuleState } from "src/linting/orchestration/runtime/typescript-ru
 import { JestAsyncCompletionRules } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_async_completion_rules";
 import { JestSetupRules } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/jest_setup_rules";
 import type { JestSuite } from "src/types";
-import type {
-	JestTestRulesContract,
-	JestTestShapeViolationsContract,
-	JestTestSizeContract,
-	JestAsyncCompletionRulesContract,
-	JestBindingIndexContract,
-	JestSuiteCollectorContract,
-	JestSetupRulesContract,
-	ViolationContract,
-} from "src/protocols";
+import type { JestTestRulesContract, JestTestShapeViolationsContract, JestTestSizeContract, JestAsyncCompletionRulesContract, JestBindingIndexContract, JestSuiteCollectorContract, JestSetupRulesContract } from "src/testing_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import {
 	MAX_CLASS_LINES,

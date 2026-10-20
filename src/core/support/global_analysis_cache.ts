@@ -3,9 +3,12 @@ import { GLOBAL_ANALYSIS_CACHE_VERSION } from "src/core/constants";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
 import { ViolationCache } from "src/core/cache/violation_cache";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import type { GlobalAnalysisCacheContract, GlobalAnalysisCacheOptions, ViolationContract } from "src/protocols";
-import type { CacheState, GlobalAnalysisCacheRecord } from "src/types";
+import type { GlobalAnalysisCacheContract } from "src/cache_protocols";
+import type { GlobalAnalysisCacheOptions } from "src/cache_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { CacheState, GlobalAnalysisCacheRecord } from "src/project_analysis_types";
 import type { IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _persistent global-analysis cache_, _selection invalidation_. **/
 export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
@@ -15,6 +18,7 @@ export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
 	private readonly selection_hash: string;
 	private readonly project_resolution: TypeScriptProjectResolution;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _global cache record deletion_. **/
 	private remove_unused_record(entry_path: string): void {
@@ -37,28 +41,36 @@ export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
 				this.remove_unused_record(entry_path);
 			}
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
+	}
+
+	/** Responsibilities: _cached violation record validation_. **/
+	private validated_violations(record: GlobalAnalysisCacheRecord): CacheState<ViolationContract[]> {
+		if (record.cache_version !== GLOBAL_ANALYSIS_CACHE_VERSION) {
+			return { available: false, value: [] };
+		}
+		if (record.context_hash !== this.context_hash || record.selection_hash !== this.selection_hash) {
+			return { available: false, value: [] };
+		}
+		const cache = new ViolationCache(record.violations);
+		if (!cache.valid_cache()) {
+			return { available: false, value: [] };
+		}
+		return { available: true, value: [...cache.values()] };
 	}
 
 	/** Responsibilities: _cached global violations retrieval_. **/
 	private read_cached_violations(): CacheState<ViolationContract[]> {
 		try {
 			const record: GlobalAnalysisCacheRecord = JSON.parse(this.file_io.file_content.file_text(this.cache_file));
-			if (record.cache_version !== GLOBAL_ANALYSIS_CACHE_VERSION) {
-				return { available: false, value: [] };
-			}
-			if (record.context_hash !== this.context_hash || record.selection_hash !== this.selection_hash) {
-				return { available: false, value: [] };
-			}
-			const cache = new ViolationCache(record.violations);
-			if (!cache.valid_cache()) {
-				return { available: false, value: [] };
-			}
-			return { available: true, value: [...cache.values()] };
+			return this.validated_violations(record);
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.cache_read_failure(String(error))) {
+				throw error;
+			}
 			return { available: false, value: [] };
 		}
 	}
@@ -66,6 +78,7 @@ export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
 	/** Responsibilities: _global cache initialization_. **/
 	public constructor(options: GlobalAnalysisCacheOptions) {
 		this.file_io = options.file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 		this.cache_directory = join(resolve(options.repo_root), AI_CODE_GUARD_DIRECTORY, "cache", "global");
 		this.project_resolution = new TypeScriptProjectResolution(resolve(options.repo_root), options.source_io);
 		const resolution_identity = this.project_resolution.configuration_identity();
@@ -102,8 +115,9 @@ export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
 			this.file_io.file_content.write_text(temporary, JSON.stringify(record));
 			this.file_io.file_operations.move_file(temporary, this.cache_file);
 		} catch (error) {
-			void error;
-			return;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 }

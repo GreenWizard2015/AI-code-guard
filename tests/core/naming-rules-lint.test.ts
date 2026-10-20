@@ -9,7 +9,7 @@ import {
 	PYTHON_ALIAS_FILES,
 	REPORTED_PROJECT_NAMES,
 	TYPESCRIPT_DECLARATION_FILES,
-} from "tests/core/constants";
+} from "tests/core/constants/callable_usage/constants";
 
 describe("naming rules integration", () => {
 	test("validates TypeScript symbols, properties, methods, and external names", () => {

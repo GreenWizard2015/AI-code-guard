@@ -174,6 +174,27 @@ describe("cross-language expression diagnostics", () => {
 					"            request()",
 					"        except OSError:",
 					"            continue",
+					"",
+					"def retry_with_integer_literal() -> None:",
+					"    while 1:",
+					"        try:",
+					"            request()",
+					"        except OSError:",
+					"            continue",
+					"",
+					"def retry_with_string_literal() -> None:",
+					'    while "retry":',
+					"        try:",
+					"            request()",
+					"        except OSError:",
+					"            continue",
+					"",
+					"def retry_with_false_literal() -> None:",
+					"    while 0:",
+					"        try:",
+					"            request()",
+					"        except OSError:",
+					"            continue",
 				].join("\n"),
 				"cache-key.ts": [
 					"function load(file: string, text: string): Result {",
@@ -225,6 +246,12 @@ describe("cross-language expression diagnostics", () => {
 					"def check(enabled: bool) -> bool:",
 					"    return enabled",
 				].join("\n"),
+				"aliased-flags.py": [
+					"ModeFlag = bool",
+					"",
+					"def publish(notify: ModeFlag, dry_run: ModeFlag) -> None:",
+					"    return None",
+				].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -234,6 +261,6 @@ describe("cross-language expression diagnostics", () => {
 			retry: violations.filter((item) => item.rule_id === "retry-without-ownership").length,
 			cache_keys: violations.filter((item) => item.rule_id === "incomplete-cache-key").length,
 			boolean_flags: violations.filter((item) => item.rule_id === "boolean-flag-parameter").length,
-		}).toEqual({ async_completion: 1, retry: 2, cache_keys: 4, boolean_flags: 2 });
+		}).toEqual({ async_completion: 1, retry: 4, cache_keys: 4, boolean_flags: 3 });
 	});
 });

@@ -9,13 +9,11 @@ import { SharedParameterAnalyzer } from "src/metrics/shared_parameter_analyzer";
 import { SharedParameterReporter } from "src/metrics/shared_parameter_reporter";
 import { SharedParameterTypeSources } from "src/linting/orchestration/runtime/global-analysis/shared_parameter_type_sources";
 import type { AnalyzedCallable } from "src/metrics/types";
-import type {
-	LintProjectContextContract,
-	LintStageTimerContract,
-	ProjectSourceScannerContract,
-	ViolationContract,
-} from "src/protocols";
-import type { LintSourceRecord, NormalizedAstFile, PythonProjectImportContext } from "src/types";
+import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
+import type { NormalizedAstFile } from "src/types";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";

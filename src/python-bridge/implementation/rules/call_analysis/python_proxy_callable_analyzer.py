@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-from implementation.protocols import (
+from implementation.references.protocols import (
     PythonProxyReceiverAliasesContract,
     PythonProxyTargetContract,
 )

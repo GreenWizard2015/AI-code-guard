@@ -1,6 +1,6 @@
-import type { DirectCase, ProjectCase } from "tests/language-parity/types";
+import type { DirectCaseContract, ProjectCaseContract } from "tests/language-parity/protocols";
 
-export const DIRECT_CASES: DirectCase[] = [
+export const DIRECT_CASES: DirectCaseContract[] = [
 	{
 		rule_id: "dynamic-type",
 		typescript: 'const Model = type("Model", {}, {});',
@@ -91,7 +91,7 @@ export const DIRECT_CASES: DirectCase[] = [
 	},
 ];
 
-export const ARCHITECTURE_CASES: DirectCase[] = [
+export const ARCHITECTURE_CASES: DirectCaseContract[] = [
 	{
 		rule_id: "empty-contract",
 		typescript: "interface Empty {}",
@@ -178,50 +178,64 @@ export const ARCHITECTURE_CASES: DirectCase[] = [
 	},
 ];
 
-export const PROJECT_CASES: ProjectCase[] = [
+export const PROJECT_CASES: ProjectCaseContract[] = [
 	{
 		rule_id: "dynamic-import",
-		typescript: {
-			"sample.ts": 'function read() { return import("./reader"); }',
-			"reader.ts": "export const value = 1;",
-		},
-		python: { "sample.py": 'def read():\n    return __import__("reader")', "reader.py": "value = 1" },
+		typescript: new Map(
+			Object.entries({
+				"sample.ts": 'function read() { return import("./reader"); }',
+				"reader.ts": "export const value = 1;",
+			}),
+		),
+		python: new Map(
+			Object.entries({ "sample.py": 'def read():\n    return __import__("reader")', "reader.py": "value = 1" }),
+		),
 	},
 	{
 		rule_id: "nested-import",
-		typescript: {
-			"sample.ts": 'function read() { import reader = require("./reader"); }',
-			"reader.ts": "export const value = 1;",
-		},
-		python: { "sample.py": "def read():\n    import reader", "reader.py": "value = 1" },
+		typescript: new Map(
+			Object.entries({
+				"sample.ts": 'function read() { import reader = require("./reader"); }',
+				"reader.ts": "export const value = 1;",
+			}),
+		),
+		python: new Map(Object.entries({ "sample.py": "def read():\n    import reader", "reader.py": "value = 1" })),
 	},
 	{
 		rule_id: "late-import",
-		typescript: {
-			"sample.ts": 'const value = 1;\nimport { read } from "./reader";',
-			"reader.ts": "export const read = 1;",
-		},
-		python: { "sample.py": "value = 1\nimport reader", "reader.py": "value = 1" },
+		typescript: new Map(
+			Object.entries({
+				"sample.ts": 'const value = 1;\nimport { read } from "./reader";',
+				"reader.ts": "export const read = 1;",
+			}),
+		),
+		python: new Map(Object.entries({ "sample.py": "value = 1\nimport reader", "reader.py": "value = 1" })),
 	},
 	{
 		rule_id: "reexports",
-		typescript: { "sample.ts": 'export { read } from "./reader";', "reader.ts": "export const read = 1;" },
-		python: { "sample.py": "from .reader import read", "reader.py": "read = 1" },
+		typescript: new Map(
+			Object.entries({ "sample.ts": 'export { read } from "./reader";', "reader.ts": "export const read = 1;" }),
+		),
+		python: new Map(Object.entries({ "sample.py": "from .reader import read", "reader.py": "read = 1" })),
 	},
 	{
 		rule_id: "function-placement",
-		typescript: { "sample.ts": "function read() { return 1; }" },
-		python: { "sample.py": "def read():\n    return 1" },
+		typescript: new Map(Object.entries({ "sample.ts": "function read() { return 1; }" })),
+		python: new Map(Object.entries({ "sample.py": "def read():\n    return 1" })),
 	},
 	{
 		rule_id: "class-field-import",
-		typescript: {
-			"sample.ts": 'import { read } from "./reader";\nclass Service { public handler = read; }',
-			"reader.ts": "export function read() { return 1; }",
-		},
-		python: {
-			"sample.py": "from .reader import read\n\nclass Service:\n    handler = read",
-			"reader.py": "def read():\n    return 1",
-		},
+		typescript: new Map(
+			Object.entries({
+				"sample.ts": 'import { read } from "./reader";\nclass Service { public handler = read; }',
+				"reader.ts": "export function read() { return 1; }",
+			}),
+		),
+		python: new Map(
+			Object.entries({
+				"sample.py": "from .reader import read\n\nclass Service:\n    handler = read",
+				"reader.py": "def read():\n    return 1",
+			}),
+		),
 	},
 ];

@@ -1,11 +1,14 @@
 import ts from "typescript";
-import type { TemporalCallableState, TemporalFieldAccess } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
+import type {
+	TemporalCallableState,
+	TemporalFieldAccess,
+} from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import {
 	TEMPORAL_FIELD_READ_EFFECT,
 	TEMPORAL_FIELD_READ_WRITE_EFFECT,
 	TEMPORAL_FIELD_WRITE_EFFECT,
-} from "src/linting/orchestration/runtime/typescript-rule-groups/temporal/constants";
-import type { TemporalFieldEffect } from "src/linting/orchestration/runtime/typescript-rule-groups/temporal/types";
+} from "src/constants";
+import type { TemporalFieldEffect } from "src/model/types/types";
 
 /** Responsibilities: _field access analysis_, _callable state aggregation_. **/
 export class TemporalFieldStateCollector {
@@ -148,5 +151,4 @@ export class TemporalFieldStateCollector {
 		}
 		return initialized;
 	}
-
 }

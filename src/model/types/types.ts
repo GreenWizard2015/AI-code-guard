@@ -1,32 +1,30 @@
+import type { ProjectNames } from "src/project_analysis_types";
+import type { AstCacheAst } from "src/cache_types";
+import type { ReportViolation } from "src/reporting_protocols";
+import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
+import type { LintStageDuration } from "src/runtime_types";
 import type {
 	AstClassNode,
 	AstCallableNodeContract,
 	AstPythonImport,
 	AstSourceSpan,
 	ImportedFunction,
-	LintFileNameContract,
-	LintSourceRecord,
 	LineOnly,
 	NamedLine,
 	NormalizedAstFile,
-	AstCacheAst,
-	LintStageDuration,
-	ProjectNames,
-	ReportViolation,
 	RuleParameters,
 	ReviewAgentPhase,
 } from "src/types";
-import type {
-	LintProjectContextContract,
-	ProjectAnalysisIdentityContract,
-	ProjectSourcePythonContract,
-	PythonImportResolutionContract,
-	TypeScriptScriptRuleServicesContract,
-	ViolationContract,
-} from "src/protocols";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { PythonImportResolutionContract } from "src/python_protocols";
+import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type { LintStageTimerContract, TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/protocols";
-import type { StringSetMap } from "src/protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { StringSetMap } from "src/analysis_types";
 import type { AstStatementNode } from "src/types";
 import ts from "typescript";
 import type { IOContract } from "src/io/protocols";
@@ -153,6 +151,24 @@ export type ClassGraph = {
 	imports_by_file: ImportedSymbolsByFile;
 };
 export type CompositionResult = { classes: CodeClass[]; imports: Map<string, ImportedSymbol> };
+export type PythonClassNameSet = ReadonlySet<string>;
+export type PythonClassNamesByFile = Map<string, PythonClassNameSet>;
+export type JestScopeBindingMap = Map<string, ts.Declaration>;
+export type JestScopeBindingMaps = WeakMap<ts.Node, JestScopeBindingMap>;
+export type JestScopeParents = WeakMap<ts.Node, ts.Node>;
+export type JestNodeScopes = WeakMap<ts.Node, ts.Node>;
+export type JestExecutionConsumer = (node: ts.Node) => void;
+export type TemporalFieldEffect = { read: boolean; write: boolean };
+export type BooleanCallTarget = { name: string };
+export type CallableBodyKind = "unsupported" | "expression" | "declaration";
+export type ObjectPropertyIndex = ReadonlyMap<string, ts.PropertyAssignment>;
+export type StaticExpressionValueMap = ReadonlyMap<string, string>;
+export type StaticExpressionScopeValues = ReadonlyMap<ts.Node, StaticExpressionValueMap>;
+export type StaticExpressionBindingNames = ReadonlySet<string>;
+export type StaticKeyCollectionState = {
+	values: Map<string, string>;
+	objects: Map<string, ts.ObjectLiteralExpression>;
+};
 export type PythonAssignment = { line: number; name: string; simple_alias: boolean; destructured: boolean };
 export type ReturnViolationContext = {
 	violations: ViolationContract[];
@@ -226,7 +242,7 @@ export type DirectoryFileViolationOptions = {
 export type DirectoryViolationContext = {
 	directory_sources: ReadonlyMap<string, readonly string[]>;
 	repo_root: string;
-	class_counts: ReadonlyMap<string, number>;
+	class_counts: ReadonlyMap<string, readonly AstClassNode[]>;
 	source_asts: ReadonlyMap<string, NormalizedAstFile>;
 };
 export type ClassField = { line: number; name: string; value_name: string };

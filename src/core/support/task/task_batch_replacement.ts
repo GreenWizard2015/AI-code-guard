@@ -8,8 +8,8 @@ import type {
 	TaskPublicationLockContract,
 	TaskPublicationRecoveryContract,
 } from "src/core/support/task/types";
-import type { TaskBatchReplacementContract, TaskWorkspaceDocumentsContract } from "src/protocols";
-import type { TaskBatchReplacementOptions } from "src/types";
+import type { TaskBatchReplacementContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
+import type { TaskBatchReplacementOptions } from "src/task_types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _batch staging_, _workspace rollback_. **/

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import type { StaticExpressionOperationsContract } from "src/protocols";
+import type { StaticExpressionOperationsContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _static literal resolution_, _binary and template evaluation_. **/
 export class TypeScriptStaticExpressionOperations implements StaticExpressionOperationsContract {

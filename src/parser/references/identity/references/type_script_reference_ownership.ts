@@ -16,11 +16,12 @@ import { TypeScriptInstanceAliasCollector } from "src/parser/references/identity
 import { TypeScriptImportedInstanceAliases } from "src/parser/references/identity/calls/type_script_imported_instance_aliases";
 import { TypeScriptReferenceImportState } from "src/parser/references/identity/references/type_script_reference_import_state";
 import { TypeScriptReferenceIdentity } from "src/parser/references/identity/references/type_script_reference_identity";
-import type { LintStageTimerContract, ProjectSourceIOContract } from "src/protocols";
-import type { TypeScriptReferenceOwnershipContract } from "src/protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { TypeScriptReferenceOwnershipContract } from "src/typescript_analysis_protocols";
 import { INITIALIZED_REFERENCE_STATE, INITIALIZING_REFERENCE_STATE } from "src/constants";
 import { TypeScriptThisReceiver } from "src/parser/references/instance/type_script_this_receiver";
-import { INSTANCE_PROPERTY_SIDE } from "src/parser/references/constants";
+import { INSTANCE_PROPERTY_SIDE } from "src/constants";
 
 /** Responsibilities: _callable owners_, _member owners_. **/
 export class TypeScriptReferenceOwnership implements TypeScriptReferenceOwnershipContract {

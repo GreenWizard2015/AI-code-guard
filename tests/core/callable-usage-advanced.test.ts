@@ -5,7 +5,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
 import { TestFixture } from "tests/core/test-fixture";
 import { describe, expect, test } from "@jest/globals";
-import { STRUCTURAL_ALIAS_FILES } from "tests/core/constants";
+import { STRUCTURAL_ALIAS_FILES } from "tests/core/constants/alias_analysis/constants";
 import { join } from "node:path";
 
 describe("coding-lint callable usage rule", () => {
@@ -307,7 +307,7 @@ describe("coding-lint callable usage rule", () => {
 				"}",
 			].join("\n"),
 		};
-		const references = test_fixture.with_in_memory_project(
+		const references = test_fixture.project_source.with_in_memory_project(
 			files,
 			(root, context) =>
 				context

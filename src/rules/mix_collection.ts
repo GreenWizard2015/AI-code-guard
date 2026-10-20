@@ -1,10 +1,10 @@
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { ClassNode } from "src/core/support/class_node";
 import type { ClassNodeInput } from "src/model/types/types";
-import type { ClassNodeContract } from "src/protocols";
+import type { ClassNodeContract } from "src/runtime_protocols";
 import type { MixCallableNode } from "src/types";
-import type { LintFileNameContract } from "src/types";
+import type { LintFileNameContract } from "src/source_types";
 import { RULE_IDS } from "src/constants";
 
 /** Responsibilities: _mixed-module classification_, _mixin violation aggregation_. **/

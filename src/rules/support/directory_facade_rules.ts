@@ -1,6 +1,6 @@
 import { basename, relative } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { NormalizedAstFile } from "src/types";
 import { PYTHON_INDEX_MODULE, TYPESCRIPT_INDEX_MODULE } from "src/constants";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";

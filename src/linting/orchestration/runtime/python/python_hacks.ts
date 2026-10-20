@@ -1,6 +1,7 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { RULE_IDS } from "src/constants";
-import type { PythonHacksContract, ViolationContract } from "src/protocols";
+import type { PythonHacksContract } from "src/python_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { AstCallableNodeContract, AstStatementNode } from "src/types";
 
 import type { PythonAssignment, ReturnViolationContext, StatementContext } from "src/model/types/types";

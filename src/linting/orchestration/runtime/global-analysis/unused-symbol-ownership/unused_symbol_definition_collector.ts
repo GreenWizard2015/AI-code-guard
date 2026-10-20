@@ -1,5 +1,6 @@
 import ts from "typescript";
-import type { AstClassField, AstClassNode, LintSourceRecord, NamedSymbol } from "src/types";
+import type { LintSourceRecord } from "src/source_types";
+import type { AstClassField, AstClassNode, NamedSymbol } from "src/types";
 import { UNUSED_SYMBOL_KIND } from "src/core/types";
 import type { UnusedSymbolDefinition } from "src/core/types";
 import type { UnusedSymbolDefinitionCollectorContract } from "src/linting/orchestration/runtime/global-analysis/protocols";

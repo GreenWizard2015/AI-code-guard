@@ -1,7 +1,7 @@
 import { StandaloneStringComments } from "src/rules/support/standalone_string_comments";
 import { MarkdownProseLines } from "src/rules/support/markdown_prose_lines";
 import type { CyrillicCommentText, CyrillicQuoteState } from "src/model/types/types";
-import type { RuleContract, ViolationContract } from "src/protocols";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _Cyrillic text_, _comment diagnostics_. **/

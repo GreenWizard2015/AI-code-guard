@@ -1,14 +1,10 @@
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
-import type {
-	FileViolationCollectorContract,
-	CodingRuleLinterContract,
-	FileAnalysisCacheContract,
-	LintStageTimerContract,
-	ViolationContract,
-	TypeScriptFileScannerContract,
-} from "src/protocols";
-import type { LintSourceRecord } from "src/types";
-import type { CacheState } from "src/types";
+import type { FileViolationCollectorContract, CodingRuleLinterContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { FileAnalysisCacheContract } from "src/cache_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { TypeScriptFileScannerContract } from "src/typescript_analysis_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { CacheState } from "src/project_analysis_types";
 import type { FileLinterOptions, PythonProjectNames } from "src/model/types/types";
 import type { FileLintRunOptions } from "src/core/types";
 import { TypeScriptFileScanner } from "src/linting/orchestration/runtime/type_script_file_scanner";

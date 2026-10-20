@@ -5,7 +5,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
 import { TestFixture } from "tests/core/test-fixture";
 import { describe, expect, test } from "@jest/globals";
-import { TYPESCRIPT_USAGE_FILES, PYTHON_USAGE_FILES } from "tests/core/constants";
+import { TYPESCRIPT_USAGE_FILES, PYTHON_USAGE_FILES } from "tests/core/constants/callable_usage/constants";
 
 describe("coding-lint callable usage rule", () => {
 	const test_fixture = new TestFixture();

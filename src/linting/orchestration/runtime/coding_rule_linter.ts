@@ -1,15 +1,7 @@
 import { PythonCodingRuleCollector } from "src/linting/orchestration/runtime/python/python_coding_rule_collector";
-import { Syntax } from "src/parser/analysis/syntax";
 import { TypeScriptCodingRules } from "src/linting/orchestration/runtime/type_script_coding_rules";
+import { Syntax } from "src/parser/analysis/syntax";
 
-import type {
-	CodingRuleSourceData,
-	PythonCodingRuleCollectorContract,
-	SourceFileAstContract,
-	SyntaxContract,
-	ViolationContract,
-} from "src/protocols";
-import { TypeScriptRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_rule_context";
 import {
 	RESPONSIBILITY_ACTION_EXTENSIONS,
 	RESPONSIBILITY_ACTION_WORDS,
@@ -18,18 +10,23 @@ import {
 } from "src/linting/orchestration/runtime/constants";
 import { ResponsibilityRules } from "src/linting/orchestration/runtime/responsibility-wording/responsibility_rules";
 import { ResponsibilityWording } from "src/linting/orchestration/runtime/responsibility-wording/responsibility_wording";
-import ts from "typescript";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
+import type { PythonCodingRuleCollectorContract } from "src/python_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import { TypeScriptNodeRules } from "src/rules/typescript/syntax-rules/ast/type_script_node_rules";
+import { TypeScriptRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_rule_context";
+import type { SyntaxContract } from "src/shared_services_protocols";
+import type { SourceFileAstContract } from "src/source_protocols";
+import type { CodingRuleSourceData } from "src/source_types";
+import type ts from "typescript";
 
-import type {
-	AstPropertySourceIndexContract,
-	CodingRuleLinterContract,
-	LintStageTimerContract,
-	SourceFileResolver,
-} from "src/protocols";
-import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 import { AstPropertySourceIndexCache } from "src/ast_property_source_index_cache";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
+import type { CodingRuleLinterContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { AstPropertySourceIndexContract } from "src/source_protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { SourceFileResolver } from "src/source_types";
+import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
 
 /** Responsibilities: _collection TypeScript Python coding_, _responsibility violations collection_. **/
 export class CodingRuleLinter implements CodingRuleLinterContract {
@@ -42,6 +39,7 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 	private readonly source_io: ProjectSourceIOContract;
 	private readonly module_resolvers: WeakMap<SourceFileResolver, TypeScriptPropertyModuleResolverContract>;
 	private readonly source_indexes: WeakMap<SourceFileResolver, AstPropertySourceIndexContract>;
+	private readonly resolver_node_rules: WeakMap<SourceFileResolver, TypeScriptNodeRulesContract>;
 
 	/** Responsibilities: _run-local module resolver reuse_. **/
 	private module_exports(source: CodingRuleSourceData): TypeScriptPropertyModuleResolverContract {
@@ -70,6 +68,17 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 		return created;
 	}
 
+	/** Responsibilities: _run-local node rule reuse_. **/
+	private node_rules(source: CodingRuleSourceData): TypeScriptNodeRulesContract {
+		const cached = this.resolver_node_rules.get(source.source_resolver);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const created = new TypeScriptNodeRules();
+		this.resolver_node_rules.set(source.source_resolver, created);
+		return created;
+	}
+
 	/** Responsibilities: _TypeScript rules_. **/
 	private append_typescript_rules(
 		violations: ViolationContract[],
@@ -80,6 +89,7 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 		const context = new TypeScriptRuleContext(violations, source.file, source_file, {
 			stage_timer,
 			source_resolver: source.source_resolver,
+			node_rules: this.node_rules(source),
 			module_exports: this.module_exports(source),
 			source_index: this.source_index(source),
 			traversal: source.traversal,
@@ -122,6 +132,7 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 		this.python_rule_collector = new PythonCodingRuleCollector();
 		this.module_resolvers = new WeakMap<SourceFileResolver, TypeScriptPropertyModuleResolverContract>();
 		this.source_indexes = new WeakMap<SourceFileResolver, AstPropertySourceIndexContract>();
+		this.resolver_node_rules = new WeakMap<SourceFileResolver, TypeScriptNodeRulesContract>();
 	}
 
 	/** Responsibilities: _Python source rule violations_. **/

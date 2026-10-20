@@ -1,13 +1,15 @@
 import { join, resolve } from "node:path";
-import { DIRECTORY_ENTRY_DIRECTORY, DIRECTORY_ENTRY_FILE, DIRECTORY_ENTRY_OTHER } from "src/io/constants";
 import { IGNORED_DIRS } from "src/constants";
-import type { LintDirectoryFingerprint } from "src/types";
+import { CACHE_DIRECTORY_ENTRY_KIND } from "src/core/constants";
+import type { LintDirectoryFingerprint } from "src/project_analysis_types";
 import type { FileEntryContract, IOContract } from "src/io/protocols";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 
 /** Responsibilities: _ignored directory filtering_, _cache directory topology discovery_. **/
 export class CacheDirectoryTree {
 	private readonly skipped_names: Set<string>;
 	private readonly file_io: IOContract;
+	private readonly boundary_failures: BoundaryFailureClassifier;
 
 	/** Responsibilities: _child directory filtering_. **/
 	private append_directory_entry(directory: string, entry: FileEntryContract, pending: string[]): void {
@@ -24,7 +26,9 @@ export class CacheDirectoryTree {
 				this.append_directory_entry(directory, entry, pending);
 			}
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 
@@ -33,18 +37,20 @@ export class CacheDirectoryTree {
 		try {
 			const stats = this.file_io.file_paths.metadata(directory);
 			const entries = this.file_io.directory_entries.list_entries(directory).map((entry) => {
-				let kind = DIRECTORY_ENTRY_OTHER;
+				let kind = "other";
 				if (entry.is_directory) {
-					kind = DIRECTORY_ENTRY_DIRECTORY;
+					kind = CACHE_DIRECTORY_ENTRY_KIND;
 				} else if (entry.is_file) {
-					kind = DIRECTORY_ENTRY_FILE;
+					kind = "file";
 				}
 				return `${entry.name}\u0000${kind}`;
 			});
 			entries.sort();
 			fingerprints.push({ directory, mtime_ms: stats.mtime_ms, ctime_ms: stats.ctime_ms, entries });
 		} catch (error) {
-			void error;
+			if (!this.boundary_failures.system_failure_message(String(error))) {
+				throw error;
+			}
 		}
 	}
 
@@ -53,6 +59,7 @@ export class CacheDirectoryTree {
 	constructor(file_io: IOContract) {
 		this.skipped_names = IGNORED_DIRS;
 		this.file_io = file_io;
+		this.boundary_failures = new BoundaryFailureClassifier();
 	}
 	/** Responsibilities: _public operation_. **/
 	public directories(root: string): string[] {

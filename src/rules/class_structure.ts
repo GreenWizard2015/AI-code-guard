@@ -1,6 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import type { ViolationContract } from "src/protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _class nesting_, _source boundaries_. **/

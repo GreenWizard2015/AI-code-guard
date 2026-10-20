@@ -4,11 +4,11 @@ import ast
 from functools import cached_property
 from typing import Any
 
-from implementation.protocols import (
+from implementation.rules.protocols import (
     PythonTypingAliasesContract,
     PythonUnionAnnotationRulesContract,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.union.protocols import UnionRulesOptionsContract
 from implementation.types import JsonObject
 
@@ -134,7 +134,7 @@ class UnionRules:
         """Responsibilities: _observation typing aliases_."""
         self.container_aliases.clear()
         if type(self.tree) is ast.Module:
-            for statement in self.tree.body:
+            for statement in self.module_alias_statements:
                 self.python_typing_aliases.observe(statement, self.container_aliases)
         self.python_typing_aliases.observe(node, self.container_aliases)
 
@@ -176,6 +176,18 @@ class UnionRules:
                 if type(statement) is ast.AnnAssign:
                     annotations.add(id(statement))
         return annotations
+
+    @cached_property
+    def module_alias_statements(self) -> list[ast.stmt]:
+        """Responsibilities: _module alias statements_."""
+        if type(self.tree) is not ast.Module:
+            return []
+        relevant_types = (ast.Import, ast.ImportFrom, ast.Assign, ast.AnnAssign)
+        return [
+            statement
+            for statement in self.tree.body
+            if type(statement) in relevant_types
+        ]
 
     def collect_union_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection union conditional annotation_."""

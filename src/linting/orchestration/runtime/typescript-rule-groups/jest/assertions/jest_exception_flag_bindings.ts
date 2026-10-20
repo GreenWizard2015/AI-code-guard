@@ -1,6 +1,6 @@
 import ts from "typescript";
-import type { JestScopeBindingMaps } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/types";
-import type { JestExceptionFlagBindingsContract } from "src/protocols";
+import type { JestScopeBindingMaps } from "src/model/types/types";
+import type { JestExceptionFlagBindingsContract } from "src/testing_protocols";
 
 /** Responsibilities: _lexical scope indexing_, _exception flag assignment collection_, _catch-binding lookup_. **/
 export class JestExceptionFlagBindings implements JestExceptionFlagBindingsContract {

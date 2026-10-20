@@ -8,21 +8,18 @@ import { PythonLintSourceRecord } from "src/core/context/python_lint_source_reco
 import { TypeScriptLintSourceRecord } from "src/core/context/type_script_lint_source_record";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import type { TypeScriptAstOptions } from "src/model/types";
-import type {
-	ContextSourceRecordCacheContract,
-	ProjectAnalysisIdentityContract,
-	TypeScriptAstFileContract,
-} from "src/protocols";
-import type { LintFileNameContract } from "src/types";
+import type { ContextSourceRecordCacheContract } from "src/cache_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { TypeScriptAstFileContract } from "src/typescript_runtime_protocols";
+import type { LintFileNameContract } from "src/source_types";
 import type {
 	ContextSourceRecordOptions,
 	ContextSourceRecordsOptions,
-	LintRunStatistics,
 	LintSourceRecord,
-	NormalizedAstFile,
 	TypeScriptAstCreation,
 	TypeScriptAstCreationOptions,
-} from "src/types";
+} from "src/source_types";
+import type { LintRunStatistics, NormalizedAstFile } from "src/types";
 import ts from "typescript";
 import type { IOContract } from "src/io/protocols";
 
@@ -226,10 +223,14 @@ export class ContextSourceRecordSet {
 
 	/** Responsibilities: _construction source records requested_. **/
 	public source_records(options: ContextSourceRecordsOptions): LintSourceRecord[] {
-		const cache = this.source_record_cache(options);
-		cache.clean();
+		const cache = options.stage_timer.measure("startup.project-context.source-records.cache-initialize", () =>
+			this.source_record_cache(options),
+		);
+		options.stage_timer.measure("startup.project-context.source-records.cache-clean", () => cache.clean());
 		const typescript_asts = cache.cached_asts(options.files, options.texts, options.stage_timer);
-		const records = this.normalized_records(options, typescript_asts);
+		const records = options.stage_timer.measure("startup.project-context.source-records.record-construction", () =>
+			this.normalized_records(options, typescript_asts),
+		);
 		return cache.write(options.files, options.texts, records, typescript_asts, options.stage_timer);
 	}
 

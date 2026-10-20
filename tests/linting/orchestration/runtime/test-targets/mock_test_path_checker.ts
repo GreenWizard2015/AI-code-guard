@@ -1,4 +1,4 @@
-import type { TestPathCheckerContract } from "src/core/context/protocols";
+import type { TestPathCheckerContract } from "src/testing_protocols";
 import type { TestTargetImport } from "src/types";
 
 /** Responsibilities: _test path fixtures_, _import target fixtures_. **/

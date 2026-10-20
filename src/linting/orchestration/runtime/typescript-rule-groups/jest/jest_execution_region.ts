@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { JestExecutionConsumer } from "src/linting/orchestration/runtime/typescript-rule-groups/jest/types";
+import type { JestExecutionConsumer } from "src/model/types/types";
 
 /** Responsibilities: _Jest execution region_, _callable boundary traversal_. **/
 export class JestExecutionRegion {

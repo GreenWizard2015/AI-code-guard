@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from performance.performance_snapshot_input import PerformanceSnapshotInput
-from performance.protocols import PerformanceSnapshotIOContract, PerformanceSnapshotInputContract
+from performance.constants import PERFORMANCE_SNAPSHOT_SUFFIX, TEXT_ENCODING
+from performance.protocols import PerformanceSnapshotIOContract
 
 
 class PathPerformanceSnapshotIO(PerformanceSnapshotIOContract):
@@ -20,11 +20,11 @@ class PathPerformanceSnapshotIO(PerformanceSnapshotIOContract):
         for value in inputs:
             path = Path(value)
             if path.is_dir():
-                paths.extend(sorted(path.rglob("*.performance.md")))
+                paths.extend(sorted(path.rglob(f"*{PERFORMANCE_SNAPSHOT_SUFFIX}")))
             if path.is_file():
                 paths.append(path)
         return paths
 
-    def snapshot_input(self, path: Path) -> PerformanceSnapshotInputContract:
-        """Responsibilities: _snapshot input reading_."""
-        return PerformanceSnapshotInput(path, path.read_text(encoding="utf-8"))
+    def snapshot_text(self, path: Path) -> str:
+        """Responsibilities: _snapshot text reading_."""
+        return path.read_text(encoding=TEXT_ENCODING)

@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { AstClassNode, AstLanguage, NormalizedAstFile } from "src/types";
-import type { AstModelContract } from "src/protocols";
+import type { AstModelContract } from "src/source_protocols";
 import type { TypeScriptScannerModuleScope } from "src/model/types/types";
 
 /** Responsibilities: _class inheritance metadata normalization_, _empty AST files creation_. **/

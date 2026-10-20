@@ -1,6 +1,7 @@
-import type { LintStageTimerContract, TaskReportingFormatContract, TaskWorkspaceDocumentsContract } from "src/protocols";
-import type { CliOptions } from "src/types";
-import type { LintRunResult } from "src/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { TaskReportingFormatContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
+import type { CliOptions } from "src/task_types";
+import type { LintRunResult } from "src/project_analysis_types";
 import { PerformanceReport } from "src/core/support/performance_report";
 
 /** Responsibilities: _lint results formatting_, _diagnostics and performance writing_. **/

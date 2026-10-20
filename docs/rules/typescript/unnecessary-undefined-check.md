@@ -10,7 +10,7 @@ type Parsed = {
 };
 
 function has_attributes(parsed: Parsed): boolean {
-	return parsed.attribute_accesses === undefined;
+	return (parsed.attribute_accesses) === undefined;
 }
 ```
 
@@ -33,7 +33,7 @@ Unknown declarations and nullable annotations are intentionally skipped.
 type ParsedValue = { attribute_accesses: string[] };
 
 function has_attributes(parsed: ParsedValue): boolean {
-	return parsed.attribute_accesses === undefined;
+	return (parsed.attribute_accesses) === undefined;
 }
 ```
 

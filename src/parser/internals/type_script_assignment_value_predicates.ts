@@ -1,11 +1,8 @@
 import { ValueRules } from "src/linting/value_rules";
-import type { BooleanExpressionContract } from "src/protocols";
+import type { BooleanExpressionContract } from "src/runtime_protocols";
 import ts from "typescript";
-import type {
-	TypeScriptAssignmentValuePredicatesContract,
-	TypeScriptVariableDeclarationIndexContract,
-	ValueRulesContract,
-} from "src/protocols";
+import type { TypeScriptAssignmentValuePredicatesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type { ValueRulesContract } from "src/analysis_protocols";
 
 /** Responsibilities: _allowed assignment value classification_, _conditional assignment checks_. **/
 export class TypeScriptAssignmentValuePredicates implements TypeScriptAssignmentValuePredicatesContract {

@@ -3,7 +3,7 @@ import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_
 import { TypeScriptStaticObjectProperties } from "src/typescript-aliases/callables/static-key/type_script_static_object_properties";
 import { TypeScriptStaticObjectSources } from "src/typescript-aliases/callables/type_script_static_object_sources";
 import { TypeScriptStaticObjectArguments } from "src/typescript-aliases/callables/static-key/type_script_static_object_arguments";
-import type { TypeScriptStaticObjectBindingsContract } from "src/protocols";
+import type { TypeScriptStaticObjectBindingsContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _object source binding collection_, _object assignment alias tracking_. **/
 export class TypeScriptStaticObjectBindings implements TypeScriptStaticObjectBindingsContract {

@@ -6,7 +6,7 @@ import type {
 	RuleDocumentPath,
 	RuleDocumentPresence,
 } from "documentation_validation/types";
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _canonical rule-document paths_, _documentation inventory_. **/
 export class RuleDocumentationPaths {

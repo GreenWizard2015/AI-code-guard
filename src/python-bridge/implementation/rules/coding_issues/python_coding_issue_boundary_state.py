@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from implementation.protocols import (
-    PythonFieldMutationCollectorContract,
-    PythonProxyCallableAnalyzerContract,
-    PythonUnnecessaryUndefinedCheckContract,
-)
+from implementation.protocols import PythonProxyCallableAnalyzerContract
+from implementation.rules.protocols import PythonFieldMutationCollectorContract
+from implementation.rules.protocols import PythonUnnecessaryUndefinedCheckContract
 
 
 class PythonCodingIssueBoundaryState:

@@ -1,4 +1,4 @@
-import type { ProjectSourceIOContract } from "src/protocols";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import { GitIgnoreGlobMatcher } from "src/core/support/git_ignore_glob_matcher";
 import { CharacterClassGitIgnoreGlobToken } from "src/core/support/git_ignore_tokens/character_class_git_ignore_glob_token";
 import { LiteralGitIgnoreGlobToken } from "src/core/support/git_ignore_tokens/literal_git_ignore_glob_token";
@@ -6,8 +6,12 @@ import { RecursiveDirectoryGitIgnoreGlobToken } from "src/core/support/git_ignor
 import { RecursiveStarGitIgnoreGlobToken } from "src/core/support/git_ignore_tokens/recursive_star_git_ignore_glob_token";
 import { SingleCharacterGitIgnoreGlobToken } from "src/core/support/git_ignore_tokens/single_character_git_ignore_glob_token";
 import { SingleStarGitIgnoreGlobToken } from "src/core/support/git_ignore_tokens/single_star_git_ignore_glob_token";
-import type { GitIgnorePattern, GitIgnorePatternDetails, GitIgnoreSourceFile } from "src/types";
-import type { GitIgnoreGlobTokenContract } from "src/protocols";
+import type {
+	GitIgnorePattern,
+	GitIgnorePatternDetails,
+	GitIgnoreSourceFile,
+} from "src/project_analysis_types";
+import type { GitIgnoreGlobTokenContract } from "src/runtime_protocols";
 
 /** Responsibilities: _Gitignore line parsing_, _glob matcher construction_. **/
 export class GitIgnorePatternCatalog {

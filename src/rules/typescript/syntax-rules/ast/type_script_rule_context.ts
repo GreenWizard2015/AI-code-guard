@@ -1,27 +1,20 @@
 import { TypeScriptBareAlias } from "src/rules/typescript/syntax-rules/callables/type_script_bare_alias";
-import { TypeScriptNodeRules } from "src/rules/typescript/syntax-rules/ast/type_script_node_rules";
 import ts from "typescript";
 
-import { RULES_BY_ID } from "src/model/constants";
-import type {
-	DuplicateTypeShapesContract,
-	TypeScriptNodeRulesContract,
-	LintStageTimerContract,
-	ViolationContract,
-} from "src/protocols";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { DuplicateTypeShapesContract } from "src/analysis_protocols";
+import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { TypeScriptClassFieldRules } from "src/model/type_script_class_field_rules";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { DuplicateTypeShapes } from "src/duplicate_type_shapes";
-import { NODE_RULES_BY_RESOLVER } from "src/rules/typescript/constants";
 import { UndefinedCheckRules } from "src/rules/typescript/syntax-rules/runtime/undefined_check_rules";
 import { RULE_IDS } from "src/constants";
 
-import type {
-	RuleContract,
-	TypeScriptAstTraversalContract,
-	TypeScriptClassFieldRulesContract,
-	TypeScriptRuleTreeTraversalContract,
-} from "src/protocols";
+import type { RuleContract } from "src/reporting_protocols";
+import type { TypeScriptAstTraversalContract, TypeScriptRuleTreeTraversalContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptClassFieldRulesContract } from "src/typescript_analysis_protocols";
 import type { RuleAppender, RuleContextData } from "src/types";
 import type { TypeScriptRuleContextOptions } from "src/types";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
@@ -48,10 +41,7 @@ export class TypeScriptRuleContext {
 
 	/** Responsibilities: _resolution aggregation known rule_. **/
 	private append_known_rule(node: ts.Node, rule_id: string): void {
-		const rule = RULES_BY_ID.get(rule_id);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(rule_id);
 		const line = this.source_file.getLineAndCharacterOfPosition(node.getStart(this.source_file)).line + 1;
 		this.violations.push(rule.violation(this.file, line, {}));
 	}
@@ -94,10 +84,7 @@ export class TypeScriptRuleContext {
 		if (namespaces.length === 0) {
 			return;
 		}
-		const rule = RULES_BY_ID.get(RULE_IDS.typescript_namespace_file);
-		if (rule === undefined) {
-			return;
-		}
+		const rule = new DiagnosticRule(RULE_IDS.typescript_namespace_file);
 		if (namespaces.length > 1) {
 			const line = this.source_file.getLineAndCharacterOfPosition(namespaces[1].getStart(this.source_file)).line + 1;
 			this.violations.push(rule.violation(this.file, line, {}));
@@ -109,10 +96,7 @@ export class TypeScriptRuleContext {
 	/** Responsibilities: _duplicate type shape violations_. **/
 	private append_duplicates(): void {
 		for (const duplicate of this.duplicate_type_shapes.typescript(this.source_file)) {
-			const rule = RULES_BY_ID.get(RULE_IDS.duplicate_type_shape);
-			if (rule === undefined) {
-				continue;
-			}
+			const rule = new DiagnosticRule(RULE_IDS.duplicate_type_shape);
 			this.violations.push(rule.violation(this.file, duplicate.line, { names: duplicate.names.join(", ") }));
 		}
 	}
@@ -135,14 +119,7 @@ export class TypeScriptRuleContext {
 		this.class_fields = new TypeScriptClassFieldRules();
 		this.script_bare_alias = new TypeScriptBareAlias();
 		this.duplicate_type_shapes = new DuplicateTypeShapes();
-		const cached_node_rules = NODE_RULES_BY_RESOLVER.get(options.source_resolver);
-		if (cached_node_rules !== undefined) {
-			this.script_node_rules = cached_node_rules;
-		} else {
-			const created_node_rules = new TypeScriptNodeRules();
-			NODE_RULES_BY_RESOLVER.set(options.source_resolver, created_node_rules);
-			this.script_node_rules = created_node_rules;
-		}
+		this.script_node_rules = options.node_rules;
 		this.violations = violations;
 		this.file = file;
 		this.source_file = source_file;

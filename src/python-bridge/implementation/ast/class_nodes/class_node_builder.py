@@ -14,13 +14,18 @@ from implementation.ast.class_nodes.python_class_node_details import (
 from implementation.ast.class_nodes.python_class_node_fields import (
     PythonClassNodeFields,
 )
-from implementation.protocols import (
+from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonCallableArgumentsContract,
-    PythonCallableMetricsContract,
     PythonSourceSegmentsContract,
 )
-from implementation.references.aliases.protocols import PythonContainerAliasesContract
+from implementation.ast.protocols import (
+    PythonCallableArgumentsContract,
+    PythonCallableMetricsContract,
+)
+from implementation.references.protocols import (
+    PythonContainerAliasesContract,
+    PythonScopedTypeAliasesContract,
+)
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )
@@ -44,6 +49,7 @@ class PythonClassNodeOptions:
     node_index: PythonAstNodeIndexContract
     source_segments: PythonSourceSegmentsContract
     container_aliases: PythonContainerAliasesContract
+    type_aliases: PythonScopedTypeAliasesContract
 
 
 class PythonClassNode:
@@ -136,7 +142,7 @@ class PythonClassNode:
     def _method_node(self, node: ast.AST) -> JsonObject:
         """Responsibilities: _method node normalization_."""
         callable_arguments: PythonCallableArgumentsContract = CallableArguments(
-            self.node_index
+            self.node_index, self.type_aliases
         )
         callable_metrics: PythonCallableMetricsContract = CallableMetrics()
         data: Any = self._method_metadata(node, callable_arguments, callable_metrics)
@@ -164,6 +170,7 @@ class PythonClassNode:
         self.container_aliases: PythonContainerAliasesContract = (
             options.container_aliases
         )
+        self.type_aliases: PythonScopedTypeAliasesContract = options.type_aliases
         self.details: Any = PythonClassNodeDetails(
             options.node,
             options.node_index,
