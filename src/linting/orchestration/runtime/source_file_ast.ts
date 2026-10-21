@@ -1,7 +1,7 @@
 import { CodingRuleSource } from "src/linting/orchestration/runtime/coding_rule_source";
 import type ts from "typescript";
 import type {
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	ParseLanguage,
 } from "src/types";
 import type { CodingRuleSourceOptions, CodingRuleSourceData } from "src/source_types";
@@ -17,7 +17,7 @@ export class SourceFileAst implements SourceFileAstContract {
 	/** Responsibilities: _initialization coding-rule source parsing_. **/
 	public constructor(
 		source: CodingRuleSourceOptions,
-		normalized_ast: NormalizedAstFile,
+		normalized_ast: NormalizedAstFileContract,
 		source_file: ts.SourceFile,
 		source_resolver: SourceFileResolver,
 		traversal: TypeScriptAstTraversalContract,

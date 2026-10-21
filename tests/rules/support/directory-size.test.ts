@@ -7,7 +7,7 @@ import type { ViolationContract } from "src/reporting_protocols";
 import { DirectoryFacadeRules } from "src/rules/support/directory_facade_rules";
 import { DirectoryRules } from "src/rules/support/directory_rules";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 import { describe, expect, test } from "@jest/globals";
@@ -17,7 +17,7 @@ describe("directory size lint rules", () => {
 
 	test("applies the raw maximum file size to test and declaration files", () => {
 		const violations: ViolationContract[] = [];
-		const normalized_ast: NormalizedAstFile = {
+		const normalized_ast: NormalizedAstFileContract = {
 			language: "typescript",
 			classes: [],
 			functions: [],
@@ -234,7 +234,7 @@ describe("directory size lint rules", () => {
 
 	test("allows only re-exports in facade-only directories", () => {
 		const facade_rules = new DirectoryFacadeRules();
-		const empty_ast: NormalizedAstFile = {
+		const empty_ast: NormalizedAstFileContract = {
 			language: "typescript",
 			classes: [],
 			functions: [],

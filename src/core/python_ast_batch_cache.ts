@@ -6,7 +6,7 @@ import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { PythonAstBatchCacheContract } from "src/python_protocols";
 import type { PythonAstBatchParser } from "src/python_types";
 import type {
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	PythonAstCacheBatch,
 	PythonAstCacheReadOptions,
 	PythonAstCacheWriteOptions,
@@ -16,14 +16,14 @@ import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _in-memory AST lookup_, _persistent batch cache coordination_. **/
 export class PythonAstBatchCache implements PythonAstBatchCacheContract {
-	private readonly parsed_ast_cache: Map<string, NormalizedAstFile>;
+	private readonly parsed_ast_cache: Map<string, NormalizedAstFileContract>;
 	private readonly disk_cache_enabled: boolean;
 	private readonly analysis_identity: ProjectAnalysisIdentityContract;
 	private readonly file_io: IOContract;
 
 	/** Responsibilities: _cached batch result collection_. **/
-	private cached_batch_results(texts: readonly string[]): Map<number, NormalizedAstFile> {
-		const results = new Map<number, NormalizedAstFile>();
+	private cached_batch_results(texts: readonly string[]): Map<number, NormalizedAstFileContract> {
+		const results = new Map<number, NormalizedAstFileContract>();
 		for (const [index, text] of texts.entries()) {
 			const ast = this.parsed_ast_cache.get(text);
 			if (ast !== undefined) {
@@ -72,7 +72,7 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 	}
 
 	/** Responsibilities: _missing batch index lookup_. **/
-	private missing_batch_indexes(texts: readonly string[], results: ReadonlyMap<number, NormalizedAstFile>): number[] {
+	private missing_batch_indexes(texts: readonly string[], results: ReadonlyMap<number, NormalizedAstFileContract>): number[] {
 		const indexes: number[] = [];
 		for (const index of texts.keys()) {
 			if (!results.has(index)) {
@@ -98,8 +98,8 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 	private store_batch_results(
 		texts: readonly string[],
 		indexes: readonly number[],
-		parsed: readonly NormalizedAstFile[],
-		results: Map<number, NormalizedAstFile>,
+		parsed: readonly NormalizedAstFileContract[],
+		results: Map<number, NormalizedAstFileContract>,
 	): void {
 		for (const [index, text_index] of indexes.entries()) {
 			const text_valid = text_index >= 0 && text_index < texts.length;
@@ -117,8 +117,8 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 	/** Responsibilities: _ordered batch result completion_. **/
 	private complete_batch(
 		texts: readonly string[],
-		results: ReadonlyMap<number, NormalizedAstFile>,
-	): NormalizedAstFile[] {
+		results: ReadonlyMap<number, NormalizedAstFileContract>,
+	): NormalizedAstFileContract[] {
 		return texts.map((_, index) => {
 			const ast = results.get(index);
 			if (ast === undefined) {
@@ -167,7 +167,7 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 
 	/** Responsibilities: _batch cache setup_. **/
 	public constructor(
-		parsed_ast_cache: Map<string, NormalizedAstFile>,
+		parsed_ast_cache: Map<string, NormalizedAstFileContract>,
 		disk_cache_enabled: boolean,
 		analysis_identity: ProjectAnalysisIdentityContract,
 		file_io: IOContract,
@@ -203,7 +203,7 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 	}
 
 	/** Responsibilities: _Python AST cache results_. **/
-	public complete(batch: PythonAstCacheBatch, parsed: readonly NormalizedAstFile[]): NormalizedAstFile[] {
+	public complete(batch: PythonAstCacheBatch, parsed: readonly NormalizedAstFileContract[]): NormalizedAstFileContract[] {
 		const { options, cache } = batch;
 		this.store_batch_results(options.texts, cache.missing_indexes, parsed, cache.results);
 		this.write_disk_results({
@@ -215,7 +215,7 @@ export class PythonAstBatchCache implements PythonAstBatchCacheContract {
 	}
 
 	/** Responsibilities: _batch AST resolution_. **/
-	public resolve(options: PythonBatchAstOptions, parse: PythonAstBatchParser): NormalizedAstFile[] {
+	public resolve(options: PythonBatchAstOptions, parse: PythonAstBatchParser): NormalizedAstFileContract[] {
 		const preparation = this.prepare(options);
 		const parsed = parse(preparation.cache.missing_texts);
 		return this.complete(preparation, parsed);

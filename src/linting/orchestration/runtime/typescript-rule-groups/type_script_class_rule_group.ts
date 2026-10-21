@@ -4,7 +4,7 @@ import { MethodOrder } from "src/rules/method_order";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { MIN_FILE_LINES } from "src/constants";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import type { TypeScriptScannerRuleContextContract } from "src/model/types/types";
 import type { TypeScriptRuleGroupContract } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 
@@ -18,7 +18,7 @@ export class TypeScriptClassRuleGroup implements TypeScriptRuleGroupContract {
 	/** Responsibilities: _aggregation metric ordering violations_. **/
 	private append_class_metric(
 		violations: ViolationContract[],
-		node: AstClassNode,
+		node: AstClassNodeContract,
 		suppress_short_class: boolean,
 	): void {
 		this.class_reporting.report_class_methods(violations, this.context.file_name, node);

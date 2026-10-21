@@ -24,8 +24,10 @@ export class PythonAstCacheConsumerFixture {
 		this.project.write(this.file, this.text);
 		process.env.NODE_ENV = "production";
 		const ast_model = new AstModel();
-		this.ast = ast_model.empty_ast_file("python");
-		this.ast.parse_issues = [{ line: 0, message: "syntax error" }];
+		this.ast = {
+			...ast_model.empty_ast_file("python"),
+			parse_issues: [{ line: 0, message: "syntax error" }],
+		};
 		this.second_worker = new PythonCacheWorker(this.ast);
 	}
 

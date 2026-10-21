@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
 import type { IOContract } from "src/io/protocols";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
 
 /** Responsibilities: _recovery claim acquisition_, _stale claim reclamation_. **/
 export class TaskPublicationRecoveryClaim {
@@ -31,12 +33,23 @@ export class TaskPublicationRecoveryClaim {
 	}
 
 	/** Responsibilities: _stale claim detection_. **/
-	private stale_claim(path: string): boolean {
-		const claim_owner = join(path, "owner");
-		if (!this.file_io.directory_entries.path_is_file(claim_owner)) {
-			return true;
+	private identity_mismatch(pid: number, start_time: string, boot_id: string): boolean {
+		if (start_time.length === 0 || boot_id.length === 0) {
+			return false;
 		}
-		const [pid_text] = this.file_io.file_content.file_text(claim_owner).split("\n");
+		const identity_reader = new ReviewAgentIdentity(pid, "", "", false, this.file_io);
+		const stored_text = `${pid}\n${start_time}\n${boot_id}\n`;
+		const stored = identity_reader.stored_identity(stored_text);
+		const current = identity_reader.from_process(pid);
+		if (current.serialized().length === 0) {
+			return false;
+		}
+		return !stored.matches(current);
+	}
+
+	/** Responsibilities: _stale claim detection_. **/
+	private owner_record_stale(owner_text: string): boolean {
+		const [pid_text, , start_time = "", boot_id = ""] = owner_text.split("\n");
 		const pid = Number(pid_text);
 		if (!Number.isInteger(pid)) {
 			return true;
@@ -44,7 +57,20 @@ export class TaskPublicationRecoveryClaim {
 		if (pid <= 0) {
 			return true;
 		}
-		return !this.process_live(pid);
+		if (!this.process_live(pid)) {
+			return true;
+		}
+		return this.identity_mismatch(pid, start_time, boot_id);
+	}
+
+	/** Responsibilities: _stale claim detection_. **/
+	private stale_claim(path: string): boolean {
+		const claim_owner = join(path, "owner");
+		if (!this.file_io.directory_entries.path_is_file(claim_owner)) {
+			return true;
+		}
+		const owner_text = this.file_io.file_content.file_text(claim_owner);
+		return this.owner_record_stale(owner_text);
 	}
 
 	/** Responsibilities: _stale claim removal_. **/
@@ -73,6 +99,16 @@ export class TaskPublicationRecoveryClaim {
 		}
 	}
 
+	/** Responsibilities: _recovery claim owner publication_. **/
+	private write_claim_owner(staging_path: string): void {
+		const identity_reader = new ReviewAgentIdentity(0, "", "", false, this.file_io);
+		const process_identity = identity_reader.from_process(process.pid).serialized();
+		const [, start_time = "", boot_id = ""] = process_identity.split("\n");
+		const owner_path = join(staging_path, "owner");
+		const owner_text = `${process.pid}\n${this.owner_token}\n${start_time}\n${boot_id}\n`;
+		this.file_io.file_content.write_text(owner_path, owner_text);
+	}
+
 	/** Responsibilities: _recovery claim initialization_. **/
 	public constructor(lock_path: string, owner_token: string, file_io: IOContract) {
 		this.lock_path = lock_path;
@@ -92,13 +128,15 @@ export class TaskPublicationRecoveryClaim {
 	/** Responsibilities: _recovery claim initialization_. **/
 	public claim(path: string): void {
 		this.remove_existing_claim(path);
+		const staging_path = `${path}.${process.pid}.${randomUUID()}.initializing`;
 		let created = false;
 		try {
-			this.file_io.directory_operations.create_directory_exclusive(path);
+			this.file_io.directory_operations.create_directory_exclusive(staging_path);
 			created = true;
-			this.file_io.file_content.write_text(join(path, "owner"), `${process.pid}\n${this.owner_token}\n`);
+			this.write_claim_owner(staging_path);
+			this.file_io.directory_operations.move_path(staging_path, path);
 		} catch (error) {
-			this.cleanup_failed_claim(path, created);
+			this.cleanup_failed_claim(staging_path, created);
 			if (!this.boundary_failures.system_failure_message(String(error))) {
 				throw error;
 			}

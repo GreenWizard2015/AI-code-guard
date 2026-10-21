@@ -4,7 +4,7 @@ import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "
 import type { TypeScriptFileScannerContract } from "src/typescript_analysis_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
-import type { FileLinterOptions, TypeScriptScannerOptions } from "src/model/types/types";
+import type { FileLinterOptions, TypeScriptScannerOptionsContract } from "src/model/types/types";
 import { TypeScriptScannerAssembly } from "src/linting/orchestration/runtime/type_script_scanner_assembly";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
@@ -30,7 +30,7 @@ export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
 		ast_file: TypeScriptAstFileContract,
 		traversal: TypeScriptAstTraversalContract,
 		stage_timer: LintStageTimerContract,
-	): TypeScriptScannerOptions {
+	): TypeScriptScannerOptionsContract {
 		return {
 			file_name,
 			text,

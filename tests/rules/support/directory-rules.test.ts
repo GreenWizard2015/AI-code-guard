@@ -1,4 +1,4 @@
-import "src/rules/support/cyrillic_text_rules";
+import "src/rules/support/non_english_source_text_rules";
 import "src/rules/support/directory_rules";
 import { DirectoryRules } from "src/rules/support/directory_rules";
 import type { DirectoryFileSet } from "src/project_analysis_types";

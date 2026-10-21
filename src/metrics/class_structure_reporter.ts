@@ -5,7 +5,7 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ClassStructureReporterContract } from "src/runtime_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintFileNameContract } from "src/source_types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import {
 	CONSTRUCTOR_NAME,
 	CONTRACT_SUFFIX,
@@ -19,7 +19,7 @@ import {
 export class ClassStructureReporter implements ClassStructureReporterContract {
 	private readonly violations: ViolationContract[];
 	private readonly file_name: LintFileNameContract;
-	private readonly node: AstClassNode;
+	private readonly node: AstClassNodeContract;
 	private readonly suppress_short_class: boolean;
 	private readonly minimum_class_size: number;
 	private readonly procedural_class_name: ProceduralClassName;
@@ -175,7 +175,7 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 	public constructor(
 		violations: ViolationContract[],
 		file_name: LintFileNameContract,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 		suppress_short_class = false,
 	) {
 		this.procedural_class_name = new ProceduralClassName();

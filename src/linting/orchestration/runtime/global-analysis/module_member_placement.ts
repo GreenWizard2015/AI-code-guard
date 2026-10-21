@@ -8,7 +8,7 @@ import {
 } from "src/constants";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";
 import type { LintProjectContextContract, PlacementSupportContract } from "src/shared_services_protocols";
-import type { NamedSymbol, NormalizedAstFile } from "src/types";
+import type { NamedSymbol, NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _module member classification_, _destination path resolution_. **/
 export class ModuleMemberPlacement {
@@ -28,7 +28,7 @@ export class ModuleMemberPlacement {
 
 	/** Responsibilities: _class member destinations_. **/
 	private classes(
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		locations: ReadonlyMap<string, string>,
 		members: string[],
 		names: Set<string>,
@@ -49,7 +49,7 @@ export class ModuleMemberPlacement {
 
 	/** Responsibilities: _type member destinations_. **/
 	private types(
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		locations: ReadonlyMap<string, string>,
 		members: string[],
 		names: Set<string>,
@@ -79,7 +79,7 @@ export class ModuleMemberPlacement {
 
 	/** Responsibilities: _named member destinations_. **/
 	private named(
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		locations: ReadonlyMap<string, string>,
 		members: string[],
 		names: Set<string>,

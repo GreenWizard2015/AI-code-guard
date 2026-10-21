@@ -3,8 +3,8 @@ import { AstModel } from "src/core/ast_model";
 import { Syntax } from "src/parser/analysis/syntax";
 import { TypeScriptScannerRules } from "src/linting/orchestration/runtime/typescript-rule-groups/type_script_scanner_rules";
 import { TypeScriptScannerClass } from "src/linting/orchestration/runtime/type_script_scanner_class";
-import type { NormalizedAstFile } from "src/types";
-import type { TypeScriptScannerOptions } from "src/model/types/types";
+import type { NormalizedAstFileContract } from "src/types";
+import type { TypeScriptScannerOptionsContract } from "src/model/types/types";
 import type { TypeScriptScannerState } from "src/linting/orchestration/runtime/typescript-rule-groups/types";
 import { TypeScriptScriptRuleSet } from "src/linting/orchestration/runtime/type_script_script_rule_set";
 import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
@@ -19,7 +19,7 @@ export class TypeScriptScannerAssembly {
 	private append_import_bindings(
 		bindings: Set<string>,
 		statement: ts.ImportDeclaration,
-		options: TypeScriptScannerOptions,
+		options: TypeScriptScannerOptionsContract,
 		module_specifier: string,
 		include_project: boolean,
 	): void {
@@ -44,7 +44,7 @@ export class TypeScriptScannerAssembly {
 		bindings: Set<string>,
 		name: ts.Identifier,
 		module_path: string,
-		options: TypeScriptScannerOptions,
+		options: TypeScriptScannerOptionsContract,
 		include_project: boolean,
 	): void {
 		const is_project = this.project_binding(module_path, "default", options);
@@ -58,7 +58,7 @@ export class TypeScriptScannerAssembly {
 		bindings: Set<string>,
 		named: ts.NamedImportBindings,
 		module_path: string,
-		options: TypeScriptScannerOptions,
+		options: TypeScriptScannerOptionsContract,
 		include_project: boolean,
 	): void {
 		if (ts.isNamespaceImport(named)) {
@@ -77,7 +77,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _project import binding classification_. **/
-	private project_binding(module_path: string, name: string, options: TypeScriptScannerOptions): boolean {
+	private project_binding(module_path: string, name: string, options: TypeScriptScannerOptionsContract): boolean {
 		if (module_path.length === 0) {
 			return false;
 		}
@@ -89,7 +89,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _project import binding collection_. **/
-	private project_import_bindings(source_file: ts.SourceFile, options: TypeScriptScannerOptions): ReadonlySet<string> {
+	private project_import_bindings(source_file: ts.SourceFile, options: TypeScriptScannerOptionsContract): ReadonlySet<string> {
 		const bindings = new Set<string>();
 		for (const statement of source_file.statements) {
 			if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -101,7 +101,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _TypeScript scanner state_. **/
-	private state(options: TypeScriptScannerOptions): TypeScriptScannerState {
+	private state(options: TypeScriptScannerOptionsContract): TypeScriptScannerState {
 		const ast_file = options.ast_file;
 		const ast = this.normalized_ast(options);
 		const lines = this.syntax.split_lines(options.text);
@@ -129,7 +129,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _AST normalization_. **/
-	private normalized_ast(options: TypeScriptScannerOptions): NormalizedAstFile {
+	private normalized_ast(options: TypeScriptScannerOptionsContract): NormalizedAstFileContract {
 		const ast = options.ast_file.normalized();
 		const project_names = new Set(options.typescript_class_names);
 		for (const binding of this.project_import_bindings(options.ast_file.source_file_node(), options)) {
@@ -149,7 +149,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _public operation_. **/
-	public scan(options: TypeScriptScannerOptions): ViolationContract[] {
+	public scan(options: TypeScriptScannerOptionsContract): ViolationContract[] {
 		const scanner = new TypeScriptScannerClass(this.state(options));
 		scanner.run();
 		const violations: ViolationContract[] = [];
@@ -158,7 +158,7 @@ export class TypeScriptScannerAssembly {
 	}
 
 	/** Responsibilities: _mixed-module rule execution_. **/
-	public scan_mixed_module(options: TypeScriptScannerOptions): ViolationContract[] {
+	public scan_mixed_module(options: TypeScriptScannerOptionsContract): ViolationContract[] {
 		const scanner = new TypeScriptScannerClass(this.state(options));
 		scanner.scan_mixed_module();
 		const violations: ViolationContract[] = [];

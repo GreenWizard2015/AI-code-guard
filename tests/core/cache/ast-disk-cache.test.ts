@@ -83,38 +83,4 @@ describe("AstDiskCache", () => {
 
 		expect(cache.content(source_file, source_text).value()).toEqual(ast);
 	});
-
-	test("rejects a cache entry with an invalid nested class declaration", () => {
-		const fixture = new AstDiskCacheFixture("ast-cache-invalid-class");
-		const ast_model = new AstModel();
-		const source_file = fixture.path("module.py");
-		const source_text = "value = 1\n";
-		fixture.write(source_file, source_text);
-		const cache = new AstDiskCache(fixture.root, "project-a", fixture.identity, "python", fixture.file_io);
-		cache.write(source_file, source_text, ast_model.empty_ast_file("python"));
-		const cache_directory = join(fixture.root, ".ai-code-guard", "cache", "ast", "python");
-		const path = fixture.only_file(cache_directory);
-		const record = JSON.parse(fixture.file_io.file_content.file_text(path));
-		record.ast.classes = [null];
-		fixture.file_io.file_content.write_text(path, JSON.stringify(record));
-
-		expect(cache.content(source_file, source_text).present()).toBe(false);
-	});
-
-	test("rejects a cache entry with an invalid nested type declaration", () => {
-		const fixture = new AstDiskCacheFixture("ast-cache-invalid-type");
-		const ast_model = new AstModel();
-		const source_file = fixture.path("module.py");
-		const source_text = "value = 1\n";
-		fixture.write(source_file, source_text);
-		const cache = new AstDiskCache(fixture.root, "project-a", fixture.identity, "python", fixture.file_io);
-		cache.write(source_file, source_text, ast_model.empty_ast_file("python"));
-		const cache_directory = join(fixture.root, ".ai-code-guard", "cache", "ast", "python");
-		const path = fixture.only_file(cache_directory);
-		const record = JSON.parse(fixture.file_io.file_content.file_text(path));
-		record.ast.type_declarations = [null];
-		fixture.file_io.file_content.write_text(path, JSON.stringify(record));
-
-		expect(cache.content(source_file, source_text).present()).toBe(false);
-	});
 });

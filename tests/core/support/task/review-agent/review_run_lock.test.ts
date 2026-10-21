@@ -50,6 +50,28 @@ describe("review run lock", () => {
 		expect(file_io.file_paths.path_exists(lock_path)).toBe(false);
 	});
 
+	test("recognizes that a recovery lock PID belongs to a different process incarnation", () => {
+		const recovery_path = join(root, ".ai-code-guard", "review", ".review-run-lock.recovery");
+		const boot_id = "test-boot";
+		file_io.seed_files(
+			new Map([
+				[`/proc/${process.pid}/stat`, `1 (node) ${Array.from({ length: 19 }, () => "0").join(" ")} current-start\n`],
+				["/proc/sys/kernel/random/boot_id", `${boot_id}\n`],
+			]),
+		);
+		file_io.directory_operations.create_directory(recovery_path);
+		file_io.file_content.write_text(
+			join(recovery_path, "owner"),
+			`${process.pid}\nrecovery-token\nold-start\n${boot_id}\n`,
+		);
+		const live_process_signal = new ReviewRunLockProcessSignalFixture(new Set([process.pid]), new Set());
+		const lock = new ReviewRunLock(root, file_io, live_process_signal);
+		const acquired = lock.try_acquire();
+		lock.release();
+
+		expect(acquired).toBe(true);
+	});
+
 	test("recovers a stale owner and publishes a new owner", () => {
 		const lock_path = join(root, ".ai-code-guard", "review", ".review-run-lock");
 		file_io.directory_operations.create_directory(lock_path);
@@ -75,7 +97,7 @@ describe("review run lock", () => {
 		expect(file_io.file_paths.path_exists(lock_path)).toBe(true);
 	});
 
-	test("terminates an abandoned agent group when its registered leader has exited", () => {
+	test("does not terminate an abandoned group when its leader identity is unavailable", () => {
 		const lock_path = join(root, ".ai-code-guard", "review", ".review-run-lock");
 		const agents_path = join(lock_path, "agents");
 		file_io.directory_operations.create_directory(agents_path);
@@ -86,7 +108,7 @@ describe("review run lock", () => {
 		lock.try_acquire();
 		lock.release();
 
-		expect(process_signal.terminated_signals).toEqual(["4321:SIGTERM", "4321:SIGKILL"]);
+		expect(process_signal.terminated_signals).toEqual([]);
 	});
 
 	test("finishes an interrupted stale-lock retirement before publishing a new lock", () => {

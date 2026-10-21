@@ -1,5 +1,5 @@
 import type { CallableClassIndex, CallableDefinition, CallableProjectIndex, ParsedFile } from "src/metrics/types";
-import type { AstClassNode, CallableOwnershipRequest, CallableOwnershipResolver } from "src/types";
+import type { AstClassNodeContract, CallableOwnershipRequest, CallableOwnershipResolver } from "src/types";
 import type { CallableOwnershipIndexes } from "src/linting/orchestration/runtime/composition/types";
 import { CallableOwnershipGraph } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_ownership_graph";
 
@@ -11,7 +11,7 @@ export class CallableOwnership {
 	private indexes(parsed_files: ParsedFile[]): CallableOwnershipIndexes {
 		const by_file = new Map<string, ParsedFile>();
 		const by_absolute_file = new Map<string, ParsedFile>();
-		const classes_by_file = new Map<string, ReadonlyMap<string, AstClassNode>>();
+		const classes_by_file = new Map<string, ReadonlyMap<string, AstClassNodeContract>>();
 		for (const file of parsed_files) {
 			by_file.set(file.file, file);
 			by_absolute_file.set(file.absolute_file, file);
@@ -42,7 +42,7 @@ export class CallableOwnership {
 
 	/** Responsibilities: _classification external protocol inheritance_. **/
 	private external_protocol(
-		class_node: AstClassNode,
+		class_node: AstClassNodeContract,
 		definition_file: string,
 		indexes: CallableOwnershipIndexes,
 	): boolean {

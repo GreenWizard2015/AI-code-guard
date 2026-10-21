@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import ts from "typescript";
 
-import type { AstClassNode, DuplicateTypeShape, NamedLine, NamedShape } from "src/types";
+import type { AstClassNodeContract, DuplicateTypeShape, NamedLine, NamedShape } from "src/types";
 import type { DuplicateTypeShapesContract } from "src/analysis_protocols";
 
 /** Responsibilities: _type shape normalization_, _cross-language duplicate grouping_. **/
@@ -120,7 +120,7 @@ export class DuplicateTypeShapes implements DuplicateTypeShapesContract {
 	}
 
 	/** Responsibilities: _normalization Python classes conversion_. **/
-	private python_shapes(classes: readonly AstClassNode[]): NamedShape[] {
+	private python_shapes(classes: readonly AstClassNodeContract[]): NamedShape[] {
 		return classes.map((class_node) => ({
 			name: class_node.name,
 			line: class_node.start + 1,
@@ -135,7 +135,7 @@ export class DuplicateTypeShapes implements DuplicateTypeShapesContract {
 	}
 
 	/** Responsibilities: _reporting duplicate Python class_. **/
-	public python(classes: readonly AstClassNode[]): DuplicateTypeShape[] {
+	public python(classes: readonly AstClassNodeContract[]): DuplicateTypeShape[] {
 		return this.duplicate_groups(this.python_shapes(classes));
 	}
 }

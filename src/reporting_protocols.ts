@@ -1,5 +1,5 @@
 import type { LintFileNameContract } from "src/source_types";
-import type { RuleParameters, AstClassNode, MaxMethodMetricInput, LineDepth } from "src/types";
+import type { RuleParameters, AstClassNodeContract, MaxMethodMetricInput, LineDepth } from "src/types";
 import type { ViolationCounts } from "src/model/types/types";
 
 /** Responsibilities: _serialized violation data_. **/
@@ -37,7 +37,7 @@ export interface RuleContract {
 
 /** Responsibilities: _class metric reporting_. **/
 export interface ClassReportingContract {
-	report_class_methods(violations: ViolationContract[], file_name: LintFileNameContract, node: AstClassNode): void;
+	report_class_methods(violations: ViolationContract[], file_name: LintFileNameContract, node: AstClassNodeContract): void;
 	report_test_limits(input: MaxMethodMetricInput): void;
 }
 

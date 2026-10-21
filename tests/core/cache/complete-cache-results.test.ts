@@ -110,6 +110,38 @@ describe("complete cache result validation", () => {
 		expect({ includes_new_file, discovery_calls }).toEqual({ includes_new_file: true, discovery_calls: 2 });
 	});
 
+	test("keeps metadata-only cache candidates from taking a duplicate source snapshot", () => {
+		const fixture = new CompleteCacheFixture();
+		let source_file_reads = 0;
+		const source_io = {
+			source_available: (file: string): boolean => fixture.source_io.source_available(file),
+			source_paths: (root: string, ignored: ReadonlySet<string>): readonly string[] =>
+				fixture.source_io.source_paths(root, ignored),
+			source_text: (file: string): string => {
+				if (file === fixture.file) {
+					source_file_reads += 1;
+				}
+				return fixture.source_io.source_text(file);
+			},
+		};
+		const preparer = new LintExecutionCachePreparer(
+			{ input_files: () => fixture.inputs },
+			fixture.file_io,
+			source_io,
+			fixture.analysis_identity,
+		);
+		const full_snapshot = preparer.prepare_for_inputs(fixture.options, new LintStageTimer(), fixture.inputs);
+		full_snapshot.cache.write({ files: [fixture.file], violations: [] });
+		source_file_reads = 0;
+		const cache_candidate = preparer.complete_cache(fixture.options, new LintStageTimer());
+
+		expect({
+			snapshot_complete: cache_candidate.snapshot_complete,
+			cached_source_texts: cache_candidate.source_texts.size,
+			reads_before_cache_miss_preparation: source_file_reads,
+		}).toEqual({ snapshot_complete: false, cached_source_texts: 0, reads_before_cache_miss_preparation: 0 });
+	});
+
 	test("does not reuse a clean report when source changes between snapshot and fingerprint", () => {
 		const fixture = new CompleteCacheFixture();
 		const changed_source = "export function read(value: unknown): string { return value; }";
@@ -154,5 +186,23 @@ describe("complete cache result validation", () => {
 			warm_result_available: false,
 			stale_result_is_clean: false,
 		});
+	});
+
+	test("reuses the complete cache for unchanged CRLF source files", () => {
+		const fixture = new CompleteCacheFixture();
+		const raw_source = "export const value = 1;\r\n";
+		const normalized_source = "export const value = 1;\n";
+		fixture.write_source(fixture.file, raw_source);
+		const source_texts = new Map(fixture.source_texts);
+		source_texts.set(fixture.file, normalized_source);
+		const first_context = new LintExecutionCacheContext(
+			fixture.cache_context_options(source_texts, fixture.analysis_identity),
+		);
+		first_context.lint_cache().write({ files: [fixture.file], violations: [] });
+		const second_context = new LintExecutionCacheContext(
+			fixture.cache_context_options(new Map(), fixture.analysis_identity),
+		);
+
+		expect(second_context.lint_cache().cached_result().available).toBe(true);
 	});
 });

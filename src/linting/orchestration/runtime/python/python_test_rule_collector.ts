@@ -1,8 +1,8 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { PythonTestRuleCollectorContract } from "src/python_protocols";
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
-import type { AstCallableNodeContract, AstClassNode, NamedLine } from "src/types";
-import type { PythonRuleInput } from "src/linting/types";
+import type { AstCallableNodeContract, AstClassNodeContract, NamedLine } from "src/types";
+import type { PythonRuleInputContract } from "src/linting/types";
 import {
 	MAX_TEST_ASSERTIONS,
 	MAX_TEST_LINES,
@@ -15,7 +15,7 @@ import { PythonTestFrameworkIdentity } from "src/linting/orchestration/runtime/t
 
 /** Responsibilities: _Python test assertion checks_, _production usage checks_. **/
 export class PythonTestRuleCollector implements PythonTestRuleCollectorContract {
-	private readonly input: PythonRuleInput;
+	private readonly input: PythonRuleInputContract;
 	private readonly assertion_rule: DiagnosticRule;
 	private readonly assertion_alias_rule: DiagnosticRule;
 	private readonly ending_rule: DiagnosticRule;
@@ -54,7 +54,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 	}
 
 	/** Responsibilities: _class test counts_. **/
-	private append_test_count(class_node: AstClassNode): void {
+	private append_test_count(class_node: AstClassNodeContract): void {
 		const test_methods = class_node.methods.filter(
 			(node) => node.name.startsWith("test_") && !node.decorators.includes("fixture"),
 		);
@@ -73,7 +73,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 	}
 
 	/** Responsibilities: _unittest class identity_. **/
-	private is_unittest_class(class_node: AstClassNode): boolean {
+	private is_unittest_class(class_node: AstClassNodeContract): boolean {
 		let base_count = 0;
 		let unittest_base = false;
 		for (const base_class_name of class_node.base_class_names) {
@@ -215,7 +215,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 	}
 
 	/** Responsibilities: _initialization Python test rule_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInputContract) {
 		this.assertion_rule = new DiagnosticRule("python-test-assert");
 		this.assertion_alias_rule = new DiagnosticRule("python-test-assertion-alias");
 		this.ending_rule = new DiagnosticRule("python-test-assert-ending");

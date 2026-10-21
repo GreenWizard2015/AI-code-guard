@@ -105,8 +105,8 @@ export const TYPES_RULE_DATA = {
 		priority: 6,
 	},
 	"composite-state-type": {
-		message: "replace composite union types with an interface and specialized classes",
-		hint: "define one interface for the shared contract and real specialized classes for each state or value representation. Do not: use a union, intersection, or primitive union at a domain boundary.",
+		message: "replace composite union or intersection types with explicit contracts",
+		hint: "Declare the required fields on one explicit object contract, or use specialized classes for distinct states. Do not: combine named types with union or intersection operators.",
 		priority: 6,
 	},
 	"typescript-index-signature": {

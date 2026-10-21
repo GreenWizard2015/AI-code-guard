@@ -1,5 +1,5 @@
 import type { PythonProjectImportContext } from "src/source_types";
-import type { AstPythonImport, AstPythonImportName, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { AstPythonImport, AstPythonImportName, ImportedSymbol, NormalizedAstFileContract } from "src/types";
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import { PYTHON_PACKAGE_SUFFIX } from "src/constants";
 import { PythonExportIndex } from "src/linting/orchestration/runtime/composition/python_export_index";
@@ -9,11 +9,11 @@ export class PythonCompositionImports {
 	private readonly project_source_python: ProjectSourcePythonContract;
 	private readonly project_root: string;
 	private readonly files: ReadonlySet<string>;
-	private readonly source_asts: ReadonlyMap<string, NormalizedAstFile>;
-	private readonly export_indexes: WeakMap<NormalizedAstFile, PythonExportIndex>;
+	private readonly source_asts: ReadonlyMap<string, NormalizedAstFileContract>;
+	private readonly export_indexes: WeakMap<NormalizedAstFileContract, PythonExportIndex>;
 
 	/** Responsibilities: _Python package export lookup_. **/
-	private indexed_exported_imports(ast: NormalizedAstFile, name: string): readonly AstPythonImport[] {
+	private indexed_exported_imports(ast: NormalizedAstFileContract, name: string): readonly AstPythonImport[] {
 		const imports = ast.python_imports;
 		const previous = this.export_indexes.get(ast);
 		if (previous !== undefined) {
@@ -30,7 +30,7 @@ export class PythonCompositionImports {
 	}
 
 	/** Responsibilities: _Python package export statements_. **/
-	private exported_imports(ast: NormalizedAstFile, name: string): AstPythonImport[] {
+	private exported_imports(ast: NormalizedAstFileContract, name: string): AstPythonImport[] {
 		const imports = ast.python_imports;
 		if (imports === undefined) {
 			return [];
@@ -117,7 +117,7 @@ export class PythonCompositionImports {
 	}
 
 	/** Responsibilities: _initialization Python import resolution_. **/
-	public constructor(context: PythonProjectImportContext, source_asts: ReadonlyMap<string, NormalizedAstFile>) {
+	public constructor(context: PythonProjectImportContext, source_asts: ReadonlyMap<string, NormalizedAstFileContract>) {
 		this.project_root = context.root;
 		this.files = context.files;
 		this.project_source_python = context.resolver;

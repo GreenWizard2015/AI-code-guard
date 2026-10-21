@@ -50,6 +50,40 @@ class PythonExceptionRules:
             return True
         return all(self._empty_statement(statement) for statement in handler.body)
 
+    def _exception_name(self, handler: ast.ExceptHandler) -> str:
+        """Responsibilities: _exception name extraction_."""
+        exception_type = handler.type
+        if type(exception_type) is ast.Name:
+            return exception_type.id
+        if type(exception_type) is ast.Attribute:
+            return exception_type.attr
+        return ""
+
+    def _operation_name(self, statement: ast.stmt) -> str:
+        """Responsibilities: _direct exception-producing operation name_."""
+        if type(statement) is not ast.Expr or type(statement.value) is not ast.Call:
+            return ""
+        function = statement.value.func
+        if type(function) is ast.Name:
+            return function.id
+        if type(function) is ast.Attribute:
+            return function.attr
+        return ""
+
+    def _idempotent_empty_handler(
+        self, handler: ast.ExceptHandler, statement: ast.AST
+    ) -> bool:
+        """Responsibilities: _idempotent filesystem race suppression_."""
+        if type(statement) not in (ast.Try, ast.TryStar) or len(statement.body) != 1:
+            return False
+        operation_name = self._operation_name(statement.body[0])
+        exception_name = self._exception_name(handler)
+        if exception_name == "FileNotFoundError":
+            return operation_name in ("unlink", "remove")
+        if exception_name == "FileExistsError":
+            return operation_name == "mkdir"
+        return False
+
     def _error_context_loss(self, handler: ast.ExceptHandler) -> list[JsonObject]:
         """Responsibilities: _Python explicit exception-context suppression_."""
         for node in ast.walk(handler):
@@ -136,7 +170,9 @@ class PythonExceptionRules:
         self.broadness: PythonExceptionBroadnessContract = broadness
         self.multiplicity: PythonExceptionMultiplicityContract = multiplicity
 
-    def except_clause_issues(self, handler: ast.ExceptHandler) -> list[JsonObject]:
+    def except_clause_issues(
+        self, handler: ast.ExceptHandler, statement: ast.AST
+    ) -> list[JsonObject]:
         """Responsibilities: _collection exception handler issues_."""
         issues: list[JsonObject] = []
         issues.extend(self._multi_except_issue(handler))
@@ -146,7 +182,10 @@ class PythonExceptionRules:
                 {"line": handler.lineno - 1, "kind": PYTHON_MULTI_EXCEPT_KIND}
             )
         if self._empty_handler(handler):
-            issues.append({"line": handler.lineno - 1, "kind": "empty-error-handler"})
+            if not self._idempotent_empty_handler(handler, statement):
+                issues.append(
+                    {"line": handler.lineno - 1, "kind": "empty-error-handler"}
+                )
         issues.extend(self._error_context_loss(handler))
         return issues
 
@@ -158,5 +197,5 @@ class PythonExceptionRules:
             return []
         issues: list[JsonObject] = []
         for handler in node.handlers:
-            issues.extend(self.except_clause_issues(handler))
+            issues.extend(self.except_clause_issues(handler, node))
         return issues

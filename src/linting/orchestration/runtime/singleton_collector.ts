@@ -5,7 +5,7 @@ import type { TypeScriptSingletonCollectorContract } from "src/typescript_analys
 import type { ViolationContract } from "src/reporting_protocols";
 import type ts from "typescript";
 
-import type { AstModuleInstance, NormalizedAstFile } from "src/types";
+import type { AstModuleInstance, NormalizedAstFileContract } from "src/types";
 import { BUILTIN_CONSTRUCTORS } from "src/linting/orchestration/runtime/constants";
 import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
 import { PythonClassVariableSingletons } from "src/linting/orchestration/runtime/python/python_class_variable_singletons";
@@ -13,7 +13,7 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 
 /** Responsibilities: _singleton instance detection_, _language-specific singleton diagnostics_. **/
 export class SingletonCollector {
-	private readonly normalized_ast: NormalizedAstFile;
+	private readonly normalized_ast: NormalizedAstFileContract;
 
 	private readonly local_class_names: ReadonlySet<string>;
 
@@ -118,7 +118,7 @@ export class SingletonCollector {
 		file: string,
 		text: string,
 		local_class_names: ReadonlySet<string>,
-		normalized_ast: NormalizedAstFile,
+		normalized_ast: NormalizedAstFileContract,
 		source_file: ts.SourceFile,
 	) {
 		this.python_ast_parser = new PythonAstData(new PythonAstBridge());

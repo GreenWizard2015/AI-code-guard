@@ -13,7 +13,7 @@ import type { LintProjectContextContract, LintStageTimerContract } from "src/sha
 import type { ProjectSourceScannerContract } from "src/source_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";
@@ -72,8 +72,8 @@ export class GlobalAnalysisStages {
 	}
 
 	/** Responsibilities: _Python AST snapshot_. **/
-	private python_ast_snapshot(): ReadonlyMap<string, NormalizedAstFile> {
-		return new Map<string, NormalizedAstFile>(
+	private python_ast_snapshot(): ReadonlyMap<string, NormalizedAstFileContract> {
+		return new Map<string, NormalizedAstFileContract>(
 			this.context
 				.files()
 				.filter((source) => source.language === "python")

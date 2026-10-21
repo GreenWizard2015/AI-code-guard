@@ -3,17 +3,17 @@ import { IGNORED_DIRS, MARKDOWN_TEXT_SUFFIXES } from "src/constants";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import { CyrillicTextRules } from "src/rules/support/cyrillic_text_rules";
+import { NonEnglishSourceTextRules } from "src/rules/support/non_english_source_text_rules";
 import type { TextFileDiscoveryContract } from "src/runtime_protocols";
 import type { GitIgnoredPathsContract } from "src/runtime_protocols";
-import type { CyrillicTextRulesContract } from "src/shared_services_protocols";
+import type { NonEnglishSourceTextRulesContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 
-/** Responsibilities: _text file traversal_, _Cyrillic text diagnostics_. **/
+/** Responsibilities: _text file traversal_, _non-English text diagnostics_. **/
 export class TextFileDiscovery implements TextFileDiscoveryContract {
 	private readonly ignored_directories = IGNORED_DIRS;
 	private readonly text_suffixes = [...MARKDOWN_TEXT_SUFFIXES, ".txt", ".text", ".rst", ".adoc"];
-	private readonly text_rules: CyrillicTextRulesContract;
+	private readonly text_rules: NonEnglishSourceTextRulesContract;
 	private readonly source_io: ProjectSourceIOContract;
 	private readonly git_ignored_paths: Map<string, GitIgnoredPathsContract>;
 
@@ -50,7 +50,7 @@ export class TextFileDiscovery implements TextFileDiscoveryContract {
 	/** Responsibilities: _text discovery rule initialization_. **/
 	public constructor(source_io: ProjectSourceIOContract) {
 		this.git_ignored_paths = new Map<string, GitIgnoredPathsContract>();
-		this.text_rules = new CyrillicTextRules(new DiagnosticRule("cyrillic-comment"));
+		this.text_rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));
 		this.source_io = source_io;
 	}
 
@@ -77,7 +77,7 @@ export class TextFileDiscovery implements TextFileDiscoveryContract {
 		return files;
 	}
 
-	/** Responsibilities: _text Cyrillic violations_. **/
+	/** Responsibilities: _non-English text violations_. **/
 	public violations(
 		repo_root: string,
 		configured_ignored: ReadonlySet<string>,

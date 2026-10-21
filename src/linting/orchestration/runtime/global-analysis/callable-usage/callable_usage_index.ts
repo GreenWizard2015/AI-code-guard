@@ -13,7 +13,7 @@ import type {
 	ParsedFile,
 } from "src/metrics/types";
 import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
-import type { AstCallableReference, AstClassNode, AstTypeMemberRecord } from "src/types";
+import type { AstCallableReference, AstClassNodeContract, AstTypeMemberRecord } from "src/types";
 import type { CallableUsageIndexState } from "src/linting/orchestration/runtime/composition/types";
 
 /** Responsibilities: _callable symbol indexing_, _reference data aggregation_. **/
@@ -35,7 +35,7 @@ export class CallableUsageIndex {
 	}
 
 	/** Responsibilities: _named class candidate storage_. **/
-	private append_class_candidate(identity: string, class_node: AstClassNode): void {
+	private append_class_candidate(identity: string, class_node: AstClassNodeContract): void {
 		const existing = this.class_candidates.get(identity);
 		if (existing === undefined) {
 			this.class_candidates.set(identity, new Set([class_node]));
@@ -82,7 +82,7 @@ export class CallableUsageIndex {
 
 	/** Responsibilities: _callable matcher classes_. **/
 	private matcher_classes(): CallableMatcherClassIndexes {
-		const classes = new Map<string, AstClassNode>();
+		const classes = new Map<string, AstClassNodeContract>();
 		const protocol_names = this.contract_names();
 		for (const [identity, candidates] of this.class_candidates) {
 			for (const class_node of candidates) {

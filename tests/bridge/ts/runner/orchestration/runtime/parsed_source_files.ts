@@ -2,7 +2,7 @@ import { LintFileName } from "src/core/context/lint_file_name";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
 import { PythonAstData } from "src/core/python_ast_data";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
-import type { PythonRuleInput } from "src/linting/types";
+import type { PythonRuleInputContract } from "src/linting/types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 
 /** Responsibilities: _source ASTs_, _Python rule inputs_. **/
@@ -39,7 +39,7 @@ export class ParsedSourceFiles {
 	}
 
 	/** Responsibilities: _Python rule input_. **/
-	public rule_input(file: string, text: string): PythonRuleInput {
+	public rule_input(file: string, text: string): PythonRuleInputContract {
 		const ast = this.parse_python(file, text).snapshot().normalized_ast;
 		return {
 			violations: [],

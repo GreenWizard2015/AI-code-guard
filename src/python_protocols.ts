@@ -1,4 +1,4 @@
-import type { AstCallableNodeContract, AstCodingIssue, AstPythonImport, ImportedFunction, NormalizedAstFile, PythonBatchAstOptions, PythonSourceAstBatch } from "src/types";
+import type { AstCallableNodeContract, AstCodingIssue, AstPythonImport, ImportedFunction, NormalizedAstFileContract, PythonBatchAstOptions, PythonSourceAstBatch } from "src/types";
 import type { ArchitectureInput } from "src/model/types/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
@@ -51,17 +51,17 @@ export interface PythonImportResolutionContract {
 
 /** Responsibilities: _Python AST batch parsing_. **/
 export interface PythonAstDataContract {
-	batch_ast(options: PythonBatchAstOptions): NormalizedAstFile[];
-	source_ast(text: string): NormalizedAstFile;
+	batch_ast(options: PythonBatchAstOptions): NormalizedAstFileContract[];
+	source_ast(text: string): NormalizedAstFileContract;
 	begin_batch_ast?(options: PythonBatchAstOptions): string;
-	complete_batch_ast?(batch_id: string): NormalizedAstFile[];
+	complete_batch_ast?(batch_id: string): NormalizedAstFileContract[];
 }
 
 /** Responsibilities: _Python source batch lifecycle_. **/
 export interface PythonSourceFilesContract {
 	begin_source_ast(stage_timer: LintStageTimerContract, stage_prefix: string): PythonSourceAstBatch;
-	complete_source_ast(batch: PythonSourceAstBatch): ReadonlyMap<string, NormalizedAstFile>;
-	source_ast(stage_timer: LintStageTimerContract, stage_prefix: string): ReadonlyMap<string, NormalizedAstFile>;
+	complete_source_ast(batch: PythonSourceAstBatch): ReadonlyMap<string, NormalizedAstFileContract>;
+	source_ast(stage_timer: LintStageTimerContract, stage_prefix: string): ReadonlyMap<string, NormalizedAstFileContract>;
 }
 
 /** Responsibilities: _Python test rule collection_. **/
@@ -73,7 +73,7 @@ export interface PythonTestRuleCollectorContract {
 /** Responsibilities: _Python AST batch caching_. **/
 export interface PythonAstBatchCacheContract {
 	cached(text: string): AstCacheEntryContract;
-	resolve(options: PythonBatchAstOptions, parse: PythonAstBatchParser): NormalizedAstFile[];
+	resolve(options: PythonBatchAstOptions, parse: PythonAstBatchParser): NormalizedAstFileContract[];
 }
 
 /** Responsibilities: _Python coding rule collection_. **/

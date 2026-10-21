@@ -19,9 +19,9 @@ export const QUALITY_RULE_DATA = {
 		hint: "Use a concise noun phrase naming the owned work. Do not: describe results or invocation mechanics.",
 		priority: 0,
 	},
-	"cyrillic-comment": {
-		message: "contains Cyrillic text in a comment or text file",
-		hint: "Use English in comments, standalone multiline string comments, and text files. Cyrillic is allowed inside assigned or returned source string literals.",
+	"non-english-source-text": {
+		message: "contains non-English text in source code or a text file",
+		hint: "Keep source comments and inline literals in English. Put user-facing translations in localization resource files and reference them from code.",
 		priority: 2,
 	},
 	"logical-chain-size": {

@@ -9,6 +9,7 @@ export type CompleteCachePreparation = {
 	cache: LintExecutionCacheContract;
 	inputs: LintInputFiles;
 	source_texts: ReadonlyMap<string, string>;
+	snapshot_complete: boolean;
 };
 export type LintExecutionCacheContextOptions = {
 	root: string;

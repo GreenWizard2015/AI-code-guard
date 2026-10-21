@@ -1,19 +1,40 @@
 import ts from "typescript";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstClassField, AstClassNode, NamedSymbol } from "src/types";
+import type { AstClassField, AstClassNodeContract, NamedSymbol } from "src/types";
 import { UNUSED_SYMBOL_KIND } from "src/core/types";
 import type { UnusedSymbolDefinition } from "src/core/types";
 import type { UnusedSymbolDefinitionCollectorContract } from "src/linting/orchestration/runtime/global-analysis/protocols";
 
 /** Responsibilities: _unused symbol definition collection_, _definition deduplication_. **/
 export class UnusedSymbolDefinitionCollector implements UnusedSymbolDefinitionCollectorContract {
+	/** Responsibilities: _Python class-field filtering_. **/
+	private python_field_excluded(
+		source: LintSourceRecord,
+		class_node: AstClassNodeContract,
+		field: AstClassField,
+	): boolean {
+		if (!source.python()) {
+			return false;
+		}
+		if (field.name === "__slots__") {
+			return true;
+		}
+		if (field.class_scope !== true) {
+			return false;
+		}
+		return class_node.extends_external_class;
+	}
+
 	/** Responsibilities: _class definition collection_. **/
 	private append_class_field(
 		definitions: UnusedSymbolDefinition[],
 		source: LintSourceRecord,
-		class_node: AstClassNode,
+		class_node: AstClassNodeContract,
 		field: AstClassField,
 	): void {
+		if (this.python_field_excluded(source, class_node, field)) {
+			return;
+		}
 		if (field.visibility !== "public") {
 			return;
 		}
@@ -32,7 +53,7 @@ export class UnusedSymbolDefinitionCollector implements UnusedSymbolDefinitionCo
 	private append_class_definition(
 		definitions: UnusedSymbolDefinition[],
 		source: LintSourceRecord,
-		class_node: AstClassNode,
+		class_node: AstClassNodeContract,
 	): void {
 		if (class_node.protocol || class_node.type_contract) {
 			return;

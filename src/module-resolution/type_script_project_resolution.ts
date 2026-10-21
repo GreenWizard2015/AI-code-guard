@@ -14,6 +14,7 @@ export class TypeScriptProjectResolution {
 	private readonly project_root: string;
 	private readonly source_io: ProjectSourceIOContract;
 	private readonly config_host: ts.ParseConfigHost;
+	private readonly configuration_sources: Set<string>;
 
 	/** Responsibilities: _compiler path mapping collection_. **/
 	private path_mappings(options: ts.CompilerOptions): TypeScriptPathMapping[] {
@@ -83,17 +84,33 @@ export class TypeScriptProjectResolution {
 	public constructor(project_root: string, source_io: ProjectSourceIOContract) {
 		this.project_root = project_root;
 		this.source_io = source_io;
+		this.configuration_sources = new Set<string>();
 		this.config_host = {
 			useCaseSensitiveFileNames: true,
 			readDirectory: () => [],
-			fileExists: (file) => this.source_io.source_available(file),
+			fileExists: (file) => {
+				if (!this.source_io.source_available(file)) {
+					return false;
+				}
+				this.configuration_sources.add(resolve_path(file));
+				return true;
+			},
 			readFile: (file) => {
 				if (!this.source_io.source_available(file)) {
 					return undefined;
 				}
+				this.configuration_sources.add(resolve_path(file));
 				return this.source_io.source_text(file);
 			},
 		};
+	}
+
+	/** Responsibilities: _transitive compiler configuration inputs_. **/
+	public configuration_files(): readonly string[] {
+		const config_file = resolve_path(this.project_root, TYPESCRIPT_CONFIG_FILE);
+		this.configuration_sources.add(config_file);
+		this.parsed_config(config_file);
+		return [...this.configuration_sources];
 	}
 
 	/** Responsibilities: _resolution cache identity_. **/

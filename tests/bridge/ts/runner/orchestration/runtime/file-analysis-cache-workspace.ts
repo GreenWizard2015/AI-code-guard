@@ -1,8 +1,8 @@
 import { dirname, join } from "node:path";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import type { GlobalAnalysisCacheOptions } from "src/cache_types";
+import type { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import type { LintSourceRecord } from "src/source_types";
-import { ViolationValue } from "src/violation_value";
+import type { ViolationValue } from "src/violation_value";
 import type { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 
 /** Responsibilities: _cache fixture source state_, _cache operation access_. **/
@@ -77,6 +77,20 @@ export class FileAnalysisCacheWorkspace {
 		const first_violation = record.violations[0];
 		const { priority: _priority, ...malformed_violation } = first_violation;
 		record.violations[0] = malformed_violation;
+		this.file_io.file_content.write_text(path, JSON.stringify(record));
+		return true;
+	}
+
+	/** Responsibilities: _cached null diagnostic injection_. **/
+	public corrupt_with_null_diagnostic(directory_name: string): boolean {
+		const directory = join(this.root, ".ai-code-guard", "cache", directory_name);
+		const [name] = this.file_io.directory_entries.list_files(directory);
+		if (name === undefined) {
+			return false;
+		}
+		const path = join(directory, name);
+		const record = JSON.parse(this.file_io.file_content.file_text(path));
+		record.violations[0] = null;
 		this.file_io.file_content.write_text(path, JSON.stringify(record));
 		return true;
 	}

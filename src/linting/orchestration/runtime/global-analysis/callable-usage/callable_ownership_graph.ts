@@ -1,5 +1,5 @@
 import type { CallableClassIndex, CallableProjectIndex, ParsedFile } from "src/metrics/types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import type { CallableSymbolIndexContract } from "src/analysis_protocols";
 import type { NameRelationsResolver } from "src/runtime_types";
 import type { StringReadonlySetMap, StringSetMap } from "src/analysis_types";
@@ -68,7 +68,7 @@ export class CallableOwnershipGraph {
 	}
 
 	/** Responsibilities: _callable ownership matching_. **/
-	private matches_graph(class_node: AstClassNode, method_name: string, owner = "", source_file = ""): boolean {
+	private matches_graph(class_node: AstClassNodeContract, method_name: string, owner = "", source_file = ""): boolean {
 		if (this.matches_interface(class_node, method_name, source_file)) {
 			return true;
 		}
@@ -81,7 +81,7 @@ export class CallableOwnershipGraph {
 	}
 
 	/** Responsibilities: _callable ownership matching_. **/
-	private matches_interface(class_node: AstClassNode, method_name: string, source_file = ""): boolean {
+	private matches_interface(class_node: AstClassNodeContract, method_name: string, source_file = ""): boolean {
 		if (class_node.interfaces.length === 0) {
 			return false;
 		}
@@ -164,7 +164,7 @@ export class CallableOwnershipGraph {
 	}
 
 	/** Responsibilities: _callable owner matching_. **/
-	public match(class_node: AstClassNode, method_name: string, owner = "", source_file = ""): boolean {
+	public match(class_node: AstClassNodeContract, method_name: string, owner = "", source_file = ""): boolean {
 		if (owner !== undefined) {
 			if (this.type_member_names(owner, source_file).has(method_name)) {
 				return true;

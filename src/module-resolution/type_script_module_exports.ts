@@ -74,7 +74,12 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 		source_io: ProjectSourceIOContract,
 	) {
 		this.project_root = resolve_path(project_root);
-		const cached = SHARED_MODULE_CACHES.get(source_files);
+		let source_caches = SHARED_MODULE_CACHES.get(source_files);
+		if (source_caches === undefined) {
+			source_caches = new WeakMap<ProjectSourceIOContract, TypeScriptModuleCache>();
+			SHARED_MODULE_CACHES.set(source_files, source_caches);
+		}
+		const cached = source_caches.get(source_io);
 		if (cached !== undefined) {
 			this.module_cache = cached;
 		} else {
@@ -90,7 +95,7 @@ export class TypeScriptModuleExports implements RecursiveExportResolver {
 				local_import_indexes: new WeakMap(),
 				symbol_kinds: new WeakMap(),
 			};
-			SHARED_MODULE_CACHES.set(source_files, created);
+			source_caches.set(source_io, created);
 			this.module_cache = created;
 		}
 		let project_resolutions = this.module_cache.resolutions.get(source_io);

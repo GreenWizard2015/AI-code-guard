@@ -23,20 +23,6 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 	private readonly analyzer_digests: Map<string, string>;
 	private readonly file_io: IOContract;
 
-	/** Responsibilities: _ordered identity section construction_. **/
-	private ordered_section(values: ReadonlySet<string>): string {
-		const ordered = [...values];
-		ordered.sort();
-		let section = "";
-		for (const value of ordered) {
-			if (section.length > 0) {
-				section += this.separator;
-			}
-			section += value;
-		}
-		return section;
-	}
-
 	/** Responsibilities: _analyzer source file discovery_. **/
 	private analyzer_files(directory: string): string[] {
 		if (!this.file_io.directory_entries.path_is_directory(directory)) {
@@ -193,10 +179,13 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 		ignored_files: ReadonlySet<string>,
 		entry_files: ReadonlySet<string>,
 	): string {
-		const selected = this.ordered_section(files);
-		const ignored = this.ordered_section(ignored_files);
-		const entries = this.ordered_section(entry_files);
-		const value = `${selected}${this.separator}${ignored}${this.separator}${entries}`;
+		const sorted_files = [...files];
+		sorted_files.sort();
+		const sorted_ignored_files = [...ignored_files];
+		sorted_ignored_files.sort();
+		const sorted_entry_files = [...entry_files];
+		sorted_entry_files.sort();
+		const value = JSON.stringify([sorted_files, sorted_ignored_files, sorted_entry_files]);
 		return createHash(this.algorithm).update(value).digest(this.encoding);
 	}
 }

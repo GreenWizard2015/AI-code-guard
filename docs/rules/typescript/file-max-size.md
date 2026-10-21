@@ -1,102 +1,58 @@
 # `file-max-size`
 
-Description: Detect a source file whose raw line count has grown beyond a maintainable size. Comments and blank lines count. The diagnostic measures physical file size, not responsibility; split only along real ownership boundaries.
+Description: Detect source files that exceed the maintainable line count. Blank lines and comments count. Split only at real ownership boundaries.
 
 ## Bad
 
-One accumulated file owns source parsing, order selection, and invoice calculations (representative excerpt):
+One growing module mixes row parsing, selection, and invoice calculations; repeated comments represent its accumulated code:
 
 ```ts
-// File: src/order_workflow.ts
-export class OrderWorkflow {
+// File: src/orders.ts
+export class Orders {
 	private readonly text: string;
 	public constructor(text: string) { this.text = text; }
-	public rows(): string[] {
-		const rows: string[] = [];
-		for (const row of this.text.split("\n")) { if (row.trim().length > 0) { rows.push(row.trim()); } }
-		return rows;
-	}
-	public row_count(): number {
-		let count = 0;
-		for (const row of this.text.split("\n")) { if (row.trim().length > 0) { count += 1; } }
-		return count;
-	}
-	public empty(): boolean { return this.text.trim().length === 0; }
+	public rows(): string[] { return this.text.split("\n").map((row) => row.trim()).filter((row) => row.length > 0); }
 	public paid_rows(): string[] { return this.rows().filter((row) => row.endsWith(",paid")); }
-	public unpaid_rows(): string[] { return this.rows().filter((row) => !row.endsWith(",paid")); }
-	public paid_count(): number {
-		let count = 0;
-		for (const row of this.rows()) { if (row.endsWith(",paid")) { count += 1; } }
-		return count;
-	}
-	public contains_order(order_id: string): boolean {
-		for (const row of this.rows()) { const fields = row.split(","); if (fields[0] === order_id) { return true; } }
-		return false;
-	}
 	public invoice_total(): number {
 		let total = 0;
-		for (const row of this.rows()) { const fields = row.split(","); total += Number(fields[1]); }
+		for (const row of this.rows()) {
+			const fields = row.split(",");
+			total += Number(fields[1]);
+		}
 		return total;
 	}
-	public invoice_count(): number { return this.row_count(); }
-	public average_invoice(): number {
-		const count = this.invoice_count();
-		if (count === 0) { return 0; }
-		return this.invoice_total() / count;
-	}
-}
+{% for index in range(600) %}
+	// More accumulated parsing, selection, and invoice behavior.
+{% endfor %}
 // File: cli.ts
-import { OrderWorkflow } from "src/order_workflow";
+import { Orders } from "src/orders";
 (function () {
-	const workflow = new OrderWorkflow("ORD-42,18.50,paid");
-	const rows = workflow.rows();
-	const row_count = workflow.row_count();
-	const empty = workflow.empty();
-	const paid = workflow.paid_rows();
-	const unpaid = workflow.unpaid_rows();
-	const paid_count = workflow.paid_count();
-	const contains_order = workflow.contains_order("ORD-42");
-	const total = workflow.invoice_total();
-	const invoice_count = workflow.invoice_count();
-	const average = workflow.average_invoice();
-	process.stdout.write(JSON.stringify([rows, row_count, empty, paid, unpaid, paid_count, contains_order, total, invoice_count, average]));
+	const orders = new Orders("ORD-42,18.50,paid");
+	const rows = orders.rows();
+	const paid_rows = orders.paid_rows();
+	const total = orders.invoice_total();
+	console.log(rows, paid_rows, total);
 })();
 ```
 
 ## Good
 
-Keep the same behavior, with state and operations owned by focused modules:
+Separate row ownership and invoice calculations:
 
 ```ts
-// File: src/order_source.ts
-export class OrderSource {
+// File: src/order_ledger.ts
+export class OrderLedger {
 	private readonly text: string;
 	public constructor(text: string) { this.text = text; }
-	public rows(): string[] {
-		const rows: string[] = [];
-		for (const row of this.text.split("\n")) { if (row.trim().length > 0) { rows.push(row.trim()); } }
-		return rows;
-	}
-	public row_count(): number {
-		let count = 0;
-		for (const row of this.text.split("\n")) { if (row.trim().length > 0) { count += 1; } }
-		return count;
-	}
-	public empty(): boolean { return this.text.trim().length === 0; }
-}
-// File: src/paid_order_selection.ts
-export class PaidOrderSelection {
-	private readonly rows_value: readonly string[];
-	public constructor(rows: readonly string[]) { this.rows_value = rows; }
-	public paid_rows(): string[] { return this.rows_value.filter((row) => row.endsWith(",paid")); }
-	public unpaid_rows(): string[] { return this.rows_value.filter((row) => !row.endsWith(",paid")); }
-	public paid_count(): number {
-		let count = 0;
-		for (const row of this.rows_value) { if (row.endsWith(",paid")) { count += 1; } }
-		return count;
-	}
+	public rows(): string[] { return this.text.split("\n").map((row) => row.trim()).filter((row) => row.length > 0); }
+	public count(): number { return this.rows().length; }
+	public paid_rows(): string[] { return this.rows().filter((row) => row.endsWith(",paid")); }
+	public paid_count(): number { return this.paid_rows().length; }
 	public contains_order(order_id: string): boolean {
-		for (const row of this.rows_value) { const fields = row.split(","); if (fields[0] === order_id) { return true; } }
+		for (const row of this.rows()) {
+			const fields = row.split(",");
+			if (fields[0] === order_id) { return true; }
+		}
 		return false;
 	}
 }
@@ -104,40 +60,35 @@ export class PaidOrderSelection {
 export class OrderInvoice {
 	private readonly rows_value: readonly string[];
 	public constructor(rows: readonly string[]) { this.rows_value = rows; }
-	public invoice_total(): number {
+	public total(): number {
 		let total = 0;
-		for (const row of this.rows_value) { const fields = row.split(","); total += Number(fields[1]); }
+		for (const row of this.rows_value) {
+			const fields = row.split(",");
+			total += Number(fields[1]);
+		}
 		return total;
 	}
-	public invoice_count(): number {
-		let count = 0;
-		for (const row of this.rows_value) { if (row.length > 0) { count += 1; } }
-		return count;
-	}
-	public average_invoice(): number {
-		const count = this.invoice_count();
+	public count(): number { return this.rows_value.filter((row) => row.length > 0).length; }
+	public average(): number {
+		const count = this.count();
 		if (count === 0) { return 0; }
-		return this.invoice_total() / count;
+		return this.total() / count;
 	}
 }
 // File: cli.ts
 import { OrderInvoice } from "src/order_invoice";
-import { OrderSource } from "src/order_source";
-import { PaidOrderSelection } from "src/paid_order_selection";
+import { OrderLedger } from "src/order_ledger";
 (function () {
-	const source = new OrderSource("ORD-42,18.50,paid");
-	const rows = source.rows();
-	const row_count = source.row_count();
-	const empty = source.empty();
-	const selection = new PaidOrderSelection(rows);
-	const paid = selection.paid_rows();
-	const unpaid = selection.unpaid_rows();
-	const paid_count = selection.paid_count();
-	const contains_order = selection.contains_order("ORD-42");
+	const ledger = new OrderLedger("ORD-42,18.50,paid");
+	const rows = ledger.rows();
+	const row_count = ledger.count();
+	const paid_rows = ledger.paid_rows();
+	const paid_count = ledger.paid_count();
+	const contains_order = ledger.contains_order("ORD-42");
 	const invoice = new OrderInvoice(rows);
-	const total = invoice.invoice_total();
-	const invoice_count = invoice.invoice_count();
-	const average = invoice.average_invoice();
-	process.stdout.write(JSON.stringify([rows, row_count, empty, paid, unpaid, paid_count, contains_order, total, invoice_count, average]));
+	const total = invoice.total();
+	const count = invoice.count();
+	const average = invoice.average();
+	console.log(rows, row_count, paid_rows, paid_count, contains_order, total, count, average);
 })();
 ```

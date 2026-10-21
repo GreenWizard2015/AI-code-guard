@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { Hash } from "node:crypto";
 import { join, resolve } from "node:path";
+import type { LintExecutionCacheContract } from "src/cache_protocols";
+import { AI_CODE_GUARD_DIRECTORY, MISSING_CACHE_VALUE } from "src/constants";
 import { CacheDirectoryTree } from "src/core/cache/cache_directory_tree";
 import { LintExecutionCache } from "src/core/cache/lint_execution_cache";
 import type { LintExecutionCacheContextOptions } from "src/core/cache/types";
@@ -11,19 +13,17 @@ import {
 	LINT_EXECUTION_CACHE_FILE,
 	LINT_EXECUTION_CACHE_VERSION,
 } from "src/core/constants";
-import { AI_CODE_GUARD_DIRECTORY, MISSING_CACHE_VALUE } from "src/constants";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { IOContract } from "src/io/protocols";
 import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import type { LintExecutionCacheContract } from "src/cache_protocols";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { LintInputFiles } from "src/project_analysis_types";
-import type { CliOptions } from "src/task_types";
 import type {
 	LintDirectoryFingerprint,
 	LintExecutionCacheState,
 	LintFileFingerprint,
 } from "src/project_analysis_types";
-import type { IOContract } from "src/io/protocols";
-import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { CliOptions } from "src/task_types";
 
 /** Responsibilities: _cache identity construction_, _lint execution cache access_. **/
 export class LintExecutionCacheContext {
@@ -52,10 +52,13 @@ export class LintExecutionCacheContext {
 			const before = this.file_io.file_paths.metadata(file);
 			const current_text = this.file_io.file_content.file_text(file);
 			const after = this.file_io.file_paths.metadata(file);
-			const before_fingerprint = { file, ...before, content_hash };
-			const after_fingerprint = { file, ...after, content_hash };
-			if (this.same_metadata(before_fingerprint, after_fingerprint) && current_text === source_text) {
-				return after_fingerprint;
+			const unchanged_metadata = this.same_metadata(
+				{ file, ...before, content_hash },
+				{ file, ...after, content_hash },
+			);
+			const unchanged_source = current_text.replace(/\r\n?/gu, "\n") === source_text.replace(/\r\n?/gu, "\n");
+			if (unchanged_metadata && unchanged_source) {
+				return { file, ...after, content_hash };
 			}
 		} catch (error) {
 			if (!this.boundary_failures.system_failure_message(String(error))) {
@@ -70,7 +73,7 @@ export class LintExecutionCacheContext {
 		try {
 			const before = this.file_io.file_paths.metadata(file);
 			const current_text = this.file_io.file_content.file_text(file);
-			const content_hash = createHash("sha256").update(current_text).digest("hex");
+			const content_hash = createHash("sha256").update(current_text.replace(/\r\n?/gu, "\n")).digest("hex");
 			const after = this.file_io.file_paths.metadata(file);
 			const before_fingerprint = { file, ...before, content_hash };
 			const after_fingerprint = { file, ...after, content_hash };
@@ -87,7 +90,7 @@ export class LintExecutionCacheContext {
 
 	/** Responsibilities: _stable source snapshot fingerprint_. **/
 	private snapshot_fingerprint(file: string, source_text: string): LintFileFingerprint {
-		const content_hash = createHash("sha256").update(source_text).digest("hex");
+		const content_hash = createHash("sha256").update(source_text.replace(/\r\n?/gu, "\n")).digest("hex");
 		let fingerprint: LintFileFingerprint = { file, size: -1, mtime_ms: -1, ctime_ms: -1, content_hash };
 		for (let attempt = 0; attempt < CACHE_INPUT_STABILITY_ATTEMPTS; attempt += 1) {
 			fingerprint = this.snapshot_attempt(file, source_text, content_hash);

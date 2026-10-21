@@ -2,7 +2,7 @@ import type { MethodOrderContract } from "src/analysis_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RuleParameters } from "src/types";
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
 import { CONSTRUCTOR_NAME, PYTHON_CONSTRUCTOR_NAME } from "src/metrics/constants";
 import { PRIVATE_VISIBILITY, PROTECTED_VISIBILITY, RULE_IDS } from "src/constants";
 
@@ -114,7 +114,7 @@ export class MethodOrder implements MethodOrderContract {
 	}
 
 	/** Responsibilities: _aggregation constructor visibility ordering_. **/
-	public append_order_violations(violations: ViolationContract[], file: string, node: AstClassNode): void {
+	public append_order_violations(violations: ViolationContract[], file: string, node: AstClassNodeContract): void {
 		const methods = node.methods;
 		this.append_impl_order(violations, file, methods);
 		this.append_constructor_violations(violations, file, methods);

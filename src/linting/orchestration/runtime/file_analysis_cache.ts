@@ -1,16 +1,16 @@
 import { join, resolve } from "node:path";
-import { FILE_ANALYSIS_CACHE_VERSION } from "src/core/constants";
-import { ViolationCache } from "src/core/cache/violation_cache";
-import type { LintSourceRecord } from "src/source_types";
 import type { FileAnalysisCacheContract } from "src/cache_protocols";
+import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
+import { ViolationCache } from "src/core/cache/violation_cache";
+import { FILE_ANALYSIS_CACHE_VERSION } from "src/core/constants";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { IOContract } from "src/io/protocols";
+import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
+import type { CacheState, FileAnalysisCacheRecord } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { CacheState, FileAnalysisCacheRecord } from "src/project_analysis_types";
-import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import type { IOContract } from "src/io/protocols";
-import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { LintSourceRecord } from "src/source_types";
 
 /** Responsibilities: _persistent file-analysis cache_, _project-context invalidation_. **/
 export class FileAnalysisCache implements FileAnalysisCacheContract {
@@ -29,6 +29,20 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 		return join(this.cache_directory, `${key}.json`);
 	}
 
+	/** Responsibilities: _file cache record fields_. **/
+	private record_fields_valid(record: FileAnalysisCacheRecord): boolean {
+		if (record === null || typeof record !== "object" || Array.isArray(record)) {
+			return false;
+		}
+		const valid_identity_fields =
+			Number.isFinite(record.cache_version) &&
+			String(record.context_hash) === record.context_hash &&
+			String(record.source_file) === record.source_file &&
+			String(record.source_hash) === record.source_hash;
+		const valid_ignored_flag = record.ignored === true || record.ignored === false;
+		return valid_identity_fields && valid_ignored_flag && Array.isArray(record.violations);
+	}
+
 	/** Responsibilities: _cache record validation_. **/
 	private valid_record(
 		record: FileAnalysisCacheRecord,
@@ -37,6 +51,9 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 		ignored: boolean,
 		path: string,
 	): boolean {
+		if (!this.record_fields_valid(record)) {
+			return false;
+		}
 		if (record.cache_version !== FILE_ANALYSIS_CACHE_VERSION) {
 			return false;
 		}
@@ -78,6 +95,9 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 	private stale_record(path: string, current: ReadonlyMap<string, string>): boolean {
 		try {
 			const record: FileAnalysisCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
+			if (!this.record_fields_valid(record)) {
+				return true;
+			}
 			const source_file = resolve(record.source_file);
 			const text = current.get(source_file);
 			if (text === undefined) {

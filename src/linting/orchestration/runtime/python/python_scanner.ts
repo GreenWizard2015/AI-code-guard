@@ -1,7 +1,7 @@
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstClassNode, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, NormalizedAstFileContract } from "src/types";
 import { PythonAstFileRuleCollector } from "src/linting/orchestration/runtime/python/python_ast_file_rule_collector";
 import { PythonClassOwnership } from "src/linting/orchestration/runtime/python/python_class_ownership";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
@@ -14,7 +14,7 @@ import type { PythonLintInput, PythonProjectNames } from "src/model/types/types"
 export class PythonScanner {
 	private readonly class_ownership: PythonClassOwnership;
 	private readonly source_imports: ProjectSourcePythonContract;
-	private readonly source_asts: ReadonlyMap<string, NormalizedAstFile>;
+	private readonly source_asts: ReadonlyMap<string, NormalizedAstFileContract>;
 	private readonly import_resolver: PythonCompositionImports;
 	private readonly test_path_syntax: TestPathSyntax;
 
@@ -23,8 +23,8 @@ export class PythonScanner {
 		source_file: string,
 		project_class_names: ReadonlySet<string>,
 		project_protocol_names: ReadonlySet<string>,
-		normalized_ast: NormalizedAstFile,
-	): NormalizedAstFile {
+		normalized_ast: NormalizedAstFileContract,
+	): NormalizedAstFileContract {
 		const ast = structuredClone(normalized_ast);
 		this.mark_external_bases(source_file, ast, ast.classes, project_class_names);
 		this.mark_protocol_implementations(source_file, ast, ast.classes, project_protocol_names);
@@ -34,26 +34,28 @@ export class PythonScanner {
 	/** Responsibilities: _Python external inheritance_. **/
 	private mark_external_bases(
 		file: string,
-		ast: NormalizedAstFile,
-		classes: AstClassNode[],
+		ast: NormalizedAstFileContract,
+		classes: AstClassNodeContract[],
 		fallback: ReadonlySet<string>,
 	): void {
-		for (const class_node of classes) {
+		for (let index = 0; index < classes.length; index += 1) {
+			const class_node = classes[index];
 			const base_names = class_node.base_class_names;
-			class_node.extends_external_class = base_names.some(
+			classes[index] = { ...class_node, extends_external_class: base_names.some(
 				(base) => !this.class_ownership.project_class(file, ast, base, fallback, this.source_imports),
-			);
+			) };
 		}
 	}
 
 	/** Responsibilities: _marking protocol implementations Python_. **/
 	private mark_protocol_implementations(
 		file: string,
-		ast: NormalizedAstFile,
-		classes: AstClassNode[],
+		ast: NormalizedAstFileContract,
+		classes: AstClassNodeContract[],
 		fallback: ReadonlySet<string>,
 	): void {
-		for (const class_node of classes) {
+		for (let index = 0; index < classes.length; index += 1) {
+			const class_node = classes[index];
 			let base_names: readonly string[] = [];
 			if (class_node.base_class_names !== undefined) {
 				base_names = class_node.base_class_names;
@@ -62,13 +64,13 @@ export class PythonScanner {
 				this.class_ownership.project_protocol(file, ast, base_name, fallback, this.source_imports),
 			);
 			if (interfaces.length > 0) {
-				class_node.interfaces = interfaces;
+				classes[index] = { ...class_node, interfaces };
 			}
 		}
 	}
 
 	/** Responsibilities: _Python target function identification_. **/
-	private is_imported_function(target: NormalizedAstFile, name: string): boolean {
+	private is_imported_function(target: NormalizedAstFileContract, name: string): boolean {
 		for (const node of target.functions) {
 			if (node.name !== name) {
 				continue;
@@ -100,7 +102,7 @@ export class PythonScanner {
 	}
 
 	/** Responsibilities: _production import-name indexing_. **/
-	private production_import_names(source_file: string, ast: NormalizedAstFile): ReadonlySet<string> {
+	private production_import_names(source_file: string, ast: NormalizedAstFileContract): ReadonlySet<string> {
 		const names = new Set<string>();
 		for (const [local_name, target] of this.import_resolver.python_imports(source_file, ast.python_imports)) {
 			if (this.is_production_import(target.file, target.name)) {

@@ -4,7 +4,7 @@ import { MAX_IMPORT_FAN_OUT } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ImportFanOutContract } from "src/linting/orchestration/runtime/protocols";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _module dependencies_, _fan-out diagnostics_. **/
 export class ImportFanOut implements ImportFanOutContract {
@@ -55,7 +55,7 @@ export class ImportFanOut implements ImportFanOutContract {
 	}
 
 	/** Responsibilities: _Python import fan-out_. **/
-	public append_python(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void {
+	public append_python(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void {
 		const source_modules = ast.python_imports.map((item) => item.module);
 		const modules = new Set(source_modules);
 		this.append_if_excessive(violations, file, modules.size);

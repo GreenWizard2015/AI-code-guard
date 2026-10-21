@@ -1,7 +1,7 @@
 import type { AnyTypesContract } from "src/shared_services_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
 import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _any parameter diagnostics_, _any field diagnostics_. **/
@@ -116,7 +116,7 @@ export class AnyTypes implements AnyTypesContract {
 		file: string,
 		functions: readonly AstCallableNodeContract[],
 		methods: readonly AstCallableNodeContract[],
-		classes: readonly AstClassNode[],
+		classes: readonly AstClassNodeContract[],
 	): void {
 		for (const callable of [...functions, ...methods]) {
 			this.append_parameter_infos(violations, file, callable);
@@ -126,7 +126,7 @@ export class AnyTypes implements AnyTypesContract {
 	}
 
 	/** Responsibilities: _aggregation any diagnostics class_. **/
-	public append_field_infos(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void {
+	public append_field_infos(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void {
 		for (const item of classes) {
 			let fields = item.fields;
 			if (fields === undefined) {

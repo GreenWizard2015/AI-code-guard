@@ -17,7 +17,7 @@ import type { LintRunAnalysisContract, TextFileDiscoveryContract } from "src/run
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { LintAnalysisStage, LintRunResult, LintRunState } from "src/project_analysis_types";
+import type { LintAnalysisStage, LintRunResult, LintRunStateContract } from "src/project_analysis_types";
 import type { FileLinterOptions } from "src/model/types/types";
 import type { IOContract } from "src/io/protocols";
 
@@ -71,7 +71,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 	}
 
 	/** Responsibilities: _file linter dependency configuration_. **/
-	private file_linter_options(state: LintRunState): FileLinterOptions {
+	private file_linter_options(state: LintRunStateContract): FileLinterOptions {
 		return {
 			repo_root: state.repo_root,
 			project_names: {
@@ -92,7 +92,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 	}
 
 	/** Responsibilities: _file lint configuration_. **/
-	private file_lint_options(state: LintRunState, stage_timer: LintStageTimerContract): FileLintRunOptions {
+	private file_lint_options(state: LintRunStateContract, stage_timer: LintStageTimerContract): FileLintRunOptions {
 		const coding_rule_linter: CodingRuleLinterContract = new CodingRuleLinter(
 			state.repo_root,
 			state.context.source_io,
@@ -136,7 +136,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 	}
 
 	/** Responsibilities: _directory-level violations collection_. **/
-	public collect_directory(state: LintRunState): ViolationContract[] {
+	public collect_directory(state: LintRunStateContract): ViolationContract[] {
 		const analyzed_files = state.files.filter((file) => !state.ignored_files.has(file));
 		const class_counts = new Map(
 			analyzed_files.map((file) => [file, state.context.source_record(file).normalized_ast.classes]),
@@ -152,7 +152,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 	}
 
 	/** Responsibilities: _file-level violations collection_. **/
-	public collect_file(state: LintRunState, stage_timer: LintStageTimerContract): ViolationContract[] {
+	public collect_file(state: LintRunStateContract, stage_timer: LintStageTimerContract): ViolationContract[] {
 		const file_linter = new FileLinter(this.file_linter_options(state));
 		const run_options = this.file_lint_options(state, stage_timer);
 		return file_linter.lint_files(run_options);

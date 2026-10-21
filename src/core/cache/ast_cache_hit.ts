@@ -2,16 +2,16 @@ import type { AstCacheEntryContract } from "src/source_protocols";
 import type {
 	AstCallableNodeContract,
 	AstClassField,
-	AstClassNode,
+	AstClassNodeContract,
 	AstLanguage,
 	NamedLine,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 } from "src/types";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _cached AST ownership_, _cached language matching_. **/
 export class AstCacheHit implements AstCacheEntryContract {
-	private readonly cached_ast: NormalizedAstFile;
+	private readonly cached_ast: NormalizedAstFileContract;
 
 	/** Responsibilities: _cached callable validation_. **/
 	private callable(value: AstCallableNodeContract): boolean {
@@ -39,7 +39,8 @@ export class AstCacheHit implements AstCacheEntryContract {
 		if (String(value.name) !== value.name) {
 			return false;
 		}
-		if (typeof value.readonly !== "boolean") {
+		const boolean_fields = [value.readonly, value.class_scope];
+		if (!boolean_fields.every((field) => typeof field === "boolean")) {
 			return false;
 		}
 		return Number.isFinite(value.line);
@@ -57,7 +58,7 @@ export class AstCacheHit implements AstCacheEntryContract {
 	}
 
 	/** Responsibilities: _cached class declaration validation_. **/
-	private class_node(value: AstClassNode): boolean {
+	private class_node(value: AstClassNodeContract): boolean {
 		if (value === null) {
 			return false;
 		}
@@ -154,7 +155,7 @@ export class AstCacheHit implements AstCacheEntryContract {
 	}
 
 	/** Responsibilities: _cached AST state initialization_. **/
-	public constructor(ast: NormalizedAstFile) {
+	public constructor(ast: NormalizedAstFileContract) {
 		this.cached_ast = ast;
 	}
 
@@ -164,7 +165,7 @@ export class AstCacheHit implements AstCacheEntryContract {
 	}
 
 	/** Responsibilities: _cached AST value_. **/
-	public value(): NormalizedAstFile {
+	public value(): NormalizedAstFileContract {
 		if (!this.complete()) {
 			throw new Error("AST cache entry is invalid.");
 		}

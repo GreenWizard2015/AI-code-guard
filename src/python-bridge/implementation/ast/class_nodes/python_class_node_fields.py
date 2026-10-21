@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.constants import CLASS_BUILTIN_TYPES
+from implementation.ast.class_nodes.python_slot_fields import PythonSlotFields
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.types import JsonObject
@@ -49,7 +50,9 @@ class PythonClassNodeFields:
             return False
         return root.attr == PYTHON_CLASSVAR_NAME
 
-    def _annotated_field(self, item: ast.AnnAssign) -> NodeData:
+    def _annotated_field(
+        self, item: ast.AnnAssign, class_scope: bool = True
+    ) -> NodeData:
         """Responsibilities: _normalization annotated class field_."""
         annotation = item.annotation
         type_kind = "named"
@@ -67,6 +70,7 @@ class PythonClassNodeFields:
             "type_kind": type_kind,
             "readonly": False,
             "class_variable": self._is_class_variable(annotation),
+            "class_scope": class_scope,
             "visibility": self._visibility(item.target.id),
         }
 
@@ -84,6 +88,7 @@ class PythonClassNodeFields:
                         "type_kind": "basic",
                         "readonly": False,
                         "class_variable": False,
+                        "class_scope": True,
                         "visibility": self._visibility(target.id),
                     }
                 )
@@ -91,10 +96,13 @@ class PythonClassNodeFields:
 
     def _class_fields(self, item: ast.stmt) -> list[NodeData]:
         """Responsibilities: _collection typed class fields_."""
+        if self.slot_fields.metadata_statement(item):
+            return []
         is_named_annotation = type(item) is ast.AnnAssign
         if is_named_annotation:
             if type(item.target) is ast.Name:
-                return [self._annotated_field(item)]
+                is_slot = item.target.id in self.slot_fields.fields()
+                return [self._annotated_field(item, not is_slot)]
         if type(item) is ast.Assign:
             return self._assigned_fields(item)
         return []
@@ -103,11 +111,26 @@ class PythonClassNodeFields:
         """Responsibilities: _collection untyped class fields_."""
         if type(item) is not ast.Assign:
             return []
-        return [
-            {"line": item.lineno - 1, "name": target.id}
-            for target in item.targets
-            if type(target) is ast.Name
-        ]
+        if self.slot_fields.metadata_statement(item):
+            return []
+        fields: list[NodeData] = []
+        for target in item.targets:
+            if type(target) is ast.Name:
+                fields.append({"line": item.lineno - 1, "name": target.id})
+        return fields
+
+    def _untyped_item_fields(
+        self, item: ast.stmt, typed_names: set[str]
+    ) -> list[NodeData]:
+        """Responsibilities: _untyped field candidates_."""
+        fields = self._untyped_class_fields(item)
+        if type(item) in (ast.FunctionDef, ast.AsyncFunctionDef):
+            fields.extend(
+                field
+                for field in self._untyped_instance_fields(item)
+                if field["name"] not in typed_names
+            )
+        return fields
 
     def _untyped_instance_fields(self, item: ast.AST) -> list[NodeData]:
         """Responsibilities: _collection untyped instance fields_."""
@@ -135,24 +158,46 @@ class PythonClassNodeFields:
         node: ast.ClassDef,
         container_aliases: PythonContainerAliasesContract,
         node_index: PythonAstNodeIndexContract,
+        module_body: list[ast.stmt],
     ) -> None:
         """Responsibilities: _initialization class node usage_."""
         self.node: ast.ClassDef = node
         self.container_aliases: PythonContainerAliasesContract = container_aliases
         self.node_index: PythonAstNodeIndexContract = node_index
+        self.slot_fields: PythonSlotFields = PythonSlotFields(node, module_body)
 
     def fields(self) -> list[NodeData]:
         """Responsibilities: _collection typed class instance_."""
         fields: list[NodeData] = []
         for item in self.node.body:
             fields.extend(self._class_fields(item))
+        known_names = {field["name"] for field in fields}
+        for name, line in self.slot_fields.fields().items():
+            if name not in known_names:
+                fields.append(
+                    {
+                        "line": line,
+                        "name": name,
+                        "value_name": "",
+                        "type": "",
+                        "type_kind": "basic",
+                        "readonly": False,
+                        "class_variable": False,
+                        "class_scope": False,
+                        "visibility": self._visibility(name),
+                    }
+                )
         return fields
 
     def untyped_fields(self) -> list[NodeData]:
         """Responsibilities: _collection untyped class instance_."""
-        fields: list[NodeData] = []
+        typed_names = {field["name"] for field in self.fields() if field["type"]}
+        fields = self.slot_fields.untyped_fields(typed_names)
+        known_names = {field["name"] for field in fields}
         for item in self.node.body:
-            fields.extend(self._untyped_class_fields(item))
-            if type(item) in (ast.FunctionDef, ast.AsyncFunctionDef):
-                fields.extend(self._untyped_instance_fields(item))
+            for field in self._untyped_item_fields(item, typed_names):
+                if field["name"] in known_names:
+                    continue
+                known_names.add(field["name"])
+                fields.append(field)
         return fields

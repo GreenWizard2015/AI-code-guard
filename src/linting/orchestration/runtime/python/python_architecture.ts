@@ -3,7 +3,7 @@ import { ContractNames } from "src/rules/contract_names";
 import type { PythonArchitectureContract } from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstClassNode, AstPythonImport } from "src/types";
+import type { AstClassNodeContract, AstPythonImport } from "src/types";
 
 import type { ArchitectureInput, SimpleViolationGroup } from "src/model/types/types";
 import { PYTHON_RULE_IDS } from "src/constants";
@@ -18,7 +18,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	private readonly abstract_class_rule = PYTHON_RULE_IDS.abstract_class;
 
 	/** Responsibilities: _aggregation empty-contract violation class_. **/
-	private append_empty_contract(violations: ViolationContract[], file: string, classes: AstClassNode[]): void {
+	private append_empty_contract(violations: ViolationContract[], file: string, classes: AstClassNodeContract[]): void {
 		for (const node of classes) {
 			if (!this.empty_protocol(node)) {
 				continue;
@@ -66,7 +66,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	}
 
 	/** Responsibilities: _classification abstract class bases_. **/
-	private abstract_base(node: AstClassNode, names: ReadonlySet<string>): boolean {
+	private abstract_base(node: AstClassNodeContract, names: ReadonlySet<string>): boolean {
 		for (const base_name of node.base_class_names) {
 			const separator = base_name.lastIndexOf(".");
 			let name = base_name;
@@ -81,7 +81,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	}
 
 	/** Responsibilities: _classification abstract method decorators_. **/
-	private abstract_method(node: AstClassNode, names: ReadonlySet<string>): boolean {
+	private abstract_method(node: AstClassNodeContract, names: ReadonlySet<string>): boolean {
 		for (const method of node.methods) {
 			for (const decorator of method.decorators) {
 				if (names.has(decorator)) {
@@ -93,7 +93,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	}
 
 	/** Responsibilities: _classification abstract Python classes_. **/
-	private abstract_class(node: AstClassNode, imports: readonly AstPythonImport[]): boolean {
+	private abstract_class(node: AstClassNodeContract, imports: readonly AstPythonImport[]): boolean {
 		const base_names = this.imported_names(imports, ["ABC", "ABCMeta"]);
 		if (this.abstract_base(node, base_names)) {
 			return true;
@@ -114,7 +114,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	private append_abstract_classes(
 		violations: ViolationContract[],
 		file: string,
-		classes: readonly AstClassNode[],
+		classes: readonly AstClassNodeContract[],
 		imports: readonly AstPythonImport[],
 	): void {
 		for (const node of classes) {
@@ -126,7 +126,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	}
 
 	/** Responsibilities: _aggregation data-class method violations_. **/
-	private append_class_methods(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void {
+	private append_class_methods(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void {
 		for (const node of classes) {
 			if (!node.is_data_class) {
 				continue;
@@ -148,7 +148,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	}
 
 	/** Responsibilities: _reporting protocol class_. **/
-	public empty_protocol(node: AstClassNode): boolean {
+	public empty_protocol(node: AstClassNodeContract): boolean {
 		if (!node.protocol) {
 			return false;
 		}

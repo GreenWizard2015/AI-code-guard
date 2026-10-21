@@ -3,7 +3,7 @@ import { TestPathSyntax } from "src/test_path_syntax";
 import type { LeadingUnderscoreNamingContract } from "src/shared_services_protocols";
 import type { NamingSupportContract, NamingValidationContract } from "src/analysis_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstClassNode, NamedLine, NamedSymbol } from "src/types";
+import type { AstClassNodeContract, NamedLine, NamedSymbol } from "src/types";
 import { NUMERIC_NAME_PATTERN } from "src/rules/constants";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 
@@ -13,7 +13,7 @@ export class NamingSupport implements NamingSupportContract {
 	private readonly naming_validation: NamingValidationContract;
 
 	/** Responsibilities: _retrieval normalization declarations lint_. **/
-	private source_declarations(declarations: NamedLine[], classes: AstClassNode[]): NamedLine[] {
+	private source_declarations(declarations: NamedLine[], classes: AstClassNodeContract[]): NamedLine[] {
 		if (declarations.length > 0) {
 			return declarations;
 		}
@@ -58,7 +58,7 @@ export class NamingSupport implements NamingSupportContract {
 	private append_numeric_fields(
 		violations: ViolationContract[],
 		file: string,
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		reported: Set<string>,
 	): void {
 		for (const class_node of classes) {
@@ -69,7 +69,7 @@ export class NamingSupport implements NamingSupportContract {
 	}
 
 	/** Responsibilities: _classification method externally visible_. **/
-	private external_method(kind: string, name: string, line: number, classes: AstClassNode[]): boolean {
+	private external_method(kind: string, name: string, line: number, classes: AstClassNodeContract[]): boolean {
 		if (kind !== "method") {
 			return false;
 		}
@@ -123,7 +123,7 @@ export class NamingSupport implements NamingSupportContract {
 		violations: ViolationContract[],
 		file: string,
 		symbols: NamedSymbol[],
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		declarations: NamedLine[],
 	): void {
 		const reported = new Set<string>();
@@ -145,7 +145,7 @@ export class NamingSupport implements NamingSupportContract {
 		violations: ViolationContract[],
 		file: string,
 		symbols: NamedSymbol[],
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		type_declarations: NamedLine[],
 	): void {
 		const test_path_syntax = new TestPathSyntax();
@@ -168,7 +168,7 @@ export class NamingSupport implements NamingSupportContract {
 		violations: ViolationContract[],
 		file: string,
 		symbol: NamedSymbol,
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 	): void {
 		const { name, kind, line } = symbol;
 		if (this.external_method(kind, name, line, classes)) {

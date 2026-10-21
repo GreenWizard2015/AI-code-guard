@@ -79,7 +79,7 @@ export type ReviewAgentExecutionResult = {
 };
 
 export type CallableOwnershipRequest = {
-	class_node: AstClassNode;
+	class_node: AstClassNodeContract;
 	owner: string;
 	method_name: string;
 	source_file: string;
@@ -135,6 +135,7 @@ export type AstClassField = {
 	type_kind: AstTypeKind;
 	readonly: boolean;
 	class_variable: boolean;
+	class_scope: boolean;
 	visibility: AstVisibility;
 };
 export type AstPythonImportName = { name: string; alias: string };
@@ -193,26 +194,26 @@ export interface AstCallableNodeContract
 		AstCallableAnalysis,
 		AstCallableTestFlags,
 		AstCallablePresentationFlags {}
-type AstClassIdentity = { name: string; start: number; end: number; methods: AstCallableNodeContract[] };
-type AstClassInheritance = {
-	lines: number;
-	sloc: number;
-	interfaces: string[];
-	base_class_name: string;
-	base_class_names: string[];
-	extends_external_class: boolean;
-	is_data_class: boolean;
-	type_contract: boolean;
-	protocol: boolean;
+/** Responsibilities: _AST class model_. **/
+interface AstClassIdentityContract {
+	readonly name: string; readonly start: number; readonly end: number;
+	readonly methods: AstCallableNodeContract[];
+}
+/** Responsibilities: _AST inheritance metadata_. **/
+interface AstClassInheritanceContract {
+	readonly lines: number; readonly sloc: number; readonly interfaces: string[];
+	readonly base_class_name: string; readonly base_class_names: string[];
+	readonly extends_external_class: boolean; readonly is_data_class: boolean;
+	readonly type_contract: boolean; readonly protocol: boolean;
 };
-type AstClassDetails = {
-	callback_fields: number;
-	inline_callback_fields: number;
-	fields: AstClassField[];
-	untyped_fields: NamedLine[];
-	dependencies: string[];
+/** Responsibilities: _AST class members_. **/
+interface AstClassDetailsContract {
+	readonly callback_fields: number; readonly inline_callback_fields: number;
+	readonly fields: AstClassField[]; readonly untyped_fields: NamedLine[];
+	readonly dependencies: string[];
 };
-export type AstClassNode = AstClassIdentity & AstClassInheritance & AstClassDetails;
+/** Responsibilities: _AST class structure_. **/
+export interface AstClassNodeContract extends AstClassIdentityContract, AstClassInheritanceContract, AstClassDetailsContract {}
 export type AstParseIssue = { line: number; message: string };
 export type AstImportIssue = { line: number; kind: AstImportKind };
 export type AstCodingIssue = { line: number; kind: string; name: string };
@@ -259,7 +260,7 @@ export type PythonAstCacheReadOptions = {
 	texts: readonly string[];
 	files: readonly string[];
 	repo_root: string;
-	results: Map<number, NormalizedAstFile>;
+	results: Map<number, NormalizedAstFileContract>;
 	stage_timer: LintStageTimerContract;
 	stage_prefix: string;
 };
@@ -267,7 +268,7 @@ export type PythonAstCacheWriteOptions = {
 	texts: readonly string[];
 	files: readonly string[];
 	indexes: readonly number[];
-	parsed: readonly NormalizedAstFile[];
+	parsed: readonly NormalizedAstFileContract[];
 	repo_root: string;
 	stage_timer: LintStageTimerContract;
 	stage_prefix: string;
@@ -280,7 +281,7 @@ export type PythonBatchAstOptions = {
 	repo_root: string;
 };
 export type PythonAstCachePreparation = {
-	results: Map<number, NormalizedAstFile>;
+	results: Map<number, NormalizedAstFileContract>;
 	missing_indexes: readonly number[];
 	missing_texts: readonly string[];
 };
@@ -307,49 +308,50 @@ export type AstResponsibilityTarget = {
 	line: number;
 	documentation: string;
 };
-type NormalizedAstIdentity = {
-	language: AstLanguage;
-	classes: AstClassNode[];
-	functions: AstCallableNodeContract[];
-	parse_issues: AstParseIssue[];
-	import_issues: AstImportIssue[];
+/** Responsibilities: _AST file identity_. **/
+interface NormalizedAstIdentityContract {
+	readonly language: AstLanguage; readonly classes: AstClassNodeContract[];
+	readonly functions: AstCallableNodeContract[]; readonly parse_issues: AstParseIssue[];
+	readonly import_issues: AstImportIssue[];
 };
-type NormalizedAstData = {
-	attribute_accesses: LineDepth[];
-	named_symbols: NamedSymbol[];
-	type_declarations: NamedLine[];
-	reference_aliases: AstReferenceAlias[];
+/** Responsibilities: _AST declarations_. **/
+interface NormalizedAstDataContract {
+	readonly attribute_accesses: LineDepth[]; readonly named_symbols: NamedSymbol[];
+	readonly type_declarations: NamedLine[]; readonly reference_aliases: AstReferenceAlias[];
 };
-type NormalizedAstReferenceData = {
-	symbol_references: NamedLine[];
-	literal_references: AstLiteralReference[];
-	literal_constants: AstLiteralConstant[];
-	call_references: AstCallableReference[];
-	type_members: AstTypeMembers;
+/** Responsibilities: _AST references_. **/
+interface NormalizedAstReferenceDataContract {
+	readonly symbol_references: NamedLine[]; readonly literal_references: AstLiteralReference[];
+	readonly literal_constants: AstLiteralConstant[]; readonly call_references: AstCallableReference[];
+	readonly type_members: AstTypeMembers;
 };
-type NormalizedAstModuleData = {
-	private_accesses: LineOnly[];
-	repeated_branches: LineOnly[];
-	module_instances: AstModuleInstance[];
-	module_constant_spans: AstSourceSpan[];
-	module_type_spans: AstSourceSpan[];
-	module_protocol_spans: AstSourceSpan[];
+/** Responsibilities: _AST module metadata_. **/
+interface NormalizedAstModuleDataContract {
+	readonly private_accesses: LineOnly[]; readonly repeated_branches: LineOnly[];
+	readonly module_instances: AstModuleInstance[]; readonly module_constant_spans: AstSourceSpan[];
+	readonly module_type_spans: AstSourceSpan[]; readonly module_protocol_spans: AstSourceSpan[];
 };
-type NormalizedAstLanguageData = {
-	coding_issues: AstCodingIssue[];
-	python_imports: AstPythonImport[];
+/** Responsibilities: _AST language metadata_. **/
+interface NormalizedAstLanguageDataContract {
+	readonly coding_issues: AstCodingIssue[]; readonly python_imports: AstPythonImport[];
 };
-type NormalizedAstOptionalData = NormalizedAstReferenceData & NormalizedAstModuleData & NormalizedAstLanguageData;
-type NormalizedAstOptionalMetadata = {
-	python_callable_count: FunctionCount;
-	python_main_guard: boolean;
-	docstring_spans: AstSourceSpan[];
-	responsibility_targets: AstResponsibilityTarget[];
+/** Responsibilities: _AST metadata composition_. **/
+interface NormalizedAstOptionalDataContract
+	extends NormalizedAstReferenceDataContract,
+		NormalizedAstModuleDataContract,
+		NormalizedAstLanguageDataContract {}
+/** Responsibilities: _AST optional metadata_. **/
+interface NormalizedAstOptionalMetadataContract {
+	readonly python_callable_count: FunctionCount; readonly python_main_guard: boolean;
+	readonly docstring_spans: AstSourceSpan[]; readonly responsibility_targets: AstResponsibilityTarget[];
 };
-export type NormalizedAstFile = NormalizedAstIdentity &
-	NormalizedAstData &
-	NormalizedAstOptionalData &
-	NormalizedAstOptionalMetadata;
+/** Responsibilities: _AST file model_. **/
+export interface NormalizedAstFileContract
+	extends NormalizedAstIdentityContract,
+		NormalizedAstDataContract,
+		NormalizedAstOptionalDataContract,
+		NormalizedAstOptionalMetadataContract {}
+
 
 export type CodeClass = {
 	key: string;
@@ -400,7 +402,7 @@ export type PythonLintInput = {
 	project_class_names: ReadonlySet<string>;
 	project_protocol_names: ReadonlySet<string>;
 	project_type_names: ReadonlySet<string>;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 };
 export type LintRunStatistics = {
 	source_reads: number;
@@ -468,7 +470,7 @@ export type PropertyOwner = { property_name: string; owner: string };
 export type MaxMethodMetricInput = {
 	violations: ViolationContract[];
 	file_name: LintFileNameContract;
-	node: AstClassNode;
+	node: AstClassNodeContract;
 };
 export type MixCallableNode = { name: string; start: number; end: number; argument_count: number };
 export type CommentScanResult = { text: string; in_block_comment: boolean };

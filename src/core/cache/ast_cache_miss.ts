@@ -1,5 +1,5 @@
 import type { AstCacheEntryContract } from "src/source_protocols";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _missing AST ownership_, _cache miss language rejection_. **/
 export class AstCacheMiss implements AstCacheEntryContract {
@@ -18,7 +18,7 @@ export class AstCacheMiss implements AstCacheEntryContract {
 	}
 
 	/** Responsibilities: _missing AST access rejection_. **/
-	public value(): NormalizedAstFile {
+	public value(): NormalizedAstFileContract {
 		throw new Error(`AST cache entry is missing for ${this.source_file}: ${this.reason}`);
 	}
 

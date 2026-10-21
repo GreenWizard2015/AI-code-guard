@@ -36,6 +36,7 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
                 SourceSegments(CLASS_SOURCE),
                 container_assembly.container_aliases(),
                 type_aliases,
+                tree.body,
             )
         )
         class_node = class_builder.result

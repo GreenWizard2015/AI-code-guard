@@ -3,36 +3,41 @@ import type { ProjectSourceScannerContract } from "src/source_protocols";
 import type { ReportViolation, ViolationContract } from "src/reporting_protocols";
 import type { GitIgnoreGlobMatcherContract } from "src/runtime_protocols";
 
-export type ProjectNames = {
-	project_class_names: ReadonlySet<string>;
-	python_class_names: ReadonlySet<string>;
-	typescript_class_names: ReadonlySet<string>;
-	project_protocol_names: ReadonlySet<string>;
-	project_interface_names: ReadonlySet<string>;
-	project_contract_names: ReadonlySet<string>;
-	project_type_names: ReadonlySet<string>;
+/** Responsibilities: _project symbol-name indexes_. **/
+export interface ProjectNamesContract {
+	readonly project_class_names: ReadonlySet<string>;
+	readonly python_class_names: ReadonlySet<string>;
+	readonly typescript_class_names: ReadonlySet<string>;
+	readonly project_protocol_names: ReadonlySet<string>;
+	readonly project_interface_names: ReadonlySet<string>;
+	readonly project_contract_names: ReadonlySet<string>;
+	readonly project_type_names: ReadonlySet<string>;
 };
 export type ProjectLanguage = "python" | "typescript";
 export type ProjectNameContext = {
 	project_files: readonly string[];
 	context: LintProjectContextContract;
 };
-type LintRunFiles = {
-	repo_root: string;
-	files: string[];
-	entry_files: string[];
-	ignored_files: ReadonlySet<string>;
-	ignored_directories: ReadonlySet<string>;
-	project_files: string[];
-	markdown_files: string[];
+/** Responsibilities: _lint file inventory_. **/
+interface LintRunFilesContract {
+	readonly repo_root: string;
+	readonly files: string[];
+	readonly entry_files: string[];
+	readonly ignored_files: ReadonlySet<string>;
+	readonly ignored_directories: ReadonlySet<string>;
+	readonly project_files: string[];
+	readonly markdown_files: string[];
 };
-type LintRunContext = {
-	context: LintProjectContextContract;
-	source_texts: ReadonlyMap<string, string>;
-	global_cache_enabled: boolean;
-	virtual_project: boolean;
+/** Responsibilities: _lint execution context_. **/
+interface LintRunContextContract {
+	readonly context: LintProjectContextContract;
+	readonly source_texts: ReadonlyMap<string, string>;
+	readonly global_cache_enabled: boolean;
+	readonly virtual_project: boolean;
 };
-export type LintRunState = LintRunFiles & ProjectNames & LintRunContext;
+/** Responsibilities: _lint state_. **/
+export interface LintRunStateContract extends LintRunFilesContract, ProjectNamesContract, LintRunContextContract {}
+
 export type LintRunResult = { files: string[]; violations: ViolationContract[] };
 export type LintInputFiles = {
 	files: string[];
@@ -41,7 +46,7 @@ export type LintInputFiles = {
 	markdown_files: string[];
 	ignore_files: string[];
 };
-export type LintAnalysisStage = { state: LintRunState; stage_timer: LintStageTimerContract };
+export type LintAnalysisStage = { state: LintRunStateContract; stage_timer: LintStageTimerContract };
 export type GitIgnorePattern = {
 	base_directory: string;
 	negated: boolean;

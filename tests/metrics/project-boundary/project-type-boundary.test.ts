@@ -238,6 +238,7 @@ describe("ProjectTypeBoundary", () => {
 						type_kind: "named",
 						readonly: false,
 						class_variable: false,
+						class_scope: false,
 						visibility: "public",
 					},
 					{
@@ -248,6 +249,7 @@ describe("ProjectTypeBoundary", () => {
 						type_kind: "named",
 						readonly: false,
 						class_variable: false,
+						class_scope: false,
 						visibility: "public",
 					},
 				],
@@ -310,6 +312,7 @@ describe("ProjectTypeBoundary", () => {
 						type_kind: "generic",
 						readonly: false,
 						class_variable: false,
+						class_scope: false,
 						visibility: "public",
 					},
 				],

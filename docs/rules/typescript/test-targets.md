@@ -1,7 +1,7 @@
 # `test-targets`
 
-Description: Anchor a test to its most-used imported production class or function, not the shallowest
-import. Type-only, side-effect, test-support, external, and standard-library imports do not qualify.
+Description: Anchor tests to the most-used production import, not the shallowest; ignore type-only,
+side-effect, support, external, and standard-library imports.
 
 ## Bad
 
@@ -38,11 +38,6 @@ describe('Status', () => {
 		const value = status.ready();
 		expect(value).toBe(true);
 	});
-	test('searches normalized status text', () => {
-		const status = new Status(' READY ');
-		const contains = status.contains('ready');
-		expect(contains).toBe(true);
-	});
 });
 // File: cli.ts
 #!/usr/bin/env node
@@ -54,10 +49,8 @@ import { Status } from 'src/domain/status';
 ```
 
 
-Anchor to the class/function with the most references outside import declarations. Source import
-order breaks ties; separate imports are ranked independently. Resolve named exports and re-exports.
-Ignore `tests/` and `__tests__/`, support, external, standard-library, type-only, side-effect,
-module, and constant imports.
+Rank by references outside imports; source import order breaks ties. Resolve named exports and
+re-exports; ignore tests, support, external, standard-library, type-only, side-effect, module, and constant imports.
 
 ## Good
 
@@ -93,11 +86,6 @@ describe('Status', () => {
 		const status = new Status('ready');
 		const value = status.ready();
 		expect(value).toBe(true);
-	});
-	test('searches normalized status text', () => {
-		const status = new Status(' READY ');
-		const contains = status.contains('ready');
-		expect(contains).toBe(true);
 	});
 });
 // File: cli.ts

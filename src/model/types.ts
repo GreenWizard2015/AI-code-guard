@@ -4,7 +4,7 @@ import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
 	AstCallableNodeContract,
 	AstCallableReference,
-	AstClassNode,
+	AstClassNodeContract,
 	AstImportIssue,
 	AstParseIssue,
 	AstLiteralConstant,
@@ -93,7 +93,7 @@ export type TypeScriptDerivedMetadata = {
 	type_members: AstTypeMembers;
 };
 export type TypeScriptNormalizedMetadataOptions = {
-	classes: AstClassNode[];
+	classes: AstClassNodeContract[];
 	functions: AstCallableNodeContract[];
 	tree: TypeScriptTreeMetadata;
 	spans: TypeScriptMetadataSpans;

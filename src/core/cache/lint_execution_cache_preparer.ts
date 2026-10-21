@@ -41,6 +41,7 @@ export class LintExecutionCachePreparer {
 		options: CliOptions,
 		inputs: LintInputFiles,
 		source_texts: ReadonlyMap<string, string>,
+		snapshot_complete = true,
 	): CompleteCachePreparation {
 		const cache_context = new LintExecutionCacheContext({
 			root: options.root,
@@ -51,7 +52,7 @@ export class LintExecutionCachePreparer {
 			file_io: this.file_io,
 			source_io: this.source_io,
 		});
-		return { cache: cache_context.lint_cache(), inputs, source_texts };
+		return { cache: cache_context.lint_cache(), inputs, source_texts, snapshot_complete };
 	}
 
 	/** Responsibilities: _field initialization_. **/
@@ -99,7 +100,7 @@ export class LintExecutionCachePreparer {
 			cache_lookup.reusable_inputs(options.ignored_directories, options),
 		);
 		if (cached_inputs.available) {
-			return this.cache_preparation(options, cached_inputs.value, EMPTY_SOURCE_TEXTS);
+			return this.cache_preparation(options, cached_inputs.value, EMPTY_SOURCE_TEXTS, false);
 		}
 		const discovered = stage_timer.measure("startup.cache-input-discovery", () =>
 			this.lint_input_discovery.input_files(options.root, options.ignored_directories),

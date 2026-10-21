@@ -1,7 +1,7 @@
 import type { ArraySourceResolver } from "src/analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstCallableReference, AstPythonImport, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { AstCallableReference, AstPythonImport, ImportedSymbol, NormalizedAstFileContract } from "src/types";
 import type { PlacementFunctionNode } from "src/model/types/types";
 import ts from "typescript";
 import type { ArrayValuesVisitor } from "src/runtime_types";
@@ -40,7 +40,7 @@ export interface PythonCallableReferenceTargetMapperContract {
 		imports: ReadonlyMap<string, ImportedSymbol>,
 		class_names: ReadonlySet<string>,
 	): AstCallableReference;
-	map_source(source: LintSourceRecord): NormalizedAstFile;
+	map_source(source: LintSourceRecord): NormalizedAstFileContract;
 }
 
 /** Responsibilities: _factory object binding sources_. **/
@@ -77,7 +77,7 @@ export interface ReexportNamesContract {
 /** Responsibilities: _import fan-out diagnostics_. **/
 export interface ImportFanOutContract {
 	append_typescript(violations: ViolationContract[], file: string, source_file: ts.SourceFile): void;
-	append_python(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void;
+	append_python(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void;
 }
 
 /** Responsibilities: _function placement diagnostics_. **/

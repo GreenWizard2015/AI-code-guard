@@ -1,13 +1,13 @@
 import { ContractNames } from "src/rules/contract_names";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import { describe, expect, test } from "@jest/globals";
 
 describe("contract naming rule", () => {
 	test("requires a domain Contract suffix without protocol words", () => {
 		const contracts = new ContractNames();
 		const violations: ViolationContract[] = [];
-		const contract: AstClassNode = {
+		const contract: AstClassNodeContract = {
 			name: "",
 			start: 0,
 			end: 1,

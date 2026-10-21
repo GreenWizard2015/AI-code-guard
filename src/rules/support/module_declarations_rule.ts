@@ -2,7 +2,7 @@ import { basename, dirname, join } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ModuleDeclarationsRuleContract } from "src/shared_services_protocols";
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
-import type { AstSourceSpan, NormalizedAstFile } from "src/types";
+import type { AstSourceSpan, NormalizedAstFileContract } from "src/types";
 import {
 	MODULE_CONSTANT_FILES,
 	MODULE_DECLARATION_FILES,
@@ -98,7 +98,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 	}
 
 	/** Responsibilities: _aggregation diagnostics content forbidden_. **/
-	private append_forbidden_content(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void {
+	private append_forbidden_content(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void {
 		if (ast.functions.length > 0) {
 			this.append_content_violation(violations, file, ast.functions[0].start + 1, MODULE_FUNCTION_KIND);
 		}
@@ -111,7 +111,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 	}
 
 	/** Responsibilities: _aggregation module-separation moves normalization_. **/
-	private append_module_moves(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void {
+	private append_module_moves(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void {
 		this.append_constants_violation(violations, file, ast.module_constant_spans);
 		this.append_move_violation(violations, file, ast.module_type_spans);
 		this.append_protocol_violation(violations, file, ast.module_protocol_spans);
@@ -128,7 +128,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 		this.content_rule = new DiagnosticRule("constants-file-content");
 	}
 	/** Responsibilities: _public operation_. **/
-	public append(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void {
+	public append(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void {
 		if (this.constants_files.has(basename(file))) {
 			this.append_forbidden_content(violations, file, ast);
 			return;

@@ -14,10 +14,10 @@ import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
 	AstCallableNodeContract,
 	AstCallableReference,
-	AstClassNode,
+	AstClassNodeContract,
 	AstParseIssue,
 	AstSourceSpan,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 } from "src/types";
 import type {
 	TypeScriptDerivedMetadata,
@@ -133,7 +133,7 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 	}
 
 	/** Responsibilities: _AST file metadata_. **/
-	private file_metadata(options: TypeScriptNormalizedMetadataOptions): NormalizedAstFile {
+	private file_metadata(options: TypeScriptNormalizedMetadataOptions): NormalizedAstFileContract {
 		const { classes, functions, tree, spans, derived } = options;
 		return {
 			language: TYPESCRIPT_LANGUAGE,
@@ -165,12 +165,12 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 
 	/** Responsibilities: _AST metadata_. **/
 	private normalized_file(
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		functions: AstCallableNodeContract[],
 		tree: TypeScriptTreeMetadata,
 		line_for: SourceLineResolver,
 		call_references: AstCallableReference[],
-	): NormalizedAstFile {
+	): NormalizedAstFileContract {
 		const metadata_prefix = TYPESCRIPT_METADATA_STAGE_PREFIX;
 		const spans = this.metadata_spans(metadata_prefix);
 		const derived = this.derived_metadata(metadata_prefix, line_for, call_references);
@@ -217,7 +217,7 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 	}
 
 	/** Responsibilities: _combination parsing classes functions_. **/
-	public normalized(classes: AstClassNode[], functions: AstCallableNodeContract[]): NormalizedAstFile {
+	public normalized(classes: AstClassNodeContract[], functions: AstCallableNodeContract[]): NormalizedAstFileContract {
 		const line_for = (position: number): number => this.source_file.getLineAndCharacterOfPosition(position).line;
 		const call_references: AstCallableReference[] = [];
 		const tree = this.stage_timer.measure(

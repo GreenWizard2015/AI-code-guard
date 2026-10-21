@@ -149,7 +149,8 @@ class PythonComponentsMetricsTest(unittest.TestCase):
 
     def test_reuses_source_line_split_for_source_segments(self) -> None:
         """Responsibilities: _source segments verification_."""
-        source = "def build():\n    value = (\n        'ёж'\n    )\n"
+        unicode_value = chr(0x0451) + chr(0x0436)
+        source = "def build():\n    value = (\n        '" + unicode_value + "'\n    )\n"
         parsed_source = ast.parse(source)
         source_function = parsed_source.body[0]
         node = source_function.body[0]
@@ -159,15 +160,17 @@ class PythonComponentsMetricsTest(unittest.TestCase):
 
     def test_reuses_unicode_column_mapping_for_repeated_lookups(self) -> None:
         """Responsibilities: _source column mapping reuse_."""
-        segments = SourceSegments("value = 'ёж'\n")
+        unicode_value = chr(0x0451) + chr(0x0436)
+        source = "value = '" + unicode_value + "'"
+        segments = SourceSegments(source + "\n")
 
         with patch.object(
             segments,
             "_build_character_columns",
             wraps=segments._build_character_columns,
         ) as build_columns:
-            first = segments.character_column("value = 'ёж'", 9)
-            second = segments.character_column("value = 'ёж'", 11)
+            first = segments.character_column(source, 9)
+            second = segments.character_column(source, 11)
 
         self.assertEqual(
             {"first": first, "second": second, "builds": build_columns.call_count},

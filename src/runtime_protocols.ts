@@ -2,7 +2,7 @@ import type {
 	GitIgnoreGlobMatchResult,
 	LintAnalysisStage,
 	LintRunResult,
-	LintRunState,
+	LintRunStateContract,
 } from "src/project_analysis_types";
 import type { LintSourceRecord } from "src/source_types";
 import type { RuleContextData } from "src/types";
@@ -14,6 +14,7 @@ import type { LintInputFiles } from "src/project_analysis_types";
 import type { LintExecutionReport } from "src/runtime_types";
 import type { LintReportOptions } from "src/core/types";
 import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import type { PythonAstWorkerSession } from "external/python_ast_worker_session.mjs";
 
 /** Responsibilities: _callable body metrics_. **/
 export interface CallableBodyMetricsContract {
@@ -43,6 +44,7 @@ export interface ProjectAnalysisIdentityContract {
 /** Responsibilities: _project lint configuration access_. **/
 export interface LintRunConfigurationContract {
 	readonly python_ast_worker: PythonAstWorkerContract;
+	readonly worker_session: PythonAstWorkerSession;
 	input_files(repo_root: string, configured: readonly string[]): LintInputFiles;
 	lint_report(options: LintReportOptions): LintExecutionReport;
 }
@@ -65,8 +67,8 @@ export interface GitIgnoreGlobMatcherContract {
 
 /** Responsibilities: _lint stage analysis coordination_. **/
 export interface LintRunAnalysisContract {
-	collect_directory(state: LintRunState): ViolationContract[];
-	collect_file(state: LintRunState, stage_timer: LintStageTimerContract): ViolationContract[];
+	collect_directory(state: LintRunStateContract): ViolationContract[];
+	collect_file(state: LintRunStateContract, stage_timer: LintStageTimerContract): ViolationContract[];
 	collect_global(stage: LintAnalysisStage): ViolationContract[];
 	collect(stage: LintAnalysisStage): LintRunResult;
 }

@@ -13,6 +13,19 @@ describe("cross-language expression diagnostics", () => {
 				"empty-handler.ts": "try { run(); } catch {}\ntry { run(); } catch (error) { report(error); }",
 				"empty-handler.py":
 					"try:\n    run()\nexcept Exception:\n    pass\ntry:\n    run()\nexcept Exception as error:\n    report(error)",
+				"idempotent-file-operations.py": [
+					"import os",
+					"def create_directory(name: str, directory_fd: int) -> None:",
+					"    try:",
+					"        os.mkdir(name, dir_fd=directory_fd)",
+					"    except FileExistsError:",
+					"        pass",
+					"def remove_temporary_file(name: str, directory_fd: int) -> None:",
+					"    try:",
+					"        os.unlink(name, dir_fd=directory_fd)",
+					"    except FileNotFoundError:",
+					"        pass",
+				].join("\n"),
 				"context.ts": [
 					"function translate(): void {",
 					"\ttry { run(); } catch (error) { throw new RuntimeError('failed'); }",

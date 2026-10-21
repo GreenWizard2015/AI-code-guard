@@ -1,73 +1,84 @@
 # `composite-state-type`
 
-Description: See the examples below for the rule behavior.
-
-### Policy
-
-Do not represent a domain state or a boundary value with a composite union or intersection type.
-
-### Fix
-
-Define an interface for the shared contract and real specialized classes for each state or representation.
-
-
-Python uses the same named-state boundary:
-
-```python
-class UserLookup(Protocol):
-    def is_found(self) -> bool: ...
-
-class FoundUser(UserLookup):
-    def is_found(self) -> bool:
-        return True
-```
-
-This applies to unions such as `Buffer | string` and intersections such as `Buffer & Metadata` at fields, parameters, and return boundaries. Wrap the representations behind a named interface and specialized classes. It also applies to object-state unions with a string or boolean discriminant.
-
-Literal unions, compiler unions, and primitive unions are also covered. A literal such as `'found'` may remain a field value on the interface, but the contract itself must not branch into a union type.
-
-### JSON-RPC responses
-
-For an outgoing JSON-RPC tool response, use separate response classes instead of
-a composite `JsonRpcResponse` object with optional `result` and `error` fields.
-`ToolResponse.payload()` and `ToolErrorResponse.payload()` should create the
-structural JSON object immediately before it is passed to the transport. This
-keeps the external wire format intact while preventing mutually exclusive
-response states from spreading through production code.
+Description: Do not combine named domain contracts with `|` or `&`. Keep simultaneous concepts in named fields; model exclusive runtime states with distinct classes. Literal and nullable unions are covered by other rules.
 
 ## Bad
 
-
 ```python
-# File: src/user_lookup.py
-class PresentUser:
-    def __init__(self) -> None:
-        self.user_id: str = "user-1"
+from typing import Protocol
 
-class MissingUser:
-    def __init__(self) -> None:
-        self.reason: str = "not found"
+class UserIdentityContract(Protocol):
+    id: str
 
-UserState = PresentUser | MissingUser
-# File: cli.py
-from src.user_lookup import MissingUser, UserState
+class UserDetailsContract(Protocol):
+    name: str
 
-if __name__ == "__main__":
-    user: UserState = MissingUser()
-    print(user)
+UserSummary = UserIdentityContract | UserDetailsContract  # <- error
 ```
 
 ## Good
 
+Preserve each contract as a typed field and use concrete implementations:
 
 ```python
-# File: src/types.py
-Item: TypeAlias = str
+# File: src/protocols.py
+from typing import Protocol
+class UserIdentityContract(Protocol):
+    def normalized_id(self) -> str: ...
+    def matches_id(self, candidate: str) -> bool: ...
+class UserDetailsContract(Protocol):
+    def display_name(self) -> str: ...
+    def matches_name(self, candidate: str) -> bool: ...
+# File: src/user_identity.py
+from src.protocols import UserIdentityContract
+class UserIdentity(UserIdentityContract):
+    def __init__(self, user_id: str) -> None:
+        self.id: str = user_id
+    def normalized_id(self) -> str:
+        return self.id.strip().lower()
+    def matches_id(self, candidate: str) -> bool:
+        return self.normalized_id() == candidate.strip().lower()
+# File: src/user_details.py
+from src.protocols import UserDetailsContract
+class UserDetails(UserDetailsContract):
+    def __init__(self, name: str) -> None:
+        self.name: str = name
+    def display_name(self) -> str:
+        words = self.name.split()
+        return " ".join(words)
+    def matches_name(self, candidate: str) -> bool:
+        own_name = self.name.strip().lower()
+        candidate_name = candidate.strip().lower()
+        return own_name == candidate_name
+# File: src/user_summary.py
+from src.protocols import UserDetailsContract, UserIdentityContract
+class UserSummary:
+    def __init__(self, identity: UserIdentityContract, details: UserDetailsContract) -> None:
+        self.identity: UserIdentityContract = identity
+        self.details: UserDetailsContract = details
+    def label(self) -> str:
+        return f"{self.identity.normalized_id()}: {self.details.display_name()}"
+    def matches(self, user_id: str, name: str) -> bool:
+        id_matches = self.identity.matches_id(user_id)
+        name_matches = self.details.matches_name(name)
+        return id_matches and name_matches
+    def same_identity(self, other: UserIdentityContract) -> bool:
+        return self.identity.normalized_id() == other.normalized_id()
+    def same_name(self, other: UserDetailsContract) -> bool:
+        return self.details.display_name() == other.display_name()
+    def prefixed_label(self, prefix: str) -> str:
+        label = self.label()
+        return f"{prefix}: {label}"
 # File: cli.py
-from src.types import Item
-from typing import TypeAlias
-
+from src.user_details import UserDetails
+from src.user_identity import UserIdentity
+from src.user_summary import UserSummary
 if __name__ == "__main__":
-    type_items: list[Item] = []
-    print(len(type_items))
+    summary = UserSummary(UserIdentity("u-1"), UserDetails("Ada"))
+    label = summary.label()
+    matches = summary.matches("u-1", "Ada")
+    same_identity = summary.same_identity(UserIdentity("u-1"))
+    same_name = summary.same_name(UserDetails("Ada"))
+    prefixed_label = summary.prefixed_label("User")
+    print(label, matches, same_identity, same_name, prefixed_label)
 ```

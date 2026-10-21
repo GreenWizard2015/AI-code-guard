@@ -1,7 +1,7 @@
 import type { CallableSourceIdentityGraphContract, CallableSymbolIndexContract } from "src/analysis_protocols";
 import type { ReadonlyStringSetMap, StringReadonlyMap, StringReadonlySetMap, StringSetMap } from "src/analysis_types";
 import type { CallableClassIndex, CallableProjectIndex, ParsedFile } from "src/metrics/types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import { CallableSymbolIndex } from "src/linting/orchestration/runtime/composition/callable_symbol_index";
 
 /** Responsibilities: _source-qualified class identity_, _import-visible type identity_. **/
@@ -66,7 +66,7 @@ export class CallableSourceIdentityGraph implements CallableSourceIdentityGraphC
 	}
 
 	/** Responsibilities: _source-qualified base ancestors_. **/
-	private append_base_ancestors(node: AstClassNode, file_name: string, known: Set<string>): void {
+	private append_base_ancestors(node: AstClassNodeContract, file_name: string, known: Set<string>): void {
 		const bases: string[] = [];
 		for (const base of node.base_class_names) {
 			bases.push(base);

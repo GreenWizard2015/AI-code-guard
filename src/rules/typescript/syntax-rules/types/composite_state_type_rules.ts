@@ -19,48 +19,6 @@ export class CompositeStateTypeRules implements CompositeStateTypeRulesContract 
 		return source_file;
 	}
 
-	/** Responsibilities: _object compositions resolution_. **/
-	private is_object_alias(node: ts.TypeNode, source_file: ts.SourceFile, seen: Set<string>): boolean {
-		if (!ts.isTypeReferenceNode(node)) {
-			return false;
-		}
-		if (!ts.isIdentifier(node.typeName)) {
-			return false;
-		}
-		const name = node.typeName.text;
-		if (seen.has(name)) {
-			return false;
-		}
-		return this.object_alias_definition(name, source_file, seen);
-	}
-
-	/** Responsibilities: _recursive object aliases inspection_. **/
-	private object_alias_definition(name: string, source_file: ts.SourceFile, seen: Set<string>): boolean {
-		const declaration = this.literal_type_alias(name, source_file);
-		if (!ts.isTypeAliasDeclaration(declaration)) {
-			return false;
-		}
-		const next_seen = new Set(seen);
-		next_seen.add(name);
-		if (ts.isTypeLiteralNode(declaration.type)) {
-			return true;
-		}
-		if (!ts.isIntersectionTypeNode(declaration.type)) {
-			return false;
-		}
-		return declaration.type.types.every((type) => this.is_object_alias(type, source_file, next_seen));
-	}
-
-	/** Responsibilities: _structural intersections classification_. **/
-	private is_structural_composition(node: ts.IntersectionTypeNode): boolean {
-		if (!ts.isTypeAliasDeclaration(node.parent)) {
-			return false;
-		}
-		const source_file = node.getSourceFile();
-		const seen = new Set<string>();
-		return node.types.every((type) => this.is_object_alias(type, source_file, seen));
-	}
-
 	/** Responsibilities: _literal union aliases resolution_. **/
 	private referenced_literal_type(node: ts.TypeNode, source_file: ts.SourceFile, seen: Set<string>): boolean {
 		if (!ts.isTypeReferenceNode(node)) {
@@ -192,9 +150,6 @@ export class CompositeStateTypeRules implements CompositeStateTypeRulesContract 
 			return false;
 		}
 		if (ts.isUnionTypeNode(node) && this.union_allowed(node)) {
-			return false;
-		}
-		if (ts.isIntersectionTypeNode(node) && this.is_structural_composition(node)) {
 			return false;
 		}
 		return this.is_boundary(node);

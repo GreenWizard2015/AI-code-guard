@@ -128,6 +128,162 @@ describe("unused symbol rules", () => {
 		});
 	});
 
+	test("does not report Python __slots__ as an unused public field", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": [
+					"class SlotOwner:",
+					"    __slots__ = ('value',)",
+					"",
+					"    def read(self) -> str:",
+					"        return self.value",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((violation) => violation.rule_id === "unused-public-field")).toEqual([]);
+	});
+
+	test("checks Python slot names as fields instead of checking __slots__ metadata", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": [
+					"class SlotOwner:",
+					"    __slots__ = ('unused_value',)",
+					"    def read(self) -> int:",
+					"        return 1",
+				].join("\n"),
+				"consumer.py": ["from source import SlotOwner", "owner = SlotOwner()", "owner.read()"].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id))
+				.map((violation) => `${violation.rule_id}:${violation.file}:${violation.line}:${violation.message}`)
+				.sort(),
+		).toEqual([
+			'python-explicit-field-type:source.py:2:Python field "unused_value" is missing an explicit type',
+			'unused-public-field:source.py:2:public field "unused_value" has no production usage',
+		]);
+	});
+
+	test("resolves aliased slots and accepts annotated string slots", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": [
+					"MODULE_SLOT_NAMES: tuple[str, ...] = ('unused_module_value',)",
+					"",
+					"class ModuleAliasSlotOwner:",
+					"    __slots__ = MODULE_SLOT_NAMES",
+					"    def read(self) -> int:",
+					"        return 1",
+					"",
+					"class AliasSlotOwner:",
+					"    __slot_names: tuple[str, ...] = ('unused_value',)",
+					"    __slots__ = __slot_names",
+					"    def read(self) -> int:",
+					"        return 1",
+					"",
+					"class StringSlotOwner:",
+					"    __slots__ = 'used_value'",
+					"    used_value: str",
+					"    def __init__(self) -> None:",
+					"        self.used_value = 'value'",
+					"    def read(self) -> str:",
+					"        return self.used_value",
+					"",
+					"class ListSlotOwner:",
+					"    __slots__ = ['unused_list_value']",
+					"    def read(self) -> int:",
+					"        return 1",
+					"",
+					"class SetSlotOwner:",
+					"    __slots__ = {'unused_set_value'}",
+					"    def read(self) -> int:",
+					"        return 1",
+					"",
+					"class MappingSlotOwner:",
+					"    __slots__ = {'unused_mapping_value': 'description'}",
+					"    def read(self) -> int:",
+					"        return 1",
+				].join("\n"),
+				"consumer.py": [
+					"from source import AliasSlotOwner, ListSlotOwner, MappingSlotOwner, ModuleAliasSlotOwner, SetSlotOwner, StringSlotOwner",
+					"alias_owner = AliasSlotOwner()",
+					"list_owner = ListSlotOwner()",
+					"mapping_owner = MappingSlotOwner()",
+					"module_alias_owner = ModuleAliasSlotOwner()",
+					"set_owner = SetSlotOwner()",
+					"string_owner = StringSlotOwner()",
+					"alias_owner.read()",
+					"list_owner.read()",
+					"mapping_owner.read()",
+					"module_alias_owner.read()",
+					"set_owner.read()",
+					"string_owner.read()",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id))
+				.map((violation) => `${violation.rule_id}:${violation.file}:${violation.message}`)
+				.sort(),
+		).toEqual([
+			'python-explicit-field-type:source.py:Python field "unused_list_value" is missing an explicit type',
+			'python-explicit-field-type:source.py:Python field "unused_mapping_value" is missing an explicit type',
+			'python-explicit-field-type:source.py:Python field "unused_module_value" is missing an explicit type',
+			'python-explicit-field-type:source.py:Python field "unused_set_value" is missing an explicit type',
+			'python-explicit-field-type:source.py:Python field "unused_value" is missing an explicit type',
+			'unused-public-field:source.py:public field "unused_list_value" has no production usage',
+			'unused-public-field:source.py:public field "unused_mapping_value" has no production usage',
+			'unused-public-field:source.py:public field "unused_module_value" has no production usage',
+			'unused-public-field:source.py:public field "unused_set_value" has no production usage',
+			'unused-public-field:source.py:public field "unused_value" has no production usage',
+		]);
+	});
+
+	test("does not report Python class variables that configure a base class", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": [
+					"class FrameworkBase:",
+					"    pass",
+					"class Handler(FrameworkBase):",
+					"    version_name: str = 'Proxy/1.0'",
+					"class LocalOwner:",
+					"    unused_value: str = 'unused'",
+					"    def read(self) -> int:",
+					"        return 1",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id === "unused-public-field")
+				.map((violation) => `${violation.file}:${violation.message}`),
+		).toEqual(['source.py:public field "unused_value" has no production usage']);
+	});
+
 	test("reports unused fields declared by TypeScript types and interfaces", () => {
 		const fixture = new TestFixture();
 		const files = {

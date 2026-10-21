@@ -1,33 +1,33 @@
-import type { ProjectNames } from "src/project_analysis_types";
-import type { AstCacheAst } from "src/cache_types";
+import type { StringSetMap } from "src/analysis_types";
+import type { AstCacheAstContract } from "src/cache_types";
+import type { IOContract } from "src/io/protocols";
+import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
+import type { ProjectNamesContract } from "src/project_analysis_types";
+import type { PythonImportResolutionContract } from "src/python_protocols";
 import type { ReportViolation } from "src/reporting_protocols";
-import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { LintStageDuration } from "src/runtime_types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
 import type {
-	AstClassNode,
 	AstCallableNodeContract,
+	AstClassNodeContract,
 	AstPythonImport,
 	AstSourceSpan,
 	ImportedFunction,
 	LineOnly,
 	NamedLine,
-	NormalizedAstFile,
-	RuleParameters,
+	NormalizedAstFileContract,
 	ReviewAgentPhase,
+	RuleParameters,
 } from "src/types";
-import type { LintProjectContextContract } from "src/shared_services_protocols";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { ProjectSourcePythonContract } from "src/source_protocols";
-import type { PythonImportResolutionContract } from "src/python_protocols";
-import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
-import type { StringSetMap } from "src/analysis_types";
 import type { AstStatementNode } from "src/types";
-import ts from "typescript";
-import type { IOContract } from "src/io/protocols";
+import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type ts from "typescript";
 
 export type NamedDeclaration = { name: string; line: number; has_self: boolean };
 export type LineViolation = { line: number };
@@ -37,7 +37,7 @@ export type ArchitectureInput = {
 	file: string;
 	accesses: LineOnly[];
 	branches: LineOnly[];
-	classes: AstClassNode[];
+	classes: AstClassNodeContract[];
 	imports: readonly AstPythonImport[];
 };
 export type PythonLintInput = {
@@ -48,7 +48,7 @@ export type PythonLintInput = {
 	python_class_names: ReadonlySet<string>;
 	project_protocol_names: ReadonlySet<string>;
 	project_type_names: ReadonlySet<string>;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 };
 export type PythonProjectNames = {
 	project_class_names: ReadonlySet<string>;
@@ -60,7 +60,7 @@ export type TestFrameworkFile = { source: LintSourceRecord; framework: PythonTes
 
 export type FileLinterOptions = {
 	repo_root: string;
-	project_names: ProjectNames;
+	project_names: ProjectNamesContract;
 	context: LintProjectContextContract;
 	ignored_files: ReadonlySet<string>;
 	analysis_identity: ProjectAnalysisIdentityContract;
@@ -75,35 +75,41 @@ export type RemainingViolationOptions = {
 	python: boolean;
 	stage_timer: LintStageTimerContract;
 };
-export type TypeScriptScannerSourceOptions = {
-	file_name: LintFileNameContract;
-	text: string;
-	ast_file: TypeScriptAstFileContract;
-	traversal: TypeScriptAstTraversalContract;
-	stage_timer: LintStageTimerContract;
-};
-export type TypeScriptScannerProjectNames = {
-	project_class_names: ReadonlySet<string>;
-	typescript_class_names: ReadonlySet<string>;
-	project_interface_names: ReadonlySet<string>;
-	project_type_names: ReadonlySet<string>;
-	project_contract_names: ReadonlySet<string>;
-	project_boundary_types: ReadonlySet<string>;
-	project_boundary_contracts: ReadonlySet<string>;
-};
-export type TypeScriptScannerModuleScope = {
-	module_resolver: TypeScriptModuleResolverContract;
-	project_files: ReadonlySet<string>;
-};
-export type TypeScriptScannerOptions = TypeScriptScannerSourceOptions &
-	TypeScriptScannerProjectNames &
-	TypeScriptScannerModuleScope;
+/** Responsibilities: _scanner source inputs_. **/
+interface TypeScriptScannerSourceOptionsContract {
+	readonly file_name: LintFileNameContract;
+	readonly text: string;
+	readonly ast_file: TypeScriptAstFileContract;
+	readonly traversal: TypeScriptAstTraversalContract;
+	readonly stage_timer: LintStageTimerContract;
+}
+/** Responsibilities: _scanner project name indexes_. **/
+interface TypeScriptScannerProjectNamesContract {
+	readonly project_class_names: ReadonlySet<string>;
+	readonly typescript_class_names: ReadonlySet<string>;
+	readonly project_interface_names: ReadonlySet<string>;
+	readonly project_type_names: ReadonlySet<string>;
+	readonly project_contract_names: ReadonlySet<string>;
+	readonly project_boundary_types: ReadonlySet<string>;
+	readonly project_boundary_contracts: ReadonlySet<string>;
+}
+/** Responsibilities: _scanner module scope_. **/
+export interface TypeScriptScannerModuleScopeContract {
+	readonly module_resolver: TypeScriptModuleResolverContract;
+	readonly project_files: ReadonlySet<string>;
+}
+/** Responsibilities: _TypeScript scanner options_. **/
+export interface TypeScriptScannerOptionsContract
+	extends TypeScriptScannerSourceOptionsContract,
+		TypeScriptScannerProjectNamesContract,
+		TypeScriptScannerModuleScopeContract {}
+
 export type TypeScriptScannerRuleSource = {
 	file_name: LintFileNameContract;
 	lines: string[];
 	ast_file: TypeScriptAstFileContract;
 	traversal: TypeScriptAstTraversalContract;
-	ast: NormalizedAstFile;
+	ast: NormalizedAstFileContract;
 	stage_timer: LintStageTimerContract;
 	script_rule_services: TypeScriptScriptRuleServicesContract;
 };
@@ -130,7 +136,7 @@ export interface TypeScriptScannerRuleContextContract
 		TypeScriptScannerRuleModuleScope {}
 export type PythonClassFieldCollectionOptions = {
 	file: string;
-	ast: NormalizedAstFile;
+	ast: NormalizedAstFileContract;
 	repo_root: string;
 	function_by_file: StringSetMap;
 	files: ReadonlySet<string>;
@@ -227,24 +233,29 @@ export type HookPayload = {
 
 export type HookDecision = { allowed: boolean; reason: string };
 
-export type ParsedClassFile = { file: string; ast: NormalizedAstFile };
-export type ClassDefinition = { file: string; node: AstClassNode };
+export type ParsedClassFile = { file: string; ast: NormalizedAstFileContract };
+export type ClassDefinition = { file: string; node: AstClassNodeContract };
 export type ViolationContent = { rule_id: string; parameters: RuleParameters };
 export type ContractKind = "interface" | "protocol";
 export type DirectoryFileViolationOptions = {
 	violations: ViolationContract[];
 	file: string;
 	text: string;
-	classes: readonly AstClassNode[];
+	classes: readonly AstClassNodeContract[];
 	docstring_spans: readonly AstSourceSpan[];
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 };
 export type DirectoryViolationContext = {
 	directory_sources: ReadonlyMap<string, readonly string[]>;
+	source_directory_children: ReadonlySourceDirectoryChildren;
 	repo_root: string;
-	class_counts: ReadonlyMap<string, readonly AstClassNode[]>;
-	source_asts: ReadonlyMap<string, NormalizedAstFile>;
+	class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>;
+	source_asts: ReadonlyMap<string, NormalizedAstFileContract>;
 };
+export type SourceDirectoryChildNames = Set<string>;
+export type SourceDirectoryChildMap = Map<string, SourceDirectoryChildNames>;
+export type ReadonlySourceDirectoryChildNames = ReadonlySet<string>;
+export type ReadonlySourceDirectoryChildren = ReadonlyMap<string, ReadonlySourceDirectoryChildNames>;
 export type ClassField = { line: number; name: string; value_name: string };
 export type FieldContext = {
 	repo_root: string;
@@ -268,16 +279,33 @@ export type PythonClassSummaryOptions = {
 	has_implementation_classes: boolean;
 	type_declarations: readonly NamedLine[];
 };
-export type CyrillicQuoteDelimiter = "'" | '"';
-export type CyrillicCommentText = { line: number; text: string };
-export type CyrillicQuoteState = { active: boolean; delimiter: CyrillicQuoteDelimiter; triple: boolean };
+export type SourceTextOccurrence = { line: number; text: string };
+export type PythonQuoteDelimiter = "'" | '"';
+export type PythonQuoteState = {
+	active: boolean;
+	delimiter: PythonQuoteDelimiter;
+	triple: boolean;
+	formatted: boolean;
+	expression_depth: number;
+	expression_quote: string;
+	expression_escaped: boolean;
+};
+/** Responsibilities: _Python quote completion context_. **/
+export interface QuoteCompletionContract {
+	readonly line: string;
+	readonly index: number;
+	readonly next: number;
+	readonly state: PythonQuoteState;
+	readonly parts: string[];
+	readonly line_number: number;
+}
 
 export type AstCacheRecord = {
 	cache_version: number;
 	project_identity: string;
 	source_file: string;
 	source_hash: string;
-	ast: AstCacheAst;
+	ast: AstCacheAstContract;
 };
 export type ClassNodeInput = {
 	name: string;

@@ -1,82 +1,94 @@
 # `composite-state-type`
 
-Description: See the examples below for the rule behavior.
-
-### Policy
-
-Do not represent a domain state or a boundary value with a composite union or intersection type.
-
-### Fix
-
-Define an interface for the shared contract and real specialized classes for each state or representation.
-
-```ts
-interface UserLookup {
-	is_found(): boolean;
-}
-
-class FoundUser implements UserLookup {
-	public is_found(): boolean {
-		return true;
-	}
-}
-
-class MissingUser implements UserLookup {
-	public is_found(): boolean {
-		return false;
-	}
-}
-```
-
-Python uses the same named-state boundary:
-
-
-This applies to unions such as `Buffer | string` and intersections such as `Buffer & Metadata` at fields, parameters, and return boundaries. Wrap the representations behind a named interface and specialized classes. It also applies to object-state unions with a string or boolean discriminant.
-
-Literal unions, compiler unions, and primitive unions are also covered. A literal such as `'found'` may remain a field value on the interface, but the contract itself must not branch into a union type.
-
-### JSON-RPC responses
-
-For an outgoing JSON-RPC tool response, use separate response classes instead of
-a composite `JsonRpcResponse` object with optional `result` and `error` fields.
-`ToolResponse.payload()` and `ToolErrorResponse.payload()` should create the
-structural JSON object immediately before it is passed to the transport. This
-keeps the external wire format intact while preventing mutually exclusive
-response states from spreading through production code.
+Description: Do not combine named domain contracts with `|` or `&`. Keep simultaneous concepts in named fields; model exclusive runtime states with distinct classes. Literal and nullable unions are covered by other rules.
 
 ## Bad
 
 ```ts
-// File: src/user_lookup.ts
-export type UserState = PresentUser | MissingUser;
-
-export class PresentUser {
-	public readonly id = "user-1";
-}
-
-export class MissingUser {
-	public readonly reason = "not found";
-}
-// File: cli.ts
-import { MissingUser, PresentUser } from "src/user_lookup";
-
-(function () {
-	const user: UserState = new MissingUser();
-	console.log(user);
-})();
+interface UserIdentityContract { readonly id: string; }
+interface UserDetailsContract { readonly name: string; }
+type UserSummary = UserIdentityContract & UserDetailsContract; // <- error
 ```
 
 ## Good
 
-```ts
-// File: src/types.ts
-export type Item = string;
-// File: cli.ts
-import type { Item } from "src/types";
+Preserve each contract as a typed field and use concrete implementations:
 
+```ts
+// File: src/protocols.ts
+export interface UserIdentityContract {
+	normalized_id(): string;
+	matches_id(candidate: string): boolean;
+}
+export interface UserDetailsContract {
+	display_name(): string;
+	matches_name(candidate: string): boolean;
+}
+// File: src/user_identity.ts
+import type { UserIdentityContract } from "src/protocols";
+export class UserIdentity implements UserIdentityContract {
+	private readonly id: string;
+	public constructor(id: string) { this.id = id; }
+	public normalized_id(): string { return this.id.trim().toLowerCase(); }
+	public matches_id(candidate: string): boolean {
+		return this.normalized_id() === candidate.trim().toLowerCase();
+	}
+}
+// File: src/user_details.ts
+import type { UserDetailsContract } from "src/protocols";
+export class UserDetails implements UserDetailsContract {
+	private readonly name: string;
+	public constructor(name: string) { this.name = name; }
+	public display_name(): string {
+		const words = this.name.trim().split(/\s+/u);
+		return words.join(" ");
+	}
+	public matches_name(candidate: string): boolean {
+		const own_name = this.name.trim().toLowerCase();
+		const candidate_name = candidate.trim().toLowerCase();
+		return own_name === candidate_name;
+	}
+}
+// File: src/user_summary.ts
+import type { UserDetailsContract, UserIdentityContract } from "src/protocols";
+export class UserSummary {
+	private readonly identity: UserIdentityContract;
+	private readonly details: UserDetailsContract;
+	public constructor(
+		identity: UserIdentityContract,
+		details: UserDetailsContract,
+	) {
+		this.identity = identity;
+		this.details = details;
+	}
+	public label(): string {
+		return `${this.identity.normalized_id()}: ${this.details.display_name()}`;
+	}
+	public matches(user_id: string, name: string): boolean {
+		const id_matches = this.identity.matches_id(user_id);
+		const name_matches = this.details.matches_name(name);
+		if (!id_matches) { return false; }
+		return name_matches;
+	}
+	public same_identity(other: UserIdentityContract): boolean {
+		return this.identity.normalized_id() === other.normalized_id();
+	}
+	public same_name(other: UserDetailsContract): boolean {
+		return this.details.display_name() === other.display_name();
+	}
+}
+// File: cli.ts
+import { UserDetails } from "src/user_details";
+import { UserIdentity } from "src/user_identity";
+import { UserSummary } from "src/user_summary";
 (function () {
-	const items: ReadonlyArray<Item> = [];
-	console.log(items.length);
+	const identity = new UserIdentity("u-1");
+	const details = new UserDetails("Ada");
+	const summary = new UserSummary(identity, details);
+	const label = summary.label();
+	const matches = summary.matches("u-1", "Ada");
+	const same_identity = summary.same_identity(identity);
+	const same_name = summary.same_name(details);
+	console.log(label, matches, same_identity, same_name);
 })();
 ```
-

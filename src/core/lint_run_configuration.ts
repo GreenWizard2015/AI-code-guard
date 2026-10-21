@@ -11,7 +11,7 @@ import { ProjectNameRegistry } from "src/core/support/project_name_registry";
 import { TextFileDiscovery } from "src/core/text_file_discovery";
 import { type LintProjectAnalysis, LintReportMode, type LintReportOptions } from "src/core/types";
 import type { IOContract } from "src/io/protocols";
-import type { LintAnalysisStage, LintRunState, ProjectNames } from "src/project_analysis_types";
+import type { LintAnalysisStage, LintRunStateContract, ProjectNamesContract } from "src/project_analysis_types";
 import type { LintInputFiles } from "src/project_analysis_types";
 import type { PythonAstDataContract } from "src/python_protocols";
 import type { LintRunAnalysisContract, LintRunConfigurationContract } from "src/runtime_protocols";
@@ -26,7 +26,7 @@ export class LintRunConfiguration implements LintRunConfigurationContract {
 	public readonly input_file_selector: LintInputFileSelectorContract;
 	private readonly lint_run_analysis: LintRunAnalysisContract;
 	private readonly python_parser: PythonAstDataContract;
-	private readonly python_worker_session: PythonAstWorkerSession;
+	public readonly worker_session: PythonAstWorkerSession;
 	public readonly python_ast_worker: PythonAstWorkerContract;
 	private readonly analysis_identity: ProjectAnalysisIdentity;
 	private readonly file_io: IOContract;
@@ -56,7 +56,7 @@ export class LintRunConfiguration implements LintRunConfigurationContract {
 		options: LintReportOptions,
 		project_files: string[],
 		context: LintProjectContextContract,
-	): ProjectNames {
+	): ProjectNamesContract {
 		return options.stage_timer.measure("startup.project-names", () => {
 			const registry = new ProjectNameRegistry({ project_files, context }, this.source_names);
 			return registry.names(options.repo_root);
@@ -81,7 +81,7 @@ export class LintRunConfiguration implements LintRunConfigurationContract {
 	}
 
 	/** Responsibilities: _normalization lint state assembly_. **/
-	private lint_state(options: LintReportOptions, mode: LintReportMode): LintRunState {
+	private lint_state(options: LintReportOptions, mode: LintReportMode): LintRunStateContract {
 		const project_files = options.stage_timer.measure(
 			"startup.project-file-discovery",
 			() => options.inputs.project_files,
@@ -122,12 +122,12 @@ export class LintRunConfiguration implements LintRunConfigurationContract {
 			project_source_io,
 		);
 		const worker_bridge = new PythonAstBridge();
-		this.python_worker_session = new PythonAstWorkerSession(
+		this.worker_session = new PythonAstWorkerSession(
 			process,
 			worker_bridge.worker_arguments(),
 			worker_bridge.worker_options(),
 		);
-		this.python_ast_worker = this.python_worker_session.worker_instance;
+		this.python_ast_worker = this.worker_session.worker_instance;
 		this.python_parser = new PythonAstData({
 			worker: this.python_ast_worker,
 			analysis_identity: this.analysis_identity,

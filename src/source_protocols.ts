@@ -3,7 +3,7 @@ import type { LintInputFiles } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord } from "src/source_types";
 import type { CodingRuleSourceData } from "src/source_types";
-import type { AstClassNode, AstLanguage, AstPythonImport, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, AstLanguage, AstPythonImport, NormalizedAstFileContract } from "src/types";
 import type ts from "typescript";
 
 /** Responsibilities: _AST property binding resolution_. **/
@@ -61,21 +61,21 @@ export interface ProjectSourceSnapshotContract {
 
 /** Responsibilities: _AST model normalization_. **/
 export interface AstModelContract {
-	mark_external_bases(classes: AstClassNode[], project_class_names: ReadonlySet<string>): void;
-	empty_ast_file(language: AstLanguage): NormalizedAstFile;
+	mark_external_bases(classes: AstClassNodeContract[], project_class_names: ReadonlySet<string>): void;
+	empty_ast_file(language: AstLanguage): NormalizedAstFileContract;
 }
 
 /** Responsibilities: _persistent AST cache operations_. **/
 export interface AstDiskCacheContract {
 	clean_unused_records(): void;
 	content(source_file: string, source_text: string): AstCacheEntryContract;
-	write(source_file: string, source_text: string, ast: NormalizedAstFile): void;
+	write(source_file: string, source_text: string, ast: NormalizedAstFileContract): void;
 }
 
 /** Responsibilities: _cached AST state contract_, _language compatibility_. **/
 export interface AstCacheEntryContract {
 	present(): boolean;
-	value(): NormalizedAstFile;
+	value(): NormalizedAstFileContract;
 	complete(): boolean;
 	should_reparse(): boolean;
 	supports_language(language: AstLanguage): boolean;

@@ -1,7 +1,7 @@
 import ts from "typescript";
 
 import type {
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	ParseLanguage,
 } from "src/types";
 import type { CodingRuleSourceOptions, CodingRuleSourceData } from "src/source_types";
@@ -14,7 +14,7 @@ import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 export class CodingRuleSource implements CodingRuleSourceContract {
 	public readonly file: string;
 	public readonly text: string;
-	public readonly normalized_ast: NormalizedAstFile;
+	public readonly normalized_ast: NormalizedAstFileContract;
 	public readonly source_file: ts.SourceFile;
 	public readonly source_resolver: SourceFileResolver;
 	public readonly traversal: TypeScriptAstTraversalContract;
@@ -30,7 +30,7 @@ export class CodingRuleSource implements CodingRuleSourceContract {
 	}
 
 	/** Responsibilities: _exposure normalization Python AST_. **/
-	public get normalized_python_ast(): NormalizedAstFile {
+	public get normalized_python_ast(): NormalizedAstFileContract {
 		return this.normalized_ast;
 	}
 

@@ -2,7 +2,7 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MODULE_INTERFACE_KIND, MODULE_PROTOCOL_KIND, PROTOCOL_NAME_PREFIX } from "src/constants";
 import { CONTRACT_SUFFIX } from "src/metrics/constants";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 
 /** Responsibilities: _contract naming validation_, _forbidden protocol term diagnostics_. **/
 export class ContractNames {
@@ -16,7 +16,7 @@ export class ContractNames {
 		this.rule = new DiagnosticRule("contract-naming");
 	}
 	/** Responsibilities: _public operation_. **/
-	public contract(file: string, node: AstClassNode): boolean {
+	public contract(file: string, node: AstClassNodeContract): boolean {
 		if (file.endsWith(".py")) {
 			return node.protocol === true;
 		}
@@ -24,7 +24,7 @@ export class ContractNames {
 	}
 
 	/** Responsibilities: _contract suffix validation_. **/
-	public suffix_valid(file: string, node: AstClassNode): boolean {
+	public suffix_valid(file: string, node: AstClassNodeContract): boolean {
 		if (!this.contract(file, node)) {
 			return true;
 		}
@@ -36,7 +36,7 @@ export class ContractNames {
 	}
 
 	/** Responsibilities: _contract naming diagnostics_. **/
-	public append(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void {
+	public append(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void {
 		for (const node of classes) {
 			if (this.suffix_valid(file, node)) {
 				continue;

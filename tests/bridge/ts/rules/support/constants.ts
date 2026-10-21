@@ -1,6 +1,6 @@
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 
-export const CLASS_NODE: AstClassNode = {
+export const CLASS_NODE: AstClassNodeContract = {
 	name: "MyClass",
 	start: 0,
 	end: 1,

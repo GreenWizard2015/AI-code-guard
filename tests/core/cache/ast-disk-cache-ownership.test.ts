@@ -54,8 +54,10 @@ describe("AstDiskCache ownership", () => {
 		const source_text = "export interface Contract { run(): void; }\n";
 		const file_io = new InMemoryFileIO();
 		file_io.seed_files(new Map([[source_file, source_text]]));
-		const ast = ast_model.empty_ast_file("typescript");
-		ast.type_members = new Map([["Contract", new Map([["run", "method"]])]]);
+		const ast = {
+			...ast_model.empty_ast_file("typescript"),
+			type_members: new Map([["Contract", new Map([["run", "method"]])]]),
+		};
 		const cache = new AstDiskCache(root, "typescript-project", new StaticProjectIdentity(), "typescript", file_io);
 		cache.write(source_file, source_text, ast);
 		const restarted_cache = new AstDiskCache(

@@ -4,7 +4,7 @@ import type { TestPathSyntaxContract } from "src/testing_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import type { ClassDefinition, ParsedClassFile } from "src/model/types/types";
 import { CLASS_REFERENCE_INFO, CLASS_REFERENCE_WARNING } from "src/rules/constants";
 import { CONSTRUCTOR_NAME, CONTRACT_SUFFIX, PYTHON_CONSTRUCTOR_NAME } from "src/metrics/constants";
@@ -33,7 +33,7 @@ export class ClassReferenceMetric {
 	private append_class_references(
 		references_by_class: SourceReferenceIndexContract<string>,
 		file: ParsedClassFile,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 	): void {
 		for (const name of new Set(this.class_names(node))) {
 			references_by_class.add_usage(name, { file: file.file, line: node.start + 1 });
@@ -73,7 +73,7 @@ export class ClassReferenceMetric {
 	}
 
 	/** Responsibilities: _output names which class_. **/
-	public class_names(node: AstClassNode): string[] {
+	public class_names(node: AstClassNodeContract): string[] {
 		let class_fields = node.fields;
 		if (class_fields === undefined) {
 			class_fields = [];

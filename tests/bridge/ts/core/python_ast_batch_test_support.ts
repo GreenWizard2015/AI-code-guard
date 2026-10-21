@@ -8,7 +8,7 @@ import type {
 } from "src/core/python-ast-worker.mjs";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { PythonAstDataOptions } from "src/python_types";
-import type { NormalizedAstFile, PythonBatchAstOptions } from "src/types";
+import type { NormalizedAstFileContract, PythonBatchAstOptions } from "src/types";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _Python batch response simulation_, _batch parser setup_. **/
@@ -29,7 +29,7 @@ export class PythonAstBatchScenario implements PythonAstWorkerContract {
 			omitted_name = this.omitted_name;
 		}
 		this.response_count += 1;
-		return new Map<string, NormalizedAstFile>(
+		return new Map<string, NormalizedAstFileContract>(
 			Object.keys(sources)
 				.filter((name) => name !== omitted_name)
 				.map((name) => [name, this.ast_model.empty_ast_file("python")] as const),

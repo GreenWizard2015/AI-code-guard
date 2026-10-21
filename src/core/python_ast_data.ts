@@ -4,7 +4,7 @@ import { AstModel } from "src/core/ast_model";
 import { PYTHON_AST_INCOMPLETE_BATCH_MESSAGE, PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
 import type { PythonAstWorkerContract, PythonAstWorkerResponse } from "src/core/python-ast-worker.mjs";
 import type {
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	PythonAstCacheBatch,
 	PythonBatchAstOptions,
 	PythonBatchAstPreparation,
@@ -18,7 +18,7 @@ import type { PythonAstDataOptions } from "src/python_types";
 
 /** Responsibilities: _Python AST ownership_, _batch cache_, _worker state_. **/
 export class PythonAstData implements PythonAstDataContract {
-	private readonly parsed_ast_cache: Map<string, NormalizedAstFile>;
+	private readonly parsed_ast_cache: Map<string, NormalizedAstFileContract>;
 	private readonly batch_cache: PythonAstBatchCache;
 	private readonly ast_model: AstModelContract;
 	private readonly default_stage_timer: LintStageTimerContract;
@@ -28,7 +28,7 @@ export class PythonAstData implements PythonAstDataContract {
 	private readonly split_batch_error = "Python AST worker does not support split batches.";
 
 	/** Responsibilities: _Python results validation_. **/
-	private validate_bridge_output(parsed: NormalizedAstFile): void {
+	private validate_bridge_output(parsed: NormalizedAstFileContract): void {
 		if (parsed.language !== "python") {
 			throw new Error("Python AST bridge returned an unexpected language.");
 		}
@@ -57,7 +57,7 @@ export class PythonAstData implements PythonAstDataContract {
 	}
 
 	/** Responsibilities: _named bridge AST resolution_. **/
-	private response_ast(response: PythonAstWorkerResponse, name: string): NormalizedAstFile {
+	private response_ast(response: PythonAstWorkerResponse, name: string): NormalizedAstFileContract {
 		if (!response.asts.has(name)) {
 			throw new Error(PYTHON_AST_INCOMPLETE_BATCH_MESSAGE);
 		}
@@ -73,7 +73,7 @@ export class PythonAstData implements PythonAstDataContract {
 		batch_id: string,
 		texts: readonly string[],
 		response: PythonAstWorkerResponse,
-	): NormalizedAstFile[] {
+	): NormalizedAstFileContract[] {
 		if (response.batchId !== batch_id) {
 			throw new Error("Python AST worker returned an unexpected batch id.");
 		}
@@ -90,7 +90,7 @@ export class PythonAstData implements PythonAstDataContract {
 		texts: readonly string[],
 		stage_timer: LintStageTimerContract,
 		stage_prefix = "",
-	): NormalizedAstFile[] {
+	): NormalizedAstFileContract[] {
 		let resolved_stage_prefix = PYTHON_AST_STAGE_PREFIX;
 		if (stage_prefix.length > 0) {
 			resolved_stage_prefix = stage_prefix;
@@ -161,7 +161,7 @@ export class PythonAstData implements PythonAstDataContract {
 	}
 
 	/** Responsibilities: _split batch result completion_. **/
-	private complete_batch_results(preparation: PythonBatchAstPreparation): NormalizedAstFile[] {
+	private complete_batch_results(preparation: PythonBatchAstPreparation): NormalizedAstFileContract[] {
 		const prefix = this.stage_prefix(preparation.options);
 		const response = this.complete_batch();
 		preparation.options.stage_timer.add_duration(
@@ -177,7 +177,7 @@ export class PythonAstData implements PythonAstDataContract {
 
 	/** Responsibilities: _worker and cache initialization_, _default bridge composition_. **/
 	public constructor(options: PythonAstDataOptions) {
-		this.parsed_ast_cache = new Map<string, NormalizedAstFile>();
+		this.parsed_ast_cache = new Map<string, NormalizedAstFileContract>();
 		this.default_stage_timer = new LintStageTimer();
 		this.ast_model = new AstModel();
 		this.batch_cache = new PythonAstBatchCache(
@@ -204,7 +204,7 @@ export class PythonAstData implements PythonAstDataContract {
 	}
 
 	/** Responsibilities: _Python AST batch result_. **/
-	public complete_batch_ast(batch_id: string): NormalizedAstFile[] {
+	public complete_batch_ast(batch_id: string): NormalizedAstFileContract[] {
 		const preparation = this.pending_batches.get(batch_id);
 		if (preparation === undefined) {
 			throw new Error("Python AST split batch is missing.");
@@ -214,7 +214,7 @@ export class PythonAstData implements PythonAstDataContract {
 	}
 
 	/** Responsibilities: _Python batches parsing_. **/
-	public batch_ast(options: PythonBatchAstOptions): NormalizedAstFile[] {
+	public batch_ast(options: PythonBatchAstOptions): NormalizedAstFileContract[] {
 		return this.batch_cache.resolve(options, (texts: readonly string[]) => {
 			if (texts.length === 0) {
 				return [];
@@ -224,7 +224,7 @@ export class PythonAstData implements PythonAstDataContract {
 	}
 
 	/** Responsibilities: _retrieve cached ASTs_. **/
-	public source_ast(text: string): NormalizedAstFile {
+	public source_ast(text: string): NormalizedAstFileContract {
 		const cached = this.batch_cache.cached(text);
 		if (cached.present()) {
 			return cached.value();

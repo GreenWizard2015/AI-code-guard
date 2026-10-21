@@ -11,7 +11,7 @@ import type { LintSourceRecord } from "src/source_types";
 import type { PythonClassFieldCollectionOptions } from "src/model/types/types";
 import { RULE_IDS } from "src/constants";
 import type { PythonProjectImportContext } from "src/source_types";
-import type { AstClassNode, ClassFieldFiles, ImportedFunction, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, ClassFieldFiles, ImportedFunction, NormalizedAstFileContract } from "src/types";
 import type { ClassField, FieldContext } from "src/model/types/types";
 
 /** Responsibilities: _Python class field analysis_, _annotation and initializer collection_. **/
@@ -61,7 +61,7 @@ export class PythonClassFieldScanner {
 	}
 
 	/** Responsibilities: _retrieval normalization Python AST_. **/
-	private read_ast(file: string, sources: ReadonlyMap<string, LintSourceRecord>): NormalizedAstFile {
+	private read_ast(file: string, sources: ReadonlyMap<string, LintSourceRecord>): NormalizedAstFileContract {
 		const python_ast_parser = new PythonAstData(new PythonAstBridge());
 		const source = sources.get(file);
 		if (source !== undefined) {
@@ -71,7 +71,7 @@ export class PythonClassFieldScanner {
 	}
 
 	/** Responsibilities: _indexing Python functions source_. **/
-	private index_functions(ast_by_file: Map<string, NormalizedAstFile>): StringSetMap {
+	private index_functions(ast_by_file: Map<string, NormalizedAstFileContract>): StringSetMap {
 		const result: StringSetMap = new Map();
 		for (const [file, ast] of ast_by_file) {
 			result.set(file, new Set(ast.functions.map((node) => node.name)));
@@ -83,7 +83,7 @@ export class PythonClassFieldScanner {
 	private append_class_fields(
 		violations: ViolationContract[],
 		file: string,
-		class_node: AstClassNode,
+		class_node: AstClassNodeContract,
 		context: FieldContext,
 	): void {
 		let fields = class_node.fields;

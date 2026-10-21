@@ -7,7 +7,7 @@ import type {
 } from "typescript";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintFileNameContract } from "src/source_types";
-import type { AstCallableNodeContract, AstClassField, AstClassNode, NormalizedAstFile } from "src/types";
+import type { AstCallableNodeContract, AstClassField, AstClassNodeContract, NormalizedAstFileContract } from "src/types";
 
 export type RepeatedBranchSummary = { length: number; all_same: boolean; line: number };
 export type RepeatedBranchVisitState = {
@@ -96,7 +96,7 @@ export type TypeScriptCallableMetricsInput = {
 	file: string;
 	functions: readonly AstCallableNodeContract[];
 	methods: readonly AstCallableNodeContract[];
-	classes: readonly AstClassNode[];
+	classes: readonly AstClassNodeContract[];
 	fields: readonly AstClassField[];
 };
 
@@ -156,6 +156,6 @@ export interface TypeScriptCacheKeyRuleContract {
 
 export type TypeScriptScannerState = {
 	file_name: LintFileNameContract;
-	ast: NormalizedAstFile;
+	ast: NormalizedAstFileContract;
 	rules: TypeScriptRuleGroupContract;
 };

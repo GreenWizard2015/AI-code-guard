@@ -1,17 +1,17 @@
 import { PYTHON_CALLABLE_TYPE_PREFIX, PYTHON_LANGUAGE } from "src/constants";
 import { PythonMutableCollectionTypes } from "src/linting/orchestration/runtime/python/python_mutable_collection_types";
-import type { PythonRuleInput } from "src/linting/types";
+import type { PythonRuleInputContract } from "src/linting/types";
 import { ProjectTypeBoundary } from "src/metrics/project-boundary/project_type_boundary";
 import type { ProjectTypeBoundaryNames } from "src/metrics/types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { PythonTypeRuleCollectorContract } from "src/python_protocols";
 import { AnyTypes } from "src/rules/typescript/syntax-rules/types/any_types";
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
 import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
 
 /** Responsibilities: _Python field type checks_, _nested type checks_. **/
 export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract {
-	private readonly input: PythonRuleInput;
+	private readonly input: PythonRuleInputContract;
 	private readonly type_field_rule: DiagnosticRule;
 	private readonly return_type_rule: DiagnosticRule;
 	private readonly parameter_type_rule: DiagnosticRule;
@@ -143,7 +143,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 	}
 
 	/** Responsibilities: _mutable field ownership_. **/
-	private append_mutable_issue(node: AstClassNode): void {
+	private append_mutable_issue(node: AstClassNodeContract): void {
 		if (node.is_data_class || node.type_contract || node.protocol) {
 			return;
 		}
@@ -183,7 +183,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 	}
 
 	/** Responsibilities: _project type contract names_. **/
-	private allowed_contracts(classes: readonly AstClassNode[]): Set<string> {
+	private allowed_contracts(classes: readonly AstClassNodeContract[]): Set<string> {
 		const declared_contract_names = [...this.input.project_type_names, ...this.input.project_protocol_names];
 		const allowed_names = declared_contract_names.filter((name) => !this.input.project_class_names.has(name));
 		const allowed = new Set(allowed_names);
@@ -196,7 +196,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 	}
 
 	/** Responsibilities: _Python boundary type names_. **/
-	private boundary_names(classes: readonly AstClassNode[]): ProjectTypeBoundaryNames {
+	private boundary_names(classes: readonly AstClassNodeContract[]): ProjectTypeBoundaryNames {
 		const allowed_contracts = this.allowed_contracts(classes);
 		const project_class_names = [...this.input.project_class_names];
 		const forbidden_names = project_class_names.filter((name) => !allowed_contracts.has(name));
@@ -232,7 +232,7 @@ export class PythonTypeRuleCollector implements PythonTypeRuleCollectorContract 
 	}
 
 	/** Responsibilities: _Python type rule initialization_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInputContract) {
 		this.type_field_rule = new DiagnosticRule("type-field-count");
 		this.return_type_rule = new DiagnosticRule("explicit-return-type");
 		this.parameter_type_rule = new DiagnosticRule("python-explicit-parameter-type");

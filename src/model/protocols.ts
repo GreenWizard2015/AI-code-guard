@@ -2,7 +2,7 @@ import ts from "typescript";
 import type {
 	AstCallableNodeContract,
 	AstCallableReference,
-	AstClassNode,
+	AstClassNodeContract,
 	CallableOptions,
 	CallableReferenceIdentity,
 	TypeScriptPropertySide,
@@ -69,7 +69,7 @@ export interface TypeScriptReferenceFileIndexContract {
 
 /** Responsibilities: _class callable node construction_. **/
 export interface TypeScriptClassCallableNodesContract {
-	interface_node(node: ts.InterfaceDeclaration): AstClassNode;
+	interface_node(node: ts.InterfaceDeclaration): AstClassNodeContract;
 	class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNodeContract[];
 	variable_callable_nodes(statement: ts.VariableStatement): AstCallableNodeContract[];
 }

@@ -122,6 +122,7 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 				type_kind: type_data.type_kind,
 				readonly: this.readonly_member(member),
 				class_variable: false,
+				class_scope: false,
 				visibility: this.field_visibility(member),
 			},
 		];
@@ -156,6 +157,7 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 				type_kind: type_data.type_kind,
 				readonly: this.readonly_member(member),
 				class_variable: false,
+				class_scope: false,
 				visibility: "public",
 			},
 		];

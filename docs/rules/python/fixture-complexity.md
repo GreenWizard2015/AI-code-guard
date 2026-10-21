@@ -5,7 +5,6 @@ Build only the shared data the tests use; move substantial reusable setup into a
 
 ## Bad
 
-
 ```python
 {% const documents = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray", "yankee"] %}
 # File: tests/file_entry/file_entry_test.py
@@ -50,7 +49,6 @@ class FileEntry:
 ```
 
 ## Good
-
 
 ```python
 # File: tests/file_entry/file_entry_test.py

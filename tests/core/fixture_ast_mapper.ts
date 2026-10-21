@@ -2,7 +2,7 @@ import { LintFileName } from "src/core/context/lint_file_name";
 import { ClassReporting } from "src/core/support/source-analysis/class_reporting";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstCallableNodeContract, AstClassNode, AstTypeKind, AstVisibility } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract, AstTypeKind, AstVisibility } from "src/types";
 import { FixtureLists } from "tests/core/fixture-lists";
 import type { FixtureCallableNode, FixtureClassNode } from "tests/core/types";
 
@@ -102,7 +102,7 @@ export class FixtureAstMapper {
 	}
 
 	/** Responsibilities: _class AST fixture_. **/
-	public class_node(node: FixtureClassNode): AstClassNode {
+	public class_node(node: FixtureClassNode): AstClassNodeContract {
 		const lists = new FixtureLists({});
 		lists.constructor_lists(node);
 		const default_lines = this.number_value(node.end, 0) - this.number_value(node.start, 0);
@@ -130,6 +130,7 @@ export class FixtureAstMapper {
 				type_kind: this.type_kind_value(field.type_kind),
 				readonly: this.flag_value(field.readonly),
 				class_variable: this.flag_value(field.class_variable),
+				class_scope: this.flag_value(field.class_scope),
 				visibility: "public",
 			})),
 			untyped_fields: [],

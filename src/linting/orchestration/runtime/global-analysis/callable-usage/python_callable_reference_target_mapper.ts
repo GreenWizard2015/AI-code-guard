@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import { PythonCompositionImports } from "src/linting/orchestration/runtime/composition/python_composition_imports";
 import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
-import type { AstCallableReference, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { AstCallableReference, ImportedSymbol, NormalizedAstFileContract } from "src/types";
 import type {
 	PythonCallableReferenceTargetMapperContract,
 	PythonCompositionImportsContract,
@@ -100,7 +100,7 @@ export class PythonCallableReferenceTargetMapper implements PythonCallableRefere
 	public constructor(
 		project_root: string,
 		import_context: PythonProjectImportContext,
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	) {
 		this.project_root = project_root;
 		this.python_imports = new PythonCompositionImports(import_context, source_asts);
@@ -129,7 +129,7 @@ export class PythonCallableReferenceTargetMapper implements PythonCallableRefere
 	}
 
 	/** Responsibilities: _Python source reference mapping_. **/
-	public map_source(source: LintSourceRecord): NormalizedAstFile {
+	public map_source(source: LintSourceRecord): NormalizedAstFileContract {
 		if (source.language !== "python") {
 			return source.normalized_ast;
 		}

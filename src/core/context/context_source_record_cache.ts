@@ -3,7 +3,7 @@ import type { AstDiskCacheContract } from "src/source_protocols";
 import type { ContextSourceRecordCacheContract } from "src/cache_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _TypeScript AST retrieval_, _persistent AST cache lifecycle_. **/
 export class ContextSourceRecordCache implements ContextSourceRecordCacheContract {
@@ -28,8 +28,8 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
 		stage_timer: LintStageTimerContract,
-	): Map<string, NormalizedAstFile> {
-		const cached = new Map<string, NormalizedAstFile>();
+	): Map<string, NormalizedAstFileContract> {
+		const cached = new Map<string, NormalizedAstFileContract>();
 		if (!this.enabled) {
 			return cached;
 		}
@@ -58,7 +58,7 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
 		records: readonly LintSourceRecord[],
-		cached: ReadonlyMap<string, NormalizedAstFile>,
+		cached: ReadonlyMap<string, NormalizedAstFileContract>,
 		stage_timer: LintStageTimerContract,
 	): LintSourceRecord[] {
 		if (!this.enabled) {

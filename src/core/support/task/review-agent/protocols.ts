@@ -1,4 +1,5 @@
 import type { HookDecision, HookPayload, HookToolInput } from "src/model/types/types";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 import type {
 	ReviewAgentExecutionResult,
 	ReviewAgentHookEventContract,
@@ -77,6 +78,18 @@ export interface ReviewAgentCatalogContract {
 /** Responsibilities: _review-agent lifecycle hook execution_. **/
 export interface ReviewAgentHooksContract {
 	run(event: ReviewAgentHookEventContract): HookDecision;
+}
+
+/** Responsibilities: _recovery owner liveness_, _recovery claim lifecycle_. **/
+export interface ReviewRecoveryClaimContract {
+	owner_is_live(path: string, failure_classification: SystemFailureClassificationContract): boolean;
+	claim(failure_classification: SystemFailureClassificationContract): boolean;
+	release(): void;
+}
+
+/** Responsibilities: _abandoned agent termination_. **/
+export interface ReviewAbandonedAgentCleanupContract {
+	terminate(lock_path: string): void;
 }
 
 /** Responsibilities: _agent tool authorization_. **/

@@ -1,7 +1,8 @@
 import { dirname, isAbsolute, relative, sep } from "node:path";
-import type { ViolationContract } from "src/reporting_protocols";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { MAX_SOURCE_SUBDIRECTORIES } from "src/constants";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { ReadonlySourceDirectoryChildren, SourceDirectoryChildMap } from "src/model/types/types";
+import type { ViolationContract } from "src/reporting_protocols";
 import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import { TestPathSyntax } from "src/test_path_syntax";
 
@@ -29,37 +30,14 @@ export class DirectorySourceStructure {
 		current.push(file);
 	}
 
-	/** Responsibilities: _nested path validation_. **/
-	private source_directory_child(directory: string, source_directory: string): string {
-		const nested_path = relative(directory, source_directory);
-		if (nested_path.length === 0) {
-			return "";
+	/** Responsibilities: _one source-bearing child insertion_. **/
+	private add_directory_child(children: SourceDirectoryChildMap, parent: string, child: string): void {
+		let names = children.get(parent);
+		if (names === undefined) {
+			names = new Set<string>();
+			children.set(parent, names);
 		}
-		if (nested_path === ".." || nested_path.startsWith(`..${sep}`) || isAbsolute(nested_path)) {
-			return "";
-		}
-		return this.first_path_segment(nested_path);
-	}
-
-	/** Responsibilities: _child path prefix extraction_. **/
-	private first_path_segment(path: string): string {
-		const separator_index = path.indexOf(sep);
-		if (separator_index < 0) {
-			return path;
-		}
-		return path.slice(0, separator_index);
-	}
-
-	/** Responsibilities: _source-bearing direct child count_. **/
-	private source_subdirectory_count(directory: string, source_directories: Iterable<string>): number {
-		const child_names = new Set<string>();
-		for (const source_directory of source_directories) {
-			const child_name = this.source_directory_child(directory, source_directory);
-			if (child_name.length > 0) {
-				child_names.add(child_name);
-			}
-		}
-		return child_names.size;
+		names.add(child);
 	}
 
 	/** Responsibilities: _repo-relative parent validation_. **/
@@ -95,6 +73,23 @@ export class DirectorySourceStructure {
 		this.test_path_syntax = new TestPathSyntax();
 	}
 
+	/** Responsibilities: _source-bearing child directory indexing_. **/
+	public source_directory_children(source_directories: Iterable<string>): SourceDirectoryChildMap {
+		const children: SourceDirectoryChildMap = new Map();
+		for (const source_directory of source_directories) {
+			let child = source_directory;
+			while (true) {
+				const parent = dirname(child);
+				if (parent === child) {
+					break;
+				}
+				this.add_directory_child(children, parent, child);
+				child = parent;
+			}
+		}
+		return children;
+	}
+
 	/** Responsibilities: _directory candidate selection_. **/
 	public directories_to_check(source_directories: Iterable<string>, repo_root: string): Set<string> {
 		const source_directory_list = [...source_directories];
@@ -109,9 +104,13 @@ export class DirectorySourceStructure {
 	public source_subdirectory_violation(
 		directory: string,
 		repo_root: string,
-		source_directories: Iterable<string>,
+		source_directory_children: ReadonlySourceDirectoryChildren,
 	): ViolationContract[] {
-		const count = this.source_subdirectory_count(directory, source_directories);
+		const children = source_directory_children.get(directory);
+		let count = 0;
+		if (children !== undefined) {
+			count = children.size;
+		}
 		if (count <= this.maximum_source_subdirectories) {
 			return [];
 		}

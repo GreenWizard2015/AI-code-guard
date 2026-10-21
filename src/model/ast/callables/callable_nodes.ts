@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import type { AstCallableNodeContract, AstClassNode, AstVisibility } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract, AstVisibility } from "src/types";
 import type { TypeScriptCallableDataContract } from "src/model/protocols";
 import type { CallableDataOptions } from "src/model/types";
 
@@ -151,7 +151,7 @@ export class CallableNodes implements CallableNodesContract {
 	}
 
 	/** Responsibilities: _construction interface AST class_. **/
-	public interface_node(node: ts.InterfaceDeclaration): AstClassNode {
+	public interface_node(node: ts.InterfaceDeclaration): AstClassNodeContract {
 		const source_file = this.source_file;
 		return {
 			name: node.name.text,

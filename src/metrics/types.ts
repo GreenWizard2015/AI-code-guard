@@ -2,14 +2,14 @@ import type {
 	AstArgumentUse,
 	AstCallableNodeContract,
 	AstCallableReference,
-	AstClassNode,
+	AstClassNodeContract,
 	AstClassField,
 	AstReferenceAlias,
 	AstTypedArgument,
 	AstVisibility,
 	AstTypeMemberRecord,
 	CallableOwnershipResolver,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 } from "src/types";
 import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -17,7 +17,7 @@ export type ParsedFile = {
 	file: string;
 	absolute_file: string;
 	imports: ReadonlySet<string>;
-	ast: NormalizedAstFile;
+	ast: NormalizedAstFileContract;
 };
 export type CallableDefinition = {
 	file: string;
@@ -26,7 +26,7 @@ export type CallableDefinition = {
 };
 
 export type CallableMatcherClassIndexes = {
-	classes: Map<string, AstClassNode>;
+	classes: Map<string, AstClassNodeContract>;
 	protocol_names: Set<string>;
 };
 
@@ -36,7 +36,7 @@ export type CallableMatcherOwnerIndexes = {
 };
 
 export type CallableMatcherIndexes = {
-	classes: ReadonlyMap<string, AstClassNode>;
+	classes: ReadonlyMap<string, AstClassNodeContract>;
 	protocol_names: ReadonlySet<string>;
 	methods_by_owner: ReadonlyCallableMatcherNamesByOwner;
 	method_owner_counts: ReadonlyMap<string, number>;
@@ -44,9 +44,9 @@ export type CallableMatcherIndexes = {
 };
 
 export type CallableProjectIndex = Map<string, AstTypeMemberRecord>;
-export type CallableClassIndex = Map<string, AstClassNode>;
+export type CallableClassIndex = Map<string, AstClassNodeContract>;
 export type CallableTypeCandidateSet = Set<AstTypeMemberRecord>;
-export type CallableClassCandidateSet = Set<AstClassNode>;
+export type CallableClassCandidateSet = Set<AstClassNodeContract>;
 export type CallableTypeCandidates = Map<string, CallableTypeCandidateSet>;
 export type CallableClassCandidates = Map<string, CallableClassCandidateSet>;
 export type CallableMetricNode = {

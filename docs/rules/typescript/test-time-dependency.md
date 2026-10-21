@@ -1,9 +1,7 @@
 # test-time-dependency
 
-Description: Reports direct real-time, sleep, or unseeded-random calls in TypeScript Jest
-tests and Python `test_*` functions. Inject a clock or deterministic random
-source for unit tests. Integration tests that intentionally exercise a real
-clock should be kept at an explicit integration boundary.
+Description: Replace direct clock, sleep, and unseeded-random calls in unit tests with injected
+deterministic sources; keep real-clock checks at explicit integration boundaries.
 
 ## Bad
 

@@ -10,7 +10,7 @@ import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import { DirectoryFacadeRules } from "src/rules/support/directory_facade_rules";
 import { DirectoryFileCatalog } from "src/rules/support/directory_file_catalog";
 import { DirectorySourceStructure } from "src/rules/support/directory_source_structure";
-import type { AstClassNode, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _directory source classification_, _directory size diagnostics_. **/
 export class DirectoryStructureRules {
@@ -36,7 +36,7 @@ export class DirectoryStructureRules {
 	}
 
 	/** Responsibilities: _aggregation class counts direct_. **/
-	private implementation_class_count(classes: readonly AstClassNode[]): number {
+	private implementation_class_count(classes: readonly AstClassNodeContract[]): number {
 		let count = 0;
 		for (const class_node of classes) {
 			let is_contract = class_node.protocol;
@@ -52,7 +52,7 @@ export class DirectoryStructureRules {
 	}
 
 	/** Responsibilities: _aggregation class counts direct_. **/
-	private class_count(files: readonly string[], class_counts: ReadonlyMap<string, readonly AstClassNode[]>): number {
+	private class_count(files: readonly string[], class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>): number {
 		let count = 0;
 		for (const file of files) {
 			const is_special_file = this.file_catalog.special_file_names.has(basename(file));
@@ -95,7 +95,7 @@ export class DirectoryStructureRules {
 		directory: string,
 		repo_root: string,
 		source_files: readonly string[],
-		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
+		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
 	): ViolationContract[] {
 		if (source_files.length === 0) {
 			return [];
@@ -134,7 +134,7 @@ export class DirectoryStructureRules {
 			...this.source_structure.source_subdirectory_violation(
 				directory,
 				context.repo_root,
-				context.directory_sources.keys(),
+				context.source_directory_children,
 			),
 		);
 	}
@@ -166,12 +166,13 @@ export class DirectoryStructureRules {
 		violations: ViolationContract[],
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	): void {
 		const directory_sources = this.source_structure.source_directories(files);
 		const context: DirectoryViolationContext = {
 			directory_sources,
+			source_directory_children: this.source_structure.source_directory_children(directory_sources.keys()),
 			repo_root,
 			class_counts,
 			source_asts,

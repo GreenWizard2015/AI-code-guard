@@ -7,7 +7,7 @@ import type {
 	Assignment,
 	AstReferenceAlias,
 	CallableReferenceIdentity,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	RuleAppender,
 	RuleContextData,
 } from "src/types";
@@ -144,8 +144,8 @@ export interface TypeScriptAstTraversalContract {
 /** Responsibilities: _AST file access_, _normalization_, _traversal reuse_. **/
 export interface TypeScriptAstFileContract {
 	source_file_node(): ts.SourceFile;
-	normalized(): NormalizedAstFile;
-	reference_normalization(cached: NormalizedAstFile): NormalizedAstFile;
+	normalized(): NormalizedAstFileContract;
+	reference_normalization(cached: NormalizedAstFileContract): NormalizedAstFileContract;
 }
 
 /** Responsibilities: _TypeScript rule-tree traversal_, _constructor state propagation_. **/

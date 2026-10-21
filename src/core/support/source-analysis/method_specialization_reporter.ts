@@ -1,6 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
 import {
 	CONSTRUCTOR_NAME,
 	PLUGIN_MARKER_NAME,
@@ -14,7 +14,7 @@ export class MethodSpecializationReporter {
 
 	private readonly file: string;
 
-	private readonly node: AstClassNode;
+	private readonly node: AstClassNodeContract;
 
 	private readonly methods: readonly AstCallableNodeContract[];
 
@@ -142,7 +142,7 @@ export class MethodSpecializationReporter {
 	}
 
 	/** Responsibilities: _initialization violation sink file_. **/
-	public constructor(violations: ViolationContract[], file: string, node: AstClassNode) {
+	public constructor(violations: ViolationContract[], file: string, node: AstClassNodeContract) {
 		this.violations = violations;
 		this.file = file;
 		this.node = node;

@@ -28,7 +28,7 @@ describe("type contract policies", () => {
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
 			{
-				"alias.ts": "type AstClassNode = { base_class_name?: string; base_class_names?: string[]; };",
+				"alias.ts": "type AstClassNodeContract = { base_class_name?: string; base_class_names?: string[]; };",
 				"field-count.ts": [
 					"type LargeType = {",
 					Array.from({ length: 11 }, (_, index) => `  field_${index}: string;`).join("\n"),

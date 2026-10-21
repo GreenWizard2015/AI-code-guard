@@ -3,7 +3,7 @@ import { CONSTRUCTOR_NAME } from "src/metrics/constants";
 import type { CallableDefinition, ParsedFile, SharedCallableKind } from "src/metrics/types";
 import type { CallableSourceImportScopeContract } from "src/analysis_protocols";
 import type { ReadonlyStringSetMap } from "src/analysis_types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";
 
 /** Responsibilities: _callable declaration selection_, _external inheritance classification_. **/
@@ -111,7 +111,7 @@ export class CallableUsageDefinitionPolicy {
 	}
 
 	/** Responsibilities: _base class name normalization_. **/
-	public base_names_for(class_node: AstClassNode): string[] {
+	public base_names_for(class_node: AstClassNodeContract): string[] {
 		if (class_node.base_class_names.length > 0) {
 			return class_node.base_class_names;
 		}

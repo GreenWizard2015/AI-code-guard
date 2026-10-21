@@ -1,5 +1,5 @@
 import type { SourceNamesContract } from "src/runtime_protocols";
-import type { ProjectLanguage, ProjectNameContext, ProjectNames } from "src/project_analysis_types";
+import type { ProjectLanguage, ProjectNameContext, ProjectNamesContract } from "src/project_analysis_types";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 
 /** Responsibilities: _language symbol collection_, _project name aggregation_. **/
@@ -94,7 +94,7 @@ export class ProjectNameRegistry {
 	}
 
 	/** Responsibilities: _project names result_. **/
-	public names(repo_root: string): ProjectNames {
+	public names(repo_root: string): ProjectNamesContract {
 		return {
 			project_class_names: this.class_names(),
 			python_class_names: this.language_classes("python"),

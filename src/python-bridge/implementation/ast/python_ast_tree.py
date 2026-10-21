@@ -84,6 +84,7 @@ class PythonAstTree:
                 self.source_segments,
                 container_aliases,
                 self.type_aliases,
+                self.tree.body,
             )
         )
         return builder.result

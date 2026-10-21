@@ -1,5 +1,5 @@
 import type ts from "typescript";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import type { ReadonlyStringSet, ReadonlyStringMap, StringBooleanMap, CallableReferenceKindContract } from "src/analysis_types";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type {
@@ -32,7 +32,7 @@ export type LintSourceRecord = {
 	relative_path: string;
 	file_name: LintFileNameContract;
 	text: string;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 	language: AstLanguage;
 	typescript_ast: TypeScriptAstFileContract;
 	source_resolver: SourceFileResolver;
@@ -45,7 +45,7 @@ export type LintSourceRecordOptions = {
 	relative_path: string;
 	file_name: LintFileNameContract;
 	text: string;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 };
 
 export type TypeScriptLintSourceRecordOptions = {
@@ -53,7 +53,7 @@ export type TypeScriptLintSourceRecordOptions = {
 	relative_path: string;
 	file_name: LintFileNameContract;
 	text: string;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 	source_resolver: SourceFileResolver;
 };
 export type TypeScriptAstCreation = {
@@ -65,8 +65,8 @@ export type ContextSourceRecordOptions = {
 	file: string;
 	text: string;
 	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
-	typescript_asts: ReadonlyMap<string, NormalizedAstFile>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>;
+	typescript_asts: ReadonlyMap<string, NormalizedAstFileContract>;
 	stage_timer: LintStageTimerContract;
 	source_io: ProjectSourceIOContract;
 };
@@ -84,7 +84,7 @@ export type ContextSourceRecordsOptions = {
 	files: string[];
 	texts: ReadonlyMap<string, string>;
 	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>;
 	stage_timer: LintStageTimerContract;
 	virtual_project: boolean;
 	source_io: ProjectSourceIOContract;
@@ -134,7 +134,7 @@ export type CodingRuleSourceOptions = { file: string; text: string };
 export type CodingRuleSourceData = {
 	file: string;
 	text: string;
-	normalized_ast: NormalizedAstFile;
+	normalized_ast: NormalizedAstFileContract;
 	source_file: ts.SourceFile;
 	source_resolver: SourceFileResolver;
 	traversal: TypeScriptAstTraversalContract;

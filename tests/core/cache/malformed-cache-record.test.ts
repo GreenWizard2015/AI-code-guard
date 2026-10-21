@@ -1,7 +1,9 @@
-import { describe, expect, test } from "@jest/globals";
 import { join } from "node:path";
-import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
+import { ViolationCache } from "src/core/cache/violation_cache";
+import type { ReportViolation } from "src/reporting_protocols";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _malformed cache record_, _cache lookup setup_. **/
 class MalformedCacheFixture {
@@ -43,5 +45,12 @@ describe("malformed complete cache records", () => {
 		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
 
 		expect(lookup.previous_record.available).toBe(false);
+	});
+
+	test("rejects null diagnostic entries without throwing", () => {
+		const entries: readonly ReportViolation[] = JSON.parse("[null]");
+		const cache = new ViolationCache(entries);
+
+		expect(cache.valid_cache()).toBe(false);
 	});
 });

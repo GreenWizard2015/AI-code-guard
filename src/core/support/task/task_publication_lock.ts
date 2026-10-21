@@ -9,6 +9,7 @@ import { TaskPublicationJournal } from "src/core/support/task/publication/task_p
 import { TaskPublicationJournalFile } from "src/core/support/task/publication/task_publication_journal_file";
 import { TaskPublicationOwner } from "src/core/support/task/publication/task_publication_owner";
 import { TaskPublicationRecoveryClaim } from "src/core/support/task/publication/task_publication_recovery_claim";
+import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
 import type {
 	TaskPublicationLockContract,
 	TaskPublicationOwnerContract,
@@ -27,6 +28,7 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 	private readonly recovery_claim: TaskPublicationRecoveryClaim;
 	private readonly acquisition_staging_path: string;
 	private readonly acquisition_owner_content: string;
+	private readonly process_identity: string;
 	private readonly file_io: IOContract;
 
 	/** Responsibilities: _atomic publication metadata replacement_. **/
@@ -44,11 +46,17 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 	private owner_state(): TaskPublicationOwnerContract {
 		const path = join(this.lock_path, "owner");
 		if (!this.file_io.directory_entries.path_is_file(path)) {
-			return new TaskPublicationOwner(0, "", "");
+			return new TaskPublicationOwner(0, "", "", "", this.file_io);
 		}
-		const [pid_text, transaction = "", token = ""] = this.file_io.file_content.file_text(path).split("\n");
+		const [pid_text, transaction = "", token = "", start_time = "", boot_id = ""] = this.file_io.file_content
+			.file_text(path)
+			.split("\n");
 		const pid = Number(pid_text);
-		return new TaskPublicationOwner(pid, transaction.trim(), token.trim());
+		let process_identity = "";
+		if (start_time.length > 0 && boot_id.length > 0) {
+			process_identity = `${pid}\n${start_time}\n${boot_id}\n`;
+		}
+		return new TaskPublicationOwner(pid, transaction.trim(), token.trim(), process_identity, this.file_io);
 	}
 
 	/** Responsibilities: _publication transaction boundary_. **/
@@ -137,7 +145,7 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 			return true;
 		} catch (error) {
 			if (this.file_io.file_paths.path_exists(this.lock_path)) {
-			if (this.file_io.directory_entries.path_is_directory(this.lock_path)) {
+				if (this.file_io.directory_entries.path_is_directory(this.lock_path)) {
 					return false;
 				}
 			}
@@ -168,7 +176,10 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 		this.file_io = file_io;
 		this.recovery_claim = new TaskPublicationRecoveryClaim(this.lock_path, this.owner_token, file_io);
 		this.acquisition_staging_path = `${this.lock_path}.${this.owner_token}.initializing`;
-		this.acquisition_owner_content = `${String(process.pid)}\n\n${this.owner_token}\n`;
+		const identity_reader = new ReviewAgentIdentity(0, "", "", false, file_io);
+		this.process_identity = identity_reader.from_process(process.pid).serialized();
+		const [, start_time = "", boot_id = ""] = this.process_identity.split("\n");
+		this.acquisition_owner_content = `${String(process.pid)}\n\n${this.owner_token}\n${start_time}\n${boot_id}\n`;
 	}
 
 	/** Responsibilities: _publication lock acquisition_. **/
@@ -188,7 +199,12 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 			throw new Error(`Task publication transaction is outside the workspace: ${transaction}`);
 		}
 		const owner_path = join(this.lock_path, "owner");
-		this.write_atomically(owner_path, `${owner_path}.next`, `${process.pid}\n${transaction}\n${this.owner_token}\n`);
+		const [, start_time = "", boot_id = ""] = this.process_identity.split("\n");
+		this.write_atomically(
+			owner_path,
+			`${owner_path}.next`,
+			`${process.pid}\n${transaction}\n${this.owner_token}\n${start_time}\n${boot_id}\n`,
+		);
 	}
 
 	/** Responsibilities: _publication journal persistence_. **/

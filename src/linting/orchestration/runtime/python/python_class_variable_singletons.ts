@@ -1,5 +1,5 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstClassField, NormalizedAstFile } from "src/types";
+import type { AstClassField, NormalizedAstFileContract } from "src/types";
 import type { PythonClassVariableSingletonsContract } from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { PYTHON_CLASSVAR_NAME } from "src/constants";
@@ -7,7 +7,7 @@ import { PYTHON_CLASSVAR_NAME } from "src/constants";
 /** Responsibilities: _class variable resolution_, _singleton diagnostics_. **/
 export class PythonClassVariableSingletons implements PythonClassVariableSingletonsContract {
 	private readonly file: string;
-	private readonly normalized_ast: NormalizedAstFile;
+	private readonly normalized_ast: NormalizedAstFileContract;
 
 	/** Responsibilities: _ClassVar imported alias collection_. **/
 	private imported_aliases(names: Set<string>): void {
@@ -84,7 +84,7 @@ export class PythonClassVariableSingletons implements PythonClassVariableSinglet
 	}
 
 	/** Responsibilities: _Python class-variable singleton initialization_. **/
-	public constructor(file: string, normalized_ast: NormalizedAstFile) {
+	public constructor(file: string, normalized_ast: NormalizedAstFileContract) {
 		this.file = file;
 		this.normalized_ast = normalized_ast;
 	}

@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
-import { NodeFileIO } from "src/io/node_file_io";
 import { REPORTING_PROJECT_ROOT } from "src/constants";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { NodeFileIO } from "src/io/node_file_io";
 import { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 
 describe("ProjectAnalysisIdentity", () => {
@@ -55,5 +55,22 @@ describe("ProjectAnalysisIdentity", () => {
 		const identity_for_second_project = new ProjectAnalysisIdentity(fixture.file_io, fixture.analyzer_root);
 
 		expect(identity_for_second_project.analyzer()).toBe(identity_for_first_project.analyzer());
+	});
+
+	test("keeps selected, ignored, and entry-file set boundaries in selection identity", () => {
+		const fixture = new AstDiskCacheFixture("ast-cache-selection-boundaries");
+		const identity = new ProjectAnalysisIdentity(fixture.file_io, fixture.analyzer_root);
+		const first = identity.selection(
+			new Set(["/project/a.ts"]),
+			new Set(["/project/b.ts", "/project/c.ts"]),
+			new Set(["/project/d.ts"]),
+		);
+		const second = identity.selection(
+			new Set(["/project/a.ts"]),
+			new Set(["/project/b.ts"]),
+			new Set(["/project/c.ts", "/project/d.ts"]),
+		);
+
+		expect(first).not.toBe(second);
 	});
 });

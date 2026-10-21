@@ -9,6 +9,7 @@ import { ARCHITECTURE_RULE_DATA } from "src/rules/catalog/architecture/constants
 import { MODULES_RULE_DATA } from "src/rules/catalog/modules/constants";
 import { QUALITY_RULE_DATA } from "src/rules/catalog/quality/constants";
 import type { TypeScriptModuleCache } from "src/module-resolution/types";
+import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { AstLanguage, ReviewStageDefinition, SourceReferenceRelation, TypeScriptPropertySide } from "src/types";
 
 export const MISSING_CACHE_VALUE = "<missing>";
@@ -249,7 +250,10 @@ export const PYTHON_UNITTEST_FRAMEWORK = "unittest";
 export const MODULE_CACHE_KEY_SEPARATOR = "\u0000";
 export const MODULE_CACHE_DISK_SCOPE = "disk";
 export const MODULE_CACHE_SNAPSHOT_SCOPE = "snapshot";
-export const SHARED_MODULE_CACHES = new WeakMap<ReadonlyMap<string, ts.SourceFile>, TypeScriptModuleCache>();
+export const SHARED_MODULE_CACHES = new WeakMap<
+	ReadonlyMap<string, ts.SourceFile>,
+	WeakMap<ProjectSourceIOContract, TypeScriptModuleCache>
+>();
 export const IMPORT_KINDS = new Set([ts.SyntaxKind.ImportDeclaration, ts.SyntaxKind.ImportEqualsDeclaration]);
 export const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".py"]);
 export const IGNORED_DIRECTORIES = new Set(["node_modules", "dist", "build", "coverage"]);

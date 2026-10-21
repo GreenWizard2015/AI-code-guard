@@ -2,12 +2,12 @@ import { CallableDefinitionUsage } from "src/linting/orchestration/runtime/globa
 import type { CallableDefinitionUsageContract } from "src/shared_services_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableDefinition, ParsedFile } from "src/metrics/types";
-import type { CallableUsageCollectorState } from "src/linting/orchestration/runtime/composition/types";
+import type { CallableUsageCollectorStateContract } from "src/linting/orchestration/runtime/composition/types";
 import { TestPathSyntax } from "src/test_path_syntax";
 
 /** Responsibilities: _callable usage resolution_, _violation collection_. **/
 export class CallableViolationCollector {
-	private readonly state: CallableUsageCollectorState;
+	private readonly state: CallableUsageCollectorStateContract;
 	private readonly files_by_name: ReadonlyMap<string, ParsedFile>;
 	private readonly production_file_names: ReadonlySet<string>;
 	private readonly test_file_names: ReadonlySet<string>;
@@ -43,7 +43,7 @@ export class CallableViolationCollector {
 	}
 
 	/** Responsibilities: _initialization callable usage state_. **/
-	constructor(state: CallableUsageCollectorState) {
+	constructor(state: CallableUsageCollectorStateContract) {
 		this.state = state;
 		this.files_by_name = state.matcher_indexes.files_by_name;
 		this.production_file_names = new Set(state.production_files.map((file) => file.file));

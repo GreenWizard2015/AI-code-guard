@@ -1,6 +1,6 @@
 import type { PythonAstDataContract, PythonSourceFilesContract } from "src/python_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { NormalizedAstFile, PythonSourceAstBatch } from "src/types";
+import type { NormalizedAstFileContract, PythonSourceAstBatch } from "src/types";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
 
 /** Responsibilities: _Python sources selection_, _batch-parse Python AST files_. **/
@@ -27,7 +27,7 @@ export class PythonSourceFiles implements PythonSourceFilesContract {
 		texts: readonly string[],
 		stage_timer: LintStageTimerContract,
 		stage_prefix: string,
-	): NormalizedAstFile[] {
+	): NormalizedAstFileContract[] {
 		return this.python_ast_parser.batch_ast({
 			texts,
 			stage_timer,
@@ -40,9 +40,9 @@ export class PythonSourceFiles implements PythonSourceFilesContract {
 	/** Responsibilities: _Python AST file mapping_. **/
 	private ast_records(
 		files: readonly string[],
-		asts: readonly NormalizedAstFile[],
-	): ReadonlyMap<string, NormalizedAstFile> {
-		const result = new Map<string, NormalizedAstFile>();
+		asts: readonly NormalizedAstFileContract[],
+	): ReadonlyMap<string, NormalizedAstFileContract> {
+		const result = new Map<string, NormalizedAstFileContract>();
 		for (const [index, file] of files.entries()) {
 			const ast = asts[index];
 			if (ast === undefined) {
@@ -93,7 +93,7 @@ export class PythonSourceFiles implements PythonSourceFilesContract {
 	}
 
 	/** Responsibilities: _Python source batch completion_. **/
-	public complete_source_ast(batch: PythonSourceAstBatch): ReadonlyMap<string, NormalizedAstFile> {
+	public complete_source_ast(batch: PythonSourceAstBatch): ReadonlyMap<string, NormalizedAstFileContract> {
 		const complete_batch = this.python_ast_parser.complete_batch_ast;
 		if (complete_batch === undefined) {
 			throw new Error("Python AST split batch completion is unavailable.");
@@ -108,7 +108,7 @@ export class PythonSourceFiles implements PythonSourceFilesContract {
 	public source_ast(
 		stage_timer: LintStageTimerContract,
 		stage_prefix = "",
-	): ReadonlyMap<string, NormalizedAstFile> {
+	): ReadonlyMap<string, NormalizedAstFileContract> {
 		let resolved_stage_prefix = PYTHON_AST_STAGE_PREFIX;
 		if (stage_prefix.length > 0) {
 			resolved_stage_prefix = stage_prefix;

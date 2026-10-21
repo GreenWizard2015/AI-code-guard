@@ -1,7 +1,7 @@
 import { basename, relative } from "node:path";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { PYTHON_INDEX_MODULE, TYPESCRIPT_INDEX_MODULE } from "src/constants";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";
 
@@ -22,7 +22,7 @@ export class DirectoryFacadeRules {
 	}
 
 	/** Responsibilities: _creation facade-file violations normalization_. **/
-	private facade_file_violation(file: string, repo_root: string, ast: NormalizedAstFile): ViolationContract[] {
+	private facade_file_violation(file: string, repo_root: string, ast: NormalizedAstFileContract): ViolationContract[] {
 		if (!this.declarations(ast)) {
 			return [];
 		}
@@ -30,7 +30,7 @@ export class DirectoryFacadeRules {
 	}
 
 	/** Responsibilities: _named declaration detection_. **/
-	private has_named_declarations(ast: NormalizedAstFile): boolean {
+	private has_named_declarations(ast: NormalizedAstFileContract): boolean {
 		if (ast.classes.length > 0) {
 			return true;
 		}
@@ -50,7 +50,7 @@ export class DirectoryFacadeRules {
 		this.facade_rule = new DiagnosticRule("facade-file-content");
 	}
 	/** Responsibilities: _public operation_. **/
-	public declarations(ast: NormalizedAstFile): boolean {
+	public declarations(ast: NormalizedAstFileContract): boolean {
 		if (this.has_named_declarations(ast)) {
 			return true;
 		}
@@ -64,7 +64,7 @@ export class DirectoryFacadeRules {
 	public facade_violations(
 		repo_root: string,
 		source_files: readonly string[],
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	): ViolationContract[] {
 		const violations: ViolationContract[] = [];
 		for (const file of this.facade_files(source_files)) {

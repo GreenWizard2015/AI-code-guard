@@ -116,4 +116,23 @@ describe("coding-lint shared source boundaries", () => {
 
 		expect(resolver.module_symbol(consumer_file, "./worker.mjs")).toBe(runtime_file);
 	});
+
+	test("does not share module results between readers over the same source map", () => {
+		const root = "/virtual/shared-source-reader-cache";
+		const consumer_file = join(root, "consumer.ts");
+		const helper_file = join(root, "helper.mjs");
+		const consumer_text = 'import { Helper } from "./helper.mjs";\n';
+		const source_files = new Map([
+			[consumer_file, ts.createSourceFile(consumer_file, consumer_text, ts.ScriptTarget.Latest, true)],
+		]);
+		const first_reader = new InMemoryProjectSourceIO(new Map([[helper_file, "export class Helper {}\n"]]));
+		const second_reader = new InMemoryProjectSourceIO(new Map());
+		const first_resolver = new TypeScriptModuleExports(root, source_files, false, first_reader);
+		const second_resolver = new TypeScriptModuleExports(root, source_files, false, second_reader);
+
+		const first_result = first_resolver.module_symbol(consumer_file, "./helper.mjs");
+		const second_result = second_resolver.module_symbol(consumer_file, "./helper.mjs");
+
+		expect({ first_result, second_result }).toEqual({ first_result: helper_file, second_result: "" });
+	});
 });

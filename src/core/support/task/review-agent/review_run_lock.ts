@@ -6,9 +6,16 @@ import {
 	REVIEW_RUN_LOCK_DIRECTORY,
 } from "src/core/support/task/review-agent/constants";
 import { ReviewRunLockRecovery } from "src/core/support/task/review-agent/review_run_lock_recovery";
+import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
 import type { IOContract } from "src/io/protocols";
 import type { ProcessSignalContract } from "src/analysis_protocols";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { ReviewRecoveryClaim } from "src/core/support/task/review-agent/review_recovery_claim";
+import { ReviewAbandonedAgentCleanup } from "src/core/support/task/review-agent/review_abandoned_agent_cleanup";
+import type {
+	ReviewAbandonedAgentCleanupContract,
+	ReviewRecoveryClaimContract,
+} from "src/core/support/task/review-agent/protocols";
 
 /** Responsibilities: _single review process ownership_, _lock lifecycle_. **/
 export class ReviewRunLock {
@@ -17,6 +24,9 @@ export class ReviewRunLock {
 	private readonly file_io: IOContract;
 	private readonly recovery: ReviewRunLockRecovery;
 	private readonly boundary_failures: BoundaryFailureClassifier;
+	private readonly recovery_path: string;
+	private readonly recovery_claim: ReviewRecoveryClaimContract;
+	private readonly abandoned_agents: ReviewAbandonedAgentCleanupContract;
 
 	/** Responsibilities: _staging lock publication_. **/
 	private publish_lock(): boolean {
@@ -24,7 +34,7 @@ export class ReviewRunLock {
 		const token = randomUUID();
 		this.file_io.directory_operations.create_directory_exclusive(staging_path);
 		try {
-			this.file_io.file_content.write_text(join(staging_path, "owner"), `${process.pid}\n${token}\n`);
+			this.write_lock_owner(staging_path, token);
 			this.file_io.directory_operations.move_path(staging_path, this.path);
 			this.owner_tokens.set(this.path, token);
 			return true;
@@ -37,12 +47,22 @@ export class ReviewRunLock {
 		}
 	}
 
+	/** Responsibilities: _review lock owner publication_. **/
+	private write_lock_owner(staging_path: string, token: string): void {
+		const identity_reader = new ReviewAgentIdentity(0, "", "", false, this.file_io);
+		const process_identity = identity_reader.from_process(process.pid).serialized();
+		const [, start_time = "", boot_id = ""] = process_identity.split("\n");
+		const owner_path = join(staging_path, "owner");
+		const owner_text = `${process.pid}\n${token}\n${start_time}\n${boot_id}\n`;
+		this.file_io.file_content.write_text(owner_path, owner_text);
+	}
+
 	/** Responsibilities: _existing lock acquisition_. **/
 	private acquire_existing_lock(): boolean {
 		if (!this.file_io.file_paths.path_exists(this.path)) {
 			return this.publish_lock();
 		}
-		if (!this.recovery.recover_stale_lock(this.boundary_failures)) {
+		if (!this.recovery.recover_stale_lock(this.boundary_failures, this.recovery_claim, this.abandoned_agents)) {
 			return false;
 		}
 		return this.publish_lock();
@@ -72,17 +92,20 @@ export class ReviewRunLock {
 		this.owner_tokens = new Map<string, string>();
 		this.file_io = file_io;
 		this.boundary_failures = new BoundaryFailureClassifier();
-		this.recovery = new ReviewRunLockRecovery(this.path, `${this.path}.recovery`, file_io, process_signal);
+		this.recovery_path = `${this.path}.recovery`;
+		this.recovery_claim = new ReviewRecoveryClaim(this.recovery_path, file_io, process_signal);
+		this.abandoned_agents = new ReviewAbandonedAgentCleanup(file_io, process_signal);
+		this.recovery = new ReviewRunLockRecovery(this.path, this.recovery_path, file_io);
 	}
 
 	/** Responsibilities: _review lock acquisition_. **/
 	public try_acquire(): boolean {
 		this.file_io.directory_operations.create_directory(resolve(this.path, ".."));
 		if (this.recovery.recovery_required()) {
-			if (this.recovery.recovery_is_live(this.boundary_failures)) {
+			if (this.recovery_claim.owner_is_live(this.recovery_path, this.boundary_failures)) {
 				return false;
 			}
-			if (!this.recovery.recover_stale_lock(this.boundary_failures)) {
+			if (!this.recovery.recover_stale_lock(this.boundary_failures, this.recovery_claim, this.abandoned_agents)) {
 				return false;
 			}
 		}

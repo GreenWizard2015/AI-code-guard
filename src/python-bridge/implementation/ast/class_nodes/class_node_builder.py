@@ -50,6 +50,7 @@ class PythonClassNodeOptions:
     source_segments: PythonSourceSegmentsContract
     container_aliases: PythonContainerAliasesContract
     type_aliases: PythonScopedTypeAliasesContract
+    module_body: list[ast.stmt]
 
 
 class PythonClassNode:
@@ -179,6 +180,7 @@ class PythonClassNode:
                 options.node,
                 options.container_aliases,
                 options.node_index,
+                options.module_body,
             ),
         )
 

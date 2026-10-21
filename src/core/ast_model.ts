@@ -1,14 +1,14 @@
 import ts from "typescript";
-import type { AstClassNode, AstLanguage, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, AstLanguage, NormalizedAstFileContract } from "src/types";
 import type { AstModelContract } from "src/source_protocols";
-import type { TypeScriptScannerModuleScope } from "src/model/types/types";
+import type { TypeScriptScannerModuleScopeContract } from "src/model/types/types";
 
 /** Responsibilities: _class inheritance metadata normalization_, _empty AST files creation_. **/
 export class AstModel implements AstModelContract {
 	private readonly base_name_precedence = ["base_class_names", "base_class_name"] as const;
 
 	/** Responsibilities: _resolution class base-name value_. **/
-	private base_name_value(node: AstClassNode, key: (typeof this.base_name_precedence)[number]): string[] {
+	private base_name_value(node: AstClassNodeContract, key: (typeof this.base_name_precedence)[number]): string[] {
 		const value = node[key];
 		if (Array.isArray(value)) {
 			if (value.length > 0) {
@@ -22,7 +22,7 @@ export class AstModel implements AstModelContract {
 	}
 
 	/** Responsibilities: _resolution class base names_. **/
-	private base_names(node: AstClassNode): string[] {
+	private base_names(node: AstClassNodeContract): string[] {
 		for (const key of this.base_name_precedence) {
 			const names = this.base_name_value(node, key);
 			if (names.length > 0) {
@@ -38,7 +38,7 @@ export class AstModel implements AstModelContract {
 		module_path: string,
 		namespace: string,
 		base: string,
-		scope: TypeScriptScannerModuleScope,
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		const prefix = `${namespace}.`;
 		if (!base.startsWith(prefix)) {
@@ -59,8 +59,8 @@ export class AstModel implements AstModelContract {
 		bindings: Set<string>,
 		module_path: string,
 		namespace: string,
-		classes: readonly AstClassNode[],
-		scope: TypeScriptScannerModuleScope,
+		classes: readonly AstClassNodeContract[],
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		for (const class_node of classes) {
 			for (const base of [...class_node.base_class_names, class_node.base_class_name]) {
@@ -70,7 +70,7 @@ export class AstModel implements AstModelContract {
 	}
 
 	/** Responsibilities: _project import binding classification_. **/
-	private project_import(module_path: string, name: string, scope: TypeScriptScannerModuleScope): boolean {
+	private project_import(module_path: string, name: string, scope: TypeScriptScannerModuleScopeContract): boolean {
 		if (module_path.length === 0) {
 			return false;
 		}
@@ -86,7 +86,7 @@ export class AstModel implements AstModelContract {
 		project_names: Set<string>,
 		module_path: string,
 		named: ts.NamedImportBindings,
-		scope: TypeScriptScannerModuleScope,
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		if (ts.isNamespaceImport(named)) {
 			if (!scope.project_files.has(module_path)) {
@@ -110,7 +110,7 @@ export class AstModel implements AstModelContract {
 		project_names: Set<string>,
 		source_file: ts.SourceFile,
 		statement: ts.ImportDeclaration,
-		scope: TypeScriptScannerModuleScope,
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		if (!ts.isStringLiteral(statement.moduleSpecifier)) {
 			return;
@@ -131,11 +131,12 @@ export class AstModel implements AstModelContract {
 	}
 
 	/** Responsibilities: _marking bases outside project_. **/
-	public mark_external_bases(classes: AstClassNode[], project_class_names: ReadonlySet<string>): void {
-		for (const class_node of classes) {
-			class_node.extends_external_class = this.base_names(class_node).some(
+	public mark_external_bases(classes: AstClassNodeContract[], project_class_names: ReadonlySet<string>): void {
+		for (let index = 0; index < classes.length; index += 1) {
+			const class_node = classes[index];
+			classes[index] = { ...class_node, extends_external_class: this.base_names(class_node).some(
 				(base) => !project_class_names.has(base),
-			);
+			) };
 		}
 	}
 
@@ -143,8 +144,8 @@ export class AstModel implements AstModelContract {
 	public append_namespace_bases(
 		bindings: Set<string>,
 		source_file: ts.SourceFile,
-		classes: readonly AstClassNode[],
-		scope: TypeScriptScannerModuleScope,
+		classes: readonly AstClassNodeContract[],
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		for (const statement of source_file.statements) {
 			if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -168,7 +169,7 @@ export class AstModel implements AstModelContract {
 	public exclude_external_imports(
 		project_names: Set<string>,
 		source_file: ts.SourceFile,
-		scope: TypeScriptScannerModuleScope,
+		scope: TypeScriptScannerModuleScopeContract,
 	): void {
 		for (const statement of source_file.statements) {
 			if (!ts.isImportDeclaration(statement)) {
@@ -179,7 +180,7 @@ export class AstModel implements AstModelContract {
 	}
 
 	/** Responsibilities: _creation empty normalization AST_. **/
-	public empty_ast_file(language: AstLanguage): NormalizedAstFile {
+	public empty_ast_file(language: AstLanguage): NormalizedAstFileContract {
 		return {
 			language,
 			classes: [],

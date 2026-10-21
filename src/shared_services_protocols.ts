@@ -4,14 +4,14 @@ import type { LintSourceRecord } from "src/source_types";
 import type { LintStageDuration } from "src/runtime_types";
 import type {
 	AstCallableNodeContract,
-	AstClassNode,
+	AstClassNodeContract,
 	AstParseIssue,
 	AstSourceSpan,
 	AstTypeKind,
 	LintRunStatistics,
 	NamedLine,
 	NamedSymbol,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	ParseLanguage,
 	SourceReference,
 	SourceReferenceRelation,
@@ -121,7 +121,7 @@ export interface PlacementSupportContract {
 
 /** Responsibilities: _single-class file naming_. **/
 export interface SingleClassFileNameRuleContract {
-	append(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void;
+	append(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void;
 	expected_file_name(class_name: string, file: string): string;
 }
 
@@ -131,14 +131,14 @@ export interface DirectoryRulesContract {
 	collect_directory_violations(
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 		directory_files: DirectoryFileSet,
 	): ViolationContract[];
 }
 
 /** Responsibilities: _text rule evaluation_. **/
-export interface CyrillicTextRulesContract {
+export interface NonEnglishSourceTextRulesContract {
 	text_file_violations(file: string, text: string): ViolationContract[];
 }
 
@@ -149,9 +149,9 @@ export interface AnyTypesContract {
 		file: string,
 		functions: readonly AstCallableNodeContract[],
 		methods: readonly AstCallableNodeContract[],
-		classes: readonly AstClassNode[],
+		classes: readonly AstClassNodeContract[],
 	): void;
-	append_field_infos(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void;
+	append_field_infos(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void;
 }
 
 /** Responsibilities: _contract-name alias registration_. **/
@@ -230,7 +230,7 @@ export interface MethodContractRulesContract {
 
 /** Responsibilities: _module declaration separation_. **/
 export interface ModuleDeclarationsRuleContract {
-	append(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void;
+	append(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void;
 	declaration_module(file: string): boolean;
 }
 

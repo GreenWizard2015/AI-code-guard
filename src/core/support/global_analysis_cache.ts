@@ -1,14 +1,14 @@
 import { join, resolve } from "node:path";
-import { GLOBAL_ANALYSIS_CACHE_VERSION } from "src/core/constants";
-import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import { ViolationCache } from "src/core/cache/violation_cache";
-import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
 import type { GlobalAnalysisCacheContract } from "src/cache_protocols";
 import type { GlobalAnalysisCacheOptions } from "src/cache_types";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { CacheState, GlobalAnalysisCacheRecord } from "src/project_analysis_types";
-import type { IOContract } from "src/io/protocols";
+import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
+import { ViolationCache } from "src/core/cache/violation_cache";
+import { GLOBAL_ANALYSIS_CACHE_VERSION } from "src/core/constants";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { IOContract } from "src/io/protocols";
+import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
+import type { CacheState, GlobalAnalysisCacheRecord } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
 
 /** Responsibilities: _persistent global-analysis cache_, _selection invalidation_. **/
 export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
@@ -48,11 +48,34 @@ export class GlobalAnalysisCache implements GlobalAnalysisCacheContract {
 	}
 
 	/** Responsibilities: _cached violation record validation_. **/
-	private validated_violations(record: GlobalAnalysisCacheRecord): CacheState<ViolationContract[]> {
+	private record_shape_valid(record: GlobalAnalysisCacheRecord): boolean {
+		if (record === null || typeof record !== "object" || Array.isArray(record)) {
+			return false;
+		}
+		const valid_record_fields =
+			Number.isFinite(record.cache_version) &&
+			String(record.context_hash) === record.context_hash &&
+			String(record.selection_hash) === record.selection_hash;
+		return valid_record_fields && Array.isArray(record.violations);
+	}
+
+	/** Responsibilities: _cache identity matching_. **/
+	private identity_matches(record: GlobalAnalysisCacheRecord): boolean {
 		if (record.cache_version !== GLOBAL_ANALYSIS_CACHE_VERSION) {
+			return false;
+		}
+		if (record.context_hash !== this.context_hash) {
+			return false;
+		}
+		return record.selection_hash === this.selection_hash;
+	}
+
+	/** Responsibilities: _cached violation record validation_. **/
+	private validated_violations(record: GlobalAnalysisCacheRecord): CacheState<ViolationContract[]> {
+		if (!this.record_shape_valid(record)) {
 			return { available: false, value: [] };
 		}
-		if (record.context_hash !== this.context_hash || record.selection_hash !== this.selection_hash) {
+		if (!this.identity_matches(record)) {
 			return { available: false, value: [] };
 		}
 		const cache = new ViolationCache(record.violations);

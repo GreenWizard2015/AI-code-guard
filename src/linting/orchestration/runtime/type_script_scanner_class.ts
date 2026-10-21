@@ -1,6 +1,6 @@
 import { MixCollection } from "src/rules/mix_collection";
 import type { LintFileNameContract } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type {
 	TypeScriptScannerState,
@@ -10,7 +10,7 @@ import type {
 /** Responsibilities: _TypeScript AST state preparation_, _TypeScript rule groups execution_. **/
 export class TypeScriptScannerClass {
 	private readonly file_name: LintFileNameContract;
-	private readonly ast: NormalizedAstFile;
+	private readonly ast: NormalizedAstFileContract;
 	private readonly rules: TypeScriptRuleGroupContract;
 
 	public readonly violations: ViolationContract[] = [];

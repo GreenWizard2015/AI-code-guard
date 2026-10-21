@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 
 import { TypeScriptCallReferenceCollector } from "src/model/ast/declarations/type_script_call_reference_collector";
 import { TypeScriptClassNodes } from "src/model/ast/declarations/type_script_class_nodes";
-import type { AstCallableNodeContract, AstClassNode, NormalizedAstFile } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract, NormalizedAstFileContract } from "src/types";
 import type { TypeScriptAstOptions, TypeScriptSourceResolver } from "src/model/types";
 import type { CallableNodesContract } from "src/analysis_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
@@ -22,7 +22,7 @@ import type { ProjectSourceIOContract } from "src/source_protocols";
 /** Responsibilities: _AST syntax tree_, _node hierarchy_. **/
 export class TypeScriptAstFile implements TypeScriptAstFileContract {
 	public readonly source_file: ts.SourceFile;
-	private readonly normalized_cache: Map<string, NormalizedAstFile>;
+	private readonly normalized_cache: Map<string, NormalizedAstFileContract>;
 	private readonly project_root: string;
 	private readonly stage_timer: LintStageTimerContract;
 	private readonly source_resolver: TypeScriptSourceResolver;
@@ -76,7 +76,7 @@ export class TypeScriptAstFile implements TypeScriptAstFileContract {
 	constructor(file: string, text: string, options: TypeScriptAstOptions);
 	/** Responsibilities: _initialization source text parser_. **/
 	constructor(file: string, text: string, ...provided: readonly TypeScriptAstOptions[]) {
-		this.normalized_cache = new Map<string, NormalizedAstFile>();
+		this.normalized_cache = new Map<string, NormalizedAstFileContract>();
 		const options = provided[0];
 		let project_root = dirname(file);
 		if (options === undefined) {
@@ -130,7 +130,7 @@ export class TypeScriptAstFile implements TypeScriptAstFileContract {
 	}
 
 	/** Responsibilities: _collection normalization class interface_. **/
-	public classes(): AstClassNode[] {
+	public classes(): AstClassNodeContract[] {
 		const class_nodes = [...this.class_node_factory.class_nodes(), ...this.class_node_factory.interface_nodes()];
 		class_nodes.sort((left, right) => left.start - right.start);
 		return class_nodes;
@@ -144,7 +144,7 @@ export class TypeScriptAstFile implements TypeScriptAstFileContract {
 	}
 
 	/** Responsibilities: _construction normalization AST file_. **/
-	public normalized(): NormalizedAstFile {
+	public normalized(): NormalizedAstFileContract {
 		const cached = this.normalized_cache.get(NORMALIZED_AST_CACHE_KEY);
 		if (cached !== undefined) {
 			return cached;
@@ -161,7 +161,7 @@ export class TypeScriptAstFile implements TypeScriptAstFileContract {
 	}
 
 	/** Responsibilities: _AST reference cache_. **/
-	public reference_normalization(cached: NormalizedAstFile): NormalizedAstFile {
+	public reference_normalization(cached: NormalizedAstFileContract): NormalizedAstFileContract {
 		this.normalized_cache.set(NORMALIZED_AST_CACHE_KEY, cached);
 		return cached;
 	}

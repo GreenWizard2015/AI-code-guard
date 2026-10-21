@@ -1,16 +1,17 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
+import type { AstCacheAstContract } from "src/cache_types";
+import { AI_CODE_GUARD_DIRECTORY, TYPESCRIPT_CACHE_OWNER } from "src/constants";
 import { AstCacheHit } from "src/core/cache/ast_cache_hit";
+import { AstCacheMemberShape } from "src/core/cache/ast_cache_member_shape";
 import { AstCacheMiss } from "src/core/cache/ast_cache_miss";
 import { AST_ANALYSIS_CACHE_VERSION, CACHE_DIRECTORY } from "src/core/constants";
-import { AI_CODE_GUARD_DIRECTORY, TYPESCRIPT_CACHE_OWNER } from "src/constants";
-import type { AstCacheEntryContract, AstDiskCacheContract } from "src/source_protocols";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { AstCacheAst } from "src/cache_types";
-import type { AstTypeMembers, AstTypeMembersSerialized, NormalizedAstFile } from "src/types";
-import type { AstCacheRecord } from "src/model/types/types";
-import type { IOContract } from "src/io/protocols";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import type { IOContract } from "src/io/protocols";
+import type { AstCacheRecord } from "src/model/types/types";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { AstCacheEntryContract, AstDiskCacheContract } from "src/source_protocols";
+import type { AstTypeMembers, AstTypeMembersSerialized, NormalizedAstFileContract } from "src/types";
 
 /** Responsibilities: _AST cache storage_, _source freshness_. **/
 export class AstDiskCache implements AstDiskCacheContract {
@@ -19,6 +20,40 @@ export class AstDiskCache implements AstDiskCacheContract {
 	private readonly analysis_identity: ProjectAnalysisIdentityContract;
 	private readonly file_io: IOContract;
 	private readonly boundary_failures: BoundaryFailureClassifier;
+
+	/** Responsibilities: _cache record shape_. **/
+	private record_shape(record: AstCacheRecord): boolean {
+		if (record === null || Array.isArray(record)) {
+			return false;
+		}
+		if (String(record.source_file) !== record.source_file || String(record.source_hash) !== record.source_hash) {
+			return false;
+		}
+		if (String(record.project_identity) !== record.project_identity) {
+			return false;
+		}
+		if (!Number.isFinite(record.cache_version)) {
+			return false;
+		}
+		if (record.source_file.length === 0 || record.source_hash.length === 0) {
+			return false;
+		}
+		const member_shape = new AstCacheMemberShape(record);
+		return member_shape.record_valid();
+	}
+
+	/** Responsibilities: _cached AST hydration_. **/
+	private cached_ast(record: AstCacheRecord): AstCacheEntryContract {
+		return new AstCacheHit({
+			...record.ast,
+			type_members: new Map(
+				record.ast.type_members.map((group) => [
+					group.name,
+					new Map(group.members.map((member) => [member.name, member.type])),
+				]),
+			),
+		});
+	}
 
 	/** Responsibilities: _type-member metadata serialization_. **/
 	private serialized_type_members(members: AstTypeMembers): AstTypeMembersSerialized {
@@ -29,7 +64,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 	}
 
 	/** Responsibilities: _AST serialization_. **/
-	private serialized_ast(ast: NormalizedAstFile): AstCacheAst {
+	private serialized_ast(ast: NormalizedAstFileContract): AstCacheAstContract {
 		return {
 			language: ast.language,
 			classes: ast.classes,
@@ -68,37 +103,27 @@ export class AstDiskCache implements AstDiskCacheContract {
 		return join(this.cache_directory, `${key}.json`);
 	}
 
-	/** Responsibilities: _stale cache record detection_. **/
-	private source_metadata_valid(record: AstCacheRecord): boolean {
-		const source_file_valid = String(record.source_file) === record.source_file;
-		if (!source_file_valid) {
-			return false;
-		}
-		const source_hash_valid = String(record.source_hash) === record.source_hash;
-		if (!source_hash_valid) {
-			return false;
-		}
-		if (record.source_file.length === 0 || record.source_hash.length === 0) {
-			return false;
-		}
-		return true;
-	}
-
-	/** Responsibilities: _stale cache record detection_. **/
+	/** Responsibilities: _cache record identity_. **/
 	private cache_identity_valid(record: AstCacheRecord): boolean {
-		if (record === null || record.cache_version !== AST_ANALYSIS_CACHE_VERSION) {
+		if (!this.record_shape(record)) {
+			return false;
+		}
+		if (record.cache_version !== AST_ANALYSIS_CACHE_VERSION) {
 			return false;
 		}
 		return record.project_identity === this.project_identity;
 	}
 
-	/** Responsibilities: _stale cache source matching_. **/
-	private cache_source_matches(
+	/** Responsibilities: _cache record freshness_. **/
+	private current_record(
 		file: string,
 		record: AstCacheRecord,
 		source_file_hash: string,
 		requested_source_file: string,
 	): boolean {
+		if (!this.cache_identity_valid(record)) {
+			return false;
+		}
 		const record_source_file = resolve(record.source_file);
 		if (record_source_file !== resolve(requested_source_file)) {
 			return false;
@@ -110,33 +135,28 @@ export class AstDiskCache implements AstDiskCacheContract {
 		return resolve(file) === expected_path;
 	}
 
-	/** Responsibilities: _stale cache record detection_. **/
-	private current_record(
-		file: string,
-		record: AstCacheRecord,
-		source_file_hash: string,
-		requested_source_file: string,
-	): boolean {
-		if (!this.cache_identity_valid(record)) {
-			return false;
+	/** Responsibilities: _source-backed cache freshness_. **/
+	private source_record_stale(file: string, record: AstCacheRecord): boolean {
+		if (!this.file_io.file_paths.path_exists(record.source_file)) {
+			return true;
 		}
-		if (!this.source_metadata_valid(record)) {
-			return false;
-		}
-		return this.cache_source_matches(file, record, source_file_hash, requested_source_file);
+		const source_hash = createHash("sha256")
+			.update(this.file_io.file_content.file_text(record.source_file))
+			.digest("hex");
+		return !this.current_record(file, record, source_hash, record.source_file);
 	}
 
 	/** Responsibilities: _unused cache record detection_. **/
 	private stale_record(file: string): boolean {
 		try {
 			const record: AstCacheRecord = JSON.parse(this.file_io.file_content.file_text(file));
-			if (!this.file_io.file_paths.path_exists(record.source_file)) {
+			if (!this.record_shape(record)) {
 				return true;
 			}
-			const source_hash = createHash("sha256")
-				.update(this.file_io.file_content.file_text(record.source_file))
-				.digest("hex");
-			return !this.current_record(file, record, source_hash, record.source_file);
+			if (this.source_record_stale(file, record)) {
+				return true;
+			}
+			return !this.cached_ast(record).complete();
 		} catch (error) {
 			if (!this.boundary_failures.cache_read_failure(String(error))) {
 				throw error;
@@ -171,16 +191,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 		if (!this.current_record(path, record, source_file_hash, source_file)) {
 			return new AstCacheMiss(source_file, "analysis cache identity changed");
 		}
-		const normalized_ast: NormalizedAstFile = {
-			...record.ast,
-			type_members: new Map(
-				record.ast.type_members.map((group) => [
-					group.name,
-					new Map(group.members.map((member) => [member.name, member.type])),
-				]),
-			),
-		};
-		const cached = new AstCacheHit(normalized_ast);
+		const cached = this.cached_ast(record);
 		if (!cached.complete()) {
 			return new AstCacheMiss(source_file, "invalid normalized AST");
 		}
@@ -188,7 +199,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 	}
 
 	/** Responsibilities: _cache record construction_. **/
-	private cache_record(source_file: string, source_text: string, ast: NormalizedAstFile): AstCacheRecord {
+	private cache_record(source_file: string, source_text: string, ast: NormalizedAstFileContract): AstCacheRecord {
 		const absolute_file = resolve(source_file);
 		const source_hash = createHash("sha256").update(source_text).digest("hex");
 		return {
@@ -271,6 +282,9 @@ export class AstDiskCache implements AstDiskCacheContract {
 			const source_file_hash = createHash("sha256").update(source_text).digest("hex");
 			const path = this.cache_path(absolute_file, source_file_hash);
 			const record: AstCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
+			if (!this.record_shape(record)) {
+				return new AstCacheMiss(source_file, "invalid cache record");
+			}
 			return this.cached_entry(source_file, path, record, source_file_hash);
 		} catch (error) {
 			if (!this.boundary_failures.cache_read_failure(String(error))) {
@@ -281,7 +295,7 @@ export class AstDiskCache implements AstDiskCacheContract {
 	}
 
 	/** Responsibilities: _persistent AST storage_. **/
-	public write(source_file: string, source_text: string, ast: NormalizedAstFile): void {
+	public write(source_file: string, source_text: string, ast: NormalizedAstFileContract): void {
 		try {
 			const absolute_file = resolve(source_file);
 			const source_hash = createHash("sha256").update(source_text).digest("hex");

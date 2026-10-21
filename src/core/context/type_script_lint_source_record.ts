@@ -1,5 +1,5 @@
 import type { LintFileNameContract, TypeScriptLintSourceRecordOptions } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import type { LintSourceRecordContract } from "src/source_protocols";
 import type { SourceFileResolver } from "src/source_types";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
@@ -11,7 +11,7 @@ export class TypeScriptLintSourceRecord implements LintSourceRecordContract {
 	public readonly relative_path: string;
 	public readonly file_name: LintFileNameContract;
 	public readonly text: string;
-	public readonly normalized_ast: NormalizedAstFile;
+	public readonly normalized_ast: NormalizedAstFileContract;
 	public readonly language = TYPESCRIPT_LANGUAGE;
 	public readonly typescript_ast: TypeScriptAstFileContract;
 	public readonly source_resolver: SourceFileResolver;

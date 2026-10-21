@@ -1,6 +1,6 @@
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstPythonImport, ImportedSymbol, NormalizedAstFile } from "src/types";
+import type { AstPythonImport, ImportedSymbol, NormalizedAstFileContract } from "src/types";
 import type { PythonClassNameSet, PythonClassNamesByFile } from "src/model/types/types";
 import type { PythonExportedSymbolResolverContract } from "src/linting/orchestration/runtime/composition/protocols";
 
@@ -75,7 +75,7 @@ export class PythonClassOwnership {
 	/** Responsibilities: _imported class binding_. **/
 	private import_binding(
 		file: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		base: string,
 		resolver: ProjectSourcePythonContract,
 	): ImportedSymbol {
@@ -109,7 +109,7 @@ export class PythonClassOwnership {
 	/** Responsibilities: _project class binding_. **/
 	private project_binding(
 		file: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		base: string,
 		resolver: ProjectSourcePythonContract,
 	): ImportedSymbol {
@@ -133,7 +133,7 @@ export class PythonClassOwnership {
 	/** Responsibilities: _project protocol binding_. **/
 	private project_protocol_binding(
 		file: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		base: string,
 		resolver: ProjectSourcePythonContract,
 	): ImportedSymbol {
@@ -188,7 +188,7 @@ export class PythonClassOwnership {
 	/** Responsibilities: _project class detection_. **/
 	public project_class(
 		file: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		base: string,
 		fallback: ReadonlySet<string>,
 		resolver: ProjectSourcePythonContract,
@@ -202,7 +202,7 @@ export class PythonClassOwnership {
 	/** Responsibilities: _project protocol detection_. **/
 	public project_protocol(
 		file: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		base: string,
 		fallback: ReadonlySet<string>,
 		resolver: ProjectSourcePythonContract,

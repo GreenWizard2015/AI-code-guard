@@ -15,8 +15,8 @@ import { PythonTypeRuleCollector } from "src/linting/orchestration/runtime/pytho
 import type { ClassReportingContract } from "src/reporting_protocols";
 import type { MethodContractRulesContract } from "src/shared_services_protocols";
 import type { PythonTestRuleCollectorContract } from "src/python_protocols";
-import type { PythonRuleInput } from "src/linting/types";
-import type { AstClassNode } from "src/types";
+import type { PythonRuleInputContract } from "src/linting/types";
+import type { AstClassNodeContract } from "src/types";
 import type { MetricViolationsContract } from "src/reporting_protocols";
 import type { MethodOrderContract, NamingSupportContract } from "src/analysis_protocols";
 import type { PythonArchitectureContract, PythonHacksContract, PythonTypeRuleCollectorContract } from "src/python_protocols";
@@ -30,7 +30,7 @@ export class PythonRuleCollector {
 	private readonly syntax: SyntaxContract;
 	private readonly leading_underscore_naming: LeadingUnderscoreNaming;
 	private readonly naming_support: NamingSupportContract;
-	private readonly input: PythonRuleInput;
+	private readonly input: PythonRuleInputContract;
 	private readonly test_rules: PythonTestRuleCollectorContract;
 	private readonly method_contract_rules: MethodContractRulesContract;
 	private readonly type_rules: PythonTypeRuleCollectorContract;
@@ -97,7 +97,7 @@ export class PythonRuleCollector {
 	}
 
 	/** Responsibilities: _aggregation metrics class_. **/
-	private append_class_metrics(node: AstClassNode): void {
+	private append_class_metrics(node: AstClassNodeContract): void {
 		const class_reporting = new ClassReporting();
 		const method_order = new MethodOrder();
 
@@ -113,7 +113,7 @@ export class PythonRuleCollector {
 	private append_production_limits(
 		class_reporting: ClassReportingContract,
 		method_order: MethodOrderContract,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 	): void {
 		const { violations, file_name } = this.input;
 		class_reporting.report_class_methods(violations, file_name, node);
@@ -126,7 +126,7 @@ export class PythonRuleCollector {
 	}
 
 	/** Responsibilities: _class limits addition testing_. **/
-	private append_test_limits(class_reporting: ClassReportingContract, node: AstClassNode): void {
+	private append_test_limits(class_reporting: ClassReportingContract, node: AstClassNodeContract): void {
 		const { violations, file_name } = this.input;
 		class_reporting.report_test_limits({ node, file_name, violations });
 		const structure = new ClassStructureReporter(violations, file_name, node);
@@ -134,7 +134,7 @@ export class PythonRuleCollector {
 	}
 
 	/** Responsibilities: _Python rule collection initialization_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInputContract) {
 		this.python_architecture = new PythonArchitecture();
 		this.python_hacks = new PythonHacks();
 		this.metric_violations = new MetricViolations();

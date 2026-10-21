@@ -171,3 +171,34 @@ class PythonControlFlowTest(unittest.TestCase):
             ],
             ["pointless-boolean-operation", "pointless-boolean-operation"],
         )
+
+    def test_preserves_identity_check_for_mapping_values(self) -> None:
+        """Responsibilities: _mapping value identity preservation_."""
+        source = (
+            "def is_error(result: dict[str, object]) -> bool:\n"
+            '    if result.get("isError") is True:\n'
+            "        return True\n"
+            "    return False\n"
+        )
+        tree = ast.parse(source)
+        control = PythonControlFlowIssues(
+            PythonControlFlowOptions(
+                tree,
+                source.splitlines(),
+                set(),
+                self._python_ast_node_index(),
+                PythonPredicateCondition(),
+                PythonTerminalBranchRules(),
+                SourceSegments(source),
+            )
+        )
+
+        self.assertEqual(
+            [
+                issue
+                for node in ast.walk(tree)
+                for issue in control.conditional_issues(node)
+                if issue["kind"] == "pointless-boolean-operation"
+            ],
+            [],
+        )

@@ -3,7 +3,7 @@ import { CallableUsageDefinitionPolicy } from "src/linting/orchestration/runtime
 import { CallableViolationCollector } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_violation_collector";
 import { PythonCallableReferenceTargetMapper } from "src/linting/orchestration/runtime/global-analysis/callable-usage/python_callable_reference_target_mapper";
 import type {
-	CallableUsageCollectorState,
+	CallableUsageCollectorStateContract,
 	CallableUsageAnalysisState,
 } from "src/linting/orchestration/runtime/composition/types";
 import type {
@@ -17,7 +17,7 @@ import type { ViolationContract } from "src/reporting_protocols";
 import type { PythonCallableReferenceTargetMapperContract } from "src/linting/orchestration/runtime/protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { CallableSourceImportScope } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_source_import_scope";
 import { CallableOwnership } from "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_ownership";
@@ -32,7 +32,7 @@ export class CallableUsage {
 	private readonly test_path_syntax: TestPathSyntax;
 
 	/** Responsibilities: _source AST preparation_. **/
-	private parsed_ast(source: LintSourceRecord, stage_timer: LintStageTimerContract): NormalizedAstFile {
+	private parsed_ast(source: LintSourceRecord, stage_timer: LintStageTimerContract): NormalizedAstFileContract {
 		if (source.language === "python") {
 			return stage_timer.measure("global-analysis.callable-usage.python-reference-targets", () =>
 				this.python_reference_mapper.map_source(source),
@@ -108,7 +108,7 @@ export class CallableUsage {
 		test_files: ParsedFile[],
 		definitions: CallableDefinition[],
 		analysis: CallableUsageAnalysisState,
-	): CallableUsageCollectorState {
+	): CallableUsageCollectorStateContract {
 		return {
 			parsed_files,
 			production_files,
@@ -131,7 +131,7 @@ export class CallableUsage {
 		project_files: readonly string[],
 		import_context: PythonProjectImportContext,
 		project_source_scanner: ProjectSourceScannerContract,
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	) {
 		this.source_import_scope = new CallableSourceImportScope(project_files, project_source_scanner);
 		this.definition_policy = new CallableUsageDefinitionPolicy(this.source_import_scope);
@@ -144,7 +144,7 @@ export class CallableUsage {
 	public collect_state(
 		sources: readonly LintSourceRecord[],
 		stage_timer: LintStageTimerContract,
-	): CallableUsageCollectorState {
+	): CallableUsageCollectorStateContract {
 		const parsed_files = this.parsed_sources(sources, stage_timer);
 		const test_files = parsed_files.filter((file) => this.test_path_syntax.test_file(file.file));
 		const production_files = parsed_files.filter((file) => !this.test_path_syntax.test_file(file.file));

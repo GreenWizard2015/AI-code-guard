@@ -11,7 +11,7 @@ import type { PythonAstDataContract, PythonCodingRuleCollectorContract } from "s
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { TestPathSyntaxContract } from "src/testing_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstCallableNodeContract, AstCodingIssue, NormalizedAstFile } from "src/types";
+import type { AstCallableNodeContract, AstCodingIssue, NormalizedAstFileContract } from "src/types";
 import { DuplicateTypeShapes } from "src/duplicate_type_shapes";
 import { RULE_IDS } from "src/constants";
 
@@ -41,7 +41,7 @@ export class PythonCodingRuleCollector implements PythonCodingRuleCollectorContr
 	}
 
 	/** Responsibilities: _aggregation structural shape violations_. **/
-	private append_shapes(violations: ViolationContract[], source: CodingRuleSourceData, ast: NormalizedAstFile): void {
+	private append_shapes(violations: ViolationContract[], source: CodingRuleSourceData, ast: NormalizedAstFileContract): void {
 		const rule = new DiagnosticRule(RULE_IDS.duplicate_type_shape);
 		for (const duplicate of this.duplicate_type_shapes.python(ast.classes)) {
 			violations.push(rule.violation(source.file, duplicate.line, { names: duplicate.names.join(", ") }));

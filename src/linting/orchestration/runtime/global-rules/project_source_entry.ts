@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import { readFileSync } from "node:fs";
 import { PythonAstData } from "src/core/python_ast_data";
 import { PythonAstBridge } from "src/core/python_ast_bridge";
+import { TestPathSyntax } from "src/test_path_syntax";
 import type { ProjectContextState, ProjectSourceOptions } from "src/model/types/types";
 import type { ProjectSourceEntryContract } from "src/source_protocols";
 import { FUNCTION_MODULE_NAMES, PYTHON_PACKAGE_SUFFIX } from "src/constants";
@@ -12,6 +13,7 @@ export class ProjectSourceEntry implements ProjectSourceEntryContract {
 	private readonly source_context_state: ProjectContextState;
 	private readonly entry_files: ReadonlySet<string>;
 	private readonly python_ast_data: PythonAstData;
+	private readonly test_path_syntax: TestPathSyntax;
 
 	/** Responsibilities: _classification Python path entry_. **/
 	private python_entry(file: string, path: string): boolean {
@@ -46,6 +48,7 @@ export class ProjectSourceEntry implements ProjectSourceEntryContract {
 	/** Responsibilities: _initialization project root source-discovery_. **/
 	public constructor(root: string, options: ProjectSourceOptions) {
 		this.python_ast_data = new PythonAstData(new PythonAstBridge());
+		this.test_path_syntax = new TestPathSyntax();
 		this.root = root;
 		this.source_context_state = options.context_state;
 		this.entry_files = new Set(options.entry_files);
@@ -72,6 +75,6 @@ export class ProjectSourceEntry implements ProjectSourceEntryContract {
 		if (this.entry_files.has(path)) {
 			return true;
 		}
-		return /.(test|spec)\.(tsx?|py)$/u.test(path);
+		return this.test_path_syntax.test_file(path);
 	}
 }

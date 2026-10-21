@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import type { AstCallableNodeContract, AstClassNode } from "src/types";
+import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
 import type { TypeScriptClassCallableNodesContract } from "src/model/protocols";
 import { TypeScriptClassMembers } from "src/parser/analysis/type_script_class_members";
 
@@ -15,7 +15,7 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	private readonly member_data: TypeScriptClassMembersContract;
 
 	/** Responsibilities: _collection variable-declaration class nodes_. **/
-	private append_variable_nodes(statement: ts.VariableStatement, classes: AstClassNode[]): void {
+	private append_variable_nodes(statement: ts.VariableStatement, classes: AstClassNodeContract[]): void {
 		for (const declaration of statement.declarationList.declarations) {
 			const initializer = declaration.initializer;
 			if (initializer !== undefined) {
@@ -29,7 +29,7 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	}
 
 	/** Responsibilities: _collection nested class nodes_. **/
-	private append_class_nodes(node: ts.Node, classes: AstClassNode[], fallback_name = ""): void {
+	private append_class_nodes(node: ts.Node, classes: AstClassNodeContract[], fallback_name = ""): void {
 		if (ts.isClassDeclaration(node)) {
 			classes.push(this.class_node(node, ANONYMOUS_CLASS_NAME));
 		} else if (ts.isClassExpression(node)) {
@@ -43,7 +43,7 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	}
 
 	/** Responsibilities: _collection nested interface nodes_. **/
-	private append_interface_nodes(node: ts.Node, interfaces: AstClassNode[]): void {
+	private append_interface_nodes(node: ts.Node, interfaces: AstClassNodeContract[]): void {
 		if (ts.isInterfaceDeclaration(node)) {
 			interfaces.push({
 				...this.callable_nodes.interface_node(node),
@@ -54,7 +54,7 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	}
 
 	/** Responsibilities: _combine class data_. **/
-	private class_node(node: ts.ClassLikeDeclaration, fallback_name: string): AstClassNode {
+	private class_node(node: ts.ClassLikeDeclaration, fallback_name: string): AstClassNodeContract {
 		const methods = this.callable_nodes.class_method_nodes(node, fallback_name);
 		const range = this.class_line_range(node);
 		const interfaces = this.implemented_interfaces(node);
@@ -94,7 +94,7 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	}
 
 	/** Responsibilities: _class metrics assembly_. **/
-	private build_class_node(options: ClassNodeOptions): AstClassNode {
+	private build_class_node(options: ClassNodeOptions): AstClassNodeContract {
 		const callbacks = this.member_data.callback_counts(options.node);
 		const fields = this.member_data.class_fields(options.node);
 		return {
@@ -190,15 +190,15 @@ export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
 	}
 
 	/** Responsibilities: _class metrics collection_. **/
-	public class_nodes(): AstClassNode[] {
-		const classes: AstClassNode[] = [];
+	public class_nodes(): AstClassNodeContract[] {
+		const classes: AstClassNodeContract[] = [];
 		this.append_class_nodes(this.source_file, classes);
 		return classes;
 	}
 
 	/** Responsibilities: _interface metrics collection_. **/
-	public interface_nodes(): AstClassNode[] {
-		const interfaces: AstClassNode[] = [];
+	public interface_nodes(): AstClassNodeContract[] {
+		const interfaces: AstClassNodeContract[] = [];
 		this.append_interface_nodes(this.source_file, interfaces);
 		return interfaces;
 	}

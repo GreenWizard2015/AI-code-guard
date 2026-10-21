@@ -11,13 +11,15 @@ describe("import fan-out", () => {
 		);
 		const source_file = ts.createSourceFile("fanout.ts", source, ts.ScriptTarget.Latest, true);
 		const ast_model = new AstModel();
-		const python_ast = ast_model.empty_ast_file("python");
-		python_ast.python_imports = Array.from({ length: 21 }, (_, index) => ({
-			line: index + 1,
-			kind: "from" as const,
-			module: `module_${index}`,
-			names: [{ name: `value_${index}`, alias: "" }],
-		}));
+		const python_ast = {
+			...ast_model.empty_ast_file("python"),
+			python_imports: Array.from({ length: 21 }, (_, index) => ({
+				line: index + 1,
+				kind: "from" as const,
+				module: `module_${index}`,
+				names: [{ name: `value_${index}`, alias: "" }],
+			})),
+		};
 		const fan_out = new ImportFanOut();
 		const typescript_violations: ViolationContract[] = [];
 		const python_violations: ViolationContract[] = [];

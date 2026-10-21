@@ -7,7 +7,7 @@ import type {
 	ReexportsContract,
 } from "src/linting/orchestration/runtime/protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { PYTHON_PACKAGE_SUFFIX } from "src/constants";
 
 /** Responsibilities: _Python facade detection_, _reexport violation reporting_. **/
@@ -21,7 +21,7 @@ export class Reexports implements ReexportsContract {
 		violations: ViolationContract[],
 		file: string,
 		text: string,
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 	): void {
 		if (file.endsWith(this.python_init_file)) {
 			return;
@@ -44,7 +44,7 @@ export class Reexports implements ReexportsContract {
 	}
 
 	/** Responsibilities: _classification diagnostic line Python_. **/
-	private python_facade_line(text: string, ast: NormalizedAstFile): number {
+	private python_facade_line(text: string, ast: NormalizedAstFileContract): number {
 		const lines = text.split("\n");
 		if (!this.is_python_facade(lines, ast)) {
 			return -1;
@@ -61,7 +61,7 @@ export class Reexports implements ReexportsContract {
 	}
 
 	/** Responsibilities: _classification Python source facade_. **/
-	private is_python_facade(lines: string[], ast: NormalizedAstFile): boolean {
+	private is_python_facade(lines: string[], ast: NormalizedAstFileContract): boolean {
 		const reexport_names = new ReexportNames();
 
 		if (!ast.python_imports?.length) {

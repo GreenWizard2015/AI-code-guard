@@ -1,6 +1,6 @@
 import type { ViolationContract } from "src/reporting_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import type { AstClassField } from "src/types";
 import type { ContractKind } from "src/model/types/types";
 import { CONTRACT_FIELDS_RULE_ID, MODULE_INTERFACE_KIND } from "src/constants";
@@ -10,7 +10,7 @@ export class ContractFields {
 	private readonly contract_rule_id = CONTRACT_FIELDS_RULE_ID;
 
 	/** Responsibilities: _requested contract class_. **/
-	private is_contract_kind(node: AstClassNode, kind: ContractKind): boolean {
+	private is_contract_kind(node: AstClassNodeContract, kind: ContractKind): boolean {
 		if (kind === MODULE_INTERFACE_KIND) {
 			return node.type_contract === true;
 		}
@@ -21,7 +21,7 @@ export class ContractFields {
 	private append_node_fields(
 		violations: ViolationContract[],
 		file: string,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 		kind: ContractKind,
 	): void {
 		let fields = node.fields;
@@ -40,7 +40,7 @@ export class ContractFields {
 	public append_field(
 		violations: ViolationContract[],
 		file: string,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 		field: AstClassField,
 		kind: ContractKind,
 	): void {
@@ -58,7 +58,7 @@ export class ContractFields {
 	public append_contract_fields(
 		violations: ViolationContract[],
 		file: string,
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		kind: ContractKind,
 	): void {
 		for (const node of classes) {

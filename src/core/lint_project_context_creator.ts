@@ -1,5 +1,5 @@
-import { extname, resolve } from "node:path";
-import { IGNORED_DIRS, TYPESCRIPT_CONFIG_FILE } from "src/constants";
+import { extname } from "node:path";
+import { IGNORED_DIRS } from "src/constants";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
 import { ContextSourceRecordSet } from "src/core/context/context_source_record_set";
 import { PythonSourceFiles } from "src/core/context/python_source_files";
@@ -11,13 +11,14 @@ import type {
 	PythonSourceBatchPreparation,
 } from "src/core/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
 import type { IOContract } from "src/io/protocols";
 import type { PythonAstDataContract, PythonSourceFilesContract } from "src/python_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { NormalizedAstFile, PythonSourceAstBatch } from "src/types";
+import type { NormalizedAstFileContract, PythonSourceAstBatch } from "src/types";
 import type ts from "typescript";
 
 /** Responsibilities: _source language preparation_, _AST integration_, _project context assembly_. **/
@@ -63,7 +64,7 @@ export class LintProjectContextCreator {
 		source_files: PythonSourceFilesContract,
 		batch: PythonSourceAstBatch,
 		stage_timer: LintStageTimerContract,
-	): ReadonlyMap<string, NormalizedAstFile> {
+	): ReadonlyMap<string, NormalizedAstFileContract> {
 		if (batch.batch_id.length > 0) {
 			return stage_timer.measure(PYTHON_AST_STAGE_PREFIX, () => source_files.complete_source_ast(batch));
 		}
@@ -76,7 +77,7 @@ export class LintProjectContextCreator {
 	private language_records(
 		options: ProjectContextAssemblyOptions,
 		files: string[],
-		python_file_asts: ReadonlyMap<string, NormalizedAstFile>,
+		python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	): LintSourceRecord[] {
 		return this.source_record_factory.source_records({
 			repo_root: options.repo_root,
@@ -138,11 +139,13 @@ export class LintProjectContextCreator {
 		const { repo_root, files, provided_texts, stage_timer, virtual_project, source_io } = options;
 		return stage_timer.measure("startup.project-context.read-files", () => {
 			const complete_texts = new Map(provided_texts);
-			const config_file = resolve(repo_root, TYPESCRIPT_CONFIG_FILE);
-			if (!complete_texts.has(config_file)) {
-				if (source_io.source_available(config_file)) {
-					complete_texts.set(config_file, source_io.source_text(config_file));
+			const resolution = new TypeScriptProjectResolution(repo_root, source_io);
+			const configuration_files = resolution.configuration_files();
+			for (const config_file of configuration_files) {
+				if (complete_texts.has(config_file) || !source_io.source_available(config_file)) {
+					continue;
 				}
+				complete_texts.set(config_file, source_io.source_text(config_file));
 			}
 			for (const file of files) {
 				if (complete_texts.has(file)) {

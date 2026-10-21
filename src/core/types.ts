@@ -6,7 +6,7 @@ import {
 	PUBLIC_FIELD_KIND,
 } from "src/constants";
 import type { PythonProjectNames } from "src/model/types/types";
-import type { ProjectNames } from "src/project_analysis_types";
+import type { ProjectNamesContract } from "src/project_analysis_types";
 import type { LintInputFiles } from "src/project_analysis_types";
 import type { PythonSourceFilesContract } from "src/python_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
@@ -62,6 +62,9 @@ export type UnusedSymbolDefinitionCollection = {
 
 export type UnusedSymbolNameBuckets = ReadonlyMap<string, readonly UnusedSymbolDefinition[]>;
 export type UnusedSymbolFileBuckets = ReadonlyMap<string, UnusedSymbolNameBuckets>;
+export type UnusedDefinitionMatches = readonly UnusedSymbolDefinition[];
+export type UnusedSourceDefinitionCache = Map<string, UnusedDefinitionMatches>;
+export type UnusedImportedDefinitionCache = Map<string, UnusedSourceDefinitionCache>;
 export type UnusedSourceImportFiles = ReadonlySet<string>;
 export type UnusedSourceImportCache = Map<string, UnusedSourceImportFiles>;
 export type UnusedSymbolAliasMap = ReadonlyMap<string, string>;
@@ -112,7 +115,7 @@ export type LintReportOptions = {
 
 export type LintProjectAnalysis = {
 	context: LintProjectContextContract;
-	project_names: ProjectNames;
+	project_names: ProjectNamesContract;
 };
 
 export enum LintReportMode {

@@ -22,7 +22,7 @@ export class CompleteCacheFixture {
 	public readonly analysis_identity: ProjectAnalysisIdentity;
 	public readonly initial_source = "export const value = 1;\n";
 	public readonly changed_source = "export const value = 2;\n";
-	public readonly initial_markdown_source = "Привет\n";
+	public readonly initial_markdown_source = "\u041f\u0440\u0438\u0432\u0435\u0442\n";
 	public readonly changed_markdown_source = "Hello\n";
 
 	/** Responsibilities: _complete project snapshot_. **/

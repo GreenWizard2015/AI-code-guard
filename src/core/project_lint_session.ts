@@ -21,7 +21,7 @@ export class ProjectLintSession {
 	/** Responsibilities: _failed-run worker cleanup_. **/
 	private async close_after_failure(): Promise<void> {
 		try {
-			await this.lint_run_factory.python_ast_worker.close();
+			await this.lint_run_factory.worker_session.close();
 		} catch (close_error) {
 			if (!this.boundary_failures.system_failure_message(String(close_error))) {
 				throw close_error;
@@ -67,9 +67,11 @@ export class ProjectLintSession {
 		if (cached_result.available) {
 			return cached_result.value;
 		}
-		prepared = stage_timer.measure("startup.cache-miss-preparation", () =>
-			this.cache_preparer.prepare_for_inputs(options, stage_timer, prepared.inputs),
-		);
+		if (!prepared.snapshot_complete) {
+			prepared = stage_timer.measure("startup.cache-miss-preparation", () =>
+				this.cache_preparer.prepare_for_inputs(options, stage_timer, prepared.inputs),
+			);
+		}
 		const execution = this.analyze_inputs(options, stage_timer, prepared.inputs, prepared.source_texts, unused_code);
 		stage_timer.measure("startup.complete-cache-write", () => prepared.cache.write(execution.report));
 		return execution.report;
@@ -138,7 +140,7 @@ export class ProjectLintSession {
 			await this.close_after_failure();
 			throw error;
 		}
-		await this.lint_run_factory.python_ast_worker.close();
+		await this.lint_run_factory.worker_session.close();
 		return report;
 	}
 }

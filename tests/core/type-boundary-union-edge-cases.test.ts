@@ -67,6 +67,35 @@ describe("coding-lint type boundary union edge cases", () => {
 		]);
 	});
 
+	test("rejects named-type intersections in both languages and allows explicit fields", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"types.ts": [
+					"type UserId = { id: string };",
+					"type UserName = { name: string };",
+					"type Combined = UserId & UserName;",
+					"type Explicit = { id: string; name: string };",
+				].join("\n"),
+				"types.py": [
+					"from typing import Protocol",
+					"class UserId: pass",
+					"class UserName: pass",
+					"Combined = UserId & UserName",
+					"class ExplicitContract(Protocol):",
+					"    id: str",
+					"    name: str",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const composite_violations = violations.filter((item) => item.rule_id === "composite-state-type");
+
+		expect(composite_violations.map((item) => item.file).sort()).toEqual(["types.py", "types.ts"]);
+	});
+
 	test("does not treat a single literal as a composite union", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

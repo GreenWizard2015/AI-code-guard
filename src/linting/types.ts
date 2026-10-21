@@ -4,7 +4,7 @@ import type { LintFileNameContract } from "src/source_types";
 import type {
 	LineDepth,
 	AstCallableNodeContract,
-	AstClassNode,
+	AstClassNodeContract,
 	AstParseIssue,
 	AstPythonImport,
 	AstReferenceAlias,
@@ -25,28 +25,37 @@ export type PythonOperationInput = {
 	symbol_references: NamedLine[];
 };
 
-type PythonRuleDiagnostics = {
-	violations: ViolationContract[];
-	file_name: LintFileNameContract;
+/** Responsibilities: _Python rule diagnostics_. **/
+interface PythonRuleDiagnosticsContract {
+	readonly violations: ViolationContract[];
+	readonly file_name: LintFileNameContract;
 };
 
-type PythonRuleAstInput = {
-	classes: AstClassNode[];
-	functions: AstCallableNodeContract[];
-	reference_aliases: AstReferenceAlias[];
-	python_imports: AstPythonImport[];
-	operations: PythonOperationInput;
+/** Responsibilities: _Python rule AST input_. **/
+interface PythonRuleAstInputContract {
+	readonly classes: AstClassNodeContract[];
+	readonly functions: AstCallableNodeContract[];
+	readonly reference_aliases: AstReferenceAlias[];
+	readonly python_imports: AstPythonImport[];
+	readonly operations: PythonOperationInput;
 };
 
-type PythonRuleProjectNames = {
-	project_class_names: ReadonlySet<string>;
-	project_protocol_names: ReadonlySet<string>;
-	project_type_names: ReadonlySet<string>;
+/** Responsibilities: _Python project symbol names_. **/
+interface PythonRuleProjectNamesContract {
+	readonly project_class_names: ReadonlySet<string>;
+	readonly project_protocol_names: ReadonlySet<string>;
+	readonly project_type_names: ReadonlySet<string>;
 };
 
-type PythonRuleOptions = {
-	suppress_short_class: boolean;
-	production_import_names: ReadonlySet<string>;
+/** Responsibilities: _Python rule options_. **/
+interface PythonRuleOptionsContract {
+	readonly suppress_short_class: boolean;
+	readonly production_import_names: ReadonlySet<string>;
 };
 
-export type PythonRuleInput = PythonRuleDiagnostics & PythonRuleAstInput & PythonRuleProjectNames & PythonRuleOptions;
+/** Responsibilities: _complete Python rule input_. **/
+export interface PythonRuleInputContract
+	extends PythonRuleDiagnosticsContract,
+		PythonRuleAstInputContract,
+		PythonRuleProjectNamesContract,
+		PythonRuleOptionsContract {}

@@ -6,40 +6,16 @@ import { ViolationValue } from "src/violation_value";
 export class ViolationCache {
 	private readonly source: readonly ReportViolation[];
 
-	/** Responsibilities: _cache text validation_. **/
-	private text(value: string): boolean {
-		if (value === null || value === undefined) {
-			return false;
-		}
-		return value === String(value);
-	}
-
-	/** Responsibilities: _cache number validation_. **/
-	private number(value: number): boolean {
-		if (value === null || value === undefined) {
-			return false;
-		}
-		return Number.isFinite(value);
-	}
-
 	/** Responsibilities: _cache diagnostic validation_. **/
-	private valid(record: ReportViolation): boolean {
-		if (!this.text(record.file)) {
+	private valid(value: ReportViolation): boolean {
+		if (value === null || value === undefined || Array.isArray(value)) {
 			return false;
 		}
-		if (!this.number(record.line)) {
-			return false;
-		}
-		if (!this.text(record.message)) {
-			return false;
-		}
-		if (!this.text(record.hint)) {
-			return false;
-		}
-		if (!this.text(record.rule_id)) {
-			return false;
-		}
-		return this.number(record.priority);
+		const text_fields_valid = [value.file, value.message, value.hint, value.rule_id].every(
+			(field) => String(field) === field,
+		);
+		const number_fields_valid = Number.isFinite(value.line) && Number.isFinite(value.priority);
+		return text_fields_valid && number_fields_valid;
 	}
 
 	/** Responsibilities: _cache diagnostic initialization_. **/

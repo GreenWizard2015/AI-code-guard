@@ -1,6 +1,8 @@
 import type { UnusedSymbolDefinition } from "src/core/types";
+import type { UnusedFieldOwner } from "src/core/types";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { LintSourceRecord } from "src/source_types";
+import type ts from "typescript";
 
 export type GlobalViolationCollectorOptions = {
 	repo_root: string;
@@ -16,6 +18,17 @@ export interface UnusedSymbolReferenceIndexContract {
 	prepare(): void;
 	usage_present(definition: UnusedSymbolDefinition): boolean;
 	add_source(source: LintSourceRecord): void;
+}
+
+/** Responsibilities: _unused field ownership lookup_. **/
+export interface UnusedSymbolPropertyOwnershipContract {
+	property_usage_owners(
+		source: LintSourceRecord,
+		source_file: ts.SourceFile,
+		receiver: ts.Expression,
+		name: string,
+	): readonly UnusedFieldOwner[];
+	contract_fields(definition: UnusedSymbolDefinition): readonly UnusedFieldOwner[];
 }
 
 /** Responsibilities: _unused symbol definition collection_. **/

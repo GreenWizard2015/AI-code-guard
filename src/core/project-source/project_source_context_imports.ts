@@ -6,7 +6,7 @@ import { TypeScriptProjectResolutionCache } from "src/module-resolution/type_scr
 import { TypeScriptImportSpecifierCollector } from "src/parser/analysis/type_script_import_specifier_collector";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { ProjectSourceContextImportsContract, ProjectSourcePythonContract, ProjectSourceIOContract } from "src/source_protocols";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import type {
 	ResolvedTypeScriptExport,
@@ -66,7 +66,7 @@ export class ProjectSourceContextImports implements ProjectSourceContextImportsC
 	}
 
 	/** Responsibilities: _Python project import collection_. **/
-	private python_imports(ast: NormalizedAstFile, importer: string): string[] {
+	private python_imports(ast: NormalizedAstFileContract, importer: string): string[] {
 		const specifiers: string[] = [];
 		for (const item of ast.python_imports) {
 			this.project_source_python.append_import_names(specifiers, item, this.root, importer, this.source_paths());

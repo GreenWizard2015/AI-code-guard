@@ -7,7 +7,7 @@ import { PythonAstBridge } from "src/core/python_ast_bridge";
 import { readFileSync } from "node:fs";
 import { extname } from "node:path";
 import ts from "typescript";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import type {
 	TypeScriptModuleExportsContract,
 	TypeScriptModuleResolutionContract,
@@ -84,7 +84,7 @@ export class ProjectSourceImports {
 
 	/** Responsibilities: _Python project imports_. **/
 	private python_project_specifiers(
-		ast: NormalizedAstFile,
+		ast: NormalizedAstFileContract,
 		root: string,
 		importer: string,
 		files: Set<string>,

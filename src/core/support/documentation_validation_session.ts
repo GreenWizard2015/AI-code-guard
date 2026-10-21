@@ -126,7 +126,7 @@ export class DocumentationValidationSession implements DocumentationExampleLintC
 		try {
 			return operation();
 		} finally {
-			this.configuration.python_ast_worker.close();
+			this.configuration.worker_session.close();
 		}
 	}
 }

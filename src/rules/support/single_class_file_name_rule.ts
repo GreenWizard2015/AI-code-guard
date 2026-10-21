@@ -6,7 +6,7 @@ import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { SingleClassFileNameRuleContract } from "src/shared_services_protocols";
 import type { TestPathSyntaxContract } from "src/testing_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 
 /** Responsibilities: _class filename conversion_, _filename violation reporting_. **/
 export class SingleClassFileNameRule implements SingleClassFileNameRuleContract {
@@ -23,7 +23,7 @@ export class SingleClassFileNameRule implements SingleClassFileNameRuleContract 
 	}
 
 	/** Responsibilities: _single-class file-name violation construction_. **/
-	private append_class_violation(violations: ViolationContract[], file: string, class_node: AstClassNode): void {
+	private append_class_violation(violations: ViolationContract[], file: string, class_node: AstClassNodeContract): void {
 		const actual_name = basename(file);
 		const expected_name = this.expected_file_name(class_node.name, file);
 		if (actual_name === expected_name) {
@@ -39,7 +39,7 @@ export class SingleClassFileNameRule implements SingleClassFileNameRuleContract 
 	}
 
 	/** Responsibilities: _single-class file-name violation addition_. **/
-	public append(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void {
+	public append(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void {
 		if (classes.length === 1 && !this.excluded_file(file)) {
 			const class_node = classes.find((node) => !node.protocol && !node.type_contract);
 			if (class_node !== undefined) {

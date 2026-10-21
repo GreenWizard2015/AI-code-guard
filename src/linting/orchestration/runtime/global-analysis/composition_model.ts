@@ -1,7 +1,7 @@
 import { PythonCompositionImports } from "src/linting/orchestration/runtime/composition/python_composition_imports";
 import type { PythonCompositionImportsContract } from "src/linting/orchestration/runtime/protocols";
 import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import { ClassDependencyMap } from "src/linting/orchestration/runtime/global-analysis/class_dependency_map";
 import { TypeScriptCompositionModel } from "src/linting/orchestration/runtime/global-analysis/type_script_composition_model";
 import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
@@ -107,7 +107,7 @@ export class CompositionModel {
 
 	/** Responsibilities: _source files mutable addition_. **/
 	public add_files(graph: ClassGraph, sources: readonly LintSourceRecord[]): void {
-		const source_asts = new Map<string, NormalizedAstFile>();
+		const source_asts = new Map<string, NormalizedAstFileContract>();
 		for (const source of sources) {
 			if (source.language === this.python_language) {
 				source_asts.set(source.absolute_path, source.normalized_ast);

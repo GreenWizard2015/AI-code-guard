@@ -86,11 +86,9 @@ class PythonControlFlowIssues:
 
     def _boolean_identity_return(self, node: ast.If) -> list[JsonObject]:
         """Responsibilities: _boolean identity branch_."""
-        if len(node.body) != 1 or type(node.body[0]) is not ast.Return:
+        if len(node.body) != 1 or type(node.body[0]) is not ast.Return or node.orelse:
             return []
-        if node.orelse:
-            return []
-        if type(node.test) is not ast.Compare:
+        if type(node.test) is not ast.Compare or type(node.test.left) is not ast.Name:
             return []
         if len(node.test.ops) != 1 or type(node.test.ops[0]) is not ast.Is:
             return []

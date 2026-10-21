@@ -13,7 +13,7 @@ import type {
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { DirectoryFileSet } from "src/project_analysis_types";
-import type { AstClassNode, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, NormalizedAstFileContract } from "src/types";
 import type { DirectoryFileViolationOptions } from "src/model/types/types";
 import type { IOContract } from "src/io/protocols";
 
@@ -77,8 +77,8 @@ export class DirectoryRules implements DirectoryRulesContract {
 	public collect_directory_violations(
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
-		source_asts: ReadonlyMap<string, NormalizedAstFile>,
+		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
+		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 		directory_files: DirectoryFileSet,
 	): ViolationContract[] {
 		const directory_structure_rules = new DirectoryStructureRules(directory_files, this.file_io);

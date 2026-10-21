@@ -8,6 +8,7 @@ import { AstModel } from "src/core/ast_model";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { SourceText } from "src/source_text";
 import { TYPESCRIPT_CONFIG_FILE } from "src/constants";
+import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
 import { TestFixture } from "tests/core/test-fixture";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { describe, expect, test } from "@jest/globals";
@@ -101,6 +102,34 @@ describe("coding lint project context", () => {
 		);
 	});
 
+	test("retains TypeScript configs inherited from outside the project root", () => {
+		const test_fixture = new TestFixture();
+		const root = "/virtual/inherited-config-snapshot";
+		const file = `${root}/src/main.ts`;
+		const inherited = "/virtual/shared/tsconfig.base.json";
+		const live_texts = new Map([
+			[`${root}/tsconfig.json`, '{"extends":"../shared/tsconfig.base.json"}\n'],
+			[inherited, '{"compilerOptions":{"paths":{"@shared/*":["shared/*"]}}}\n'],
+			[file, 'import { Value } from "@shared/value";\n'],
+			["/virtual/shared/shared/value.ts", "export class Value {}\n"],
+		]);
+		const file_io = new InMemoryFileIO();
+		const context_factory = new LintProjectContextCreator(
+			test_fixture.python_ast_data(),
+			new ProjectAnalysisIdentity(file_io),
+			new InMemoryProjectSourceIO(live_texts),
+			file_io,
+		);
+		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), new Map());
+		const project_resolution = new TypeScriptProjectResolution(root, context.source_io);
+		const resolution = project_resolution.resolution();
+
+		expect({
+			config_captured: context.source_io.source_available(inherited),
+			mapped: resolution.mapped_bases("@shared/value"),
+		}).toEqual({ config_captured: true, mapped: ["/virtual/shared/shared/value"] });
+	});
+
 	test("freezes runtime modules and their project path inventory", () => {
 		const test_fixture = new TestFixture();
 		const root = "/virtual/immutable-module-snapshot";
@@ -158,8 +187,10 @@ describe("coding lint project context", () => {
 		const source_text = "this is not Python syntax";
 		const ast_file = new TypeScriptAstFile("prepared.py", source_text);
 		const ast_model = new AstModel();
-		const prepared_ast = ast_model.empty_ast_file("python");
-		prepared_ast.coding_issues = [{ line: 0, kind: "python-elif", name: "" }];
+		const prepared_ast = {
+			...ast_model.empty_ast_file("python"),
+			coding_issues: [{ line: 0, kind: "python-elif", name: "" }],
+		};
 		const source_ast = new SourceFileAst(
 			{ file: "prepared.py", text: source_text },
 			prepared_ast,

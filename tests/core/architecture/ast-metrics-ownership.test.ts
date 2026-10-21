@@ -9,7 +9,7 @@ import type { ViolationContract } from "src/reporting_protocols";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { ClassReporting } from "src/core/support/source-analysis/class_reporting";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 
 describe("normalized AST class metrics and ownership", () => {
 	test("does not exempt project files from class and function ownership checks", () => {
@@ -59,7 +59,7 @@ describe("normalized AST class metrics and ownership", () => {
 	test("checks short local classes regardless of their names", () => {
 		const results = ["RequestHandler", "ProxyServer", "PayloadError"].map((name) => {
 			const violations: ViolationContract[] = [];
-			const node: AstClassNode = {
+			const node: AstClassNodeContract = {
 				name,
 				start: 0,
 				end: 1,
@@ -89,7 +89,7 @@ describe("normalized AST class metrics and ownership", () => {
 	test("skips methods when the class extends an external framework base", () => {
 		const test_fixture = new TestFixture();
 		const violations: ViolationContract[] = [];
-		const node: AstClassNode = {
+		const node: AstClassNodeContract = {
 			name: "WebMcpProxyHandler",
 			start: 0,
 			end: 40,
@@ -274,7 +274,7 @@ describe("normalized AST class metrics and ownership", () => {
 	test("reports stateless classes and forbids local class inheritance", () => {
 		const test_fixture = new TestFixture();
 		const violations: ViolationContract[] = [];
-		const node: AstClassNode = {
+		const node: AstClassNodeContract = {
 			name: "Child",
 			start: 4,
 			end: 20,
@@ -314,7 +314,7 @@ describe("normalized AST class metrics and ownership", () => {
 	test("allows stateful classes and external inheritance", () => {
 		const test_fixture = new TestFixture();
 		const violations: ViolationContract[] = [];
-		const node: AstClassNode = {
+		const node: AstClassNodeContract = {
 			name: "Handler",
 			start: 0,
 			end: 40,
@@ -338,6 +338,7 @@ describe("normalized AST class metrics and ownership", () => {
 					type_kind: "basic",
 					readonly: false,
 					class_variable: false,
+					class_scope: false,
 					visibility: "public",
 				},
 			],
@@ -355,7 +356,7 @@ describe("normalized AST class metrics and ownership", () => {
 	test("reports mixins without applying unrelated class design rules", () => {
 		const test_fixture = new TestFixture();
 		const violations: ViolationContract[] = [];
-		const node: AstClassNode = {
+		const node: AstClassNodeContract = {
 			name: "LoggingMixin",
 			start: 0,
 			end: 20,

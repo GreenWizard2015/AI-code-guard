@@ -8,7 +8,7 @@ import type {
 	ParsedFile,
 } from "src/metrics/types";
 import type {
-	AstClassNode,
+	AstClassNodeContract,
 	CallableOwnershipResolver,
 	CodeClass,
 	ImportedSymbol,
@@ -19,28 +19,34 @@ export type ClassesByName = Map<string, CodeClass>;
 export type ImportsByName = Map<string, ImportedSymbol>;
 export type ClassesByFile = Map<string, ClassesByName>;
 export type ImportsByFile = Map<string, ImportsByName>;
-export type NamedClassNodes = ReadonlyMap<string, AstClassNode>;
+export type NamedClassNodes = ReadonlyMap<string, AstClassNodeContract>;
 export type ClassNodesByFile = ReadonlyMap<string, NamedClassNodes>;
 
-type CallableUsageFiles = {
-	parsed_files: ParsedFile[];
-	production_files: ParsedFile[];
-	test_files: ParsedFile[];
-	matcher_indexes: CallableMatcherIndexes;
+/** Responsibilities: _callable usage source files_. **/
+interface CallableUsageFilesContract {
+	readonly parsed_files: ParsedFile[];
+	readonly production_files: ParsedFile[];
+	readonly test_files: ParsedFile[];
+	readonly matcher_indexes: CallableMatcherIndexes;
 };
-type CallableUsageDefinitions = {
-	definitions: CallableDefinition[];
-	method_counts: CallableMethodCountsContract;
-	external_methods: ReadonlySet<CallableDefinition>;
+/** Responsibilities: _callable usage definitions_. **/
+interface CallableUsageDefinitionsContract {
+	readonly definitions: CallableDefinition[];
+	readonly method_counts: CallableMethodCountsContract;
+	readonly external_methods: ReadonlySet<CallableDefinition>;
 };
-type CallableUsageIndexes = {
-	project_types: CallableProjectIndex;
-	class_nodes: CallableClassIndex;
-	reference_index: SourceReferenceIndexContract<string>;
-	references_by_file: CallableReferencesByFile;
-	ownership: CallableOwnershipResolver;
+/** Responsibilities: _callable usage indexes_. **/
+interface CallableUsageIndexesContract {
+	readonly project_types: CallableProjectIndex;
+	readonly class_nodes: CallableClassIndex;
+	readonly reference_index: SourceReferenceIndexContract<string>;
+	readonly references_by_file: CallableReferencesByFile;
+	readonly ownership: CallableOwnershipResolver;
 };
-export type CallableUsageCollectorState = CallableUsageFiles & CallableUsageDefinitions & CallableUsageIndexes;
+/** Responsibilities: _callable usage collector state_. **/
+export interface CallableUsageCollectorStateContract
+	extends CallableUsageFilesContract, CallableUsageDefinitionsContract, CallableUsageIndexesContract {}
+
 
 export type CallableUsageIndexState = {
 	project_types: CallableProjectIndex;

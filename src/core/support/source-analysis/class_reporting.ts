@@ -2,7 +2,7 @@ import { CallableMetrics } from "src/metrics/callable_metrics";
 import type { CallableMetricsContract } from "src/reporting_protocols";
 import type { ClassReportingContract, ViolationContract } from "src/reporting_protocols";
 import type { LintFileNameContract } from "src/source_types";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import { MethodSpecializationReporter } from "src/core/support/source-analysis/method_specialization_reporter";
 import type { MaxMethodMetricInput } from "src/types";
 
@@ -18,7 +18,7 @@ export class ClassReporting implements ClassReportingContract {
 	}
 
 	/** Responsibilities: _classification class contribute class_. **/
-	private is_reportable_class(file_name: LintFileNameContract, node: AstClassNode): boolean {
+	private is_reportable_class(file_name: LintFileNameContract, node: AstClassNodeContract): boolean {
 		if (file_name.test()) {
 			return false;
 		}
@@ -32,7 +32,7 @@ export class ClassReporting implements ClassReportingContract {
 	public report_method_metrics(
 		violations: ViolationContract[],
 		file_name: LintFileNameContract,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 	): void {
 		if (node.methods.length === 0) {
 			return;
@@ -57,7 +57,7 @@ export class ClassReporting implements ClassReportingContract {
 	public report_class_methods(
 		violations: ViolationContract[],
 		file_name: LintFileNameContract,
-		node: AstClassNode,
+		node: AstClassNodeContract,
 	): void {
 		if (!this.is_reportable_class(file_name, node)) {
 			return;

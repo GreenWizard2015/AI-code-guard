@@ -1,13 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import { join } from "node:path";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 describe("directory implementation class limits", () => {
 	const root = "/virtual/directory-class-size-project";
-	const implementation_class: AstClassNode = {
+	const implementation_class: AstClassNodeContract = {
 		name: "ValueStore",
 		start: 0,
 		end: 1,
@@ -27,7 +27,7 @@ describe("directory implementation class limits", () => {
 		untyped_fields: [],
 		dependencies: [],
 	};
-	const type_contract: AstClassNode = { ...implementation_class, name: "ValueContract", type_contract: true };
+	const type_contract: AstClassNodeContract = { ...implementation_class, name: "ValueContract", type_contract: true };
 
 	test("reports more than fifteen implementation classes", () => {
 		const paths = Array.from({ length: 16 }, (_, index) => join(root, "feature", `item-${index}.ts`));

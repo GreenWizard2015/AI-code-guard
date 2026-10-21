@@ -1,6 +1,6 @@
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AstClassNode } from "src/types";
+import type { AstClassNodeContract } from "src/types";
 import { RESOLVER_SUFFIX } from "src/metrics/constants";
 
 /** Responsibilities: _procedural class names identification_, _naming violations addition_. **/
@@ -68,7 +68,7 @@ export class ProceduralClassName {
 	}
 
 	/** Responsibilities: _aggregation procedural class-name violation_. **/
-	public append_violation(violations: ViolationContract[], file: string, node: AstClassNode): void {
+	public append_violation(violations: ViolationContract[], file: string, node: AstClassNodeContract): void {
 		if (!this.job_title(node.name)) {
 			return;
 		}

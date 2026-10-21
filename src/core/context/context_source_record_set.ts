@@ -19,7 +19,7 @@ import type {
 	TypeScriptAstCreation,
 	TypeScriptAstCreationOptions,
 } from "src/source_types";
-import type { LintRunStatistics, NormalizedAstFile } from "src/types";
+import type { LintRunStatistics, NormalizedAstFileContract } from "src/types";
 import ts from "typescript";
 import type { IOContract } from "src/io/protocols";
 
@@ -80,7 +80,7 @@ export class ContextSourceRecordSet {
 	}
 
 	/** Responsibilities: _retrieval normalization Python AST_. **/
-	private python_ast_for(python_file_asts: ReadonlyMap<string, NormalizedAstFile>, file: string): NormalizedAstFile {
+	private python_ast_for(python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>, file: string): NormalizedAstFileContract {
 		const ast = python_file_asts.get(file);
 		if (ast === undefined) {
 			throw new Error(`Python AST is missing for ${file}.`);
@@ -91,8 +91,8 @@ export class ContextSourceRecordSet {
 	/** Responsibilities: _validation retrieval Python AST_. **/
 	private python_ast_argument(
 		file: string,
-		python_file_asts: ReadonlyMap<string, NormalizedAstFile>,
-	): NormalizedAstFile {
+		python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>,
+	): NormalizedAstFileContract {
 		if (this.typescript(file)) {
 			throw new Error(`Python AST was requested for TypeScript file ${file}.`);
 		}
@@ -105,7 +105,7 @@ export class ContextSourceRecordSet {
 		relative_path: string,
 		file_name: LintFileNameContract,
 		text: string,
-		python_ast: NormalizedAstFile,
+		python_ast: NormalizedAstFileContract,
 	): LintSourceRecord {
 		return new PythonLintSourceRecord({
 			absolute_path: file,
@@ -149,7 +149,7 @@ export class ContextSourceRecordSet {
 	private normalized_ast(
 		options: ContextSourceRecordOptions,
 		typescript_ast: TypeScriptAstFileContract,
-	): NormalizedAstFile {
+	): NormalizedAstFileContract {
 		const cached = options.typescript_asts.get(options.file);
 		if (cached === undefined) {
 			return typescript_ast.normalized();
@@ -199,7 +199,7 @@ export class ContextSourceRecordSet {
 	/** Responsibilities: _source record normalization_. **/
 	private normalized_records(
 		options: ContextSourceRecordsOptions,
-		typescript_asts: ReadonlyMap<string, NormalizedAstFile>,
+		typescript_asts: ReadonlyMap<string, NormalizedAstFileContract>,
 	): LintSourceRecord[] {
 		return options.files.map((file) =>
 			this.source_record({

@@ -1,7 +1,7 @@
 import type { CallableClassIndex, ParsedFile } from "src/metrics/types";
 import type {
 	AstCallableNodeContract,
-	AstClassNode,
+	AstClassNodeContract,
 	AstTypeMemberRecord,
 	DuplicateTypeShape,
 	NamedLine,
@@ -36,7 +36,7 @@ export interface SystemFailureClassificationContract {
 
 /** Responsibilities: _method order validation_. **/
 export interface MethodOrderContract {
-	append_order_violations(violations: ViolationContract[], file: string, node: AstClassNode): void;
+	append_order_violations(violations: ViolationContract[], file: string, node: AstClassNodeContract): void;
 }
 
 /** Responsibilities: _symbol naming validation_. **/
@@ -45,7 +45,7 @@ export interface NamingSupportContract {
 		violations: ViolationContract[],
 		file: string,
 		symbols: NamedSymbol[],
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		type_declarations: NamedLine[],
 	): void;
 }
@@ -108,7 +108,7 @@ export interface PrivateMemberAccessContract {
 
 /** Responsibilities: _TypeScript callable node construction_. **/
 export interface CallableNodesContract {
-	interface_node(node: ts.InterfaceDeclaration): AstClassNode;
+	interface_node(node: ts.InterfaceDeclaration): AstClassNodeContract;
 	class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNodeContract[];
 	variable_callable_nodes(statement: ts.VariableStatement): AstCallableNodeContract[];
 	function_declaration_node(statement: ts.FunctionDeclaration): AstCallableNodeContract;
@@ -133,7 +133,7 @@ export interface UndefinedCheckCandidateContract {
 /** Responsibilities: _duplicate type-shape collection_. **/
 export interface DuplicateTypeShapesContract {
 	typescript(source_file: ts.SourceFile): DuplicateTypeShape[];
-	python(classes: readonly AstClassNode[]): DuplicateTypeShape[];
+	python(classes: readonly AstClassNodeContract[]): DuplicateTypeShape[];
 }
 
 /** Responsibilities: _proxy rule classification_. **/

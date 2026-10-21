@@ -1,17 +1,19 @@
-import ts from "typescript";
+import { PUBLIC_FIELD_KIND } from "src/constants";
 import { SourceReferenceIndex } from "src/core/source_reference_index";
-import type { ProjectSourceScannerContract } from "src/source_protocols";
-import type { LintSourceRecord } from "src/source_types";
 import type {
+	UnusedDefinitionMatches,
+	UnusedImportedDefinitionCache,
+	UnusedSourceImportCache,
+	UnusedSourceImportFiles,
 	UnusedSymbolDefinition,
 	UnusedSymbolFileBuckets,
 	UnusedSymbolNameBuckets,
-	UnusedSourceImportCache,
-	UnusedSourceImportFiles,
 } from "src/core/types";
-import { PUBLIC_FIELD_KIND } from "src/constants";
-import { UnusedSymbolAliasIndex } from "src/linting/orchestration/runtime/global-analysis/unused_symbol_alias_index";
 import { UnusedSymbolOwnership } from "src/linting/orchestration/runtime/global-analysis/unused-symbol-ownership/unused_symbol_ownership";
+import { UnusedSymbolAliasIndex } from "src/linting/orchestration/runtime/global-analysis/unused_symbol_alias_index";
+import { UnusedSymbolPropertyUsageIndex } from "src/linting/orchestration/runtime/global-analysis/unused-symbol-ownership/unused_symbol_property_usage_index";
+import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
 
 /** Responsibilities: _unused symbol usage binding_, _import ownership resolution_. **/
 export class UnusedSymbolReferenceIndex {
@@ -21,8 +23,10 @@ export class UnusedSymbolReferenceIndex {
 	private readonly definitions_by_file: ReadonlyMap<string, readonly UnusedSymbolDefinition[]>;
 	private readonly definitions_by_name: Map<string, UnusedSymbolNameBuckets>;
 	private readonly import_cache: UnusedSourceImportCache;
+	private readonly imported_definition_cache: UnusedImportedDefinitionCache;
 	private readonly alias_index: UnusedSymbolAliasIndex;
 	private readonly ownership: UnusedSymbolOwnership;
+	private readonly property_usage_index: UnusedSymbolPropertyUsageIndex;
 
 	/** Responsibilities: _definition name bucket preparation_. **/
 	private definition_name_buckets(): UnusedSymbolFileBuckets {
@@ -53,24 +57,40 @@ export class UnusedSymbolReferenceIndex {
 		return resolved;
 	}
 
-	/** Responsibilities: _imported symbol usage binding_. **/
-	private add_imported_references(source: LintSourceRecord, name: string, imported_file: string, line: number): void {
-		const definitions = this.definitions_by_name.get(imported_file);
-		if (definitions === undefined) {
-			return;
-		}
-		for (const reference_name of this.alias_index.names(source, name)) {
-			const matching = definitions.get(reference_name);
-			if (matching === undefined) {
+	/** Responsibilities: _imported definition name resolution_. **/
+	private resolve_imported_definitions(source: LintSourceRecord, name: string): UnusedDefinitionMatches {
+		const matches: UnusedSymbolDefinition[] = [];
+		const reference_names = this.alias_index.names(source, name);
+		for (const imported_file of this.source_imports(source)) {
+			const definitions = this.definitions_by_name.get(imported_file);
+			if (definitions === undefined) {
 				continue;
 			}
-			for (const definition of matching) {
-				this.references.add_usage(`${definition.file}\u0000${definition.name}`, {
-					file: source.relative_path,
-					line,
-				});
+			for (const reference_name of reference_names) {
+				const named_definitions = definitions.get(reference_name);
+				if (named_definitions === undefined) {
+					continue;
+				}
+				matches.push(...named_definitions);
 			}
 		}
+		return matches;
+	}
+
+	/** Responsibilities: _imported definition resolution memoization_. **/
+	private imported_definitions(source: LintSourceRecord, name: string): UnusedDefinitionMatches {
+		let source_cache = this.imported_definition_cache.get(source.absolute_path);
+		if (source_cache === undefined) {
+			source_cache = new Map<string, UnusedDefinitionMatches>();
+			this.imported_definition_cache.set(source.absolute_path, source_cache);
+		}
+		const cached = source_cache.get(name);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const matches = this.resolve_imported_definitions(source, name);
+		source_cache.set(name, matches);
+		return matches;
 	}
 
 	/** Responsibilities: _source usage indexing_. **/
@@ -84,76 +104,12 @@ export class UnusedSymbolReferenceIndex {
 				line,
 			});
 		}
-		for (const imported_file of this.source_imports(source)) {
-			this.add_imported_references(source, name, imported_file, line);
+		for (const definition of this.imported_definitions(source, name)) {
+			this.references.add_usage(`${definition.file}\u0000${definition.name}`, {
+				file: source.relative_path,
+				line,
+			});
 		}
-	}
-
-	/** Responsibilities: _field usage reference insertion_. **/
-	private add_field_usage(
-		source: LintSourceRecord,
-		source_file: ts.SourceFile,
-		receiver: ts.Expression,
-		name: string,
-		position: number,
-	): void {
-		const owners = this.ownership.property_usage_owners(source, source_file, receiver, name);
-		const line = source_file.getLineAndCharacterOfPosition(position).line + 1;
-		for (const owner of owners) {
-			const key = `field\u0000${owner.file}\u0000${owner.owner}\u0000${name}`;
-			this.references.add_usage(key, { file: source.relative_path, line });
-		}
-	}
-
-	/** Responsibilities: _property access references_. **/
-	private property_usage(source: LintSourceRecord, source_file: ts.SourceFile, node: ts.Node): void {
-		if (ts.isPropertyAccessExpression(node)) {
-			this.add_field_usage(source, source_file, node.expression, node.name.text, node.name.getStart(source_file));
-			return;
-		}
-		if (!ts.isElementAccessExpression(node)) {
-			return;
-		}
-		const argument = node.argumentExpression;
-		if (argument === undefined) {
-			return;
-		}
-		if (ts.isStringLiteral(argument)) {
-			this.add_field_usage(source, source_file, node.expression, argument.text, argument.getStart(source_file));
-		}
-	}
-
-	/** Responsibilities: _TypeScript property usage traversal_. **/
-	private property_usages(source: LintSourceRecord): void {
-		if (!source.typescript()) {
-			return;
-		}
-		const source_file = source.typescript_ast.source_file_node();
-		const visit = (node: ts.Node): void => {
-			this.property_usage(source, source_file, node);
-			if (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) {
-				if (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) {
-					this.add_field_usage(source, source_file, node.parent, node.name.text, node.name.getStart(source_file));
-				}
-			}
-			node.forEachChild(visit);
-		};
-		visit(source_file);
-	}
-
-	/** Responsibilities: _field contract usage presence_. **/
-	private field_usage_present(definition: UnusedSymbolDefinition): boolean {
-		const field_key = `field\u0000${definition.file}\u0000${definition.owner}\u0000${definition.name}`;
-		if (this.references.references_for(field_key, "usage").length > 0) {
-			return true;
-		}
-		for (const owner of this.ownership.contract_fields(definition)) {
-			const key = `field\u0000${owner.file}\u0000${owner.owner}\u0000${definition.name}`;
-			if (this.references.references_for(key, "usage").length > 0) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/** Responsibilities: _unused symbol index state_. **/
@@ -168,8 +124,10 @@ export class UnusedSymbolReferenceIndex {
 		this.definitions_by_file = definitions_by_file;
 		this.definitions_by_name = new Map<string, UnusedSymbolNameBuckets>();
 		this.import_cache = new Map<string, UnusedSourceImportFiles>();
+		this.imported_definition_cache = new Map<string, Map<string, readonly UnusedSymbolDefinition[]>>();
 		this.alias_index = new UnusedSymbolAliasIndex();
 		this.ownership = new UnusedSymbolOwnership(scanner, available_files, definitions_by_file, this.import_cache);
+		this.property_usage_index = new UnusedSymbolPropertyUsageIndex(this.references, this.ownership);
 	}
 
 	/** Responsibilities: _definition name index preparation_. **/
@@ -200,7 +158,7 @@ export class UnusedSymbolReferenceIndex {
 				this.add_source_reference(source, reference.name, reference.line + 1);
 			}
 		}
-		this.property_usages(source);
+		this.property_usage_index.add_source(source);
 	}
 
 	/** Responsibilities: _unused symbol reference presence_. **/
@@ -212,6 +170,6 @@ export class UnusedSymbolReferenceIndex {
 		if (definition.kind !== PUBLIC_FIELD_KIND) {
 			return false;
 		}
-		return this.field_usage_present(definition);
+		return this.property_usage_index.usage_present(definition);
 	}
 }

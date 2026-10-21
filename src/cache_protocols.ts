@@ -1,6 +1,6 @@
 import type { LintRunResult, CacheState } from "src/project_analysis_types";
 import type { LintSourceRecord } from "src/source_types";
-import type { NormalizedAstFile } from "src/types";
+import type { NormalizedAstFileContract } from "src/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 
@@ -36,12 +36,12 @@ export interface ContextSourceRecordCacheContract {
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
 		stage_timer: LintStageTimerContract,
-	): Map<string, NormalizedAstFile>;
+	): Map<string, NormalizedAstFileContract>;
 	write(
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
 		records: readonly LintSourceRecord[],
-		cached: ReadonlyMap<string, NormalizedAstFile>,
+		cached: ReadonlyMap<string, NormalizedAstFileContract>,
 		stage_timer: LintStageTimerContract,
 	): LintSourceRecord[];
 }

@@ -95,7 +95,7 @@ export class DocumentationValidationReport {
 	/** Responsibilities: _per-document validation outcome reporting_. **/
 	private write_document_statuses(): void {
 		for (const document of this.document_statuses) {
-			const status = document.passed ? "ок" : "ошибка";
+			const status = document.passed ? "OK" : "ERROR";
 			console.log(`${document.file_name} - ${status}`);
 		}
 	}

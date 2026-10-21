@@ -8,9 +8,9 @@ import { Syntax } from "src/parser/analysis/syntax";
 import type { DirectoryCommentSegmentsContract } from "src/shared_services_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { MIN_FILE_LINES } from "src/constants";
-import type { PythonOperationInput, PythonRuleInput } from "src/linting/types";
+import type { PythonOperationInput, PythonRuleInputContract } from "src/linting/types";
 import type { LintFileNameContract } from "src/source_types";
-import type { AstClassNode, AstSourceSpan, NormalizedAstFile } from "src/types";
+import type { AstClassNodeContract, AstSourceSpan, NormalizedAstFileContract } from "src/types";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { PythonRuleCollector } from "src/linting/orchestration/runtime/python/python_rule_collector";
 import type { PythonLintInput } from "src/model/types/types";
@@ -22,7 +22,7 @@ export class PythonAstFileRuleCollector {
 	private readonly mix_collection: MixCollection;
 	private readonly declarations: Declarations;
 	private readonly imports_rules: ImportsRules;
-	private readonly ast: NormalizedAstFile;
+	private readonly ast: NormalizedAstFileContract;
 	private readonly file_name: LintFileNameContract;
 	private readonly lines: string[];
 	private readonly project_class_names: ReadonlySet<string>;
@@ -57,7 +57,7 @@ export class PythonAstFileRuleCollector {
 	}
 
 	/** Responsibilities: _Python rule input assembly_. **/
-	private input(): PythonRuleInput {
+	private input(): PythonRuleInputContract {
 		const ast = this.ast;
 		const classes = ast.classes.filter((node) => !node.type_contract && !node.protocol);
 		const suppress_short_class = this.short_class_suppressed(classes);
@@ -82,7 +82,7 @@ export class PythonAstFileRuleCollector {
 	}
 
 	/** Responsibilities: _classification short-class diagnostics suppressed_. **/
-	private short_class_suppressed(classes: AstClassNode[]): boolean {
+	private short_class_suppressed(classes: AstClassNodeContract[]): boolean {
 		const directory_comment_segments = new DirectoryCommentSegments();
 		let docstring_spans = this.ast.docstring_spans;
 		if (docstring_spans === undefined) {
@@ -94,7 +94,7 @@ export class PythonAstFileRuleCollector {
 	/** Responsibilities: _short-class violation suppression_. **/
 	private suppress_short_class(
 		directory_comment_segments: DirectoryCommentSegmentsContract,
-		classes: AstClassNode[],
+		classes: AstClassNodeContract[],
 		docstring_spans: AstSourceSpan[],
 	): boolean {
 		if (classes.length < 2) {
@@ -104,7 +104,7 @@ export class PythonAstFileRuleCollector {
 	}
 
 	/** Responsibilities: _aggregation import declaration violations_. **/
-	private append_import_declarations(file: string, ast: NormalizedAstFile): void {
+	private append_import_declarations(file: string, ast: NormalizedAstFileContract): void {
 		let python_imports = ast.python_imports;
 		if (python_imports === undefined) {
 			python_imports = [];
@@ -134,7 +134,7 @@ export class PythonAstFileRuleCollector {
 	}
 
 	/** Responsibilities: _initialization Python source data_. **/
-	public constructor(input: PythonLintInput, ast: NormalizedAstFile, production_import_names: ReadonlySet<string>) {
+	public constructor(input: PythonLintInput, ast: NormalizedAstFileContract, production_import_names: ReadonlySet<string>) {
 		const syntax = new Syntax();
 		this.test_path_syntax = new TestPathSyntax();
 		this.class_rules = new ClassRules({

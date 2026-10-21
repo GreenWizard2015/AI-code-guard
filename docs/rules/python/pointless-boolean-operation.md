@@ -1,8 +1,9 @@
 # pointless-boolean-operation
 
-Description: Reports a boolean identity comparison whose only body action is returning.
+Description: Reports a named boolean value identity comparison whose only body action is returning.
 The syntax differs by language, but the hack is the same: a direct boolean
-value is hidden behind a branch that adds no behavior.
+variable is hidden behind a branch that adds no behavior. Identity checks on
+mapping lookups or other values with an unknown type are not reported.
 
 ## Bad
 

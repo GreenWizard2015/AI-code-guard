@@ -4,11 +4,11 @@ import type {
 	TypeScriptPropertySide,
 	AstCallableNodeContract,
 	AstClassField,
-	AstClassNode,
+	AstClassNodeContract,
 	AstResponsibilityTarget,
 	CallableReferenceIdentity,
 	CallbackCounts,
-	NormalizedAstFile,
+	NormalizedAstFileContract,
 	RuleAppender,
 	RuleContextData,
 	TypeScriptAssignmentContext,
@@ -142,13 +142,13 @@ export interface TypeScriptSingletonCollectorContract {
 
 /** Responsibilities: _TypeScript class node construction_. **/
 export interface TypeScriptClassNodesContract {
-	class_nodes(): AstClassNode[];
-	interface_nodes(): AstClassNode[];
+	class_nodes(): AstClassNodeContract[];
+	interface_nodes(): AstClassNodeContract[];
 }
 
 /** Responsibilities: _TypeScript AST metadata construction_. **/
 export interface TypeScriptAstMetadataContract {
-	normalized(classes: AstClassNode[], functions: AstCallableNodeContract[]): NormalizedAstFile;
+	normalized(classes: AstClassNodeContract[], functions: AstCallableNodeContract[]): NormalizedAstFileContract;
 }
 
 /** Responsibilities: _TypeScript responsibility targets_. **/
