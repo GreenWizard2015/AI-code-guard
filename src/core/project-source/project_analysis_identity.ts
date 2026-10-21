@@ -8,9 +8,9 @@ import {
 	TYPESCRIPT_CONFIG_FILE,
 	IGNORED_DIRS,
 	REPORTING_PROJECT_ROOT,
+	RULE_DOCUMENT_DIRECTORY,
 } from "src/constants";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import { RULE_DOCUMENT_DIRECTORY } from "documentation_validation/constants";
 import type { FileEntryContract, IOContract } from "src/io/protocols";
 import { SYSTEM_FAILURE_CODES } from "src/io/constants";
 

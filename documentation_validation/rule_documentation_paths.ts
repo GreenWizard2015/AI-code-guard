@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { RULE_DOCUMENT_DIRECTORY, RULE_DOCUMENT_SUFFIX } from "documentation_validation/constants";
-import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
+import { RULE_DOCUMENT_SUFFIX } from "documentation_validation/constants";
+import { RULE_DOCUMENT_DIRECTORY, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import type {
 	RuleDocumentationPathInventory,
 	RuleDocumentPath,

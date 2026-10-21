@@ -146,3 +146,5 @@ export const MODULES_RULE_DATA = {
 		priority: 6,
 	},
 } as const;
+
+export const PROJECT_ANALYSIS_RULE_IDS: ReadonlySet<string> = new Set(["missing-import", "unused-file"]);

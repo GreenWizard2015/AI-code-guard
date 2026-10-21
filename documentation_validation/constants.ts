@@ -1,4 +1,3 @@
-export const RULE_DOCUMENT_DIRECTORY = "docs/rules";
 export const RULE_DOCUMENT_SUFFIX = ".md";
 export const TYPESCRIPT_EXTENSION = ".ts";
 export const PYTHON_EXTENSION = ".py";
@@ -22,5 +21,4 @@ export const DOCUMENTATION_EXCLUDED_SIZE_RULES: ReadonlySet<string> = new Set([
 	"directory-class-min-size",
 	"directory-class-max-size",
 ]);
-export const DOCUMENTATION_PROJECT_ANALYSIS_RULES: ReadonlySet<string> = new Set(["missing-import", "unused-file"]);
 export const RESPONSIBILITY_RULE_PREFIX = "responsibilities";

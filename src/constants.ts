@@ -15,6 +15,7 @@ import type { AstLanguage, ReviewStageDefinition, SourceReferenceRelation, TypeS
 export const MISSING_CACHE_VALUE = "<missing>";
 export const REMOVED_SKIP_REVIEW_MESSAGE = "--skip-review was removed; omit --review-agent to skip review.";
 export const MARKDOWN_TEXT_SUFFIXES: ReadonlySet<string> = new Set([".md", ".markdown", ".mdown", ".mkdn"]);
+export const RULE_DOCUMENT_DIRECTORY = "docs/rules";
 
 export const RULE_DATA = {
 	...TESTING_RULE_DATA,
@@ -80,12 +81,18 @@ export const RULE_DOCUMENT_PATHS_BY_ID = new Map<string, readonly string[]>(
 			if (rule_id.startsWith(prefix)) {
 				document_id = rule_id.slice(prefix.length);
 			}
-			return [rule_id, [`docs/rules/${language}/${document_id}.md`]];
+			return [rule_id, [`${RULE_DOCUMENT_DIRECTORY}/${language}/${document_id}.md`]];
 		}
 		if (LANGUAGE_NEUTRAL_RULE_IDS.has(rule_id) || SHARED_RULE_DOCUMENT_IDS.has(rule_id)) {
-			return [rule_id, [`docs/rules/${rule_id}.md`]];
+			return [rule_id, [`${RULE_DOCUMENT_DIRECTORY}/${rule_id}.md`]];
 		}
-		return [rule_id, [`docs/rules/typescript/${rule_id}.md`, `docs/rules/python/${rule_id}.md`]];
+		return [
+			rule_id,
+			[
+				`${RULE_DOCUMENT_DIRECTORY}/typescript/${rule_id}.md`,
+				`${RULE_DOCUMENT_DIRECTORY}/python/${rule_id}.md`,
+			],
+		];
 	}),
 );
 

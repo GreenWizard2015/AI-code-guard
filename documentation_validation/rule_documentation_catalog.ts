@@ -1,8 +1,7 @@
 import { join, relative, sep } from "node:path";
-import { RULE_DOCUMENT_DIRECTORY } from "documentation_validation/constants";
 import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
 import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
-import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
+import { PYTHON_LANGUAGE, RULE_DOCUMENT_DIRECTORY, TYPESCRIPT_LANGUAGE } from "src/constants";
 import { RuleDocumentationPaths } from "documentation_validation/rule_documentation_paths";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import type {

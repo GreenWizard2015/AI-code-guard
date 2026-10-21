@@ -9,8 +9,8 @@ import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintExecutionReport } from "src/runtime_types";
 import { RULE_DATA } from "src/constants";
+import { PROJECT_ANALYSIS_RULE_IDS } from "src/rules/catalog/modules/constants";
 import { UnusedCode } from "src/core/project-source/unused_code";
-import { DOCUMENTATION_PROJECT_ANALYSIS_RULES } from "documentation_validation/constants";
 import type { DocumentationExampleSourceFile } from "documentation_validation/types";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/source_text";
@@ -89,7 +89,7 @@ export class DocumentationValidationSession implements DocumentationExampleLintC
 
 	/** Responsibilities: _rule-specific project diagnostics_. **/
 	private example_violations(rule_id: string, repo_root: string, execution: LintExecutionReport): ViolationContract[] {
-		if (!DOCUMENTATION_PROJECT_ANALYSIS_RULES.has(rule_id)) {
+		if (!PROJECT_ANALYSIS_RULE_IDS.has(rule_id)) {
 			return execution.report.violations;
 		}
 		return [...execution.report.violations, ...this.project_violations(repo_root, execution)];
