@@ -1,5 +1,5 @@
 export const SKIPPED_PATH_PARTS = ["/dist/", "/node_modules/", "/coverage/", "/__pycache__/", "/.venv/", "/.tox/"];
-export const AST_ANALYSIS_CACHE_VERSION = 9;
+export const AST_ANALYSIS_CACHE_VERSION = 10;
 export const FILE_ANALYSIS_CACHE_VERSION = 2;
 export const GLOBAL_ANALYSIS_CACHE_VERSION = 2;
 export const LINT_EXECUTION_CACHE_VERSION = 2;

@@ -5,7 +5,7 @@ import {
 	DOCUMENTATION_REPORT_DIVIDER,
 	DOCUMENTATION_REPORT_HEADER,
 	EMPTY_DOCUMENTATION_REPORT_ROW,
-} from "documentation_validation/constants";
+} from "#documentation_validation/constants";
 
 /** Responsibilities: _group report violations_, _output reporting rendering_. **/
 export class TaskReportDocument {

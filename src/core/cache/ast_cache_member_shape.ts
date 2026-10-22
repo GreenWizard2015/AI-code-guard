@@ -19,6 +19,9 @@ export class AstCacheMemberShape {
 		if (!Array.isArray(ast.type_members)) {
 			return false;
 		}
+		if (!Array.isArray(ast.python_exports)) {
+			return false;
+		}
 		return this.member_groups_valid();
 	}
 

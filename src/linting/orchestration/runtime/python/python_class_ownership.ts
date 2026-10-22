@@ -1,6 +1,7 @@
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstPythonImport, ImportedSymbol, NormalizedAstFileContract } from "src/types";
+import type { AstPythonImport, NormalizedAstFileContract } from "src/types";
+import type { ImportedSymbol } from "src/model/types/types";
 import type { PythonClassNameSet, PythonClassNamesByFile } from "src/model/types/types";
 import type { PythonExportedSymbolResolverContract } from "src/linting/orchestration/runtime/composition/protocols";
 

@@ -1,12 +1,12 @@
 # `non-english-source-text`
 
-Description: Comments and inline string literals in source must use English. Put translated user-facing text in localization resources and reference it from code. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected; Latin accents are allowed.
+Description: Production comments and string literals must use English. In test files, check comments only; test literals may use any language. Markdown and supported text-file prose is checked too. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected; Latin accents are allowed.
 
 ## Bad
 
 ```ts
 // File: cli.ts
-const message = "你好，Добро пожаловать";
+const message = "Добро пожаловать"; // <- error
 ```
 
 ## Good

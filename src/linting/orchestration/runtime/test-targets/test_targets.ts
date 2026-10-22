@@ -1,10 +1,15 @@
+import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
 import { TestTargetImports } from "src/linting/orchestration/runtime/test-targets/test_target_imports";
 import { TestTargetRoots } from "src/linting/orchestration/runtime/test-targets/test_target_roots";
-import ts from "typescript";
-import type { TestFileOrganizationContract, TestTargetImportResolverContract, TestTargetRootsContract, TestTargetsContract } from "src/testing_protocols";
-import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
+import type {
+	TestFileOrganizationContract,
+	TestTargetImportResolverContract,
+	TestTargetRootsContract,
+	TestTargetsContract,
+} from "src/testing_protocols";
 import type { AstPythonImport } from "src/types";
 import type { TestTargetImport } from "src/types";
+import ts from "typescript";
 
 /** Responsibilities: _test import matching_, _test target validation_. **/
 export class TestTargets implements TestTargetsContract {
@@ -47,7 +52,6 @@ export class TestTargets implements TestTargetsContract {
 					return true;
 				}
 			}
-			return false;
 		}
 		return false;
 	}

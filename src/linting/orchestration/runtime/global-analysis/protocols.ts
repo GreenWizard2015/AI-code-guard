@@ -15,8 +15,8 @@ export type GlobalViolationCollectorOptions = {
 
 /** Responsibilities: _unused-symbol reference index_. **/
 export interface UnusedSymbolReferenceIndexContract {
-	prepare(): void;
 	usage_present(definition: UnusedSymbolDefinition): boolean;
+	add_external_usage(file: string, name: string): void;
 	add_source(source: LintSourceRecord): void;
 }
 
@@ -34,4 +34,10 @@ export interface UnusedSymbolPropertyOwnershipContract {
 /** Responsibilities: _unused symbol definition collection_. **/
 export interface UnusedSymbolDefinitionCollectorContract {
 	definitions(source: LintSourceRecord): UnusedSymbolDefinition[];
+}
+
+/** Responsibilities: _reference alias registration_, _reference name expansion_. **/
+export interface UnusedSymbolAliasIndexContract {
+	add_source(source: LintSourceRecord): void;
+	names(source: LintSourceRecord, name: string): string[];
 }

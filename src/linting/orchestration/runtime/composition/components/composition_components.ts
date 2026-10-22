@@ -1,4 +1,4 @@
-import type { ClassGraph } from "src/types";
+import type { ClassGraph } from "src/model/types/types";
 import type { CompositionComponentsContract } from "src/linting/orchestration/runtime/composition/protocols";
 import type { CompositionTraversalState } from "src/linting/orchestration/runtime/composition/types";
 

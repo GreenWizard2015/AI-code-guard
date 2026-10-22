@@ -3,6 +3,7 @@ import type { LintInputFiles } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord } from "src/source_types";
 import type { CodingRuleSourceData } from "src/source_types";
+import type { ReadonlyStringSetMap } from "src/analysis_types";
 import type { AstClassNodeContract, AstLanguage, AstPythonImport, NormalizedAstFileContract } from "src/types";
 import type ts from "typescript";
 
@@ -90,6 +91,8 @@ export interface ParsedConfigurationFilesContract extends ReadonlySet<string> {
 export interface ProjectSourceScannerContract {
 	files(): string[];
 	entry(file: string): boolean;
+	external_symbol_usages(): ReadonlyStringSetMap;
+	resolved_import_path(file: string, specifier: string, available: Set<string>): string;
 	resolved_imports(file: string, available: Set<string>): Set<string>;
 	unresolved_relative_imports(file: string, available: ReadonlySet<string>): string[];
 }

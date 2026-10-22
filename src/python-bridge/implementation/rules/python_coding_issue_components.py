@@ -30,6 +30,9 @@ from implementation.rules.python_default_parameter_issues import (
     PythonDefaultParameterIssues,
 )
 from implementation.rules.python_coding_issue_assembly import PythonCodingIssueAssembly
+from implementation.ast.python_export_declaration_rules import (
+    PythonExportDeclarationRules,
+)
 from implementation.rules.python_hidden_global_state_rules import (
     PythonHiddenGlobalStateRules,
 )
@@ -58,7 +61,7 @@ PythonProxyAnalysis = Callable[[ast.AST], list[JsonObject]]
 
 
 class PythonCodingIssueComponents:
-    """Responsibilities: _source analysis preparation_, _rule issue aggregation_."""
+    """Responsibilities: _source analysis preparation_, _rule issue aggregation_, _export declaration policy_."""
 
     context: PythonCodingIssueComponentContextContract
     union_rules: PythonUnionRulesContract
@@ -206,6 +209,8 @@ class PythonCodingIssueComponents:
         issues.extend(self.test_order_dependency.issues())
         issues.extend(self.primary_branch_count(self.context.tree))
         tree = self.context.tree
+        export_rules = PythonExportDeclarationRules(tree)
+        issues.extend(export_rules.issues())
         issues.extend(self._collection_rule_issues(tree))
         issues.extend(self._state_rule_issues(tree))
         issues.extend(self.incomplete_cache_key.issues(tree))

@@ -55,6 +55,56 @@ class PythonParserMetadataTest(unittest.TestCase):
             ["import", "from"],
         )
 
+    def test_parser_collects_literal_export_list(self) -> None:
+        """Responsibilities: _Python export assignment results_."""
+        tree = PythonAstTree('__all__ = ["First", "Second"]\n')
+        parsed = tree.ast()
+
+        self.assertEqual(parsed["python_exports"], ["First", "Second"])
+
+    def test_parser_reports_non_list_export_operations(self) -> None:
+        """Responsibilities: _invalid export operations_."""
+        source = "\n".join(
+            [
+                '__all__ = ["First"]',
+                '__all__ += ["Second"]',
+                '__all__.append("Third")',
+                "__all__ = BASE_EXPORTS",
+                '__all__ = ["Fourth"] + ["Fifth"]',
+                '__all__: list[str] = ["Sixth"]',
+            ]
+        )
+        tree = PythonAstTree(source)
+        parsed = tree.ast()
+        issues = parsed["coding_issues"]
+
+        self.assertEqual(
+            [issue for issue in issues if issue["kind"] == "python-all-list-assignment"],
+            [
+                {"kind": "python-all-list-assignment", "line": 1, "name": ""},
+                {"kind": "python-all-list-assignment", "line": 2, "name": ""},
+                {"kind": "python-all-list-assignment", "line": 3, "name": ""},
+                {"kind": "python-all-list-assignment", "line": 4, "name": ""},
+                {"kind": "python-all-list-assignment", "line": 5, "name": ""},
+            ],
+        )
+
+    def test_parser_excludes_export_names_from_runtime_literal_references(self) -> None:
+        """Responsibilities: _runtime literal reference classification_."""
+        source = """__all__ = ["ProjectBrowserBridge", "UpstreamGatewayDependencies"]
+def first() -> str:
+    return "shared runtime message"
+def second() -> str:
+    return "shared runtime message"
+"""
+        tree = PythonAstTree(source)
+        parsed = tree.ast()
+
+        self.assertEqual(
+            [item["value"] for item in parsed["literal_references"]],
+            ["shared runtime message", "shared runtime message"],
+        )
+
     def test_parser_emits_metadata(self) -> None:
         """Responsibilities: _parser symbol metadata_."""
         tree = ast.parse(ENTRYPOINT_SOURCE)

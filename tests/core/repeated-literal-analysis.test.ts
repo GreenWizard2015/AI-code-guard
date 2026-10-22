@@ -1,10 +1,99 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("project-wide repeated literal analysis", () => {
+	test("does not treat Python __all__ export names as repeated string literals", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"tools/webmcp_project/__init__.py": [
+					"__all__ = [",
+					'    "BrowserBridge",',
+					'    "ProjectBrowserBridge",',
+					'    "ProjectConfig",',
+					'    "ProjectSettings",',
+					'    "Repository",',
+					'    "UpstreamGatewayDependencies",',
+					'    "UserscriptsPlugin",',
+					"]",
+				].join("\n"),
+				"tools/webmcp_project/browser_bridge/__init__.py": [
+					"__all__ = [",
+					'    "BrowserBridge",',
+					'    "BrowserBridgeCallStore",',
+					'    "BrowserBridgeTransport",',
+					'    "ProjectBrowserBridge",',
+					'    "UpstreamGatewayDependencies",',
+					'    "WebMcpProjectTasks",',
+					"]",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const literal_diagnostics = violations.filter(
+			(item) => item.rule_id === "repeated-literal" || item.rule_id === "literal-constant-reuse",
+		);
+
+		expect(literal_diagnostics).toEqual([]);
+	});
+
+	test("excludes test literals from repeated-literal and constant-reuse diagnostics", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"messages.ts": 'export const SHARED_MESSAGE = "production response unavailable";',
+				"messages.py": 'SHARED_MESSAGE = "production response unavailable"',
+				"consumer.ts": [
+					"export class MessageConsumer {",
+					'\tpublic message(): string { return "production response unavailable"; }',
+					"}",
+				].join("\n"),
+				"consumer.py": [
+					"class MessageConsumer:",
+					'    def message(self) -> str: return "production response unavailable"',
+				].join("\n"),
+				"tests/messages.test.ts": [
+					"describe('messages', () => {",
+					"\ttest('uses fixtures', () => {",
+					'\t\tconst first = "production response unavailable";',
+					'\t\tconst second = "production response unavailable";',
+					"\t\texpect(first).toBe(second);",
+					"\t});",
+					"});",
+				].join("\n"),
+				"tests/test_messages.py": [
+					"import unittest",
+					"class TestMessages(unittest.TestCase):",
+					"    def test_uses_fixtures(self) -> None:",
+					'        first = "production response unavailable"',
+					'        second = "production response unavailable"',
+					"        self.assertEqual(first, second)",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const literal_diagnostics = violations.filter(
+			(item) => item.rule_id === "repeated-literal" || item.rule_id === "literal-constant-reuse",
+		);
+		const test_file_diagnostics = literal_diagnostics.filter((item) => item.file.startsWith("tests/"));
+		const production_reuse_files = literal_diagnostics
+			.filter((item) => item.rule_id === "literal-constant-reuse")
+			.map((item) => item.file)
+			.sort();
+
+		expect({ test_file_diagnostics, production_reuse_files }).toEqual({
+			test_file_diagnostics: [],
+			production_reuse_files: ["consumer.py", "consumer.ts"],
+		});
+	});
+
 	test("reports every repeated occurrence and reuses matching constants", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

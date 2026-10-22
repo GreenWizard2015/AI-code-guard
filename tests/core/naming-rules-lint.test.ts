@@ -121,4 +121,16 @@ describe("naming rules integration", () => {
 			magic_method_reported: false,
 		});
 	});
+
+	test("accepts Python __all__ as a language-defined export name", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{ "exports.py": '__all__ = ["PublicService"]' },
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((violation) => violation.rule_id === "naming-private")).toEqual([]);
+	});
 });

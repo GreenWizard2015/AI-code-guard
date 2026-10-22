@@ -71,10 +71,13 @@ export class LintInputFileSelector implements LintInputFileSelectorContract {
 		repository_project_candidates: readonly string[],
 		visible: ReadonlySet<string>,
 	): string[] {
+		let candidates: readonly string[];
 		if (target_candidates.length === 0) {
-			return repository_project_candidates.filter((file) => visible.has(file));
+			candidates = repository_project_candidates;
+		} else {
+			candidates = target_candidates;
 		}
-		return target_candidates.filter((file) => visible.has(file));
+		return Array.from(new Set(candidates.filter((file) => visible.has(file))));
 	}
 
 	/** Responsibilities: _raw project candidate collection_. **/

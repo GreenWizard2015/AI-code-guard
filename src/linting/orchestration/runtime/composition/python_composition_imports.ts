@@ -1,5 +1,6 @@
 import type { PythonProjectImportContext } from "src/source_types";
-import type { AstPythonImport, AstPythonImportName, ImportedSymbol, NormalizedAstFileContract } from "src/types";
+import type { AstPythonImport, AstPythonImportName, NormalizedAstFileContract } from "src/types";
+import type { ImportedSymbol } from "src/model/types/types";
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import { PYTHON_PACKAGE_SUFFIX } from "src/constants";
 import { PythonExportIndex } from "src/linting/orchestration/runtime/composition/python_export_index";
@@ -96,11 +97,7 @@ export class PythonCompositionImports {
 	}
 
 	/** Responsibilities: _recursive exported symbol resolution_. **/
-	private resolve_exported_state(
-		source_file: string,
-		name: string,
-		resolving: Set<string>,
-	): ImportedSymbol {
+	private resolve_exported_state(source_file: string, name: string, resolving: Set<string>): ImportedSymbol {
 		if (!source_file.endsWith(PYTHON_PACKAGE_SUFFIX)) {
 			return { file: source_file, name };
 		}
@@ -126,10 +123,7 @@ export class PythonCompositionImports {
 	}
 
 	/** Responsibilities: _recursive exported symbol resolution_. **/
-	public resolve_exported_symbol(
-		source_file: string,
-		name: string,
-	): ImportedSymbol {
+	public resolve_exported_symbol(source_file: string, name: string): ImportedSymbol {
 		return this.resolve_exported_state(source_file, name, new Set<string>());
 	}
 

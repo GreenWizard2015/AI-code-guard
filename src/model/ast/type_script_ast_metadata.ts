@@ -7,7 +7,10 @@ import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_
 import ts from "typescript";
 import type { SourceLineResolver } from "src/runtime_types";
 import type { SyntaxContract, LintStageTimerContract } from "src/shared_services_protocols";
-import type { TypeScriptAstMetadataContract, TypeScriptResponsibilityTargetsContract } from "src/typescript_analysis_protocols";
+import type {
+	TypeScriptAstMetadataContract,
+	TypeScriptResponsibilityTargetsContract,
+} from "src/typescript_analysis_protocols";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
 import type { TypeScriptTreeMetadata } from "src/source_types";
@@ -21,10 +24,12 @@ import type {
 } from "src/types";
 import type {
 	TypeScriptDerivedMetadata,
+	TypeScriptDeclarationMetadata,
 	TypeScriptMetadataSpans,
 	TypeScriptNormalizedMetadataOptions,
+	TypeScriptReferenceMetadata,
 } from "src/model/types";
-import { TYPESCRIPT_LANGUAGE, TYPESCRIPT_METADATA_STAGE_PREFIX } from "src/constants";
+import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_METADATA_STAGE_PREFIX } from "src/constants";
 
 /** Responsibilities: _module metadata collection_, _syntax issue reporting_. **/
 export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
@@ -97,7 +102,6 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 		return spans;
 	}
 
-
 	/** Responsibilities: _module metadata spans_. **/
 	private metadata_spans(prefix: string): TypeScriptMetadataSpans {
 		return {
@@ -132,34 +136,47 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 		};
 	}
 
-	/** Responsibilities: _AST file metadata_. **/
-	private file_metadata(options: TypeScriptNormalizedMetadataOptions): NormalizedAstFileContract {
-		const { classes, functions, tree, spans, derived } = options;
+	/** Responsibilities: _AST declaration mapping_. **/
+	private declaration_metadata(options: TypeScriptNormalizedMetadataOptions): TypeScriptDeclarationMetadata {
+		const { classes, functions, tree } = options;
 		return {
-			language: TYPESCRIPT_LANGUAGE,
+			language: TYPESCRIPT_CACHE_OWNER,
 			classes,
 			functions,
-			parse_issues: derived.parse_issues,
 			import_issues: tree.import_issues,
 			attribute_accesses: tree.attribute_accesses,
+			named_symbols: tree.named_symbols,
+			type_declarations: tree.type_declarations,
+		};
+	}
+
+	/** Responsibilities: _AST reference mapping_. **/
+	private reference_metadata(tree: TypeScriptTreeMetadata): TypeScriptReferenceMetadata {
+		return {
 			symbol_references: tree.symbol_references,
 			literal_references: tree.literal_references,
 			literal_constants: tree.literal_constants,
+		};
+	}
+
+	/** Responsibilities: _derived metadata mapping_. **/
+	/** Responsibilities: _AST file metadata_. **/
+	private file_metadata(options: TypeScriptNormalizedMetadataOptions): NormalizedAstFileContract {
+		const { tree, spans, derived } = options;
+		return {
+			...this.declaration_metadata(options),
+			...this.reference_metadata(tree),
 			...spans,
-			call_references: derived.call_references,
+			...derived,
 			private_accesses: [],
 			repeated_branches: [],
 			module_instances: [],
 			coding_issues: [],
 			python_imports: [],
+			python_exports: [],
 			python_main_guard: false,
 			docstring_spans: [],
 			python_callable_count: { count: 0, first_line: 0 },
-			responsibility_targets: derived.responsibility_targets,
-			named_symbols: tree.named_symbols,
-			type_declarations: tree.type_declarations,
-			reference_aliases: derived.reference_aliases,
-			type_members: derived.type_members,
 		};
 	}
 
@@ -220,14 +237,12 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 	public normalized(classes: AstClassNodeContract[], functions: AstCallableNodeContract[]): NormalizedAstFileContract {
 		const line_for = (position: number): number => this.source_file.getLineAndCharacterOfPosition(position).line;
 		const call_references: AstCallableReference[] = [];
-		const tree = this.stage_timer.measure(
-			"startup.project-context.source-records.metadata.call-references",
-			() =>
-				this.stage_timer.measure("startup.project-context.source-records.metadata.tree", () =>
-					this.tree_metadata_collector.collect(line_for, (node, owner) =>
-						this.call_reference_collector.append_reference(node, call_references, owner),
-					),
+		const tree = this.stage_timer.measure("startup.project-context.source-records.metadata.call-references", () =>
+			this.stage_timer.measure("startup.project-context.source-records.metadata.tree", () =>
+				this.tree_metadata_collector.collect(line_for, (node, owner) =>
+					this.call_reference_collector.append_reference(node, call_references, owner),
 				),
+			),
 		);
 		return this.normalized_file(classes, functions, tree, line_for, call_references);
 	}

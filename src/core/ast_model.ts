@@ -1,6 +1,7 @@
 import ts from "typescript";
 import type { AstClassNodeContract, AstLanguage, NormalizedAstFileContract } from "src/types";
 import type { AstModelContract } from "src/source_protocols";
+import type { AstModelEmptyReferenceFields, AstModelEmptySourceFields } from "src/core/types";
 import type { TypeScriptScannerModuleScopeContract } from "src/model/types/types";
 
 /** Responsibilities: _class inheritance metadata normalization_, _empty AST files creation_. **/
@@ -30,6 +31,32 @@ export class AstModel implements AstModelContract {
 			}
 		}
 		return [];
+	}
+
+	/** Responsibilities: _empty AST source data_. **/
+	private empty_source_fields(language: AstLanguage): AstModelEmptySourceFields {
+		return {
+			language,
+			classes: [],
+			functions: [],
+			parse_issues: [],
+			import_issues: [],
+			attribute_accesses: [],
+		};
+	}
+
+	/** Responsibilities: _empty AST references_. **/
+	private empty_reference_fields(): AstModelEmptyReferenceFields {
+		return {
+			symbol_references: [],
+			literal_references: [],
+			literal_constants: [],
+			call_references: [],
+			type_members: new Map<string, Map<string, string>>(),
+			named_symbols: [],
+			type_declarations: [],
+			reference_aliases: [],
+		};
 	}
 
 	/** Responsibilities: _qualified namespace base addition_. **/
@@ -134,9 +161,10 @@ export class AstModel implements AstModelContract {
 	public mark_external_bases(classes: AstClassNodeContract[], project_class_names: ReadonlySet<string>): void {
 		for (let index = 0; index < classes.length; index += 1) {
 			const class_node = classes[index];
-			classes[index] = { ...class_node, extends_external_class: this.base_names(class_node).some(
-				(base) => !project_class_names.has(base),
-			) };
+			classes[index] = {
+				...class_node,
+				extends_external_class: this.base_names(class_node).some((base) => !project_class_names.has(base)),
+			};
 		}
 	}
 
@@ -179,31 +207,20 @@ export class AstModel implements AstModelContract {
 		}
 	}
 
-	/** Responsibilities: _creation empty normalization AST_. **/
+	/** Responsibilities: _empty AST file creation_. **/
 	public empty_ast_file(language: AstLanguage): NormalizedAstFileContract {
 		return {
-			language,
-			classes: [],
-			functions: [],
-			parse_issues: [],
-			import_issues: [],
-			attribute_accesses: [],
-			symbol_references: [],
-			literal_references: [],
-			literal_constants: [],
+			...this.empty_source_fields(language),
+			...this.empty_reference_fields(),
 			private_accesses: [],
 			repeated_branches: [],
-			call_references: [],
+			module_instances: [],
 			module_constant_spans: [],
 			module_type_spans: [],
 			module_protocol_spans: [],
-			named_symbols: [],
-			type_declarations: [],
-			reference_aliases: [],
-			module_instances: [],
-			type_members: new Map(),
 			coding_issues: [],
 			python_imports: [],
+			python_exports: [],
 			python_callable_count: { count: 0, first_line: 0 },
 			python_main_guard: false,
 			docstring_spans: [],

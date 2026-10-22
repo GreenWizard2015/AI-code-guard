@@ -7,12 +7,8 @@ import type {
 	CallableReferencesByFile,
 	ParsedFile,
 } from "src/metrics/types";
-import type {
-	AstClassNodeContract,
-	CallableOwnershipResolver,
-	CodeClass,
-	ImportedSymbol,
-} from "src/types";
+import type { AstClassNodeContract, CallableOwnershipResolver } from "src/types";
+import type { CodeClass, ImportedSymbol } from "src/model/types/types";
 import type { CallableMethodCountsContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
 
 export type ClassesByName = Map<string, CodeClass>;
@@ -28,13 +24,13 @@ interface CallableUsageFilesContract {
 	readonly production_files: ParsedFile[];
 	readonly test_files: ParsedFile[];
 	readonly matcher_indexes: CallableMatcherIndexes;
-};
+}
 /** Responsibilities: _callable usage definitions_. **/
 interface CallableUsageDefinitionsContract {
 	readonly definitions: CallableDefinition[];
 	readonly method_counts: CallableMethodCountsContract;
 	readonly external_methods: ReadonlySet<CallableDefinition>;
-};
+}
 /** Responsibilities: _callable usage indexes_. **/
 interface CallableUsageIndexesContract {
 	readonly project_types: CallableProjectIndex;
@@ -42,11 +38,12 @@ interface CallableUsageIndexesContract {
 	readonly reference_index: SourceReferenceIndexContract<string>;
 	readonly references_by_file: CallableReferencesByFile;
 	readonly ownership: CallableOwnershipResolver;
-};
+}
 /** Responsibilities: _callable usage collector state_. **/
 export interface CallableUsageCollectorStateContract
-	extends CallableUsageFilesContract, CallableUsageDefinitionsContract, CallableUsageIndexesContract {}
-
+	extends CallableUsageFilesContract,
+		CallableUsageDefinitionsContract,
+		CallableUsageIndexesContract {}
 
 export type CallableUsageIndexState = {
 	project_types: CallableProjectIndex;

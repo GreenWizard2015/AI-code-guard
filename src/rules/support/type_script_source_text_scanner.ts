@@ -46,34 +46,45 @@ export class TypeScriptSourceTextScanner {
 	}
 
 	/** Responsibilities: _source token classification_. **/
-	public append_token(token: ts.SyntaxKind, scanner: ts.Scanner, text: string, line: number): void {
+	private append_token(token: ts.SyntaxKind, scanner: ts.Scanner, text: string, line: number): void {
 		const start = scanner.getTokenPos();
-		const occurrence = { line, text: text.slice(start, scanner.getTextPos()) };
+		const column = start - text.lastIndexOf("\n", start - 1) - 1;
 		switch (token) {
 			case ts.SyntaxKind.SingleLineCommentTrivia:
 			case ts.SyntaxKind.MultiLineCommentTrivia:
-				this.comment_occurrences.push(occurrence);
+				this.comment_occurrences.push({ line, text: text.slice(start, scanner.getTextPos()), kind: "comment", column });
 				return;
 			case ts.SyntaxKind.StringLiteral:
 			case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
 			case ts.SyntaxKind.TemplateHead:
 			case ts.SyntaxKind.TemplateMiddle:
 			case ts.SyntaxKind.TemplateTail:
-				this.string_occurrences.push(occurrence);
+				this.string_occurrences.push({ line, text: text.slice(start, scanner.getTextPos()), kind: "string", column });
 				return;
 			default:
 				return;
 		}
 	}
 
-	/** Responsibilities: _TypeScript source token scanning_. **/
-	public scan(text: string): SourceTextOccurrence[] {
+	/** Responsibilities: _TypeScript scanner state reset_, _source traversal_. **/
+	private scan_source(text: string): void {
 		this.comment_occurrences.length = 0;
 		this.string_occurrences.length = 0;
 		const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, text);
 		this.scan_tokens(text, scanner);
+	}
+
+	/** Responsibilities: _TypeScript source token scanning_. **/
+	public scan(text: string): SourceTextOccurrence[] {
+		this.scan_source(text);
 		const occurrences = [...this.comment_occurrences, ...this.string_occurrences];
 		occurrences.sort((left, right) => left.line - right.line);
 		return occurrences;
+	}
+
+	/** Responsibilities: _TypeScript comment scanning_. **/
+	public scan_comments(text: string): SourceTextOccurrence[] {
+		this.scan_source(text);
+		return [...this.comment_occurrences];
 	}
 }

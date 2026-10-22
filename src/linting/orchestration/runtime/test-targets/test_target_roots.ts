@@ -1,7 +1,11 @@
 import { dirname, isAbsolute, join, normalize, relative } from "node:path";
 import { PYTHON_EXTERNAL_MODULES } from "src/constants";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
-import type { TestFileOrganizationContract, TestTargetImportResolverContract, TestTargetRootsContract } from "src/testing_protocols";
+import type {
+	TestFileOrganizationContract,
+	TestTargetImportResolverContract,
+	TestTargetRootsContract,
+} from "src/testing_protocols";
 
 /** Responsibilities: _source root matching_, _module path resolution_. **/
 export class TestTargetRoots implements TestTargetRootsContract {
@@ -88,6 +92,33 @@ export class TestTargetRoots implements TestTargetRootsContract {
 		return source_segments;
 	}
 
+	/** Responsibilities: _nested package root selection_. **/
+	private nested_package_root(file: string): string[] {
+		let project_relative_file = file;
+		if (isAbsolute(file)) {
+			project_relative_file = relative(this.project_root, file);
+		}
+		const segments = project_relative_file.replaceAll("\\", "/").split("/").filter(Boolean);
+		const source_index = segments.indexOf("src");
+		if (source_index <= 0) {
+			return [];
+		}
+		return segments.slice(0, source_index);
+	}
+
+	/** Responsibilities: _package-root test matching_. **/
+	private matches_package_root(package_root: readonly string[], module_path: readonly string[]): boolean {
+		if (module_path.length < package_root.length) {
+			return false;
+		}
+		for (let index = 0; index < package_root.length; index += 1) {
+			if (module_path[index] !== package_root[index]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	/** Responsibilities: _source file module stem_. **/
 	private module_stem(file: string): string {
 		const segments = file.replaceAll("\\", "/").split("/").filter(Boolean);
@@ -148,6 +179,26 @@ export class TestTargetRoots implements TestTargetRootsContract {
 		return shared;
 	}
 
+	/** Responsibilities: _matching test package roots_. **/
+	private package_root_match(file: string, package_root: string[]): boolean {
+		for (const module_path of this.test_file_organization.module_paths(file)) {
+			if (this.matches_package_root(package_root, module_path)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Responsibilities: _matching test module paths_. **/
+	private module_path_match(file: string, selected_target: string[]): boolean {
+		for (const module_path of this.test_file_organization.module_paths(file)) {
+			if (this.matches_module_path(selected_target, module_path)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Responsibilities: _initialization target root checker_. **/
 	public constructor(
 		project_root: string,
@@ -183,15 +234,14 @@ export class TestTargetRoots implements TestTargetRootsContract {
 
 	/** Responsibilities: _test target path comparison_. **/
 	public matches_target_path(file: string, declaration_path: string): boolean {
+		const package_root = this.nested_package_root(declaration_path);
+		if (package_root.length > 0) {
+			return this.package_root_match(file, package_root);
+		}
 		const selected_target = this.source_module_root(declaration_path);
 		if (selected_target.length === 0) {
 			return false;
 		}
-		for (const module_path of this.test_file_organization.module_paths(file)) {
-			if (this.matches_module_path(selected_target, module_path)) {
-				return true;
-			}
-		}
-		return false;
+		return this.module_path_match(file, selected_target);
 	}
 }

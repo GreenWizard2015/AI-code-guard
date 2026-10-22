@@ -1,11 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
-import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
+import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
 import { ViolationValue } from "src/violation_value";
 import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 import type {
 	DocumentationExampleLintContract,
 	DocumentationValidationOperation,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 
 describe("documentation example structure", () => {
 	test("requires bad and good sections without validating directory diagram contents", () => {

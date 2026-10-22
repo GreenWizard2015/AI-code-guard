@@ -1,21 +1,22 @@
+import { basename } from "node:path";
+import { MAX_FILE_LINES, MIN_FILE_LINES } from "src/constants";
 import { DirectoryCommentSegments } from "src/core/support/source-analysis/directory_comment_segments";
+import type { IOContract } from "src/io/protocols";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { DirectoryFileViolationOptions } from "src/model/types/types";
+import type { DirectoryFileSet } from "src/project_analysis_types";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_rule";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
 import { ModuleDeclarationsRule } from "src/rules/support/module_declarations_rule";
 import { SingleClassFileNameRule } from "src/rules/support/single_class_file_name_rule";
-import { MAX_FILE_LINES, MIN_FILE_LINES } from "src/constants";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type {
 	DirectoryRulesContract,
 	ModuleDeclarationsRuleContract,
 	SingleClassFileNameRuleContract,
 } from "src/shared_services_protocols";
-import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { DirectoryFileSet } from "src/project_analysis_types";
 import type { AstClassNodeContract, NormalizedAstFileContract } from "src/types";
-import type { DirectoryFileViolationOptions } from "src/model/types/types";
-import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _directory structure_, _directory diagnostics_. **/
 export class DirectoryRules implements DirectoryRulesContract {
@@ -45,6 +46,9 @@ export class DirectoryRules implements DirectoryRulesContract {
 	/** Responsibilities: _aggregation size violations directory_. **/
 	private append_file_size(options: DirectoryFileViolationOptions): void {
 		const { violations, file, text, docstring_spans } = options;
+		if (basename(file) === "conftest.py") {
+			return;
+		}
 		const line_count = this.directory_comment_segments.count_code_lines(text, file.endsWith(".py"), docstring_spans);
 		if (line_count >= this.min_file_lines) {
 			return;

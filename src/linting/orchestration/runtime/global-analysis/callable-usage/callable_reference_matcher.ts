@@ -4,7 +4,8 @@ import type {
 	CallableReferencesByFile,
 	ParsedFile,
 } from "src/metrics/types";
-import type { AstCallableReference, CallableOwnershipResolver, SourceReference } from "src/types";
+import type { AstCallableReference, CallableOwnershipResolver } from "src/types";
+import type { SourceReference } from "src/source_types";
 import type { CallableReferenceMatcherContract, SourceReferenceIndexContract } from "src/shared_services_protocols";
 import { MIN_USAGE_FILES } from "src/constants";
 import { MODULE_FUNCTION_KIND } from "src/rules/constants";
@@ -19,6 +20,7 @@ export class CallableReferenceMatcher implements CallableReferenceMatcherContrac
 	private readonly references_by_file: CallableReferencesByFile;
 	private readonly matcher_indexes: CallableMatcherIndexes;
 	private readonly candidate_files: Map<string, ParsedFile>;
+	private readonly contract_reference_cache: Map<string, readonly SourceReference[]>;
 
 	/** Responsibilities: _classification function reference_. **/
 	private matches_function(reference: AstCallableReference): boolean {
@@ -137,7 +139,21 @@ export class CallableReferenceMatcher implements CallableReferenceMatcherContrac
 			return this.reference_files(exact);
 		}
 		const unresolved = this.reference_index.references_for(`${definition_kind}::${definition_name}`, "usage");
-		return this.reference_files([...exact, ...unresolved]);
+		return this.reference_files([...exact, ...unresolved, ...this.contract_references(definition_name)]);
+	}
+
+	/** Responsibilities: _contract-dispatched method reference lookup_. **/
+	private contract_references(method_name: string): readonly SourceReference[] {
+		const cached = this.contract_reference_cache.get(method_name);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const references: SourceReference[] = [];
+		for (const contract_name of this.matcher_indexes.protocol_names) {
+			references.push(...this.reference_index.references_for(`method-owner:${contract_name}:${method_name}`, "usage"));
+		}
+		this.contract_reference_cache.set(method_name, references);
+		return references;
 	}
 
 	/** Responsibilities: _source reference file resolution_. **/
@@ -175,6 +191,7 @@ export class CallableReferenceMatcher implements CallableReferenceMatcherContrac
 		this.reference_index = context.reference_index;
 		this.references_by_file = context.references_by_file;
 		this.matcher_indexes = context.matcher_indexes;
+		this.contract_reference_cache = new Map<string, readonly SourceReference[]>();
 	}
 
 	/** Responsibilities: _classification file references requested_. **/

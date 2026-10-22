@@ -18,6 +18,21 @@ import type {
 } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { PythonSourceAstBatch } from "src/types";
+import type {
+	AstCallableNodeContract,
+	AstCallableReference,
+	AstClassNodeContract,
+	AstImportIssue,
+	AstLanguage,
+	AstLiteralConstant,
+	AstLiteralReference,
+	AstParseIssue,
+	AstReferenceAlias,
+	AstTypeMembers,
+	LineDepth,
+	NamedLine,
+	NamedSymbol,
+} from "src/types";
 import type ts from "typescript";
 
 export type ContextProjectPaths = ReadonlySet<string>;
@@ -60,8 +75,9 @@ export type UnusedSymbolDefinitionCollection = {
 	by_file: Map<string, UnusedSymbolDefinition[]>;
 };
 
-export type UnusedSymbolNameBuckets = ReadonlyMap<string, readonly UnusedSymbolDefinition[]>;
-export type UnusedSymbolFileBuckets = ReadonlyMap<string, UnusedSymbolNameBuckets>;
+export type UnusedSymbolNameBuckets = Map<string, UnusedSymbolDefinition[]>;
+export type UnusedSymbolFileBuckets = Map<string, UnusedSymbolNameBuckets>;
+
 export type UnusedDefinitionMatches = readonly UnusedSymbolDefinition[];
 export type UnusedSourceDefinitionCache = Map<string, UnusedDefinitionMatches>;
 export type UnusedImportedDefinitionCache = Map<string, UnusedSourceDefinitionCache>;
@@ -116,6 +132,26 @@ export type LintReportOptions = {
 export type LintProjectAnalysis = {
 	context: LintProjectContextContract;
 	project_names: ProjectNamesContract;
+};
+
+export type AstModelEmptySourceFields = {
+	language: AstLanguage;
+	classes: AstClassNodeContract[];
+	functions: AstCallableNodeContract[];
+	parse_issues: AstParseIssue[];
+	import_issues: AstImportIssue[];
+	attribute_accesses: LineDepth[];
+};
+
+export type AstModelEmptyReferenceFields = {
+	symbol_references: NamedLine[];
+	literal_references: AstLiteralReference[];
+	literal_constants: AstLiteralConstant[];
+	call_references: AstCallableReference[];
+	type_members: AstTypeMembers;
+	named_symbols: NamedSymbol[];
+	type_declarations: NamedLine[];
+	reference_aliases: AstReferenceAlias[];
 };
 
 export enum LintReportMode {

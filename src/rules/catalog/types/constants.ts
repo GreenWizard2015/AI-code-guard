@@ -50,8 +50,8 @@ export const TYPES_RULE_DATA = {
 		priority: 5,
 	},
 	"contract-naming": {
-		message: "contract declaration must end with Contract and avoid Proto, Protocol, or Interface",
-		hint: "Use a domain name ending in Contract. Do not: include Proto, Protocol, or Interface in the name.",
+		message: "contract declaration must end with Contract and avoid Prot, Proto, Protocol, or Interface",
+		hint: "Use a domain name ending in Contract. Do not: include Prot, Proto, Protocol, or Interface in the name.",
 		priority: 5,
 	},
 	"typescript-prototype-assignment": {

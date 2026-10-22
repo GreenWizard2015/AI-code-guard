@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
+import { MarkdownLoopExpander } from "#documentation_validation/markdown_loop_expander";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
-import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
+import { RuleDocumentationCatalog } from "#documentation_validation/rule_documentation_catalog";
+import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
 import { DocumentationValidationSession } from "src/core/support/documentation_validation_session";
 
 describe("rule documentation catalog", () => {

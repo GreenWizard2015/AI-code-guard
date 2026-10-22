@@ -1,12 +1,12 @@
 # `non-english-source-text`
 
-Description: Comments and inline string literals in source must use English. Put translated user-facing text in localization resources and reference it from code. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected; Latin accents are allowed.
+Description: Production comments and runtime string literals must use English. In test files, check comments only; test literals may use any language. Markdown and supported text-file prose is checked too. Strings in `__all__` and quoted type annotations are structural metadata, not runtime text. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected; Latin accents are allowed.
 
 ## Bad
 
 ```python
 # File: cli.py
-message = "你好，Добро пожаловать"
+message = "Добро пожаловать"  # <- error
 ```
 
 ## Good

@@ -1,5 +1,5 @@
-import { extname } from "node:path";
-import { IGNORED_DIRS } from "src/constants";
+import { extname, resolve } from "node:path";
+import { IGNORED_DIRS, PYTHON_PROJECT_CONFIGURATION_FILE } from "src/constants";
 import { PYTHON_AST_STAGE_PREFIX } from "src/core/constants";
 import { ContextSourceRecordSet } from "src/core/context/context_source_record_set";
 import { PythonSourceFiles } from "src/core/context/python_source_files";
@@ -140,7 +140,7 @@ export class LintProjectContextCreator {
 		return stage_timer.measure("startup.project-context.read-files", () => {
 			const complete_texts = new Map(provided_texts);
 			const resolution = new TypeScriptProjectResolution(repo_root, source_io);
-			const configuration_files = resolution.configuration_files();
+		const configuration_files = [...resolution.configuration_files(), resolve(repo_root, PYTHON_PROJECT_CONFIGURATION_FILE)];
 			for (const config_file of configuration_files) {
 				if (complete_texts.has(config_file) || !source_io.source_available(config_file)) {
 					continue;

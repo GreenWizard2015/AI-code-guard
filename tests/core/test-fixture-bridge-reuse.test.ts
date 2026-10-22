@@ -2,7 +2,7 @@ import type { SpawnOptions } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { runInNewContext } from "node:vm";
 import { describe, expect, test } from "@jest/globals";
-import { PythonAstWorkerSession } from "external/python_ast_worker_session.mjs";
+import { PythonAstWorkerSession } from "#external/python_ast_worker_session.mjs";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import type { PythonAstWorkerContract, PythonAstWorkerResponse } from "src/core/python-ast-worker.mjs";
 import { PythonAstBridge } from "src/core/python_ast_bridge";

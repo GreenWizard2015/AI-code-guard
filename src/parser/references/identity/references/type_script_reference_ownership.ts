@@ -11,6 +11,7 @@ import type { TypeScriptPropertySide } from "src/types";
 import { TypeScriptCallReturns } from "src/parser/references/identity/calls/type_script_call_returns";
 import { TypeScriptInstanceIndex } from "src/parser/references/identity/instances/type_script_instance_index";
 import { TypeScriptPropertyState } from "src/parser/references/identity/properties/type_script_property_state";
+import { TypeScriptImportedPropertyOwner } from "src/parser/references/identity/properties/type_script_imported_property_owner";
 import { relative } from "node:path";
 import { TypeScriptInstanceAliasCollector } from "src/parser/references/identity/instances/type_script_instance_alias_collector";
 import { TypeScriptImportedInstanceAliases } from "src/parser/references/identity/calls/type_script_imported_instance_aliases";
@@ -31,6 +32,7 @@ export class TypeScriptReferenceOwnership implements TypeScriptReferenceOwnershi
 	protected readonly function_identities: Map<string, CallableReferenceIdentity>;
 	protected readonly instances: TypeScriptInstanceStoreContract;
 	protected readonly property_state: TypeScriptPropertyStateContract;
+	private readonly imported_property_owner: TypeScriptImportedPropertyOwner;
 	protected readonly call_returns: TypeScriptCallReturnsContract;
 	private readonly python_instance_collector: TypeScriptInstanceAliasCollectorContract;
 	private readonly reference_identity: TypeScriptReferenceIdentityContract;
@@ -58,6 +60,10 @@ export class TypeScriptReferenceOwnership implements TypeScriptReferenceOwnershi
 		const owner = this.property_state.property_owner(base_owner, name, side);
 		if (owner.length > 0) {
 			return owner;
+		}
+		const imported_owner = this.imported_property_owner.property_owner(base_owner, name);
+		if (imported_owner.length > 0) {
+			return imported_owner;
 		}
 		return base_owner;
 	}
@@ -181,6 +187,12 @@ export class TypeScriptReferenceOwnership implements TypeScriptReferenceOwnershi
 		this.instances = new TypeScriptInstanceIndex(source_file);
 		this.call_returns = new TypeScriptCallReturns(source_file, this.aliases, project_root, source_files, source_io);
 		this.property_state = new TypeScriptPropertyState(this.aliases, this, this.instances);
+		this.imported_property_owner = new TypeScriptImportedPropertyOwner(
+			this.source_file,
+			this.project_root,
+			this.source_files,
+			this.source_io,
+		);
 		this.reference_identity = new TypeScriptReferenceIdentity(source_file, project_root, source_files, source_io);
 		this.python_instance_collector = new TypeScriptInstanceAliasCollector(
 			source_file,

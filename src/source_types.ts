@@ -1,6 +1,11 @@
 import type ts from "typescript";
 import type { NormalizedAstFileContract } from "src/types";
-import type { ReadonlyStringSet, ReadonlyStringMap, StringBooleanMap, CallableReferenceKindContract } from "src/analysis_types";
+import type {
+	ReadonlyStringSet,
+	ReadonlyStringMap,
+	StringBooleanMap,
+	CallableReferenceKindContract,
+} from "src/analysis_types";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type {
 	AstImportIssue,
@@ -40,6 +45,7 @@ export type LintSourceRecord = {
 	typescript(): boolean;
 	python(): boolean;
 };
+export type PendingUnusedSymbolReference = { source: LintSourceRecord; name: string; line: number };
 export type LintSourceRecordOptions = {
 	absolute_path: string;
 	relative_path: string;
@@ -99,6 +105,10 @@ export type TypeScriptTreeMetadata = {
 	type_declarations: NamedLine[];
 };
 export type AbsoluteImportCandidate = { file: string };
+
+export type SourceReference = { file: string; line: number };
+export type SourceReferenceRelation = "implementation" | "usage";
+export type SourceReferenceMap<TKey extends {}> = Map<TKey, SourceReference[]>;
 
 export type SourceFileResolver = ReadonlyMap<string, ts.SourceFile>;
 

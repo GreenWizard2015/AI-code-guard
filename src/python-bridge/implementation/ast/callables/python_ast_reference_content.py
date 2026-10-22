@@ -50,6 +50,55 @@ class PythonAstReferenceContent:
             type(comparator) is ast.Constant and comparator.value == PYTHON_MAIN_VALUE
         )
 
+    def _export_names(self, value: ast.AST) -> list[str]:
+        """Responsibilities: _static Python export-name extraction_."""
+        if type(value) is ast.Constant and type(value.value) is str:
+            return [value.value]
+        if type(value) in (ast.List, ast.Tuple, ast.Set):
+            names: list[str] = []
+            for item in value.elts:
+                names.extend(self._export_names(item))
+            return names
+        if type(value) is ast.BinOp and type(value.op) is ast.Add:
+            return self._export_names(value.left) + self._export_names(value.right)
+        return []
+
+    def _is_all_assignment(self, statement: ast.stmt) -> bool:
+        """Responsibilities: _module export assignment classification_."""
+        if type(statement) is ast.Assign:
+            return any(
+                type(target) is ast.Name and target.id == "__all__"
+                for target in statement.targets
+            )
+        if type(statement) in (ast.AnnAssign, ast.AugAssign):
+            target: Any = statement.target
+            return type(target) is ast.Name and target.id == "__all__"
+        return False
+
+    def _assignment_exports(self, statement: ast.stmt) -> list[str]:
+        """Responsibilities: _assigned Python export names_."""
+        if type(statement) is ast.Assign:
+            return self._export_names(statement.value)
+        if type(statement) in (ast.AnnAssign, ast.AugAssign):
+            if statement.value is not None:
+                return self._export_names(statement.value)
+        return []
+
+    def _python_exports(self) -> list[str]:
+        """Responsibilities: _static module export metadata_."""
+        names: list[str] = []
+        for statement in self.tree.tree.body:
+            if not self._is_all_assignment(statement):
+                continue
+            if type(statement) is ast.AnnAssign and statement.value is None:
+                continue
+            declared = self._assignment_exports(statement)
+            if type(statement) is ast.AugAssign:
+                names.extend(declared)
+                continue
+            names = declared
+        return list(dict.fromkeys(names))
+
     def _docstring_span(self, value: ast.Constant) -> dict[str, int]:
         """Responsibilities: _docstring span conversion_."""
         end_line: Any = value.end_lineno or value.lineno
@@ -85,6 +134,7 @@ class PythonAstReferenceContent:
             "python_imports": self._timed(
                 "python-imports", self.tree.import_nodes.import_records
             ),
+            "python_exports": self._timed("python-exports", self._python_exports),
             "python_main_guard": self._timed(
                 "main-guard",
                 lambda: any(

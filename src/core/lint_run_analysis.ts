@@ -1,25 +1,25 @@
 import { relative } from "node:path";
+import type { GlobalAnalysisCacheContract } from "src/cache_protocols";
 import { GlobalAnalysisCache } from "src/core/support/global_analysis_cache";
-import { DirectoryRules } from "src/rules/support/directory_rules";
+import type { FileLintRunOptions } from "src/core/types";
+import type { IOContract } from "src/io/protocols";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { FileLinter } from "src/linting/orchestration/runtime/file_linter";
 import { FileViolationCollector } from "src/linting/orchestration/runtime/file_violation_collector";
 import { GlobalViolationCollector } from "src/linting/orchestration/runtime/global-analysis/global_violation_collector";
 import { ProjectTestTargetImportPaths } from "src/linting/orchestration/runtime/test-targets/project_test_target_import_paths";
-import type { FileLintRunOptions } from "src/core/types";
+import type { FileLinterOptions } from "src/model/types/types";
+import type { LintAnalysisStage, LintRunResult, LintRunStateContract } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import { DirectoryRules } from "src/rules/support/directory_rules";
+import type { LintRunAnalysisContract, TextFileDiscoveryContract } from "src/runtime_protocols";
+import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type {
 	CodingRuleLinterContract,
 	DirectoryRulesContract,
 	LintStageTimerContract,
 } from "src/shared_services_protocols";
-import type { GlobalAnalysisCacheContract } from "src/cache_protocols";
-import type { LintRunAnalysisContract, TextFileDiscoveryContract } from "src/runtime_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { LintAnalysisStage, LintRunResult, LintRunStateContract } from "src/project_analysis_types";
-import type { FileLinterOptions } from "src/model/types/types";
-import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _directory analysis_, _file analysis_, _global analysis coordination_. **/
 export class LintRunAnalysis implements LintRunAnalysisContract {

@@ -128,6 +128,51 @@ describe("unused symbol rules", () => {
 		});
 	});
 
+	test("treats Python __all__ as the module export declaration", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{ "source.py": "__all__ = ['PublicContract']" },
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "unused-module-variable")).toEqual([]);
+	});
+
+	test("does not count Python __all__ names as production API usage", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": ["class PublicService:", "    def run(self) -> int:", "        return 1"].join("\n"),
+				"package/__init__.py": ["from source import PublicService", '__all__ = ["PublicService"]'].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.filter((item) => item.rule_id === "unused-class").map((item) => `${item.file}:${item.message}`),
+		).toEqual(['source.py:class "PublicService" has no production usage']);
+	});
+
+	test("propagates real usage through a Python __all__ re-export", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"source.py": ["class PublicService:", "    def run(self) -> int:", "        return 1"].join("\n"),
+				"package/__init__.py": ["from source import PublicService", '__all__ = ["PublicService"]'].join("\n"),
+				"consumer.py": ["from package import *", "service = PublicService()", "service.run()"].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "unused-class")).toEqual([]);
+	});
+
 	test("does not report Python __slots__ as an unused public field", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

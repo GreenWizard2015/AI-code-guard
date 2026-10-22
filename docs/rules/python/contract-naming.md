@@ -1,11 +1,11 @@
 # contract-naming
 
-Description: All TypeScript interfaces and Python Protocols must end with `Contract`.
-Contract names must also be domain names: they must not contain `Proto`,
-`Protocol`, or `Interface`.
+Description: Python Protocols must end with `Contract`. Contract names must
+also be domain names: they must not contain `Prot`, `Proto`, `Protocol`, or
+`Interface`, in any casing or position.
 
 Examples: `RuleContract`, `SourceNamesContract`, and `UserRepositoryContract`.
-Avoid names such as `RuleProtocolContract` or `UserInterfaceContract`.
+Avoid names such as `RuleProtocolContract`, `UserProtContract`, or `UserInterfaceContract`.
 
 ## Bad
 
@@ -14,7 +14,7 @@ Avoid names such as `RuleProtocolContract` or `UserInterfaceContract`.
 # File: src/protocols.py
 from typing import Protocol
 
-class ReaderProtocol(Protocol):
+class ReaderProtContract(Protocol):
     def consume_content(self) -> str: ...
 ```
 

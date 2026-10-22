@@ -1,4 +1,3 @@
-import { PythonAstWorkerSession } from "external/python_ast_worker_session.mjs";
 import { LintInputFileSelector } from "src/core/lint_input_file_selector";
 import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
 import { LintRunAnalysis } from "src/core/lint_run_analysis";
@@ -18,6 +17,7 @@ import type { LintRunAnalysisContract, LintRunConfigurationContract } from "src/
 import type { LintExecutionReport } from "src/runtime_types";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
+import { PythonAstWorkerSession } from "#external/python_ast_worker_session.mjs";
 
 /** Responsibilities: _lint input discovery_, _project analysis assembly_. **/
 export class LintRunConfiguration implements LintRunConfigurationContract {

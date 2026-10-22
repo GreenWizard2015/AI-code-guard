@@ -1,8 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { RuleDocumentLanguageCompatibility } from "documentation_validation/rule_document_language_compatibility";
+import { RuleDocumentLanguageCompatibility } from "#documentation_validation/rule_document_language_compatibility";
 import { SHARED_RULE_DOCUMENT_IDS, LANGUAGE_NEUTRAL_RULE_IDS } from "src/constants";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
-import type { DocumentationExample, RuleDocumentationDocument } from "documentation_validation/types";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
+import type { DocumentationExample, RuleDocumentationDocument } from "#documentation_validation/types";
 
 describe("shared rule documentation", () => {
 	test("accepts language-specific examples in one shared document", () => {

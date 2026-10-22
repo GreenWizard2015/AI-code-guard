@@ -1,5 +1,5 @@
-import { DocumentationLanguage } from "documentation_validation/types";
-import type { DocumentationExample, ExampleResult, RuleDocumentationDocument } from "documentation_validation/types";
+import { DocumentationLanguage } from "#documentation_validation/types";
+import type { DocumentationExample, ExampleResult, RuleDocumentationDocument } from "#documentation_validation/types";
 
 /** Responsibilities: _rule document language policy_, _example-language diagnostics_. **/
 export class RuleDocumentLanguageCompatibility {

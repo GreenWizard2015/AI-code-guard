@@ -93,6 +93,8 @@ export type MetricViolationKind = ClassMetricViolationKind | CallableMetricViola
 
 export type AstVisibility = "public" | "protected" | "private";
 export type AstLanguage = "python" | "typescript";
+export type ImportedFunction = { source_file: string; source_name: string };
+export type ClassFieldFiles = { files: string[]; repo_root: string };
 export type JestCallbackKind = "arrow" | "function" | "other";
 export type JestSuite = {
 	node: ts.CallExpression;
@@ -196,24 +198,36 @@ export interface AstCallableNodeContract
 		AstCallablePresentationFlags {}
 /** Responsibilities: _AST class model_. **/
 interface AstClassIdentityContract {
-	readonly name: string; readonly start: number; readonly end: number;
+	readonly name: string;
+	readonly start: number;
+	readonly end: number;
 	readonly methods: AstCallableNodeContract[];
 }
 /** Responsibilities: _AST inheritance metadata_. **/
 interface AstClassInheritanceContract {
-	readonly lines: number; readonly sloc: number; readonly interfaces: string[];
-	readonly base_class_name: string; readonly base_class_names: string[];
-	readonly extends_external_class: boolean; readonly is_data_class: boolean;
-	readonly type_contract: boolean; readonly protocol: boolean;
-};
+	readonly lines: number;
+	readonly sloc: number;
+	readonly interfaces: string[];
+	readonly base_class_name: string;
+	readonly base_class_names: string[];
+	readonly extends_external_class: boolean;
+	readonly is_data_class: boolean;
+	readonly type_contract: boolean;
+	readonly protocol: boolean;
+}
 /** Responsibilities: _AST class members_. **/
 interface AstClassDetailsContract {
-	readonly callback_fields: number; readonly inline_callback_fields: number;
-	readonly fields: AstClassField[]; readonly untyped_fields: NamedLine[];
+	readonly callback_fields: number;
+	readonly inline_callback_fields: number;
+	readonly fields: AstClassField[];
+	readonly untyped_fields: NamedLine[];
 	readonly dependencies: string[];
-};
+}
 /** Responsibilities: _AST class structure_. **/
-export interface AstClassNodeContract extends AstClassIdentityContract, AstClassInheritanceContract, AstClassDetailsContract {}
+export interface AstClassNodeContract
+	extends AstClassIdentityContract,
+		AstClassInheritanceContract,
+		AstClassDetailsContract {}
 export type AstParseIssue = { line: number; message: string };
 export type AstImportIssue = { line: number; kind: AstImportKind };
 export type AstCodingIssue = { line: number; kind: string; name: string };
@@ -310,31 +324,42 @@ export type AstResponsibilityTarget = {
 };
 /** Responsibilities: _AST file identity_. **/
 interface NormalizedAstIdentityContract {
-	readonly language: AstLanguage; readonly classes: AstClassNodeContract[];
-	readonly functions: AstCallableNodeContract[]; readonly parse_issues: AstParseIssue[];
+	readonly language: AstLanguage;
+	readonly classes: AstClassNodeContract[];
+	readonly functions: AstCallableNodeContract[];
+	readonly parse_issues: AstParseIssue[];
 	readonly import_issues: AstImportIssue[];
-};
+}
 /** Responsibilities: _AST declarations_. **/
 interface NormalizedAstDataContract {
-	readonly attribute_accesses: LineDepth[]; readonly named_symbols: NamedSymbol[];
-	readonly type_declarations: NamedLine[]; readonly reference_aliases: AstReferenceAlias[];
-};
+	readonly attribute_accesses: LineDepth[];
+	readonly named_symbols: NamedSymbol[];
+	readonly type_declarations: NamedLine[];
+	readonly reference_aliases: AstReferenceAlias[];
+}
 /** Responsibilities: _AST references_. **/
 interface NormalizedAstReferenceDataContract {
-	readonly symbol_references: NamedLine[]; readonly literal_references: AstLiteralReference[];
-	readonly literal_constants: AstLiteralConstant[]; readonly call_references: AstCallableReference[];
+	readonly symbol_references: NamedLine[];
+	readonly literal_references: AstLiteralReference[];
+	readonly literal_constants: AstLiteralConstant[];
+	readonly call_references: AstCallableReference[];
 	readonly type_members: AstTypeMembers;
-};
+}
 /** Responsibilities: _AST module metadata_. **/
 interface NormalizedAstModuleDataContract {
-	readonly private_accesses: LineOnly[]; readonly repeated_branches: LineOnly[];
-	readonly module_instances: AstModuleInstance[]; readonly module_constant_spans: AstSourceSpan[];
-	readonly module_type_spans: AstSourceSpan[]; readonly module_protocol_spans: AstSourceSpan[];
-};
+	readonly private_accesses: LineOnly[];
+	readonly repeated_branches: LineOnly[];
+	readonly module_instances: AstModuleInstance[];
+	readonly module_constant_spans: AstSourceSpan[];
+	readonly module_type_spans: AstSourceSpan[];
+	readonly module_protocol_spans: AstSourceSpan[];
+}
 /** Responsibilities: _AST language metadata_. **/
 interface NormalizedAstLanguageDataContract {
-	readonly coding_issues: AstCodingIssue[]; readonly python_imports: AstPythonImport[];
-};
+	readonly coding_issues: AstCodingIssue[];
+	readonly python_imports: AstPythonImport[];
+	readonly python_exports: string[];
+}
 /** Responsibilities: _AST metadata composition_. **/
 interface NormalizedAstOptionalDataContract
 	extends NormalizedAstReferenceDataContract,
@@ -342,9 +367,11 @@ interface NormalizedAstOptionalDataContract
 		NormalizedAstLanguageDataContract {}
 /** Responsibilities: _AST optional metadata_. **/
 interface NormalizedAstOptionalMetadataContract {
-	readonly python_callable_count: FunctionCount; readonly python_main_guard: boolean;
-	readonly docstring_spans: AstSourceSpan[]; readonly responsibility_targets: AstResponsibilityTarget[];
-};
+	readonly python_callable_count: FunctionCount;
+	readonly python_main_guard: boolean;
+	readonly docstring_spans: AstSourceSpan[];
+	readonly responsibility_targets: AstResponsibilityTarget[];
+}
 /** Responsibilities: _AST file model_. **/
 export interface NormalizedAstFileContract
 	extends NormalizedAstIdentityContract,
@@ -352,26 +379,6 @@ export interface NormalizedAstFileContract
 		NormalizedAstOptionalDataContract,
 		NormalizedAstOptionalMetadataContract {}
 
-
-export type CodeClass = {
-	key: string;
-	file: string;
-	line: number;
-	name: string;
-	dependencies: string[];
-};
-export type ImportedSymbol = { file: string; name: string };
-export type CodeClassByName = Map<string, CodeClass>;
-export type CodeClassesByFile = Map<string, CodeClassByName>;
-export type ImportedSymbolByName = Map<string, ImportedSymbol>;
-export type ImportedSymbolsByFile = Map<string, ImportedSymbolByName>;
-export type ClassGraph = {
-	classes: Map<string, CodeClass>;
-	classes_by_file: CodeClassesByFile;
-	imports_by_file: ImportedSymbolsByFile;
-};
-export type ImportedFunction = { source_file: string; source_name: string };
-export type ClassFieldFiles = { files: string[]; repo_root: string };
 export type Assignment = {
 	line: number;
 	name: string;
@@ -484,6 +491,3 @@ export type CommentSegment = {
 	result: CommentScanResult;
 	complete: boolean;
 };
-export type SourceReference = { file: string; line: number };
-export type SourceReferenceRelation = "implementation" | "usage";
-export type SourceReferenceMap<TKey extends {}> = Map<TKey, SourceReference[]>;

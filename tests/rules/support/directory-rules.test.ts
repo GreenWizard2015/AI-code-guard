@@ -1,13 +1,14 @@
 import "src/rules/support/non_english_source_text_rules";
 import "src/rules/support/directory_rules";
-import { DirectoryRules } from "src/rules/support/directory_rules";
+import { join } from "node:path";
+import { AstModel } from "src/core/ast_model";
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import type { DirectoryFileSet } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { DirectoryFileCatalog } from "src/rules/support/directory_file_catalog";
+import { DirectoryRules } from "src/rules/support/directory_rules";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import { join } from "node:path";
-import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 
 describe("coding-lint directory rules", () => {
 	const root = "/virtual/directory-project";
@@ -76,5 +77,25 @@ describe("coding-lint directory rules", () => {
 		});
 
 		expect(violations.map((item) => item.rule_id)).toContain("file-min-size");
+	});
+
+	test("allows a minimal pytest plugin entrypoint", () => {
+		const file = join(root, "tests/conftest.py");
+		const text = 'pytest_plugins = ("support.server_fixtures",)';
+		const ast_model = new AstModel();
+		const normalized_ast = ast_model.empty_ast_file("python");
+		const violations: ViolationContract[] = [];
+		const file_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
+
+		file_rules.append_file_violation({
+			violations,
+			file,
+			text,
+			classes: [],
+			docstring_spans: [],
+			normalized_ast,
+		});
+
+		expect(violations.map((item) => item.rule_id)).not.toContain("file-min-size");
 	});
 });

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
-import { DocumentationExamplePath } from "documentation_validation/documentation_example_path";
-import { DocumentationExamplePathValidation } from "documentation_validation/documentation_example_path_validation";
-import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
+import { DocumentationExamplePath } from "#documentation_validation/documentation_example_path";
+import { DocumentationExamplePathValidation } from "#documentation_validation/documentation_example_path_validation";
+import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
+import { RuleDocumentationCatalog } from "#documentation_validation/rule_documentation_catalog";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
 import type {
 	DocumentationExample,
 	DocumentationExampleLintContract,
 	DocumentationValidationOperation,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 import { CLI_FILE_ORDER_EXAMPLES, MULTI_FILE_MARKDOWN_EXAMPLE } from "tests/documentation_validation/constants";
 import { ViolationValue } from "src/violation_value";

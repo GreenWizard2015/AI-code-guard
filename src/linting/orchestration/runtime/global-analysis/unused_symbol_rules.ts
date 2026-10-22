@@ -148,7 +148,11 @@ export class UnusedSymbolRules {
 		for (const definition of collected.all) {
 			index.add_implementation(definition);
 		}
-		index.prepare();
+		for (const [file, names] of scanner.external_symbol_usages()) {
+			for (const name of names) {
+				index.add_external_usage(file, name);
+			}
+		}
 		this.index_production_sources(sources, index);
 		return index;
 	}
@@ -164,7 +168,6 @@ export class UnusedSymbolRules {
 		for (const definition of collected.all) {
 			index.add_implementation(definition);
 		}
-		index.prepare();
 		this.index_test_sources(sources, index);
 		return index;
 	}

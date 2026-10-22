@@ -7,6 +7,24 @@ import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-re
 import { TaskReporting } from "src/core/support/task_reporting";
 
 describe("architectural transformation priority", () => {
+	test("creates zero-priority diagnostics for string literal rules", () => {
+		const rule_ids = ["non-english-source-text", "repeated-literal", "literal-constant-reuse"];
+		const violations = rule_ids.map((rule_id) => {
+			let parameters = {};
+			if (rule_id === "literal-constant-reuse") {
+				parameters = { constant: "SHARED_MESSAGE" };
+			}
+			const rule = new DiagnosticRule(rule_id);
+			return rule.violation("messages.ts", 1, parameters);
+		});
+
+		expect(violations.map((violation) => [violation.rule_id, violation.priority])).toEqual([
+			["non-english-source-text", 0],
+			["repeated-literal", 0],
+			["literal-constant-reuse", 0],
+		]);
+	});
+
 	test.each(["directory", "directory-class", "file", "class", "callable", "test", "typescript-jest"])(
 		"handles %s minimum size before splitting oversized units",
 		(prefix) => {

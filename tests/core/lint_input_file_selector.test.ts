@@ -32,6 +32,19 @@ describe("lint input selection", () => {
 		expect(selected).toEqual([join(root, "kept.ts")]);
 	});
 
+	test("keeps explicit source paths unique", () => {
+		const root = "/virtual/input-selection-duplicates";
+		const file = join(root, "service.ts");
+		const source_io = new InMemoryProjectSourceIO(new Map([[file, "export class Service {}\n"]]));
+		const selector = new LintInputFileSelector(new TextFileDiscovery(source_io), source_io);
+		const inputs = selector.input_files(root, [], [file, file]);
+
+		expect({ files: inputs.files, project_files: inputs.project_files }).toEqual({
+			files: [file],
+			project_files: [file],
+		});
+	});
+
 	test("retains dot-prefixed source files in repository-wide project context", () => {
 		const root = "/virtual/input-selection-dot-prefix";
 		const candidate = join(root, "..generated.ts");

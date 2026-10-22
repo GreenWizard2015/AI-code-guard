@@ -107,6 +107,11 @@ export class UnusedSymbolDefinitionCollector implements UnusedSymbolDefinitionCo
 	private named_definitions(source: LintSourceRecord): UnusedSymbolDefinition[] {
 		const definitions: UnusedSymbolDefinition[] = [];
 		for (const symbol of source.normalized_ast.named_symbols) {
+			if (source.python()) {
+				if (symbol.name === "__all__") {
+					continue;
+				}
+			}
 			this.append_named_symbol(definitions, source.relative_path, symbol);
 		}
 		return definitions;

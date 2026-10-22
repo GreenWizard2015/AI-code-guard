@@ -10,7 +10,8 @@ import { MODULES_RULE_DATA } from "src/rules/catalog/modules/constants";
 import { QUALITY_RULE_DATA } from "src/rules/catalog/quality/constants";
 import type { TypeScriptModuleCache } from "src/module-resolution/types";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { AstLanguage, ReviewStageDefinition, SourceReferenceRelation, TypeScriptPropertySide } from "src/types";
+import type { AstLanguage, ReviewStageDefinition, TypeScriptPropertySide } from "src/types";
+import type { SourceReferenceRelation } from "src/source_types";
 
 export const MISSING_CACHE_VALUE = "<missing>";
 export const REMOVED_SKIP_REVIEW_MESSAGE = "--skip-review was removed; omit --review-agent to skip review.";
@@ -28,18 +29,17 @@ export const RULE_DATA = {
 export const RULE_DATA_BY_ID = new Map(Object.entries(RULE_DATA));
 export const RULE_LANGUAGE_BY_ID = new Map<string, AstLanguage>(
 	Object.entries({
-		"typescript-overload": "typescript", "typescript-type-assertion": "typescript",
-		"python-test-shape": "python", "python-test-class-inheritance": "python",
-		"python-test-framework-consistency": "python", "python-test-assert": "python",
-		"python-test-assert-ending": "python", "python-test-assertion-alias": "python",
-		"python-explicit-parameter-type": "python", "python-explicit-field-type": "python",
-		"python-string-type-annotation": "python", "typescript-in-operator": "typescript",
-		"python-test-assert-statement": "python", "python-test-subtest": "python",
-		"typescript-static-method": "typescript", "typescript-static-field": "typescript",
-		"python-static-method": "python", "python-class-method": "python",
-		"python-data-class-method": "python", "python-abstract-class": "python",
-		"python-property-setter": "python", "python-property": "python",
-		"typescript-prototype-assignment": "typescript", "python-type-factory": "python",
+		"typescript-overload": "typescript", "typescript-type-assertion": "typescript", "python-test-shape": "python",
+		"python-test-class-inheritance": "python", "python-test-framework-consistency": "python",
+		"python-test-assert": "python", "python-test-assert-ending": "python",
+		"python-test-assertion-alias": "python", "python-explicit-parameter-type": "python",
+		"python-all-list-assignment": "python",
+		"python-explicit-field-type": "python", "python-string-type-annotation": "python",
+		"typescript-in-operator": "typescript", "python-test-assert-statement": "python",
+		"python-test-subtest": "python", "typescript-static-method": "typescript",
+		"typescript-static-field": "typescript", "python-static-method": "python", "python-class-method": "python",
+		"python-data-class-method": "python", "python-abstract-class": "python", "python-property-setter": "python",
+		"python-property": "python", "typescript-prototype-assignment": "typescript", "python-type-factory": "python",
 		"python-optional-union": "python", "python-conditional-type-alias": "python",
 		"typescript-type-guard": "typescript", "typescript-union-contract-bypass": "typescript",
 		"typescript-rest-union-contract": "typescript", "typescript-index-signature": "typescript",
@@ -88,29 +88,71 @@ export const RULE_DOCUMENT_PATHS_BY_ID = new Map<string, readonly string[]>(
 		}
 		return [
 			rule_id,
-			[
-				`${RULE_DOCUMENT_DIRECTORY}/typescript/${rule_id}.md`,
-				`${RULE_DOCUMENT_DIRECTORY}/python/${rule_id}.md`,
-			],
+			[`${RULE_DOCUMENT_DIRECTORY}/typescript/${rule_id}.md`, `${RULE_DOCUMENT_DIRECTORY}/python/${rule_id}.md`],
 		];
 	}),
 );
 
 export const TEST_SCOPE_DIRECTORIES = {
 	categories: ["architecture", "bridge", "ts"],
-	levels: ["unit", "units", "unit-tests", "unit_tests", "component", "components", "module", "modules", "integration", "integrations", "int", "integration-tests", "integration_tests", "component-integration", "component_integration", "unit-integration", "unit_integration", "system-integration", "system_integration", "e2e", "end-to-end", "end_to_end", "end2end", "system"],
-	acceptance: ["acceptance", "user-acceptance", "user_acceptance", "uat", "operational-acceptance", "operational_acceptance", "oat", "contractual-acceptance", "contractual_acceptance", "regulatory-acceptance", "regulatory_acceptance", "alpha", "beta"],
-	types: ["functional", "behavioral", "behavioural", "feature", "confirmation", "non-functional", "non_functional", "regression", "regressions", "regression-tests", "regression_tests"],
-	performance: ["performance", "benchmark", "benchmarks", "load", "stress", "capacity", "scalability", "spike", "endurance", "soak", "volume"],
+	levels: [
+		"unit", "units", "unit-tests", "unit_tests", "component", "components", "module", "modules", "integration",
+		"integrations", "int", "integration-tests", "integration_tests", "component-integration",
+		"component_integration", "unit-integration", "unit_integration", "system-integration", "system_integration",
+		"e2e", "end-to-end", "end_to_end", "end2end", "system",
+	],
+	acceptance: [
+		"acceptance", "user-acceptance", "user_acceptance", "uat", "operational-acceptance", "operational_acceptance",
+		"oat", "contractual-acceptance", "contractual_acceptance", "regulatory-acceptance", "regulatory_acceptance",
+		"alpha", "beta",
+	],
+	types: [
+		"functional", "behavioral", "behavioural", "feature", "confirmation", "non-functional", "non_functional",
+		"regression", "regressions", "regression-tests", "regression_tests",
+	],
+	performance: [
+		"performance", "benchmark", "benchmarks", "load", "stress", "capacity", "scalability", "spike", "endurance",
+		"soak", "volume",
+	],
 	smoke: ["smoke", "sanity", "confidence", "intake", "pretest", "build-verification", "build_verification"],
-	quality: ["functional-suitability", "functional_suitability", "performance-efficiency", "performance_efficiency", "compatibility", "usability", "interaction-capability", "interaction_capability", "reliability", "security", "maintainability", "portability", "flexibility", "safety", "availability", "recoverability", "fault-tolerance", "fault_tolerance", "maturity", "co-existence", "co_existence", "interoperability", "user-experience", "user_experience", "ux", "accessibility", "installability", "adaptability", "replaceability", "modifiability", "testability", "modularity", "reusability", "analysability", "analysis"],
-	operational: ["operational", "recovery", "failover", "backup", "restore", "disaster-recovery", "disaster_recovery", "installation", "upgrade", "uninstallation", "migration", "conversion", "localization", "internationalization", "compliance", "conformance", "regulatory", "resilience", "chaos", "fault-injection", "fault_injection"],
-	security: ["penetration", "pen-testing", "pen_testing", "vulnerability", "fuzz", "fuzzing", "security-audit", "security_audit", "hardening", "authentication", "authorization", "identity-access-management", "identity_access_management", "sast", "dast", "iast", "dynamic-analysis", "dynamic_analysis", "static-analysis", "static_analysis", "policy-based", "policy_based", "risk-based", "risk_based", "requirements-based", "requirements_based", "standards-based", "standards_based", "vulnerability-based", "vulnerability_based", "recertification", "reconciliation"],
-	approaches: ["api", "contract", "gui", "ui", "database", "static", "dynamic", "manual", "automated", "black-box", "black_box", "white-box", "white_box", "grey-box", "grey_box", "gray-box", "gray_box", "specification-based", "specification_based", "structure-based", "structure_based", "experience-based", "experience_based"],
-	techniques: ["exploratory", "ad-hoc", "ad_hoc", "checklist-based", "checklist_based", "error-guessing", "error_guessing", "use-case", "use_case", "boundary-value", "boundary_value", "equivalence-partitioning", "equivalence_partitioning", "decision-table", "decision_table", "state-transition", "state_transition", "pairwise", "model-based", "model_based", "property-based", "property_based", "mutation", "confirmation", "confirmation-tests", "confirmation_tests"],
+	quality: [
+		"functional-suitability", "functional_suitability", "performance-efficiency", "performance_efficiency",
+		"compatibility", "usability", "interaction-capability", "interaction_capability", "reliability", "security",
+		"maintainability", "portability", "flexibility", "safety", "availability", "recoverability",
+		"fault-tolerance", "fault_tolerance", "maturity", "co-existence", "co_existence", "interoperability",
+		"user-experience", "user_experience", "ux", "accessibility", "installability", "adaptability",
+		"replaceability", "modifiability", "testability", "modularity", "reusability", "analysability", "analysis",
+	],
+	operational: [
+		"operational", "recovery", "failover", "backup", "restore", "disaster-recovery", "disaster_recovery",
+		"installation", "upgrade", "uninstallation", "migration", "conversion", "localization",
+		"internationalization", "compliance", "conformance", "regulatory", "resilience", "chaos", "fault-injection",
+		"fault_injection",
+	],
+	security: [
+		"penetration", "pen-testing", "pen_testing", "vulnerability", "fuzz", "fuzzing", "security-audit",
+		"security_audit", "hardening", "authentication", "authorization", "identity-access-management",
+		"identity_access_management", "sast", "dast", "iast", "dynamic-analysis", "dynamic_analysis",
+		"static-analysis", "static_analysis", "policy-based", "policy_based", "risk-based", "risk_based",
+		"requirements-based", "requirements_based", "standards-based", "standards_based", "vulnerability-based",
+		"vulnerability_based", "recertification", "reconciliation",
+	],
+	approaches: [
+		"api", "contract", "gui", "ui", "database", "static", "dynamic", "manual", "automated", "black-box",
+		"black_box", "white-box", "white_box", "grey-box", "grey_box", "gray-box", "gray_box", "specification-based",
+		"specification_based", "structure-based", "structure_based", "experience-based", "experience_based",
+	],
+	techniques: [
+		"exploratory", "ad-hoc", "ad_hoc", "checklist-based", "checklist_based", "error-guessing", "error_guessing",
+		"use-case", "use_case", "boundary-value", "boundary_value", "equivalence-partitioning",
+		"equivalence_partitioning", "decision-table", "decision_table", "state-transition", "state_transition",
+		"pairwise", "model-based", "model_based", "property-based", "property_based", "mutation", "confirmation",
+		"confirmation-tests", "confirmation_tests",
+	],
 } as const;
 
 export const RULE_IDS = {
+	python_all_list_assignment: "python-all-list-assignment",
 	assertion_outside_test: "assertion-outside-test",
 	static_method: "python-static-method",
 	class_method: "python-class-method",
@@ -217,13 +259,7 @@ export const REVIEW_TESTS_DOCUMENT = "architecture-review-tests.md";
 export const REVIEW_ABSTRACTIONS_DOCUMENT = "architecture-review-abstractions.md";
 
 export const TEST_FILE_SUFFIXES = [
-	".test.ts",
-	".test.tsx",
-	".spec.ts",
-	".spec.tsx",
-	".test.py",
-	".spec.py",
-	"_test.py",
+	".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", ".test.py", ".spec.py", "_test.py",
 ] as const;
 export const TYPESCRIPT_TEST_SUFFIXES = [".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"] as const;
 export const PYTHON_TEST_SUFFIXES = [".test.py", ".spec.py", "_test.py"] as const;
@@ -282,10 +318,7 @@ export const JEST_SHAPES = new Set(["toEqual", "toStrictEqual"]);
 export const JEST_PROPERTY = "toHaveProperty";
 export const JEST_DEFINED = "toBeDefined";
 export const JEST_EXCEPTIONS = new Set([
-	"toThrow",
-	"toThrowError",
-	"toThrowErrorMatchingSnapshot",
-	"toThrowErrorMatchingInlineSnapshot",
+	"toThrow", "toThrowError", "toThrowErrorMatchingSnapshot", "toThrowErrorMatchingInlineSnapshot",
 ]);
 export const JEST_INSTANCE = "toBeInstanceOf";
 export const JEST_OBJECT = "objectContaining";
@@ -333,41 +366,16 @@ export const REVIEW_STAGES: readonly ReviewStageDefinition[] = [
 export const AI_CODE_GUARD_DIRECTORY = ".ai-code-guard";
 export const GITIGNORE_FILE_NAME = ".gitignore";
 export const GITIGNORE_PROBE_NAME = ".gitignore-probe";
-export const TYPESCRIPT_LANGUAGE = "typescript";
+export const TYPESCRIPT_LANGUAGE: AstLanguage = "typescript";
 export const PYTHON_LANGUAGE = "python";
 export const PYTHON_SOURCE_EXTENSION = ".py";
 export const PYTHON_EXTERNAL_MODULES = new Set([
-	"__future__",
-	"abc",
-	"ast",
-	"asyncio",
-	"collections",
-	"contextlib",
-	"copy",
-	"dataclasses",
-	"enum",
-	"functools",
-	"hypothesis",
-	"io",
-	"itertools",
-	"json",
-	"logging",
-	"math",
-	"operator",
-	"os",
-	"pathlib",
-	"pytest",
-	"re",
-	"subprocess",
-	"sys",
-	"tempfile",
-	"threading",
-	"time",
-	"types",
-	"typing",
-	"unittest",
+	"__future__", "abc", "ast", "asyncio", "collections", "contextlib", "copy", "dataclasses", "enum", "functools",
+	"hypothesis", "io", "itertools", "json", "logging", "math", "operator", "os", "pathlib", "pytest", "re",
+	"subprocess", "sys", "tempfile", "threading", "time", "types", "typing", "unittest",
 ]);
 export const PYTHON_COLLECTIONS_MODULE = "collections";
+export const PYTHON_PROJECT_CONFIGURATION_FILE = "pyproject.toml";
 export const NODE_MODULES_DIRECTORY = "node_modules";
 export const EXTERNAL_DIRECTORY = "external";
 export const TESTS_DIRECTORY_PREFIX = "tests/";
@@ -384,7 +392,7 @@ export const CODING_LINT_PATH_PREFIX = "tools/coding-lint/";
 export const FUNCTION_MODULE_NAMES: ReadonlySet<string> = new Set(["functions.ts", "functions.tsx", "functions.py"]);
 export const TYPESCRIPT_INDEX_MODULE = "index.ts";
 export const PYTHON_INDEX_MODULE = "index.py";
-export const PROTOCOL_NAME_PREFIX = "proto";
+export const PROTOCOL_NAME_PREFIX = "prot";
 export const TYPESCRIPT_METADATA_STAGE_PREFIX = "startup.project-context.source-records.metadata";
 export const ERROR_CLASS_NAMES: ReadonlySet<string> = new Set(["Error", "Exception", "BaseException"]);
 export const ERROR_CLASS_SUFFIXES: readonly string[] = ["Error", "Exception"];
@@ -404,12 +412,7 @@ export const ERROR_GROUPING_RULE_ID = "exception-grouping";
 export const TOP_LEVEL_CLASSES_RULE_ID = "top-level-classes";
 export const CONTRACT_FIELDS_RULE_ID = "contract-fields";
 export const COLLECTION_TYPE_NAMES: ReadonlySet<string> = new Set([
-	"Map",
-	"ReadonlyMap",
-	"Set",
-	"ReadonlySet",
-	"WeakMap",
-	"WeakSet",
+	"Map", "ReadonlyMap", "Set", "ReadonlySet", "WeakMap", "WeakSet",
 ]);
 export const PLACEMENT_DIAGNOSTIC_GUIDANCE = "Do not place the module in a directory ignored by Git.";
 export const IMPLEMENTATION_RELATION: SourceReferenceRelation = "implementation";
@@ -431,12 +434,6 @@ export const POLICY_ALL = "all";
 export const NORMALIZED_AST_CACHE_KEY = "normalized";
 export const IGNORED_DIRS = new Set([
 	AI_CODE_GUARD_DIRECTORY,
-	".git",
-	"dist",
-	"node_modules",
-	"coverage",
-	"__pycache__",
-	".venv",
-	".tox",
+	".git", "dist", "node_modules", "coverage", "__pycache__", ".venv", ".tox",
 ]);
 export const REPORTING_PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");

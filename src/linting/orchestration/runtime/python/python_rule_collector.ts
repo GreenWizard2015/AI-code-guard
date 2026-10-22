@@ -19,7 +19,11 @@ import type { PythonRuleInputContract } from "src/linting/types";
 import type { AstClassNodeContract } from "src/types";
 import type { MetricViolationsContract } from "src/reporting_protocols";
 import type { MethodOrderContract, NamingSupportContract } from "src/analysis_protocols";
-import type { PythonArchitectureContract, PythonHacksContract, PythonTypeRuleCollectorContract } from "src/python_protocols";
+import type {
+	PythonArchitectureContract,
+	PythonHacksContract,
+	PythonTypeRuleCollectorContract,
+} from "src/python_protocols";
 import type { SyntaxContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _architecture rule aggregation_, _metric violation collection_. **/
@@ -164,7 +168,8 @@ export class PythonRuleCollector {
 		this.test_rules.append_shape();
 		this.test_rules.append_assertions();
 		this.syntax.append_parse_issues(violations, file, operations.parse_issues, "python");
-		this.naming_support.append_naming_violations(violations, file, operations.named_symbols, classes, []);
+		const named_symbols = operations.named_symbols.filter((symbol) => symbol.name !== "__all__");
+		this.naming_support.append_naming_violations(violations, file, named_symbols, classes, []);
 	}
 
 	/** Responsibilities: _Python metric violations addition_. **/
@@ -174,5 +179,4 @@ export class PythonRuleCollector {
 		this.type_rules.append_type_information();
 		this.append_shared_rules();
 	}
-
 }

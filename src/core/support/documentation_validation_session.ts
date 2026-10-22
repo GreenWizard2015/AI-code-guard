@@ -4,14 +4,14 @@ import { LintReportMode } from "src/core/types";
 import type {
 	DocumentationExampleLintContract,
 	DocumentationValidationOperation,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintExecutionReport } from "src/runtime_types";
 import { RULE_DATA } from "src/constants";
 import { PROJECT_ANALYSIS_RULE_IDS } from "src/rules/catalog/modules/constants";
 import { UnusedCode } from "src/core/project-source/unused_code";
-import type { DocumentationExampleSourceFile } from "documentation_validation/types";
+import type { DocumentationExampleSourceFile } from "#documentation_validation/types";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/source_text";
 

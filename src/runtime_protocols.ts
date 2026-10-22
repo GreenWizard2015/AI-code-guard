@@ -1,20 +1,20 @@
+import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import type { LintReportOptions } from "src/core/types";
 import type {
 	GitIgnoreGlobMatchResult,
 	LintAnalysisStage,
 	LintRunResult,
 	LintRunStateContract,
 } from "src/project_analysis_types";
+import type { LintInputFiles } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { AliasAppender, ExpressionNormalizer } from "src/runtime_types";
+import type { LintExecutionReport } from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecord } from "src/source_types";
 import type { RuleContextData } from "src/types";
 import type ts from "typescript";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { ExpressionNormalizer, AliasAppender } from "src/runtime_types";
-import type { LintInputFiles } from "src/project_analysis_types";
-import type { LintExecutionReport } from "src/runtime_types";
-import type { LintReportOptions } from "src/core/types";
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
-import type { PythonAstWorkerSession } from "external/python_ast_worker_session.mjs";
+import type { PythonAstWorkerSession } from "#external/python_ast_worker_session.mjs";
 
 /** Responsibilities: _callable body metrics_. **/
 export interface CallableBodyMetricsContract {

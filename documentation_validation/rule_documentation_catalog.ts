@@ -1,15 +1,15 @@
 import { join, relative, sep } from "node:path";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
-import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
+import { MarkdownLoopExpander } from "#documentation_validation/markdown_loop_expander";
 import { PYTHON_LANGUAGE, RULE_DOCUMENT_DIRECTORY, TYPESCRIPT_LANGUAGE } from "src/constants";
-import { RuleDocumentationPaths } from "documentation_validation/rule_documentation_paths";
+import { RuleDocumentationPaths } from "#documentation_validation/rule_documentation_paths";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import type {
 	DocumentationExample,
 	DocumentationExampleSourceFile,
 	RuleDocumentationDocument,
 	RuleDocumentationInventory,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 

@@ -2,6 +2,8 @@
 
 Description: Detect a source file with very little implementation code. A tiny forwarding module can indicate misplaced behavior; this size check does not decide whether a small domain type is meaningful.
 
+Pytest `conftest.py` files are exempt: even a one-line plugin declaration can be a required framework entrypoint. Do not pad them with unrelated code.
+
 ## Bad
 
 This module only forwards behavior already owned by `Order`:

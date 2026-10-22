@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { CompositionAnalyzer } from "src/linting/orchestration/runtime/composition/components/composition_analyzer";
 import { CompositionBoundaryFixture } from "tests/bridge/ts/core/composition_boundary_fixture";
 import { CompositionChain } from "src/linting/orchestration/runtime/composition/components/composition_chain";
-import type { ClassGraph, CodeClass } from "src/types";
+import type { ClassGraph, CodeClass } from "src/model/types/types";
 
 describe("composition analyzer project boundaries", () => {
 	test("reports depth for a rootless cyclic component", () => {

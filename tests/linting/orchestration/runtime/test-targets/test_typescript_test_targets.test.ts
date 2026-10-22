@@ -1,10 +1,10 @@
 import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
-import ts from "typescript";
 import { TestFileOrganization } from "src/linting/orchestration/runtime/test-targets/test_file_organization";
 import { TestTargets } from "src/linting/orchestration/runtime/test-targets/test_targets";
 import { MockTestPathChecker } from "tests/linting/orchestration/runtime/test-targets/mock_test_path_checker";
+import ts from "typescript";
 
 describe("TypeScript test target resolution", () => {
 	test("uses imported declarations rather than side-effect imports", () => {
@@ -79,7 +79,7 @@ describe("TypeScript test target resolution", () => {
 			most_used_declaration: targets.valid("tests/payments/service.test.ts", source),
 		}).toEqual({
 			module_directory: true,
-			less_used_declarations: false,
+			less_used_declarations: true,
 			most_used_declaration: true,
 		});
 	});
@@ -101,7 +101,7 @@ describe("TypeScript test target resolution", () => {
 		expect({
 			less_used_target: targets.valid("tests/payments/payment-service.test.ts", source),
 			most_used_target: targets.valid("tests/payments/reader/internal-helper.test.ts", source),
-		}).toEqual({ less_used_target: false, most_used_target: true });
+		}).toEqual({ less_used_target: true, most_used_target: true });
 	});
 
 	test("reuses a parsed source file and project resolver aliases", () => {
@@ -119,5 +119,36 @@ describe("TypeScript test target resolution", () => {
 			alias_import: targets.valid("tests/payments/test_reader.test.ts", "import { Reader } from '@payments/reader';"),
 			provided_source: targets.valid_typescript("tests/payments/test_reader.test.ts", source_file),
 		}).toEqual({ alias_import: true, provided_source: true });
+	});
+
+	test("accepts a configured package alias for a test inside the same production package", () => {
+		const checker = new MockTestPathChecker();
+		const organization = new TestFileOrganization("/project", checker);
+		const targets = new TestTargets("/project", organization, checker);
+
+		expect(
+			targets.valid(
+				"tests/scripts/webpage/chatgpt-boundaries/opener.test.ts",
+				"import { ChatGptThreadOpener } from 'src/scripts/webpage/chatgpt/core/opener';\nnew ChatGptThreadOpener();",
+			),
+		).toBe(true);
+	});
+
+	test("continues after the most-used imported target belongs to another test root", () => {
+		const checker = new MockTestPathChecker();
+		const organization = new TestFileOrganization("/project", checker);
+		const targets = new TestTargets("/project", organization, checker);
+		const source = [
+			"import { PaymentService } from '@payments/service';",
+			"import { PaymentReader } from '@payments/reader-domain';",
+			"test('reads a payment', () => {",
+			"  new PaymentService();",
+			"  new PaymentService();",
+			"  new PaymentService();",
+			"  new PaymentReader();",
+			"});",
+		].join("\n");
+
+		expect(targets.valid("tests/payments/reader/payment-reader.test.ts", source)).toBe(true);
 	});
 });

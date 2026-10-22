@@ -15,7 +15,6 @@ import type {
 	AstTypeKind,
 	AstTypeMembers,
 	AstVisibility,
-	ImportedFunction,
 	LineDepth,
 	NamedLine,
 	NamedSymbol,
@@ -27,6 +26,7 @@ import type { SourceLineResolver } from "src/runtime_types";
 import type { StringSetMap } from "src/analysis_types";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptMetadataNodeVisitor } from "src/typescript_analysis_types";
+import type { ImportedFunction } from "src/types";
 
 export type TypeScriptClassFieldContext = {
 	file: string;
@@ -70,6 +70,11 @@ export type TypeScriptLiteralMetadataResult = {
 	references: AstLiteralReference[];
 	constants: AstLiteralConstant[];
 };
+export type TypeScriptReferenceMetadata = {
+	symbol_references: NamedLine[];
+	literal_references: AstLiteralReference[];
+	literal_constants: AstLiteralConstant[];
+};
 export type TreeMetadataState = {
 	import_issues: AstImportIssue[];
 	type_declarations: NamedLine[];
@@ -98,6 +103,15 @@ export type TypeScriptNormalizedMetadataOptions = {
 	tree: TypeScriptTreeMetadata;
 	spans: TypeScriptMetadataSpans;
 	derived: TypeScriptDerivedMetadata;
+};
+export type TypeScriptDeclarationMetadata = {
+	language: "typescript";
+	classes: AstClassNodeContract[];
+	functions: AstCallableNodeContract[];
+	import_issues: AstImportIssue[];
+	attribute_accesses: LineDepth[];
+	named_symbols: NamedSymbol[];
+	type_declarations: NamedLine[];
 };
 /** Responsibilities: _kind TypeScript traversal representation_. **/
 export const RESPONSIBILITY_CONTAINER_KIND = {

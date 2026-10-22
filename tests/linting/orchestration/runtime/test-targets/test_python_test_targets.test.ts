@@ -105,7 +105,7 @@ describe("Python test target resolution", () => {
 		expect(targets.valid("tests/performance/test_report.py", source, true, imports)).toBe(true);
 	});
 
-	test("anchors to the individually most-used imported production declaration", () => {
+	test("continues to a matching declaration when the most-used import has another test root", () => {
 		const organization = new TestFileOrganization("/project", new MockTestPathChecker());
 		const targets = new TestTargets("/project", organization, new MockTestPathChecker());
 		const imports: AstPythonImport[] = [
@@ -139,7 +139,7 @@ describe("Python test target resolution", () => {
 		expect({
 			less_used: targets.valid("tests/payments/reader/test_reader.py", source, true, imports),
 			most_used: targets.valid("tests/payments/test_service.py", source, true, imports),
-		}).toEqual({ less_used: false, most_used: true });
+		}).toEqual({ less_used: true, most_used: true });
 	});
 
 	test("uses normalized Python imports instead of matching source strings", () => {

@@ -136,4 +136,35 @@ describe("production usage requirements for tests", () => {
 		);
 		expect(violations.filter((item) => item.rule_id === "test-production-usage")).toHaveLength(0);
 	});
+
+	test("resolves a production class through a configured nested source alias", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"tsconfig.json": JSON.stringify({
+					compilerOptions: {
+						baseUrl: ".",
+						paths: { "src/scripts/webpage/*": ["scripts/webpage/src/*"] },
+					},
+				}),
+				"scripts/webpage/src/page-snapshot-reader.ts": [
+					"export class PageSnapshotReader {",
+					"  public loading_markers(): boolean { return true; }",
+					"}",
+				].join("\n"),
+				"tests/scripts/webpage/page-snapshot-reader.test.ts": [
+					"import { PageSnapshotReader } from 'src/scripts/webpage/page-snapshot-reader';",
+					"test('reads loading markers', () => {",
+					"  const reader = new PageSnapshotReader();",
+					"  expect(reader.loading_markers()).toBe(true);",
+					"});",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "test-production-usage")).toEqual([]);
+	});
 });

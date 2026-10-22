@@ -1,4 +1,4 @@
-import type { CodeClass, ImportedSymbol } from "src/types";
+import type { CodeClass, ImportedSymbol } from "src/model/types/types";
 import type { ClassesByFile, ImportsByFile } from "src/linting/orchestration/runtime/composition/types";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 

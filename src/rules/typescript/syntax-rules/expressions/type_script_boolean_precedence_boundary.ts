@@ -3,10 +3,11 @@ import ts from "typescript";
 /** Responsibilities: _boolean operand boundary detection_, _precedence grouping recognition_. **/
 export class TypeScriptBooleanPrecedenceBoundary {
 	private readonly boolean_operators: Set<ts.SyntaxKind>;
+	private readonly comparison_operators: Set<ts.SyntaxKind>;
 
 	/** Responsibilities: _negation comparison boundary detection_. **/
 	private negation_comparison(node: ts.BinaryExpression): boolean {
-		if (this.boolean_operators.has(node.operatorToken.kind)) {
+		if (!this.comparison_operators.has(node.operatorToken.kind)) {
 			return false;
 		}
 		return this.direct_negation(node.left) || this.direct_negation(node.right);
@@ -29,6 +30,18 @@ export class TypeScriptBooleanPrecedenceBoundary {
 			ts.SyntaxKind.AmpersandAmpersandToken,
 			ts.SyntaxKind.BarBarToken,
 			ts.SyntaxKind.ExclamationToken,
+		]);
+		this.comparison_operators = new Set([
+			ts.SyntaxKind.EqualsEqualsToken,
+			ts.SyntaxKind.EqualsEqualsEqualsToken,
+			ts.SyntaxKind.ExclamationEqualsToken,
+			ts.SyntaxKind.ExclamationEqualsEqualsToken,
+			ts.SyntaxKind.LessThanToken,
+			ts.SyntaxKind.LessThanEqualsToken,
+			ts.SyntaxKind.GreaterThanToken,
+			ts.SyntaxKind.GreaterThanEqualsToken,
+			ts.SyntaxKind.InKeyword,
+			ts.SyntaxKind.InstanceOfKeyword,
 		]);
 	}
 	/** Responsibilities: _public operation_. **/

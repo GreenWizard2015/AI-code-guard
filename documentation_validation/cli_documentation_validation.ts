@@ -3,16 +3,16 @@ import {
 	DOCUMENTATION_EXCLUDED_SIZE_RULES,
 	ERROR_MARKER_PATTERN,
 	RESPONSIBILITY_RULE_PREFIX,
-} from "documentation_validation/constants";
-import { DocumentationExamplePath } from "documentation_validation/documentation_example_path";
-import { DocumentationExamplePathValidation } from "documentation_validation/documentation_example_path_validation";
-import { RuleDocumentLanguageCompatibility } from "documentation_validation/rule_document_language_compatibility";
-import { DocumentationValidationReport } from "documentation_validation/documentation_validation_report";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
-import { RootRuleSectionValidation } from "documentation_validation/root_rule_section_validation";
+} from "#documentation_validation/constants";
+import { DocumentationExamplePath } from "#documentation_validation/documentation_example_path";
+import { DocumentationExamplePathValidation } from "#documentation_validation/documentation_example_path_validation";
+import { RuleDocumentLanguageCompatibility } from "#documentation_validation/rule_document_language_compatibility";
+import { DocumentationValidationReport } from "#documentation_validation/documentation_validation_report";
+import { RuleDocumentationCatalog } from "#documentation_validation/rule_documentation_catalog";
+import { RootRuleSectionValidation } from "#documentation_validation/root_rule_section_validation";
 import { LANGUAGE_NEUTRAL_RULE_IDS, SHARED_RULE_DOCUMENT_IDS } from "src/constants";
 
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
 import type {
 	DocumentationExample,
 	DocumentationExampleLintContract,
@@ -20,7 +20,7 @@ import type {
 	ExampleResult,
 	DocumentationExampleSourceFile,
 	RuleDocumentationDocument,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 

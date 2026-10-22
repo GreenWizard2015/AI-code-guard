@@ -1,5 +1,5 @@
-import { MARKDOWN_CONSTANT_ERROR, MARKDOWN_RANGE_ERROR } from "documentation_validation/constants";
-import { MarkdownTemplateValues } from "documentation_validation/markdown_template_values";
+import { MARKDOWN_CONSTANT_ERROR, MARKDOWN_RANGE_ERROR } from "#documentation_validation/constants";
+import { MarkdownTemplateValues } from "#documentation_validation/markdown_template_values";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _Markdown template parsing_, _loop expansion_, _placeholder substitution_. **/

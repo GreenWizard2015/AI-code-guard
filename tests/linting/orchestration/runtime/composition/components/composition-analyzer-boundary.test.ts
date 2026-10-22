@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { CompositionAnalyzer } from "src/linting/orchestration/runtime/composition/components/composition_analyzer";
-import type { ClassGraph, CodeClass } from "src/types";
+import type { ClassGraph, CodeClass } from "src/model/types/types";
 
 describe("composition analyzer project boundaries", () => {
 	test("reports more than five distinct project dependencies", () => {

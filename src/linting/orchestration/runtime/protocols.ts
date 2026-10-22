@@ -1,7 +1,8 @@
 import type { ArraySourceResolver } from "src/analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintSourceRecord } from "src/source_types";
-import type { AstCallableReference, AstPythonImport, ImportedSymbol, NormalizedAstFileContract } from "src/types";
+import type { AstCallableReference, AstPythonImport, NormalizedAstFileContract } from "src/types";
+import type { ImportedSymbol } from "src/model/types/types";
 import type { PlacementFunctionNode } from "src/model/types/types";
 import ts from "typescript";
 import type { ArrayValuesVisitor } from "src/runtime_types";

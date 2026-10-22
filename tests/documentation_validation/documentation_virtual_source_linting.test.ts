@@ -1,12 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import { resolve } from "node:path";
-import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
+import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
 import type {
 	DocumentationExampleLintContract,
 	DocumentationValidationOperation,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import { DocumentationValidationSession } from "src/core/support/documentation_validation_session";
-import { ExampleKind } from "documentation_validation/types";
+import { ExampleKind } from "#documentation_validation/types";
 import { ViolationValue } from "src/violation_value";
 import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 

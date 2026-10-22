@@ -3,9 +3,14 @@ import { ProjectSourceImports } from "src/core/project-source/project_source_imp
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { ProjectSourceEntry } from "src/linting/orchestration/runtime/global-rules/project_source_entry";
+import { PythonProjectEntryPointUsages } from "src/core/project-source/python_project_entry_point_usages";
 import type { UnresolvedSpecifierInput, ProjectContextState, ProjectSourceOptions } from "src/model/types/types";
-import type { ProjectSourceEntryContract, ProjectSourceContextImportsContract, ProjectSourceScannerContract } from "src/source_protocols";
-import type { StringSet, StringStringMap } from "src/analysis_types";
+import type {
+	ProjectSourceEntryContract,
+	ProjectSourceContextImportsContract,
+	ProjectSourceScannerContract,
+} from "src/source_protocols";
+import type { ReadonlyStringSetMap, StringSet, StringStringMap } from "src/analysis_types";
 import type { StringSetToStringMapCache } from "src/cache_types";
 
 /** Responsibilities: _project source graph scanning_, _unresolved import reporting_. **/
@@ -13,6 +18,7 @@ export class ProjectSourceScanner implements ProjectSourceScannerContract {
 	private readonly root: string;
 	private readonly context_state: ProjectContextState;
 	private readonly project_source_entry: ProjectSourceEntryContract;
+	private readonly entry_point_usages: PythonProjectEntryPointUsages;
 	private readonly project_source_python: ProjectSourcePython;
 	private readonly project_source_imports: ProjectSourceImports;
 	private readonly context_imports: ProjectSourceContextImportsContract;
@@ -98,6 +104,7 @@ export class ProjectSourceScanner implements ProjectSourceScannerContract {
 		this.resolved_specifier_cache = new WeakMap<StringSet, StringStringMap>();
 		this.root = root;
 		this.project_source_entry = new ProjectSourceEntry(root, options);
+		this.entry_point_usages = new PythonProjectEntryPointUsages(root, options.context_state.value.source_io);
 		this.context_state = options.context_state;
 	}
 
@@ -116,6 +123,11 @@ export class ProjectSourceScanner implements ProjectSourceScannerContract {
 			return false;
 		}
 		return this.project_source_entry.entry(file);
+	}
+
+	/** Responsibilities: _package entry-point usage_. **/
+	public external_symbol_usages(): ReadonlyStringSetMap {
+		return this.entry_point_usages.collect(this.files());
 	}
 
 	/** Responsibilities: _reporting unresolved relative imports_. **/
@@ -146,5 +158,16 @@ export class ProjectSourceScanner implements ProjectSourceScannerContract {
 			}
 		}
 		return resolved;
+	}
+
+	/** Responsibilities: _single import target resolution_. **/
+	public resolved_import_path(file: string, specifier: string, files: Set<string>): string {
+		return this.resolved_specifier({
+			file,
+			path: this.project_source_entry.relative_path(file),
+			specifier,
+			files,
+			python: this.project_source_python,
+		});
 	}
 }

@@ -258,6 +258,125 @@ describe("coding-lint callable usage - typed ownership", () => {
 			'method "Inner.entries" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);
 	});
+	test("counts calls dispatched through an imported interface contract", () => {
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"protocols.ts": ["export type ComposerSessionPort = { clear(): void; submit(): void };"].join("\n"),
+				"session.ts": [
+					"import type { ComposerSessionPort } from './protocols';",
+					"export class ComposerSession {",
+					"  clear(): void {}",
+					"  submit(): void {}",
+					"}",
+				].join("\n"),
+				"session_factory.ts": [
+					"import { ComposerSession } from './session';",
+					"import type { ComposerSessionPort } from './protocols';",
+					"export class SessionFactory {",
+					"  create(): ComposerSessionPort { return new ComposerSession(); }",
+					"}",
+				].join("\n"),
+				"conversation.ts": [
+					"import type { ComposerSessionPort } from './protocols';",
+					"export function clear_composer(session: ComposerSessionPort, run: (action: () => void) => void): void {",
+					"  run(() => session.clear());",
+					"}",
+				].join("\n"),
+				"messenger.ts": [
+					"import type { ComposerSessionPort } from './protocols';",
+					"export function submit_message(session: ComposerSessionPort, run: (action: () => void) => void): void {",
+					"  run(() => session.submit());",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id === "unused-callable")
+				.map((violation) => violation.message)
+				.filter(
+					(message) => message.includes('"ComposerSession.clear"') || message.includes('"ComposerSession.submit"'),
+				),
+		).toEqual([]);
+	});
+	test("counts concrete methods used through an aliased shared contract", () => {
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"protocols.ts": [
+					"export interface ValueStateContract<T> {",
+					"  missing(): boolean;",
+					"}",
+					"export type ValueState<T> = ValueStateContract<T>;",
+				].join("\n"),
+				"present_value_state.ts": [
+					"import type { ValueStateContract } from './protocols';",
+					"export class PresentValueState<T> implements ValueStateContract<T> {",
+					"  missing(): boolean { return false; }",
+					"}",
+				].join("\n"),
+				"value_state_reader.ts": [
+					"import type { ValueState } from './protocols';",
+					"export function read_state<T>(state: ValueState<T>): boolean {",
+					"  return state.missing();",
+					"}",
+				].join("\n"),
+				"consumer.ts": [
+					"import { PresentValueState } from './present_value_state';",
+					"import { read_state } from './value_state_reader';",
+					"export function read_present_state(): boolean {",
+					"  return read_state(new PresentValueState('ready'));",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.some(
+				(violation) =>
+					violation.rule_id === "unused-callable" && violation.message.includes('"PresentValueState.missing"'),
+			),
+		).toBe(false);
+	});
+	test("counts methods called through an imported state-holder type", () => {
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"state.ts": [
+					"export class StateData {",
+					"  with_phase(phase: string): StateData { return new StateData(); }",
+					"}",
+				].join("\n"),
+				"state_holder.ts": [
+					"import type { StateData } from './state';",
+					"export type StateHolder = { current: StateData };",
+				].join("\n"),
+				"transitions.ts": [
+					"import type { StateHolder } from './state_holder';",
+					"export class StateTransitions {",
+					"  private readonly state: StateHolder;",
+					"  constructor(state: StateHolder) { this.state = state; }",
+					"  change(): void { this.state.current.with_phase('active'); }",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id === "unused-callable")
+				.map((violation) => violation.message)
+				.filter((message) => message.includes('"StateData.with_phase"')),
+		).toEqual([]);
+	});
 	test("keeps Python local instance types scoped to their method", () => {
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO()),

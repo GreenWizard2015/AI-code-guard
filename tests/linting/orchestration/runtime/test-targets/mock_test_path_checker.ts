@@ -22,6 +22,9 @@ export class MockTestPathChecker implements TestPathCheckerContract {
 
 	/** Responsibilities: _TypeScript import path fixtures_. **/
 	public path(_file: string, specifier: string): string {
+		if (specifier === "src/scripts/webpage/chatgpt/core/opener") {
+			return "scripts/webpage/src/chatgpt/core/opener.ts";
+		}
 		if (specifier === "@payments/reader") {
 			return "src/payments/reader.ts";
 		}
@@ -32,6 +35,9 @@ export class MockTestPathChecker implements TestPathCheckerContract {
 	public declaration_paths(_file: string, imports: readonly TestTargetImport[], python: boolean): string[] {
 		return imports
 			.map((item) => {
+				if (item.specifier === "src/scripts/webpage/chatgpt/core/opener") {
+					return "scripts/webpage/src/chatgpt/core/opener.ts";
+				}
 				if (python) {
 					if (item.specifier === "os") {
 						return "";

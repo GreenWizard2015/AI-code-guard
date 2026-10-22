@@ -1,5 +1,5 @@
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
-import type { ExampleResult, RuleDocumentationDocument, DocumentationExample } from "documentation_validation/types";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
+import type { ExampleResult, RuleDocumentationDocument, DocumentationExample } from "#documentation_validation/types";
 
 /** Responsibilities: _root rule section policy_, _rule example validation_. **/
 export class RootRuleSectionValidation {

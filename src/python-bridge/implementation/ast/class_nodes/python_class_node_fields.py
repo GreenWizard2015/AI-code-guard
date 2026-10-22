@@ -3,6 +3,9 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.constants import CLASS_BUILTIN_TYPES
+from implementation.ast.class_nodes.python_instance_field_names import (
+    PythonInstanceFieldNames,
+)
 from implementation.ast.class_nodes.python_slot_fields import PythonSlotFields
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonContainerAliasesContract
@@ -140,18 +143,9 @@ class PythonClassNodeFields:
                 fields.extend(
                     {"line": nested.lineno - 1, "name": target.attr}
                     for target in nested.targets
-                    if self._instance_field_target(target)
+                    if self.instance_field_names.instance_target(target)
                 )
         return fields
-
-    def _instance_field_target(self, target: ast.AST) -> bool:
-        """Responsibilities: _classification assignment target instance_."""
-        is_attribute = type(target) is ast.Attribute
-        if not is_attribute:
-            return False
-        if type(target.value) is not ast.Name:
-            return False
-        return target.value.id in ("self", "cls")
 
     def __init__(
         self,
@@ -164,6 +158,9 @@ class PythonClassNodeFields:
         self.node: ast.ClassDef = node
         self.container_aliases: PythonContainerAliasesContract = container_aliases
         self.node_index: PythonAstNodeIndexContract = node_index
+        self.instance_field_names: PythonInstanceFieldNames = PythonInstanceFieldNames(
+            node, node_index
+        )
         self.slot_fields: PythonSlotFields = PythonSlotFields(node, module_body)
 
     def fields(self) -> list[NodeData]:
@@ -192,6 +189,7 @@ class PythonClassNodeFields:
     def untyped_fields(self) -> list[NodeData]:
         """Responsibilities: _collection untyped class instance_."""
         typed_names = {field["name"] for field in self.fields() if field["type"]}
+        typed_names.update(self.instance_field_names.names())
         fields = self.slot_fields.untyped_fields(typed_names)
         known_names = {field["name"] for field in fields}
         for item in self.node.body:

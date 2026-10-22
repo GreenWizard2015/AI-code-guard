@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import { DocumentationValidationReport } from "documentation_validation/documentation_validation_report";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
+import { DocumentationValidationReport } from "#documentation_validation/documentation_validation_report";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
 
 describe("documentation validation report", () => {
 	test("counts failed examples without treating passing examples as failures", () => {

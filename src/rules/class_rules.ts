@@ -7,11 +7,11 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptClassFieldRules } from "src/model/type_script_class_field_rules";
 import { NestedTypeStructure } from "src/rules/nested_type_structure";
 import type { LintSourceRecord, PythonProjectImportContext } from "src/source_types";
-import type { ClassFieldFiles } from "src/types";
 import type { ClassSummaryOptions, PythonClassSummaryOptions } from "src/model/types/types";
 import ts from "typescript";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { ERROR_GROUPING_RULE_ID, TOP_LEVEL_CLASSES_RULE_ID } from "src/constants";
+import type { ClassFieldFiles } from "src/types";
 
 /** Responsibilities: _class structural diagnostics_, _class metric coordination_. **/
 export class ClassRules {

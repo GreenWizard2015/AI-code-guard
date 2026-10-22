@@ -1,4 +1,12 @@
-import type { AstCallableNodeContract, AstCodingIssue, AstPythonImport, ImportedFunction, NormalizedAstFileContract, PythonBatchAstOptions, PythonSourceAstBatch } from "src/types";
+import type {
+	AstCallableNodeContract,
+	AstCodingIssue,
+	AstPythonImport,
+	ImportedFunction,
+	NormalizedAstFileContract,
+	PythonBatchAstOptions,
+	PythonSourceAstBatch,
+} from "src/types";
 import type { ArchitectureInput } from "src/model/types/types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";

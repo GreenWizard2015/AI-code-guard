@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { CodeClass, ImportedSymbol } from "src/types";
+import type { CodeClass, ImportedSymbol } from "src/model/types/types";
 import { TypeScriptConstructorDependencies } from "src/linting/orchestration/runtime/global-analysis/type_script_constructor_dependencies";
 import type { LocalImport } from "src/linting/orchestration/runtime/composition/types";
 import type { TypeScriptConstructorDependenciesContract } from "src/linting/orchestration/runtime/composition/protocols";
@@ -200,11 +200,7 @@ export class TypeScriptCompositionModel {
 	}
 
 	/** Responsibilities: _composition model state initialization_. **/
-	public constructor(
-		file: string,
-		source_file: ts.SourceFile,
-		export_resolver: TypeScriptModuleExportsContract,
-	) {
+	public constructor(file: string, source_file: ts.SourceFile, export_resolver: TypeScriptModuleExportsContract) {
 		this.file = file;
 		this.source_file = source_file;
 		this.export_resolver = export_resolver;

@@ -32,9 +32,10 @@ describe("contract naming rule", () => {
 			{ ...contract, name: "UserProtocolContract", start: 1 },
 			{ ...contract, name: "UserInterfaceContract", start: 2 },
 			{ ...contract, name: "UserProtoContract", start: 3 },
+			{ ...contract, name: "UserProtContract", start: 4 },
 		]);
 
-		expect(violations.map((violation) => violation.line)).toEqual([2, 3, 4]);
+		expect(violations.map((violation) => violation.line)).toEqual([2, 3, 4, 5]);
 	});
 
 	test("accepts a domain contract name", () => {
@@ -90,7 +91,7 @@ describe("contract naming rule", () => {
 				dependencies: [],
 			},
 			{
-				name: "UserRepositoryContract",
+				name: "UserProtContract",
 				start: 1,
 				end: 2,
 				methods: [],
@@ -109,7 +110,27 @@ describe("contract naming rule", () => {
 				untyped_fields: [],
 				dependencies: [],
 			},
+			{
+				name: "UserRepositoryContract",
+				start: 2,
+				end: 3,
+				methods: [],
+				lines: 1,
+				sloc: 1,
+				interfaces: [],
+				base_class_name: "",
+				base_class_names: [],
+				extends_external_class: false,
+				is_data_class: false,
+				type_contract: false,
+				protocol: true,
+				callback_fields: 0,
+				inline_callback_fields: 0,
+				fields: [],
+				untyped_fields: [],
+				dependencies: [],
+			},
 		]);
-		expect(violations.map((violation) => violation.line)).toEqual([1]);
+		expect(violations.map((violation) => violation.line)).toEqual([1, 2]);
 	});
 });

@@ -1,4 +1,4 @@
-import { MARKDOWN_LOOP_OBJECT_ERROR, MARKDOWN_LOOP_VALUE_ERROR } from "documentation_validation/constants";
+import { MARKDOWN_LOOP_OBJECT_ERROR, MARKDOWN_LOOP_VALUE_ERROR } from "#documentation_validation/constants";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _Markdown loop value ownership_, _placeholder binding_. **/

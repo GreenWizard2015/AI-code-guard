@@ -23,12 +23,40 @@ class PythonLiteralMetadata:
             return annotation.attr == PYTHON_TYPE_ALIAS_NAME
         return False
 
-    def _parent_excludes_literal(self, parent: ast.AST, node: ast.AST) -> bool:
-        """Responsibilities: _literal parent exclusion decision_."""
-        if type(parent) is ast.Dict and node in parent.keys:
-            return True
+    def _all_export_assignment(self, statement: ast.AST) -> bool:
+        """Responsibilities: _module export assignment classification_."""
+        if statement not in self.tree.tree.body:
+            return False
+        if type(statement) is ast.Assign:
+            return any(
+                type(target) is ast.Name and target.id == "__all__"
+                for target in statement.targets
+            )
+        if type(statement) in (ast.AnnAssign, ast.AugAssign):
+            target = statement.target
+            return type(target) is ast.Name and target.id == "__all__"
+        return False
+
+    def _inside_export_assignment(self, node: ast.AST) -> bool:
+        """Responsibilities: _export-name literal exclusion_."""
+        current = node
+        while True:
+            parents = self.tree.node_index.parents(current)
+            if not parents:
+                return False
+            parent = parents[0]
+            if self._all_export_assignment(parent):
+                return True
+            current = parent
+
+    def _declaration_excludes_literal(self, parent: ast.AST, node: ast.AST) -> bool:
+        """Responsibilities: _declaration literal exclusion_."""
         if type(parent) is ast.AnnAssign:
+            if self._all_export_assignment(parent):
+                return True
             return self._type_alias_annotation(parent.annotation)
+        if type(parent) in (ast.Assign, ast.AugAssign):
+            return self._all_export_assignment(parent)
         if type(parent) is ast.arg:
             return parent.annotation is node
         if type(parent) is ast.Compare:
@@ -37,8 +65,16 @@ class PythonLiteralMetadata:
             return parent.returns is node
         return False
 
+    def _parent_excludes_literal(self, parent: ast.AST, node: ast.AST) -> bool:
+        """Responsibilities: _literal parent exclusion decision_."""
+        if type(parent) is ast.Dict and node in parent.keys:
+            return True
+        return self._declaration_excludes_literal(parent, node)
+
     def _excluded_by_parent(self, node: ast.AST) -> bool:
         """Responsibilities: _literal parent exclusion_."""
+        if self._inside_export_assignment(node):
+            return True
         for parent in self.tree.node_index.parents(node):
             if self._parent_excludes_literal(parent, node):
                 return True

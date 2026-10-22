@@ -1,7 +1,8 @@
 # `test-targets`
 
-Description: Anchor a test to its most-used imported production class or function, not the shallowest
-import. Type-only, side-effect, test-support, external, and standard-library imports do not qualify.
+Description: Anchor a test to an imported production class or function whose module path matches the
+test. Check imports in usage order instead of rejecting the test at the first path mismatch. Type-only,
+side-effect, test-support, external, and standard-library imports do not qualify.
 
 ## Bad
 
@@ -46,10 +47,10 @@ if __name__ == '__main__':
     print(status.normalized(), status.ready(), status.label('State'), status.contains('ead'))
 ```
 
-Anchor to the class/function with the most references outside import declarations. Source import
-order breaks ties; separate imports are ranked independently. Resolve named exports and re-exports.
-Ignore `tests/` and `__tests__/`, support, external, standard-library, type-only, side-effect,
-module, and constant imports.
+Rank classes/functions by references outside import declarations; source import order breaks ties.
+Resolve imports and check each production target until its module path matches the test. Ignore
+`tests/` and `__tests__/`, support, external, standard-library, type-only, side-effect, module, and
+constant imports.
 
 ## Good
 

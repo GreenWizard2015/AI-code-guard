@@ -170,6 +170,8 @@ describe("coding-lint operator precedence rules", () => {
 					"const first = !value === expected;",
 					"const second = (!value) === expected;",
 					"const third = !(value === expected);",
+					"const direct_negation = !value;",
+					"target.value = !value;",
 				].join("\n"),
 				"negation.py": [
 					"first = not value == expected",

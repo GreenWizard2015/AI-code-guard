@@ -1,17 +1,17 @@
 # contract-naming
 
-Description: All TypeScript interfaces and Python Protocols must end with `Contract`.
-Contract names must also be domain names: they must not contain `Proto`,
-`Protocol`, or `Interface`.
+Description: TypeScript interfaces must end with `Contract`. Contract names must
+also be domain names: they must not contain `Prot`, `Proto`, `Protocol`, or
+`Interface`, in any casing or position.
 
 Examples: `RuleContract`, `SourceNamesContract`, and `UserRepositoryContract`.
-Avoid names such as `RuleProtocolContract` or `UserInterfaceContract`.
+Avoid names such as `RuleProtocolContract`, `UserProtContract`, or `UserInterfaceContract`.
 
 ## Bad
 
 ```ts
 // File: src/protocols.ts
-export interface ReaderInterface {
+export interface ReaderProtContract {
 	consume_content(): string;
 }
 ```

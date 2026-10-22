@@ -1,8 +1,9 @@
 import type { LintSourceRecord } from "src/source_types";
 import type { UnusedSymbolAliasCache, UnusedSymbolAliasMap } from "src/core/types";
+import type { UnusedSymbolAliasIndexContract } from "src/linting/orchestration/runtime/global-analysis/protocols";
 
 /** Responsibilities: _source alias indexing_, _reference name expansion_. **/
-export class UnusedSymbolAliasIndex {
+export class UnusedSymbolAliasIndex implements UnusedSymbolAliasIndexContract {
 	private readonly aliases_by_file: UnusedSymbolAliasCache;
 
 	/** Responsibilities: _alias index initialization_. **/

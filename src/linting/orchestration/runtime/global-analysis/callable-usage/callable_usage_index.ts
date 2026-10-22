@@ -150,6 +150,16 @@ export class CallableUsageIndex {
 		}
 		seen_keys.add(index_key);
 		this.reference_index.add_usage(index_key, { file: file.file, line: reference.line });
+		this.append_owner_usage(file, reference);
+	}
+
+	/** Responsibilities: _callable owner reference indexing_. **/
+	private append_owner_usage(file: ParsedFile, reference: AstCallableReference): void {
+		if (reference.kind !== "method" || !reference.owner) {
+			return;
+		}
+		const owner_key = `method-owner:${reference.owner}:${reference.name}`;
+		this.reference_index.add_usage(owner_key, { file: file.file, line: reference.line });
 	}
 
 	/** Responsibilities: _callable reference indexing_. **/

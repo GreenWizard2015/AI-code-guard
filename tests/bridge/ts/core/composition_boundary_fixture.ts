@@ -1,4 +1,4 @@
-import type { ClassGraph, CodeClass } from "src/types";
+import type { ClassGraph, CodeClass } from "src/model/types/types";
 
 /** Responsibilities: _composition graph construction_, _cycle scenario construction_. **/
 export class CompositionBoundaryFixture {

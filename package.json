@@ -3,6 +3,10 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
+	"imports": {
+		"#external/*": "./external/*",
+		"#documentation_validation/*": "./documentation_validation/*"
+	},
 	"exports": {
 		"./*.mjs": "./src/*.mjs",
 		"./*.js": "./src/*.js",

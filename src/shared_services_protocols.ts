@@ -1,7 +1,13 @@
 import type { CallableDefinition, ParsedFile } from "src/metrics/types";
+import type { DirectoryFileViolationOptions, RemainingViolationOptions } from "src/model/types/types";
 import type { DirectoryFileSet } from "src/project_analysis_types";
-import type { LintSourceRecord } from "src/source_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageDuration } from "src/runtime_types";
+import type { AsyncOperation, Operation } from "src/runtime_types";
+import type { ProjectSourceIOContract, SourceFileAstContract } from "src/source_protocols";
+import type { LintSourceRecord } from "src/source_types";
+import type { SourceReference, SourceReferenceRelation } from "src/source_types";
+import type { CodingRuleSourceData } from "src/source_types";
 import type {
 	AstCallableNodeContract,
 	AstClassNodeContract,
@@ -13,17 +19,10 @@ import type {
 	NamedSymbol,
 	NormalizedAstFileContract,
 	ParseLanguage,
-	SourceReference,
-	SourceReferenceRelation,
 } from "src/types";
-import type { DirectoryFileViolationOptions, RemainingViolationOptions } from "src/model/types/types";
-import type ts from "typescript";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { ProjectSourceIOContract, SourceFileAstContract } from "src/source_protocols";
-import type { Operation, AsyncOperation } from "src/runtime_types";
 import type { TypeScriptContractNameLookupContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
-import type { CodingRuleSourceData } from "src/source_types";
+import type ts from "typescript";
 
 /** Responsibilities: _pointless expression extraction contract_. **/
 export interface PointlessExpressionContract {

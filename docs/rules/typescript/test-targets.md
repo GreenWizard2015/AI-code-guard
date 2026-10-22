@@ -1,7 +1,8 @@
 # `test-targets`
 
-Description: Anchor tests to the most-used production import, not the shallowest; ignore type-only,
-side-effect, support, external, and standard-library imports.
+Description: Anchor tests to an imported production target that matches their module path. Check imports
+in usage order instead of rejecting the test at the first path mismatch; ignore type-only, side-effect,
+support, external, and standard-library imports.
 
 ## Bad
 
@@ -50,7 +51,9 @@ import { Status } from 'src/domain/status';
 
 
 Rank by references outside imports; source import order breaks ties. Resolve named exports and
-re-exports; ignore tests, support, external, standard-library, type-only, side-effect, module, and constant imports.
+re-exports, including configured package aliases. Continue through resolved production imports until
+one matches the test module path. Ignore tests, support, external, standard-library, type-only,
+side-effect, module, and constant imports.
 
 ## Good
 

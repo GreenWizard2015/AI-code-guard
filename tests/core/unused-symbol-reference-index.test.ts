@@ -52,7 +52,6 @@ describe("unused symbol reference index", () => {
 			new Set(["consumer.py", "dependency.py"]),
 			new Map([[definition.file, [definition]]]),
 		);
-		index.prepare();
 		index.add_source(source);
 
 		expect({ alias_passes: aliases.iterations, usage_found: index.usage_present(definition) }).toEqual({
@@ -90,7 +89,6 @@ describe("unused symbol reference index", () => {
 			new Set(["consumer.py", "dependency.py"]),
 			new Map([[definition.file, [definition]]]),
 		);
-		index.prepare();
 		index.add_source(source);
 
 		expect(index.usage_present(definition)).toBe(false);
@@ -131,12 +129,12 @@ describe("unused symbol reference index", () => {
 			new Set(["consumer.py", ...definitions.map((item) => item.file)]),
 			new Map(definitions.map((item) => [item.file, [item]])),
 		);
-		index.prepare();
 		index.add_source(source);
 
+		const all_imported_definitions_used = definitions.every((item) => index.usage_present(item));
 		const result = {
 			alias_resolutions: aliases.mock.calls.filter((call) => call[1] === "local_target").length,
-			all_imported_definitions_used: definitions.every((item) => index.usage_present(item)),
+			all_imported_definitions_used,
 		};
 		aliases.mockRestore();
 

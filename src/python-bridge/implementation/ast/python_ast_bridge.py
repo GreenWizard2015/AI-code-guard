@@ -44,6 +44,7 @@ class PythonAstBridge:
             "type_declarations": [],
             "reference_aliases": [],
             "python_imports": [],
+            "python_exports": [],
             "python_main_guard": False,
             "docstring_spans": [],
             "responsibility_targets": [],

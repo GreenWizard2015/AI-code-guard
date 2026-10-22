@@ -2,7 +2,7 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DocumentationValidationSession } from "src/core/support/documentation_validation_session";
-import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
+import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
 import { SourceText } from "src/source_text";
 import { RULE_DATA } from "src/constants";
 

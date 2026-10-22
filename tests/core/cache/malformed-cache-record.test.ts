@@ -47,6 +47,32 @@ describe("malformed complete cache records", () => {
 		expect(lookup.previous_record.available).toBe(false);
 	});
 
+	test("treats duplicate cached source paths as a miss", () => {
+		const fixture = new MalformedCacheFixture(
+			JSON.stringify({
+				cache_version: 1,
+				identity: "identity",
+				target_request: "",
+				entry_files: [],
+				files: ["/project/source.ts", "/project/source.ts"],
+				violations: [],
+				fingerprints: [],
+				inputs: {
+					files: ["/project/source.ts", "/project/source.ts"],
+					project_files: ["/project/source.ts"],
+					ignored_files: [],
+					markdown_files: [],
+					ignore_files: [],
+				},
+				ignored_directories: [],
+				directories: [],
+			}),
+		);
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
+
+		expect(lookup.previous_record.available).toBe(false);
+	});
+
 	test("rejects null diagnostic entries without throwing", () => {
 		const entries: readonly ReportViolation[] = JSON.parse("[null]");
 		const cache = new ViolationCache(entries);

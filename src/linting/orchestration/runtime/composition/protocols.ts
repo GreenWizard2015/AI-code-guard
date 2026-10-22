@@ -1,6 +1,6 @@
 import type ts from "typescript";
 import type { LintSourceRecord } from "src/source_types";
-import type { ClassGraph, ImportedSymbol } from "src/types";
+import type { ClassGraph, ImportedSymbol } from "src/model/types/types";
 
 /** Responsibilities: _composition component analysis contract_. **/
 export interface CompositionComponentsContract {

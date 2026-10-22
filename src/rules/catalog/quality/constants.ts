@@ -1,4 +1,9 @@
 export const QUALITY_RULE_DATA = {
+	"python-all-list-assignment": {
+		message: "Python __all__ must be assigned a literal list of strings",
+		hint: "Assign __all__ once from a list containing only string literals. Do not: build or mutate the export list with annotations, concatenation, aliases, or collection methods.",
+		priority: 3,
+	},
 	responsibilities: {
 		message: "violates the Responsibilities contract: {issue}",
 		hint: 'Write an honest "Responsibilities: _A_, _B_." line in the docstring, with paired underscores around each responsibility.',
@@ -20,9 +25,9 @@ export const QUALITY_RULE_DATA = {
 		priority: 0,
 	},
 	"non-english-source-text": {
-		message: "contains non-English text in source code or a text file",
-		hint: "Keep source comments and inline literals in English. Put user-facing translations in localization resource files and reference them from code.",
-		priority: 2,
+		message: "contains non-English text in source code",
+		hint: "Keep production comments and literals in English. In tests, keep comments English; test literals may use any language.",
+		priority: 0,
 	},
 	"logical-chain-size": {
 		message: "logical expression is too complex",
@@ -112,12 +117,12 @@ export const QUALITY_RULE_DATA = {
 	"repeated-literal": {
 		message: "non-trivial string literal is repeated without a constant",
 		hint: "define a named constant for the repeated value and use it at every occurrence. Do not: repeat the same non-trivial value in production code.",
-		priority: 3,
+		priority: 0,
 	},
 	"literal-constant-reuse": {
 		message: 'non-trivial string literal must use existing constant "{constant}"',
 		hint: 'replace the literal with the existing constant "{constant}". Do not: duplicate a value already represented by a named constant.',
-		priority: 3,
+		priority: 0,
 	},
 	"ternary-expression": {
 		message: "avoid ternary expressions",

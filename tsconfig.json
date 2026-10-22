@@ -5,9 +5,9 @@
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
 		"paths": {
-			"external/*": ["external/*"],
+			"#external/*": ["external/*"],
 			"src/*": ["src/*"],
-			"documentation_validation/*": ["documentation_validation/*"]
+			"#documentation_validation/*": ["documentation_validation/*"]
 		},
 		"lib": ["ES2021"],
 		"strict": true,

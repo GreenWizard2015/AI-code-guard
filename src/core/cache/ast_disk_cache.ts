@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
-import type { AstCacheAstContract } from "src/cache_types";
+import type { AstCacheAstContract, AstCacheAstStructureContract } from "src/cache_types";
 import { AI_CODE_GUARD_DIRECTORY, TYPESCRIPT_CACHE_OWNER } from "src/constants";
 import { AstCacheHit } from "src/core/cache/ast_cache_hit";
 import { AstCacheMemberShape } from "src/core/cache/ast_cache_member_shape";
@@ -63,8 +63,8 @@ export class AstDiskCache implements AstDiskCacheContract {
 		}));
 	}
 
-	/** Responsibilities: _AST serialization_. **/
-	private serialized_ast(ast: NormalizedAstFileContract): AstCacheAstContract {
+	/** Responsibilities: _AST declaration serialization_. **/
+	private serialized_structure(ast: NormalizedAstFileContract): AstCacheAstStructureContract {
 		return {
 			language: ast.language,
 			classes: ast.classes,
@@ -72,11 +72,18 @@ export class AstDiskCache implements AstDiskCacheContract {
 			parse_issues: ast.parse_issues,
 			import_issues: ast.import_issues,
 			attribute_accesses: ast.attribute_accesses,
+			named_symbols: ast.named_symbols,
+			type_declarations: ast.type_declarations,
+		};
+	}
+
+	/** Responsibilities: _AST serialization_. **/
+	private serialized_ast(ast: NormalizedAstFileContract): AstCacheAstContract {
+		return {
+			...this.serialized_structure(ast),
 			symbol_references: ast.symbol_references,
 			literal_references: ast.literal_references,
 			literal_constants: ast.literal_constants,
-			named_symbols: ast.named_symbols,
-			type_declarations: ast.type_declarations,
 			reference_aliases: ast.reference_aliases,
 			private_accesses: ast.private_accesses,
 			repeated_branches: ast.repeated_branches,
@@ -87,11 +94,12 @@ export class AstDiskCache implements AstDiskCacheContract {
 			module_protocol_spans: ast.module_protocol_spans,
 			type_members: this.serialized_type_members(ast.type_members),
 			coding_issues: ast.coding_issues,
+			responsibility_targets: ast.responsibility_targets,
 			python_imports: ast.python_imports,
+			python_exports: ast.python_exports,
 			python_callable_count: ast.python_callable_count,
 			python_main_guard: ast.python_main_guard,
 			docstring_spans: ast.docstring_spans,
-			responsibility_targets: ast.responsibility_targets,
 		};
 	}
 

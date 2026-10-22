@@ -113,8 +113,10 @@ export class ProjectLintSession {
 		);
 		const report = execution.report;
 		const statistics = execution.context.statistics();
-		if (statistics.source_records !== report.files.length) {
-			throw new Error("Lint context and report contain different file counts.");
+		if (statistics.source_records !== inputs.project_files.length) {
+			throw new Error(
+				`Lint context and project inputs contain different file counts (${statistics.source_records} and ${inputs.project_files.length}).`,
+			);
 		}
 		stage_timer.measure("unused-files", () =>
 			this.append_unused_violations(unused_code, options.root, options.entry_files, execution.context, report),

@@ -3,12 +3,12 @@ import type {
 	DocumentationExampleKeysByRule,
 	DocumentationValidation,
 	ExampleResult,
-} from "documentation_validation/types";
+} from "#documentation_validation/types";
 import {
 	DOCUMENTATION_REPORT_DIVIDER,
 	DOCUMENTATION_REPORT_HEADER,
 	EMPTY_DOCUMENTATION_REPORT_ROW,
-} from "documentation_validation/constants";
+} from "#documentation_validation/constants";
 
 /** Responsibilities: _validation outcome ownership_, _diagnostic summary reporting_. **/
 export class DocumentationValidationReport {

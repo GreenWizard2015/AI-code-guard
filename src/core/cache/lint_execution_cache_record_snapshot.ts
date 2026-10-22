@@ -2,6 +2,7 @@ import type {
 	LintDirectoryFingerprint,
 	LintExecutionCacheRecord,
 	LintFileFingerprint,
+	LintInputFiles,
 } from "src/project_analysis_types";
 import type { LintExecutionCacheRecordSnapshotContract } from "src/cache_protocols";
 import { ViolationCache } from "src/core/cache/violation_cache";
@@ -38,6 +39,15 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 			return false;
 		}
 		return value.every((item) => this.text(item));
+	}
+
+	/** Responsibilities: _unique cache path validation_. **/
+	private unique_strings(value: readonly string[]): boolean {
+		const unique_values = new Set<string>();
+		for (const item of value) {
+			unique_values.add(item);
+		}
+		return unique_values.size === value.length;
 	}
 
 	/** Responsibilities: _cache diagnostic validation_. **/
@@ -110,7 +120,7 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 		if (!this.strings(this.record.entry_files)) {
 			return false;
 		}
-		if (!this.strings(this.record.files)) {
+		if (!this.strings(this.record.files) || !this.unique_strings(this.record.files)) {
 			return false;
 		}
 		if (!this.strings(this.record.ignored_directories)) {
@@ -127,14 +137,37 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 	}
 
 	/** Responsibilities: _cache input collection_. **/
+	private source_inputs_valid(inputs: LintInputFiles): boolean {
+		if (!this.strings(inputs.files) || !this.unique_strings(inputs.files)) {
+			return false;
+		}
+		if (!this.strings(inputs.project_files) || !this.unique_strings(inputs.project_files)) {
+			return false;
+		}
+		if (!this.strings(inputs.ignored_files)) {
+			return false;
+		}
+		return this.unique_strings(inputs.ignored_files);
+	}
+
+	/** Responsibilities: _cache metadata input collection_. **/
+	private metadata_inputs_valid(inputs: LintInputFiles): boolean {
+		if (!this.strings(inputs.markdown_files) || !this.unique_strings(inputs.markdown_files)) {
+			return false;
+		}
+		if (!this.strings(inputs.ignore_files)) {
+			return false;
+		}
+		return this.unique_strings(inputs.ignore_files);
+	}
+
+	/** Responsibilities: _cache input collection_. **/
 	private input_arrays_valid(): boolean {
 		const inputs = this.record.inputs;
 		if (inputs === null || inputs === undefined) {
 			return false;
 		}
-		const source_inputs = this.strings(inputs.files) && this.strings(inputs.project_files) && this.strings(inputs.ignored_files);
-		const metadata_inputs = this.strings(inputs.markdown_files) && this.strings(inputs.ignore_files);
-		return source_inputs && metadata_inputs;
+		return this.source_inputs_valid(inputs) && this.metadata_inputs_valid(inputs);
 	}
 
 	/** Responsibilities: _cache record snapshot initialization_. **/

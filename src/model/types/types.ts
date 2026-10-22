@@ -17,7 +17,6 @@ import type {
 	AstClassNodeContract,
 	AstPythonImport,
 	AstSourceSpan,
-	ImportedFunction,
 	LineOnly,
 	NamedLine,
 	NormalizedAstFileContract,
@@ -25,6 +24,7 @@ import type {
 	RuleParameters,
 } from "src/types";
 import type { AstStatementNode } from "src/types";
+import type { ImportedFunction } from "src/types";
 import type { TypeScriptScriptRuleServicesContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
@@ -279,16 +279,27 @@ export type PythonClassSummaryOptions = {
 	has_implementation_classes: boolean;
 	type_declarations: readonly NamedLine[];
 };
-export type SourceTextOccurrence = { line: number; text: string };
+export type SourceTextOccurrenceKind = "comment" | "string";
+export type SourceTextOccurrence = { line: number; text: string; kind: SourceTextOccurrenceKind; column: number };
+export type PythonDeclarationStringLines = {
+	annotation: ReadonlySet<number>;
+	exports: ReadonlySet<number>;
+};
+export type PythonDeclarationLineScanState = {
+	in_signature: boolean;
+	in_exports: boolean;
+	export_depth: number;
+	annotation_lines: Set<number>;
+	export_lines: Set<number>;
+};
 export type PythonQuoteDelimiter = "'" | '"';
+export type PythonFStringExpressionState = { depth: number; quote: string; escaped: boolean };
 export type PythonQuoteState = {
 	active: boolean;
 	delimiter: PythonQuoteDelimiter;
 	triple: boolean;
 	formatted: boolean;
-	expression_depth: number;
-	expression_quote: string;
-	expression_escaped: boolean;
+	literal_column: number;
 };
 /** Responsibilities: _Python quote completion context_. **/
 export interface QuoteCompletionContract {

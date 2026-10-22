@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { CompositionChain } from "src/linting/orchestration/runtime/composition/components/composition_chain";
 import { CompositionComponents } from "src/linting/orchestration/runtime/composition/components/composition_components";
 import { CompositionBoundaryFixture } from "tests/bridge/ts/core/composition_boundary_fixture";
-import type { ClassGraph, CodeClass } from "src/types";
+import type { ClassGraph, CodeClass } from "src/model/types/types";
 
 describe("composition analyzer project boundaries", () => {
 	test("classifies many independent components with one graph scan", () => {

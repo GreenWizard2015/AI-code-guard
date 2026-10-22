@@ -1,5 +1,5 @@
 import { isAbsolute, normalize, win32 } from "node:path";
-import type { DocumentationExample } from "documentation_validation/types";
+import type { DocumentationExample } from "#documentation_validation/types";
 
 /** Responsibilities: _example source path integrity_, _file declaration ordering_. **/
 export class DocumentationExamplePathValidation {

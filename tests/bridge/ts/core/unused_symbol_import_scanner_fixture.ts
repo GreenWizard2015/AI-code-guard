@@ -1,4 +1,5 @@
 import type { ProjectSourceScannerContract } from "src/source_protocols";
+import type { ReadonlyStringSetMap } from "src/analysis_types";
 
 /** Responsibilities: _project import fixture_, _source scanner contract_. **/
 export class ImportedSourceScanner implements ProjectSourceScannerContract {
@@ -7,9 +8,19 @@ export class ImportedSourceScanner implements ProjectSourceScannerContract {
 		return false;
 	}
 
+	/** Responsibilities: _external symbol usage fixture_. **/
+	public external_symbol_usages(): ReadonlyStringSetMap {
+		return new Map();
+	}
+
 	/** Responsibilities: _source file inventory_. **/
 	public files(): string[] {
 		return [];
+	}
+
+	/** Responsibilities: _single import target resolution_. **/
+	public resolved_import_path(_file: string, _specifier: string, _available: Set<string>): string {
+		return "dependency.py";
 	}
 
 	/** Responsibilities: _dependency path resolution_. **/

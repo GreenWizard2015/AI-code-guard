@@ -403,4 +403,25 @@ describe("coding-lint method and type rules", () => {
 		);
 		expect(violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence")).toHaveLength(1);
 	});
+
+	test("accepts an annotated Python slot initialized in the constructor", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			{
+				"slot_owner.py": [
+					"class SlotOwner:",
+					"    __slots__ = ('value',)",
+					"    def __init__(self) -> None:",
+					"        self.value: int = 1",
+					"    def read(self) -> int:",
+					"        return self.value",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id === "python-explicit-field-type")).toEqual([]);
+	});
 });

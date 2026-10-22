@@ -4,10 +4,10 @@ import {
 	TEST_DIRECTORY,
 	TYPESCRIPT_EXTENSION,
 	TYPESCRIPT_TEST_SUFFIX,
-} from "documentation_validation/constants";
+} from "#documentation_validation/constants";
 import { DUNDER_TESTS_DIRECTORY_NAME, DUNDER_TESTS_DIRECTORY_PREFIX } from "src/constants";
-import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
-import type { DocumentationExample } from "documentation_validation/types";
+import { DocumentationLanguage, ExampleKind } from "#documentation_validation/types";
+import type { DocumentationExample } from "#documentation_validation/types";
 
 /** Responsibilities: _documentation source selection_, _example module path derivation_. **/
 export class DocumentationExamplePath {

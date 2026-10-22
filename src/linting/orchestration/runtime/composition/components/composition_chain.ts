@@ -1,4 +1,4 @@
-import type { ClassGraph, CodeClass } from "src/types";
+import type { ClassGraph, CodeClass } from "src/model/types/types";
 import type {
 	CompositionChainFrame,
 	CompositionChainState,
