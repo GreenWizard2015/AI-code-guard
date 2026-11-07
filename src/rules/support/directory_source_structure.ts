@@ -1,22 +1,25 @@
 import { dirname, isAbsolute, relative, sep } from "node:path";
+import { TEST_PATH_SUFFIXES } from "src/constants";
 import { MAX_SOURCE_SUBDIRECTORIES } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ReadonlySourceDirectoryChildren, SourceDirectoryChildMap } from "src/model/types/types";
+import type { ReadonlySourceDirectoryChildren, SourceDirectoryChildMap } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DIRECTORY_RULE_IDS } from "src/rules/constants";
+import type { TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
+import { TestPathKind } from "src/types";
 
 /** Responsibilities: _source directory indexing_, _source subdirectory diagnostics_. **/
 export class DirectorySourceStructure {
-	private readonly test_path_syntax: TestPathSyntax;
-	private readonly maximum_source_subdirectories = MAX_SOURCE_SUBDIRECTORIES;
+	private readonly _test_path_syntax: TestPathSyntaxContract;
+	private readonly _maximum_source_subdirectories: number;
 
 	/** Responsibilities: _implementation source classification_. **/
 	private is_project_source(file: string): boolean {
 		if (!file.endsWith(".ts") && !file.endsWith(".py")) {
 			return false;
 		}
-		return !this.test_path_syntax.test_file(file);
+		return !this._test_path_syntax.classify(file).has(TestPathKind.TestFile);
 	}
 
 	/** Responsibilities: _source file indexing_. **/
@@ -52,16 +55,16 @@ export class DirectorySourceStructure {
 	}
 
 	/** Responsibilities: _ancestor directory indexing_. **/
-	private add_parent_directories(directories: Set<string>, source_directory: string, repo_root: string): void {
+	private add_parent_directories(directories: Set<string>, source_directory: string, parent_root: string): void {
 		let child_directory = source_directory;
-		while (child_directory !== repo_root) {
+		while (child_directory !== parent_root) {
 			const parent = dirname(child_directory);
-			const root_relative_path = relative(repo_root, parent);
+			const root_relative_path = relative(parent_root, parent);
 			if (this.outside_project(root_relative_path)) {
 				break;
 			}
 			directories.add(parent);
-			if (parent === repo_root || parent === child_directory) {
+			if (parent === parent_root || parent === child_directory) {
 				break;
 			}
 			child_directory = parent;
@@ -70,7 +73,8 @@ export class DirectorySourceStructure {
 
 	/** Responsibilities: _path syntax initialization_. **/
 	public constructor() {
-		this.test_path_syntax = new TestPathSyntax();
+		this._maximum_source_subdirectories = MAX_SOURCE_SUBDIRECTORIES;
+		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
 	}
 
 	/** Responsibilities: _source-bearing child directory indexing_. **/
@@ -91,11 +95,11 @@ export class DirectorySourceStructure {
 	}
 
 	/** Responsibilities: _directory candidate selection_. **/
-	public directories_to_check(source_directories: Iterable<string>, repo_root: string): Set<string> {
+	public directories_to_check(source_directories: Iterable<string>, selection_root: string): Set<string> {
 		const source_directory_list = [...source_directories];
 		const directories = new Set(source_directory_list);
 		for (const source_directory of source_directory_list) {
-			this.add_parent_directories(directories, source_directory, repo_root);
+			this.add_parent_directories(directories, source_directory, selection_root);
 		}
 		return directories;
 	}
@@ -103,7 +107,7 @@ export class DirectorySourceStructure {
 	/** Responsibilities: _source subdirectory limit diagnostic_. **/
 	public source_subdirectory_violation(
 		directory: string,
-		repo_root: string,
+		diagnostic_root: string,
 		source_directory_children: ReadonlySourceDirectoryChildren,
 	): ViolationContract[] {
 		const children = source_directory_children.get(directory);
@@ -111,11 +115,11 @@ export class DirectorySourceStructure {
 		if (children !== undefined) {
 			count = children.size;
 		}
-		if (count <= this.maximum_source_subdirectories) {
+		if (count <= this._maximum_source_subdirectories) {
 			return [];
 		}
 		const rule = new DiagnosticRule(DIRECTORY_RULE_IDS.source_subdirectories_maximum);
-		return [rule.violation(relative(repo_root, directory), 1, { count: String(count) })];
+		return [rule.violation(relative(diagnostic_root, directory), 1, { count: String(count) })];
 	}
 
 	/** Responsibilities: _source directory inventory_. **/

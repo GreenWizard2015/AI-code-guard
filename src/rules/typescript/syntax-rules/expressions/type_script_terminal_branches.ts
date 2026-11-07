@@ -1,28 +1,28 @@
-import ts from "typescript";
 import type { TypeScriptTerminalBranchesContract } from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _terminal statement analysis_, _early exit branch classification_. **/
 export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesContract {
-	private readonly terminal_statement_kinds: Set<ts.SyntaxKind>;
+	private readonly _terminal_statement_kinds: ReadonlySet<ts.SyntaxKind>;
 
 	/** Responsibilities: _terminal loop classification_. **/
-	private terminal_loop(statement: ts.Statement): boolean {
-		if (ts.isWhileStatement(statement)) {
-			if (statement.expression.kind !== ts.SyntaxKind.TrueKeyword) {
+	private terminal_loop(loop_candidate: ts.Statement): boolean {
+		if (ts.isWhileStatement(loop_candidate)) {
+			if (loop_candidate.expression.kind !== ts.SyntaxKind.TrueKeyword) {
 				return false;
 			}
-			return this.terminal_statement(statement.statement);
+			return this.terminal_statement(loop_candidate.statement);
 		}
-		if (ts.isDoStatement(statement)) {
-			return this.terminal_statement(statement.statement);
+		if (ts.isDoStatement(loop_candidate)) {
+			return this.terminal_statement(loop_candidate.statement);
 		}
-		if (!ts.isForStatement(statement)) {
+		if (!ts.isForStatement(loop_candidate)) {
 			return false;
 		}
-		if (statement.condition !== undefined) {
+		if (loop_candidate.condition !== undefined) {
 			return false;
 		}
-		return this.terminal_statement(statement.statement);
+		return this.terminal_statement(loop_candidate.statement);
 	}
 
 	/** Responsibilities: _terminal try classification_. **/
@@ -49,7 +49,7 @@ export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesCon
 
 	/** Responsibilities: _terminal child classification_. **/
 	private terminal_child(child: ts.Statement): boolean {
-		if (this.terminal_statement_kinds.has(child.kind)) {
+		if (this._terminal_statement_kinds.has(child.kind)) {
 			return true;
 		}
 		if (ts.isIfStatement(child)) {
@@ -65,14 +65,14 @@ export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesCon
 	}
 
 	/** Responsibilities: _terminal fallthrough classification_. **/
-	private terminal_fallthrough(statement: ts.Statement): boolean {
-		if (!ts.isIfStatement(statement)) {
+	private terminal_fallthrough(if_candidate: ts.Statement): boolean {
+		if (!ts.isIfStatement(if_candidate)) {
 			return false;
 		}
-		if (statement.elseStatement !== undefined) {
+		if (if_candidate.elseStatement !== undefined) {
 			return false;
 		}
-		return this.terminal_statement(statement.thenStatement);
+		return this.terminal_statement(if_candidate.thenStatement);
 	}
 
 	/** Responsibilities: _terminal block classification_. **/
@@ -80,11 +80,8 @@ export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesCon
 		if (statement.statements.length === 0) {
 			return false;
 		}
-		if (statement.statements.length === 1) {
-			return this.terminal_child(statement.statements[0]);
-		}
-		const last_statement = statement.statements[statement.statements.length - 1];
-		if (!this.terminal_child(last_statement)) {
+		const last_statement = statement.statements.at(-1);
+		if (last_statement === undefined || !this.terminal_child(last_statement)) {
 			return false;
 		}
 		for (const current of statement.statements.slice(0, -1)) {
@@ -95,10 +92,9 @@ export class TypeScriptTerminalBranches implements TypeScriptTerminalBranchesCon
 		return true;
 	}
 
-	/** Responsibilities: _terminal statement classification_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.terminal_statement_kinds = new Set([ts.SyntaxKind.ReturnStatement]);
+	/** Responsibilities: _terminal statement policy ownership_. **/
+	public constructor(terminal_statement_kinds: ReadonlySet<ts.SyntaxKind>) {
+		this._terminal_statement_kinds = terminal_statement_kinds;
 	}
 	/** Responsibilities: _public operation_. **/
 	public terminal_statement(statement: ts.Statement): boolean {

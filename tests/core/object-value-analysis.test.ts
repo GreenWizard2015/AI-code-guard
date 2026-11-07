@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("object value analysis", () => {
 	test("identifies callable object impostors and dynamic result shapes", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"fake-object.ts": [
 					"export const CHAT_INPUT_TOOLS = {",
@@ -64,16 +64,16 @@ describe("object value analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "typescript-fake-object")).toHaveLength(8);
+		expect(violations.filter((item) => item.rule_id() === "typescript-fake-object")).toHaveLength(8);
 		expect(
-			violations.filter((item) => item.message === "avoid inferring tool results from multiple shapes"),
+			violations.filter((item) => item.message() === "avoid inferring tool results from multiple shapes"),
 		).toHaveLength(5);
 	});
 
 	test("identifies callable object returns through aliases, spreads, and branches", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"contracts.ts": "export interface Contract { run(): void; }",
 				"factory.ts": [
@@ -112,6 +112,6 @@ describe("object value analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "typescript-fake-object")).toHaveLength(16);
+		expect(violations.filter((item) => item.rule_id() === "typescript-fake-object")).toHaveLength(16);
 	});
 });

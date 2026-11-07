@@ -11,12 +11,14 @@ from implementation.ast.callable_nodes.python_function_selector import (
     PythonFunctionSelector,
 )
 from implementation.ast.callables.callable_arguments import CallableArguments
-from implementation.ast.callables.symbol_nodes import (
-    PythonAstSymbolNodes,
-    PythonAstSymbolNodesOptions,
+from implementation.ast.callables.module_instances.python_module_instance_collector import (
+    PythonModuleInstanceCollector,
 )
-from implementation.ast.type_declarations.python_type_declaration_collector import (
-    PythonTypeDeclarationCollector,
+from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes import (
+    PythonAstSymbolNodes,
+)
+from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes_options import (
+    PythonAstSymbolNodesOptions,
 )
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
@@ -24,10 +26,12 @@ from implementation.ast.protocols import (
     PythonFunctionNodesContract,
     PythonSourceSegmentsContract,
 )
-from implementation.references.protocols import PythonContainerAliasesContract
-from implementation.references.protocols import PythonScopedTypeAliasesContract
-from implementation.ast.callables.python_module_instance_collector import (
-    PythonModuleInstanceCollector,
+from implementation.ast.type_declarations.python_type_declaration_collector import (
+    PythonTypeDeclarationCollector,
+)
+from implementation.references.protocols import (
+    PythonContainerAliasesContract,
+    PythonScopedTypeAliasesContract,
 )
 from implementation.references.test_assertions.python_test_assertion_data import (
     PythonTestAssertionData,
@@ -64,7 +68,7 @@ class PythonAstCallableDependencies:
                 PythonFunctionSelector(options.tree, options.node_index),
                 PythonTestAssertionData(options.node_index, options.container_aliases),
                 options.type_aliases,
-            )
+            ),
         )
 
     def symbols(self) -> PythonAstSymbolNodesContract:
@@ -76,7 +80,11 @@ class PythonAstCallableDependencies:
                 options.tree,
                 options.node_index,
                 callable_arguments,
-                PythonTypeDeclarationCollector(options.tree, callable_arguments),
+                PythonTypeDeclarationCollector(
+                    options.tree,
+                    callable_arguments,
+                    options.node_index,
+                ),
                 PythonModuleInstanceCollector(options.tree),
-            )
+            ),
         )

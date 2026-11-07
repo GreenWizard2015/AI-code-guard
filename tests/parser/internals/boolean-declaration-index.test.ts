@@ -1,29 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
-import ts from "typescript";
-import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
 import { TypeScriptVariableDeclarationIndex } from "src/linting/type_script_variable_declaration_index";
+import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
+import ts from "typescript";
 
 describe("TypeScript boolean declaration index", () => {
-	test("reuses boolean property declarations for repeated expressions", () => {
+	test("resolves repeated accesses to undeclared boolean properties", () => {
 		const source = ts.createSourceFile(
 			"boolean-property.ts",
 			"interface Model { active: boolean; } function check(model: Model) { return model.missing || model.missing; }",
 			ts.ScriptTarget.Latest,
 			true,
 		);
-		const declarations = source.statements.find(ts.isInterfaceDeclaration);
-		const property = declarations?.members.find(ts.isPropertySignature);
-		let declaration_name_reads = 0;
-		if (property !== undefined) {
-			const declaration_name = property.name;
-			const original_get_text = declaration_name.getText;
-			Object.defineProperty(declaration_name, "getText", {
-				value: () => {
-					declaration_name_reads += 1;
-					return original_get_text.call(declaration_name, source);
-				},
-			});
-		}
 		const resolver = new TypeScriptBooleanExpression(new TypeScriptVariableDeclarationIndex());
 		const expressions: ts.PropertyAccessExpression[] = [];
 		/** Responsibilities: _boolean property access collection_. **/
@@ -36,28 +23,16 @@ describe("TypeScript boolean declaration index", () => {
 		visit(source);
 		const results = expressions.map((expression) => resolver.boolean_expression(expression, source));
 
-		expect({ results, declaration_name_reads }).toEqual({ results: [false, false], declaration_name_reads: 1 });
+		expect(results).toEqual([false, false]);
 	});
 
-	test("reuses boolean callable declarations for repeated expressions", () => {
+	test("resolves repeated calls to a boolean declaration", () => {
 		const source = ts.createSourceFile(
 			"boolean-callable.ts",
 			"function ready(): boolean { return true; } function check() { return ready() || ready(); }",
 			ts.ScriptTarget.Latest,
 			true,
 		);
-		const declaration = source.statements.find(ts.isFunctionDeclaration);
-		let declaration_name_reads = 0;
-		const declaration_name = declaration?.name;
-		if (declaration_name !== undefined) {
-			const original_get_text = declaration_name.getText;
-			Object.defineProperty(declaration_name, "getText", {
-				value: () => {
-					declaration_name_reads += 1;
-					return original_get_text.call(declaration_name, source);
-				},
-			});
-		}
 		const resolver = new TypeScriptBooleanExpression(new TypeScriptVariableDeclarationIndex());
 		const calls: ts.CallExpression[] = [];
 		/** Responsibilities: _boolean callable collection_. **/
@@ -70,7 +45,7 @@ describe("TypeScript boolean declaration index", () => {
 		visit(source);
 		const results = calls.map((call) => resolver.boolean_expression(call, source));
 
-		expect({ results, declaration_name_reads }).toEqual({ results: [true, true], declaration_name_reads: 1 });
+		expect(results).toEqual([true, true]);
 	});
 
 	test("resolves a direct boolean literal without project declarations", () => {

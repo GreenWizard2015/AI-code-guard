@@ -25,12 +25,16 @@ export class ContentRecord {
 		const words = this.word_count();
 		return `${words} words in ${this.line_count()} lines`;
 	}
+	public report(): void {
+		console.log(`${this.can_read()} ${this.summary()}`);
+	}
 }
 // File: cli.ts
 import { ContentRecord } from "src/content_record";
-(function () {
+
+(() => {
 	const record = new ContentRecord("hello world");
-	console.log(record.can_read(), record.summary());
+	record.report();
 })();
 ```
 
@@ -40,33 +44,38 @@ import { ContentRecord } from "src/content_record";
 // File: src/content_record.ts
 /** Responsibilities: _file readability_. **/
 export class ContentRecord {
-	private readonly content: string;
+	private readonly _content: string;
 	/** Responsibilities: _entry initialization_. **/
 	public constructor(content: string) {
-		this.content = content;
+		this._content = content;
 	}
 	/** Responsibilities: _word counting_. **/
 	public word_count(): number {
-		const normalized = this.content.trim();
+		const normalized = this._content.trim();
 		if (normalized.length === 0) {
 			return 0;
 		}
 		return normalized.split(/\s+/u).length;
 	}
 	/** Responsibilities: _line counting_. **/
-	public line_count(): number { return this.content.split(/\r?\n/u).length; }
+	public line_count(): number { return this._content.split(/\r?\n/u).length; }
 	/** Responsibilities: _readability check_. **/
-	public readable(): boolean { return this.content.trim().length > 0; }
+	public readable(): boolean { return this._content.trim().length > 0; }
 	/** Responsibilities: _content summary_. **/
 	public summary(): string {
 		const words = this.word_count();
 		return `${words} words in ${this.line_count()} lines`;
 	}
+	/** Responsibilities: _content report output_. **/
+	public report(): void {
+		console.log(`${this.readable()} ${this.summary()}`);
+	}
 }
 // File: cli.ts
 import { ContentRecord } from "src/content_record";
-(function () {
+
+(() => {
 	const record = new ContentRecord("hello world");
-	console.log(record.readable(), record.summary());
+	record.report();
 })();
 ```

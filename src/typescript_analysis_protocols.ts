@@ -1,44 +1,103 @@
-import type { TypeScriptTypeDetails } from "src/model/types";
-import type { LintFileNameContract, LintSourceRecord, TypeScriptTreeMetadata } from "src/source_types";
+import type { StaticArraySourceAppenderContract, StaticExpressionArrayContract } from "src/analysis_protocols";
+import type { ProxyRulesContract } from "src/analysis_protocols";
+import type { StringSetMap } from "src/analysis_types";
 import type {
-	TypeScriptPropertySide,
-	AstCallableNodeContract,
+	AstCallableNode,
 	AstClassField,
-	AstClassNodeContract,
+	AstClassNode,
 	AstResponsibilityTarget,
 	CallableReferenceIdentity,
-	CallbackCounts,
-	NormalizedAstFileContract,
-	RuleAppender,
-	RuleContextData,
-	TypeScriptAssignmentContext,
-} from "src/types";
-import type ts from "typescript";
-import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract, TypeScriptObjectAliasesContract } from "src/typescript_runtime_protocols";
-import type { LintStageTimerContract, LintProjectContextContract } from "src/shared_services_protocols";
+	NormalizedAstFile,
+} from "src/model/ast/normalized_ast_types";
+import type {
+	TypeScriptCallReferenceCollectorContract,
+	TypeScriptReferenceQuery,
+	TypeScriptReferenceResolutionContract,
+} from "src/model/protocols";
+import type { TypeScriptTypeDetails } from "src/model/types";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { StaticExpressionArrayContract, StaticArraySourceAppenderContract, StaticArrayExpressionOwnerContract } from "src/analysis_protocols";
-import type { StaticObjectBranchAppender, StaticObjectValueAppender, SourceLineResolver } from "src/runtime_types";
-import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
-import type { TypeScriptScriptRuleOptions, TypeScriptMetadataNodeVisitor } from "src/typescript_analysis_types";
-import type { StringSetMap } from "src/analysis_types";
+import type { DynamicRuntimeUsageContract } from "src/runtime_protocols";
+import type {
+	CallableSourceLineResolver,
+	CallableStaticObjectBranchAppender,
+	CallableStaticObjectValueAppender,
+} from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { LintSourceRecordData, TypeScriptTreeMetadata } from "src/source_types";
+import type { CallableRuleAppender, CallbackCounts, RuleContextContract, TypeScriptPropertySide } from "src/types";
+import type { CallableCallReferenceVisitor } from "src/typescript_analysis_types";
+import type {
+	TypeScriptAstTraversalContract,
+	TypeScriptExpressionAliasesContract,
+	TypeScriptObjectAliasDeclarationIndexContract,
+	TypeScriptTestNodeRulesContract,
+} from "src/typescript_runtime_protocols";
+import type ts from "typescript";
+
+/** Responsibilities: _module namespace import names_, _module dependency membership_. **/
+export interface ModuleNamespaceImportsContract {
+	names(source_file: ts.SourceFile): ReadonlySet<string>;
+	dependency(candidate: ts.NewExpression): boolean;
+}
+
+/** Responsibilities: _runtime imports_, _type imports_. **/
+export interface PlatformSourceImportScopeContract {
+	node_api_call(call: ts.CallExpression): boolean;
+	node_api_type(field: ts.PropertyDeclaration): boolean;
+	adapter_member(call: ts.CallExpression, field_name: string): boolean;
+}
+
+/** Responsibilities: _platform detector dependencies_. **/
+export type PlatformApiDetectorDependencies = {
+	readonly module_namespace_imports: ModuleNamespaceImportsContract;
+};
+
+/** Responsibilities: _platform API calls_, _module namespace imports_. **/
+export interface PlatformApiDetectionContract {
+	module_namespace_imports(): ModuleNamespaceImportsContract;
+	platform_call(call: ts.Node): boolean;
+	platform_adapter_call(call: ts.Node): boolean;
+}
+
+/** Responsibilities: _static expression value retrieval_. **/
+export type TypeScriptExpressionValueQuery = {
+	readonly expression: ts.Expression;
+};
+
+/** Responsibilities: _static array expression targets_. **/
+export type TypeScriptStaticArrayExpressionTarget = {
+	readonly values: ts.Expression[];
+};
+
+/** Responsibilities: _object property expansion_, _property access_. **/
+export interface StaticObjectPropertyExpansionContract {
+	found(): boolean;
+	properties(): readonly ts.ObjectLiteralElementLike[];
+	append_to(target: ts.ObjectLiteralElementLike[]): void;
+	merge(other: StaticObjectPropertyExpansionContract): StaticObjectPropertyExpansionContract;
+}
 
 /** Responsibilities: _expression structure_. **/
 export interface TypeScriptCallExpressionInspectorContract {
 	direct_value_expression(node: ts.Node): readonly ts.Expression[];
-	bind_target(node: ts.CallExpression): readonly ts.Node[];
+	bind_call(node: ts.Node): boolean;
+	bind_target(node: ts.CallExpression): readonly ts.Expression[];
 }
 
 /** Responsibilities: _TypeScript file scanning contract_. **/
 export interface TypeScriptFileScannerContract {
-	scan(
-		file_name: LintFileNameContract,
-		text: string,
-		ast_file: TypeScriptAstFileContract,
-		traversal: TypeScriptAstTraversalContract,
-		stage_timer: LintStageTimerContract,
-	): ViolationContract[];
-	scan_ignored(source: LintSourceRecord, stage_timer: LintStageTimerContract): ViolationContract[];
+	prepare_source(source: LintSourceRecordData, stage_timer: LintStageTimerContract): void;
+	scan_ignored(source: LintSourceRecordData, stage_timer: LintStageTimerContract): ViolationContract[];
+}
+
+/** Responsibilities: _module-level mutable collection diagnostics_. **/
+export interface TypeScriptHiddenGlobalStateContract {
+	append(violations: ViolationContract[], file: string): void;
+}
+
+/** Responsibilities: _class temporal coupling diagnostics_. **/
+export interface TypeScriptTemporalCouplingContract {
+	append_class(violations: ViolationContract[], file: string, node: ts.ClassDeclaration): void;
 }
 
 /** Responsibilities: _class field normalization_. **/
@@ -69,15 +128,20 @@ export interface TypeScriptStaticArrayValuesContract {
 
 /** Responsibilities: _structural array value expansion_, _composed expression sequences_. **/
 export interface TypeScriptStaticArrayStructureContract {
-	append(values: ts.Expression[], expression: ts.Expression, owner: StaticArrayExpressionOwnerContract): boolean;
-	sequence(expression: ts.Expression, owner: StaticArrayExpressionOwnerContract): StaticExpressionArrayContract;
+	append(values: ts.Expression[], expression: ts.Expression): boolean;
+	sequence(expression: ts.Expression): StaticExpressionArrayContract;
 }
 
 /** Responsibilities: _static object source resolution_. **/
 export interface TypeScriptStaticObjectSourcesContract {
 	append_properties(properties: ts.ObjectLiteralElementLike[], initializer: ts.Expression): boolean;
-	append_binding(initializer: ts.Expression, append_branch: StaticObjectBranchAppender): boolean;
+	append_binding(initializer: ts.Expression, append_branch: CallableStaticObjectBranchAppender): boolean;
 	append_source(objects: Map<string, ts.ObjectLiteralExpression>, name: string, initializer: ts.Expression): boolean;
+}
+
+/** Responsibilities: _object assignment expression classification_. **/
+export interface TypeScriptStaticObjectAssignmentClassifierContract {
+	object_assign_call(expression: ts.CallExpression): boolean;
 }
 
 /** Responsibilities: _static object value resolution_. **/
@@ -87,52 +151,40 @@ export interface TypeScriptStaticObjectValuesContract {
 		initializer: ts.ObjectLiteralExpression,
 		source_name: string,
 		seen: Set<ts.ObjectLiteralExpression>,
-		append_value: StaticObjectValueAppender,
+		append_value: CallableStaticObjectValueAppender,
 	): boolean;
 	append_value(name: string, current: ts.Expression): boolean;
 	append_object(name: string, current: ts.Expression): boolean;
 	property_value(object: ts.ObjectLiteralExpression, source_name: string): string;
 }
 
+/** Responsibilities: _static object property search_. **/
+export type TypeScriptStaticObjectPropertySearchOptions = {
+	readonly value_resolver: TypeScriptStaticObjectValuesContract;
+	readonly objects: Map<string, ts.ObjectLiteralExpression>;
+	readonly source_name: string;
+	readonly seen: Set<ts.ObjectLiteralExpression>;
+	readonly append_value: CallableStaticObjectValueAppender;
+};
+
 /** Responsibilities: _TypeScript declaration-prefix rule collection_. **/
 export interface TypeScriptScriptDeclarationRulesContract {
-	append_indexed_violations(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		declaration_candidates: readonly ts.Node[],
-	): void;
-}
-
-/** Responsibilities: _TypeScript inline-type rule collection_. **/
-export interface TypeScriptInlineRulesContract {
-	node_violations(file: string, source_file: ts.SourceFile, node: ts.Node): ViolationContract[];
-	append_node(violations: ViolationContract[], file: string, source_file: ts.SourceFile, node: ts.Node): void;
+	append(violations: ViolationContract[]): void;
 }
 
 /** Responsibilities: _TypeScript type-operation rule collection_. **/
 export interface TypeScriptTypeOperationsContract {
-	append_node_operation(violations: ViolationContract[], file: string, source_file: ts.SourceFile, node: ts.Node): void;
+	append_node_operation(node: ts.TypeNode, context: RuleContextContract): void;
 }
 
 /** Responsibilities: _TypeScript dictionary-return rule collection_. **/
 export interface TypeScriptDictionaryReturnsContract {
-	dictionary_return_info(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		index: TypeScriptAstNodeCollection,
-	): void;
+	append(violations: ViolationContract[]): void;
 }
 
 /** Responsibilities: _TypeScript repeated-branch rule collection_. **/
 export interface TypeScriptRepeatedBranchContract {
-	repeated_branch(violations: ViolationContract[], file: string, source_file: ts.SourceFile): void;
-}
-
-/** Responsibilities: _shared TypeScript script-rule services_. **/
-export interface TypeScriptScriptRuleServicesContract {
-	append_rules(options: TypeScriptScriptRuleOptions): void;
+	repeated_branch(violations: ViolationContract[]): void;
 }
 
 /** Responsibilities: _TypeScript singleton rule collection_. **/
@@ -142,14 +194,30 @@ export interface TypeScriptSingletonCollectorContract {
 
 /** Responsibilities: _TypeScript class node construction_. **/
 export interface TypeScriptClassNodesContract {
-	class_nodes(): AstClassNodeContract[];
-	interface_nodes(): AstClassNodeContract[];
+	append_node(node: ts.Node, declarations: AstClassNode[]): void;
+	declaration_nodes(): AstClassNode[];
 }
+
+/** Responsibilities: _class metadata node accumulation_. **/
+export type TypeScriptClassMetadataCollection = {
+	readonly nodes: AstClassNode[];
+	readonly node_factory: TypeScriptClassNodesContract;
+};
 
 /** Responsibilities: _TypeScript AST metadata construction_. **/
 export interface TypeScriptAstMetadataContract {
-	normalized(classes: AstClassNodeContract[], functions: AstCallableNodeContract[]): NormalizedAstFileContract;
+	normalized(classes: AstClassNode[], functions: AstCallableNode[]): NormalizedAstFile;
 }
+
+/** Responsibilities: _AST metadata dependencies_. **/
+export type TypeScriptAstMetadataOptions = {
+	readonly source_file: ts.SourceFile;
+	readonly call_reference_collector: TypeScriptCallReferenceCollectorContract;
+	readonly stage_timer: LintStageTimerContract;
+	readonly traversal: TypeScriptAstTraversalContract;
+	readonly declaration_index: TypeScriptObjectAliasDeclarationIndexContract;
+	readonly class_nodes: TypeScriptClassNodesContract;
+};
 
 /** Responsibilities: _TypeScript responsibility targets_. **/
 export interface TypeScriptResponsibilityTargetsContract {
@@ -171,6 +239,15 @@ export interface TypeScriptArrayDestructuredAliasesContract {
 /** Responsibilities: _result ownership_. **/
 export interface TypeScriptCallReturnAnalysisContract {
 	reference_owner(type: ts.TypeNode): string;
+	unwrapped_expression(expression: ts.Expression): ts.Expression;
+	unwrap_expression(expression: ts.Expression): ts.Expression[];
+}
+
+/** Responsibilities: _instance construction_, _reference type resolution_. **/
+export interface TypeScriptReferenceBindingContract {
+	new_expression_owner(expression: ts.NewExpression): string;
+	resolved_reference_name(type: ts.TypeNode): string;
+	new_instance(node: ts.VariableDeclaration, initializer: ts.Expression): boolean;
 }
 
 /** Responsibilities: _result values_. **/
@@ -187,10 +264,14 @@ export interface TypeScriptReferenceIdentityContract {
 
 /** Responsibilities: _TypeScript instance alias collection_. **/
 export interface TypeScriptInstanceAliasCollectorContract {
-	collect_variables(): void;
-	collect_parameters(): void;
 	collect_bindings(): void;
 }
+
+/** Responsibilities: _member variable aliases_. **/
+export type TypeScriptMemberAliasTarget = {
+	readonly aliases: StringSetMap;
+	readonly name: string;
+};
 
 /** Responsibilities: _member variable aliases_. **/
 export interface TypeScriptMemberVariableAliasesContract {
@@ -205,41 +286,45 @@ export interface TypeScriptStaticArrayValuesContract {
 	sequence(expression: ts.Expression): StaticExpressionArrayContract;
 }
 
-/** Responsibilities: _TypeScript node type rules_. **/
-export interface TypeScriptNodeTypeRulesContract {
-	append_type_rules(node: ts.Node, context: RuleContextData): void;
-}
-
-/** Responsibilities: _TypeScript class-node rule collection_. **/
-export interface TypeScriptClassNodeRulesContract {
-	append(node: ts.Node, context: RuleContextData): void;
-}
-
-/** Responsibilities: _assignment predicate classification_. **/
-export interface TypeScriptAssignmentPredicatesContract {
-	field_assignment(node: ts.Node, context: TypeScriptAssignmentContext): boolean;
-	primitive_assignment(node: ts.ConditionalExpression): boolean;
-}
-
 /** Responsibilities: _assignment value classification_. **/
 export interface TypeScriptAssignmentValuePredicatesContract {
 	operand_allowed(left: ts.Expression, right: ts.Expression, source_file: ts.SourceFile): boolean;
-	conditional_assignment(node: ts.Node): boolean;
-	logical_assignment(node: ts.Node): boolean;
 	primitive_expression(expression: ts.Expression): boolean;
 	enum_member_default(expression: ts.Expression): boolean;
 }
 
-/** Responsibilities: _array state rule classification_. **/
-export interface TypeScriptArrayStateRulesContract {
-	array_access(node: ts.Node, source_file: ts.SourceFile): boolean;
-	append(node: ts.Node, context: RuleContextData): void;
+/** Responsibilities: _assignment context classification_. **/
+export interface TypeScriptAssignmentContextContract {
+	conditional_assignment(node: ts.Node): boolean;
+	logical_assignment(node: ts.Node): boolean;
 }
 
-/** Responsibilities: _conditional rule aggregation_. **/
+/** Responsibilities: _concrete collaborator creation diagnostics_. **/
+export interface TypeScriptConcreteCollaboratorCreationContract {
+	append(): void;
+}
+
+/** Responsibilities: _conditional rule aggregation_, _conditional expression source context_. **/
+export type TypeScriptConditionalSource = {
+	readonly node: ts.Node;
+	readonly source_file: ts.SourceFile;
+};
+
+/** Responsibilities: _conditional rule operations_. **/
 export interface TypeScriptConditionalRulesContract {
-	append(node: ts.Node, source_file: ts.SourceFile, append_rule: RuleAppender): void;
-	append_if_block(node: ts.Node, append_rule: RuleAppender): void;
+	append(node: ts.Node, source_file: ts.SourceFile, append_rule: CallableRuleAppender): void;
+}
+
+/** Responsibilities: _nested expression containment_. **/
+export interface TypeScriptExpressionContainersContract {
+	nested(node: ts.Node): boolean;
+	contains(parent: ts.Node, child: ts.Node): boolean;
+}
+
+/** Responsibilities: _conditional parent lookup_. **/
+export interface TypeScriptConditionalParentIndexContract {
+	conditional_parent(node: ts.BinaryExpression): boolean;
+	statement_condition_parent(container: ts.Node, child: ts.Node): boolean;
 }
 
 /** Responsibilities: _terminal branch classification_. **/
@@ -250,8 +335,7 @@ export interface TypeScriptTerminalBranchesContract {
 
 /** Responsibilities: _union boundary rule aggregation_. **/
 export interface TypeScriptBoundaryRuleAppenderContract {
-	append(node: ts.Node, context: RuleContextData): void;
-	union_rules_apply(node: ts.Node): boolean;
+	append(node: ts.Node, context: RuleContextContract): void;
 }
 
 /** Responsibilities: _TypeScript boolean precedence classification_. **/
@@ -271,14 +355,6 @@ export interface TypeScriptImportedCallOwnersContract {
 	append_to(owners: Map<string, string>): void;
 }
 
-/** Responsibilities: _TypeScript class-field rule collection_. **/
-export interface TypeScriptClassFieldRulesContract {
-	missing_visibility(node: ts.Node, file: string): boolean;
-	mutable_field(node: ts.Node, file: string): boolean;
-	collect_fields(files: string[], repo_root: string): ViolationContract[];
-	context_fields(files: string[], repo_root: string, context: LintProjectContextContract): ViolationContract[];
-}
-
 /** Responsibilities: _TypeScript type-node classification_. **/
 export interface TypeScriptTypeNodeContract {
 	primitive(): boolean;
@@ -291,77 +367,100 @@ export interface TypeScriptVariableDeclarationIndexContract {
 	declarations_present(source_file: ts.SourceFile, name: string): boolean;
 }
 
-/** Responsibilities: _TypeScript node rule collection_. **/
-export interface TypeScriptNodeRulesContract {
-	append_node_rules(node: ts.Node, inside_constructor: boolean, context: RuleContextData): void;
-	append_mutable_rule(node: ts.Node, inside_constructor: boolean, context: RuleContextData): void;
-}
-
-/** Responsibilities: _TypeScript expression alias collection_. **/
-export interface TypeScriptExpressionAliasCollectorContract {
-	append_scope_aliases(
-		aliases: Set<string>,
-		node: ts.Node,
-		root: ts.Node,
-		object_aliases: TypeScriptObjectAliasesContract,
-	): boolean;
-	collect(scope: ts.Node): ReadonlySet<string>;
-}
-
-/** Responsibilities: _TypeScript member binding collection_. **/
-export interface TypeScriptMemberBindingContract {
-	member_name(expression: ts.Expression, source: ts.Node): string;
-	collect(scope: ts.Node): StringSetMap;
-}
-
-/** Responsibilities: _static array sources_. **/
-export interface TypeScriptStaticArraySourcesContract {
-	append_source(node: ts.VariableDeclaration): boolean;
-	append_assignment(name: string, expression: ts.Expression): boolean;
-	append_rest(name: string, values: StaticExpressionArrayContract): boolean;
-}
-
-/** Responsibilities: _static array bindings_. **/
-export interface TypeScriptStaticArrayExpressionBindingsContract {
-	append_binding(values: Map<string, string>, node: ts.VariableDeclaration): boolean;
-	append_assignment(node: ts.BinaryExpression): boolean;
-	append(values: Map<string, string>, node: ts.VariableDeclaration): boolean;
-}
-
-/** Responsibilities: _static expression bindings_. **/
-export interface TypeScriptStaticExpressionBindingsContract {
-	append_source(node: ts.VariableDeclaration): boolean;
-	append(values: Map<string, string>, node: ts.VariableDeclaration): boolean;
-	append_assignment(node: ts.BinaryExpression): boolean;
-}
+/** Responsibilities: _runtime node rule access_. **/
+export type TypeScriptNodeRuntimeRulesData = {
+	readonly platform_api: PlatformApiDetectionContract;
+	readonly this_aliases: TypeScriptExpressionAliasesContract;
+	readonly call_expression_inspector: TypeScriptCallExpressionInspectorContract;
+	readonly test_node_rules: TypeScriptTestNodeRulesContract;
+	readonly dynamic_runtime_usage: DynamicRuntimeUsageContract;
+	readonly proxy_rules: ProxyRulesContract;
+};
 
 /** Responsibilities: _TypeScript reference ownership resolution_. **/
 export interface TypeScriptReferenceOwnershipContract {
-	call_owner(expression: ts.Expression, current_owner: string): string;
-	property_owner(expression: ts.PropertyAccessExpression, current_owner: string): string;
+	resolve_reference(query: TypeScriptReferenceQuery): TypeScriptReferenceResolutionContract;
 	function_reference(expression: ts.Identifier): CallableReferenceIdentity;
-	method_reference(expression: ts.AccessExpression, current_owner: string): CallableReferenceIdentity;
-	method_owner(expression: ts.AccessExpression, current_owner: string): string;
 }
 
-/** Responsibilities: _boolean declaration lookup_. **/
+/** Responsibilities: _boolean declaration index_. **/
 export interface TypeScriptBooleanDeclarationIndexContract {
-	readonly boolean_properties: ReadonlySet<string>;
-	readonly boolean_callables: ReadonlySet<string>;
+	boolean_properties(): ReadonlySet<string>;
+	boolean_callables(): ReadonlySet<string>;
 	append(source_file: ts.SourceFile): void;
 }
 
 /** Responsibilities: _overload sibling name indexing_. **/
 export interface TypeScriptOverloadSiblingNamesContract {
 	append(node: ts.Node): void;
-	function_declaration_count(name: string): number;
-	implemented_method_count(name: string): number;
-	interface_method_count(name: string): number;
+	counts(name: string): TypeScriptOverloadSiblingCounts;
 }
+
+/** Responsibilities: _TypeScript class field usage_. **/
+export interface TypeScriptClassFieldAnalysisContract {
+	collect(): TypeScriptClassFieldReadIndex;
+}
+
+/** Responsibilities: _class field read indexes_. **/
+export type TypeScriptClassFieldReadIndex = {
+	readonly used_fields: ReadonlySet<string>;
+	readonly decision_fields: ReadonlySet<string>;
+	readonly error_context_fields: ReadonlySet<string>;
+};
+
+/** Responsibilities: _class decision field collection_. **/
+export interface TypeScriptClassDecisionFieldsContract {
+	collect(): TypeScriptClassDecisionFieldIndex;
+}
+
+/** Responsibilities: _class decision field index_. **/
+export type TypeScriptClassDecisionFieldIndex = {
+	readonly decision_fields: ReadonlySet<string>;
+	readonly error_context_fields: ReadonlySet<string>;
+};
+
+export type CallableTypeScriptAstNodeAction = (node: ts.Node) => void;
+
+/** Responsibilities: _TypeScript class field classification_. **/
+export interface TypeScriptClassFieldClassifierContract {
+	field(name: string): TypeScriptClassFieldClassification;
+	delegates_collection(): boolean;
+}
+
+export type TypeScriptClassFieldClassification = {
+	readonly data: boolean;
+	readonly scalar: boolean;
+	readonly collection: boolean;
+	readonly is_public: boolean;
+};
+
+/** Responsibilities: _TypeScript constructor assignment analysis_. **/
+export interface TypeScriptConstructorAssignmentsContract {
+	retains_dependency(): boolean;
+	retains_value_invariant(): boolean;
+}
+
+/** Responsibilities: _TypeScript constructor parameter classification_. **/
+export interface TypeScriptConstructorParametersContract {
+	parameter_names(): Set<string>;
+	uses_parameter(expression: ts.Expression, names: ReadonlySet<string>): boolean;
+	property_modifier(parameter: ts.ParameterDeclaration): boolean;
+}
+
+export type TypeScriptOverloadSiblingCounts = {
+	function_declarations: number;
+	implemented_methods: number;
+	interface_methods: number;
+};
 
 /** Responsibilities: _TypeScript tree metadata collection_. **/
 export interface TypeScriptTreeMetadataCollectorContract {
-	collect(line_for: SourceLineResolver, on_node: TypeScriptMetadataNodeVisitor): TypeScriptTreeMetadata;
+	collect(
+		line_for: CallableSourceLineResolver,
+		on_reference: CallableCallReferenceVisitor,
+		class_metadata: TypeScriptClassMetadataCollection,
+		stage_timer: LintStageTimerContract,
+	): TypeScriptTreeMetadata;
 }
 
 /** Responsibilities: _prototype alias scope resolution_. **/

@@ -1,14 +1,16 @@
-import type ts from "typescript";
-import type { ViolationContract } from "src/reporting_protocols";
+import type { AstParseIssue, AstTypeKind } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstParseIssue, AstTypeKind } from "src/types";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
-import type { ParseLanguage } from "src/types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { SyntaxContract } from "src/shared_services_protocols";
+import type { ParseLanguage } from "src/types";
+import type ts from "typescript";
 
 /** Responsibilities: _TypeScript syntax classification_, _diagnostics addition parsing_. **/
 export class Syntax implements SyntaxContract {
 	private readonly line_separator = "\n";
+	private readonly _type_kind_cache: WeakMap<ts.TypeNode, AstTypeKind>;
+	private readonly _syntax_issue_cache: WeakMap<ts.SourceFile, readonly ts.DiagnosticWithLocation[]>;
 
 	/** Responsibilities: _issue addition parsing_. **/
 	private append_parse_issue(
@@ -26,28 +28,48 @@ export class Syntax implements SyntaxContract {
 		);
 	}
 
+	/** Responsibilities: _syntax cache initialization_. **/
+	public constructor() {
+		this._type_kind_cache = new WeakMap();
+		this._syntax_issue_cache = new WeakMap();
+	}
+
 	/** Responsibilities: _source-file syntax issue access_. **/
 	public syntax_issues(source_file: ts.SourceFile): readonly ts.DiagnosticWithLocation[] {
+		const cached = this._syntax_issue_cache.get(source_file);
+		if (cached !== undefined) {
+			return cached;
+		}
 		const descriptor = Object.getOwnPropertyDescriptor(source_file, "parseDiagnostics");
 		if (descriptor === undefined) {
+			this._syntax_issue_cache.set(source_file, []);
 			return [];
 		}
 		if (!Array.isArray(descriptor.value)) {
+			this._syntax_issue_cache.set(source_file, []);
 			return [];
 		}
+		this._syntax_issue_cache.set(source_file, descriptor.value);
 		return descriptor.value;
 	}
 
 	/** Responsibilities: _classification TypeScript type node_. **/
 	public type_kind(node: ts.TypeNode): AstTypeKind {
+		const cached = this._type_kind_cache.get(node);
+		if (cached !== undefined) {
+			return cached;
+		}
 		const type_node = new TypeScriptTypeNode(node);
 		const details = type_node.details();
 		if (details.reference_name.length === 0) {
+			this._type_kind_cache.set(node, "basic");
 			return "basic";
 		}
-		if (details.reference_arguments.length) {
+		if (details.reference_arguments.length > 0) {
+			this._type_kind_cache.set(node, "generic");
 			return "generic";
 		}
+		this._type_kind_cache.set(node, "named");
 		return "named";
 	}
 

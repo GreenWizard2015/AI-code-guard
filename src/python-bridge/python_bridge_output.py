@@ -11,13 +11,13 @@ class PythonBridgeOutput:
 
     def _write_line(self, text: str) -> None:
         """Responsibilities: _response line writing_."""
-        self.output_stream.write(text)
-        self.output_stream.write("\n")
-        self.output_stream.flush()
+        self._output_stream.write(text)
+        self._output_stream.write("\n")
+        self._output_stream.flush()
 
     def __init__(self, output_stream: TextIO) -> None:
         """Responsibilities: _initialization response output stream_."""
-        self.output_stream: TextIO = output_stream
+        self._output_stream: TextIO = output_stream
 
     def serialized(self, result: JsonObject) -> str:
         """Responsibilities: _bridge result serialization_."""

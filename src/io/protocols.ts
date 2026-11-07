@@ -1,30 +1,16 @@
-/** Responsibilities: _file path lookup_. **/
-export interface FilePathContract {
-	path_exists(path: string): boolean;
-	symbolic_link(path: string): boolean;
-	real_path(path: string): string;
-	metadata(path: string): FileMetadataContract;
-}
-
-/** Responsibilities: _file content access_. **/
-export interface FileContentContract {
-	file_text(file: string): string;
-	write_text(file: string, text: string): void;
-	append_text(file: string, text: string): void;
-}
-
-/** Responsibilities: _file lifecycle operations_. **/
-export interface FileOperationsContract {
-	copy_file(source: string, destination: string): void;
-	move_file(source: string, destination: string): void;
-	remove_file(file: string): void;
-}
-
-/** Responsibilities: _file access_. **/
-export interface FileContract {
-	readonly file_paths: FilePathContract;
-	readonly file_content: FileContentContract;
-	readonly file_operations: FileOperationsContract;
+/** Responsibilities: _path-bound file access_, _file resource lifecycle_. **/
+export interface FileResourceContract {
+	path(): string;
+	path_exists(): boolean;
+	symbolic_link(): boolean;
+	real_path(): string;
+	metadata(): FileMetadata;
+	file_text(): string;
+	write_text(text: string): void;
+	append_text(text: string): void;
+	copy_to(destination: FileResourceContract): void;
+	move_to(destination: FileResourceContract): void;
+	remove_file(): void;
 }
 
 /** Responsibilities: _directory inspection_. **/
@@ -32,7 +18,7 @@ export interface DirectoryEntriesContract {
 	path_is_file(path: string): boolean;
 	path_is_directory(path: string): boolean;
 	list_files(directory: string): readonly string[];
-	list_entries(directory: string): readonly FileEntryContract[];
+	list_entries(directory: string): readonly FileEntry[];
 }
 
 /** Responsibilities: _directory lifecycle operations_. **/
@@ -44,25 +30,21 @@ export interface DirectoryOperationsContract {
 	remove_path(path: string): void;
 }
 
-/** Responsibilities: _directory access_. **/
-export interface DirectoryContract {
-	readonly directory_entries: DirectoryEntriesContract;
-	readonly directory_operations: DirectoryOperationsContract;
+/** Responsibilities: _file and directory access_. **/
+export interface IOContract extends DirectoryEntriesContract, DirectoryOperationsContract {
+	file(path: string): FileResourceContract;
 }
 
-/** Responsibilities: _file and directory access_. **/
-export interface IOContract extends FileContract, DirectoryContract {}
-
 /** Responsibilities: _directory entry type_. **/
-export interface FileEntryContract {
+export type FileEntry = {
 	readonly name: string;
 	readonly is_file: boolean;
 	readonly is_directory: boolean;
-}
+};
 
 /** Responsibilities: _file and directory metadata_. **/
-export interface FileMetadataContract {
+export type FileMetadata = {
 	readonly size: number;
 	readonly mtime_ms: number;
 	readonly ctime_ms: number;
-}
+};

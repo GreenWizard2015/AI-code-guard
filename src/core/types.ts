@@ -1,3 +1,4 @@
+import type { SpawnOptions } from "node:child_process";
 import {
 	MODULE_CLASS_KIND,
 	MODULE_CONSTANT_KIND,
@@ -5,23 +6,11 @@ import {
 	MODULE_VARIABLE_KIND,
 	PUBLIC_FIELD_KIND,
 } from "src/constants";
-import type { PythonProjectNames } from "src/model/types/types";
-import type { ProjectNamesContract } from "src/project_analysis_types";
-import type { LintInputFiles } from "src/project_analysis_types";
-import type { PythonSourceFilesContract } from "src/python_protocols";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { IOContract } from "src/io/protocols";
 import type {
-	CodingRuleLinterContract,
-	FileViolationCollectorContract,
-	LintProjectContextContract,
-	LintStageTimerContract,
-} from "src/shared_services_protocols";
-import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { PythonSourceAstBatch } from "src/types";
-import type {
-	AstCallableNodeContract,
+	AstCallableNode,
 	AstCallableReference,
-	AstClassNodeContract,
+	AstClassNode,
 	AstImportIssue,
 	AstLanguage,
 	AstLiteralConstant,
@@ -32,11 +21,36 @@ import type {
 	LineDepth,
 	NamedLine,
 	NamedSymbol,
-} from "src/types";
+	NormalizedAstFile,
+	PythonSourceAstBatch,
+} from "src/model/ast/normalized_ast_types";
+import type { PythonProjectNames } from "src/model_types";
+import type { LintAnalysisStage, LintInputFiles, LintRunResult, LintRunState } from "src/project_analysis_types";
+import type {
+	PythonAstDataContract,
+	PythonAstWorkerCapabilityContract,
+	PythonAstWorkerRegistryContract,
+	PythonAstWorkerSessionContract,
+	PythonSourceFilesContract,
+} from "src/python_protocols";
+import type {
+	LintRunAnalysisContract,
+	LintRunWorkerLifecycleContract,
+	ProjectAnalysisIdentityContract,
+} from "src/runtime_protocols";
+import type { LintRunConfigurationContract } from "src/runtime_protocols";
+import type {
+	CodingRuleLinterContract,
+	FileViolationCollectorContract,
+	LintProjectContextContract,
+	LintStageTimerContract,
+} from "src/shared_services_protocols";
+import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
+import type { UnusedCodeContract } from "src/source_protocols";
+import type { CliOptions } from "src/task_types";
 import type ts from "typescript";
 
 export type ContextProjectPaths = ReadonlySet<string>;
-
 export type FileLintRunOptions = {
 	files: string[];
 	repo_root: string;
@@ -44,10 +58,50 @@ export type FileLintRunOptions = {
 	context: LintProjectContextContract;
 	ignored_files: ReadonlySet<string>;
 	analysis_identity: ProjectAnalysisIdentityContract;
+	context_identity: string;
 	timers: readonly LintStageTimerContract[];
 	coding_rule_linter: CodingRuleLinterContract;
 	violation_collector: FileViolationCollectorContract;
 };
+
+export type FileLintAnalysisOptions = {
+	state: LintRunState;
+	stage_timer: LintStageTimerContract;
+	analysis_identity: ProjectAnalysisIdentityContract;
+	context_identity: string;
+	file_io: IOContract;
+	source_io: ProjectSourceIOContract;
+};
+
+export type GlobalAnalysisRunOptions = {
+	stage: LintAnalysisStage;
+	analysis_identity: ProjectAnalysisIdentityContract;
+	file_io: IOContract;
+};
+
+export type ProjectLintSessionDependencies = {
+	lint_run_factory: LintRunConfigurationContract;
+	file_io: IOContract;
+	source_io: ProjectSourceIOContract;
+	analysis_identity: ProjectAnalysisIdentityContract;
+};
+
+/** Responsibilities: _project lint execution inputs_. **/
+
+export type ProjectLintExecutionOptions = {
+	readonly lint_run_factory: LintRunConfigurationContract;
+	readonly file_io: IOContract;
+	readonly source_io: ProjectSourceIOContract;
+	readonly analysis_identity: ProjectAnalysisIdentityContract;
+	readonly options: CliOptions;
+	readonly stage_timer: LintStageTimerContract;
+	readonly unused_code: UnusedCodeContract;
+};
+
+/** Responsibilities: _project execution contract_. **/
+export interface ProjectLintExecutionContract {
+	run(): LintRunResult;
+}
 
 export const UNUSED_SYMBOL_KIND = {
 	Class: MODULE_CLASS_KIND,
@@ -75,8 +129,10 @@ export type UnusedSymbolDefinitionCollection = {
 	by_file: Map<string, UnusedSymbolDefinition[]>;
 };
 
+export type UnusedImporterNameBuckets = Map<string, UnusedSymbolDefinition[]>;
+export type UnusedImporterDefinitionBuckets = Map<string, UnusedImporterNameBuckets>;
+
 export type UnusedSymbolNameBuckets = Map<string, UnusedSymbolDefinition[]>;
-export type UnusedSymbolFileBuckets = Map<string, UnusedSymbolNameBuckets>;
 
 export type UnusedDefinitionMatches = readonly UnusedSymbolDefinition[];
 export type UnusedSourceDefinitionCache = Map<string, UnusedDefinitionMatches>;
@@ -89,16 +145,9 @@ export type UnusedFieldOwner = { file: string; owner: string };
 export type UnusedFieldOwnerRecord = { file: string; owner: string; source_file: string };
 export type UnusedFieldOwnerIndex = Map<string, UnusedFieldOwnerRecord[]>;
 export type UnusedTypeFieldIndex = Map<string, UnusedFieldOwner[]>;
-export type UnusedReceiverTypeByName = Map<string, string>;
-export type UnusedReceiverTypeCache = WeakMap<ts.SourceFile, UnusedReceiverTypeByName>;
 export type UnusedParameterInterval = { start: number; end: number };
 export type UnusedParameterIntervalIndex = Map<string, UnusedParameterInterval[]>;
 export type UnusedParameterIntervalCache = WeakMap<ts.SourceFile, UnusedParameterIntervalIndex>;
-
-export type PythonSourceBatchPreparation = {
-	source_files: PythonSourceFilesContract;
-	batch: PythonSourceAstBatch;
-};
 
 export type ProjectContextAssemblyOptions = {
 	repo_root: string;
@@ -106,15 +155,67 @@ export type ProjectContextAssemblyOptions = {
 	texts: ReadonlyMap<string, string>;
 	source_files: Map<string, ts.SourceFile>;
 	python_batch: PythonSourceBatchPreparation;
+	source_preparation: ProjectSourcePreparationContract;
 	stage_timer: LintStageTimerContract;
 	virtual_project: boolean;
 	source_io: ProjectSourceIOContract;
 };
 
+export type SourceRecordCreationOptions = {
+	repo_root: string;
+	files: string[];
+	texts: ReadonlyMap<string, string>;
+	source_files: Map<string, ts.SourceFile>;
+	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	source_io: ProjectSourceIOContract;
+};
+
+export type LintProjectContextSnapshot = {
+	repo_root: string;
+	files: readonly string[];
+	texts: ReadonlyMap<string, string>;
+	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	source_io: ProjectSourceIOContract;
+};
+
+export type ProjectContextSourcePreparationOptions = {
+	repo_root: string;
+	files: string[];
+	texts: ReadonlyMap<string, string>;
+	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	source_io: ProjectSourceIOContract;
+};
+
+export type PythonSourceBatchPreparation = {
+	source_files: PythonSourceFilesContract;
+	batch: PythonSourceAstBatch;
+};
+
+/** Responsibilities: _project language source preparation_, _AST batch completion_. **/
+export interface ProjectSourcePreparationContract {
+	typescript_source_files(): Map<string, ts.SourceFile>;
+	begin_python_ast(): PythonSourceBatchPreparation;
+	complete_python_ast(preparation: PythonSourceBatchPreparation): ReadonlyMap<string, NormalizedAstFile>;
+}
+
+export type ProjectSourcePreparationOptions = {
+	files: string[];
+	texts: ReadonlyMap<string, string>;
+	repo_root: string;
+	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	python_ast_parser: PythonAstDataContract;
+};
+
 export type ProjectTextSnapshotOptions = {
 	repo_root: string;
 	files: string[];
+	ignore_files: readonly string[];
 	provided_texts: ReadonlyMap<string, string>;
+	configuration_snapshot_complete: boolean;
 	stage_timer: LintStageTimerContract;
 	virtual_project: boolean;
 	source_io: ProjectSourceIOContract;
@@ -126,24 +227,69 @@ export type LintReportOptions = {
 	stage_timer: LintStageTimerContract;
 	inputs: LintInputFiles;
 	source_texts: ReadonlyMap<string, string>;
+	configuration_snapshot_complete: boolean;
 	entry_files: readonly string[];
 };
 
-export type LintProjectAnalysis = {
-	context: LintProjectContextContract;
-	project_names: ProjectNamesContract;
+export type LintRunStateContextOptions = {
+	report: LintReportOptions;
+	mode: LintReportMode;
+	input_file_selector: LintInputFileSelectorContract;
+	python_parser: PythonAstDataContract;
+	analysis_identity: ProjectAnalysisIdentityContract;
+	file_io: IOContract;
+	source_io: ProjectSourceIOContract;
 };
 
-export type AstModelEmptySourceFields = {
+/** Responsibilities: _worker session state_, _parser capability ownership_. **/
+export type LintRunWorkerSessionState = {
+	readonly session: PythonAstWorkerSessionContract;
+	readonly worker: PythonAstWorkerCapabilityContract;
+	readonly parser: PythonAstDataContract;
+};
+
+/** Responsibilities: _worker registry inputs_, _parser initialization_. **/
+export type LintRunWorkerLifecycleOptions = {
+	readonly registry: PythonAstWorkerRegistryContract;
+	readonly worker_arguments: string[];
+	readonly worker_options: SpawnOptions;
+	readonly analysis_identity: ProjectAnalysisIdentityContract;
+	readonly file_io: IOContract;
+	readonly cache_enabled: boolean;
+};
+
+/** Responsibilities: _lint analysis dependencies_, _worker lifecycle access_. **/
+export type LintRunConfigurationDependencies = {
+	readonly input_file_selector: LintInputFileSelectorContract;
+	readonly lint_run_analysis: LintRunAnalysisContract;
+	readonly analysis_identity: ProjectAnalysisIdentityContract;
+	readonly file_io: IOContract;
+	readonly source_io: ProjectSourceIOContract;
+};
+
+export type LintRunConfigurationAssemblyResult = {
+	readonly dependencies: LintRunConfigurationDependencies;
+	readonly worker_lifecycle: LintRunWorkerLifecycleContract;
+};
+
+/** Responsibilities: _lint configuration dependency contract_. **/
+export interface LintRunConfigurationAssemblyContract {
+	assemble(): LintRunConfigurationAssemblyResult;
+}
+
+export type AstModelSourceData = {
 	language: AstLanguage;
-	classes: AstClassNodeContract[];
-	functions: AstCallableNodeContract[];
+	classes: AstClassNode[];
+	functions: AstCallableNode[];
 	parse_issues: AstParseIssue[];
 	import_issues: AstImportIssue[];
+};
+
+export type AstModelAttributeAccessData = {
 	attribute_accesses: LineDepth[];
 };
 
-export type AstModelEmptyReferenceFields = {
+export type AstModelReferenceData = {
 	symbol_references: NamedLine[];
 	literal_references: AstLiteralReference[];
 	literal_constants: AstLiteralConstant[];
@@ -152,6 +298,15 @@ export type AstModelEmptyReferenceFields = {
 	named_symbols: NamedSymbol[];
 	type_declarations: NamedLine[];
 	reference_aliases: AstReferenceAlias[];
+};
+
+export type AstModelEmptySourceFields = {
+	source: AstModelSourceData;
+	references: AstModelAttributeAccessData;
+};
+
+export type AstModelEmptyReferenceFields = {
+	references: AstModelReferenceData;
 };
 
 export enum LintReportMode {

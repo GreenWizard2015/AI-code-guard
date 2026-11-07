@@ -1,18 +1,18 @@
-import ts from "typescript";
+import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 import { AstNamespaceTypeImports } from "src/rules/typescript/syntax-rules/ast/ast_namespace_type_imports";
 import { AstPropertySourceGraph } from "src/rules/typescript/syntax-rules/ast/ast_property_source_graph";
 import type { AstPropertySourceGraphContract, AstPropertySourceIndexContract } from "src/source_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import type { AstNamespaceTypeImportsContract, AstPropertySourcesContract } from "src/source_protocols";
-import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
+import type { SourceFileResolver } from "src/source_types";
+import ts from "typescript";
 
 /** Responsibilities: _declaration sources_, _import sources_. **/
 export class AstPropertySources implements AstPropertySourcesContract {
-	private readonly declarations: Map<string, ts.Declaration>;
-	private readonly unknown_type = ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
-	private readonly graph: AstPropertySourceGraphContract;
-	private readonly namespace_imports: AstNamespaceTypeImportsContract;
-	private readonly module_exports: TypeScriptPropertyModuleResolverContract;
+	private readonly _declarations: Map<string, ts.Declaration>;
+	private readonly _unknown_type: ts.KeywordTypeNode;
+	private readonly _graph: AstPropertySourceGraphContract;
+	private readonly _namespace_imports: AstNamespaceTypeImportsContract;
+	private readonly _module_exports: TypeScriptPropertyModuleResolverContract;
 
 	/** Responsibilities: _imported declaration key_. **/
 	private element_name(element: ts.ImportSpecifier): string {
@@ -23,9 +23,9 @@ export class AstPropertySources implements AstPropertySourcesContract {
 	}
 
 	/** Responsibilities: _statement declaration key_. **/
-	private resolved_key(source: ts.SourceFile, module_name: string, imported_name: string): string {
-		const module = this.module_exports.module_symbol(source.fileName, module_name);
-		const resolved = this.module_exports.resolve(module, imported_name);
+	private resolved_key(resolution_source: ts.SourceFile, module_name: string, imported_name: string): string {
+		const module = this._module_exports.module_symbol(resolution_source.fileName, module_name);
+		const resolved = this._module_exports.resolve({ file: module, name: imported_name });
 		if (resolved.file.length === 0) {
 			return "";
 		}
@@ -33,25 +33,25 @@ export class AstPropertySources implements AstPropertySourcesContract {
 	}
 
 	/** Responsibilities: _statement declaration key_. **/
-	private statement_key(source: ts.SourceFile, statement: ts.Statement, name: string): string {
-		const module_name = this.import_module(statement);
+	private statement_key(statement_source: ts.SourceFile, import_statement: ts.Statement, local_name: string): string {
+		const module_name = this.import_module(import_statement);
 		if (module_name.length === 0) {
 			return "";
 		}
-		for (const element of this.import_elements(statement)) {
+		for (const element of this.import_elements(import_statement)) {
 			const imported_name = this.element_name(element);
-			if (element.name.text !== name) {
+			if (element.name.text !== local_name) {
 				continue;
 			}
-			return this.resolved_key(source, module_name, imported_name);
+			return this.resolved_key(statement_source, module_name, imported_name);
 		}
 		return "";
 	}
 
 	/** Responsibilities: _imported declaration key_. **/
-	private imported_key(source: ts.SourceFile, name: string): string {
-		for (const statement of source.statements) {
-			const key = this.statement_key(source, statement, name);
+	private imported_key(import_source: ts.SourceFile, imported_local_name: string): string {
+		for (const import_statement of import_source.statements) {
+			const key = this.statement_key(import_source, import_statement, imported_local_name);
 			if (key.length > 0) {
 				return key;
 			}
@@ -95,34 +95,35 @@ export class AstPropertySources implements AstPropertySourcesContract {
 		module_exports: TypeScriptPropertyModuleResolverContract,
 		source_index: AstPropertySourceIndexContract,
 	) {
-		this.declarations = new Map<string, ts.Declaration>();
-		this.module_exports = module_exports;
-		this.graph = new AstPropertySourceGraph(
+		this._unknown_type = ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
+		this._declarations = new Map<string, ts.Declaration>();
+		this._module_exports = module_exports;
+		this._graph = new AstPropertySourceGraph(
 			source_file,
-			this.declarations,
-			this.module_exports,
+			this._declarations,
+			this._module_exports,
 			source_resolver,
 			source_index,
 		);
-		this.namespace_imports = new AstNamespaceTypeImports(source_file, this.module_exports);
+		this._namespace_imports = new AstNamespaceTypeImports(source_file, this._module_exports);
 	}
 
 	/** Responsibilities: _declaration key resolution_. **/
 	public declaration_key(file: string, name: string): string {
 		const local_key = `${file}\u0000${name}`;
-		if (this.graph.declaration(local_key).found()) {
+		if (this._graph.declaration(local_key).found()) {
 			return local_key;
 		}
-		const namespace_key = this.namespace_imports.key(name);
+		const namespace_key = this._namespace_imports.key(name);
 		if (namespace_key.length > 0) {
 			return namespace_key;
 		}
-		return this.imported_key(this.graph.source(file), name);
+		return this.imported_key(this._graph.source(file), name);
 	}
 
 	/** Responsibilities: _binding type resolution_. **/
 	public binding_type(identifier: ts.Identifier): ts.TypeNode {
-		return this.graph.binding_type(identifier, this.unknown_type);
+		return this._graph.binding_type(identifier, this._unknown_type);
 	}
 
 	/** Responsibilities: _checking declaration availability_. **/
@@ -130,7 +131,7 @@ export class AstPropertySources implements AstPropertySourcesContract {
 		if (!key.includes("\u0000")) {
 			return false;
 		}
-		const declaration = this.graph.declaration(key);
+		const declaration = this._graph.declaration(key);
 		if (!declaration.found()) {
 			return false;
 		}
@@ -145,7 +146,7 @@ export class AstPropertySources implements AstPropertySourcesContract {
 		if (!key.includes("\u0000")) {
 			throw new Error(`Invalid AST property declaration key: ${key}`);
 		}
-		const declaration = this.graph.declaration(key);
+		const declaration = this._graph.declaration(key);
 		if (!declaration.found()) {
 			throw new Error(`AST property declaration is unavailable: ${key}`);
 		}

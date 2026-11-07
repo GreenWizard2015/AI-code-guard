@@ -17,48 +17,60 @@ constant only for genuinely shared configuration.
 
 
 ```python
-from typing import ClassVar
+# File: src/user_session.py
 class UserSession:
-    sessions: ClassVar[list[str]] = []  # <- error
+    def __init__(self) -> None:
+        self._account_id: str = "account-1"
+
+    def refresh(self) -> str:
+        return f"refreshed {self._account_id}"
+
+    def close(self) -> str:
+        return f"closed {self._account_id}"
+
+    def status_label(self) -> str:
+        return f"Account {self._account_id}"
+
+    def report(self) -> None:
+        print(f"{self.refresh()} | {self.close()} | {self.status_label()}")
+
+SESSION = UserSession()  # <- error
+# File: cli.py
+from src.user_session import SESSION
+
+if __name__ == "__main__":
+    SESSION.report()
 ```
 
 ## Good
 
 
 ```python
-# File: src/protocols.py
-from typing import Protocol
-class UserSessionContract(Protocol):
-    """Responsibilities: _session contract_, _lifecycle boundary_."""
-    def refresh(self) -> str: ...
-    def close(self) -> str: ...
-    def status_label(self) -> str: ...
 # File: src/user_session.py
-#!/usr/bin/env python3
-from logging import Logger, getLogger
-from src.protocols import UserSessionContract
-class UserSession(UserSessionContract):
-    """Responsibilities: _account identity_, _session state_."""
-    def __init__(self, logger: Logger, account_id: str) -> None:
-        """Responsibilities: _session initialization_."""
-        self.logger: Logger = logger
-        self.account_id: str = account_id
+class UserSession:
+    def __init__(self, account_id: str) -> None:
+        self._account_id: str = account_id
+
     def refresh(self) -> str:
-        """Responsibilities: _account validation_."""
-        account = self.account_id.strip()
-        if len(account) == 0: return "invalid"
-        self.logger.info(f"refresh {account}")
+        account = self._account_id.strip()
+        if len(account) == 0:
+            return "invalid"
         return "refreshed"
+
     def close(self) -> str:
-        """Responsibilities: _session closure_."""
-        self.logger.info(f"close {self.account_id}")
-        return "closed"
+        return f"closed {self._account_id.strip()}"
+
     def status_label(self) -> str:
-        """Responsibilities: _session status_."""
-        account = self.account_id.strip()
-        if len(account) == 0: return "unavailable"
+        account = self._account_id.strip()
+        if len(account) == 0:
+            return "unavailable"
         return f"Account {account}"
+    def report(self) -> None:
+        print(f"{self.refresh()} | {self.close()} | {self.status_label()}")
+# File: cli.py
+from src.user_session import UserSession
+
 if __name__ == "__main__":
-    session = UserSession(getLogger("sessions"), "account-1")
-    print(session.refresh(), session.close(), session.status_label())
+    session = UserSession("account-1")
+    session.report()
 ```

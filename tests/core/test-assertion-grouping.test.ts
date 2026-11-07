@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { COMPLEX_ASSERTION_FILES } from "tests/bridge/ts/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -9,7 +9,7 @@ describe("assertion grouping in project tests", () => {
 	test("groups related Jest expectations and suggests splitting oversized Jest tests", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/result.test.ts": [
 					"describe('result', () => {",
@@ -29,14 +29,14 @@ describe("assertion grouping in project tests", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-assertion-grouping")).toHaveLength(2);
-		expect(violations.filter((item) => item.rule_id === "test-too-many-assertions")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "test-assertion-grouping")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "test-too-many-assertions")).toHaveLength(1);
 	});
 
 	test("groups related unittest assertions and identifies unsafe assertion aliases", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/result_test.py": [
 					"import unittest",
@@ -87,9 +87,9 @@ describe("assertion grouping in project tests", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			grouping: violations.filter((item) => item.rule_id === "test-assertion-grouping").length,
-			unsafe_aliases: violations.filter((item) => item.rule_id === "python-test-assertion-alias").length,
-			complexity: violations.filter((item) => item.rule_id === "test-too-many-assertions").length,
+			grouping: violations.filter((item) => item.rule_id() === "test-assertion-grouping").length,
+			unsafe_aliases: violations.filter((item) => item.rule_id() === "python-test-assertion-alias").length,
+			complexity: violations.filter((item) => item.rule_id() === "test-too-many-assertions").length,
 		}).toEqual({ grouping: 4, unsafe_aliases: 4, complexity: 1 });
 	});
 });

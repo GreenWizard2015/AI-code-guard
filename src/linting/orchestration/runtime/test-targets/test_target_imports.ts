@@ -1,22 +1,22 @@
+import type { AstPythonImport, TestTargetImport } from "src/model/ast/normalized_ast_types";
 import ts from "typescript";
-import type { AstPythonImport, TestTargetImport } from "src/types";
 
 /** Responsibilities: _import usage indexing_, _test import extraction_. **/
 export class TestTargetImports {
-	private readonly usage_counts: Map<string, number>;
+	private readonly _usage_counts: Map<string, number>;
 
 	/** Responsibilities: _import usage count_. **/
 	private increment_usage(name: string): void {
-		let count = this.usage_counts.get(name);
+		let count = this._usage_counts.get(name);
 		if (count === undefined) {
 			count = 0;
 		}
-		this.usage_counts.set(name, count + 1);
+		this._usage_counts.set(name, count + 1);
 	}
 
 	/** Responsibilities: _imported name count_. **/
 	private usage_count(name: string): number {
-		const count = this.usage_counts.get(name);
+		const count = this._usage_counts.get(name);
 		if (count === undefined) {
 			return 0;
 		}
@@ -62,69 +62,52 @@ export class TestTargetImports {
 		return false;
 	}
 
-	/** Responsibilities: _default import recording_. **/
-	private append_default_import(clause: ts.ImportClause, specifier: string, imports: TestTargetImport[]): void {
+	/** Responsibilities: _default import extraction_. **/
+	private default_import(clause: ts.ImportClause, specifier: string): TestTargetImport[] {
 		if (clause.name === undefined) {
-			return;
+			return [];
 		}
-		imports.push({ specifier, names: ["default"], usage_count: this.usage_count(clause.name.text) });
+		return [{ specifier, names: ["default"], usage_count: this.usage_count(clause.name.text) }];
 	}
 
-	/** Responsibilities: _named import recording_. **/
-	private append_named_imports(bindings: ts.NamedImports, specifier: string, imports: TestTargetImport[]): void {
-		for (const element of bindings.elements) {
-			if (element.isTypeOnly) {
-				continue;
-			}
-			let imported_name = element.name.text;
-			if (element.propertyName !== undefined) {
-				imported_name = element.propertyName.text;
-			}
-			imports.push({
-				specifier,
-				names: [imported_name],
-				usage_count: this.usage_count(element.name.text),
-			});
-		}
-	}
-
-	/** Responsibilities: _named imported binding collection_. **/
-	private append_import_bindings(clause: ts.ImportClause, specifier: string, imports: TestTargetImport[]): void {
+	/** Responsibilities: _named import extraction_. **/
+	private named_imports(clause: ts.ImportClause, specifier: string): TestTargetImport[] {
 		const bindings = clause.namedBindings;
-		if (bindings === undefined) {
-			return;
+		if (bindings === undefined || !ts.isNamedImports(bindings)) {
+			return [];
 		}
-		if (!ts.isNamedImports(bindings)) {
-			return;
-		}
-		this.append_named_imports(bindings, specifier, imports);
+		return bindings.elements
+			.filter((element) => !element.isTypeOnly)
+			.map((element) => {
+				let imported_name = element.name.text;
+				if (element.propertyName !== undefined) {
+					imported_name = element.propertyName.text;
+				}
+				return {
+					specifier,
+					names: [imported_name],
+					usage_count: this.usage_count(element.name.text),
+				};
+			});
 	}
 
-	/** Responsibilities: _runtime import details_. **/
-	private append_runtime_import(statement: ts.Statement, imports: TestTargetImport[]): void {
+	/** Responsibilities: _runtime import extraction_. **/
+	private runtime_imports(statement: ts.Statement): TestTargetImport[] {
 		if (!ts.isImportDeclaration(statement)) {
-			return;
+			return [];
 		}
 		if (!ts.isStringLiteral(statement.moduleSpecifier)) {
-			return;
+			return [];
 		}
 		const clause = statement.importClause;
 		if (clause === undefined) {
-			return;
+			return [];
 		}
 		if (clause.isTypeOnly) {
-			return;
+			return [];
 		}
 		const specifier = statement.moduleSpecifier.text;
-		this.append_default_import(clause, specifier, imports);
-		this.append_import_bindings(clause, specifier, imports);
-	}
-
-	/** Responsibilities: _import declaration collection_. **/
-	private declaration_import(statement: ts.Statement): TestTargetImport[] {
-		const imports: TestTargetImport[] = [];
-		this.append_runtime_import(statement, imports);
-		return imports;
+		return [...this.default_import(clause, specifier), ...this.named_imports(clause, specifier)];
 	}
 
 	/** Responsibilities: _Python import usage indexing_. **/
@@ -163,19 +146,19 @@ export class TestTargetImports {
 
 	/** Responsibilities: _target usage index initialization_. **/
 	public constructor() {
-		this.usage_counts = new Map<string, number>();
+		this._usage_counts = new Map<string, number>();
 	}
 
 	/** Responsibilities: _TypeScript target imports_. **/
 	public typescript(source: ts.SourceFile): TestTargetImport[] {
-		this.usage_counts.clear();
+		this._usage_counts.clear();
 		this.append_typescript_usages(source);
-		return source.statements.flatMap((statement) => this.declaration_import(statement));
+		return source.statements.flatMap((statement) => this.runtime_imports(statement));
 	}
 
 	/** Responsibilities: _Python target imports_. **/
 	public python(imports: readonly AstPythonImport[], source_text: string): TestTargetImport[] {
-		this.usage_counts.clear();
+		this._usage_counts.clear();
 		this.append_python_usage(source_text);
 		return this.python_imports(imports);
 	}

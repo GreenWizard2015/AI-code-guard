@@ -3,24 +3,29 @@
 from __future__ import annotations
 
 import statistics
+from typing import TextIO
+
 from performance.constants import (
+    NO_PERFORMANCE_SNAPSHOTS_MESSAGE,
     PERFORMANCE_SUMMARY_TITLE,
     PYTHON_FILES_KEY,
     PYTHON_LABEL,
     STAGE_LABEL,
+    TOTAL_FILES_LABEL,
     TYPESCRIPT_FILES_KEY,
     TYPESCRIPT_LABEL,
-    TOTAL_FILES_LABEL,
     WITH_CACHE_LABEL,
     WITHOUT_CACHE_LABEL,
 )
 from performance.performance_snapshot_files import PerformanceSnapshotFiles
-from performance.protocols import PerformanceSnapshotIOContract, PerformanceSnapshotsContract
-from performance.constants import NO_PERFORMANCE_SNAPSHOTS_MESSAGE
+from performance.protocols import (
+    PerformanceSnapshotIOContract,
+    PerformanceSnapshotsContract,
+)
 
 
 class PerformanceReport:
-    """Responsibilities: _snapshot discovery_, _report aggregation_, _markdown rendering_."""
+    """Responsibilities: _snapshot discovery_, _report aggregation_, _markdown rendering_, _report result delivery_."""
 
     def _header(self, file_counts: dict[str, int]) -> list[str]:
         """Responsibilities: _performance summary header rendering_."""
@@ -69,12 +74,15 @@ class PerformanceReport:
 
     def __init__(self, inputs: list[str], file_io: PerformanceSnapshotIOContract) -> None:
         """Responsibilities: _performance report input initialization_."""
-        self.inputs: list[str] = inputs
-        self.file_io: PerformanceSnapshotIOContract = file_io
+        self._inputs: list[str] = list(inputs)
+        self._file_io: PerformanceSnapshotIOContract = file_io
 
     def markdown(self) -> str:
         """Responsibilities: _performance summary markdown rendering_."""
-        source = PerformanceSnapshotFiles(self.file_io.snapshot_paths(self.inputs), self.file_io)
+        source = PerformanceSnapshotFiles(
+            self._file_io.snapshot_paths(list(self._inputs)),
+            self._file_io,
+        )
         if not source.source_available():
             raise ValueError(NO_PERFORMANCE_SNAPSHOTS_MESSAGE)
         snapshots = source.collection()
@@ -82,6 +90,12 @@ class PerformanceReport:
         rows.extend(self._rows(snapshots))
         return "\n".join(rows) + "\n"
 
-    def snapshots_available(self) -> bool:
-        """Responsibilities: _performance snapshot availability_."""
-        return len(self.file_io.snapshot_paths(self.inputs)) > 0
+    def write_report(self, output: TextIO, errors: TextIO) -> int:
+        """Responsibilities: _performance report output_."""
+        try:
+            markdown = self.markdown()
+        except ValueError as error:
+            errors.write(f"{error}\n")
+            return 1
+        output.write(markdown)
+        return 0

@@ -6,7 +6,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 
 describe("review hook command authorization", () => {
 	test("rejects every Git command during review", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const commands = [
 			"git status",
 			"git diff",
@@ -19,7 +19,7 @@ describe("review hook command authorization", () => {
 	});
 
 	test("rejects Git pathspec and archive access attempts", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			pathspec_flags: policy.read_only("git diff -- --no-pager --no-ext-diff --no-textconv"),
 			options_before_pathspec: policy.read_only("git --no-pager diff --no-ext-diff --no-textconv -- src/file.ts"),
@@ -28,7 +28,7 @@ describe("review hook command authorization", () => {
 	});
 
 	test("rejects removed interpreter and file-search commands", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			sed_execution: policy.read_only("sed -n '1e rm -- .ai-code-guard/review/finding.md' package.json"),
 			find_output: policy.read_only("find . -fls /absolute/path/file"),
@@ -39,7 +39,7 @@ describe("review hook command authorization", () => {
 	});
 
 	test("allows read-only sed and awk line printing", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			sed: policy.read_only("sed -n '1,20p' package.json"),
 			awk: policy.read_only("awk 'NR <= 20 { print }' package.json"),
@@ -48,7 +48,7 @@ describe("review hook command authorization", () => {
 	});
 
 	test("allows read-only grep and absolute paths", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			bare: policy.read_only("grep -n review-agent src/core/support/task/review-agent"),
 			absolute: policy.read_only("/usr/bin/grep -n review-agent src/core/support/task/review-agent"),
@@ -60,12 +60,12 @@ describe("review hook command authorization", () => {
 	});
 
 	test("rejects project-local executables that only reuse a trusted basename", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect(policy.read_only("/tmp/cat package.json")).toBe(false);
 	});
 
 	test("rejects write-capable awk programs", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const commands = [
 			"awk '{ system(\"rm -f finding.md\") }' package.json",
 			"awk '{ print > \"output.txt\" }' package.json",
@@ -75,7 +75,7 @@ describe("review hook command authorization", () => {
 	});
 
 	test("confines shell and native reads to the project root", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			project_file: policy.read_only("cat package.json", process.cwd()),
 			host_file: policy.read_only("cat /etc/passwd", process.cwd()),

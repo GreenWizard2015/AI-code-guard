@@ -3,24 +3,26 @@ import { PYTHON_PACKAGE_MARKER } from "src/constants";
 
 /** Responsibilities: _package path resolution_, _import boundary calculation_. **/
 export class PlacementPath {
-	private readonly files: ReadonlySet<string>;
+	private readonly _root: string;
+	private readonly _files: ReadonlySet<string>;
 
 	/** Responsibilities: _placement path dependencies_. **/
-	public constructor(files: ReadonlySet<string>) {
-		this.files = files;
+	public constructor(root: string, files: ReadonlySet<string>) {
+		this._root = root;
+		this._files = files;
 	}
 
 	/** Responsibilities: _Python package boundary_. **/
-	public python_package_root(root: string, file: string): string {
+	public python_package_root(file: string): string {
 		if (!file.endsWith(".py")) {
 			return "";
 		}
 		let directory = dirname(file);
-		while (directory.startsWith(root)) {
-			if (this.files.has(join(directory, PYTHON_PACKAGE_MARKER))) {
+		while (directory.startsWith(this._root)) {
+			if (this._files.has(join(directory, PYTHON_PACKAGE_MARKER))) {
 				return directory;
 			}
-			if (directory === root) {
+			if (directory === this._root) {
 				break;
 			}
 			directory = dirname(directory);
@@ -28,43 +30,34 @@ export class PlacementPath {
 		return "";
 	}
 
-	/** Responsibilities: _repository path parts_. **/
-	public path_parts(root: string, file: string): string[] {
+	/** Responsibilities: _boundary-relative path parts_. **/
+	public boundary_path_parts(boundary: string, file: string): string[] {
+		if (boundary.length > 0 && file.startsWith(`${boundary}/`)) {
+			return relative(boundary, dirname(file)).split("/").filter(Boolean);
+		}
 		const directory = dirname(file);
-		const relative_directory = relative(root, directory).replaceAll("\\", "/");
+		const relative_directory = relative(this._root, directory).replaceAll("\\", "/");
 		if (relative_directory.length === 0) {
 			return [];
 		}
 		return relative_directory.split("/").filter(Boolean);
 	}
 
-	/** Responsibilities: _boundary-relative path parts_. **/
-	public boundary_path_parts(root: string, boundary: string, file: string): string[] {
-		if (boundary.length === 0) {
-			return this.path_parts(root, file);
-		}
-		if (!file.startsWith(`${boundary}/`)) {
-			return this.path_parts(root, file);
-		}
-		return relative(boundary, dirname(file)).split("/").filter(Boolean);
-	}
-
 	/** Responsibilities: _shared path parts_. **/
 	public common_parts(paths: string[][]): string[] {
-		if (paths.length === 0) {
+		const first_path = paths.at(0);
+		if (first_path === undefined) {
 			return [];
 		}
 		const result: string[] = [];
-		for (let index = 0; ; index += 1) {
-			const part = paths[0][index];
-			if (part === undefined) {
-				return result;
-			}
-			if (paths.some((path) => path[index] !== part)) {
-				return result;
+		for (let index = 0; index < first_path.length; index += 1) {
+			const part = first_path[index];
+			if (part === undefined || paths.some((path) => path[index] !== part)) {
+				break;
 			}
 			result.push(part);
 		}
+		return result;
 	}
 
 	/** Responsibilities: _focused folder distinction_. **/

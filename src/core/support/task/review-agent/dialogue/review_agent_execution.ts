@@ -7,25 +7,27 @@ import type {
 } from "src/core/support/task/review-agent/protocols";
 import type { ReviewAgentExecutionOptions } from "src/core/support/task/review-agent/types";
 import type {
+	ReviewAgentDialogueExecution,
 	ReviewAgentExecutionResult,
-	ReviewAgentHookEventContract,
+	ReviewAgentHookEvent,
 	ReviewAgentHookEventName,
+	ReviewAgentName,
 	ReviewAgentPhase,
 	ReviewAgentProcessResult,
-	ReviewAgentRequest,
-	ReviewAgentSelection,
-} from "src/types";
+} from "src/task_review_types";
 
 /** Responsibilities: _review-agent lifecycle events_, _review-agent process execution_. **/
 export class ReviewAgentExecution implements ReviewAgentExecutionContract {
-	private readonly root: string;
-	private readonly review_root: string;
-	private readonly hook_file: string;
-	private readonly debug_log: ReviewAgentDebugLogContract;
-	private readonly agent_catalog: ReviewAgentCatalogContract;
-	private readonly hooks: ReviewAgentHooksContract;
-	private readonly review_stage: string;
-	private readonly review_prefix: string;
+	private readonly _root: string;
+	private readonly _review_root: string;
+	private readonly _hook_file: string;
+	private readonly _debug_log: ReviewAgentDebugLogContract;
+	private readonly _agent_catalog: ReviewAgentCatalogContract;
+	private readonly _hooks: ReviewAgentHooksContract;
+	private readonly _review_stage: string;
+	private readonly _review_prefix: string;
+	private readonly _review_start_ms: number;
+	private readonly _selection: ReviewAgentName;
 
 	/** Responsibilities: _review-hook denial result_. **/
 	private denied_execution(reason: string, process: ReviewAgentProcessResult): ReviewAgentExecutionResult {
@@ -41,58 +43,54 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 	/** Responsibilities: _review-agent lifecycle event construction_. **/
 	private event(
 		name: ReviewAgentHookEventName,
-		selection: ReviewAgentSelection,
 		process: ReviewAgentProcessResult,
 		phase: ReviewAgentPhase,
-	): ReviewAgentHookEventContract {
+	): ReviewAgentHookEvent {
 		return {
-			event: name,
-			provider: selection,
-			root: this.root,
-			review_root: this.review_root,
-			hook_file: this.hook_file,
-			tool_name: "",
-			tool_input: "",
-			exit_code: process.exit_code,
-			stdout: process.stdout,
-			stderr: process.stderr,
-			review_stage: this.review_stage,
-			review_prefix: this.review_prefix,
-			review_phase: phase,
+			context: {
+				event: name,
+				provider: this._selection,
+				root: this._root,
+				review_root: this._review_root,
+				hook_file: this._hook_file,
+				review_stage: this._review_stage,
+				review_prefix: this._review_prefix,
+				review_phase: phase,
+				review_start_ms: this._review_start_ms,
+			},
+			tool: { name: "", input: "" },
+			result: process,
 		};
-	}
-
-	/** Responsibilities: _asynchronous review-agent dialogue_. **/
-	private async execute_dialogue_async(
-		selection: ReviewAgentSelection,
-		request: ReviewAgentRequest,
-		dialogue: string,
-		phase: ReviewAgentPhase,
-	): Promise<ReviewAgentExecutionResult> {
-		const empty_process = { exit_code: 0, stdout: "", stderr: "" };
-		const start_decision = this.hooks.run(this.event(HOOK_AGENT_START, selection, empty_process, phase));
-		if (!start_decision.allowed) {
-			return this.denied_execution(start_decision.reason, empty_process);
-		}
-		const execution = await this.agent_catalog.run_async(selection, { run_request: request });
-		this.debug_log.append(dialogue, request, execution);
-		const output_decision = this.hooks.run(this.event(HOOK_AGENT_OUTPUT, selection, execution.process, phase));
-		if (!output_decision.allowed) {
-			return this.denied_execution(output_decision.reason, execution.process);
-		}
-		return execution;
 	}
 
 	/** Responsibilities: _review-agent execution initialization_. **/
 	public constructor(options: ReviewAgentExecutionOptions) {
-		this.root = options.root;
-		this.review_root = options.review_root;
-		this.hook_file = options.hook_file;
-		this.review_stage = options.review_stage;
-		this.review_prefix = options.review_prefix;
-		this.debug_log = options.debug_log;
-		this.agent_catalog = options.agent_catalog;
-		this.hooks = options.hooks;
+		this._selection = options.selection;
+		this._root = options.root;
+		this._review_root = options.review_root;
+		this._hook_file = options.hook_file;
+		this._review_stage = options.review_stage;
+		this._review_prefix = options.review_prefix;
+		this._review_start_ms = options.review_start_ms;
+		this._debug_log = options.debug_log;
+		this._agent_catalog = options.agent_catalog;
+		this._hooks = options.hooks;
+	}
+
+	/** Responsibilities: _asynchronous review-agent dialogue_. **/
+	public async run_dialogue_async(execution: ReviewAgentDialogueExecution): Promise<ReviewAgentExecutionResult> {
+		const empty_process = { exit_code: 0, stdout: "", stderr: "" };
+		const start_decision = this._hooks.run(this.event(HOOK_AGENT_START, empty_process, execution.phase));
+		if (!start_decision.allowed) {
+			return this.denied_execution(start_decision.reason, empty_process);
+		}
+		const result = await this._agent_catalog.run_async(this._selection, { run_request: execution.request });
+		this._debug_log.append(execution.dialogue, execution.request, result);
+		const output_decision = this._hooks.run(this.event(HOOK_AGENT_OUTPUT, result.process, execution.phase));
+		if (!output_decision.allowed) {
+			return this.denied_execution(output_decision.reason, result.process);
+		}
+		return result;
 	}
 
 	/** Responsibilities: _system failure result construction_. **/
@@ -103,22 +101,5 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 			no_issues: false,
 			message,
 		};
-	}
-
-	/** Responsibilities: _initial review-agent dialogue_. **/
-	public initial_dialogue_async(
-		selection: ReviewAgentSelection,
-		request: ReviewAgentRequest,
-		dialogue: string,
-	): Promise<ReviewAgentExecutionResult> {
-		return this.execute_dialogue_async(selection, request, dialogue, "initial");
-	}
-
-	/** Responsibilities: _cleanup review-agent dialogue_. **/
-	public cleanup_async(
-		selection: ReviewAgentSelection,
-		request: ReviewAgentRequest,
-	): Promise<ReviewAgentExecutionResult> {
-		return this.execute_dialogue_async(selection, request, "cleanup", "cleanup");
 	}
 }

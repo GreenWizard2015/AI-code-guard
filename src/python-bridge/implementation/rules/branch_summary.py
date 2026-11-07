@@ -5,7 +5,10 @@ class BranchSummary(BranchSummaryContract):
     """Responsibilities: _branch chain length_, _uniform branch name tracking_."""
 
     def __init__(
-        self, length: int = 0, first_name: str = "", all_same: bool = True
+        self,
+        length: int = 0,
+        first_name: str = "",
+        all_same: bool = True,
     ) -> None:
         """Responsibilities: _branch-chain summary initialization_."""
         self._length: int = length

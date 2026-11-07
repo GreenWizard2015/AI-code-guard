@@ -1,46 +1,39 @@
-import { randomUUID } from "node:crypto";
-import { join } from "node:path";
-import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
-import type { IOContract } from "src/io/protocols";
-import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { createHash, randomUUID } from "node:crypto";
+import { basename, dirname, join } from "node:path";
+import type { ProcessLivenessContract, SystemFailureClassificationContract } from "src/analysis_protocols";
+import { BoundaryFailureCategory } from "src/analysis_protocols";
 import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
+import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
+import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { SYSTEM_FAILURE_CODES } from "src/io/constants";
+import type { IOContract } from "src/io/protocols";
+import type { StaleClaimOwnerSnapshot } from "src/task_types";
 
 /** Responsibilities: _recovery claim acquisition_, _stale claim reclamation_. **/
 export class TaskPublicationRecoveryClaim {
-	private readonly lock_path: string;
-	private readonly owner_token: string;
-	private readonly file_io: IOContract;
-	private readonly boundary_failures: BoundaryFailureClassifier;
-
-	/** Responsibilities: _process liveness_. **/
-	private process_live(pid: number): boolean {
-		try {
-			process.kill(pid, 0);
-			return true;
-		} catch (error) {
-			const message = String(error);
-			if (!this.boundary_failures.system_failure_message(message)) {
-				throw error;
-			}
-			if (this.boundary_failures.missing_process(message)) {
-				return false;
-			}
-			if (this.boundary_failures.permission_denied(message)) {
-				return true;
-			}
-			throw error;
-		}
-	}
+	private readonly _lock_path: string;
+	private readonly _claim_path: string;
+	private readonly _owner_token: string;
+	private readonly _file_io: IOContract;
+	private readonly _process_liveness: ProcessLivenessContract;
+	private readonly _boundary_failures: SystemFailureClassificationContract;
 
 	/** Responsibilities: _stale claim detection_. **/
 	private identity_mismatch(pid: number, start_time: string, boot_id: string): boolean {
 		if (start_time.length === 0 || boot_id.length === 0) {
 			return false;
 		}
-		const identity_reader = new ReviewAgentIdentity(pid, "", "", false, this.file_io);
+		const identity_reader = new ReviewAgentIdentity({
+			pid: 0,
+			start_time: "",
+			boot_id: "",
+			available: false,
+			file_io: this._file_io,
+			ownership_token: "",
+		});
 		const stored_text = `${pid}\n${start_time}\n${boot_id}\n`;
 		const stored = identity_reader.stored_identity(stored_text);
-		const current = identity_reader.from_process(pid);
+		const current = identity_reader.from_process({ value: pid });
 		if (current.serialized().length === 0) {
 			return false;
 		}
@@ -57,31 +50,81 @@ export class TaskPublicationRecoveryClaim {
 		if (pid <= 0) {
 			return true;
 		}
-		if (!this.process_live(pid)) {
+		if (!this._process_liveness.pid_exists({ value: pid })) {
 			return true;
 		}
 		return this.identity_mismatch(pid, start_time, boot_id);
 	}
 
 	/** Responsibilities: _stale claim detection_. **/
-	private stale_claim(path: string): boolean {
-		const claim_owner = join(path, "owner");
-		if (!this.file_io.directory_entries.path_is_file(claim_owner)) {
-			return true;
+	private owner_snapshot(owner_path: string): StaleClaimOwnerSnapshot {
+		const exists = this._file_io.path_is_file(owner_path);
+		let text = "";
+		if (exists) {
+			text = this._file_io.file(owner_path).file_text();
 		}
-		const owner_text = this.file_io.file_content.file_text(claim_owner);
-		return this.owner_record_stale(owner_text);
+		return { owner_path, exists, text };
+	}
+
+	/** Responsibilities: _stale claim owner validation_. **/
+	private validate_stale_owner(observed: StaleClaimOwnerSnapshot): void {
+		if (!observed.exists) {
+			throw new Error(`Task publication lock recovery is already in progress: ${this._lock_path}`);
+		}
+		if (!this.owner_record_stale(observed.text)) {
+			throw new Error(`Task publication lock recovery is already in progress: ${this._lock_path}`);
+		}
+	}
+
+	/** Responsibilities: _stale claim archive authorization_. **/
+	private stale_archive_path(observed: StaleClaimOwnerSnapshot): string {
+		this.validate_stale_owner(observed);
+		if (!this._file_io.file(this._claim_path).path_exists()) {
+			return "";
+		}
+		const current_owner = this.owner_snapshot(observed.owner_path);
+		if (current_owner.exists !== observed.exists || current_owner.text !== observed.text) {
+			throw new Error(`Task publication lock recovery is already in progress: ${this._lock_path}`);
+		}
+		// Keep the fence outside the lock directory, which successful recovery removes.
+		const snapshot = `${observed.exists ? "present" : "missing"}\n${observed.text}`;
+		const fingerprint = createHash("sha256").update(snapshot).digest("hex");
+		return join(dirname(this._lock_path), `${basename(this._lock_path)}.recovery-stale.${fingerprint}`);
 	}
 
 	/** Responsibilities: _stale claim removal_. **/
-	private remove_existing_claim(path: string): void {
-		if (!this.file_io.file_paths.path_exists(path)) {
+	private remove_existing_claim(): void {
+		if (!this._file_io.file(this._claim_path).path_exists()) {
 			return;
 		}
-		if (!this.stale_claim(path)) {
-			throw new Error(`Task publication lock recovery is already in progress: ${this.lock_path}`);
+		const observed = this.owner_snapshot(join(this._claim_path, "owner"));
+		const archive_path = this.stale_archive_path(observed);
+		if (archive_path.length === 0) {
+			return;
 		}
-		this.file_io.directory_operations.remove_path(path);
+		this.move_stale_claim(archive_path);
+	}
+
+	/** Responsibilities: _claim movement conflict_. **/
+	private claim_move_conflicted(archive_path: string): boolean {
+		const archive_exists = this._file_io.file(archive_path).path_exists();
+		if (archive_exists) {
+			return true;
+		}
+		const claim_exists = this._file_io.file(this._claim_path).path_exists();
+		return !claim_exists;
+	}
+
+	/** Responsibilities: _stale claim movement_. **/
+	private move_stale_claim(archive_path: string): void {
+		try {
+			this._file_io.move_path(this._claim_path, archive_path);
+		} catch (error) {
+			if (this.claim_move_conflicted(archive_path)) {
+				throw new AggregateError([error], `Task publication lock recovery is already in progress: ${this._lock_path}`);
+			}
+			throw error;
+		}
 	}
 
 	/** Responsibilities: _failed claim cleanup_. **/
@@ -90,31 +133,45 @@ export class TaskPublicationRecoveryClaim {
 			return;
 		}
 		try {
-			this.file_io.directory_operations.remove_path(path);
+			this._file_io.remove_path(path);
 		} catch (cleanup_error) {
-			if (!this.boundary_failures.system_failure_message(String(cleanup_error))) {
+			if (!this._boundary_failures.check(String(cleanup_error), BoundaryFailureCategory.System)) {
 				throw cleanup_error;
 			}
-			void cleanup_error;
 		}
 	}
 
 	/** Responsibilities: _recovery claim owner publication_. **/
 	private write_claim_owner(staging_path: string): void {
-		const identity_reader = new ReviewAgentIdentity(0, "", "", false, this.file_io);
-		const process_identity = identity_reader.from_process(process.pid).serialized();
+		const identity_reader = new ReviewAgentIdentity({
+			pid: 0,
+			start_time: "",
+			boot_id: "",
+			available: false,
+			file_io: this._file_io,
+			ownership_token: "",
+		});
+		const process_identity = identity_reader.from_process({ value: process.pid }).serialized();
 		const [, start_time = "", boot_id = ""] = process_identity.split("\n");
 		const owner_path = join(staging_path, "owner");
-		const owner_text = `${process.pid}\n${this.owner_token}\n${start_time}\n${boot_id}\n`;
-		this.file_io.file_content.write_text(owner_path, owner_text);
+		const owner_text = `${process.pid}\n${this._owner_token}\n${start_time}\n${boot_id}\n`;
+		this._file_io.file(owner_path).write_text(owner_text);
 	}
 
 	/** Responsibilities: _recovery claim initialization_. **/
-	public constructor(lock_path: string, owner_token: string, file_io: IOContract) {
-		this.lock_path = lock_path;
-		this.owner_token = owner_token;
-		this.file_io = file_io;
-		this.boundary_failures = new BoundaryFailureClassifier();
+	public constructor(
+		lock_path: string,
+		claim_path: string,
+		owner_token: string,
+		file_io: IOContract,
+		process_liveness: ProcessLivenessContract,
+	) {
+		this._lock_path = lock_path;
+		this._claim_path = claim_path;
+		this._owner_token = owner_token;
+		this._file_io = file_io;
+		this._process_liveness = process_liveness;
+		this._boundary_failures = new BoundaryFailureClassifier(SYSTEM_FAILURE_CODES);
 	}
 
 	/** Responsibilities: _owner identity comparison_. **/
@@ -126,21 +183,21 @@ export class TaskPublicationRecoveryClaim {
 	}
 
 	/** Responsibilities: _recovery claim initialization_. **/
-	public claim(path: string): void {
-		this.remove_existing_claim(path);
-		const staging_path = `${path}.${process.pid}.${randomUUID()}.initializing`;
+	public claim(): void {
+		this.remove_existing_claim();
+		const staging_path = `${this._claim_path}.${process.pid}.${randomUUID()}.initializing`;
 		let created = false;
 		try {
-			this.file_io.directory_operations.create_directory_exclusive(staging_path);
+			this._file_io.create_directory_exclusive(staging_path);
 			created = true;
 			this.write_claim_owner(staging_path);
-			this.file_io.directory_operations.move_path(staging_path, path);
+			this._file_io.move_path(staging_path, this._claim_path);
 		} catch (error) {
 			this.cleanup_failed_claim(staging_path, created);
-			if (!this.boundary_failures.system_failure_message(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;
 			}
-			throw new Error(`Task publication recovery claim failed: ${this.lock_path} (${String(error)})`);
+			throw new Error(`Task publication recovery claim failed: ${this._lock_path} (${String(error)})`);
 		}
 	}
 }

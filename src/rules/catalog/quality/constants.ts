@@ -6,7 +6,7 @@ export const QUALITY_RULE_DATA = {
 	},
 	responsibilities: {
 		message: "violates the Responsibilities contract: {issue}",
-		hint: 'Write an honest "Responsibilities: _A_, _B_." line in the docstring, with paired underscores around each responsibility.',
+		hint: "Use one Responsibilities line and name each object. Do not: repeat the line or use a bare action.",
 		priority: 5,
 	},
 	"responsibilities-min-count": {
@@ -59,10 +59,25 @@ export const QUALITY_RULE_DATA = {
 		hint: "Replace @property with an explicit method that names the operation. Do not: hide behavior behind implicit property access.",
 		priority: 5,
 	},
+	"typescript-getter": {
+		message: "avoid TypeScript get accessors",
+		hint: "Replace get accessors with explicit methods that name the operation. Do not: hide behavior behind implicit property access.",
+		priority: 5,
+	},
+	"typescript-setter": {
+		message: "avoid TypeScript set accessors",
+		hint: "Replace set accessors with explicit state-transition methods. Do not: mutate state through property assignment.",
+		priority: 5,
+	},
 	"unnecessary-undefined-check": {
 		message: "condition checks a required field for undefined",
 		hint: "remove the impossible undefined check or correct the field type.",
 		priority: 5,
+	},
+	"typescript-literal-object-access": {
+		message: "object access uses a string literal key",
+		hint: "use direct member access or store a dynamic key in a variable before indexing. Do not: repeat member names as string literals in bracket access.",
+		priority: 4,
 	},
 	"broad-except": {
 		message: "avoid broad try/catch or try/except blocks",
@@ -130,8 +145,8 @@ export const QUALITY_RULE_DATA = {
 		priority: 2,
 	},
 	"conditional-execution": {
-		message: "avoid conditional execution operators",
-		hint: "replace calls guarded by &&, ||, ??, and, or with an explicit if branch. Do not: execute project behavior through short-circuit operators.",
+		message: "avoid conditionally executing non-boolean calls",
+		hint: "use an explicit if branch for calls guarded by &&, ||, ??, and, or, or ?. Do not: hide conditional non-boolean calls in expressions.",
 		priority: 2,
 	},
 	"early-return": {
@@ -154,6 +169,11 @@ export const QUALITY_RULE_DATA = {
 		hint: "default dependencies and mutable values to null or None, then create or validate them explicitly inside the constructor or caller. Do not: allocate objects, call factories, or use mutable containers in a parameter default.",
 		priority: 2,
 	},
+	"typescript-module-namespace-dependency": {
+		message: "module namespace is passed as a constructor dependency",
+		hint: "Keep module APIs inside their platform adapter and pass a narrow project-owned contract between classes. Do not: inject an imported module namespace into a constructor.",
+		priority: 4,
+	},
 	"exception-raising": {
 		message: "tests must not raise or throw exceptions",
 		hint: "Return an explicit result or handle failure without an exception. Do not: use raise or throw in tests.",
@@ -175,13 +195,8 @@ export const QUALITY_RULE_DATA = {
 		priority: 5,
 	},
 	"local-inheritance": {
-		message: 'class inherits from local class "{base_name}"',
-		hint: "Prefer composition and dependency injection over inheritance. When a shared contract is required, prefer implementing an interface or protocol; inherit only from external framework types or when substitutability is essential. Move shared project behavior behind a port.",
-		priority: 6,
-	},
-	mixin: {
-		message: 'class uses mixin pattern "{name}"',
-		hint: "Replace mixins with explicit composition and dependency injection. Move shared behavior into a focused collaborator or implement a narrow interface/protocol; do not use inheritance to assemble behavior.",
+		message: 'declaration inherits from non-contract base "{base_name}"',
+		hint: "Classes may inherit only project contracts; protocols and interfaces may inherit only other protocols and interfaces. Compose implementation objects. External framework bases at integration boundaries remain outside this local rule.",
 		priority: 6,
 	},
 	"unused-constant": {
@@ -239,19 +254,9 @@ export const QUALITY_RULE_DATA = {
 		hint: "Split the class or introduce a focused collaborator that owns a cohesive dependency group. Do not: count collections, built-ins, or external library objects as project dependencies.",
 		priority: 5,
 	},
-	"method-order-public": {
-		message: "public method {name} must be declared after private/protected methods",
-		hint: "move public methods to the end of the class. Keep private and protected implementation methods before the public API.",
-		priority: 2,
-	},
-	"method-order-constructor-after": {
-		message: "constructor must be declared after private/protected methods",
-		hint: "place the constructor after private and protected methods, but before the public API.",
-		priority: 2,
-	},
-	"method-order-constructor-before": {
-		message: "constructor must be declared before public methods",
-		hint: "place the constructor before public methods and after private and protected methods.",
+	"method-order": {
+		message: "class member is declared out of order",
+		hint: "place private and protected methods first, the constructor next, and public methods last.",
 		priority: 2,
 	},
 	"private-member": {
@@ -259,9 +264,9 @@ export const QUALITY_RULE_DATA = {
 		hint: "Use a public method or property that expresses the required operation instead of reaching into private state.",
 		priority: 4,
 	},
-	"shared-parameter-combination": {
-		message: 'multiple {noun} share parameter combination "{parameters}" ({support}). Candidates: {candidates}.',
-		hint: "Create a named wrapper/options object for the parameter combination and update all callers. Do not: repeat the same positional contract.",
+	"shared-parameter": {
+		message: 'multiple {noun} share parameter set "{parameters}" ({support}). Candidates: {candidates}.',
+		hint: "Compare each name:type pair across all candidates, ignoring parameter order. When the repeated set represents one domain concept, name that contract and update its callers. Do not: combine unrelated parameters just to silence this diagnostic.",
 		priority: 5,
 	},
 } as const;

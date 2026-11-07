@@ -33,10 +33,8 @@ export class TypeScriptReferenceIdentityFixture {
 	public property_access(source: ts.SourceFile, name: string): ts.PropertyAccessExpression {
 		let match: ts.PropertyAccessExpression | undefined;
 		const visit = (node: ts.Node): void => {
-			if (ts.isPropertyAccessExpression(node)) {
-				if (node.name.text === name) {
-					match = node;
-				}
+			if (ts.isPropertyAccessExpression(node) && node.name.text === name) {
+				match = node;
 			}
 			node.forEachChild(visit);
 		};
@@ -51,10 +49,8 @@ export class TypeScriptReferenceIdentityFixture {
 	public property_accesses(source: ts.SourceFile, name: string): ts.PropertyAccessExpression[] {
 		const matches: ts.PropertyAccessExpression[] = [];
 		const visit = (node: ts.Node): void => {
-			if (ts.isPropertyAccessExpression(node)) {
-				if (node.name.text === name) {
-					matches.push(node);
-				}
+			if (ts.isPropertyAccessExpression(node) && node.name.text === name) {
+				matches.push(node);
 			}
 			node.forEachChild(visit);
 		};
@@ -71,11 +67,9 @@ export class TypeScriptReferenceIdentityFixture {
 		const accesses = new Map<string, ts.PropertyAccessExpression>();
 		const visit = (node: ts.Node): void => {
 			if (ts.isPropertyAccessExpression(node)) {
-				if (node.name.text === property_name) {
-					if (ts.isIdentifier(node.expression)) {
-						if (owner_names.has(node.expression.text)) {
-							accesses.set(node.expression.text, node);
-						}
+				if (node.name.text === property_name && ts.isIdentifier(node.expression)) {
+					if (owner_names.has(node.expression.text)) {
+						accesses.set(node.expression.text, node);
 					}
 				}
 			}

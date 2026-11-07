@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python-specific coding rules", () => {
 	test("rejects object construction in class fields", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"field-construction.py": ["class CacheOwner:", "    values = Map()", "    helper: object = CacheHelper()"].join(
 					"\n",
@@ -17,26 +17,26 @@ describe("Python-specific coding rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "field-in-constructor")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "field-in-constructor")).toHaveLength(2);
 	});
 
 	test("allows immutable Final class marker factories", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"marker.py": ["from typing import Final", "class Marker:", "    marker: Final = HookFactory()"].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "field-in-constructor")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "field-in-constructor")).toHaveLength(0);
 	});
 
 	test("keeps dataclasses free of logic methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"data-class.py": [
 					"from dataclasses import dataclass",
@@ -53,13 +53,13 @@ describe("Python-specific coding rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-data-class-method")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "python-data-class-method")).toHaveLength(1);
 	});
 
 	test("replaces ABCs with Protocols, including aliases", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"abstract.py": [
 					"from abc import ABC, abstractmethod",
@@ -78,13 +78,13 @@ describe("Python-specific coding rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-abstract-class")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "python-abstract-class")).toHaveLength(2);
 	});
 
 	test("requires Python test functions to be class methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/free_test.py": [
 					"def test_free_function():",
@@ -98,7 +98,7 @@ describe("Python-specific coding rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(messages).toContain("python tests must be class methods");
 		expect(messages.filter((message) => message === "python tests must be class methods")).toHaveLength(1);
 	});
@@ -106,7 +106,7 @@ describe("Python-specific coding rules", () => {
 	test("requires Python test classes to inherit from unittest.TestCase", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/pytest_test.py": [
 					"import unittest",
@@ -133,55 +133,62 @@ describe("Python-specific coding rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-test-class-inheritance")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "python-test-class-inheritance")).toHaveLength(2);
 	});
 
 	test("limits attribute chains to four levels in Python and TypeScript", () => {
 		const fixture = new TestFixture();
 		const messages = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{ "chain.py": "value = a.b.c.d.e\n", "chain.ts": "const value = a.b.c.d.e;\n" },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((item) => item.message);
+			.map((item) => item.message());
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "chain.ts": "const value = a.b.c.d.e;\n" },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(messages.filter((message) => message === "attribute access is too deep (found 5 levels)")).toHaveLength(2);
-		expect(violations.find((item) => item.message === "attribute access is too deep (found 5 levels)")?.hint).toContain(
-			"temporary local variables",
+		const depth_violations = violations.filter(
+			(item) => item.message() === "attribute access is too deep (found 5 levels)",
 		);
+
+		expect({
+			message_count: messages.filter((message) => message === "attribute access is too deep (found 5 levels)").length,
+			hints: depth_violations.map((item) => item.hint()),
+		}).toEqual({
+			message_count: 2,
+			hints: expect.arrayContaining([expect.stringContaining("temporary local variables")]),
+		});
 	});
 
 	test("does not duplicate TypeScript attribute findings after repeated AST normalization", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "chain.ts": "const value = a.b.c.d.e;\n" },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.message === "attribute access is too deep (found 5 levels)")).toHaveLength(
-			1,
-		);
+		expect(
+			violations.filter((item) => item.message() === "attribute access is too deep (found 5 levels)"),
+		).toHaveLength(1);
 	});
 
 	test("allows four-level attribute chains", () => {
 		const fixture = new TestFixture();
 		const messages = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{ "chain.py": "value = a.b.c.d\n", "chain.ts": "const value = a.b.c.d;\n" },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((item) => item.message);
+			.map((item) => item.message());
 		expect(messages).not.toContain("attribute access is too deep (found 5 levels)");
 	});
 });

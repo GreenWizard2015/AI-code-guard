@@ -1,3 +1,4 @@
+import type { IOContract } from "src/io/protocols";
 import type { TaskWorkspaceDocument } from "src/task_types";
 
 export type TaskSourceText = {
@@ -19,11 +20,13 @@ export type TaskPublicationJournalDocumentState = {
 export type TaskPublicationJournalPhase = { name: string; index: number };
 
 /** Responsibilities: _publication rollback snapshot_. **/
-export interface TaskBatchReplacementSnapshotContract {
-	readonly transaction: string;
-	readonly rules_existed: boolean;
-	readonly existing_documents: readonly TaskWorkspaceDocument[];
+export interface TaskBatchReplacementStateContract {
+	transaction(): string;
+	rules_existed(): boolean;
+	existing_documents(): readonly TaskWorkspaceDocument[];
 	recovery_documents(): ReadonlySet<TaskWorkspaceDocument>;
+	rollback_failed(): boolean;
+	restore(recovery: TaskPublicationRecoveryContract, lock: TaskPublicationLockContract): void;
 	restore_failure(message: string, recovery: TaskPublicationRecoveryContract, lock: TaskPublicationLockContract): never;
 }
 
@@ -46,20 +49,36 @@ export interface TaskPublicationJournalContract {
 
 /** Responsibilities: _publication recovery_. **/
 export interface TaskPublicationRecoveryContract {
-	backup_documents(transaction: string): Map<TaskWorkspaceDocument, string>;
+	for_transaction(transaction: string): TaskPublicationRollbackContract;
 	existing_documents(): ReadonlySet<TaskWorkspaceDocument>;
-	restore(transaction: string, rules_existed: boolean, existing_documents: ReadonlySet<TaskWorkspaceDocument>): void;
+	recover_abandoned_transaction(owner: TaskPublicationOwnerContract): void;
+}
+
+/** Responsibilities: _transaction backup restoration_. **/
+export interface TaskPublicationRollbackContract {
+	backup_documents(): Map<TaskWorkspaceDocument, string>;
+	restore(rules_existed: boolean, existing_documents: ReadonlySet<TaskWorkspaceDocument>): void;
 }
 
 /** Responsibilities: _publication lock_. **/
 export interface TaskPublicationLockContract {
 	acquire(): void;
-	begin_transaction(transaction: string): void;
-	write_journal(
-		transaction: string,
-		rules_existed: boolean,
-		existing_documents: ReadonlySet<TaskWorkspaceDocument>,
-	): void;
-	commit_transaction(transaction: string): void;
+	transaction(path: string): TaskPublicationTransactionContract;
 	release(): void;
 }
+
+/** Responsibilities: _publication transaction operations_. **/
+export interface TaskPublicationTransactionContract {
+	begin(): void;
+	write_journal(rules_existed: boolean, documents: ReadonlySet<TaskWorkspaceDocument>): void;
+	commit(): void;
+}
+
+export type TaskPublicationTransactionOptions = {
+	workspace_root: string;
+	lock_path: string;
+	owner_token: string;
+	process_identity: string;
+	path: string;
+	file_io: IOContract;
+};

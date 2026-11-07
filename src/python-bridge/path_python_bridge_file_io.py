@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from protocols import PythonBridgeFileIOContract
 
 
@@ -7,14 +8,14 @@ class PathPythonBridgeFileIO(PythonBridgeFileIOContract):
 
     def __init__(self, working_directory: Path) -> None:
         """Responsibilities: _filesystem root ownership_."""
-        self.working_directory: Path = working_directory.expanduser()
+        self._working_directory: Path = working_directory.expanduser()
 
     def absolute_path(self, path: Path) -> Path:
         """Responsibilities: _stable source path resolution_."""
         expanded_path = path.expanduser()
         if expanded_path.is_absolute():
             return expanded_path.resolve()
-        return (self.working_directory / expanded_path).resolve()
+        return (self._working_directory / expanded_path).resolve()
 
     def file_present(self, path: Path) -> bool:
         """Responsibilities: _filesystem source existence_."""

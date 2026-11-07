@@ -1,158 +1,91 @@
-import { ValueRules } from "src/linting/value_rules";
-import type { BooleanExpressionContract } from "src/runtime_protocols";
-import ts from "typescript";
-import type { TypeScriptAssignmentValuePredicatesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { ValueRulesContract } from "src/analysis_protocols";
+import { ValueRules } from "src/linting/value_rules";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
+import type { BooleanExpressionContract } from "src/runtime_protocols";
+import type {
+	TypeScriptAssignmentValuePredicatesContract,
+	TypeScriptVariableDeclarationIndexContract,
+} from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _allowed assignment value classification_, _conditional assignment checks_. **/
 export class TypeScriptAssignmentValuePredicates implements TypeScriptAssignmentValuePredicatesContract {
-	private readonly boolean_expression: BooleanExpressionContract;
-	private readonly value_rules: ValueRulesContract;
-	private readonly logical_assignment_kinds: Set<ts.SyntaxKind>;
+	private readonly _boolean_expression: BooleanExpressionContract;
+	private readonly _value_rules: ValueRulesContract;
 
-	private readonly primitive_literal_kinds: Set<ts.SyntaxKind>;
+	private readonly _primitive_literal_kinds: Set<ts.SyntaxKind>;
 
 	/** Responsibilities: _identification primitive literal assignment_. **/
-	private primitive_literal(expression: ts.Expression): boolean {
-		if (this.is_literal_expression(expression)) {
+	private primitive_literal(literal_expression: ts.Expression): boolean {
+		if (this.is_literal_expression(literal_expression)) {
 			return true;
 		}
-		return this.primitive_literal_kinds.has(expression.kind);
+		return this._primitive_literal_kinds.has(literal_expression.kind);
 	}
 
 	/** Responsibilities: _identification simple default values_. **/
-	private simple_default_value(expression: ts.Expression): boolean {
-		if (this.primitive_literal(expression)) {
+	private simple_default_value(default_value: ts.Expression): boolean {
+		if (this.primitive_literal(default_value)) {
 			return true;
 		}
-		if (ts.isArrayLiteralExpression(expression)) {
-			return expression.elements.length === 0;
+		if (ts.isArrayLiteralExpression(default_value)) {
+			return default_value.elements.every((element) => ts.isExpression(element) && this.primitive_literal(element));
 		}
-		if (ts.isObjectLiteralExpression(expression)) {
-			return expression.properties.length === 0;
+		if (ts.isObjectLiteralExpression(default_value)) {
+			return default_value.properties.length === 0;
 		}
 		return false;
 	}
 
+	/** Responsibilities: _namespace dependency default classification_. **/
+	private imported_namespace_default(namespace_expression: ts.Expression): boolean {
+		if (!ts.isIdentifier(namespace_expression)) {
+			return false;
+		}
+		return namespace_expression.getSourceFile().statements.some((statement) => {
+			if (!ts.isImportDeclaration(statement)) {
+				return false;
+			}
+			const bindings = statement.importClause?.namedBindings;
+			if (bindings === undefined || !ts.isNamespaceImport(bindings)) {
+				return false;
+			}
+			return bindings.name.text === namespace_expression.text;
+		});
+	}
+
 	/** Responsibilities: _classification literal expressions usage_. **/
-	private is_literal_expression(expression: ts.Expression): boolean {
-		if (ts.isStringLiteral(expression)) {
+	private is_literal_expression(literal_candidate: ts.Expression): boolean {
+		if (ts.isStringLiteral(literal_candidate)) {
 			return true;
 		}
-		if (ts.isNumericLiteral(expression)) {
+		if (ts.isNumericLiteral(literal_candidate)) {
 			return true;
 		}
-		if (ts.isBigIntLiteral(expression)) {
+		if (ts.isBigIntLiteral(literal_candidate)) {
 			return true;
 		}
-		return ts.isNoSubstitutionTemplateLiteral(expression);
+		return ts.isNoSubstitutionTemplateLiteral(literal_candidate);
 	}
 
 	/** Responsibilities: _classification both sides expression_. **/
-	private boolean_operands(left: ts.Expression, right: ts.Expression, source_file: ts.SourceFile): boolean {
-		if (!this.boolean_expression.boolean_expression(left, source_file)) {
+	private boolean_operands(left: ts.Expression, right: ts.Expression, boolean_source: ts.SourceFile): boolean {
+		if (!this._boolean_expression.boolean_expression(left, boolean_source)) {
 			return false;
 		}
-		return this.boolean_expression.boolean_expression(right, source_file);
+		return this._boolean_expression.boolean_expression(right, boolean_source);
 	}
 
 	/** Responsibilities: _classification operand primitive expression_. **/
 	private primitive_operand(
-		expression: ts.Expression,
-		source_file: ts.SourceFile,
+		primitive_value: ts.Expression,
+		value_source: ts.SourceFile,
 		value_rules: ValueRulesContract,
 	): boolean {
-		if (this.primitive_literal(expression)) {
+		if (this.primitive_literal(primitive_value)) {
 			return true;
 		}
-		return value_rules.typed_primitive(expression, source_file);
-	}
-
-	/** Responsibilities: _assignment boundary classification_. **/
-	private binary_assignment_boundary(child: ts.Node, parent: ts.BinaryExpression): boolean {
-		if (this.boolean_expression.logical_operator(parent)) {
-			return true;
-		}
-		if (parent.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
-			return false;
-		}
-		return parent.right === child;
-	}
-
-	/** Responsibilities: _assignment boundary classification_. **/
-	private assignment_boundary(child: ts.Node, parent: ts.Node): boolean {
-		if (ts.isBinaryExpression(parent)) {
-			return this.binary_assignment_boundary(child, parent);
-		}
-		if (ts.isVariableDeclaration(parent)) {
-			return parent.initializer === child;
-		}
-		if (ts.isBindingElement(parent)) {
-			return parent.initializer === child;
-		}
-		if (ts.isParameter(parent)) {
-			return parent.initializer === child;
-		}
-		return false;
-	}
-
-	/** Responsibilities: _invoked function boundary classification_. **/
-	private called_function(parent: ts.Node): boolean {
-		let invocation = parent.parent;
-		while (ts.isParenthesizedExpression(invocation)) {
-			invocation = invocation.parent;
-		}
-		if (!ts.isCallExpression(invocation)) {
-			return false;
-		}
-		let callee: ts.Expression = invocation.expression;
-		while (ts.isParenthesizedExpression(callee)) {
-			callee = callee.expression;
-		}
-		return callee === parent;
-	}
-
-	/** Responsibilities: _function boundary classification_. **/
-	private function_boundary(parent: ts.Node): boolean {
-		if (!ts.isFunctionLike(parent)) {
-			return false;
-		}
-		return !this.called_function(parent);
-	}
-
-	/** Responsibilities: _assignment parent resolution_. **/
-	private assignment_parent(node: ts.BinaryExpression): ts.Node {
-		let child: ts.Node = node;
-		let parent = node.parent;
-		while (!ts.isSourceFile(parent)) {
-			if (this.function_boundary(parent)) {
-				return parent;
-			}
-			if (this.assignment_boundary(child, parent)) {
-				return parent;
-			}
-			child = parent;
-			parent = parent.parent;
-		}
-		return parent;
-	}
-
-	/** Responsibilities: _assignment context classification_. **/
-	private assigned_value(node: ts.BinaryExpression): boolean {
-		const parent = this.assignment_parent(node);
-		if (ts.isVariableDeclaration(parent)) {
-			return parent.initializer !== undefined;
-		}
-		if (ts.isBindingElement(parent)) {
-			return parent.initializer !== undefined;
-		}
-		if (ts.isParameter(parent)) {
-			return parent.initializer !== undefined;
-		}
-		if (!ts.isBinaryExpression(parent)) {
-			return false;
-		}
-		return parent.operatorToken.kind === ts.SyntaxKind.EqualsToken;
+		return value_rules.typed_primitive(primitive_value, value_source);
 	}
 
 	/** Responsibilities: _enum member value classification_. **/
@@ -169,72 +102,58 @@ export class TypeScriptAssignmentValuePredicates implements TypeScriptAssignment
 		});
 	}
 
+	/** Responsibilities: _default value policy_. **/
+	private allowed_default(allowed_value: ts.Expression): boolean {
+		if (this.simple_default_value(allowed_value)) {
+			return true;
+		}
+		return this.imported_namespace_default(allowed_value);
+	}
+
 	/** Responsibilities: _assignment predicate dependency initialization_. **/
 	public constructor(
 		boolean_expression: BooleanExpressionContract,
 		variable_declaration_index: TypeScriptVariableDeclarationIndexContract,
 	) {
-		this.logical_assignment_kinds = new Set([
-			ts.SyntaxKind.QuestionQuestionEqualsToken,
-			ts.SyntaxKind.BarBarEqualsToken,
-			ts.SyntaxKind.AmpersandAmpersandEqualsToken,
-		]);
-		this.primitive_literal_kinds = new Set([
+		this._primitive_literal_kinds = new Set([
 			ts.SyntaxKind.NullKeyword,
 			ts.SyntaxKind.TrueKeyword,
 			ts.SyntaxKind.FalseKeyword,
 		]);
-		this.boolean_expression = boolean_expression;
-		this.value_rules = new ValueRules(variable_declaration_index);
+		this._boolean_expression = boolean_expression;
+		this._value_rules = new ValueRules(variable_declaration_index, new TypeScriptObjectAliasDeclarationIndex());
 	}
 
 	/** Responsibilities: _reporting assignment operand satisfies_. **/
-	public operand_allowed(left: ts.Expression, right: ts.Expression, source_file: ts.SourceFile): boolean {
-		if (this.boolean_operands(left, right, source_file)) {
+	public operand_allowed(left: ts.Expression, right: ts.Expression, assignment_source: ts.SourceFile): boolean {
+		if (this.boolean_operands(left, right, assignment_source)) {
 			return true;
 		}
-		if (!this.primitive_operand(left, source_file, this.value_rules)) {
+		if (!this.primitive_operand(left, assignment_source, this._value_rules)) {
 			return false;
 		}
-		return this.primitive_operand(right, source_file, this.value_rules);
-	}
-
-	/** Responsibilities: _reporting conditional assignments require_. **/
-	public conditional_assignment(node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node)) {
-			return false;
-		}
-		return this.assigned_value(node);
-	}
-
-	/** Responsibilities: _reporting logical assignments violate_. **/
-	public logical_assignment(node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node)) {
-			return false;
-		}
-		const operator_kind = node.operatorToken.kind;
-		return this.logical_assignment_kinds.has(operator_kind);
+		return this.primitive_operand(right, assignment_source, this._value_rules);
 	}
 
 	/** Responsibilities: _reporting expression permitted primitive_. **/
-	public primitive_expression(expression: ts.Expression): boolean {
-		if (ts.isParenthesizedExpression(expression)) {
-			return this.simple_default_value(expression.expression);
+	public primitive_expression(permitted_expression: ts.Expression): boolean {
+		if (ts.isParenthesizedExpression(permitted_expression)) {
+			return this.allowed_default(permitted_expression.expression);
 		}
-		return this.simple_default_value(expression);
+		return this.allowed_default(permitted_expression);
 	}
 
 	/** Responsibilities: _enum member default classification_. **/
-	public enum_member_default(expression: ts.Expression): boolean {
-		if (!ts.isPropertyAccessExpression(expression)) {
+	public enum_member_default(enum_access: ts.Expression): boolean {
+		if (!ts.isPropertyAccessExpression(enum_access)) {
 			return false;
 		}
-		if (!ts.isIdentifier(expression.expression)) {
+		if (!ts.isIdentifier(enum_access.expression)) {
 			return false;
 		}
-		const enum_name = expression.expression.text;
-		const member_name = expression.name.text;
-		const enum_declarations = expression.getSourceFile().statements.filter(ts.isEnumDeclaration);
+		const enum_name = enum_access.expression.text;
+		const member_name = enum_access.name.text;
+		const enum_declarations = enum_access.getSourceFile().statements.filter(ts.isEnumDeclaration);
 		return enum_declarations.some((declaration) => {
 			if (declaration.name.text !== enum_name) {
 				return false;

@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 import ast
+from collections import deque
 from collections.abc import Iterable
 from functools import cached_property
-from typing import Any
 
-from implementation.ast.protocols import PythonCallableArgumentsContract
-from implementation.references.protocols import PythonReferenceAliasesContract
+from implementation.ast.protocols import PythonAstNodeIndexContract, PythonCallableArgumentsContract
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
+    PythonReferenceAliasState,
 )
-from implementation.types import JsonObject
+from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.constants import (
     PYTHON_TYPE_ALIAS_FACTORY_NAME,
     PYTHON_TYPE_ALIAS_NAME,
     PYTHON_TYPING_EXTENSIONS_MODULE,
     PYTHON_TYPING_MODULE,
 )
+from implementation.types import JsonObject
 
 
 class PythonTypeDeclarationCollector:
@@ -25,7 +26,8 @@ class PythonTypeDeclarationCollector:
     def _named_factory_name(self, name: str) -> str:
         """Responsibilities: _aliased TypeAliasType factory resolution_."""
         if self.aliases.resolved_name(
-            name, frozenset({PYTHON_TYPE_ALIAS_FACTORY_NAME})
+            name,
+            frozenset({PYTHON_TYPE_ALIAS_FACTORY_NAME}),
         ):
             return PYTHON_TYPE_ALIAS_FACTORY_NAME
         return ""
@@ -59,10 +61,13 @@ class PythonTypeDeclarationCollector:
 
     def _factory_in_value(self, value: ast.AST) -> bool:
         """Responsibilities: _classification nested TypeAliasType factory_."""
-        for node in ast.walk(value):
+        pending = deque([value])
+        while pending:
+            node = pending.popleft()
             if type(node) is ast.Call:
                 if self._type_alias_factory(node):
                     return True
+            pending.extend(self._node_index.children(node))
         return False
 
     def _annotated_declaration(self, node: ast.AnnAssign) -> list[JsonObject]:
@@ -78,14 +83,16 @@ class PythonTypeDeclarationCollector:
         return [{"name": node.target.id, "line": node.lineno - 1}]
 
     def _structural_declaration(
-        self, node: ast.Assign, target: ast.AST
+        self,
+        node: ast.Assign,
+        target: ast.AST,
     ) -> list[JsonObject]:
         """Responsibilities: _structural type declaration_."""
         if len(node.targets) != 1 or type(target) is not ast.Name:
             return []
         if not target.id[:1].isupper():
             return []
-        if not self.callable_arguments.structural_type(node.value):
+        if not self._callable_arguments.structural_type(node.value):
             return []
         return [{"name": target.id, "line": node.lineno - 1}]
 
@@ -93,23 +100,27 @@ class PythonTypeDeclarationCollector:
         """Responsibilities: _collection assigned type declaration_."""
         if len(node.targets) == 0:
             return []
-        target: Any = node.targets[0]
+        target = node.targets[0]
         if self._factory_in_value(node.value):
             return [{"name": ast.unparse(target), "line": node.lineno - 1}]
         return self._structural_declaration(node, target)
 
     def __init__(
-        self, tree: ast.Module, callable_arguments: PythonCallableArgumentsContract
+        self,
+        tree: ast.Module,
+        callable_arguments: PythonCallableArgumentsContract,
+        node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _initialization type declaration collector_."""
-        self.tree: ast.Module = tree
-        self.callable_arguments: PythonCallableArgumentsContract = callable_arguments
+        self._tree: ast.Module = tree
+        self._callable_arguments: PythonCallableArgumentsContract = callable_arguments
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     @cached_property
     def aliases(self) -> PythonReferenceAliasesContract:
         """Responsibilities: _collection type declaration aliases_."""
-        aliases = PythonReferenceAliases()
-        aliases.collect(self.tree)
+        aliases = PythonReferenceAliases(PythonReferenceAliasState())
+        aliases.collect(self._tree, self._node_index.nodes(self._tree))
         return aliases
 
     def type_alias_annotation(self, annotation: ast.AST) -> bool:
@@ -117,13 +128,11 @@ class PythonTypeDeclarationCollector:
         if type(annotation) is ast.Name:
             return bool(
                 self.aliases.resolved_name(
-                    annotation.id, frozenset({PYTHON_TYPE_ALIAS_NAME})
-                )
+                    annotation.id,
+                    frozenset({PYTHON_TYPE_ALIAS_NAME}),
+                ),
             )
-        if (
-            type(annotation) is not ast.Attribute
-            or annotation.attr != PYTHON_TYPE_ALIAS_NAME
-        ):
+        if type(annotation) is not ast.Attribute or annotation.attr != PYTHON_TYPE_ALIAS_NAME:
             return False
         if type(annotation.value) is not ast.Name:
             return False

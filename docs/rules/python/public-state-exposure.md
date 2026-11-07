@@ -6,11 +6,20 @@ Description: An implementation class must not expose mutable collection state di
 
 
 ```python
+# File: src/registry.py
 class Registry:
-    items: dict[str, Item]
+    def __init__(self, items: dict[str, str]) -> None:
+        self.items: dict[str, str] = items
 
-    def read(self) -> None:
-        return None
+    def report(self) -> None:
+        labels = list(self.items.values())
+        print(", ".join(labels))
+# File: cli.py
+from src.registry import Registry
+
+if __name__ == "__main__":
+    registry = Registry({"primary": "ready"})
+    registry.report()
 ```
 
 Make the collection private or protected and expose a read-only view or a
@@ -21,7 +30,7 @@ protected fields, interfaces, protocols, and data contracts.
 
 
 ```python
-# File: src/status_labels/status_labels.py
+# File: src/status_labels.py
 class StatusLabels:
     """Responsibilities: _status label mapping_."""
 
@@ -46,22 +55,16 @@ class StatusLabels:
         normalized = self._fallback.strip()
         return normalized.upper()
 
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self._labels:
-            if status_name:
-                count += 1
-        return count
+    def report(self) -> None:
+        label = self.label("ready")
+        detailed = self.label_with_prefix("State", "blocked")
+        fallback = self.uppercase_fallback()
+        print(f"{label} {detailed} {fallback}")
 # File: cli.py
-from status_labels.status_labels import StatusLabels
+from src.status_labels import StatusLabels
 
 if __name__ == "__main__":
     labels = {"ready": "Ready", "blocked": "Blocked"}
     status_labels = StatusLabels(labels, "Unknown")
-    label = status_labels.label("ready")
-    detailed = status_labels.label_with_prefix("State", "blocked")
-    fallback = status_labels.uppercase_fallback()
-    count = status_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    status_labels.report()
 ```

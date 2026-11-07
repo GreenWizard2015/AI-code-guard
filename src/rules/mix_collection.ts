@@ -1,76 +1,63 @@
-import type { ViolationContract } from "src/reporting_protocols";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { ClassNode } from "src/core/support/class_node";
-import type { ClassNodeInput } from "src/model/types/types";
-import type { ClassNodeContract } from "src/runtime_protocols";
-import type { MixCallableNode } from "src/types";
-import type { LintFileNameContract } from "src/source_types";
-import { RULE_IDS } from "src/constants";
+import type { LintFileNameContract } from "src/core/support/protocols";
+import type { AstCallableNode, AstClassNode } from "src/model/ast/normalized_ast_types";
+import type { RuleContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
-/** Responsibilities: _mixed-module classification_, _mixin violation aggregation_. **/
+/** Responsibilities: _mixed module classification_, _mixed module violations_. **/
 export class MixCollection {
-	private readonly mixed_rule_id = RULE_IDS.mixed_module;
+	private readonly _file_name: LintFileNameContract;
+	private readonly _classes: readonly AstClassNode[];
+	private readonly _functions: readonly AstCallableNode[];
+	private readonly _mixed_rule: RuleContract;
 
-	/** Responsibilities: _classification class qualifies mixin_. **/
-	private is_eligible_class(class_node: ClassNodeContract): boolean {
-		if (class_node.type_contract()) {
+	/** Responsibilities: _eligible implementation class_. **/
+	private eligible_class(input: AstClassNode): boolean {
+		const node = new ClassNode(input);
+		if (node.type_contract()) {
 			return false;
 		}
-		if (class_node.protocol()) {
+		if (node.protocol()) {
 			return false;
 		}
-		return !class_node.exception();
+		return !node.exception();
 	}
 
-	/** Responsibilities: _creation mixin violation class_. **/
-	private mix_violation(file: string, class_node: ClassNodeInput, function_node: MixCallableNode): ViolationContract {
-		const line = Math.min(class_node.start, function_node.start) + 1;
-		const rule = new DiagnosticRule(this.mixed_rule_id);
-		return rule.violation(file, line);
-	}
-
-	/** Responsibilities: _aggregation mixin violation class_. **/
-	private append_mixed_class(
-		violations: ViolationContract[],
-		classes: readonly ClassNodeInput[],
-		file: string,
-		function_node: MixCallableNode,
-	): void {
-		for (const node of classes) {
-			const class_node = new ClassNode(node);
-			if (this.is_eligible_class(class_node)) {
-				violations.push(this.mix_violation(file, node, function_node));
-				return;
-			}
-		}
-	}
-
-	/** Responsibilities: _reporting module contains mixed_. **/
-	public mixed_module(
-		classes: readonly ClassNodeInput[],
-		functions: readonly MixCallableNode[],
+	/** Responsibilities: _mixed module analysis state_. **/
+	public constructor(
 		file_name: LintFileNameContract,
-	): boolean {
-		if (file_name.test() && file_name.value.endsWith(".py")) {
-			return false;
-		}
-		if (functions.length === 0) {
-			return false;
-		}
-		return classes.some((node) => this.is_eligible_class(new ClassNode(node)));
+		classes: readonly AstClassNode[],
+		functions: readonly AstCallableNode[],
+		mixed_rule: RuleContract,
+	) {
+		this._file_name = file_name;
+		this._classes = classes;
+		this._functions = functions;
+		this._mixed_rule = mixed_rule;
 	}
 
-	/** Responsibilities: _aggregation mixin violations classes_. **/
-	public append_mix_violations(
-		violations: ViolationContract[],
-		classes: readonly ClassNodeInput[],
-		functions: readonly MixCallableNode[],
-		file_name: LintFileNameContract,
-	): void {
-		if (!this.mixed_module(classes, functions, file_name)) {
+	/** Responsibilities: _report mixed module presence_. **/
+	public mixed_module(): boolean {
+		if (this._file_name.test() && this._file_name.value().endsWith(".py")) {
+			return false;
+		}
+		if (this._functions.length === 0) {
+			return false;
+		}
+		return this._classes.some((node) => this.eligible_class(node));
+	}
+
+	/** Responsibilities: _mixed module diagnostics_. **/
+	public append_mix_violations(violations: ViolationContract[]): void {
+		if (!this.mixed_module()) {
 			return;
 		}
-		const function_node = functions[0];
-		this.append_mixed_class(violations, classes, file_name.value, function_node);
+		const class_node = this._classes.find((node) => this.eligible_class(node));
+		const function_node = this._functions[0];
+		if (class_node === undefined || function_node === undefined) {
+			return;
+		}
+		const line = Math.min(class_node.identity.start, function_node.identity.start) + 1;
+		violations.push(this._mixed_rule.violation(this._file_name.value(), line, {}));
 	}
 }

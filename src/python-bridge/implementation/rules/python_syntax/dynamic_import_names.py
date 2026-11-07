@@ -3,14 +3,13 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-)
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
+    PythonReferenceAliasState,
 )
-from implementation.rules.python_syntax.protocols import (
-    PythonDynamicImportReferenceResolverContract,
+from implementation.references.protocols import (
+    PythonContainerAliasesContract,
+    PythonReferenceAliasesContract,
 )
 from implementation.rules.constants import (
     PYTHON_BUILTINS_MODULE,
@@ -19,6 +18,9 @@ from implementation.rules.constants import (
     PYTHON_GETATTR_FUNCTION,
     PYTHON_IMPORT_MODULE_FUNCTION,
     PYTHON_IMPORTLIB_MODULE,
+)
+from implementation.rules.python_syntax.protocols import (
+    PythonDynamicImportReferenceResolverContract,
 )
 
 
@@ -47,96 +49,100 @@ class PythonDynamicImportNames:
         """Responsibilities: _configuration dynamic import modules_."""
         for imported in node.names:
             if imported.name == PYTHON_IMPORTLIB_MODULE:
-                self.module_aliases[self._local_name(imported)] = (
-                    PYTHON_IMPORTLIB_MODULE
-                )
+                self._module_aliases.update({self._local_name(imported): PYTHON_IMPORTLIB_MODULE})
             if imported.name == PYTHON_BUILTINS_MODULE:
-                self.builtin_module_aliases.add(self._local_name(imported))
+                self._builtin_module_aliases.add(self._local_name(imported))
 
     def _configure_function_import(self, node: ast.ImportFrom) -> None:
         """Responsibilities: _configuration dynamic import functions_."""
         if node.module == PYTHON_IMPORTLIB_MODULE:
             for imported in node.names:
                 if imported.name == PYTHON_IMPORT_MODULE_FUNCTION:
-                    self.function_aliases[self._local_name(imported)] = (
-                        PYTHON_IMPORT_MODULE_FUNCTION
-                    )
+                    self._function_aliases.update({self._local_name(imported): PYTHON_IMPORT_MODULE_FUNCTION})
         if node.module == PYTHON_BUILTINS_MODULE:
             for imported in node.names:
                 if imported.name in {
                     PYTHON_DYNAMIC_IMPORT_FUNCTION,
                     PYTHON_GETATTR_FUNCTION,
                 }:
-                    self.function_aliases[self._local_name(imported)] = imported.name
+                    self._function_aliases.update({self._local_name(imported): imported.name})
 
     def _configure_assignment(self, node: ast.AST) -> None:
         """Responsibilities: _configuration assigned dynamic aliases_."""
         if type(node) is ast.Assign:
-            self._configure_assignment_targets(node.targets, node.value)
+            self._configure_assignment_targets(node.targets, node.value, node)
             return
         if type(node) is not ast.AnnAssign:
             return
         if node.value is None:
             return
-        self._configure_assignment_targets([node.target], node.value)
+        self._configure_assignment_targets([node.target], node.value, node)
 
-    def _configure_container_target(self, target: ast.AST, value: ast.AST) -> None:
+    def _configure_container_target(self, target: ast.AST) -> None:
         """Responsibilities: _configuration container alias target_."""
         if type(target) is not ast.Name:
             return
-        self.module_aliases.pop(target.id, None)
-        self.function_aliases.pop(target.id, None)
+        self._module_aliases.pop(target.id, None)
+        self._function_aliases.pop(target.id, None)
 
-    def _configure_assignment_targets(
-        self, targets: list[ast.AST], value: ast.AST
-    ) -> None:
-        """Responsibilities: _configuration dynamic alias targets_."""
+    def _assignment_alias_values(
+        self,
+        targets: list[ast.expr],
+        value: ast.AST,
+    ) -> dict[str, ast.AST]:
+        """Responsibilities: _assigned import alias extraction_."""
         target_values: dict[str, ast.AST] = {}
         for target in targets:
-            self._configure_container_target(target, value)
             target_values.update(
-                self.assignment_aliases.target_values(
-                    target, value, references_only=False
-                )
+                self._assignment_aliases.target_values(
+                    target,
+                    value,
+                    references_only=False,
+                ),
             )
-        self.container_aliases.assign(targets, value)
-        for target, source in target_values.items():
-            reference = self.references.reference(source, set())
+            self._configure_container_target(target)
+        return target_values
+
+    def _record_assignment_aliases(self, target_values: dict[str, ast.AST]) -> None:
+        """Responsibilities: _dynamic alias reference recording_."""
+        for target_name, source in target_values.items():
+            reference = self._references.reference(source)
             if reference.kind_value() == "module":
-                self.module_aliases[target] = reference.name_value()
+                self._module_aliases.update({target_name: reference.name_value()})
             if reference.kind_value() == PYTHON_FUNCTION_KIND:
-                self.function_aliases[target] = reference.name_value()
+                self._function_aliases.update({target_name: reference.name_value()})
+
+    def _configure_assignment_targets(
+        self,
+        targets: list[ast.expr],
+        value: ast.AST,
+        assignment: ast.AST,
+    ) -> None:
+        """Responsibilities: _configuration dynamic alias targets_."""
+        target_values = self._assignment_alias_values(targets, value)
+        self._container_aliases.observe(assignment)
+        self._record_assignment_aliases(target_values)
 
     def __init__(
         self,
         options: PythonDynamicImportNamesOptions,
     ) -> None:
         """Responsibilities: _initialization dynamic import aliases_."""
-        self.module_aliases: dict[str, str] = options.module_aliases
-        self.builtin_module_aliases: set[str] = options.builtin_module_aliases
-        self.container_aliases: PythonContainerAliasesContract = (
-            options.container_aliases
-        )
-        self.function_aliases: dict[str, str] = options.function_aliases
-        self.references: PythonDynamicImportReferenceResolverContract = (
-            options.references
-        )
-        self.assignment_aliases: PythonReferenceAliases = PythonReferenceAliases()
+        self._module_aliases: dict[str, str] = options.module_aliases
+        self._builtin_module_aliases: set[str] = options.builtin_module_aliases
+        self._container_aliases: PythonContainerAliasesContract = options.container_aliases
+        self._function_aliases: dict[str, str] = options.function_aliases
+        self._references: PythonDynamicImportReferenceResolverContract = options.references
+        self._assignment_aliases: PythonReferenceAliasesContract = PythonReferenceAliases(PythonReferenceAliasState())
 
-    def configure(self, tree: ast.AST) -> None:
+    def configure(self) -> None:
         """Responsibilities: _configuration dynamic import aliases_."""
-        self.module_aliases.clear()
-        self.builtin_module_aliases.clear()
-        self.container_aliases.clear()
-        self.function_aliases.clear()
-        self.function_aliases[PYTHON_DYNAMIC_IMPORT_FUNCTION] = (
-            PYTHON_DYNAMIC_IMPORT_FUNCTION
-        )
-        self.function_aliases[PYTHON_GETATTR_FUNCTION] = PYTHON_GETATTR_FUNCTION
-        if type(tree) is not ast.Module:
-            return
-        for node in tree.body:
-            self.observe(node)
+        self._module_aliases.clear()
+        self._builtin_module_aliases.clear()
+        self._container_aliases.clear()
+        self._function_aliases.clear()
+        self._function_aliases.update({PYTHON_DYNAMIC_IMPORT_FUNCTION: PYTHON_DYNAMIC_IMPORT_FUNCTION})
+        self._function_aliases.update({PYTHON_GETATTR_FUNCTION: PYTHON_GETATTR_FUNCTION})
 
     def observe(self, node: ast.AST) -> None:
         """Responsibilities: _observation dynamic import aliases_."""
@@ -148,7 +154,7 @@ class PythonDynamicImportNames:
 
     def matches(self, function: ast.AST) -> bool:
         """Responsibilities: _classification dynamic import function_."""
-        reference = self.references.reference(function, set())
+        reference = self._references.reference(function)
         if reference.kind_value() != PYTHON_FUNCTION_KIND:
             return False
         return reference.name_value() in {

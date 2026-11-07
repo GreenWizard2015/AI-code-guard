@@ -12,22 +12,57 @@ external API boundaries when they are the actual boundary contract.
 ## Bad
 
 ```ts
-interface UserContract {
+// File: src/types.ts
+export interface UserContract {
 	user_id: string;
 	display_name: string;
 	access_token: string;
 }
 
-type VisibleUser = Pick<UserContract, "user_id" | "display_name">;
-type PublicUser = Omit<UserContract, "access_token">;
-type UserUpdate = Partial<UserContract>;
-type UserField = keyof UserContract;
-type UserName = UserContract["display_name"];
-type UserById = Record<UserContract["user_id"], UserContract>;
+export type VisibleUser = Pick<UserContract, "user_id" | "display_name">;
+export type PublicUser = Omit<UserContract, "access_token">;
+export type UserUpdate = Partial<UserContract>;
+export type UserField = keyof UserContract;
+export type UserName = UserContract["display_name"];
+export type UserById = Record<UserContract["user_id"], UserContract>;
 
-type UserSummary<T> = T extends UserContract
+export type UserSummary<T> = T extends UserContract
 	? { [Field in keyof T as Field extends "access_token" ? never : Field]: T[Field] }
 	: never;
+// File: src/user_reporter.ts
+import type { VisibleUser } from "src/types";
+
+export class UserReporter {
+	private readonly user: VisibleUser;
+	public constructor(user: VisibleUser) {
+		this.user = user;
+	}
+	public normalized_name(): string {
+		const parts = this.user.display_name.trim().split(/\s+/);
+		return parts.join(" ");
+	}
+	public initials(): string {
+		const parts = this.normalized_name().split(" ");
+		return parts.map((part) => part.slice(0, 1)).join("").toUpperCase();
+	}
+	public profile_line(): string {
+		return `${this.initials()} ${this.normalized_name()}`;
+	}
+	public account_label(): string {
+		return `Account ${this.user.user_id.toUpperCase()}`;
+	}
+	public report(): void {
+		console.log(`${this.profile_line()} | ${this.account_label()}`);
+	}
+}
+// File: cli.ts
+import type { VisibleUser } from "src/types";
+import { UserReporter } from "src/user_reporter";
+(function () {
+	const user: VisibleUser = { user_id: "u-1", display_name: "Ada Lovelace" };
+	const reporter = new UserReporter(user);
+	reporter.report();
+})();
 ```
 
 ## Good
@@ -38,13 +73,38 @@ export type PublicUser = {
 	user_id: string;
 	display_name: string;
 };
-export type UserField = "user_id" | "display_name";
+// File: src/user_reporter.ts
+import type { PublicUser } from "src/types";
+
+export class UserReporter {
+	private readonly _user: PublicUser;
+	public constructor(user: PublicUser) {
+		this._user = user;
+	}
+	public normalized_name(): string {
+		const words = this._user.display_name.trim().split(/\s+/u);
+		return words.join(" ");
+	}
+	public initials(): string {
+		return this.normalized_name().split(" ").map((part) => part.slice(0, 1)).join("").toUpperCase();
+	}
+	public profile_line(): string {
+		return `${this.initials()} ${this.normalized_name()}`;
+	}
+	public account_label(): string {
+		return `Account ${this._user.user_id.toUpperCase()}`;
+	}
+	public report(): void {
+		console.log(`${this.profile_line()} | ${this.account_label()}`);
+	}
+}
 // File: cli.ts
-import type { PublicUser, UserField } from "src/types";
+import type { PublicUser } from "src/types";
+import { UserReporter } from "src/user_reporter";
 (function () {
-	const user: PublicUser = { user_id: "u-1", display_name: "Ada" };
-	const field: UserField = "display_name";
-	console.log(user[field]);
+	const user: PublicUser = { user_id: "u-1", display_name: "Ada Lovelace" };
+	const reporter = new UserReporter(user);
+	reporter.report();
 })();
 ```
 

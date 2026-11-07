@@ -42,11 +42,16 @@ class TextNormalizer:
         if len(normalized) == 0: return 0
         words = normalized.split()
         return len(words)
-# File: cli.py
+    def report(self, source: str) -> None:
+        normalized_text = self.normalize(source)
+        empty_result = self.empty_status(source)
+        word_total = self.word_count(source)
+        print(f"{normalized_text} | {empty_result} | {word_total}")
+# File: src/cli.py
 from src.text_normalizer import TextNormalizer
 if __name__ == "__main__":
     normalizer = TextNormalizer("empty")
-    print(normalizer.normalize(" ready "), normalizer.empty_status(" "), normalizer.word_count("one two"))
+    normalizer.report(" ready ")
 ```
 
 ## Good
@@ -57,27 +62,33 @@ class TextNormalizer:
     """Responsibilities: _text normalization and classification_."""
     def __init__(self, empty_marker: str) -> None:
         """Responsibilities: _normalizer state initialization_."""
-        self.empty_marker: str = empty_marker
+        self._empty_marker: str = empty_marker
     def normalize(self, value: str) -> str:
         """Responsibilities: _text normalization_."""
         normalized = value.strip().lower()
-        if len(normalized) == 0: return self.empty_marker
+        if len(normalized) == 0: return self._empty_marker
         return normalized
 
-    def empty_status(self, value: str) -> bool:
+    def empty_status(self, candidate: str) -> bool:
         """Responsibilities: _normalized text emptiness classification_."""
-        normalized = self.normalize(value)
-        return len(normalized) == len(self.empty_marker)
+        normalized = self.normalize(candidate)
+        return len(normalized) == len(self._empty_marker)
 
-    def word_count(self, value: str) -> int:
+    def word_count(self, source: str) -> int:
         """Responsibilities: _normalized word counting_."""
-        normalized = self.normalize(value)
+        normalized = self.normalize(source)
         if len(normalized) == 0: return 0
         words = normalized.split()
         return len(words)
-# File: cli.py
+    def report(self, source: str) -> None:
+        """Responsibilities: _normalization report output_."""
+        normalized_text = self.normalize(source)
+        empty_result = self.empty_status(source)
+        word_total = self.word_count(source)
+        print(f"{normalized_text} | {empty_result} | {word_total}")
+# File: src/cli.py
 from src.text_normalizer import TextNormalizer
 if __name__ == "__main__":
     normalizer = TextNormalizer("empty")
-    print(normalizer.normalize(" ready "), normalizer.empty_status(" "), normalizer.word_count("one two"))
+    normalizer.report(" ready ")
 ```

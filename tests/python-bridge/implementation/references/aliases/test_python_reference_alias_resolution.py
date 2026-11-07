@@ -1,7 +1,11 @@
 import ast
 import unittest
 
-from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.references.aliases.python_reference_aliases import (
+    PythonReferenceAliases,
+    PythonReferenceAliasState,
+)
 
 
 class PythonReferenceAliasResolutionTest(unittest.TestCase):
@@ -9,25 +13,34 @@ class PythonReferenceAliasResolutionTest(unittest.TestCase):
 
     def test_compresses_acyclic_alias_suffixes(self) -> None:
         """Responsibilities: _acyclic alias resolution cache_."""
-        aliases = PythonReferenceAliases()
+        state = PythonReferenceAliasState()
+        aliases = PythonReferenceAliases(state)
         source = "\n".join(f"alias_{index} = alias_{index + 1}" for index in range(999))
-        aliases.collect(ast.parse(source + "\nalias_999 = worker\n"))
+        tree = ast.parse(source + "\nalias_999 = worker\n")
+        node_index = PythonAstNodeIndex()
+        nodes = node_index.nodes(tree)
+        aliases.collect(tree, nodes)
 
         self.assertEqual(
             {
                 "terminal": aliases.resolved_name("alias_0", frozenset({"worker"})),
-                "suffix": aliases.target_ends_with("alias_998", "worker"),
-                "cached_aliases": len(aliases._resolved_aliases),
+                "suffix": aliases.target_name("alias_998") == "worker",
+                "cached_aliases": len(state.resolved_aliases),
             },
             {"terminal": "worker", "suffix": True, "cached_aliases": 1000},
         )
 
     def test_keeps_cycle_results_root_sensitive_and_rebuilds_cache(self) -> None:
         """Responsibilities: _cycle resolution cache lifecycle_."""
-        aliases = PythonReferenceAliases()
-        aliases.collect(ast.parse("prefix = first\nfirst = second\nsecond = first\n"))
+        aliases = PythonReferenceAliases(PythonReferenceAliasState())
+        tree = ast.parse("prefix = first\nfirst = second\nsecond = first\n")
+        node_index = PythonAstNodeIndex()
+        nodes = node_index.nodes(tree)
+        aliases.collect(tree, nodes)
         cycle_results = [aliases.resolved_name(name, frozenset()) for name in ("prefix", "first", "second")]
-        aliases.collect(ast.parse("prefix = worker\n"))
+        tree = ast.parse("prefix = worker\n")
+        nodes = node_index.nodes(tree)
+        aliases.collect(tree, nodes)
 
         self.assertEqual(
             {"cycle_roots": cycle_results, "replacement": aliases.resolved_name("prefix", frozenset())},
@@ -36,15 +49,21 @@ class PythonReferenceAliasResolutionTest(unittest.TestCase):
 
     def test_alias_resolution_caches_chains_in_linear_state(self) -> None:
         """Responsibilities: _alias graph memoization_."""
-        resolution = PythonReferenceAliases()
-        resolution.aliases.extend([{"name": "first", "target": "second"}, {"name": "second", "target": "terminal"}])
+        state = PythonReferenceAliasState()
+        resolution = PythonReferenceAliases(state)
+        state.aliases.extend(
+            [
+                {"name": "first", "target": "second"},
+                {"name": "second", "target": "terminal"},
+            ],
+        )
         resolution._rebuild_alias_index()
 
         self.assertEqual(
             {
                 "first": resolution.resolved_name("first", frozenset()),
-                "second": resolution.target_ends_with("second", "terminal"),
-                "cached": resolution._resolved_aliases,
+                "second": resolution.target_name("second") == "terminal",
+                "cached": state.resolved_aliases,
             },
             {"first": "terminal", "second": True, "cached": {"first": "terminal", "second": "terminal"}},
         )

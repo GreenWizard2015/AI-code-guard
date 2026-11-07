@@ -9,11 +9,13 @@ class PythonInstanceFieldNames:
     """Responsibilities: _annotated instance fields_, _instance target matching_."""
 
     def __init__(
-        self, node: ast.ClassDef, node_index: PythonAstNodeIndexContract
+        self,
+        node: ast.ClassDef,
+        node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _instance field name state_."""
-        self.node: ast.ClassDef = node
-        self.node_index: PythonAstNodeIndexContract = node_index
+        self._node: ast.ClassDef = node
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     def instance_target(self, target: ast.AST) -> bool:
         """Responsibilities: _instance field target classification_."""
@@ -26,13 +28,15 @@ class PythonInstanceFieldNames:
     def names(self) -> set[str]:
         """Responsibilities: _annotated instance field collection_."""
         names: set[str] = set()
-        for item in self.node.body:
+        for item in self._node.body:
             if type(item) not in (ast.FunctionDef, ast.AsyncFunctionDef):
                 continue
-            for nested in self.node_index.nodes(item):
+            for nested in self._node_index.nodes(item):
                 if type(nested) is not ast.AnnAssign:
                     continue
                 if not self.instance_target(nested.target):
                     continue
-                names.add(nested.target.attr)
+                target = nested.target
+                if type(target) is ast.Attribute:
+                    names.add(target.attr)
         return names

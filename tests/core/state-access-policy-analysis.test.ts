@@ -1,15 +1,32 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TYPEOF_CASES } from "tests/core/constants/ast_nodes/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("state access policy analysis", () => {
+	test("does not treat typeof checks for distinct values as repeated checks", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"independent-typeof.ts": [
+					"function is_cache_record(value: CacheRecord): boolean {",
+					'  return typeof value.name === "string" && typeof value.owner === "string";',
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		expect(violations.filter((item) => item.rule_id() === "typescript-typeof")).toHaveLength(0);
+	});
+
 	test("resolves static private keys without flagging safe prototype and closure uses", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"private-key-alias.ts": [
 					"class Sample { private token = 1; }",
@@ -48,7 +65,7 @@ describe("state access policy analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect({
 			private_access: messages.filter(
 				(message) => message === "private class members must not be accessed from outside their class",
@@ -63,7 +80,7 @@ describe("state access policy analysis", () => {
 	test("detects callable feature checks only in conditional control flow across languages", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"callable-fallback.ts": [
 					"function execute(service: Service): void {",
@@ -109,6 +126,6 @@ describe("state access policy analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const message = "avoid callable feature detection for project-owned interfaces";
-		expect(violations.filter((item) => item.message === message)).toHaveLength(7);
+		expect(violations.filter((item) => item.message() === message)).toHaveLength(7);
 	});
 });

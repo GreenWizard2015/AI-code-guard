@@ -1,20 +1,20 @@
 import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
 import { TestTargetImports } from "src/linting/orchestration/runtime/test-targets/test_target_imports";
-import { TestTargetRoots } from "src/linting/orchestration/runtime/test-targets/test_target_roots";
+import { TestTargetSource } from "src/linting/orchestration/runtime/test-targets/test_target_source";
+import type { AstPythonImport, TestTargetImport } from "src/model/ast/normalized_ast_types";
+import type { LintSourceRecordData } from "src/source_types";
 import type {
 	TestFileOrganizationContract,
 	TestTargetImportResolverContract,
-	TestTargetRootsContract,
 	TestTargetsContract,
 } from "src/testing_protocols";
-import type { AstPythonImport } from "src/types";
-import type { TestTargetImport } from "src/types";
 import ts from "typescript";
 
 /** Responsibilities: _test import matching_, _test target validation_. **/
 export class TestTargets implements TestTargetsContract {
-	private readonly roots: TestTargetRootsContract;
-	private readonly import_resolver: TestTargetImportResolverContract;
+	private readonly _project_root: string;
+	private readonly _test_file_organization: TestFileOrganizationContract;
+	private readonly _import_resolver: TestTargetImportResolverContract;
 
 	/** Responsibilities: _test module import detection_. **/
 	private test_import(specifier: string): boolean {
@@ -41,29 +41,15 @@ export class TestTargets implements TestTargetsContract {
 	}
 
 	/** Responsibilities: _production declaration matching_. **/
-	private matches_target(file: string, imports: readonly TestTargetImport[], python: boolean): boolean {
-		for (const imported_target of imports) {
-			const declaration_paths = this.import_resolver.declaration_paths(file, [imported_target], python);
-			if (declaration_paths.length === 0) {
-				continue;
-			}
-			for (const declaration_path of declaration_paths) {
-				if (this.roots.matches_target_path(file, declaration_path)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
 	/** Responsibilities: _initialization test target roots_. **/
 	public constructor(
 		project_root: string,
 		test_file_organization: TestFileOrganizationContract,
 		import_resolver: TestTargetImportResolverContract,
 	) {
-		this.roots = new TestTargetRoots(project_root, test_file_organization, import_resolver);
-		this.import_resolver = import_resolver;
+		this._project_root = project_root;
+		this._test_file_organization = test_file_organization;
+		this._import_resolver = import_resolver;
 	}
 
 	/** Responsibilities: _import target root validation_. **/
@@ -72,7 +58,8 @@ export class TestTargets implements TestTargetsContract {
 		if (imports.length === 0) {
 			return false;
 		}
-		return this.matches_target(file, imports, python);
+		const test_source = new TestTargetSource(file, imports, python, this._project_root, this._test_file_organization);
+		return test_source.matches_target(this._import_resolver);
 	}
 
 	/** Responsibilities: _TypeScript target validation_. **/
@@ -85,6 +72,22 @@ export class TestTargets implements TestTargetsContract {
 		if (production_imports.length === 0) {
 			return false;
 		}
-		return this.matches_target(file, production_imports, false);
+		const test_source = new TestTargetSource(
+			file,
+			production_imports,
+			false,
+			this._project_root,
+			this._test_file_organization,
+		);
+		return test_source.matches_target(this._import_resolver);
+	}
+
+	/** Responsibilities: _source-record target validation_. **/
+	public valid_source(source: LintSourceRecordData): boolean {
+		if (source.language === "python") {
+			const imports = source.normalized_ast.source.python_imports;
+			return this.valid(source.relative_path, source.text, true, imports);
+		}
+		return this.valid_typescript(source.relative_path, source.typescript_ast.source_file_node());
 	}
 }

@@ -8,16 +8,35 @@ with an explicit domain contract instead of a nullable value.
 
 
 ```python
-# File: cli.py
-from typing import Optional
+# File: src/label_text.py
+class LabelText:
+    def __init__(self, value: str | None) -> None:
+        self.value: str | None = value
+    def normalized_text(self) -> str:
+        if self.value is None:
+            return "unavailable"
+        trimmed = self.value.strip()
+        if not trimmed:
+            return "(empty)"
+        words = trimmed.split()
+        return " ".join(words)
+    def label(self, prefix: str) -> str:
+        clean_prefix = prefix.strip()
+        text = self.normalized_text()
+        if not clean_prefix:
+            return text
+        return f"{clean_prefix}: {text}"
+    def report(self) -> str:
+        output = self.label("Label")
+        print(output)
+        return output
 
-def display_label(label: Optional[str]) -> Optional[str]:
-    if label is None:
-        return None
-    return label.strip()
+# File: cli.py
+from src.label_text import LabelText
 
 if __name__ == "__main__":
-    print(display_label(None))
+    label = LabelText(None)
+    label.report()
 ```
 
 If absence is a real state, define an interface or protocol for the shared
@@ -28,11 +47,34 @@ representation local to the adapter that communicates with an external system.
 
 
 ```python
+# File: src/label_text.py
+class LabelText:
+    def __init__(self, value: str) -> None:
+        self._value: str = value
+
+    def normalized_text(self) -> str:
+        trimmed = self._value.strip()
+        if not trimmed:
+            return "(empty)"
+        words = trimmed.split()
+        return " ".join(words)
+
+    def label(self, prefix: str) -> str:
+        clean_prefix = prefix.strip()
+        text = self.normalized_text()
+        if not clean_prefix:
+            return text
+        return f"{clean_prefix}: {text}"
+
+    def report(self) -> str:
+        output = self.label("Label")
+        print(output)
+        return output
+
 # File: cli.py
-def display_label(label: str) -> str:
-    """Responsibilities: _label display_."""
-    return label.strip()
+from src.label_text import LabelText
 
 if __name__ == "__main__":
-    print(display_label("ready"))
+    label = LabelText("ready")
+    label.report()
 ```

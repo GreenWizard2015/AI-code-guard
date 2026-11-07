@@ -2,8 +2,8 @@ import { MARKDOWN_TEXT_SUFFIXES } from "src/constants";
 
 /** Responsibilities: _Markdown fence masking_, _prose line selection_. **/
 export class MarkdownProseLines {
-	private readonly file: string;
-	private readonly text: string;
+	private readonly _source_lines: readonly string[];
+	private readonly _markdown_text_file: boolean;
 
 	/** Responsibilities: _Markdown fence recognition_. **/
 	private fence_marker(line: string): string {
@@ -19,31 +19,35 @@ export class MarkdownProseLines {
 
 	/** Responsibilities: _fenced Markdown line masking_. **/
 	private consume_line(lines: string[], index: number, active_marker: string): string {
-		const marker = this.fence_marker(lines[index]);
-		if (marker.length === 0) {
-			if (active_marker.length > 0) {
-				lines[index] = "";
-			}
+		const line = lines[index];
+		if (line === undefined) {
 			return active_marker;
 		}
-		if (active_marker.length === 0) {
-			active_marker = marker;
-		} else if (marker === active_marker) {
-			active_marker = "";
+		const marker = this.fence_marker(line);
+		if (marker.length === 0 && active_marker.length === 0) {
+			return active_marker;
 		}
 		lines[index] = "";
+		if (active_marker.length === 0) {
+			return marker;
+		}
+		if (marker === active_marker) {
+			return "";
+		}
 		return active_marker;
 	}
 
 	/** Responsibilities: _Markdown source ownership_. **/
 	public constructor(file: string, text: string) {
-		this.file = file;
-		this.text = text;
+		const extension_start = file.lastIndexOf(".");
+		const extension = file.slice(extension_start).toLowerCase();
+		this._source_lines = text.split("\n");
+		this._markdown_text_file = MARKDOWN_TEXT_SUFFIXES.has(extension);
 	}
 
 	/** Responsibilities: _fenced code removal_. **/
 	public outside_fenced_code(): string[] {
-		const lines = this.text.split("\n");
+		const lines = this._source_lines.slice();
 		let active_marker = "";
 		for (let index = 0; index < lines.length; index += 1) {
 			active_marker = this.consume_line(lines, index, active_marker);
@@ -53,11 +57,9 @@ export class MarkdownProseLines {
 
 	/** Responsibilities: _Markdown prose line selection_. **/
 	public prose_lines(): string[] {
-		const extension_start = this.file.lastIndexOf(".");
-		const extension = this.file.slice(extension_start).toLowerCase();
-		if (MARKDOWN_TEXT_SUFFIXES.has(extension)) {
+		if (this._markdown_text_file) {
 			return this.outside_fenced_code();
 		}
-		return this.text.split("\n");
+		return this._source_lines.slice();
 	}
 }

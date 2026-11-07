@@ -12,35 +12,76 @@ The rule counts unique module specifiers, not imported names. For example,
 ## Bad
 
 ```ts
+{% const module_names = ["module_01", "module_02", "module_03", "module_04", "module_05", "module_06", "module_07", "module_08", "module_09", "module_10", "module_11", "module_12", "module_13", "module_14", "module_15", "module_16", "module_17", "module_18", "module_19", "module_20", "module_21"] %}
+{% for module_name in module_names %}
+// File: src/domain/{{module_name}}.ts
+export class ModuleFeature {
+	private readonly code: string;
+
+	public constructor(code: string) {
+		this.code = code;
+	}
+
+	public normalized_code(): string {
+		return this.code.trim().toLowerCase();
+	}
+
+	public status_label(): string {
+		return `Loaded ${this.normalized_code()}`;
+	}
+
+	public report(): void {
+		console.log(this.status_label());
+	}
+}
+{% endfor %}
 // File: cli.ts
-import 'domain/module_01'; // <- error
-import 'domain/module_02'; // <- error
-import 'domain/module_03'; // <- error
-import 'domain/module_04'; // <- error
-import 'domain/module_05'; // <- error
-import 'domain/module_06'; // <- error
-import 'domain/module_07'; // <- error
-import 'domain/module_08'; // <- error
-import 'domain/module_09'; // <- error
-import 'domain/module_10'; // <- error
-import 'domain/module_11'; // <- error
-import 'domain/module_12'; // <- error
-import 'domain/module_13'; // <- error
-import 'domain/module_14'; // <- error
-import 'domain/module_15'; // <- error
-import 'domain/module_16'; // <- error
-import 'domain/module_17'; // <- error
-import 'domain/module_18'; // <- error
-import 'domain/module_19'; // <- error
-import 'domain/module_20'; // <- error
-import 'domain/module_21'; // <- error
+{% for module_name in module_names %}
+import * as {{module_name}} from "src/domain/{{module_name}}"; // <- error
+{% endfor %}
+(function () {
+{% for module_name in module_names %}
+	const feature_{{module_name}} = new {{module_name}}.ModuleFeature("{{module_name}}");
+	feature_{{module_name}}.report();
+{% endfor %}
+})();
 ```
 
 
 ## Good
 
 ```ts
+// File: src/account_workflow.ts
+export class AccountWorkflow {
+	private readonly _account_name: string;
+
+	public constructor(account_name: string) {
+		this._account_name = account_name;
+	}
+
+	public account_state(): string {
+		if (this._account_name.trim().length === 0) {
+			return "pending";
+		}
+		return "ready";
+	}
+
+	public status_label(): string {
+		if (this.account_state() === "ready") {
+			return `Ready: ${this._account_name.trim()}`;
+		}
+		return "Account pending";
+	}
+
+	public report(): void {
+		console.log(this.status_label());
+	}
+}
 // File: cli.ts
-import 'application/account-workflow';
+import { AccountWorkflow } from "src/account_workflow";
+(function () {
+	const workflow = new AccountWorkflow("primary");
+	workflow.report();
+})();
 ```
 

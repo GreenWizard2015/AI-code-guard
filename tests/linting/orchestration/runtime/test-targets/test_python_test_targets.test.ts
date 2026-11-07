@@ -2,29 +2,11 @@ import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
 import { TestFileOrganization } from "src/linting/orchestration/runtime/test-targets/test_file_organization";
-import { TestTargetRoots } from "src/linting/orchestration/runtime/test-targets/test_target_roots";
 import { TestTargets } from "src/linting/orchestration/runtime/test-targets/test_targets";
+import type { AstPythonImport } from "src/model/ast/normalized_ast_types";
 import { MockTestPathChecker } from "tests/linting/orchestration/runtime/test-targets/mock_test_path_checker";
-import type { AstPythonImport } from "src/types";
 
 describe("Python test target resolution", () => {
-	test("resolves bridge imports from the configured source root", () => {
-		const root = "/project";
-		const checker = new MockTestPathChecker();
-		const organization = new TestFileOrganization(root, checker);
-		const target_roots = new TestTargetRoots(root, organization, checker);
-		const expected_root = ["python-bridge", "implementation", "rules", "call_analysis"];
-
-		expect(
-			target_roots.common_root(
-				"tests/python-bridge/implementation/rules/call_analysis/test_execution.py",
-				["implementation.rules.call_analysis.python_test_execution_region"],
-				true,
-				expected_root,
-			),
-		).toEqual(expected_root);
-	});
-
 	test("resolves application and project-root packages", () => {
 		const organization = new TestFileOrganization("/project", new MockTestPathChecker("/project/src/payments"));
 		const targets = new TestTargets("/project", organization, new MockTestPathChecker());

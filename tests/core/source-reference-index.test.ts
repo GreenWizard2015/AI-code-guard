@@ -13,9 +13,11 @@ describe("source reference index", () => {
 
 		expect({
 			unknown: index.references_for(unknown_key, "usage"),
+			unknown_implementation_is_frozen: Object.isFrozen(index.references_for(unknown_key, "implementation")),
 			known: index.references_for(known_key, "implementation"),
 		}).toEqual({
 			unknown: [unknown_reference],
+			unknown_implementation_is_frozen: true,
 			known: [known_reference],
 		});
 	});
@@ -46,9 +48,19 @@ describe("source reference index", () => {
 		expect({
 			implementations: index.references_for("symbol", "implementation"),
 			usages: index.references_for("symbol", "usage"),
+			repeated: index.repeated_usages(1),
 		}).toEqual({
 			implementations: [{ file: "definition.ts", line: 4 }],
 			usages: [{ file: "consumer.ts", line: 9 }],
+			repeated: [{ file: "consumer.ts", line: 9 }],
 		});
+	});
+
+	test("keeps only the first location for presence-only usages", () => {
+		const index = new SourceReferenceIndex<string>();
+		index.add_usage_once("symbol", "first.ts", 4);
+		index.add_usage_once("symbol", "second.ts", 9);
+
+		expect(index.references_for("symbol", "usage")).toEqual([{ file: "first.ts", line: 4 }]);
 	});
 });

@@ -2,100 +2,90 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Mapping
-from typing import Any
+from contextvars import ContextVar
+
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.types import PythonGenericNames
 
 
 class AnnotationNames:
-    """Responsibilities: _annotation name normalization_, _constructor resolution_."""
+    """Responsibilities: _annotation name resolution_, _constructor alias resolution_."""
 
-    def _string_annotation_name(
-        self, value: str, aliases: Mapping[str, str], transparent_generics: set[str]
-    ) -> str:
-        """Responsibilities: _resolution string literal annotation_."""
+    _node_index: PythonAstNodeIndexContract
+    _generics: ContextVar[PythonGenericNames]
+
+    def _expression_children(self, parent: ast.AST) -> list[ast.expr]:
+        """Responsibilities: _annotation expression child selection_."""
+        expressions: list[ast.expr] = []
+        for child in self._node_index.children(parent):
+            match child:
+                case ast.expr():
+                    expressions.append(child)
+        return expressions
+
+    def _string_children(self, source: str) -> list[ast.expr]:
+        """Responsibilities: _string annotation expression parsing_."""
         try:
-            expression: Any = ast.parse(value, mode=self.string_annotation_mode).body
+            parsed = ast.parse(source, mode="eval")
         except SyntaxError:
-            return ""
-        return self.annotation_name(expression, aliases, transparent_generics)
+            return []
+        if type(parsed) is not ast.Expression:
+            return []
+        return [parsed.body]
 
-    def _union_annotation_name(
-        self,
-        annotation: ast.BinOp,
-        aliases: Mapping[str, str],
-        transparent_generics: set[str],
-    ) -> str:
-        """Responsibilities: _resolution first meaningful name_."""
-        if type(annotation.op) is not ast.BitOr:
-            return ""
-        left_name: Any = self.annotation_name(
-            annotation.left, aliases, transparent_generics
-        )
-        if left_name:
-            return left_name
-        return self.annotation_name(annotation.right, aliases, transparent_generics)
+    def _generic_children(self, current: ast.Subscript) -> list[ast.expr]:
+        """Responsibilities: _transparent generic annotation children_."""
+        if type(current.value) is not ast.Name:
+            return []
+        if current.value.id not in self._generics.get():
+            return []
+        if type(current.slice) is ast.Tuple:
+            return self._expression_children(current.slice)
+        return [current.slice]
 
-    def _generic_annotation_name(
-        self,
-        annotation: ast.Subscript,
-        aliases: Mapping[str, str],
-        transparent_generics: set[str],
-    ) -> str:
-        """Responsibilities: _resolution element name generic_."""
-        if type(annotation.value) is not ast.Name:
-            return ""
-        if annotation.value.id not in transparent_generics:
-            return ""
-        values: Any
-        if type(annotation.slice) is ast.Tuple:
-            values = annotation.slice.elts
-        else:
-            values = [annotation.slice]
-        for value in values:
-            name: Any = self.annotation_name(value, aliases, transparent_generics)
-            if name:
-                return name
-        return ""
+    def _annotation_children(self, current: ast.expr) -> list[ast.expr]:
+        """Responsibilities: _annotation traversal step_."""
+        if type(current) is ast.Constant and type(current.value) is str:
+            return self._string_children(current.value)
+        if type(current) is ast.BinOp and type(current.op) is ast.BitOr:
+            return self._expression_children(current)
+        if type(current) is ast.Subscript:
+            return self._generic_children(current)
+        return []
 
-    def __init__(self) -> None:
-        """Responsibilities: _annotation normalization policy initialization_."""
-        self.string_annotation_mode: Any = "eval"
+    def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
+        """Responsibilities: _annotation traversal state_."""
+        self._node_index = node_index
+        self._generics = ContextVar("annotation_generics", default=frozenset())
 
     def annotation_name(
         self,
         annotation: ast.expr,
         aliases: Mapping[str, str],
-        transparent_generics: set[str],
+        generics: set[str],
     ) -> str:
-        """Responsibilities: _resolution normalization name Python_."""
-        if type(annotation) is ast.Name:
-            return aliases.get(annotation.id, annotation.id)
-        is_string_constant = type(annotation) is ast.Constant
-        if is_string_constant:
-            if type(annotation.value) is str:
-                return self._string_annotation_name(
-                    annotation.value, aliases, transparent_generics
-                )
-        if type(annotation) is ast.BinOp:
-            return self._union_annotation_name(
-                annotation, aliases, transparent_generics
-            )
-        if type(annotation) is ast.Subscript:
-            return self._generic_annotation_name(
-                annotation, aliases, transparent_generics
-            )
-        return ""
+        """Responsibilities: _recursive annotation name normalization_."""
+        token = self._generics.set(frozenset(generics))
+        try:
+            pending: list[ast.expr] = [annotation]
+            while pending:
+                current = pending.pop()
+                if type(current) is ast.Name:
+                    return aliases.get(current.id, current.id)
+                pending.extend(reversed(self._annotation_children(current)))
+            return ""
+        finally:
+            self._generics.reset(token)
 
     def resolve_constructor(
         self,
         value: ast.AST,
         class_names: set[str],
-        aliases: Mapping[str, str],
+        constructor_aliases: Mapping[str, str],
     ) -> str:
-        """Responsibilities: _resolution constructor expression name_."""
-        if type(value) is not ast.Call:
-            return ""
-        if type(value.func) is not ast.Name:
+        """Responsibilities: _constructor expression name resolution_."""
+        if type(value) is not ast.Call or type(value.func) is not ast.Name:
             return ""
         if value.func.id not in class_names:
             return ""
-        return aliases.get(value.func.id, value.func.id)
+        return constructor_aliases.get(value.func.id, value.func.id)

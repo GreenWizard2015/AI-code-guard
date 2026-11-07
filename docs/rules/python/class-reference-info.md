@@ -9,10 +9,10 @@ Description: Keep class construction ownership focused and reduce unnecessary cr
 # File: src/product_catalog/product_catalog.py
 class ProductCatalog:
     def __init__(self, name: str) -> None:
-        self.name: str = name
+        self._name: str = name
 
     def product_name(self) -> str:
-        return self.name.strip().upper()
+        return self._name.strip().upper()
 {%for consumer in consumers %}
 # File: src/consumer_{{consumer.file}}.py
 from src.product_catalog.product_catalog import ProductCatalog  # <- error
@@ -33,6 +33,10 @@ class Consumer{{consumer.name}}:
         normalized_product_name = self.catalog.product_name().lower()
         normalized_label = self.display_label().lower()
         return normalized_query in normalized_product_name or normalized_query in normalized_label
+    def report(self) -> None:
+        label = self.display_label()
+        matches = self.matches_query("note")
+        print(label, matches)
 {% endfor %}
 # File: src/cli.py
 from src.product_catalog.product_catalog import ProductCatalog
@@ -43,7 +47,7 @@ if __name__ == "__main__":
     catalog = ProductCatalog("Notebook")
 {%for consumer in consumers %}
     consumer_{{consumer.file}} = Consumer{{consumer.name}}(catalog, "{{consumer.file}}: ")
-    print(consumer_{{consumer.file}}.display_label(), consumer_{{consumer.file}}.matches_query("note"))
+    consumer_{{consumer.file}}.report()
 {% endfor %}
 ```
 
@@ -61,22 +65,22 @@ from src.product_catalog.protocols import ProductCatalogContract
 class ProductCatalog(ProductCatalogContract):
     """Responsibilities: _product catalog ownership_."""
     def __init__(self, name: str) -> None:
-        self.name: str = name
+        self._name: str = name
 
     def product_name(self) -> str:
-        return self.name.strip().upper()
+        return self._name.strip().upper()
 {%for consumer in consumers %}
 # File: src/consumer_{{consumer.file}}.py
 from src.product_catalog.protocols import ProductCatalogContract
 class Consumer{{consumer.name}}:
     """Responsibilities: _product presentation_."""
     def __init__(self, catalog: ProductCatalogContract, prefix: str) -> None:
-        self.catalog: ProductCatalogContract = catalog
-        self.prefix: str = prefix
+        self._catalog: ProductCatalogContract = catalog
+        self._prefix: str = prefix
 
     def display_label(self) -> str:
-        normalized_prefix = self.prefix.strip()
-        product_name = self.catalog.product_name()
+        normalized_prefix = self._prefix.strip()
+        product_name = self._catalog.product_name()
         if not normalized_prefix:
             return product_name
         return f"{normalized_prefix}: {product_name}"
@@ -84,9 +88,13 @@ class Consumer{{consumer.name}}:
         normalized_query = query.strip().lower()
         if not normalized_query:
             return False
-        normalized_product_name = self.catalog.product_name().lower()
+        normalized_product_name = self._catalog.product_name().lower()
         normalized_label = self.display_label().lower()
         return normalized_query in normalized_product_name or normalized_query in normalized_label
+    def report(self) -> None:
+        label = self.display_label()
+        matches = self.matches_query("note")
+        print(label, matches)
 {% endfor %}
 # File: src/cli.py
 from src.product_catalog.product_catalog import ProductCatalog
@@ -97,6 +105,6 @@ if __name__ == "__main__":
     catalog = ProductCatalog("Notebook")
 {%for consumer in consumers %}
     consumer_{{consumer.file}} = Consumer{{consumer.name}}(catalog, "{{consumer.file}}: ")
-    print(consumer_{{consumer.file}}.display_label(), consumer_{{consumer.file}}.matches_query("note"))
+    consumer_{{consumer.file}}.report()
 {% endfor %}
 ```

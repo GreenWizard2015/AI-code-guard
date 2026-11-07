@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import { UnusedCode } from "src/core/project-source/unused_code";
 import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
+import { UnusedCode } from "src/core/project-source/unused_code";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("unused code edge cases", () => {
@@ -10,9 +10,9 @@ describe("unused code edge cases", () => {
 		files: Record<string, string>,
 		entry_files: readonly string[] = [],
 	): { root: string; scanner: ProjectSourceScanner; files: string[] } => {
-		return fixture.project_source.with_in_memory_project(
+		return fixture._project_source.with_in_memory_project(
 			files,
-			(root, context) => {
+			({ root, context }) => {
 				const scanner = new ProjectSourceScanner(root, {
 					context_state: { available: true, value: context },
 					entry_files,
@@ -34,7 +34,7 @@ describe("unused code edge cases", () => {
 		);
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
-		expect(violations.map((violation) => violation.file)).toEqual([
+		expect(violations.map((violation) => violation.file())).toEqual([
 			"tools/coding-lint/importer.ts",
 			"tools/coding-lint/dependency.ts",
 		]);
@@ -46,12 +46,14 @@ describe("unused code edge cases", () => {
 		]);
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
-		expect(violations).toEqual([
-			expect.objectContaining({
-				file: "tools/coding-lint/index.ts",
-				rule_id: "missing-import",
-				message: "Relative import cannot be resolved: ./deleted-module",
-			}),
-		]);
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id(), message: item.message() }))).toEqual(
+			[
+				{
+					file: "tools/coding-lint/index.ts",
+					rule_id: "missing-import",
+					message: "Relative import cannot be resolved: ./deleted-module",
+				},
+			],
+		);
 	});
 });

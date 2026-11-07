@@ -7,16 +7,42 @@ with an explicit domain contract instead of a nullable value.
 ## Bad
 
 ```ts
-// File: cli.ts
-function display_label(label: string | null): string | undefined {
-	if (label === null) {
-		return undefined;
+// File: src/label_text.ts
+export class LabelText {
+	private readonly value: string | null;
+	public constructor(value: string | null) {
+		this.value = value;
 	}
-	return label.trim();
+	public normalized_text(): string {
+		if (this.value === null) {
+			return "unavailable";
+		}
+		const trimmed = this.value.trim();
+		if (trimmed.length === 0) {
+			return "(empty)";
+		}
+		const words = trimmed.split(/\s+/u);
+		return words.join(" ");
+	}
+	public label(prefix: string): string {
+		const clean_prefix = prefix.trim();
+		const text = this.normalized_text();
+		if (clean_prefix.length === 0) {
+			return text;
+		}
+		return `${clean_prefix}: ${text}`;
+	}
+	public report(): string {
+		const output = this.label("Label");
+		console.log(output);
+		return output;
+	}
 }
-
+// File: cli.ts
+import { LabelText } from "src/label_text";
 (function () {
-	console.log(display_label(null));
+	const label = new LabelText(null);
+	label.report();
 })();
 ```
 
@@ -28,14 +54,45 @@ representation local to the adapter that communicates with an external system.
 ## Good
 
 ```ts
-// File: cli.ts
-/** Responsibilities: _label display_. **/
-function display_label(label: string): string {
-	return label.trim();
-}
+// File: src/label_text.ts
+export class LabelText {
+	private readonly _normalized_cache: Map<string, string>;
+	private readonly _value: string;
+	public constructor(value: string) {
+		this._value = value;
 
+		this._normalized_cache = new Map();}
+	public normalized_text(): string {
+		const cached = this._normalized_cache.get(this._value);
+		if (cached !== undefined) { return cached; }
+		const trimmed = this._value.trim();
+		if (trimmed.length === 0) {
+			this._normalized_cache.set(this._value, "(empty)");
+			return "(empty)";
+		}
+		const normalized = trimmed.split(/\s+/u).join(" ");
+		this._normalized_cache.set(this._value, normalized);
+		return normalized;
+	}
+	public label(prefix: string): string {
+		const clean_prefix = prefix.trim();
+		const text = this.normalized_text();
+		if (clean_prefix.length === 0) {
+			return text;
+		}
+		return `${clean_prefix}: ${text}`;
+	}
+	public report(): string {
+		const output = this.label("Label");
+		console.log(output);
+		return output;
+}
+}
+// File: cli.ts
+import { LabelText } from "src/label_text";
 (function () {
-	console.log(display_label("ready"));
+	const label = new LabelText("ready");
+	label.report();
 })();
 ```
 

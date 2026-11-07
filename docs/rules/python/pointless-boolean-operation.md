@@ -8,23 +8,62 @@ mapping lookups or other values with an unknown type are not reported.
 ## Bad
 
 ```python
+# File: src/readiness.py
+class Readiness:
+    def __init__(self, value: bool, component: str) -> None:
+        self.value: bool = value
+        self.component: str = component
+    def ready(self) -> bool:
+        ready_value = self.value
+        if ready_value is True:
+            return True
+        return False
+    def label(self) -> str:
+        if self.ready():
+            return "ready"
+        return "blocked"
+    def description(self) -> str:
+        state_label = self.label()
+        return f"{self.component}: {state_label}"
+    def matches_component(self, name: str) -> bool:
+        return self.component == name
+    def report(self) -> None:
+        print(self.description())
 # File: cli.py
-def is_ready(value: bool) -> bool:
-    if value is True:
-        return True
-    return False
 if __name__ == "__main__":
-    result = is_ready(True)
+    from src.readiness import Readiness
+    readiness = Readiness(True, "worker")
+    if readiness.matches_component("worker"):
+        readiness.report()
 ```
 
 
 ## Good
 
 ```python
+# File: src/readiness.py
+class Readiness:
+    def __init__(self, value: bool, component: str) -> None:
+        self._value: bool = value
+        self._component: str = component
+    def ready(self) -> bool:
+        return self._value
+    def label(self) -> str:
+        if self.ready():
+            return "ready"
+        return "blocked"
+    def description(self) -> str:
+        state_label = self.label()
+        return f"{self._component}: {state_label}"
+    def matches_component(self, name: str) -> bool:
+        return self._component == name
+    def report(self) -> None:
+        print(self.description())
 # File: cli.py
-def is_ready(value: bool) -> bool:
-    return value
 if __name__ == "__main__":
-    result = is_ready(True)
+    from src.readiness import Readiness
+    readiness = Readiness(True, "worker")
+    if readiness.matches_component("worker"):
+        readiness.report()
 ```
 

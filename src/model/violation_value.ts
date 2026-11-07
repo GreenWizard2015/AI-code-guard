@@ -1,0 +1,36 @@
+import type { ReportViolationOptions, ViolationContract } from "src/reporting_protocols";
+
+/** Responsibilities: _diagnostic violation data storage_, _adjusted violation copies creation_. **/
+export class ViolationValue implements ViolationContract {
+	private readonly _options: ReportViolationOptions;
+
+	/** Responsibilities: _diagnostic violation initialization_. **/
+	public constructor(options: ReportViolationOptions) {
+		this._options = Object.freeze({ ...options });
+	}
+
+	/** Responsibilities: _source file access_. **/
+	public file(): string {
+		return this._options.file;
+	}
+	/** Responsibilities: _diagnostic line access_. **/
+	public line(): number {
+		return this._options.line;
+	}
+	/** Responsibilities: _diagnostic message access_. **/
+	public message(): string {
+		return this._options.message;
+	}
+	/** Responsibilities: _diagnostic hint access_. **/
+	public hint(): string {
+		return this._options.hint;
+	}
+	/** Responsibilities: _rule identifier access_. **/
+	public rule_id(): string {
+		return this._options.rule_id;
+	}
+	/** Responsibilities: _diagnostic priority access_. **/
+	public priority(): number {
+		return this._options.priority;
+	}
+}

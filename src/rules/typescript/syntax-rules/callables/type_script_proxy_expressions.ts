@@ -1,95 +1,96 @@
-import ts from "typescript";
+import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
+import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 import type { TypeScriptProxyExpressionsContract } from "src/typescript_analysis_protocols";
-import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
-import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
+import ts from "typescript";
 
 /** Responsibilities: _property chain extraction_, _transparent expression unwrapping_. **/
 export class TypeScriptProxyExpressions implements TypeScriptProxyExpressionsContract {
-	private readonly static_expression_values: TypeScriptStaticExpressionValues;
+	private readonly _static_expression_values: StaticExpressionValuesContract;
 
 	/** Responsibilities: _transparent expression classification_. **/
-	private is_transparent_expression(node: ts.Node): boolean {
-		if (ts.isParenthesizedExpression(node)) {
+	private is_transparent_expression(expression_candidate: ts.Node): boolean {
+		if (ts.isParenthesizedExpression(expression_candidate)) {
 			return true;
 		}
-		if (ts.isNonNullExpression(node)) {
+		if (ts.isNonNullExpression(expression_candidate)) {
 			return true;
 		}
-		if (ts.isAsExpression(node)) {
+		if (ts.isAsExpression(expression_candidate)) {
 			return true;
 		}
-		if (ts.isTypeAssertionExpression(node)) {
+		if (ts.isTypeAssertionExpression(expression_candidate)) {
 			return true;
 		}
-		return ts.isSatisfiesExpression(node);
+		return ts.isSatisfiesExpression(expression_candidate);
 	}
 
 	/** Responsibilities: _transparent expression unwrapping_. **/
-	private transparent_expression(node: ts.Node): ts.Expression {
-		if (ts.isParenthesizedExpression(node)) {
-			return node.expression;
+	private transparent_expression(transparent_expression_node: ts.Node): ts.Expression {
+		if (ts.isParenthesizedExpression(transparent_expression_node)) {
+			return transparent_expression_node.expression;
 		}
-		if (ts.isNonNullExpression(node)) {
-			return node.expression;
+		if (ts.isNonNullExpression(transparent_expression_node)) {
+			return transparent_expression_node.expression;
 		}
-		if (ts.isAsExpression(node)) {
-			return node.expression;
+		if (ts.isAsExpression(transparent_expression_node)) {
+			return transparent_expression_node.expression;
 		}
-		if (ts.isTypeAssertionExpression(node)) {
-			return node.expression;
+		if (ts.isTypeAssertionExpression(transparent_expression_node)) {
+			return transparent_expression_node.expression;
 		}
-		if (ts.isSatisfiesExpression(node)) {
-			return node.expression;
+		if (ts.isSatisfiesExpression(transparent_expression_node)) {
+			return transparent_expression_node.expression;
 		}
 		throw new Error("Node is not a transparent expression.");
 	}
 
 	/** Responsibilities: _element property chain_. **/
-	private element_property_chain(node: ts.ElementAccessExpression): string[] {
-		const argument = node.argumentExpression;
+	private element_property_chain(element_access: ts.ElementAccessExpression): string[] {
+		const argument = element_access.argumentExpression;
 		if (argument === undefined) {
 			return [];
 		}
-		const property_name = this.static_expression_values.value(argument, node);
+		const property_name = this._static_expression_values.value(argument, element_access);
 		if (property_name === "") {
 			return [];
 		}
-		const chain = this.property_chain(node.expression);
+		const chain = this.property_chain(element_access.expression);
 		chain.push(property_name);
 		return chain;
 	}
 
 	/** Responsibilities: _named property chain_. **/
-	private named_property_chain(node: ts.PropertyAccessExpression): string[] {
-		const chain = this.property_chain(node.expression);
-		chain.push(node.name.text);
+	private named_property_chain(property_access: ts.PropertyAccessExpression): string[] {
+		const chain = this.property_chain(property_access.expression);
+		chain.push(property_access.name.text);
 		return chain;
 	}
 
 	/** Responsibilities: _property chain collection_. **/
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
+	public constructor() {
+		this._static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
 	}
 	/** Responsibilities: _public operation_. **/
-	public property_chain(node: ts.Node): string[] {
-		if (this.is_transparent_expression(node)) {
-			return this.property_chain(this.transparent_expression(node));
+	public property_chain(property_candidate: ts.Node): string[] {
+		if (this.is_transparent_expression(property_candidate)) {
+			return this.property_chain(this.transparent_expression(property_candidate));
 		}
-		if (ts.isIdentifier(node)) {
-			return [node.text];
+		if (ts.isIdentifier(property_candidate)) {
+			return [property_candidate.text];
 		}
-		if (ts.isElementAccessExpression(node)) {
-			return this.element_property_chain(node);
+		if (ts.isElementAccessExpression(property_candidate)) {
+			return this.element_property_chain(property_candidate);
 		}
-		if (ts.isPropertyAccessExpression(node)) {
-			return this.named_property_chain(node);
+		if (ts.isPropertyAccessExpression(property_candidate)) {
+			return this.named_property_chain(property_candidate);
 		}
 		return [];
 	}
 
 	/** Responsibilities: _property chain membership_. **/
-	public contains_property(node: ts.Node, property: string): boolean {
-		return this.property_chain(node).includes(property);
+	public contains_property(property_owner: ts.Node, property: string): boolean {
+		return this.property_chain(property_owner).includes(property);
 	}
 }

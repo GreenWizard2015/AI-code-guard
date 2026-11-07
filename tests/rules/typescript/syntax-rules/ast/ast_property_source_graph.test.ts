@@ -1,7 +1,8 @@
-import ts from "typescript";
 import { describe, expect, test } from "@jest/globals";
+import { AstPropertySourceIndexCache } from "src/model/ast/ast_property_source_index_cache";
+import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
 import { AstPropertySourceGraph } from "src/rules/typescript/syntax-rules/ast/ast_property_source_graph";
-import { AstPropertySourceIndexCache } from "src/ast_property_source_index_cache";
+import ts from "typescript";
 
 describe("AST property source graph", () => {
 	test("uses the project source resolver for imported files", () => {
@@ -15,7 +16,10 @@ describe("AST property source graph", () => {
 		const graph = new AstPropertySourceGraph(
 			root,
 			new Map(),
-			{ module_symbol: () => "/project/src/model.ts", resolve: () => ({ file: "", name: "" }) },
+			{
+				module_symbol: (): string => "/project/src/model.ts",
+				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
+			},
 			new Map([["/project/src/model.ts", imported]]),
 			new AstPropertySourceIndexCache(),
 		);
@@ -27,7 +31,10 @@ describe("AST property source graph", () => {
 		const graph = new AstPropertySourceGraph(
 			root,
 			new Map(),
-			{ module_symbol: () => "", resolve: () => ({ file: "", name: "" }) },
+			{
+				module_symbol: (): string => "",
+				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
+			},
 			new Map(),
 			new AstPropertySourceIndexCache(),
 		);
@@ -58,7 +65,7 @@ describe("AST property source graph", () => {
 			root,
 			new Map(),
 			{
-				module_symbol: (source, specifier) => {
+				module_symbol: (source: string, specifier: string): string => {
 					if (specifier === "./b0") {
 						return "/project/src/b0.ts";
 					}
@@ -73,12 +80,35 @@ describe("AST property source graph", () => {
 					}
 					return `/project/src/b${next}.ts`;
 				},
-				resolve: () => ({ file: "", name: "" }),
+				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
 			},
 			sources,
 			new AstPropertySourceIndexCache(),
 		);
 
 		expect(graph.source("/project/src/b3.ts").fileName).toBe("/project/src/b3.ts");
+	});
+
+	test("registers declared variable types for lexical lookup", () => {
+		const source = ts.createSourceFile(
+			"/project/src/bindings.ts",
+			'const value: string = "";',
+			ts.ScriptTarget.Latest,
+			true,
+		);
+		const statement = source.statements.find(ts.isVariableStatement);
+		const declaration = statement?.declarationList.declarations[0];
+		const identifier = declaration?.name;
+		const unknown_type = ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
+		const cache = new AstPropertySourceIndexCache();
+		let resolved_type: ts.TypeNode = unknown_type;
+		if (identifier !== undefined && ts.isIdentifier(identifier)) {
+			resolved_type = cache.type(identifier, unknown_type);
+		}
+
+		expect({ resolved_type, identifier_valid: identifier !== undefined && ts.isIdentifier(identifier) }).toEqual({
+			resolved_type: declaration?.type,
+			identifier_valid: true,
+		});
 	});
 });

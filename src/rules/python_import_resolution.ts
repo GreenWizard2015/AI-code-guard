@@ -1,15 +1,15 @@
-import type { PythonProjectImportContext } from "src/source_types";
-import type { AstPythonImport, AstPythonImportName, ImportedFunction } from "src/types";
-import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { AstPythonImport, AstPythonImportName, ImportedFunction } from "src/model/ast/normalized_ast_types";
 import type { PythonImportResolutionContract } from "src/python_protocols";
+import type { ProjectSourcePythonContract } from "src/source_protocols";
+import type { PythonProjectImportContext } from "src/source_types";
 
 /** Responsibilities: _Python module path resolution_, _imported symbol resolution_. **/
 export class PythonImportResolution implements PythonImportResolutionContract {
-	private readonly project_source_python: ProjectSourcePythonContract;
+	private readonly _project_source_python: ProjectSourcePythonContract;
 
 	/** Responsibilities: _shared Python import resolver_. **/
 	public constructor(context: PythonProjectImportContext) {
-		this.project_source_python = context.resolver;
+		this._project_source_python = context.resolver;
 	}
 
 	/** Responsibilities: _aggregation normalization names imported_. **/
@@ -37,8 +37,10 @@ export class PythonImportResolution implements PythonImportResolutionContract {
 		const imports = new Map<string, ImportedFunction>();
 		for (const item of python_imports) {
 			let source_file = "";
-			if (root.length !== 0) {
-				source_file = this.project_source_python.python_import_path(root, file, item.module, files);
+			if (root.length > 0) {
+				source_file = this._project_source_python
+					.for_files(files)
+					.resolve_import({ importer: file, specifier: item.module });
 			}
 			if (source_file.length === 0) {
 				continue;

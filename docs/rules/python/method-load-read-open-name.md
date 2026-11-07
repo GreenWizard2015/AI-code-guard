@@ -7,58 +7,62 @@ that implementation choice.
 
 ## Bad
 
-
 ```python
-class PriceLabels:
-    def load_content(self) -> str:
-        return 10
+# File: src/document_content.py
+class DocumentContent:
+    def __init__(self, title_text: str, body_text: str) -> None:
+        self._title_text: str = title_text
+        self._body_text: str = body_text
+
+    def load_content(self) -> str:  # <- error
+        return self._body_text
+
+    def word_count(self) -> int:
+        return len(self._body_text.strip().split())
+
+    def summary(self) -> str:
+        content = self.load_content()
+        words = self.word_count()
+        return f"{self._title_text}: {words} words; {content}"
+
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
+# File: cli.py
+from src.document_content import DocumentContent
+
+if __name__ == "__main__":
+    document = DocumentContent("Welcome", "A short guide to the library.")
+    document.report()
 ```
 
 ## Good
 
-
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/document_content.py
+class DocumentContent:
+    def __init__(self, title_text: str, body_text: str) -> None:
+        self._title_text: str = title_text
+        self._body_text: str = body_text
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def content(self) -> str:
+        return self._body_text
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def word_count(self) -> int:
+        return len(self._body_text.strip().split())
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
+    def summary(self) -> str:
+        content = self.content()
+        words = self.word_count()
+        return f"{self._title_text}: {words} words; {content}"
 
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
-
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.document_content import DocumentContent
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    document = DocumentContent("Welcome", "A short guide to the library.")
+    document.report()
 ```

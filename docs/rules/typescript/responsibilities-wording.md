@@ -53,20 +53,23 @@ export class ParityResult {
 	public word_count(): number { const words = this.text().split(" "); return words.length; }
 	/** Responsibilities: _uppercase text_. **/
 	public uppercase_text(): string { const text = this.text(); return text.toUpperCase(); }
+	/** Responsibilities: _parity summary reporting_. **/
+	public report(): void {
+		const normalized = this.text();
+		const length = this.text_length();
+		const words = this.word_count();
+		const uppercase = this.uppercase_text();
+		console.log(`${normalized} (${length} characters, ${words} words, ${uppercase})`);
+	}
 }
 // File: cli.ts
 import { ParityResult } from "src/parity_result";
-(function () {
+
+(function run(): void {
 	const first_result = new ParityResult("ready state");
 	const second_result = new ParityResult("blocked state");
-	first_result.text();
-	first_result.text_length();
-	first_result.word_count();
-	first_result.uppercase_text();
-	second_result.text();
-	second_result.text_length();
-	second_result.word_count();
-	second_result.uppercase_text();
+	first_result.report();
+	second_result.report();
 })();
 ```
 
@@ -74,8 +77,64 @@ import { ParityResult } from "src/parity_result";
 ## Good
 
 ```ts
+// File: src/parity_result.ts
+/** Responsibilities: _parity result analysis_, _text normalization_. **/
+export class ParityResult {
+	private readonly _text_cache: Map<string, string>;
+	private readonly _result_text: string;
+
+	/** Responsibilities: _result initialization_. **/
+	public constructor(result_text: string) {
+		this._result_text = result_text;
+
+		this._text_cache = new Map();}
+
+	/** Responsibilities: _text normalization_. **/
+	public text(): string {
+		const cached = this._text_cache.get(this._result_text);
+		if (cached !== undefined) { return cached; }
+		const text = this._result_text.trim().split(/\s+/u).join(" ");
+		this._text_cache.set(this._result_text, text);
+		return text;
+	}
+
+	/** Responsibilities: _text length_. **/
+	public text_length(): number {
+		let length = 0;
+		for (const character of this.text()) {
+			if (!/\s/u.test(character)) {
+				length += 1;
+			}
+		}
+		return length;
+	}
+
+	/** Responsibilities: _word count_. **/
+	public word_count(): number {
+		const words = this.text().split(" ");
+		return words.length;
+	}
+
+	/** Responsibilities: _uppercase text_. **/
+	public uppercase_text(): string {
+		const normalized = this.text();
+		return normalized.toUpperCase();
+	}
+
+	/** Responsibilities: _parity summary reporting_. **/
+	public report(): void {
+		const normalized = this.text();
+		const length = this.text_length();
+		const words = this.word_count();
+		const uppercase = this.uppercase_text();
+		console.log(`${normalized} (${length} characters, ${words} words, ${uppercase})`);
+	}
+}
 // File: cli.ts
+import { ParityResult } from "src/parity_result";
+
 (function () {
-	const value: string = "ready";
+	const result = new ParityResult("ready state");
+	result.report();
 })();
 ```

@@ -1,12 +1,12 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import "src/core/lint_project_context_creator";
-import type { CommandResult, CommandSpawnContract } from "test-runner/types";
 import { CommandExecution } from "test-runner/command_execution";
+import type { CallableCommandSpawn, CommandResult } from "test-runner/types";
 
 describe("command execution result normalization", () => {
 	test("forwards the child environment and working directory", () => {
-		let observed_options: Parameters<CommandSpawnContract>[2] = {};
-		const spawn_sync = jest.fn<CommandSpawnContract>().mockImplementation((_command, _args, options) => {
+		let observed_options: Parameters<CallableCommandSpawn>[2] = {};
+		const spawn_sync = jest.fn<CallableCommandSpawn>().mockImplementation((_command, _args, options) => {
 			observed_options = options;
 			return {
 				pid: 1,
@@ -30,7 +30,7 @@ describe("command execution result normalization", () => {
 	});
 
 	test("reports a signaled child as failed", () => {
-		const spawn_sync = jest.fn<CommandSpawnContract>().mockReturnValue({
+		const spawn_sync = jest.fn<CallableCommandSpawn>().mockReturnValue({
 			pid: 1,
 			output: [null],
 			stdout: Buffer.from(""),
@@ -46,7 +46,7 @@ describe("command execution result normalization", () => {
 	});
 
 	test("preserves a normal successful exit", () => {
-		const spawn_sync = jest.fn<CommandSpawnContract>().mockReturnValue({
+		const spawn_sync = jest.fn<CallableCommandSpawn>().mockReturnValue({
 			pid: 1,
 			output: [null],
 			stdout: Buffer.from(""),
@@ -62,7 +62,7 @@ describe("command execution result normalization", () => {
 	});
 
 	test("reports a missing executable as failed", () => {
-		const spawn_sync = jest.fn<CommandSpawnContract>().mockReturnValue({
+		const spawn_sync = jest.fn<CallableCommandSpawn>().mockReturnValue({
 			pid: -1,
 			output: [null],
 			stdout: Buffer.from(""),

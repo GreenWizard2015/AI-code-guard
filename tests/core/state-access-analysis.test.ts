@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("TypeScript state access analysis", () => {
 	test("analyzes constructor setup, field mutation, undefined checks, and array access", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"constructor-if.ts": [
 					"class Consumer {",
@@ -68,19 +68,18 @@ describe("TypeScript state access analysis", () => {
 		);
 		expect({
 			constructor_work: violations.filter(
-				(item) => item.message === "keep constructors limited to setup and validation",
+				(item) => item.message() === "keep constructors limited to setup and validation",
 			).length,
-			field_mutations: violations.filter((item) => item.message === "avoid assigning class fields outside constructors")
-				.length,
-			undefined_checks: violations.filter((item) => item.rule_id === "unnecessary-undefined-check").length,
-			array_access: violations.filter((item) => item.rule_id === "single-item-array-state").length,
-		}).toEqual({ constructor_work: 0, field_mutations: 2, undefined_checks: 2, array_access: 6 });
+			field_mutations: violations.filter((item) => item.rule_id() === "object-field-write").length,
+			undefined_checks: violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").length,
+			array_access: violations.filter((item) => item.rule_id() === "single-item-array-state").length,
+		}).toEqual({ constructor_work: 0, field_mutations: 3, undefined_checks: 2, array_access: 7 });
 	});
 
 	test("detects bind callbacks and private member access through aliases", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"bound-callback.ts": [
 					"const callback = service.run.bind(service);",
@@ -123,10 +122,10 @@ describe("TypeScript state access analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.message === "avoid .bind calls")).toHaveLength(5);
+		expect(violations.filter((item) => item.message() === "avoid .bind calls")).toHaveLength(5);
 		expect(
 			violations.filter(
-				(item) => item.message === "private class members must not be accessed from outside their class",
+				(item) => item.message() === "private class members must not be accessed from outside their class",
 			),
 		).toHaveLength(7);
 	});

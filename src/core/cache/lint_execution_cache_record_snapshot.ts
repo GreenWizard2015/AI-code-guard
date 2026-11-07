@@ -1,15 +1,15 @@
+import type { LintExecutionCacheRecordSnapshotContract } from "src/cache_protocols";
+import { ViolationCache } from "src/core/cache/violation_cache";
 import type {
 	LintDirectoryFingerprint,
 	LintExecutionCacheRecord,
 	LintFileFingerprint,
 	LintInputFiles,
 } from "src/project_analysis_types";
-import type { LintExecutionCacheRecordSnapshotContract } from "src/cache_protocols";
-import { ViolationCache } from "src/core/cache/violation_cache";
 
 /** Responsibilities: _cache record snapshot_, _cache record validity_. **/
 export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecordSnapshotContract {
-	private readonly record: LintExecutionCacheRecord;
+	private readonly _record: LintExecutionCacheRecord;
 
 	/** Responsibilities: _cache text field validation_. **/
 	private text(value: string): boolean {
@@ -19,7 +19,7 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 		if (value === undefined) {
 			return false;
 		}
-		return value === String(value);
+		return typeof value === "string";
 	}
 
 	/** Responsibilities: _cache finite number validation_. **/
@@ -30,7 +30,7 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 		if (value === undefined) {
 			return false;
 		}
-		return Number.isFinite(value);
+		return typeof value === "number" && Number.isFinite(value);
 	}
 
 	/** Responsibilities: _cache string collection validation_. **/
@@ -101,32 +101,32 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 
 	/** Responsibilities: _file fingerprint collection_. **/
 	private fingerprints_valid(): boolean {
-		if (!Array.isArray(this.record.fingerprints)) {
+		if (!Array.isArray(this._record.fingerprints)) {
 			return false;
 		}
-		return this.record.fingerprints.every((item) => this.file_fingerprint(item));
+		return this._record.fingerprints.every((item) => this.file_fingerprint(item));
 	}
 
 	/** Responsibilities: _directory fingerprint collection_. **/
 	private directories_valid(): boolean {
-		if (!Array.isArray(this.record.directories)) {
+		if (!Array.isArray(this._record.directories)) {
 			return false;
 		}
-		return this.record.directories.every((item) => this.directory_fingerprint(item));
+		return this._record.directories.every((item) => this.directory_fingerprint(item));
 	}
 
 	/** Responsibilities: _cache record collection validation_. **/
 	private record_arrays_valid(): boolean {
-		if (!this.strings(this.record.entry_files)) {
+		if (!this.strings(this._record.entry_files)) {
 			return false;
 		}
-		if (!this.strings(this.record.files) || !this.unique_strings(this.record.files)) {
+		if (!this.strings(this._record.files) || !this.unique_strings(this._record.files)) {
 			return false;
 		}
-		if (!this.strings(this.record.ignored_directories)) {
+		if (!this.strings(this._record.ignored_directories)) {
 			return false;
 		}
-		const cache = new ViolationCache(this.record.violations);
+		const cache = new ViolationCache(this._record.violations);
 		if (!cache.valid_cache()) {
 			return false;
 		}
@@ -163,7 +163,7 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 
 	/** Responsibilities: _cache input collection_. **/
 	private input_arrays_valid(): boolean {
-		const inputs = this.record.inputs;
+		const inputs = this._record.inputs;
 		if (inputs === null || inputs === undefined) {
 			return false;
 		}
@@ -172,21 +172,21 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 
 	/** Responsibilities: _cache record snapshot initialization_. **/
 	public constructor(record: LintExecutionCacheRecord) {
-		this.record = record;
+		this._record = record;
 	}
 
 	/** Responsibilities: _cache record validation_. **/
 	public valid(): boolean {
-		if (this.record === null) {
+		if (this._record === null) {
 			return false;
 		}
-		if (!this.finite(this.record.cache_version)) {
+		if (!this.finite(this._record.cache_version)) {
 			return false;
 		}
-		if (!this.text(this.record.identity)) {
+		if (!this.text(this._record.identity)) {
 			return false;
 		}
-		if (!this.text(this.record.target_request)) {
+		if (!this.text(this._record.target_request)) {
 			return false;
 		}
 		if (!this.record_arrays_valid()) {
@@ -197,6 +197,6 @@ export class LintExecutionCacheRecordSnapshot implements LintExecutionCacheRecor
 
 	/** Responsibilities: _cache identity matching_. **/
 	public identity_matches(identity: string): boolean {
-		return this.record.identity === identity;
+		return this._record.identity === identity;
 	}
 }

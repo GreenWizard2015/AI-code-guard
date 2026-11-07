@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+
+from implementation.ast.constants import AST_CONTROL_FLOW_NODE_TYPES
+from implementation.ast.protocols import (
+    PythonAstNodeIndexContract,
+    PythonCallableMetricsContract,
+)
 
 
-class CallableMetrics:
+class CallableMetrics(PythonCallableMetricsContract):
     """Responsibilities: _statement SLOC calculation_, _control flow depth analysis_."""
+
+    def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
+        """Responsibilities: _callable metric dependencies_."""
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     def _match_sloc(self, item: ast.Match) -> int:
         """Responsibilities: _calculation SLOC match statement_."""
-        sloc: Any = 0
+        sloc = 0
         for case in item.cases:
             for child in case.body:
                 sloc += self.statement_sloc(child)
@@ -17,7 +26,7 @@ class CallableMetrics:
 
     def _blocks_sloc(self, *blocks: list[ast.stmt]) -> int:
         """Responsibilities: _aggregation statement SLOC multiple_."""
-        sloc: Any = 0
+        sloc = 0
         for block in blocks:
             for child in block:
                 sloc += self.statement_sloc(child)
@@ -25,52 +34,53 @@ class CallableMetrics:
 
     def _try_sloc(self, item: ast.Try) -> int:
         """Responsibilities: _calculation SLOC try except_."""
-        blocks: Any = [item.body, item.finalbody, item.orelse]
+        blocks: list[list[ast.stmt]] = [item.body, item.finalbody, item.orelse]
         blocks.extend(handler.body for handler in item.handlers)
         return 1 + self._blocks_sloc(*blocks)
 
     def _control_depth(self, node: ast.AST, depth: int) -> int:
         """Responsibilities: _control-flow nesting depth_."""
-        if type(node) in (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda):
-            return depth
-        controls = (
-            ast.If,
-            ast.For,
-            ast.AsyncFor,
-            ast.While,
-            ast.Try,
-            ast.With,
-            ast.AsyncWith,
-            ast.Match,
-        )
-        next_depth = depth
-        if type(node) in controls:
-            next_depth += 1
-        maximum = next_depth
-        for child in ast.iter_child_nodes(node):
-            maximum = max(maximum, self._control_depth(child, next_depth))
+        pending_nodes: list[ast.AST] = [node]
+        pending_depths: list[int] = [depth]
+        maximum = depth
+        while pending_nodes:
+            current = pending_nodes.pop()
+            current_depth = pending_depths.pop()
+            if type(current) in (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda):
+                maximum = max(maximum, current_depth)
+                continue
+            next_depth = current_depth + int(type(current) in AST_CONTROL_FLOW_NODE_TYPES)
+            maximum = max(maximum, next_depth)
+            for child in self._node_index.children(current):
+                pending_nodes.append(child)
+                pending_depths.append(next_depth)
         return maximum
-
-    def __init__(self) -> None:
-        """Responsibilities: _initialization compound statement SLOC_."""
-        self.block_types: Any = (ast.If, ast.For, ast.AsyncFor, ast.While)
-        self.with_types: Any = (ast.With, ast.AsyncWith)
 
     def statement_sloc(self, item: ast.stmt) -> int:
         """Responsibilities: _calculation SLOC Python statement_."""
-        if type(item) in self.block_types:
-            return 1 + self._blocks_sloc(item.body, item.orelse)
-        if type(item) in self.with_types:
-            return 1 + self._blocks_sloc(item.body)
-        if type(item) is ast.Try:
-            return self._try_sloc(item)
-        if type(item) is ast.Match:
-            return 1 + self._match_sloc(item)
-        return 1
+        match item:
+            case (
+                ast.If(body=body, orelse=orelse)
+                | ast.For(body=body, orelse=orelse)
+                | ast.AsyncFor(body=body, orelse=orelse)
+                | ast.While(body=body, orelse=orelse)
+            ) if type(item) in (ast.If, ast.For, ast.AsyncFor, ast.While):
+                return 1 + self._blocks_sloc(body, orelse)
+            case ast.With(body=body) | ast.AsyncWith(body=body) if type(item) in (
+                ast.With,
+                ast.AsyncWith,
+            ):
+                return 1 + self._blocks_sloc(body)
+            case ast.Try() if type(item) is ast.Try:
+                return self._try_sloc(item)
+            case ast.Match() if type(item) is ast.Match:
+                return 1 + self._match_sloc(item)
+            case _:
+                return 1
 
     def statements_sloc(self, items: list[ast.stmt]) -> int:
         """Responsibilities: _Python statement SLOC aggregation_."""
-        sloc: Any = 0
+        sloc = 0
         for item in items:
             sloc += self.statement_sloc(item)
         return sloc

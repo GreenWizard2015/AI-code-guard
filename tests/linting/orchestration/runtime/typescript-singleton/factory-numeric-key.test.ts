@@ -1,6 +1,6 @@
-import ts from "typescript";
-import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
 import { describe, expect, test } from "@jest/globals";
+import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
+import ts from "typescript";
 
 describe("static factory object keys", () => {
 	test("reports singleton factories through computed object properties in arrays", () => {
@@ -19,7 +19,7 @@ describe("static factory object keys", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 	test("reports singleton factories through numeric object properties in arrays", () => {
 		const source_file = ts.createSourceFile(
@@ -37,7 +37,7 @@ describe("static factory object keys", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through computed numeric properties in arrays", () => {
@@ -56,7 +56,7 @@ describe("static factory object keys", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through computed binding properties in arrays", () => {
@@ -75,7 +75,7 @@ describe("static factory object keys", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through nested computed binding properties", () => {
@@ -94,6 +94,6 @@ describe("static factory object keys", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 });

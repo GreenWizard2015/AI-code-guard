@@ -1,15 +1,31 @@
 import { describe, expect, test } from "@jest/globals";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceText } from "src/source_text";
+import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
+import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { SourceFileAstContract } from "src/source_protocols";
 import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
+import { EMPTY_PROJECT_NAMES } from "tests/core/constants";
+import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
 
 describe("AST-detectable array constructor sources", () => {
 	const source_files = new ParsedSourceFiles();
 
+	/** Responsibilities: _file-scoped TypeScript lint execution_. **/
+	const lint_file_scope = (
+		source_ast: SourceFileAstContract,
+		stage_timer: LintStageTimer,
+		filesystem_fallback: boolean,
+	): ViolationContract[] => {
+		const context = new ASTVerifierTestContext(source_ast.snapshot().source_file);
+		const state = context.state();
+		const rule_scope = state.project.rule_scope;
+		const linter = new CodingRuleLinter(rule_scope, ".", new SourceText(), EMPTY_PROJECT_NAMES, filesystem_fallback);
+		return linter.lint_typescript(source_ast, stage_timer);
+	};
+
 	test("detects Array.of computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-of.ts",
 				[
@@ -25,14 +41,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects Array.from computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-from.ts",
 				[
@@ -46,14 +62,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects aliased Array.from computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-from-alias.ts",
 				[
@@ -70,14 +86,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects Array constructor computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-constructor.ts",
 				[
@@ -92,14 +108,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects new Array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-new-array.ts",
 				[
@@ -113,14 +129,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects spread new Array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-new-array-spread.ts",
 				[
@@ -134,14 +150,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects spread Array.from computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-from-spread.ts",
 				[
@@ -155,14 +171,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects aliased indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-alias.ts",
 				[
@@ -176,14 +192,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects transitive indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-transitive.ts",
 				[
@@ -198,14 +214,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects unary indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-unary.ts",
 				[
@@ -219,14 +235,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects arithmetic indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-arithmetic.ts",
 				[
@@ -240,14 +256,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects bitwise indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-bitwise.ts",
 				[
@@ -261,14 +277,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects conditional indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-conditional.ts",
 				[
@@ -282,14 +298,14 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects logical indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread-logical.ts",
 				[
@@ -303,8 +319,9 @@ describe("AST-detectable array constructor sources", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 });

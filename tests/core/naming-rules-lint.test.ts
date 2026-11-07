@@ -1,8 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
 import {
 	EXTERNAL_NAME_FILES,
 	IGNORED_EXTERNAL_NAMES,
@@ -10,12 +9,14 @@ import {
 	REPORTED_PROJECT_NAMES,
 	TYPESCRIPT_DECLARATION_FILES,
 } from "tests/core/constants/callable_usage/constants";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("naming rules integration", () => {
 	test("validates TypeScript symbols, properties, methods, and external names", () => {
+		const source_file_key = "source.ts";
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"underscores.ts": [
 					"function _module_helper() { return 1; }",
@@ -34,7 +35,7 @@ describe("naming rules integration", () => {
 				].join("\n"),
 				"type-fields.ts": "type InputShape = { fileName: string; projectClassNames?: ReadonlySet<string>; };",
 				"records.ts":
-					"export type PythonLintInput = { file_name: string; text: string; project_class_names?: ReadonlySet<string>; project_protocol_names?: ReadonlySet<string>; project_type_names?: ReadonlySet<string>; normalized_ast?: object; }; export type LintSourceRecord = { absolutePath: string; relativePath: string; fileName: string; text: string; language: string; typescriptAst?: object; normalizedAst: object; };",
+					"export type PythonLintInput = { file_name: string; text: string; project_class_names?: ReadonlySet<string>; project_protocol_names?: ReadonlySet<string>; project_type_names?: ReadonlySet<string>; normalized_ast?: object; }; export type LintSourceRecordData = { absolutePath: string; relativePath: string; fileName: string; text: string; language: string; typescriptAst?: object; normalizedAst: object; };",
 				"tests/source.test.ts": "function storeFailedTaskResultWithExtraWords() { return 1; }",
 				"methods.ts": [
 					"declare const facebook_module: { sendAndReceive: (value: unknown) => unknown };",
@@ -43,13 +44,13 @@ describe("naming rules integration", () => {
 					"class ExternalHandler extends HttpHandler { veryLongExternalHandlerMethodName() { return 1; } }",
 					"class ProjectHandler {} class DerivedHandler extends ProjectHandler { veryLongProjectMethodName() { return 1; } }",
 				].join("\n"),
-				"external-runtime.ts": EXTERNAL_NAME_FILES["source.ts"],
-				"declarations.ts": TYPESCRIPT_DECLARATION_FILES["source.ts"],
+				"external-runtime.ts": EXTERNAL_NAME_FILES[source_file_key],
+				"declarations.ts": TYPESCRIPT_DECLARATION_FILES[source_file_key],
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 
 		expect({
 			expected_messages: messages,
@@ -83,9 +84,10 @@ describe("naming rules integration", () => {
 	});
 
 	test("applies leading-underscore and TypeAlias naming rules to Python", () => {
+		const source_file_key = "source.py";
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"symbols.py": [
 					"_constant = 1",
@@ -98,14 +100,14 @@ describe("naming rules integration", () => {
 					"    def __init__(self) -> None:",
 					"        return None",
 					"from typing import TypeAlias",
-					PYTHON_ALIAS_FILES["source.py"],
+					PYTHON_ALIAS_FILES[source_file_key],
 					"",
 				].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 
 		expect({
 			expected_messages: messages,
@@ -122,15 +124,40 @@ describe("naming rules integration", () => {
 		});
 	});
 
+	test("rejects leading underscores on TypeScript type fields but allows class fields", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"type-fields.ts": [
+					"type RequestData = { _request_id: string; };",
+					"interface ResponseContract { _result: string; }",
+					"class RequestState { private _state = ''; }",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id() === "naming-private")
+				.map((violation) => violation.message()),
+		).toEqual([
+			'field "_request_id" must not use a leading underscore',
+			'field "_result" must not use a leading underscore',
+		]);
+	});
+
 	test("accepts Python __all__ as a language-defined export name", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "exports.py": '__all__ = ["PublicService"]' },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "naming-private")).toEqual([]);
+		expect(violations.filter((violation) => violation.rule_id() === "naming-private")).toEqual([]);
 	});
 });

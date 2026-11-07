@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python expression edge cases", () => {
@@ -9,12 +9,12 @@ describe("Python expression edge cases", () => {
 		const fixture = new TestFixture();
 		const messages = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{ "assignment.py": "value = 1\n" },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((violation) => violation.message);
+			.map((violation) => violation.message());
 
 		expect({
 			assignment: messages.filter((message) => message === "avoid Python assignment expressions").length,
@@ -26,12 +26,12 @@ describe("Python expression edge cases", () => {
 		const fixture = new TestFixture();
 		const messages = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{ "ternary.py": "value = make_value() if enabled else fallback\n" },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((violation) => violation.message);
+			.map((violation) => violation.message());
 		expect({
 			has_ternary: messages.includes("avoid ternary expressions"),
 			ternary_count: messages.filter((message) => message === "avoid ternary expressions").length,
@@ -43,12 +43,12 @@ describe("Python expression edge cases", () => {
 		const fixture = new TestFixture();
 		const messages = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{ "condition.py": "if (value := load_value()):\n    pass\n" },
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((violation) => violation.message);
+			.map((violation) => violation.message());
 		expect(messages.filter((message) => message === "avoid Python assignment expressions")).toHaveLength(1);
 	});
 });

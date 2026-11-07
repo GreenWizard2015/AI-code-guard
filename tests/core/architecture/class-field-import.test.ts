@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("TypeScript imported class fields", () => {
 	test("reports imported functions assigned to top-level class fields", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"helper.ts": "export function execute(): number { return 1; }",
 				"service.ts": ["import { execute } from './helper';", "class Service { public run = execute; }"].join("\n"),
@@ -16,13 +16,13 @@ describe("TypeScript imported class fields", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(1);
 	});
 
 	test("keeps declaration modules independent across barrel exports", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.ts": "export function first(): number { return 1; }",
 				"second.ts": "export function second(): number { return 2; }",
@@ -35,13 +35,13 @@ describe("TypeScript imported class fields", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(1);
 	});
 
 	test("reports imported functions assigned to nested class fields", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"helper.ts": "export function execute(): number { return 1; }",
 				"service.ts": [
@@ -56,13 +56,13 @@ describe("TypeScript imported class fields", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(1);
 	});
 
 	test("reports imported functions assigned to class expressions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"helper.ts": "export function execute(): number { return 1; }",
 				"service.ts": ["import { execute } from './helper';", "const Service = class { public run = execute; };"].join(
@@ -73,13 +73,13 @@ describe("TypeScript imported class fields", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(1);
 	});
 
 	test("reports imported functions assigned to nested Python class fields", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"helper.py": "def execute():\n    return 1\n",
 				"service.py": [
@@ -95,13 +95,50 @@ describe("TypeScript imported class fields", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(1);
+	});
+
+	test("ignores imported names shadowed by an earlier class method", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"helper.py": "def execute():\n    return 1\n",
+				"service.py": [
+					"from .helper import execute",
+					"class Service:",
+					"    def execute(self): return 2",
+					"    run = execute",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(0);
+	});
+
+	test("ignores imported names shadowed by an earlier class field", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"helper.py": "def execute():\n    return 1\n",
+				"service.py": ["from .helper import execute", "class Service:", "    execute = 2", "    run = execute"].join(
+					"\n",
+				),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(0);
 	});
 
 	test("resolves imported Python class fields across multiple project files", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"helper.py": "def execute():\n    return 1\n",
 				"first.py": "from .helper import execute\nclass First:\n    run = execute\n",
@@ -111,6 +148,6 @@ describe("TypeScript imported class fields", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "class-field-import")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "class-field-import")).toHaveLength(2);
 	});
 });

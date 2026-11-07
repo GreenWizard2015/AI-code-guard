@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import type { ViolationContract } from "src/reporting_protocols";
 import { METHOD_GROUP_SOURCES, METHOD_SOURCES } from "tests/bridge/ts/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
@@ -17,6 +17,30 @@ describe("coding-lint method and type rules", () => {
 		excluded_messages: string[];
 		expected_locations: { rule_id: string; file_suffix: string }[];
 	}>([
+		{
+			name: "matches command prefixes only at a word boundary",
+			files: {
+				"metadata.py": [
+					"class Metadata:",
+					"    def do_work(self) -> None:",
+					"        pass",
+					"    def docstring_locations(self) -> list[str]:",
+					"        return []",
+				].join("\n"),
+				"metadata.ts": [
+					"class Metadata {",
+					"\tpublic doWork(): void {}",
+					"\tpublic docstringLocations(): string[] { return []; }",
+					"}",
+				].join("\n"),
+			},
+			expected_counts: { "method-execute-perform-do-name": 2 },
+			expected_presence: [],
+			absent_presence: [],
+			included_messages: [],
+			excluded_messages: [],
+			expected_locations: [],
+		},
 		{
 			name: "requires explicit Python return, parameter, and field types",
 			files: {
@@ -149,6 +173,27 @@ describe("coding-lint method and type rules", () => {
 				].join("\n"),
 			},
 			expected_counts: { "method-create-build-generate-name": 1 },
+			expected_presence: [],
+			absent_presence: [],
+			included_messages: [],
+			excluded_messages: [],
+			expected_locations: [],
+		},
+		{
+			name: "allows a registry to build a source-specific result",
+			files: {
+				"source_registry.ts": [
+					"class SourceRegistry {",
+					"\tpublic build(source: string): string { return source; }",
+					"}",
+				].join("\n"),
+				"source_registry.py": [
+					"class SourceRegistry:",
+					"    def build(self, source: str) -> str:",
+					"        return source",
+				].join("\n"),
+			},
+			expected_counts: { "method-create-build-generate-name": 0 },
 			expected_presence: [],
 			absent_presence: [],
 			included_messages: [],
@@ -309,6 +354,25 @@ describe("coding-lint method and type rules", () => {
 			expected_locations: [],
 		},
 		{
+			name: "allows callback context objects passed to constructors",
+			files: {
+				"process.ts": [
+					"interface ProcessContext { settle: (value: string) => void; }",
+					"",
+					"class ProcessState {",
+					"	public constructor(context: ProcessContext) {}",
+					"}",
+					"new ProcessState({ settle: (value) => { void value; } });",
+				].join("\n"),
+			},
+			expected_counts: { "typescript-fake-object": 0 },
+			expected_presence: [],
+			absent_presence: [],
+			included_messages: [],
+			excluded_messages: [],
+			expected_locations: [],
+		},
+		{
 			name: "rejects dynamic own-property checks",
 			files: {
 				"property-check.ts": "if (Object.prototype.hasOwnProperty.call(value, key)) { return; }",
@@ -352,24 +416,24 @@ describe("coding-lint method and type rules", () => {
 		}) => {
 			const fixture = new TestFixture();
 			const violations: ViolationContract[] = fixture.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				files,
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			);
-			const rule_ids = violations.map((item) => item.rule_id);
+			const rule_ids = violations.map((item) => item.rule_id());
 			const actual_counts = Object.fromEntries(
 				Object.entries(expected_counts).map(([rule_id]) => [
 					rule_id,
-					violations.filter((item) => item.rule_id === rule_id).length,
+					violations.filter((item) => item.rule_id() === rule_id).length,
 				]),
 			);
 			const actual_locations = expected_locations.map(({ rule_id, file_suffix }) =>
 				violations.some((item) => {
-					if (item.rule_id !== rule_id) {
+					if (item.rule_id() !== rule_id) {
 						return false;
 					}
-					return item.file.endsWith(file_suffix);
+					return item.file().endsWith(file_suffix);
 				}),
 			);
 
@@ -377,8 +441,8 @@ describe("coding-lint method and type rules", () => {
 				counts: actual_counts,
 				present: expected_presence.map((rule_id) => rule_ids.includes(rule_id)),
 				absent: absent_presence.map((rule_id) => !rule_ids.includes(rule_id)),
-				messages: included_messages.map((text) => violations.some((item) => item.message.includes(text))),
-				excluded_messages: excluded_messages.map((text) => violations.every((item) => !item.message.includes(text))),
+				messages: included_messages.map((text) => violations.some((item) => item.message().includes(text))),
+				excluded_messages: excluded_messages.map((text) => violations.every((item) => !item.message().includes(text))),
 				locations: actual_locations,
 			}).toEqual({
 				counts: expected_counts,
@@ -394,20 +458,20 @@ describe("coding-lint method and type rules", () => {
 	test("reports mixed arithmetic precedence in production expressions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"arithmetic.ts": "function total(a: number, b: number, c: number): number { return a + b * c; }",
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence")).toHaveLength(1);
 	});
 
 	test("accepts an annotated Python slot initialized in the constructor", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"slot_owner.py": [
 					"class SlotOwner:",
@@ -422,6 +486,6 @@ describe("coding-lint method and type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "python-explicit-field-type")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "python-explicit-field-type")).toEqual([]);
 	});
 });

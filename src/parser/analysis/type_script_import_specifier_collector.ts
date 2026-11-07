@@ -2,31 +2,24 @@ import ts from "typescript";
 
 /** Responsibilities: _import path extraction_, _dynamic specifier recognition_. **/
 export class TypeScriptImportSpecifierCollector {
-	private readonly source_file: ts.SourceFile;
-	/** Responsibilities: _string module specifier extraction_. **/
-	private string_specifier(node: ts.Node): string {
-		if (ts.isStringLiteral(node)) {
-			return node.text;
-		}
-		return "";
-	}
+	private readonly _source_file: ts.SourceFile;
 
 	/** Responsibilities: _import declaration specifier extraction_. **/
 	private import_declaration_specifier(node: ts.ImportDeclaration): string {
 		const specifier = node.moduleSpecifier;
-		if (specifier === undefined) {
+		if (!ts.isStringLiteral(specifier)) {
 			return "";
 		}
-		return this.string_specifier(specifier);
+		return specifier.text;
 	}
 
 	/** Responsibilities: _export declaration specifier extraction_. **/
 	private export_declaration_specifier(node: ts.ExportDeclaration): string {
 		const specifier = node.moduleSpecifier;
-		if (specifier === undefined) {
+		if (specifier === undefined || !ts.isStringLiteral(specifier)) {
 			return "";
 		}
-		return this.string_specifier(specifier);
+		return specifier.text;
 	}
 
 	/** Responsibilities: _import equals specifier extraction_. **/
@@ -35,10 +28,10 @@ export class TypeScriptImportSpecifierCollector {
 			return "";
 		}
 		const specifier = node.moduleReference.expression;
-		if (specifier === undefined) {
+		if (specifier === undefined || !ts.isStringLiteral(specifier)) {
 			return "";
 		}
-		return this.string_specifier(specifier);
+		return specifier.text;
 	}
 
 	/** Responsibilities: _dynamic import specifier extraction_. **/
@@ -47,7 +40,10 @@ export class TypeScriptImportSpecifierCollector {
 			return "";
 		}
 		for (const argument of node.arguments) {
-			return this.string_specifier(argument);
+			if (ts.isStringLiteral(argument)) {
+				return argument.text;
+			}
+			return "";
 		}
 		return "";
 	}
@@ -63,7 +59,7 @@ export class TypeScriptImportSpecifierCollector {
 
 	/** Responsibilities: _collector source initialization_. **/
 	public constructor(source_file: ts.SourceFile) {
-		this.source_file = source_file;
+		this._source_file = source_file;
 	}
 
 	/** Responsibilities: _node import specifier extraction_. **/
@@ -86,7 +82,7 @@ export class TypeScriptImportSpecifierCollector {
 	/** Responsibilities: _source import specifier collection_. **/
 	public collect(): string[] {
 		const imports: string[] = [];
-		this.append(imports, this.source_file);
+		this.append(imports, this._source_file);
 		return imports;
 	}
 }

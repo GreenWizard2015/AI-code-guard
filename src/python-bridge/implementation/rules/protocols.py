@@ -1,17 +1,94 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Sequence
-from typing import Protocol, TYPE_CHECKING
-from implementation.types import PythonRuleStage
+from typing import TYPE_CHECKING, Protocol
+
+from implementation.rules.control_flow.protocols import (
+    PythonAssignmentEffectsContract,
+    PythonCodingIssueFlowStateContract,
+    PythonControlFlowIssuesContract,
+    PythonExceptionHandlerAssignmentsContract,
+    PythonExceptionRulesContract,
+    PythonExpressionBoundaryContract,
+    PythonLogicalChainAnalysisContract,
+    PythonOperatorPrecedenceContract,
+    PythonTerminalBranchContract,
+)
+from implementation.rules.type_rule_protocols import (
+    PythonArrayCallAnalyzerContract,
+    PythonArrayTypeInspectorContract,
+    PythonDynamicTypeRulesContract,
+    PythonPropertyTypeContract,
+    PythonReturnArrayAnalyzerContract,
+    PythonSingleItemArrayStateRulesContract,
+    PythonTypingAliasesContract,
+    PythonUnboundedTypeRulesContract,
+    PythonUndefinedCheckStateContract,
+    PythonUnionAnnotationRulesContract,
+    PythonUnionRulesContract,
+    PythonUnnecessaryUndefinedCheckContract,
+)
+from implementation.types import (
+    CallablePythonRuleStage,
+    PythonNameSetIndex,
+)
+
+
+class PythonNameBindingIndexContract(Protocol):
+    """Responsibilities: _module binding state_, _callable local names_."""
+
+    def index_tree(self) -> None: ...
+
+    def module_binding(self, name: str) -> str: ...
+
+    def function_binds(self, function: ast.AST, name: str) -> bool: ...
+
+
+__all__ = [
+    "PythonArrayCallAnalyzerContract",
+    "PythonArrayTypeInspectorContract",
+    "PythonAssignmentEffectsContract",
+    "PythonCodingIssueFlowStateContract",
+    "PythonControlFlowIssuesContract",
+    "PythonDynamicTypeRulesContract",
+    "PythonExceptionHandlerAssignmentsContract",
+    "PythonExceptionRulesContract",
+    "PythonExpressionBoundaryContract",
+    "PythonLogicalChainAnalysisContract",
+    "PythonOperatorPrecedenceContract",
+    "PythonPropertyTypeContract",
+    "PythonReturnArrayAnalyzerContract",
+    "PythonSingleItemArrayStateRulesContract",
+    "PythonTerminalBranchContract",
+    "PythonTypingAliasesContract",
+    "PythonUnboundedTypeRulesContract",
+    "PythonUndefinedCheckStateContract",
+    "PythonUnionAnnotationRulesContract",
+    "PythonUnionRulesContract",
+    "PythonUnnecessaryUndefinedCheckContract",
+]
 
 if TYPE_CHECKING:
-    from implementation.rules.types import AliasWalkStateDataContract
-    from implementation.types import JsonObject
-    from implementation.ast.protocols import PythonSubtestAliasesContract
-    from implementation.protocols import PythonProxyCallableAnalyzerContract
-    from implementation.references.protocols import PythonContainerAliasesContract
-    from implementation.ast.protocols import PythonTestOrderDependencyContract
+    from implementation.ast.callables.coding_issue_protocols import (
+        PythonCodingIssueContainerAliasesContract,
+        PythonCodingIssueValueAliasesContract,
+    )
+    from implementation.ast.protocols import (
+        PythonAstNodeIndexContract,
+        PythonSourceSegmentsContract,
+        PythonSubtestAliasesContract,
+        PythonTestOrderDependencyContract,
+    )
+    from implementation.protocols import (
+        PythonProxyCallableAnalyzerContract,
+    )
+    from implementation.references.decorator_protocols import (
+        PythonAssignedDescriptorIndexContract,
+    )
+    from implementation.types import (
+        JsonObject,
+        PythonDecoratorAliasGroups,
+    )
 
 
 class PythonMethodRecordContract(Protocol):
@@ -26,54 +103,16 @@ class PythonMethodRecordContract(Protocol):
     def access_set(self) -> set[str]: ...
 
 
-class PythonCacheReadStateContract(Protocol):
-    """Responsibilities: _cache key state_."""
+class PythonStructuralMemberLookupContract(Protocol):
+    """Responsibilities: _Protocol implementation lookup_."""
 
-    def record(self, receiver: str, key: str) -> None:
-        """Responsibilities: _cache read recording_."""
-        ...
+    def contains(self, name: str) -> bool: ...
 
-    def keys_for(self, receiver: str) -> set[str]:
-        """Responsibilities: _receiver key lookup_."""
-        ...
+    def implementation_contracts(self, class_name: str) -> PythonNameSetIndex: ...
 
-    def entries(self) -> set[str]:
-        """Responsibilities: _branch state snapshot_."""
-        ...
+    def members(self, name: str) -> set[str]: ...
 
-    def merge(
-        self, states: list[PythonCacheReadStateContract]
-    ) -> PythonCacheReadStateContract:
-        """Responsibilities: _branch state combination_."""
-        ...
-
-
-class PythonCacheDiagnosticsContract(Protocol):
-    """Responsibilities: _cache diagnostic collection contract_."""
-
-    def clear(self) -> None:
-        """Responsibilities: _diagnostic state reset_."""
-        ...
-
-    def append(self, line: int) -> None:
-        """Responsibilities: _cache diagnostic recording_."""
-        ...
-
-    def values(self) -> list[JsonObject]:
-        """Responsibilities: _cache diagnostic results_."""
-        ...
-
-
-class PythonCacheNodeExecutionContract(Protocol):
-    """Responsibilities: _cache AST execution order_."""
-
-    def analyze_node(
-        self, node: ast.AST, state: PythonCacheReadStateContract
-    ) -> PythonCacheReadStateContract: ...
-
-    def analyze_nodes(
-        self, nodes: Sequence[ast.AST], state: PythonCacheReadStateContract
-    ) -> PythonCacheReadStateContract: ...
+    def prepare(self) -> None: ...
 
 
 class AliasWalkStateContract(Protocol):
@@ -88,6 +127,110 @@ class AliasWalkStateContract(Protocol):
     def visit(self, source: str) -> AliasWalkStateContract: ...
 
     def cycle_result(self, cycle_start: int) -> AliasWalkStateContract: ...
+
+
+class AliasWalkStateDataContract(Protocol):
+    """Responsibilities: _alias traversal input_, _alias traversal snapshot_."""
+
+    @property
+    def current(self) -> str: ...
+
+    @property
+    def aliases(self) -> dict[str, str]: ...
+
+    @property
+    def bindings(self) -> dict[str, ast.expr]: ...
+
+    @property
+    def resolution_map(self) -> dict[str, ast.expr]: ...
+
+    @property
+    def path(self) -> list[str]: ...
+
+    @property
+    def positions(self) -> dict[str, int]: ...
+
+    @property
+    def result(self) -> ast.expr: ...
+
+    @property
+    def result_present(self) -> bool: ...
+
+
+class PythonCodingIssueTypeBundleContract(Protocol):
+    """Responsibilities: _type rule bundle access_."""
+
+    @property
+    def union_rules(self) -> PythonUnionRulesContract: ...
+
+    @property
+    def unbounded_type_rules(self) -> PythonUnboundedTypeRulesContract: ...
+
+
+class PythonCodingIssueStructureBundleContract(Protocol):
+    """Responsibilities: _structure rule bundle access_."""
+
+    @property
+    def subtest_aliases(self) -> PythonSubtestAliasesContract: ...
+
+    @property
+    def control_flow(self) -> PythonControlFlowIssuesContract: ...
+
+    @property
+    def python_operator_precedence(self) -> PythonOperatorPrecedenceContract: ...
+
+    @property
+    def simple_stages(self) -> PythonCodingIssueStagesContract: ...
+
+    @property
+    def source_nodes(self) -> list[ast.AST]: ...
+
+    @property
+    def test_order_dependency(self) -> PythonTestOrderDependencyContract: ...
+
+
+class PythonCodingIssueBoundaryBundleContract(Protocol):
+    """Responsibilities: _boundary rule bundle access_."""
+
+    @property
+    def field_mutations(self) -> PythonFieldMutationCollectorContract: ...
+
+    @property
+    def proxy_analyzer(self) -> PythonProxyCallableAnalyzerContract: ...
+
+    @property
+    def unnecessary_undefined_check(
+        self,
+    ) -> PythonUnnecessaryUndefinedCheckContract: ...
+
+
+class PythonCodingIssueAssemblyBundleContract(Protocol):
+    """Responsibilities: _rule bundle access_."""
+
+    @property
+    def type_state(self) -> PythonCodingIssueTypeBundleContract: ...
+
+    @property
+    def boundary_state(self) -> PythonCodingIssueBoundaryBundleContract: ...
+
+    @property
+    def structure_state(self) -> PythonCodingIssueStructureBundleContract: ...
+
+    @property
+    def array_state_rules(self) -> PythonSingleItemArrayStateRulesContract: ...
+
+
+class PythonCodingIssueExecutionPlanContract(Protocol):
+    """Responsibilities: _AST rule execution inputs_."""
+
+    @property
+    def source_nodes(self) -> list[ast.AST]: ...
+
+    @property
+    def rule_stages(self) -> list[CallablePythonRuleStage]: ...
+
+    @property
+    def proxy_analyzer(self) -> PythonProxyCallableAnalyzerContract: ...
 
 
 class BranchSummaryContract(Protocol):
@@ -109,41 +252,120 @@ class BranchSummaryContract(Protocol):
 class PythonCodingIssueComponentsContract(Protocol):
     """Responsibilities: _coding issue component boundary_."""
 
+    def execution_plan(self) -> PythonCodingIssueExecutionPlanContract: ...
+
     def precedence_issues(self, node: ast.AST) -> list[JsonObject]: ...
 
     def prepare(self) -> None: ...
 
+    def phase_timings(self) -> dict[str, float]: ...
+
     def global_issues(self) -> list[JsonObject]: ...
 
-    def rule_stages(self) -> list[PythonRuleStage]: ...
 
-    def source_nodes(self) -> list[ast.AST]: ...
+class PythonGlobalIssueCollectorContract(Protocol):
+    """Responsibilities: _global rule issue collection_."""
+
+    def collection_issues(self) -> list[JsonObject]: ...
+
+    def state_issues(self) -> list[JsonObject]: ...
+
+    def timings_data(self) -> dict[str, float]: ...
+
+
+class PythonModuleIssueRuleContract(Protocol):
+    """Responsibilities: _module rule analysis_."""
+
+    def issues(self, tree: ast.Module) -> list[JsonObject]: ...
 
 
 class PythonCodingIssueComponentContextContract(Protocol):
     """Responsibilities: _Python coding issue context_."""
 
-    def context_data(self) -> JsonObject: ...
+    def tree(self) -> ast.AST: ...
+
+    def node_index(self) -> PythonAstNodeIndexContract: ...
+
+    def source_text(self) -> str: ...
+
+    def source_segments(self) -> PythonSourceSegmentsContract: ...
+
+    def expression_boundary(self) -> PythonExpressionBoundaryContract: ...
+
+    def aliases(self) -> PythonCodingIssueAliasesContract: ...
+
+    def terminal_branches(self) -> PythonTerminalBranchContract: ...
+
+
+class PythonConstructorRulesContract(Protocol):
+    """Responsibilities: _constructor field rule collection_."""
+
+    def collect_constructor_issues(self, node: ast.AST) -> list[JsonObject]: ...
+
+    def field_constructor_issues(self, node: ast.AST) -> list[JsonObject]: ...
+
+
+class PythonDecoratorAliasStateContract(Protocol):
+    """Responsibilities: _decorator alias observation_."""
+
+    def assigned_descriptors(self) -> PythonAssignedDescriptorIndexContract: ...
+
+    def aliases(self) -> PythonDecoratorAliasGroups: ...
+
+    def observe(self, node: ast.AST) -> None: ...
+
+    def observe_module(self, tree: ast.AST) -> None: ...
+
+
+class PythonDecoratorRuleContract(Protocol):
+    """Responsibilities: _decorator rule operations_."""
+
+    def kinds(self, node: ast.AST) -> list[str]: ...
+
+    def property_decorator(self, decorator: ast.AST) -> bool: ...
+
+
+class PythonCallClassifierContract(Protocol):
+    """Responsibilities: _call category classification_."""
+
+    def kind(self, node: ast.AST) -> str: ...
 
 
 class PythonCodingIssueSourceContract(Protocol):
     """Responsibilities: _coding issue source contract_."""
 
-    def source_data(self) -> JsonObject: ...
+    @property
+    def tree(self) -> ast.AST: ...
+
+    @property
+    def source(self) -> str: ...
+
+    @property
+    def source_segments(self) -> PythonSourceSegmentsContract: ...
+
+    @property
+    def node_index(self) -> PythonAstNodeIndexContract: ...
 
 
 class PythonCodingIssueAliasesContract(Protocol):
     """Responsibilities: _coding issue aliases contract_."""
 
-    def alias_data(self) -> JsonObject: ...
+    @property
+    def containers(self) -> PythonCodingIssueContainerAliasesContract: ...
+
+    @property
+    def values(self) -> PythonCodingIssueValueAliasesContract: ...
+
+
+class PythonCodingIssueRulesContract(Protocol):
+    """Responsibilities: _coding issue rule dependencies_."""
+
+    @property
+    def terminal_branches(self) -> PythonTerminalBranchContract: ...
 
 
 class PythonFieldMutationCollectorContract(Protocol):
     """Responsibilities: _field mutation collection_."""
-
-    def prepare(self) -> None: ...
-
-    def prepare_parent_index(self) -> None: ...
 
     def collect_mutations(self, node: ast.AST) -> list[JsonObject]: ...
 
@@ -172,14 +394,6 @@ class PythonCodingIssueStagesContract(Protocol):
     def subtest_issues(self, node: ast.AST) -> list[JsonObject]: ...
 
 
-class PythonCodingIssueFlowStateContract(Protocol):
-    """Responsibilities: _flow state access_."""
-
-    def control_flow(self) -> PythonControlFlowIssuesContract: ...
-
-    def precedence(self) -> PythonOperatorPrecedenceContract: ...
-
-
 class PythonCodingIssueTestStateContract(Protocol):
     """Responsibilities: _test state access_."""
 
@@ -193,209 +407,40 @@ class PythonCodingIssueTestStateContract(Protocol):
 class PythonCallRulesContract(Protocol):
     """Responsibilities: _invocation rules_."""
 
-    def assertion_issues(self, node: ast.AST) -> list[JsonObject]: ...
+    def issues(self, source_node: ast.AST) -> list[JsonObject]: ...
+
+    def configure_reflection(self) -> None: ...
+
+
+class PythonDowncastAnalysisContract(Protocol):
+    """Responsibilities: _Protocol downcast analysis_."""
 
     def prepare(self) -> None: ...
 
-    def temporary_access_issues(self, node: ast.AST) -> list[JsonObject]: ...
+    def issue(self, call: ast.AST) -> JsonObject: ...
 
-    def special_method_issues(self, node: ast.AST) -> list[JsonObject]: ...
+
+class PythonTypeRulesContract(Protocol):
+    """Responsibilities: _Python type diagnostics_."""
+
+    def prepare(self) -> None: ...
+
+    def collect_type_issues(self, syntax_node: ast.AST) -> list[JsonObject]: ...
+
+    def collect_generic_types(
+        self,
+        callable_definition: ast.AST,
+    ) -> list[JsonObject]: ...
 
 
 class PythonCodingIssueOptionsContract(Protocol):
     """Responsibilities: _coding issue dependency data_."""
 
-    def source_data(self) -> JsonObject: ...
+    @property
+    def source(self) -> PythonCodingIssueSourceContract: ...
 
-    def alias_data(self) -> JsonObject: ...
+    @property
+    def aliases(self) -> PythonCodingIssueAliasesContract: ...
 
-    def rule_data(self) -> JsonObject: ...
-
-
-class PythonDuplicateSetupContract(Protocol):
-    """Responsibilities: _duplicate test setup contract_."""
-
-    def issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-    def body_issues(self, statements: list[ast.stmt]) -> list[JsonObject]: ...
-
-
-class PythonExpressionBoundaryContract(Protocol):
-    """Responsibilities: _expression boundary contract_."""
-
-    def negation_comparison_boundary(self, node: ast.AST) -> bool: ...
-
-    def parenthesized(self, node: ast.AST) -> bool: ...
-
-    def ungrouped(self, node: ast.AST, root_parenthesized: bool = False) -> bool: ...
-
-
-class PythonPredicateConditionContract(Protocol):
-    """Responsibilities: _predicate condition contract_."""
-
-    def violation(
-        self,
-        node: ast.BoolOp,
-        parent: ast.AST,
-        assignment_values: set[int],
-    ) -> list[JsonObject]: ...
-
-
-class PythonTerminalBranchContract(Protocol):
-    """Responsibilities: _terminal branch contract_."""
-
-    def terminal_block(self, statements: list[ast.stmt]) -> bool: ...
-
-
-class PythonAssignmentEffectsContract(Protocol):
-    """Responsibilities: _assignment syntax state_."""
-
-    def assigned_value(self) -> ast.AST: ...
-
-    def declared_annotation(self) -> ast.AST: ...
-
-    def annotation_present(self) -> bool: ...
-
-    def runtime_value_present(self) -> bool: ...
-
-
-class PythonExceptionRulesContract(Protocol):
-    """Responsibilities: _exception rule collection_."""
-
-    def try_statement_issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonControlFlowIssuesContract(Protocol):
-    """Responsibilities: _control-flow issue collection_."""
-
-    def conditional_issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-    def elif_issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-    def walrus_issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonOperatorPrecedenceContract(Protocol):
-    """Responsibilities: _operator precedence analysis_."""
-
-    def mixed_boolean_operator(self, node: ast.AST) -> list[JsonObject]: ...
-
-    def mixed_arithmetic_operator(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonPrimaryRulesContract(Protocol):
-    """Responsibilities: _primary Python rules_."""
-
-    def stages(self) -> list[PythonRuleStage]: ...
-
-    def prepare(self, tree: ast.AST) -> None: ...
-
-    def branch_count_issues(self, tree: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonTypeDeclarationCollectorContract(Protocol):
-    """Responsibilities: _type declaration collection contract_."""
-
-    def type_alias_annotation(self, annotation: ast.AST) -> bool: ...
-
-    def declarations(self, nodes: list[ast.AST]) -> list[JsonObject]: ...
-
-
-class PythonPropertyTypeContract(Protocol):
-    """Responsibilities: _Python property type resolution_."""
-
-    def annotation_type(self, annotation: ast.AST) -> str: ...
-
-    def init_arguments(self, node: ast.AST) -> dict[str, str]: ...
-
-    def assignment_type(self, node: ast.AST, arguments: dict[str, str]) -> str: ...
-
-    def instance_target(self, target: ast.AST) -> bool: ...
-
-
-class PythonUnionRulesContract(Protocol):
-    """Responsibilities: _union rule collection_."""
-
-    def collect_union_issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonUnnecessaryUndefinedCheckContract(Protocol):
-    """Responsibilities: _unnecessary undefined checks_."""
-
-    def collect_checks(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonSingleItemArrayStateRulesContract(Protocol):
-    """Responsibilities: _single-item array rule collection_."""
-
-    def collect_array_rules(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonUnboundedTypeRulesContract(Protocol):
-    """Responsibilities: _unbounded type diagnostics_."""
-
-    def issues(self) -> list[JsonObject]: ...
-
-
-class PythonIncompleteCacheKeyContract(Protocol):
-    """Responsibilities: _incomplete cache key diagnostics_."""
-
-    def issues(self, tree: ast.Module) -> list[JsonObject]: ...
-
-
-class PythonDynamicTypeRulesContract(Protocol):
-    """Responsibilities: _dynamic type rule collection_."""
-
-    def configure_imports(self, tree: ast.AST) -> None: ...
-
-    def issues(self, node: ast.AST) -> list[JsonObject]: ...
-
-
-class PythonArrayTypeInspectorContract(Protocol):
-    """Responsibilities: _array type contract_."""
-
-    def array_type(self, annotation: ast.AST) -> bool: ...
-
-
-class PythonReturnArrayAnalyzerContract(Protocol):
-    """Responsibilities: _array result contract_."""
-
-    def single_arrays(self, node: ast.AST) -> bool: ...
-
-
-class PythonArrayCallAnalyzerContract(Protocol):
-    """Responsibilities: _array index category_."""
-
-    def array_call(self, node: ast.Subscript) -> bool: ...
-
-
-class PythonUndefinedCheckStateContract(Protocol):
-    """Responsibilities: _undefined check state contract_."""
-
-    def bindings(self) -> dict: ...
-
-    def fields(self) -> dict: ...
-
-
-class PythonTypingAliasesContract(Protocol):
-    """Responsibilities: _typing alias contract_."""
-
-    def expression_name(
-        self, value: ast.AST, container_aliases: PythonContainerAliasesContract
-    ) -> str: ...
-
-    def matches_optional(self, name: str) -> bool: ...
-
-    def matches_union(self, name: str) -> bool: ...
-
-
-class PythonUnionAnnotationRulesContract(Protocol):
-    """Responsibilities: _union annotation diagnostics contract_."""
-
-    def requires_analysis(
-        self, annotation: ast.AST, is_field: bool = False
-    ) -> bool: ...
-
-    def issues_for_annotation(
-        self, annotation: ast.AST, is_field: bool = False
-    ) -> list[JsonObject]: ...
+    @property
+    def rules(self) -> PythonCodingIssueRulesContract: ...

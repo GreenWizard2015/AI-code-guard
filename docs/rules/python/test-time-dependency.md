@@ -30,15 +30,23 @@ class Status:
         if not normalized_fragment:
             return False
         return normalized_fragment in status_value
+    def report(self) -> None:
+        print(self.normalized(), self.ready(), self.label('State'), self.contains('ead'))
 # File: tests/domain/test_status.py
 import unittest
-import time as clock
+from datetime import datetime
 from src.domain.status import Status
 class TestStatus(unittest.TestCase):
     def test_uses_current_time(self) -> None:
-        current_time = clock.time()  # <- error
-        self.assertEqual(Status(str(current_time)).normalized(), str(current_time).lower())
+        current_time = datetime.now()  # <- error
+        current_text = str(current_time)
+        self.assertEqual(Status(current_text).normalized(), current_text.lower())
     def test_ready(self) -> None: self.assertTrue(Status("ready").ready())
+# File: src/cli.py
+from src.domain.status import Status
+if __name__ == '__main__':
+    status = Status(' READY ')
+    status.report()
 ```
 
 ## Good
@@ -48,9 +56,9 @@ class TestStatus(unittest.TestCase):
 # File: src/domain/status.py
 class Status:
     def __init__(self, value: str) -> None:
-        self.value: str = value
+        self._value: str = value
     def normalized(self) -> str:
-        trimmed = self.value.strip()
+        trimmed = self._value.strip()
         normalized_value = trimmed.lower()
         return normalized_value
     def ready(self) -> bool:
@@ -66,6 +74,8 @@ class Status:
         if not normalized_fragment:
             return False
         return normalized_fragment in status_value
+    def report(self) -> None:
+        print(self.normalized(), self.ready(), self.label('State'), self.contains('ead'))
 # File: tests/domain/test_status.py
 import unittest
 from src.domain.status import Status
@@ -78,9 +88,9 @@ class TestStatus(unittest.TestCase):
         status = Status('ready')
         value = status.ready()
         self.assertTrue(value)
-# File: cli.py
+# File: src/cli.py
 from src.domain.status import Status
 if __name__ == '__main__':
     status = Status(' READY ')
-    print(status.normalized(), status.ready(), status.label('State'), status.contains('ead'))
+    status.report()
 ```

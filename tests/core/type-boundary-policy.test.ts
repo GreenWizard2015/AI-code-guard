@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { PROTOCOL_REFERENCE_FILES } from "tests/core/constants/ast_nodes/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -9,7 +9,7 @@ describe("type boundary policies", () => {
 	test("reports nested types, unsafe field mutation, and missing visibility", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"inline-generics.ts": [
 					"type Result = Promise<{ id: string; value: number }>;",
@@ -62,34 +62,39 @@ describe("type boundary policies", () => {
 		);
 		const diagnostics = {
 			inline_generic_files: violations
-				.filter((violation) => violation.message === "avoid inline object types in generic arguments")
-				.map((violation) => violation.file),
+				.filter((violation) => violation.message() === "avoid inline object types in generic arguments")
+				.map((violation) => violation.file()),
 			nested_return: violations.some(
-				(violation) => violation.file === "nested-return.py" && violation.rule_id === "inline-generic-type",
+				(violation) => violation.file() === "nested-return.py" && violation.rule_id() === "inline-generic-type",
 			),
 			mutation_files: violations
-				.filter((violation) => violation.message === "avoid assigning class fields outside constructors")
-				.map((violation) => violation.file),
+				.filter((violation) => violation.rule_id() === "object-field-write")
+				.map((violation) => violation.file()),
+			literal_field_access: violations.filter(
+				(violation) =>
+					violation.rule_id() === "typescript-literal-object-access" && violation.file() === "mutable-computed.ts",
+			).length,
 			visibility_files: violations
-				.filter((violation) => violation.message === "class members must declare visibility explicitly")
-				.map((violation) => violation.file),
+				.filter((violation) => violation.message() === "class members must declare visibility explicitly")
+				.map((violation) => violation.file()),
 			readonly_files: violations
-				.filter((violation) => violation.message === "TypeScript class fields should be readonly")
-				.map((violation) => violation.file),
+				.filter((violation) => violation.message() === "TypeScript class fields should be readonly")
+				.map((violation) => violation.file()),
 			contract_boundary_files: violations
-				.filter((violation) => violation.message === 'class "ServicePort" has implementation type at boundary')
-				.map((violation) => violation.file),
+				.filter((violation) => violation.message() === 'class "ServicePort" has implementation type at boundary')
+				.map((violation) => violation.file()),
 			test_visibility_reported: violations.some(
 				(violation) =>
-					violation.message === "class members must declare visibility explicitly" &&
-					violation.file === "tests/visibility.test.ts",
+					violation.message() === "class members must declare visibility explicitly" &&
+					violation.file() === "tests/visibility.test.ts",
 			),
 		};
 
 		expect(diagnostics).toEqual({
 			inline_generic_files: expect.arrayContaining(["inline-generics.ts", "inline-generics.py"]),
 			nested_return: true,
-			mutation_files: expect.arrayContaining(["mutable.ts", "mutable-computed.ts"]),
+			mutation_files: expect.arrayContaining(["mutable.ts"]),
+			literal_field_access: 1,
 			visibility_files: expect.arrayContaining(["visibility.ts", "accessors.ts"]),
 			readonly_files: expect.arrayContaining([
 				"mutable.ts",
@@ -105,7 +110,7 @@ describe("type boundary policies", () => {
 	test("allows interface references and object literals with behavior", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"ports.ts": "export interface ServicePort { run(): void; }",
 				"consumer.ts": [
@@ -122,11 +127,15 @@ describe("type boundary policies", () => {
 		const rejected = [
 			"avoid inline object types in generic arguments",
 			"avoid nested generic types",
-			"avoid assigning class fields outside constructors",
+			"object-field-write",
 			"class members must declare visibility explicitly",
 			"TypeScript class fields should be readonly",
 		];
 
-		expect(violations.filter((violation) => rejected.includes(violation.message))).toEqual([]);
+		expect(
+			violations.filter(
+				(violation) => rejected.includes(violation.message()) || violation.rule_id() === "object-field-write",
+			),
+		).toEqual([]);
 	});
 });

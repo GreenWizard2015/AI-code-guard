@@ -4,53 +4,54 @@ import ts from "typescript";
 
 /** Responsibilities: _boolean precedence_, _arithmetic precedence_. **/
 export class TypeScriptOperatorPrecedence implements TypeScriptOperatorPrecedenceContract {
-	private readonly boolean_boundary: TypeScriptBooleanPrecedenceBoundary;
-	private readonly operator_kinds: Set<ts.SyntaxKind>;
+	private readonly _boolean_boundary: TypeScriptBooleanPrecedenceBoundary;
+	private readonly _operator_kinds: Set<ts.SyntaxKind>;
+	private readonly _comparison_kinds: ReadonlySet<ts.SyntaxKind>;
 	/** Responsibilities: _classification binary expression operator_. **/
-	private binary_in_group(node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node)) {
+	private binary_in_group(operator_node: ts.Node): boolean {
+		if (!ts.isBinaryExpression(operator_node)) {
 			return false;
 		}
-		return this.operator_kinds.has(node.operatorToken.kind);
+		return this._operator_kinds.has(operator_node.operatorToken.kind);
 	}
 
 	/** Responsibilities: _classification binary expression parent_. **/
-	private parent_group(node: ts.BinaryExpression): boolean {
-		if (ts.isParenthesizedExpression(node.parent)) {
+	private parent_group(binary_expression: ts.BinaryExpression): boolean {
+		if (ts.isParenthesizedExpression(binary_expression.parent)) {
 			return false;
 		}
-		return this.binary_in_group(node.parent);
+		return this.binary_in_group(binary_expression.parent);
 	}
 
 	/** Responsibilities: _collection binary operators expression_. **/
 	private append_binary_operators(
-		node: ts.Expression,
+		operator_expression: ts.Expression,
 		operators: Set<ts.SyntaxKind>,
 		root_parenthesized = false,
 	): void {
-		if (ts.isParenthesizedExpression(node) && !root_parenthesized) {
+		if (ts.isParenthesizedExpression(operator_expression) && !root_parenthesized) {
 			return;
 		}
-		this.append_boolean_operators(node, operators);
+		this.append_boolean_operators(operator_expression, operators);
 	}
 
 	/** Responsibilities: _collection boolean operators expression_. **/
-	private append_boolean_operators(node: ts.Expression, operators: Set<ts.SyntaxKind>): void {
-		if (ts.isPrefixUnaryExpression(node)) {
-			if (node.operator === ts.SyntaxKind.ExclamationToken) {
-				operators.add(node.operator);
+	private append_boolean_operators(boolean_expression: ts.Expression, operators: Set<ts.SyntaxKind>): void {
+		if (ts.isPrefixUnaryExpression(boolean_expression)) {
+			if (boolean_expression.operator === ts.SyntaxKind.ExclamationToken) {
+				operators.add(boolean_expression.operator);
 			}
 			return;
 		}
-		if (!ts.isBinaryExpression(node)) {
+		if (!ts.isBinaryExpression(boolean_expression)) {
 			return;
 		}
-		if (!this.operator_kinds.has(node.operatorToken.kind)) {
+		if (!this._operator_kinds.has(boolean_expression.operatorToken.kind)) {
 			return;
 		}
-		operators.add(node.operatorToken.kind);
-		this.append_binary_operators(node.left, operators);
-		this.append_binary_operators(node.right, operators);
+		operators.add(boolean_expression.operatorToken.kind);
+		this.append_binary_operators(boolean_expression.left, operators);
+		this.append_binary_operators(boolean_expression.right, operators);
 	}
 
 	/** Responsibilities: _detection binary expression mixing_. **/
@@ -64,60 +65,77 @@ export class TypeScriptOperatorPrecedence implements TypeScriptOperatorPrecedenc
 	}
 
 	/** Responsibilities: _detection mixed operators node_. **/
-	private mixed_group(node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node)) {
+	private mixed_group(root_candidate: ts.Node): boolean {
+		if (!ts.isBinaryExpression(root_candidate)) {
 			return false;
 		}
-		if (!this.operator_kinds.has(node.operatorToken.kind)) {
+		if (!this._operator_kinds.has(root_candidate.operatorToken.kind)) {
 			return false;
 		}
-		if (this.parent_group(node)) {
+		if (this.parent_group(root_candidate)) {
 			return false;
 		}
-		return this.mixed_operators(node);
+		return this.mixed_operators(root_candidate);
 	}
 
 	/** Responsibilities: _precedence group operator count_. **/
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.boolean_boundary = new TypeScriptBooleanPrecedenceBoundary();
-		this.operator_kinds = new Set([
+	public constructor() {
+		this._operator_kinds = new Set([
 			ts.SyntaxKind.AmpersandAmpersandToken,
 			ts.SyntaxKind.BarBarToken,
 			ts.SyntaxKind.ExclamationToken,
 		]);
+		this._comparison_kinds = new Set([
+			ts.SyntaxKind.EqualsEqualsToken,
+			ts.SyntaxKind.EqualsEqualsEqualsToken,
+			ts.SyntaxKind.ExclamationEqualsToken,
+			ts.SyntaxKind.ExclamationEqualsEqualsToken,
+			ts.SyntaxKind.LessThanToken,
+			ts.SyntaxKind.LessThanEqualsToken,
+			ts.SyntaxKind.GreaterThanToken,
+			ts.SyntaxKind.GreaterThanEqualsToken,
+			ts.SyntaxKind.InKeyword,
+			ts.SyntaxKind.InstanceOfKeyword,
+		]);
+		this._boolean_boundary = new TypeScriptBooleanPrecedenceBoundary(this._operator_kinds, this._comparison_kinds);
 	}
 	/** Responsibilities: _public operation_. **/
-	public boolean_operator_count(node: ts.Expression): number {
-		if (ts.isParenthesizedExpression(node)) {
+	public boolean_operator_count(counted_expression: ts.Expression): number {
+		if (ts.isParenthesizedExpression(counted_expression)) {
 			return 0;
 		}
-		if (ts.isBinaryExpression(node)) {
-			if (!this.operator_kinds.has(node.operatorToken.kind)) {
+		if (ts.isBinaryExpression(counted_expression)) {
+			if (!this._operator_kinds.has(counted_expression.operatorToken.kind)) {
 				return 0;
 			}
-			return 1 + this.boolean_operator_count(node.left) + this.boolean_operator_count(node.right);
+			const left_operator_count = this.boolean_operator_count(counted_expression.left);
+			const right_operator_count = this.boolean_operator_count(counted_expression.right);
+			return 1 + left_operator_count + right_operator_count;
 		}
-		if (ts.isPrefixUnaryExpression(node)) {
-			if (node.operator === ts.SyntaxKind.ExclamationToken) {
-				return this.boolean_operator_count(node.operand);
+		if (ts.isPrefixUnaryExpression(counted_expression)) {
+			if (counted_expression.operator === ts.SyntaxKind.ExclamationToken) {
+				return this.boolean_operator_count(counted_expression.operand);
 			}
 		}
 		return 0;
 	}
 
 	/** Responsibilities: _reporting mixed boolean arithmetic_. **/
-	public mixed_boolean_operator(node: ts.Node): boolean {
-		if (this.boolean_boundary.negation_comparison_boundary(node)) {
+	public mixed_boolean_operator(reported_candidate: ts.Node): boolean {
+		if (this._boolean_boundary.negation_comparison_boundary(reported_candidate)) {
 			return true;
 		}
-		if (!ts.isBinaryExpression(node) || !this.boolean_boundary.boolean_operator(node)) {
+		if (!ts.isBinaryExpression(reported_candidate)) {
 			return false;
 		}
-		if (this.parent_group(node)) {
+		if (!this._boolean_boundary.boolean_operator(reported_candidate)) {
 			return false;
 		}
-		if (this.mixed_group(node)) {
+		if (this.parent_group(reported_candidate)) {
+			return false;
+		}
+		if (this.mixed_group(reported_candidate)) {
 			return true;
 		}
 		return false;

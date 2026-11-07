@@ -1,11 +1,11 @@
-import ts from "typescript";
-import type { TypeScriptTypeNodeContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptReferenceShape, TypeScriptTypeDetails } from "src/model/types";
+import type { TypeScriptTypeNodeContract } from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _primitive type classification_, _type detail extraction_. **/
 export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
-	public readonly node: ts.TypeNode;
-	private readonly primitive_kinds: Set<ts.SyntaxKind>;
+	private readonly _node: ts.TypeNode;
+	private readonly _primitive_kinds: Set<ts.SyntaxKind>;
 
 	/** Responsibilities: _classification literal type expression_. **/
 	private literal_is_primitive(literal: ts.Expression): boolean {
@@ -26,16 +26,16 @@ export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
 
 	/** Responsibilities: _exposure union members empty_. **/
 	private union_types(): readonly ts.TypeNode[] {
-		if (ts.isUnionTypeNode(this.node)) {
-			return this.node.types;
+		if (ts.isUnionTypeNode(this._node)) {
+			return this._node.types;
 		}
 		return [];
 	}
 
 	/** Responsibilities: _exposure parenthesized type member_. **/
 	private parenthesized_type(): readonly ts.TypeNode[] {
-		if (ts.isParenthesizedTypeNode(this.node)) {
-			return [this.node.type];
+		if (ts.isParenthesizedTypeNode(this._node)) {
+			return [this._node.type];
 		}
 		return [];
 	}
@@ -44,13 +44,13 @@ export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
 	private reference_shape(): TypeScriptReferenceShape {
 		let name = "";
 		let arguments_list: readonly ts.TypeNode[] = [];
-		if (ts.isTypeReferenceNode(this.node)) {
-			if (!ts.isIdentifier(this.node.typeName)) {
+		if (ts.isTypeReferenceNode(this._node)) {
+			if (!ts.isIdentifier(this._node.typeName)) {
 				return { name, arguments: arguments_list };
 			}
-			name = this.node.typeName.text;
-			if (this.node.typeArguments) {
-				arguments_list = this.node.typeArguments;
+			name = this._node.typeName.text;
+			if (this._node.typeArguments) {
+				arguments_list = this._node.typeArguments;
 			}
 		}
 		return { name, arguments: arguments_list };
@@ -64,12 +64,12 @@ export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
 		if (ts.isUnionTypeNode(node)) {
 			return node.types.every((item) => this.primitive_node(item));
 		}
-		return this.primitive_kinds.has(node.kind);
+		return this._primitive_kinds.has(node.kind);
 	}
 
 	/** Responsibilities: _initialization wrapped TypeScript type_. **/
 	public constructor(node: ts.TypeNode) {
-		this.primitive_kinds = new Set([
+		this._primitive_kinds = new Set([
 			ts.SyntaxKind.StringKeyword,
 			ts.SyntaxKind.NumberKeyword,
 			ts.SyntaxKind.BooleanKeyword,
@@ -77,12 +77,12 @@ export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
 			ts.SyntaxKind.NullKeyword,
 			ts.SyntaxKind.UndefinedKeyword,
 		]);
-		this.node = node;
+		this._node = node;
 	}
 
 	/** Responsibilities: _reporting wrapped type primitive_. **/
 	public primitive(): boolean {
-		return this.primitive_node(this.node);
+		return this.primitive_node(this._node);
 	}
 
 	/** Responsibilities: _output normalization union parenthesized_. **/
@@ -93,7 +93,7 @@ export class TypeScriptTypeNode implements TypeScriptTypeNodeContract {
 			union: union_types.length > 0,
 			union_types,
 			parenthesized_type: this.parenthesized_type(),
-			is_function: ts.isFunctionTypeNode(this.node),
+			is_function: ts.isFunctionTypeNode(this._node),
 			reference_name: reference.name,
 			reference_arguments: reference.arguments,
 		};

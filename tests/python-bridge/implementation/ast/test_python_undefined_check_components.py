@@ -3,12 +3,22 @@ import unittest
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
-from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
-from implementation.rules.python_field_mutation_collector import PythonFieldMutationCollector
-from implementation.rules.alias_walk_state import AliasWalkState
-from implementation.rules.undefined_check_state import UndefinedCheckState
-from implementation.rules.types import AliasWalkStateDataContract
+from implementation.references.aliases.python_reference_aliases import (
+    PythonReferenceAliases,
+    PythonReferenceAliasState,
+)
+from implementation.rules.coding_issues.states.alias_walk_state import AliasWalkState
+from implementation.rules.coding_issues.states.python_field_mutation_collector import (
+    PythonFieldMutationCollector,
+)
+from implementation.rules.coding_issues.states.python_inherited_fields import (
+    PythonInheritedFields,
+)
+from implementation.rules.coding_issues.states.undefined_check_state import (
+    UndefinedCheckState,
+)
+from implementation.rules.types import AliasWalkStateData
+from implementation.types import PythonClassFieldMap
 
 
 class PythonUndefinedCheckComponentsTest(unittest.TestCase):
@@ -16,12 +26,9 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
 
     """Responsibilities: _Python undefined-check component verification_."""
 
-    container_assembly: PythonContainerAssembly
-
     def __init__(self, methodName: str = "runTest") -> None:
         """Responsibilities: _undefined-check fixture initialization_."""
         super().__init__(methodName)
-        self.container_assembly: PythonContainerAssembly = PythonContainerAssembly(PythonAstNodeIndex())
 
     def _python_ast_node_index(self) -> PythonAstNodeIndex:
         """Responsibilities: _AST index creation_."""
@@ -30,31 +37,23 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
     def _mutable_field_alias_source(self) -> str:
         """Responsibilities: _mutable field alias source_."""
         return """class State:
-    value: int = 0
-    def update(self) -> None:
+    def update(self, other: State) -> None:
         self_alias = self
-        self_alias.value = 1
-    def star_update(self) -> None:
-        starred_alias, *ignored = (self, None, None)
-        starred_alias.value = 2
+        self_alias._state.value = 1
+        self._state[0] = 2
+        other._state = 3
 """
 
-    def test_collects_mutable_field_self_alias(self) -> None:
-        """Responsibilities: _self alias mutation verification_."""
+    def test_rejects_field_writes_through_aliases_and_indices(self) -> None:
+        """Responsibilities: _aliased field mutation_."""
         source = self._mutable_field_alias_source()
         tree = ast.parse(source)
-        collector = PythonFieldMutationCollector(
-            tree,
-            self._python_ast_node_index(),
-            self.container_assembly.container_aliases(),
-            PythonReferenceAliases(),
-        )
-        collector.prepare()
+        collector = PythonFieldMutationCollector()
         issues = [issue for node in ast.walk(tree) for issue in collector.collect_mutations(node)]
 
         self.assertEqual(
-            [issue["line"] for issue in issues if issue["kind"] == "mutable-field-assignment"],
-            [4, 7],
+            [issue["line"] for issue in issues if issue["kind"] == "object-field-write"],
+            [3, 5],
         )
 
     def test_rejects_unbounded_assignment_alias_boundaries(self) -> None:
@@ -63,7 +62,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "from typing import Any\n"
             "AnyAlias = Any\n"
             "\n"
-            "def process(value: AnyAlias) -> AnyAlias:\n"
+            "def process(value: dict[str, list[AnyAlias]]) -> dict[str, tuple[AnyAlias]]:\n"
             "    return value\n"
             "\n"
             "unbounded_type, ignored = (Any, None)\n"
@@ -88,7 +87,10 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
         tree = PythonAstTree(source)
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unbounded-type"]
 
-        self.assertEqual([issue["line"] for issue in issues], [5])
+        self.assertEqual(
+            [issue["line"] for issue in issues],
+            [5],
+        )
 
     def test_rejects_string_type_annotations(self) -> None:
         """Responsibilities: _annotations verification_."""
@@ -179,7 +181,12 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
         """Responsibilities: _acyclic diamond cache_."""
         source = self._acyclic_diamond_source()
         tree = ast.parse(source)
-        builder = UndefinedCheckState({}, {}, PythonReferenceAliases())
+        builder = UndefinedCheckState(
+            {},
+            {},
+            PythonReferenceAliases(PythonReferenceAliasState()),
+            PythonAstNodeIndex(),
+        )
         fields = builder.fields_for(tree)
 
         self.assertEqual(
@@ -190,6 +197,27 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
                 "left_base": "str",
                 "right": "bool",
                 "right_base": "int",
+            },
+        )
+
+    def test_resolves_fields_for_classes_in_an_inheritance_cycle(self) -> None:
+        """Responsibilities: _cyclic inherited-field result_."""
+        tree = ast.parse(
+            "class Left(Right):\n    pass\nclass Right(Left):\n    pass\n",
+        )
+        classes = {node.name: node for node in tree.body if type(node) is ast.ClassDef}
+        own_fields: PythonClassFieldMap = {
+            "Left": {"left": ast.Name(id="str", ctx=ast.Load())},
+            "Right": {"right": ast.Name(id="int", ctx=ast.Load())},
+        }
+        inherited_fields = PythonInheritedFields(classes, own_fields)
+        fields = inherited_fields.fields()
+
+        self.assertEqual(
+            {name: {field: ast.unparse(value) for field, value in values.items()} for name, values in fields.items()},
+            {
+                "Left": {"left": "str", "right": "int"},
+                "Right": {"left": "str", "right": "int"},
             },
         )
 
@@ -204,14 +232,19 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             assignments.append(f"{name} = {source_name}")
         source = "value: int = 0\n" + "\n".join(assignments)
         tree = ast.parse(source)
-        builder = UndefinedCheckState({}, {}, PythonReferenceAliases())
+        builder = UndefinedCheckState(
+            {},
+            {},
+            PythonReferenceAliases(PythonReferenceAliasState()),
+            PythonAstNodeIndex(),
+        )
         bindings = builder.bindings_for(tree)
 
         self.assertEqual(ast.unparse(bindings[aliases[-1]]), "int")
 
-    def _alias_walk_data(self, path: list[str], positions: dict[str, int]) -> AliasWalkStateDataContract:
+    def _alias_walk_data(self, path: list[str], positions: dict[str, int]) -> AliasWalkStateData:
         """Responsibilities: _alias traversal state_."""
-        return AliasWalkStateDataContract("first", {}, {}, {}, path, positions, ast.Constant(value=None), False)
+        return AliasWalkStateData("first", {}, {}, {}, path, positions, ast.Constant(value=None), result_present=False)
 
     def test_alias_visits_reuse_linear_path_and_position_storage(self) -> None:
         """Responsibilities: _alias traversal storage reuse_."""
@@ -235,6 +268,28 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             },
         )
 
+    def test_alias_cycle_transition_returns_resolved_cycle_state(self) -> None:
+        """Responsibilities: _alias cycle transition result_."""
+        path: list[str] = []
+        positions: dict[str, int] = {}
+        state = AliasWalkState(self._alias_walk_data(path, positions))
+        snapshot = state.visit("second").visit("first").cycle_result(0).snapshot()
+
+        self.assertEqual(
+            {
+                "path": snapshot.path,
+                "positions": snapshot.positions,
+                "cycle_results": {name: ast.unparse(value) for name, value in snapshot.resolution_map.items()},
+                "result_present": snapshot.result_present,
+            },
+            {
+                "path": [],
+                "positions": {"first": 0, "second": 1},
+                "cycle_results": {"first": "None", "second": "None"},
+                "result_present": True,
+            },
+        )
+
     def test_preserves_shared_tail_and_cycle_alias_results(self) -> None:
         """Responsibilities: _alias graph resolution_."""
         source = (
@@ -246,7 +301,12 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "cycle_b = cycle_a\n"
         )
         tree = ast.parse(source)
-        builder = UndefinedCheckState({}, {}, PythonReferenceAliases())
+        builder = UndefinedCheckState(
+            {},
+            {},
+            PythonReferenceAliases(PythonReferenceAliasState()),
+            PythonAstNodeIndex(),
+        )
         bindings = builder.bindings_for(tree)
 
         self.assertEqual(
@@ -258,6 +318,37 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
                 "right": "int",
                 "cycle_a": "None",
                 "cycle_b": "None",
+            },
+        )
+
+    def test_undefined_check_analysis_collects_module_bindings_and_fields(self) -> None:
+        """Responsibilities: _binding field analysis_."""
+        tree = ast.parse(
+            "class Record:\n    value: int\n\n"
+            "def build(item: Record) -> Record:\n    result: Record = item\n    return result\n",
+        )
+        node_index = PythonAstNodeIndex()
+        builder = UndefinedCheckState(
+            {},
+            {},
+            PythonReferenceAliases(PythonReferenceAliasState()),
+            node_index,
+        )
+        bindings = builder.bindings_for(tree)
+        fields = builder.fields_for(tree)
+
+        self.assertEqual(
+            {
+                "binding_names": sorted(bindings),
+                "class_names": sorted(fields),
+                "record_fields": sorted(fields["Record"]),
+                "result_annotation": ast.unparse(bindings["result"]),
+            },
+            {
+                "binding_names": ["item", "result", "value"],
+                "class_names": ["Record"],
+                "record_fields": ["value"],
+                "result_annotation": "Record",
             },
         )
 

@@ -11,9 +11,22 @@ boundary and decompose responsibilities before shortening mechanically.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public register_component_for_the_project_configuration_validation(): string { return "value"; }
+// File: src/component_registry.ts
+export class ComponentRegistry {
+	private readonly component_name: string;
+	public constructor(component_name: string) { this.component_name = component_name; }
+	public register_component_for_the_project_configuration_validation(): string { return `Validated ${this.component_name}`; } // <- error
+	public report(): void {
+		const result = this.register_component_for_the_project_configuration_validation();
+		console.log(result);
+	}
 }
+// File: cli.ts
+import { ComponentRegistry } from "src/component_registry";
+(function () {
+	const registry = new ComponentRegistry("search-index");
+	registry.report();
+})();
 ```
 
 
@@ -23,20 +36,20 @@ class PriceLabels {
 // File: src/price_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
@@ -49,19 +62,26 @@ export class PriceLabels {
 
 	/** Responsibilities: _fallback capitalization_. **/
 	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
+		const normalized = this._fallback.trim();
 		return normalized.toUpperCase();
 	}
 
 	/** Responsibilities: _mapping size reporting_. **/
 	public status_count(): number {
 		let count = 0;
-		for (const status_name of this.labels.keys()) {
+		for (const status_name of this._labels.keys()) {
 			if (status_name.length > 0) {
 				count += 1;
 			}
 		}
 		return count;
+	}
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "blocked");
+		const fallback = this.uppercase_fallback();
+		const count = this.status_count();
+		console.log(`${label} ${detailed} ${fallback} ${count}`);
 	}
 }
 // File: cli.ts
@@ -72,10 +92,6 @@ import { PriceLabels } from "src/price_labels";
 	labels.set("ready", "Ready");
 	labels.set("blocked", "Blocked");
 	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	price_labels.report();
 })();
 ```

@@ -1,21 +1,21 @@
-import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
-import type { TypeScriptCallReturnAnalysisContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
 import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
-import ts from "typescript";
-import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
+import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
 import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { TypeScriptCallReturnAnalysisContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _external owners_, _owner identity_. **/
 export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwnersContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly script_module_exports: TypeScriptModuleExportLookupContract;
-	private readonly owners: Map<string, string>;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _script_module_exports: TypeScriptModuleExportLookupContract;
+	private readonly _owners: Map<string, string>;
 
 	/** Responsibilities: _resolution owner imported callable_. **/
-	private imported_call_owner(imported_file: string, exported_name: string): string {
+	private imported_call_owner(exported_module: string, exported_name: string): string {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
-		const declarations = this.script_module_exports.resolved_exported_declaration(imported_file, exported_name);
+		const declarations = this._script_module_exports.resolved_exported_declaration(exported_module, exported_name);
 		for (const declaration of declarations) {
 			const owner = this.exported_owner(declaration, call_return_analysis);
 			if (owner.length > 0) {
@@ -47,36 +47,40 @@ export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwner
 	}
 
 	/** Responsibilities: _resolution owners named bindings_. **/
-	private imported_binding_owner(imported_file: string, binding: ts.ImportSpecifier): string {
+	private imported_binding_owner(binding_module: string, binding: ts.ImportSpecifier): string {
 		let exported_name = binding.propertyName?.text;
 		if (exported_name === undefined) {
 			exported_name = binding.name.text;
 		}
-		return this.imported_call_owner(imported_file, exported_name);
+		return this.imported_call_owner(binding_module, exported_name);
 	}
 
 	/** Responsibilities: _aggregation owner mappings named_. **/
-	private append_imported_bindings(bindings: ts.NamedImports, imported_file: string): void {
+	private append_imported_bindings(bindings: ts.NamedImports, import_module: string): void {
 		for (const binding of bindings.elements) {
-			const owner = this.imported_binding_owner(imported_file, binding);
+			const owner = this.imported_binding_owner(import_module, binding);
 			if (owner) {
-				this.owners.set(binding.name.text, owner);
+				this._owners.set(binding.name.text, owner);
 			}
 		}
 	}
 
 	/** Responsibilities: _collection imported callable owner_. **/
 	private collect_imported_calls(): void {
-		for (const statement of this.source_file.statements) {
-			const bindings = this.script_module_exports.named_imports(statement);
-			const file = this.script_module_exports.imported_file(this.source_file, statement);
+		for (const statement of this._source_file.statements) {
+			const bindings = this._script_module_exports.named_imports(statement);
+			const file = this._script_module_exports.imported_file(this._source_file, statement);
 			if (bindings.length === 0) {
 				continue;
 			}
 			if (!file) {
 				continue;
 			}
-			this.append_imported_bindings(bindings[0], file);
+			const first_binding = bindings.at(0);
+			if (first_binding === undefined) {
+				continue;
+			}
+			this.append_imported_bindings(first_binding, file);
 		}
 	}
 
@@ -87,15 +91,15 @@ export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwner
 		source_files: ReadonlyMap<string, ts.SourceFile>,
 		source_io: ProjectSourceIOContract,
 	) {
-		this.owners = new Map<string, string>();
-		this.source_file = source_file;
-		this.script_module_exports = new TypeScriptModuleExports(project_root, source_files, false, source_io);
+		this._owners = new Map<string, string>();
+		this._source_file = source_file;
+		this._script_module_exports = new TypeScriptModuleExports(project_root, source_files, false, source_io);
 	}
 
 	/** Responsibilities: _output resolution imported callable_. **/
 	public collect(): ReadonlyMap<string, string> {
 		this.collect_imported_calls();
-		return this.owners;
+		return this._owners;
 	}
 
 	/** Responsibilities: _aggregation resolution imported owners_. **/

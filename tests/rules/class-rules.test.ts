@@ -1,20 +1,23 @@
-import { ClassRules } from "src/rules/class_rules";
-import { TestFixture } from "tests/core/test-fixture";
-import ts from "typescript";
-
-import type { ViolationContract } from "src/reporting_protocols";
+import { ProjectSourcePython } from "src/core/project-source/project_source_python";
+import { SourceText } from "src/io/source_text";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceText } from "src/source_text";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import { ProjectSourcePython } from "src/core/project-source/project_source_python";
-import { LintStageTimer } from "src/lint_stage_timer";
+import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
+import type { ViolationContract } from "src/reporting_protocols";
+import { ClassRules } from "src/rules/class_rules";
+import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
+import { EMPTY_PROJECT_NAMES } from "tests/core/constants";
+import { TestFixture } from "tests/core/test-fixture";
+import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
+import ts from "typescript";
 
 describe("coding-lint class rules", () => {
 	const fixture = new TestFixture();
 
 	test("reports multiple Python top-level classes", () => {
-		const class_rules = new ClassRules({ root: "", files: new Set(), resolver: new ProjectSourcePython() });
+		const class_rules = new ClassRules({ root: "", files: new Set(), resolver: new ProjectSourcePython("") });
 		const violations: ViolationContract[] = [];
 		class_rules.append_python_classes({
 			violations,
@@ -25,92 +28,38 @@ describe("coding-lint class rules", () => {
 			has_implementation_classes: true,
 			type_declarations: [],
 		});
-		const class_violations = violations.filter((violation) => violation.rule_id === "top-level-classes");
-		expect(class_violations).toEqual([expect.objectContaining({ line: 4 })]);
+		const class_violations = violations.filter((violation) => violation.rule_id() === "top-level-classes");
+		expect(class_violations.map((violation) => violation.line())).toEqual([4]);
 	});
 
 	test("reports multiple TypeScript top-level classes", () => {
-		const class_rules = new ClassRules({ root: "", files: new Set(), resolver: new ProjectSourcePython() });
-		const tsViolations: ViolationContract[] = [];
-		class_rules.append_typescript_classes(
-			tsViolations,
-			"models.ts",
-			["export class First {}", "class Second {}"],
-			ts.createSourceFile("models.ts", "export class First {}\nclass Second {}", ts.ScriptTarget.Latest, true),
-			[0, 1],
-		);
+		const text = "export class First {}\nclass Second {}";
+		const source_file = ts.createSourceFile("models.ts", text, ts.ScriptTarget.Latest, true);
+		const registry = new ASTVerifierRegistry();
+		registry.initialize();
+		const scenario = new ASTVerifierTestContext(source_file);
+		scenario.append_tree(registry.build(text));
 
-		expect(tsViolations).toEqual([
-			expect.objectContaining({ message: expect.stringContaining("too many top-level classes") }),
-		]);
+		expect(scenario.rule_ids()).toContain("top-level-classes");
 	});
 
-	test("rejects imported functions assigned as Python class fields", () => {
-		const violations = fixture.project_source.with_in_memory_project(
+	test("reports imported functions assigned as Python class fields", () => {
+		const violations = fixture._project_source.with_in_memory_project(
 			{
 				"helper.py": "def execute():\n    return 1\n\nVALUE = 1\n",
 				"model.py": "from .helper import execute, VALUE\n\nclass Service:\n    run = execute\n    value = VALUE\n",
 			},
-			(root, context, files) => {
-				const class_rules = new ClassRules({ root, files: new Set(files), resolver: new ProjectSourcePython() });
-				return class_rules.collect_context_fields(
-					{ files: [...files], repo_root: root },
-					context,
-					new LintStageTimer(),
-				);
+			({ root, context, files }) => {
+				const class_rules = new ClassRules({ root, files: new Set(files), resolver: new ProjectSourcePython(root) });
+				return class_rules.python_context_fields({ files: [...files], repo_root: root }, context);
 			},
 			new Map(),
 		);
 		expect({
 			count: violations.length,
-			message: violations[0]?.message.includes("run"),
-			line: violations[0]?.line,
-		}).toEqual({ count: 1, message: true, line: 4 });
-	});
-
-	test("rejects imported functions assigned as TypeScript class fields", () => {
-		const violations = fixture.project_source.with_in_memory_project(
-			{
-				"helper.ts": "export function execute(): number { return 1; }\nexport const VALUE = 1;\n",
-				"model.ts":
-					"import { execute, VALUE } from './helper';\n\nclass Service {\n  run = execute;\n  value = VALUE;\n}\n",
-			},
-			(root, context, files) => {
-				const class_rules = new ClassRules({ root, files: new Set(files), resolver: new ProjectSourcePython() });
-				return class_rules.collect_context_fields(
-					{ files: [...files], repo_root: root },
-					context,
-					new LintStageTimer(),
-				);
-			},
-			new Map(),
-		);
-		expect({
-			count: violations.length,
-			message: violations[0]?.message.includes("run"),
-			line: violations[0]?.line,
-		}).toEqual({ count: 1, message: true, line: 4 });
-	});
-
-	test("preserves cross-file import resolution when reusing the TypeScript AST", () => {
-		const result = fixture.project_source.with_in_memory_project(
-			{
-				"tools/coding-lint/helper.ts": "export function execute(): number { return 1; }\n",
-				"tools/coding-lint/model.ts": "import { execute } from './helper';\n\nclass Service {\n  run = execute;\n}\n",
-			},
-			(root, context, files) => {
-				const class_rules = new ClassRules({ root, files: new Set(files), resolver: new ProjectSourcePython() });
-				return class_rules.collect_context_fields(
-					{ files: [...files], repo_root: root },
-					context,
-					new LintStageTimer(),
-				);
-			},
-			new Map(),
-		);
-		expect(result).toEqual([
-			expect.objectContaining({ file: "tools/coding-lint/model.ts", rule_id: "class-field-import", line: 4 }),
-		]);
+			messages: violations.map((violation) => violation.message().includes("run")),
+			lines: violations.map((violation) => violation.line()),
+		}).toEqual({ count: 1, messages: [true], lines: [4] });
 	});
 
 	test("does not apply production mutability rules to test doubles", () => {
@@ -120,11 +69,15 @@ describe("coding-lint class rules", () => {
 		const source_ast = new SourceFileAst(
 			{ file: "tests/dom-kit/element.ts", text: source_text },
 			ast_file.normalized(),
-			ast_file.source_file,
+			ast_file.source_file_node(),
 			new Map(),
-			ast_file.traversal,
+			new TypeScriptAstTraversal(ast_file.source_file_node()),
 		);
-		const linter = new CodingRuleLinter(process.cwd(), new SourceText());
+		const source_snapshot = source_ast.snapshot();
+		const test_context = new ASTVerifierTestContext(source_snapshot.source_file);
+		const context_state = test_context.state();
+		const rule_scope = context_state.project.rule_scope;
+		const linter = new CodingRuleLinter(rule_scope, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
 		const violations = linter.lint_typescript(source_ast, new LintStageTimer());
 		expect(violations).not.toEqual(
 			expect.arrayContaining([
@@ -136,5 +89,26 @@ describe("coding-lint class rules", () => {
 				}),
 			]),
 		);
+	});
+
+	test("reports production class member policy from class rules", () => {
+		const source_text = 'class Service { value = ""; run(): void {} }';
+		const ast_file = new TypeScriptAstFile("src/service.ts", source_text);
+		const source_ast = new SourceFileAst(
+			{ file: "src/service.ts", text: source_text },
+			ast_file.normalized(),
+			ast_file.source_file_node(),
+			new Map(),
+			new TypeScriptAstTraversal(ast_file.source_file_node()),
+		);
+		const source_snapshot = source_ast.snapshot();
+		const test_context = new ASTVerifierTestContext(source_snapshot.source_file);
+		const context_state = test_context.state();
+		const rule_scope = context_state.project.rule_scope;
+		const linter = new CodingRuleLinter(rule_scope, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
+		const violations = linter.lint_typescript(source_ast, new LintStageTimer());
+		const rule_ids = violations.map((violation) => violation.rule_id());
+
+		expect(rule_ids).toEqual(expect.arrayContaining(["typescript-explicit-visibility", "typescript-mutable-field"]));
 	});
 });

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("callable feature detection", () => {
 	test("reports callable checks through aliases, computed members, and static values", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"property-alias.ts": [
 					"const service_run = service.run;",
@@ -37,9 +37,9 @@ describe("callable feature detection", () => {
 		);
 		const counts = new Map<string, number>();
 		for (const violation of execution.report.violations.filter(
-			(item) => item.rule_id === "callable-feature-detection",
+			(item) => item.rule_id() === "callable-feature-detection",
 		)) {
-			const file_name = violation.file.split("/").at(-1);
+			const file_name = violation.file().split("/").at(-1);
 			let name = "";
 			if (file_name !== undefined) {
 				name = file_name;
@@ -62,7 +62,7 @@ describe("callable feature detection", () => {
 	test("reports parenthesized, negated, wrapped, and destructured callable checks", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"parenthesized.ts": [
 					'if (typeof service.run === "function") { return; }',
@@ -92,9 +92,9 @@ describe("callable feature detection", () => {
 		);
 		const counts = new Map<string, number>();
 		for (const violation of execution.report.violations.filter(
-			(item) => item.rule_id === "callable-feature-detection",
+			(item) => item.rule_id() === "callable-feature-detection",
 		)) {
-			const file_name = violation.file.split("/").at(-1);
+			const file_name = violation.file().split("/").at(-1);
 			let name = "";
 			if (file_name !== undefined) {
 				name = file_name;
@@ -119,7 +119,7 @@ describe("callable feature detection", () => {
 	test("does not certify ambiguous aliases, shadowed bindings, or primitive checks", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"ambiguous.ts": [
 					"const comma_kind = ('function', 'number');",
@@ -139,6 +139,8 @@ describe("callable feature detection", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "callable-feature-detection")).toHaveLength(0);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "callable-feature-detection")).toHaveLength(
+			0,
+		);
 	});
 });

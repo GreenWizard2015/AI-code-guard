@@ -22,12 +22,16 @@ export class AccountSession {
 	public label(): string {
 		return `Account ${this.account_id}`;
 	}
+	/** Responsibilities: _account session report_. **/
+	public report(): void {
+		console.log(`${this.account()} | ${this.label()}`);
+	}
 }
 // File: cli.ts
 import { AccountSession } from "src/account_session";
 (function (): void {
 	const account = new AccountSession("account-1");
-	console.log(account.account(), account.label());
+	account.report();
 })();
 ```
 
@@ -43,21 +47,40 @@ export interface UserSessionContract {
 	status_label(): string;
 }
 // File: src/user_session.ts
-#!/usr/bin/env node
-import { UserSessionContract } from "src/protocols";
+import type { UserSessionContract } from "src/protocols";
 /** Responsibilities: _account identity_, _session state_. **/
 export class UserSession implements UserSessionContract {
-	private readonly logger: Console;
-	private readonly account_id: string;
+	private readonly _account_id: string;
 	/** Responsibilities: _session initialization_. **/
-	public constructor(logger: Console, account_id: string) { this.logger = logger; this.account_id = account_id; }
+	public constructor(account_id: string) {
+		this._account_id = account_id;
+	}
 	/** Responsibilities: _account validation_. **/
-	public refresh(): string { const account = this.account_id.trim(); if (account.length === 0) { return "invalid"; } this.logger.log(`refresh ${account}`); return "refreshed"; }
+	public refresh(): string {
+		const account = this._account_id.trim().toLowerCase();
+		if (account.length === 0) { return "invalid"; }
+		return "refreshed";
+	}
 	/** Responsibilities: _session closure_. **/
-	public close(): string { this.logger.log(`close ${this.account_id}`); return "closed"; }
+	public close(): string {
+		return `closed ${this._account_id.trim().toLowerCase()}`;
+	}
 	/** Responsibilities: _session status_. **/
-	public status_label(): string { const account = this.account_id.trim(); if (account.length === 0) { return "unavailable"; } return `Account ${account}`; }
+	public status_label(): string {
+		const account = this._account_id.trim().toLowerCase();
+		if (account.length === 0) { return "unavailable"; }
+		return `Account ${account}`;
+	}
+	/** Responsibilities: _session report output_. **/
+	public report(): void {
+		console.log(`${this.refresh()} | ${this.close()} | ${this.status_label()}`);
+	}
 }
-(function () { const session = new UserSession(console, "account-1"); console.log(session.refresh(), session.close(), session.status_label()); })();
+// File: cli.ts
+import { UserSession } from "src/user_session";
+(function () {
+	const session = new UserSession("account-1");
+	session.report();
+})();
 ```
 

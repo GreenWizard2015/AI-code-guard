@@ -1,59 +1,76 @@
+import { TypeScriptInheritedAliasPairs } from "src/rules/typescript/syntax-rules/runtime/type_script_inherited_alias_pairs";
 import ts from "typescript";
 
 /** Responsibilities: _singular-plural field pairing_, _field type equivalence checks_. **/
 export class TypeScriptAliasPair {
-	private readonly property_kinds: Set<ts.SyntaxKind>;
+	private readonly _property_kinds: ReadonlySet<ts.SyntaxKind>;
+	private readonly typed_field_error = "Typed field expected.";
+	private readonly _inherited_pairs: TypeScriptInheritedAliasPairs;
 
 	/** Responsibilities: _retrieval type node field_. **/
-	private field_type(node: ts.Node): ts.TypeNode {
-		if ((!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) || node.type === undefined) {
-			throw new Error("Typed field expected.");
+	private field_type(field_node: ts.Node): ts.TypeNode {
+		if (!ts.isPropertyDeclaration(field_node) && !ts.isPropertySignature(field_node)) {
+			throw new Error(this.typed_field_error);
 		}
-		return node.type;
+		if (field_node.type === undefined) {
+			throw new Error(this.typed_field_error);
+		}
+		return field_node.type;
 	}
 
 	/** Responsibilities: _resolution textual name field_. **/
-	private field_name(node: ts.Node): string {
-		if (!this.property_kinds.has(node.kind)) {
+	private field_name(field_candidate: ts.Node): string {
+		if (!this._property_kinds.has(field_candidate.kind)) {
 			return "";
 		}
-		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
+		if (!ts.isPropertyDeclaration(field_candidate) && !ts.isPropertySignature(field_candidate)) {
 			return "";
 		}
-		if (!ts.isIdentifier(node.name)) {
+		if (!ts.isIdentifier(field_candidate.name)) {
 			return "";
 		}
-		return node.name.text;
+		return field_candidate.name.text;
 	}
 
 	/** Responsibilities: _retrieval sibling fields interface_. **/
-	private sibling_fields(node: ts.Node): readonly ts.Node[] {
-		if (ts.isInterfaceDeclaration(node) || ts.isClassLike(node) || ts.isTypeLiteralNode(node)) {
-			return node.members;
+	private sibling_fields(field_owner: ts.Node): readonly ts.Node[] {
+		if (ts.isInterfaceDeclaration(field_owner) || ts.isClassLike(field_owner)) {
+			return field_owner.members;
 		}
-		const parent = node.parent;
+		if (ts.isTypeLiteralNode(field_owner)) {
+			return field_owner.members;
+		}
+		const parent = field_owner.parent;
 		if (ts.isTypeLiteralNode(parent)) {
 			return parent.members;
 		}
-		if (ts.isInterfaceDeclaration(parent) || ts.isClassLike(parent)) {
+		if (ts.isInterfaceDeclaration(parent)) {
+			return parent.members;
+		}
+		if (ts.isClassLike(parent)) {
 			return parent.members;
 		}
 		return [];
 	}
 
 	/** Responsibilities: _derivation singular plural aliases_. **/
-	private alias_names(name: string): readonly string[] {
-		let singular = name;
-		if (name.endsWith("s")) {
-			singular = name.slice(0, -1);
+	private alias_names(field_name: string): readonly string[] {
+		let singular = field_name;
+		if (field_name.endsWith("s")) {
+			singular = field_name.slice(0, -1);
 		}
 		return [singular, `${singular}s`];
 	}
 
 	/** Responsibilities: _two-field classification_. **/
 	private has_matching_types(fields: ReadonlyMap<string, ts.Node>, names: readonly string[]): boolean {
-		const singular_field = fields.get(names[0]);
-		const plural_field = fields.get(names[1]);
+		const singular_name = names.at(0);
+		const plural_name = names.at(1);
+		if (singular_name === undefined || plural_name === undefined) {
+			return false;
+		}
+		const singular_field = fields.get(singular_name);
+		const plural_field = fields.get(plural_name);
 		if (singular_field === undefined || plural_field === undefined) {
 			return false;
 		}
@@ -82,10 +99,17 @@ export class TypeScriptAliasPair {
 	}
 
 	/** Responsibilities: _indexing sibling fields their_. **/
-	private named_fields(node: ts.Node): ReadonlyMap<string, ts.Node> {
+	private named_fields(field_owner: ts.Node): ReadonlyMap<string, ts.Node> {
 		const fields = new Map<string, ts.Node>();
-		for (const field of this.sibling_fields(node)) {
-			if (ts.isPropertyDeclaration(field) || ts.isPropertySignature(field)) {
+		for (const field of this.sibling_fields(field_owner)) {
+			if (ts.isPropertyDeclaration(field)) {
+				const name = this.field_name(field);
+				if (name.length > 0) {
+					fields.set(name, field);
+				}
+				continue;
+			}
+			if (ts.isPropertySignature(field)) {
 				const name = this.field_name(field);
 				if (name.length > 0) {
 					fields.set(name, field);
@@ -95,102 +119,43 @@ export class TypeScriptAliasPair {
 		return fields;
 	}
 
-	/** Responsibilities: _interface heritage type retrieval_. **/
-	private heritage_types(node: ts.InterfaceDeclaration): readonly ts.ExpressionWithTypeArguments[] {
-		if (node.heritageClauses === undefined) {
-			return [];
-		}
-		for (const clause of node.heritageClauses) {
-			if (clause.token === ts.SyntaxKind.ExtendsKeyword) {
-				return clause.types;
-			}
-		}
-		return [];
+	/** Responsibilities: _field-kind policy ownership_. **/
+	public constructor(property_kinds: ReadonlySet<ts.SyntaxKind>) {
+		this._property_kinds = property_kinds;
+		this._inherited_pairs = new TypeScriptInheritedAliasPairs(
+			(owner) => this.named_fields(owner),
+			(fields, names) => this.has_matching_types(fields, names),
+		);
 	}
-
-	/** Responsibilities: _named interface resolution_. **/
-	private named_interfaces(source: ts.SourceFile, name: string): readonly ts.InterfaceDeclaration[] {
-		const matches: ts.InterfaceDeclaration[] = [];
-		const visit = (node: ts.Node): void => {
-			if (ts.isInterfaceDeclaration(node)) {
-				if (node.name.text === name) {
-					matches.push(node);
-				}
+	/** Responsibilities: _public operation_. **/
+	public optional_field(optional_field_candidate: ts.Node): boolean {
+		if (ts.isPropertyDeclaration(optional_field_candidate)) {
+			if (optional_field_candidate.questionToken === undefined) {
+				return false;
 			}
-			ts.forEachChild(node, visit);
-		};
-		visit(source);
-		return matches;
-	}
-
-	/** Responsibilities: _inherited parent fields addition_. **/
-	private append_inherited_parent(
-		fields: Map<string, ts.Node>,
-		parent: ts.InterfaceDeclaration,
-		seen: Set<string>,
-	): void {
-		for (const [name, field] of this.named_fields(parent)) {
-			fields.set(name, field);
+			return optional_field_candidate.type !== undefined;
 		}
-		for (const [name, field] of this.inherited_fields(parent, seen)) {
-			fields.set(name, field);
-		}
-	}
-
-	/** Responsibilities: _inherited interface fields collection_. **/
-	private inherited_fields(node: ts.InterfaceDeclaration, seen: Set<string>): ReadonlyMap<string, ts.Node> {
-		const fields = new Map<string, ts.Node>();
-		if (seen.has(node.name.text)) {
-			return fields;
-		}
-		seen.add(node.name.text);
-		for (const heritage of this.heritage_types(node)) {
-			if (!ts.isIdentifier(heritage.expression)) {
-				continue;
+		if (ts.isPropertySignature(optional_field_candidate)) {
+			if (optional_field_candidate.questionToken === undefined) {
+				return false;
 			}
-			for (const parent of this.named_interfaces(node.getSourceFile(), heritage.expression.text)) {
-				this.append_inherited_parent(fields, parent, seen);
-			}
-		}
-		return fields;
-	}
-
-	/** Responsibilities: _inherited alias pair detection_. **/
-	private inherited_alias_pair(node: ts.InterfaceDeclaration): boolean {
-		const fields = this.inherited_fields(node, new Set<string>());
-		for (const name of fields.keys()) {
-			if (this.has_matching_types(fields, this.alias_names(name))) {
-				return true;
-			}
+			return optional_field_candidate.type !== undefined;
 		}
 		return false;
 	}
 
-	/** Responsibilities: _reporting optional singular plural_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.property_kinds = new Set([ts.SyntaxKind.PropertyDeclaration, ts.SyntaxKind.PropertySignature]);
-	}
-	/** Responsibilities: _public operation_. **/
-	public optional_field(node: ts.Node): boolean {
-		if (!ts.isPropertyDeclaration(node) && !ts.isPropertySignature(node)) {
-			return false;
-		}
-		return node.questionToken !== undefined && node.type !== undefined;
-	}
-
 	/** Responsibilities: _reporting singular plural field_. **/
-	public alias_pair(node: ts.Node): boolean {
-		if (ts.isInterfaceDeclaration(node)) {
-			return this.inherited_alias_pair(node);
+	public alias_pair(alias_candidate: ts.Node): boolean {
+		if (ts.isInterfaceDeclaration(alias_candidate)) {
+			return this._inherited_pairs.inherited_alias_pair(alias_candidate);
 		}
-		if (!this.optional_field(node)) {
+		if (!this.optional_field(alias_candidate)) {
 			return false;
 		}
-		const name = this.field_name(node);
+		const name = this.field_name(alias_candidate);
 		if (name.length === 0) {
 			return false;
 		}
-		return this.has_matching_types(this.named_fields(node), this.alias_names(name));
+		return this.has_matching_types(this.named_fields(alias_candidate), this.alias_names(name));
 	}
 }

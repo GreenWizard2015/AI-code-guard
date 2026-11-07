@@ -8,9 +8,23 @@ export type TypeScriptAstTraversalNode = {
 	function_owner: ts.Node;
 };
 
-export type TypeScriptAstTraversalVisitor = (node: ts.Node, inside_constructor: boolean, owner: string) => void;
+export type TypeScriptAstTraversalFrame = {
+	traversal_node: TypeScriptAstTraversalNode;
+	depth: number;
+};
 
-export type TypeScriptFunctionOwnerVisitor = (node: ts.Node, owner: ts.Node) => void;
+export type CallableTypeScriptAstTraversalVisitor = (traversal_node: TypeScriptAstTraversalNode) => void;
+
+export type CallableTypeScriptAstTraversalDecision = (traversal_node: TypeScriptAstTraversalNode) => boolean;
+
+export type CallableTypeScriptAstNodeObserver<TContext> = (
+	traversal_node: TypeScriptAstTraversalNode,
+	context: TContext,
+) => void;
+
+export type CallableTypeScriptPrunedNodeVisitor = (node: ts.Node) => boolean;
+
+export type CallableTypeScriptFunctionOwnerVisitor = (node: ts.Node, owner: ts.Node) => void;
 
 export type TypeScriptAstNodeCollection = {
 	type_aliases: readonly ts.TypeAliasDeclaration[];

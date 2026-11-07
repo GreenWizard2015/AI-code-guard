@@ -1,21 +1,7 @@
-import ast
 import unittest
 
-from python_bridge_entrypoint import PythonBridgeEntrypoint
-from python_bridge_input import PythonBridgeInput
-from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.rules.control_flow.python_expression_boundary import PythonExpressionBoundary
-from implementation.ast.imports.source_segments import SourceSegments
-from implementation.rules.control_flow.python_terminal_branch_rules import PythonTerminalBranchRules
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
-from implementation.ast.callables.coding_issue_options import PythonCodingIssueCollectorOptions
-from implementation.ast.callables.python_coding_issue_collector import PythonCodingIssueCollector
-from implementation.references.aliases.python_container_aliases import PythonContainerAliases
-from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
-from implementation.rules.import_rules import ImportRules
-from implementation.rules.control_flow.python_predicate_condition import PythonPredicateCondition
 from constants import BUILTINS_DICTIONARY_SOURCE
+from implementation.ast.python_ast_tree import PythonAstTree
 
 
 class PythonDynamicRulesTest(unittest.TestCase):
@@ -40,7 +26,27 @@ class PythonDynamicRulesTest(unittest.TestCase):
             ["dynamic-type"],
         )
 
-    def test_keeps_dynamic_container_aliases_after_unrelated_rule_state_updates(self) -> None:
+    def test_limits_isinstance_diagnostics_to_business_callables(self) -> None:
+        """Responsibilities: _test callable exclusion_, _business isinstance diagnostics_."""
+        source = (
+            "import ast\n"
+            "import unittest\n"
+            "class BindingTests(unittest.TestCase):\n"
+            "    def test_node_selection(self):\n"
+            "        if isinstance(node, ast.FunctionDef):\n"
+            "            return node\n"
+            "def production(value):\n"
+            "    if isinstance(value, str):\n"
+            "        return value\n"
+        )
+        collector = PythonAstTree(source)
+        issues = [issue for issue in collector.coding_issues() if issue["kind"] == "python-isinstance"]
+
+        self.assertEqual(issues, [{"line": 7, "kind": "python-isinstance", "name": ""}])
+
+    def test_keeps_dynamic_container_aliases_after_unrelated_rule_state_updates(
+        self,
+    ) -> None:
         """Responsibilities: _isolated dynamic alias state_."""
         source = (
             "def build():\n"
@@ -93,6 +99,21 @@ class PythonDynamicRulesTest(unittest.TestCase):
 
         self.assertEqual([issue["line"] for issue in subtest_issues], [3])
 
+    def test_tracks_receiver_and_subtest_method_aliases(self) -> None:
+        """Responsibilities: _receiver and subtest aliases_."""
+        source = (
+            "class Tests:\n"
+            "    def test_case(self):\n"
+            "        receiver = self\n"
+            "        subtest = receiver.subTest\n"
+            "        with subtest(value=1):\n"
+            "            pass\n"
+        )
+        collector = PythonAstTree(source)
+        subtest_issues = [issue for issue in collector.coding_issues() if issue["kind"] == "python-test-subtest"]
+
+        self.assertEqual([issue["line"] for issue in subtest_issues], [4])
+
     def test_collects_dynamic_type_in_raise(self) -> None:
         """Responsibilities: _dynamic type exception_."""
         source = 'raise type("DynamicError", (Exception,), {})("failure")\n'
@@ -120,6 +141,35 @@ class PythonDynamicRulesTest(unittest.TestCase):
             ["dynamic-type"],
         )
 
+    def test_collects_dynamic_type_with_unpacked_tuple_arguments(self) -> None:
+        """Responsibilities: _tuple-unpacked dynamic type result_."""
+        collector = PythonAstTree('created = type("Created", *((), {}))\n')
+
+        self.assertEqual(
+            [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "dynamic-type"],
+            ["dynamic-type"],
+        )
+
+    def test_async_name_overlay_tracks_local_alias_reassignment(self) -> None:
+        """Responsibilities: _async local alias diagnostics_."""
+        source = (
+            "async def fetch():\n"
+            "    return 1\n"
+            "\n"
+            "def test_fetch():\n"
+            "    pending = fetch\n"
+            "    pending()\n"
+            "    pending = print\n"
+            "    pending()\n"
+        )
+        collector = PythonAstTree(source)
+        issues = [issue for issue in collector.coding_issues() if issue["kind"] == "unasserted-async-completion"]
+
+        self.assertEqual(
+            [(issue["line"], issue["name"]) for issue in issues],
+            [(5, "pending")],
+        )
+
     def test_collects_dynamic_type_in_control_expressions(self) -> None:
         """Responsibilities: _dynamic type control-expression coverage_."""
         source = (
@@ -141,7 +191,7 @@ class PythonDynamicRulesTest(unittest.TestCase):
 
     def test_collects_broad_exception_singleton_tuple_alias(self) -> None:
         """Responsibilities: _broad singleton exception tuple_."""
-        source = "errors = (Exception,)\n" "try:\n" "    raise ValueError()\n" "except errors:\n" "    pass\n"
+        source = "errors = (Exception,)\ntry:\n    raise ValueError()\nexcept errors:\n    pass\n"
         collector = PythonAstTree(source)
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "broad-except"],
@@ -205,7 +255,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
 
     def test_collects_direct_converted_broad_exception(self) -> None:
         """Responsibilities: _exception alias_."""
-        source = "try:\n" "    run()\n" "except tuple([Exception]):\n" "    pass\n"
+        source = "try:\n    run()\nexcept tuple([Exception]):\n    pass\n"
         collector = PythonAstTree(source)
         self.assertIn("broad-except", [issue["kind"] for issue in collector.coding_issues()])
 
@@ -234,7 +284,8 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
 
     def test_collects_dynamic_type_in_class_bases(self) -> None:
         """Responsibilities: _class base dynamic type_."""
-        source = 'class Record(type("RecordBase", (), {})):\n' "    pass\n"
+        source = 'class Record(type("RecordBase", (), {})):\n'
+        source += "    pass\n"
         collector = PythonAstTree(source)
         self.assertIn(
             "dynamic-type",
@@ -243,7 +294,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
 
     def test_collects_broad_except_star(self) -> None:
         """Responsibilities: _broad except-star_."""
-        source = "try:\n" "    raise Exception()\n" "except* Exception:\n" "    pass\n"
+        source = "try:\n    raise Exception()\nexcept* Exception:\n    pass\n"
         collector = PythonAstTree(source)
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "broad-except"],
@@ -283,7 +334,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
 
     def test_collects_sliced_exception_tuple_alias(self) -> None:
         """Responsibilities: _sliced exception sequence coverage_."""
-        source = "errors = (ValueError, TypeError)\n" "try:\n" "    run()\n" "except errors[:]:\n" "    pass\n"
+        source = "errors = (ValueError, TypeError)\ntry:\n    run()\nexcept errors[:]:\n    pass\n"
         collector = PythonAstTree(source)
         self.assertIn(
             "python-multi-except",
@@ -315,6 +366,26 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
         collector = PythonAstTree(source)
         kinds = {issue["kind"] for issue in collector.coding_issues()}
         self.assertIn("broad-except", kinds)
+
+    def test_tracks_exception_aliases_after_non_mutating_nodes(self) -> None:
+        """Responsibilities: _exception alias dispatch filtering_."""
+        source = (
+            "if True:\n"
+            "    marker = 1\n"
+            "from builtins import Exception as BroadError\n"
+            "def inspect():\n"
+            "    alias = BroadError\n"
+            "    try:\n"
+            "        run()\n"
+            "    except alias:\n"
+            "        pass\n"
+        )
+        collector = PythonAstTree(source)
+
+        self.assertEqual(
+            [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "broad-except"],
+            ["broad-except"],
+        )
 
     def test_collects_destructured_broad_exception_alias(self) -> None:
         """Responsibilities: _broad exception alias coverage_."""

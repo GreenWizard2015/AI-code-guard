@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python alias resolution in project lint", () => {
 	test("resolves type, exception, and decorator aliases from source results", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"typing-map.py": [
 					"from typing import NamedTuple, Optional, Tuple, Union",
@@ -85,7 +85,7 @@ describe("Python alias resolution in project lint", () => {
 		);
 		/** Responsibilities: _violation counts_. **/
 		const count_for = (rule_id: string, file: string): number =>
-			violations.filter((item) => item.rule_id === rule_id && item.file === file).length;
+			violations.filter((item) => item.rule_id() === rule_id && item.file() === file).length;
 		expect({
 			typing_nullable: count_for("nullable-domain-type", "typing-map.py"),
 			typing_composite: count_for("composite-state-type", "typing-map.py"),
@@ -116,7 +116,7 @@ describe("Python alias resolution in project lint", () => {
 	test("reports aliased dynamic calls, mutation, and setters in production files", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"direct-init.py": [
 					"class Child(Base):",
@@ -194,19 +194,21 @@ describe("Python alias resolution in project lint", () => {
 		);
 		/** Responsibilities: _message violation counts_. **/
 		const count_for = (message: string, file: string): number =>
-			violations.filter((item) => item.message === message && item.file === file).length;
+			violations.filter((item) => item.message() === message && item.file() === file).length;
 		expect({
 			direct_init: count_for("avoid direct calls to Class.__init__", "direct-init.py"),
 			call_method: count_for("avoid __call__ methods", "call-method.py"),
 			callable_match: count_for("avoid callable feature detection for project-owned interfaces", "callable-match.py"),
 			object_setattr: count_for("avoid direct object.__setattr__ calls", "object-setattr.py"),
 			mapped_setattr: count_for("avoid direct object.__setattr__ calls", "mapped-object-setattr.py"),
-			field_writes: count_for("avoid assigning class fields outside constructors", "mutable-fields.py"),
+			field_writes: violations.filter(
+				(item) => item.rule_id() === "object-field-write" && item.file() === "mutable-fields.py",
+			).length,
 			dynamic_type: count_for("avoid dynamic class construction with type(...)", "nested-python-aliases.py"),
 			dynamic_import: violations.filter(
 				(item) =>
-					item.message === "avoid dynamic imports" &&
-					(item.file === "nested-python-aliases.py" || item.file === "importlib-dictionary.py"),
+					item.message() === "avoid dynamic imports" &&
+					(item.file() === "nested-python-aliases.py" || item.file() === "importlib-dictionary.py"),
 			).length,
 			property_setter: count_for("avoid Python property setters", "property-setter.py"),
 		}).toEqual({

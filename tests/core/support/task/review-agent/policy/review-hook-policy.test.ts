@@ -6,7 +6,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 
 describe("review hook shell policy", () => {
 	test("rejects read and deletion mixed in one command", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const decision = policy.decision("cat package.json; rm -f -- .ai-code-guard/review/finding.md");
 		expect({
 			allowed: decision.allowed,
@@ -18,12 +18,12 @@ describe("review hook shell policy", () => {
 	});
 
 	test("denies agent access to resolved reviews through paths and recursive reads", () => {
-		const path_policy = new ReviewPathPolicy(new NodeFileIO());
+		const path_policy = new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd());
 		const policy = new ReviewReadPolicy(path_policy);
 		const resolved_file = ".ai-code-guard/resolved-review/finding.md";
 		expect({
 			direct_path: policy.decision(`cat ${resolved_file}`, process.cwd()).allowed,
-			read_tool_path: path_policy.allows_read_path(resolved_file, process.cwd()),
+			read_tool_path: path_policy.allows_read_path(resolved_file),
 			recursive_project_search: policy.decision("rg --hidden -n finding .", process.cwd()).allowed,
 			implicit_recursive_search: policy.decision("rg --hidden -n finding", process.cwd()).allowed,
 			project_source_search: policy.decision("rg -n finding src", process.cwd()).allowed,
@@ -37,7 +37,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("allows safe read-only semicolon chaining", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const command = "rg --files src; cat package.json; rg -n review-agent src";
 		expect({ allowed: policy.decision(command).allowed, classified_as_read_only: policy.read_only(command) }).toEqual({
 			allowed: true,
@@ -46,7 +46,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("allows explicitly supported read-only chaining", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const command = "pwd && head -20 package.json | tail -5";
 		expect({ allowed: policy.decision(command).allowed, classified_as_read_only: policy.read_only(command) }).toEqual({
 			allowed: true,
@@ -55,7 +55,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("allows Codex read-only commands separated by newlines", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const command = "pwd\nrg --files -g '!node_modules' -g '!vendor' | head -100";
 		expect({
 			allowed: policy.decision(command, process.cwd()).allowed,
@@ -67,12 +67,12 @@ describe("review hook shell policy", () => {
 	});
 
 	test("rejects a standalone background operator", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect(policy.read_only("cat package.json & rm -f -- .ai-code-guard/review/finding.md")).toBe(false);
 	});
 
 	test("rejects command substitution inside double quotes", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			parenthesized: policy.read_only('cat "$(rm -f .ai-code-guard/review/finding.md)"'),
 			backtick: policy.read_only('cat "`rm -f .ai-code-guard/review/finding.md`"'),
@@ -81,7 +81,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("rejects write-capable options on read commands", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const commands = [
 			"sed -i.bak 's/x/y/' src/file.ts",
 			"find . -fprint /absolute/path/file",
@@ -99,7 +99,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("rejects shell expansion and uncontrolled glob reads", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			home_expansion: policy.read_only('cat "$HOME/.ssh/id_rsa"', process.cwd()),
 			glob_expansion: policy.read_only("cat ../*.pem", process.cwd()),
@@ -120,7 +120,7 @@ describe("review hook shell policy", () => {
 	});
 
 	test("rejects quote concatenation and unquoted glob expansion", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			concatenated_parent: policy.read_only("cat src/..''/..''/etc/passwd", process.cwd()),
 			unquoted_glob: policy.read_only("cat src/*.ts", process.cwd()),

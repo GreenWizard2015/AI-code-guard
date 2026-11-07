@@ -6,7 +6,16 @@ export const PASCAL_CASE_PATTERN = /^[A-Z][a-zA-Z0-9]*$/u;
 export const NUMERIC_NAME_PATTERN = /[0-9]/u;
 export const CLASS_REFERENCE_INFO = 5;
 export const CLASS_REFERENCE_WARNING = 15;
-export const IGNORED_DIRECTORIES = new Set([".git", ".pytest_cache", ".turbo", "__pycache__", "dist", "node_modules"]);
+export const IGNORED_DIRECTORIES = new Set([
+	".git",
+	".pytest_cache",
+	".turbo",
+	".venv",
+	"__pycache__",
+	"dist",
+	"node_modules",
+	"venv",
+]);
 export const IMPORT_RULE_IDS = {
 	dynamic: "dynamic-import",
 	late: "late-import",

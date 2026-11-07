@@ -1,6 +1,6 @@
-import type { DirectCaseContract, ProjectCaseContract } from "tests/language-parity/protocols";
+import type { DirectCase, ProjectCase } from "tests/language-parity/protocols";
 
-export const DIRECT_CASES: DirectCaseContract[] = [
+export const DIRECT_CASES: DirectCase[] = [
 	{
 		rule_id: "dynamic-type",
 		typescript: 'const Model = type("Model", {}, {});',
@@ -59,10 +59,11 @@ export const DIRECT_CASES: DirectCaseContract[] = [
 		python: "class Reader:\n    def __init__(self):\n        self.prepare()",
 	},
 	{
-		rule_id: "mutable-field-assignment",
-		typescript: "class Reader { public readonly value = 1; public set(): void { this.value = 2; } }",
+		rule_id: "object-field-write",
+		typescript:
+			"class Store { public update(other: Store): void { this.state = other._state; new Store().state = 'temporary'; } }",
 		python:
-			"class Reader:\n    def __init__(self):\n        self.value = 1\n    def set(self):\n        self.value = 2",
+			"class Store:\n    def update(self, other: Store) -> None:\n        self.state = other._state\n        Store().state = 'temporary'",
 	},
 	{
 		rule_id: "callable-feature-detection",
@@ -91,7 +92,7 @@ export const DIRECT_CASES: DirectCaseContract[] = [
 	},
 ];
 
-export const ARCHITECTURE_CASES: DirectCaseContract[] = [
+export const ARCHITECTURE_CASES: DirectCase[] = [
 	{
 		rule_id: "empty-contract",
 		typescript: "interface Empty {}",
@@ -178,7 +179,7 @@ export const ARCHITECTURE_CASES: DirectCaseContract[] = [
 	},
 ];
 
-export const PROJECT_CASES: ProjectCaseContract[] = [
+export const PROJECT_CASES: ProjectCase[] = [
 	{
 		rule_id: "dynamic-import",
 		typescript: new Map(

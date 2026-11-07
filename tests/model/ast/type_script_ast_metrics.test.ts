@@ -3,13 +3,12 @@ import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 describe("TypeScriptAstFile metrics and references", () => {
 	test("reports parser diagnostics separately from structural rules", () => {
 		const parsed = new TypeScriptAstFile("broken.ts", "export function broken( {");
-		const issues = parsed.normalized().parse_issues;
+		const issues = parsed.normalized().source.parse_issues;
 
 		expect({
 			count: issues.length,
-			line: issues[0].line,
-			has_message: issues[0].message.length > 0,
-		}).toEqual({ count: expect.any(Number), line: 0, has_message: true });
+			issues: issues.map((issue) => ({ line: issue.line, has_message: issue.message.length > 0 })),
+		}).toEqual({ count: expect.any(Number), issues: [{ line: 0, has_message: true }] });
 	});
 
 	test("counts callable body lines independently from SLOC", () => {
@@ -27,8 +26,9 @@ describe("TypeScriptAstFile metrics and references", () => {
 		);
 
 		const functions = parsed.functions();
-		const run_function = functions[0];
-		expect(run_function).toEqual(expect.objectContaining({ lines: 1, sloc: 2 }));
+		expect(functions.map((function_node) => function_node.metrics)).toEqual([
+			expect.objectContaining({ lines: 1, sloc: 2 }),
+		]);
 	});
 
 	test("counts class body lines independently from its declaration", () => {
@@ -46,8 +46,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 		);
 
 		const classes = parsed.classes();
-		const service_class = classes[0];
-		expect(service_class).toEqual(expect.objectContaining({ lines: 3 }));
+		expect(classes.map((class_node) => class_node.identity)).toEqual([expect.objectContaining({ lines: 3 })]);
 	});
 
 	test("excludes member documentation from class body line metrics", () => {
@@ -64,8 +63,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 		);
 
 		const classes = parsed.classes();
-		const service_class = classes[0];
-		expect(service_class).toEqual(expect.objectContaining({ lines: 3 }));
+		expect(classes.map((class_node) => class_node.identity)).toEqual([expect.objectContaining({ lines: 3 })]);
 	});
 
 	test("counts nested control statements in callable SLOC", () => {
@@ -81,8 +79,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 		);
 
 		const functions = parsed.functions();
-		const walk_function = functions[0];
-		expect(walk_function).toEqual(expect.objectContaining({ sloc: 4 }));
+		expect(functions.map((function_node) => function_node.metrics)).toEqual([expect.objectContaining({ sloc: 4 })]);
 	});
 
 	test("keeps normalized reference collections stable across repeated reads", () => {
@@ -91,8 +88,8 @@ describe("TypeScriptAstFile metrics and references", () => {
 		const first = parsed.normalized();
 		const second = parsed.normalized();
 
-		expect(second.attribute_accesses).toEqual(first.attribute_accesses);
-		expect(second.call_references).toEqual(first.call_references);
+		expect(second.references.attribute_accesses).toEqual(first.references.attribute_accesses);
+		expect(second.references.call_references).toEqual(first.references.call_references);
 	});
 
 	test("collects literal metadata during the shared tree traversal", () => {
@@ -103,11 +100,39 @@ describe("TypeScriptAstFile metrics and references", () => {
 
 		const metadata = parsed.normalized();
 		expect({
-			constant_names: metadata.literal_constants.map((item) => item.name),
-			references: metadata.literal_references.map((item) => item.value),
+			constant_names: metadata.references.literal_constants.map((item) => item.name),
+			references: metadata.references.literal_references.map((item) => item.value),
 		}).toEqual({
 			constant_names: ["MESSAGE"],
 			references: ["a repeated message value"],
+		});
+	});
+
+	test("collects all metadata categories from the indexed AST nodes", () => {
+		const parsed = new TypeScriptAstFile(
+			"metadata-categories.ts",
+			[
+				'import { external_value } from "./external";',
+				"export type Result = { value: string };",
+				'const MESSAGE = "ready metadata";',
+				'const result = "ready metadata";',
+				"export function read(input: Result): string {",
+				"  return input.value + MESSAGE + result + external_value;",
+				"}",
+			].join("\n"),
+		);
+		const references = parsed.normalized().references;
+
+		expect({
+			named_symbols: references.named_symbols.map(({ name }) => name),
+			type_declarations: references.type_declarations.map(({ name }) => name),
+			symbol_references: references.symbol_references.map(({ name }) => name),
+			literal_references: references.literal_references.map(({ value }) => value),
+		}).toEqual({
+			named_symbols: expect.arrayContaining(["value", "MESSAGE", "read", "input"]),
+			type_declarations: ["Result"],
+			symbol_references: expect.arrayContaining(["Result", "input", "MESSAGE", "external_value"]),
+			literal_references: ["ready metadata"],
 		});
 	});
 
@@ -125,7 +150,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 			].join("\n"),
 		);
 
-		const calls = parsed.normalized().call_references;
+		const calls = parsed.normalized().references.call_references;
 		expect(calls).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ owner: "Leaf", name: "run" }),
@@ -147,7 +172,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 			].join("\n"),
 		);
 
-		const references = parsed.normalized().call_references;
+		const references = parsed.normalized().references.call_references;
 		expect(references.map((reference) => reference.name)).toEqual(["service", "label", "execute"]);
 	});
 
@@ -166,7 +191,9 @@ describe("TypeScriptAstFile metrics and references", () => {
 			].join("\n"),
 		);
 
-		const execute_references = parsed.normalized().call_references.filter((reference) => reference.name === "execute");
+		const execute_references = parsed
+			.normalized()
+			.references.call_references.filter((reference) => reference.name === "execute");
 
 		expect(execute_references).toEqual([expect.objectContaining({ owner: "", target_file: "" })]);
 	});
@@ -188,7 +215,9 @@ describe("TypeScriptAstFile metrics and references", () => {
 			].join("\n"),
 		);
 
-		const execute_references = parsed.normalized().call_references.filter((reference) => reference.name === "execute");
+		const execute_references = parsed
+			.normalized()
+			.references.call_references.filter((reference) => reference.name === "execute");
 
 		expect(execute_references).toEqual([
 			expect.objectContaining({ owner: "Service", target_file: "typed-receiver-scope.ts" }),
@@ -211,6 +240,6 @@ describe("TypeScriptAstFile metrics and references", () => {
 			].join("\n"),
 		);
 
-		expect(parsed.functions().map((node) => node.sloc)).toEqual([3, 3, 3, 3, 4, 4, 4, 4]);
+		expect(parsed.functions().map((node) => node.metrics.sloc)).toEqual([3, 3, 3, 3, 4, 4, 4, 4]);
 	});
 });

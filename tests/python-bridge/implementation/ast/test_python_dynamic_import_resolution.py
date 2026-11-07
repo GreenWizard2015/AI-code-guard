@@ -10,28 +10,94 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
 
     def test_resolves_import_from_static_container_alias(self) -> None:
         """Responsibilities: _static container alias resolution_."""
-        source = "import importlib\ndef load_module():\n    loader = {'load': importlib.import_module}\n    return loader['load']('module')\n"
+        source = (
+            "import importlib\n"
+            "def load_module():\n"
+            "    loader = {'load': importlib.import_module}\n"
+            "    return loader['load']('module')\n"
+        )
         tree = PythonAstTree(source)
-        issues = tree.import_rules.import_issues(tree.tree)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
     def test_resolves_import_from_container_attribute_alias(self) -> None:
         """Responsibilities: _container attribute alias resolution_."""
         source = "import importlib\nloaders = {'module': importlib.import_module}\nmodule = loaders.module('example')\n"
         tree = PythonAstTree(source)
-        issues = tree.import_rules.import_issues(tree.tree)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
     def test_resolves_import_from_builtin_mapping_callable(self) -> None:
         """Responsibilities: _builtin mapping callable resolution_."""
-        source = "import builtins\nimport importlib\ndef load_module(module_name: str) -> object:\n    resolve = builtins.__dict__['getattr']\n    loader = resolve(importlib, 'import_module')\n    return loader(module_name)\n"
+        source = (
+            "import builtins\n"
+            "import importlib\n"
+            "def load_module(module_name: str) -> object:\n"
+            "    resolve = builtins.__dict__['getattr']\n"
+            "    loader = resolve(importlib, 'import_module')\n"
+            "    return loader(module_name)\n"
+        )
         tree = PythonAstTree(source)
-        issues = tree.import_rules.import_issues(tree.tree)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
     def test_keeps_direct_dynamic_import_recognition(self) -> None:
         """Responsibilities: _direct dynamic import recognition_."""
-        source = "import importlib\ndef load_module(module_name: str) -> object:\n    return importlib.import_module(module_name)\n"
+        source = (
+            "import importlib\n"
+            "def load_module(module_name: str) -> object:\n"
+            "    return importlib.import_module(module_name)\n"
+        )
         tree = PythonAstTree(source)
-        issues = tree.import_rules.import_issues(tree.tree)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
+
+    def test_resolves_multiple_dynamic_imports_independently(self) -> None:
+        """Responsibilities: _independent dynamic import resolution_."""
+        source = (
+            "import importlib\n"
+            "first = importlib.import_module('first')\n"
+            "second = importlib.import_module('second')\n"
+        )
+        tree = PythonAstTree(source)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
+        self.assertEqual(
+            [issue["kind"] for issue in issues if issue["kind"] == "dynamic"],
+            ["dynamic", "dynamic"],
+        )
+
+    def test_reuses_builtin_callable_alias_for_each_import_result(self) -> None:
+        """Responsibilities: _builtin reflection import results_."""
+        source = (
+            "import builtins\n"
+            "import importlib\n"
+            "resolve = builtins.__dict__['getattr']\n"
+            "loader = resolve(importlib, 'import_module')\n"
+            "first = loader('first')\n"
+            "second = loader('second')\n"
+        )
+        tree = PythonAstTree(source)
+        dynamic_issues = [
+            issue
+            for issue in tree.analysis_state().imports().import_rules().import_issues(tree.tree())
+            if issue["kind"] == "dynamic"
+        ]
+
+        self.assertEqual([issue["line"] for issue in dynamic_issues], [4, 5])
+
+    def test_rebinding_import_function_removes_its_dynamic_import_alias(self) -> None:
+        """Responsibilities: _dynamic import alias invalidation_."""
+        source = (
+            "import importlib\n"
+            "loader = importlib.import_module\n"
+            "first = loader('first')\n"
+            "loader = print\n"
+            "second = loader('second')\n"
+        )
+        tree = PythonAstTree(source)
+        issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
+
+        self.assertEqual(
+            [issue["kind"] for issue in issues if issue["kind"] == "dynamic"],
+            ["dynamic"],
+        )

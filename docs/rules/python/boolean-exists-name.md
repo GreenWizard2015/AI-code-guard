@@ -26,14 +26,18 @@ class FileEntry:
         label = self.file_name()
         words = self.word_count()
         return f"{label} ({words} words)"
+
+    def report(self) -> None:
+        label = self.file_name()
+        words = self.word_count()
+        exists = self.exists()
+        summary = self.content_summary()
+        print(f"{label}: {words} words, exists={exists}, {summary}")
 # File: cli.py
-from file_entry.file_entry import FileEntry
+from src.file_entry.file_entry import FileEntry
 if __name__ == "__main__":
     entry = FileEntry("notes.txt", "hello world")
-    label = entry.file_name()
-    words = entry.word_count()
-    exists = entry.exists()
-    print(label, words, exists, entry.content_summary())
+    entry.report()
 ```
 
 ## Good
@@ -46,32 +50,37 @@ class FileEntry:
 
     def __init__(self, path: str, content: str) -> None:
         """Responsibilities: _file entry initialization_."""
-        self.path: str = path
-        self.content: str = content
+        self._path: str = path
+        self._content: str = content
 
     def file_name(self) -> str:
         """Responsibilities: _file label composition_."""
-        return self.path[self.path.rfind("/") + 1:]
+        return self._path[self._path.rfind("/") + 1:]
 
     def word_count(self) -> int:
         """Responsibilities: _word count_."""
-        return len(self.content.split())
+        return len(self._content.split())
 
     def present(self) -> bool:
         """Responsibilities: _content presence classification_."""
-        return len(self.content) > 0
+        return len(self._content) > 0
 
     def content_summary(self) -> str:
         """Responsibilities: _entry summary_."""
         label = self.file_name()
         words = self.word_count()
         return f"{label} ({words} words)"
+
+    def report(self) -> None:
+        """Responsibilities: _entry reporting_."""
+        label = self.file_name()
+        words = self.word_count()
+        is_present = self.present()
+        summary = self.content_summary()
+        print(f"{label}: {words} words, present={is_present}, {summary}")
 # File: cli.py
-from file_entry.file_entry import FileEntry
+from src.file_entry.file_entry import FileEntry
 if __name__ == "__main__":
     entry = FileEntry("notes.txt", "hello world")
-    label = entry.file_name()
-    words = entry.word_count()
-    present = entry.present()
-    print(label, words, present, entry.content_summary())
+    entry.report()
 ```

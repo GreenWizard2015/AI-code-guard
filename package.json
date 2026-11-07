@@ -3,10 +3,6 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"imports": {
-		"#external/*": "./external/*",
-		"#documentation_validation/*": "./documentation_validation/*"
-	},
 	"exports": {
 		"./*.mjs": "./src/*.mjs",
 		"./*.js": "./src/*.js",
@@ -19,12 +15,12 @@
 	"scripts": {
 		"prepare": "git config core.hooksPath .githooks",
 		"coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python-bridge tests/performance",
-		"coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=4 --coverage --coverageReporters=text",
+  "coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=2 --coverage --coverageReporters=text",
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
 		"coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
 		"test:runner": "tsx test-runner/cli.ts",
 		"validate:rule-docs": "tsx documentation_validation/cli.ts",
-		"lint": "tsx src/core/cli.ts --entry-file src/core/cli.ts --entry-file documentation_validation/cli.ts --entry-file test-runner/cli.ts",
+		"lint": "tsx src/core/cli.ts --entry-file src/core/cli.ts --entry-file documentation_validation/cli.ts --entry-file test-runner/cli.ts --ignore-dir .codex",
 		"format": "pnpm format:ts && pnpm format:python",
 		"format:ts": "biome format --write documentation_validation test-runner src/core/cli.ts src/core/support/documentation_validation_session.ts src/project_analysis_identity.ts src/core/support/task/task_report_document.ts tests",
 		"format:python": "python3 -m black --line-length 120 src/python-bridge",

@@ -16,13 +16,23 @@ The callable itself exceeds the branch limit:
 
 ```python
 {% const statuses = ["alpha","bravo","charlie","delta","echo","foxtrot","golf","hotel","india","juliet","kilo"] %}
-# File: functions.py
-def resolve_value(flags: set[str]) -> str:
+# File: src/status_resolver.py
+class StatusResolver:
+    def resolve_value(self, flags: set[str]) -> str:
 {%for status in statuses %}
-    if "{{status.key}}" in flags:
-        return "{{status.label}}"
+        if "{{status}}" in flags:
+            return "{{status}}"
 {% endfor %}
-    return "Unknown"
+        return "Unknown"
+
+    def report(self) -> None:
+        print(self.resolve_value({"alpha"}))
+# File: cli.py
+from src.status_resolver import StatusResolver
+
+if __name__ == "__main__":
+    resolver = StatusResolver()
+    resolver.report()
 ```
 
 ## Good
@@ -38,30 +48,36 @@ class StatusLabels:
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _status label initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label_for_status(self, status: str) -> str:
         """Responsibilities: _single status lookup_."""
-        label = self.labels.get(status)
+        label = self._labels.get(status)
         if label is None:
-            return self.fallback
+            return self._fallback
         return label
 
     def resolve_value(self, flags: set[str]) -> str:
         """Responsibilities: _priority status resolution_."""
-        for status in self.labels:
+        for status in self._labels:
             if status in flags:
                 return self.label_for_status(status)
-        return self.fallback
+        return self._fallback
 
     def label_count(self) -> int:
         """Responsibilities: _available status-label counting_."""
         count = 0
-        for label in self.labels.values():
+        for label in self._labels.values():
             if label:
                 count += 1
         return count
+
+    def report(self) -> None:
+        """Responsibilities: _status resolution report_."""
+        label = self.resolve_value({"alpha"})
+        fallback = self.label_for_status("unknown")
+        print(label, fallback, self.label_count())
 # File: cli.py
 from src.status_labels.status_labels import StatusLabels
 
@@ -70,10 +86,6 @@ if __name__ == "__main__":
 {%for status in statuses %}
     labels["{{status}}"] = "{{status}}"
 {% endfor %}
-    flags = {"alpha"}
     status_labels = StatusLabels(labels, "Unknown")
-    label = status_labels.resolve_value(flags)
-    fallback = status_labels.label_for_status("unknown")
-    count = status_labels.label_count()
-    print(label, fallback, count)
+    status_labels.report()
 ```

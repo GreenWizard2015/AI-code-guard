@@ -1,176 +1,98 @@
-import { createHash, type Hash } from "node:crypto";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import type { LintSourceRecord } from "src/source_types";
-import {
-	PACKAGE_MANIFEST_FILE,
-	PYTHON_REQUIREMENTS_FILE,
-	MISSING_CACHE_VALUE,
-	TYPESCRIPT_CONFIG_FILE,
-	IGNORED_DIRS,
-	REPORTING_PROJECT_ROOT,
-	RULE_DOCUMENT_DIRECTORY,
-} from "src/constants";
+import { REPORTING_PROJECT_ROOT } from "src/constants";
+import { PATH_ENV_VARIABLE } from "src/core/constants";
+import { ProjectAnalysisFileIdentity } from "src/core/project-source/project_analysis_file_identity";
+import type { IOContract } from "src/io/protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { FileEntryContract, IOContract } from "src/io/protocols";
-import { SYSTEM_FAILURE_CODES } from "src/io/constants";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _project analysis identity_, _cache invalidation boundaries_. **/
 export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract {
-	private readonly algorithm = "sha256";
-	private readonly separator = "\u0000";
-	private readonly encoding = "hex";
-	private readonly analyzer_root: string;
-	private readonly analyzer_digests: Map<string, string>;
-	private readonly file_io: IOContract;
+	private readonly _analyzer_root: string;
+	private readonly _analyzer_digests: Map<string, string>;
+	private readonly _analysis_files: ProjectAnalysisFileIdentity;
+	private readonly _algorithm = "sha256";
+	private readonly _separator = "\u0000";
+	private readonly _encoding = "hex";
 
-	/** Responsibilities: _analyzer source file discovery_. **/
-	private analyzer_files(directory: string): string[] {
-		if (!this.file_io.directory_entries.path_is_directory(directory)) {
-			return [];
+	/** Responsibilities: _source record identity serialization_. **/
+	private record_identities(records: readonly LintSourceRecordData[]): string[] {
+		const identities: string[] = [];
+		for (const record of records) {
+			const type_members = Array.from(record.normalized_ast.references.type_members, ([name, members]) => [
+				name,
+				Array.from(members.entries()),
+			]);
+			const normalized_ast_value = {
+				...record.normalized_ast,
+				references: { ...record.normalized_ast.references, type_members },
+			};
+			const serialized_identity = JSON.stringify([record.absolute_path, record.text, normalized_ast_value]);
+			identities.push(createHash(this._algorithm).update(serialized_identity).digest(this._encoding));
 		}
-		const files: string[] = [];
-		for (const entry of this.file_io.directory_entries.list_entries(directory)) {
-			const path = resolve(directory, entry.name);
-			if (entry.is_directory) {
-				files.push(...this.analyzer_files(path));
-				continue;
-			}
-			if (entry.is_file) {
-				files.push(path);
-			}
-		}
-		return files;
+		return identities;
 	}
 
-	/** Responsibilities: _included analysis subdirectories_. **/
-	private append_analysis_directory(parent: string, entry: FileEntryContract, pending: string[]): void {
-		if (!entry.is_directory) {
-			return;
-		}
-		if (IGNORED_DIRS.has(entry.name)) {
-			return;
-		}
-		pending.push(resolve(parent, entry.name));
-	}
-
-	/** Responsibilities: _analysis directory children_. **/
-	private append_analysis_children(directory: string, pending: string[]): void {
-		try {
-			for (const entry of this.file_io.directory_entries.list_entries(directory)) {
-				this.append_analysis_directory(directory, entry, pending);
-			}
-		} catch (error) {
-			if (!this.system_failure_message(String(error))) {
-				throw error;
-			}
-		}
-	}
-
-	/** Responsibilities: _filesystem error classification_. **/
-	private system_failure_message(message: string): boolean {
-		const message_words = new Set(message.split(/[^A-Z0-9]+/u));
-		for (const code of SYSTEM_FAILURE_CODES) {
-			if (message_words.has(code)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/** Responsibilities: _analysis directory fingerprint scope_. **/
-	private directory_paths(root: string): string[] {
-		const directories: string[] = [];
-		const pending = [resolve(root)];
-		while (pending.length > 0) {
-			const directory = pending.pop();
-			if (directory === undefined) {
-				continue;
-			}
-			directories.push(directory);
-			this.append_analysis_children(directory, pending);
-		}
-		return directories;
-	}
-
-	/** Responsibilities: _analyzer implementation file selection_. **/
-	private analyzer_file_paths(): string[] {
-		const directories = ["src", RULE_DOCUMENT_DIRECTORY, "test-runner"].map((path) =>
-			resolve(this.analyzer_root, path),
-		);
-		const files = directories.flatMap((directory) => this.analyzer_files(directory));
-		const analyzer_paths = [...files, PACKAGE_MANIFEST_FILE, PYTHON_REQUIREMENTS_FILE, TYPESCRIPT_CONFIG_FILE];
-		return analyzer_paths.map((path) => resolve(this.analyzer_root, path));
-	}
-
-	/** Responsibilities: _analyzer file hashing_. **/
-	private append_analyzer_file(hash: Hash, file: string): void {
-		hash.update(`${file}${this.separator}`);
-		if (!this.file_io.file_paths.path_exists(file)) {
-			hash.update(MISSING_CACHE_VALUE);
-			return;
-		}
-		hash.update(this.file_io.file_content.file_text(file));
-	}
-
-	/** Responsibilities: _complete analyzer digest construction_. **/
-	private create_analyzer_digest(): string {
-		const hash = createHash(this.algorithm);
-		for (const file of this.analyzer_file_paths()) {
-			this.append_analyzer_file(hash, file);
-		}
-		return hash.digest(this.encoding);
-	}
-
-	/** Responsibilities: _field initialization_. **/
-	public constructor(file_io: IOContract, analyzer_root = "") {
-		this.analyzer_digests = new Map<string, string>();
-		this.file_io = file_io;
+	/** Responsibilities: _analysis identity initialization_. **/
+	public constructor(file_io: IOContract, analyzer_root = "", runtime_search_path = "") {
+		this._analyzer_digests = new Map<string, string>();
 		let root = analyzer_root;
 		if (root.length === 0) {
 			root = REPORTING_PROJECT_ROOT;
 		}
-		this.analyzer_root = resolve(root);
+		let search_path = runtime_search_path;
+		if (search_path.length === 0) {
+			const process_path = process.env[PATH_ENV_VARIABLE];
+			if (process_path !== undefined) {
+				search_path = process_path;
+			}
+		}
+		this._analyzer_root = resolve(root);
+		this._analysis_files = new ProjectAnalysisFileIdentity(file_io, this._analyzer_root, this._separator, search_path);
 	}
 
 	/** Responsibilities: _source content identity_. **/
 	public content(value: string): string {
-		return createHash(this.algorithm).update(value).digest(this.encoding);
+		return createHash(this._algorithm).update(value).digest(this._encoding);
 	}
 
 	/** Responsibilities: _analyzer implementation identity_. **/
 	public analyzer(): string {
-		const cached_digest = this.analyzer_digests.get(this.analyzer_root);
+		const cached_digest = this._analyzer_digests.get(this._analyzer_root);
 		if (cached_digest !== undefined) {
 			return cached_digest;
 		}
-		const digest = this.create_analyzer_digest();
-		this.analyzer_digests.set(this.analyzer_root, digest);
+		const hash = createHash(this._algorithm);
+		this._analysis_files.append_analyzer_identity(hash);
+		const digest = hash.digest(this._encoding);
+		this._analyzer_digests.set(this._analyzer_root, digest);
 		return digest;
 	}
 
 	/** Responsibilities: _complete project source identity_. **/
-	public context(records: readonly LintSourceRecord[]): string {
-		const value = `${this.analyzer()}${this.separator}${records
-			.map((record) => `${record.absolute_path}${this.separator}${record.text}`)
-			.sort()
-			.join(this.separator)}`;
-		return createHash(this.algorithm).update(value).digest(this.encoding);
+	public context(records: readonly LintSourceRecordData[]): string {
+		const record_identities = this.record_identities(records);
+		record_identities.sort();
+		const hash = createHash(this._algorithm);
+		hash.update(this.analyzer());
+		hash.update(this._separator);
+		let first_identity = true;
+		for (const record_identity of record_identities) {
+			if (!first_identity) {
+				hash.update(this._separator);
+			}
+			hash.update(record_identity);
+			first_identity = false;
+		}
+		return hash.digest(this._encoding);
 	}
 
 	/** Responsibilities: _filesystem-dependent analysis identity_. **/
 	public directory_context(root: string): string {
-		let value = "";
-		for (const directory of this.directory_paths(root).sort()) {
-			try {
-				const stats = this.file_io.file_paths.metadata(directory);
-				value += `${resolve(directory)}${this.separator}${stats.mtime_ms}${this.separator}${stats.ctime_ms}${this.separator}`;
-			} catch (error) {
-				if (!this.system_failure_message(String(error))) {
-					throw error;
-				}
-			}
-		}
-		return this.content(value);
+		const hash = createHash(this._algorithm);
+		this._analysis_files.append_directory_identity(root, hash);
+		return hash.digest(this._encoding);
 	}
 
 	/** Responsibilities: _analysis selection identity_. **/
@@ -186,6 +108,6 @@ export class ProjectAnalysisIdentity implements ProjectAnalysisIdentityContract 
 		const sorted_entry_files = [...entry_files];
 		sorted_entry_files.sort();
 		const value = JSON.stringify([sorted_files, sorted_ignored_files, sorted_entry_files]);
-		return createHash(this.algorithm).update(value).digest(this.encoding);
+		return createHash(this._algorithm).update(value).digest(this._encoding);
 	}
 }

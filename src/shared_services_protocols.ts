@@ -1,33 +1,38 @@
 import type { CallableDefinition, ParsedFile } from "src/metrics/types";
-import type { DirectoryFileViolationOptions, RemainingViolationOptions } from "src/model/types/types";
-import type { DirectoryFileSet } from "src/project_analysis_types";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { LintStageDuration } from "src/runtime_types";
-import type { AsyncOperation, Operation } from "src/runtime_types";
-import type { ProjectSourceIOContract, SourceFileAstContract } from "src/source_protocols";
-import type { LintSourceRecord } from "src/source_types";
-import type { SourceReference, SourceReferenceRelation } from "src/source_types";
-import type { CodingRuleSourceData } from "src/source_types";
 import type {
-	AstCallableNodeContract,
-	AstClassNodeContract,
+	AstCallableNode,
+	AstClassNode,
+	AstLanguage,
 	AstParseIssue,
 	AstSourceSpan,
 	AstTypeKind,
-	LintRunStatistics,
-	NamedLine,
-	NamedSymbol,
-	NormalizedAstFileContract,
-	ParseLanguage,
-} from "src/types";
-import type { TypeScriptContractNameLookupContract } from "src/typescript_runtime_protocols";
+	NormalizedAstFile,
+} from "src/model/ast/normalized_ast_types";
+import type { DirectoryFileViolationOptions, RemainingViolationOptions } from "src/model_types";
+import type { DirectoryFileSet } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageDuration } from "src/runtime_types";
+import type { CallableAsyncOperation, CallableOperation } from "src/runtime_types";
+import type { ProjectSourceIOContract, SourceFileAstContract } from "src/source_protocols";
+import type { LintSourceRecordData } from "src/source_types";
+import type { SourceReference, SourceReferenceRelation } from "src/source_types";
+import type { CodingRuleSourceData } from "src/source_types";
+import type { CommentScanResult, LintRunStatistics, ParseLanguage, RuleParameters, TestPathKind } from "src/types";
+import type { TypeScriptTypeNameLookupContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptAstNodeCollection } from "src/typescript_runtime_types";
 import type ts from "typescript";
 
-/** Responsibilities: _pointless expression extraction contract_. **/
-export interface PointlessExpressionContract {
-	binding_name(name: ts.BindingName): string;
-	returned_names_from(statement: ts.Statement): string[];
+/** Responsibilities: _comment line data_, _comment scanner state_. **/
+export type CommentLineScan = {
+	readonly in_block_comment: boolean;
+	readonly python: boolean;
+	readonly line: string;
+};
+
+/** Responsibilities: _comment scan result_. **/
+export interface CommentLineScannerContract {
+	scan_comment_segments(input: CommentLineScan): CommentScanResult;
 }
 
 /** Responsibilities: _static expression operation resolution_. **/
@@ -42,25 +47,12 @@ export interface StaticExpressionValuesContract {
 	value(expression: ts.Expression, node: ts.Node): string;
 }
 
-/** Responsibilities: _static array method resolution_. **/
-export interface StaticArrayMethodsContract {
-	append(values: ts.Expression[], expression: ts.Expression): boolean;
-	matches_array_from(expression: ts.CallExpression): boolean;
-}
-
-/** Responsibilities: _leading underscore naming contract_. **/
-export interface LeadingUnderscoreNamingContract {
-	append_declaration_violation(violations: ViolationContract[], file: string, declaration: NamedLine): boolean;
-	allowed(symbol: NamedSymbol): boolean;
-	violation_for(file: string, line: number, label: string, name: string): ViolationContract;
-}
-
 /** Responsibilities: _define project source statistics_. **/
 export interface LintProjectContextContract {
-	source_record(file: string): LintSourceRecord;
-	files(): readonly LintSourceRecord[];
+	source_record(file: string): LintSourceRecordData;
+	files(): readonly LintSourceRecordData[];
 	statistics(): LintRunStatistics;
-	readonly source_io: ProjectSourceIOContract;
+	source_io(): ProjectSourceIOContract;
 }
 
 /** Responsibilities: _property method ownership_. **/
@@ -71,22 +63,34 @@ export interface PropertyOwnerCallbacksContract {
 
 /** Responsibilities: _lint stage measurement_. **/
 export interface LintStageTimerContract {
-	add_duration(stage_name: string, elapsed: number): void;
-	measure<T>(stage_name: string, operation: Operation<T>): T;
-	measure_async<T>(stage_name: string, operation: AsyncOperation<T>): Promise<T>;
+	add_duration(duration: LintStageDuration): void;
+	measure<T>(stage_name: string, operation: CallableOperation<T>): T;
+	measure_async<T>(stage_name: string, operation: CallableAsyncOperation<T>): Promise<T>;
 	durations(): readonly LintStageDuration[];
 	format(): string;
 }
 
-/** Responsibilities: _undefined-check node rule application_. **/
-export interface UndefinedCheckRulesContract {
-	append(node: ts.Node): void;
+/** Responsibilities: _test path classification_. **/
+export interface TestPathSyntaxContract {
+	classify(file: string): ReadonlySet<TestPathKind>;
 }
+
+/** Responsibilities: _global analysis stage inputs_. **/
+export type GlobalAnalysisStageOptions = {
+	readonly repo_root: string;
+	readonly project_files: string[];
+	readonly project_type_names: ReadonlySet<string>;
+	readonly context: LintProjectContextContract;
+	readonly entry_files: readonly string[];
+	readonly stage_timer: LintStageTimerContract;
+	readonly project_scope: ProjectSourceAnalysisOptions;
+};
 
 /** Responsibilities: _keyed source reference indexing_. **/
 export interface SourceReferenceIndexContract<TKey extends {}> {
 	add_implementation(key: TKey, reference: SourceReference): void;
 	add_usage(key: TKey, reference: SourceReference): void;
+	add_usage_once(key: TKey, file: string, line: number): void;
 	references_for(key: TKey, relation: SourceReferenceRelation): readonly SourceReference[];
 	repeated_usages(minimum_repetitions: number): readonly SourceReference[];
 }
@@ -103,24 +107,24 @@ export interface FakeObjectContract {
 	fake_object(node: ts.Node): boolean;
 }
 
-/** Responsibilities: _rooted project path relation_. **/
-export interface ProjectPathRelationContract {
-	readonly relative_path: string;
-	readonly inside: boolean;
-	readonly first_segment: string;
-	strictly_nested(): boolean;
-	contains_any_directory(names: ReadonlySet<string>): boolean;
+/** Responsibilities: _external contract type resolution_, _per-source import identity caching_. **/
+export interface ExternalImportedTypesContract {
+	imports_external_name(source_file: ts.SourceFile, local_name: string): boolean;
+	external_contract_type(source_file: ts.SourceFile, type_node: ts.TypeNode): boolean;
 }
 
 /** Responsibilities: _Gitignore matcher access_. **/
-/** Responsibilities: _placement destination selection_. **/
-export interface PlacementSupportContract {
-	suggested_member_location(root: string, target: string, importers: string[], kind: string): string;
+/** Responsibilities: _module placement findings_, _member destination lookup_. **/
+export interface PlacementAnalysisContract {
+	target(): string;
+	valid(): boolean;
+	member_location(kind: string): string;
+	parameters(members: string): RuleParameters;
 }
 
 /** Responsibilities: _single-class file naming_. **/
 export interface SingleClassFileNameRuleContract {
-	append(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void;
+	append(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void;
 	expected_file_name(class_name: string, file: string): string;
 }
 
@@ -130,8 +134,8 @@ export interface DirectoryRulesContract {
 	collect_directory_violations(
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
-		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
+		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
+		source_asts: ReadonlyMap<string, NormalizedAstFile>,
 		directory_files: DirectoryFileSet,
 	): ViolationContract[];
 }
@@ -142,19 +146,38 @@ export interface NonEnglishSourceTextRulesContract {
 }
 
 /** Responsibilities: _TypeScript any/unknown type diagnostics_. **/
+export type AnyTypeDiagnosticsContext = {
+	readonly violations: ViolationContract[];
+	readonly file: string;
+	readonly functions: readonly AstCallableNode[];
+	readonly methods: readonly AstCallableNode[];
+	readonly classes: readonly AstClassNode[];
+};
+
+/** Responsibilities: _callable parameter type input_, _parameter diagnostics output_. **/
+export type AnyTypeParameterDiagnosticsContext = {
+	readonly violations: ViolationContract[];
+	readonly file: string;
+	readonly callable: AstCallableNode;
+	readonly name: string;
+	readonly type: string;
+};
+
+/** Responsibilities: _TypeScript any/unknown type diagnostics_. **/
+export type AnyTypeFieldDiagnosticsContext = {
+	readonly violations: ViolationContract[];
+	readonly file: string;
+	readonly classes: readonly AstClassNode[];
+};
+
+/** Responsibilities: _TypeScript any/unknown type diagnostics_. **/
 export interface AnyTypesContract {
-	append_any_info(
-		violations: ViolationContract[],
-		file: string,
-		functions: readonly AstCallableNodeContract[],
-		methods: readonly AstCallableNodeContract[],
-		classes: readonly AstClassNodeContract[],
-	): void;
-	append_field_infos(violations: ViolationContract[], file: string, classes: readonly AstClassNodeContract[]): void;
+	append_any_info(context: AnyTypeDiagnosticsContext): void;
+	append_field_infos(context: AnyTypeFieldDiagnosticsContext): void;
 }
 
 /** Responsibilities: _contract-name alias registration_. **/
-export interface ContractNameAliasLookupContract extends TypeScriptContractNameLookupContract {
+export interface ObjectLiteralTypeNameLookupContract extends TypeScriptTypeNameLookupContract {
 	register_alias(name: string): void;
 }
 
@@ -166,13 +189,12 @@ export interface ObjectLiteralReturnsContract {
 		source_file: ts.SourceFile,
 		index: TypeScriptAstNodeCollection,
 	): void;
-	object_return(node: ts.ReturnStatement, contract_names: TypeScriptContractNameLookupContract): boolean;
+	object_return(node: ts.ReturnStatement, contract_names: TypeScriptTypeNameLookupContract): boolean;
 }
 
 /** Responsibilities: _callable object alias binding_. **/
 export interface ObjectCallableBindingContract {
-	variable(aliases: Set<string>, node: ts.VariableDeclaration): boolean;
-	append_scope(aliases: Set<string>, node: ts.Node): boolean;
+	collect(): ReadonlySet<string>;
 }
 
 /** Responsibilities: _private member key resolution_. **/
@@ -205,7 +227,7 @@ export interface FileViolationCollectorContract {
 	append_remaining_violations(options: RemainingViolationOptions, coding_rule_linter: CodingRuleLinterContract): void;
 	append_directory(
 		violations: ViolationContract[],
-		source: LintSourceRecord,
+		source: LintSourceRecordData,
 		file: string,
 		text: string,
 		project_root: string,
@@ -218,25 +240,21 @@ export interface DirectoryCommentSegmentsContract {
 }
 
 /** Responsibilities: _method contract rule collection_. **/
-export interface MethodContractRulesContract {
-	append(violations: ViolationContract[], file: string, nodes: readonly AstCallableNodeContract[]): void;
-	append_flag_parameters(
-		violations: ViolationContract[],
-		file: string,
-		nodes: readonly AstCallableNodeContract[],
-	): void;
+export interface CallableNamingRulesContract {
+	append(violations: ViolationContract[], nodes: readonly AstCallableNode[]): void;
+	append_flag_parameters(violations: ViolationContract[], nodes: readonly AstCallableNode[]): void;
 }
 
 /** Responsibilities: _module declaration separation_. **/
 export interface ModuleDeclarationsRuleContract {
-	append(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void;
+	append(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void;
 	declaration_module(file: string): boolean;
 }
 
 /** Responsibilities: _callable method count access_. **/
 export interface CallableMethodCountsContract {
 	append(definition: CallableDefinition): void;
-	count(name: string): number;
+	count(name: string, language: AstLanguage): number;
 }
 
 /** Responsibilities: _callable reference matching_. **/
@@ -247,7 +265,6 @@ export interface CallableReferenceMatcherContract {
 
 /** Responsibilities: _callable definition usage reporting_. **/
 export interface CallableDefinitionUsageContract {
-	external_method(): boolean;
 	collect_violations(): ViolationContract[];
 }
 

@@ -1,15 +1,15 @@
 import { performance } from "node:perf_hooks";
 import type { LintStageDuration, LintStageFormatState } from "src/runtime_types";
-import type { AsyncOperation, Operation } from "src/runtime_types";
+import type { CallableAsyncOperation, CallableOperation } from "src/runtime_types";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _stage duration recording_, _hierarchical timing formatting_. **/
 export class LintStageTimer implements LintStageTimerContract {
-	private readonly durations_by_stage: Map<string, number>;
+	private readonly _durations_by_stage: Map<string, number>;
 
 	/** Responsibilities: _calculation stage duration percentage_. **/
 	private parent_percentage(
-		stage: LintStageDuration,
+		child_stage: LintStageDuration,
 		parent_name: string,
 		durations_by_name: ReadonlyMap<string, LintStageDuration>,
 	): number {
@@ -17,14 +17,14 @@ export class LintStageTimer implements LintStageTimerContract {
 		if (parent === undefined || parent.duration_ms === 0) {
 			return 0;
 		}
-		return (stage.duration_ms / parent.duration_ms) * 100;
+		return (child_stage.duration_ms / parent.duration_ms) * 100;
 	}
 
 	/** Responsibilities: _resolution direct stage parent_. **/
-	private direct_parent(stage: LintStageDuration, names: ReadonlySet<string>): string {
-		let separator = stage.name.lastIndexOf(".");
+	private direct_parent(candidate_stage: LintStageDuration, names: ReadonlySet<string>): string {
+		let separator = candidate_stage.name.lastIndexOf(".");
 		while (separator > 0) {
-			const parent = stage.name.slice(0, separator);
+			const parent = candidate_stage.name.slice(0, separator);
 			if (names.has(parent)) {
 				return parent;
 			}
@@ -34,12 +34,16 @@ export class LintStageTimer implements LintStageTimerContract {
 	}
 
 	/** Responsibilities: _aggregation child stage indexing_. **/
-	private append_child(children: Map<string, LintStageDuration[]>, parent: string, stage: LintStageDuration): void {
+	private append_child(
+		children: Map<string, LintStageDuration[]>,
+		parent: string,
+		child_stage: LintStageDuration,
+	): void {
 		let siblings = children.get(parent);
 		if (siblings === undefined) {
 			siblings = [];
 		}
-		siblings.push(stage);
+		siblings.push(child_stage);
 		children.set(parent, siblings);
 	}
 
@@ -102,14 +106,14 @@ export class LintStageTimer implements LintStageTimerContract {
 	/** Responsibilities: _aggregation top-level stage formatting_. **/
 	private append_root_stage(
 		lines: string[],
-		stage: LintStageDuration,
+		root_stage: LintStageDuration,
 		durations_by_name: ReadonlyMap<string, LintStageDuration>,
 		children: ReadonlyMap<string, readonly LintStageDuration[]>,
 	): void {
-		lines.push(`- ${stage.name}: ${stage.duration_ms.toFixed(2)} ms`);
+		lines.push(`- ${root_stage.name}: ${root_stage.duration_ms.toFixed(2)} ms`);
 		this.append_stage_children({
 			lines,
-			stage,
+			stage: root_stage,
 			parent_name: "",
 			durations_by_name,
 			children,
@@ -119,41 +123,41 @@ export class LintStageTimer implements LintStageTimerContract {
 
 	/** Responsibilities: _aggregation measurement stage duration_. **/
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.durations_by_stage = new Map<string, number>();
+	public constructor() {
+		this._durations_by_stage = new Map<string, number>();
 	}
 	/** Responsibilities: _public operation_. **/
-	public add_duration(stage_name: string, elapsed: number): void {
-		let previous = this.durations_by_stage.get(stage_name);
+	public add_duration(duration: LintStageDuration): void {
+		let previous = this._durations_by_stage.get(duration.name);
 		if (previous === undefined) {
 			previous = 0;
 		}
-		this.durations_by_stage.set(stage_name, previous + elapsed);
+		this._durations_by_stage.set(duration.name, previous + duration.duration_ms);
 	}
 
 	/** Responsibilities: _measurement synchronous lint operation_. **/
-	public measure<T>(stage_name: string, operation: Operation<T>): T {
+	public measure<T>(stage_name: string, operation: CallableOperation<T>): T {
 		const start_time = performance.now();
 		try {
 			return operation();
 		} finally {
-			this.add_duration(stage_name, performance.now() - start_time);
+			this.add_duration({ name: stage_name, duration_ms: performance.now() - start_time });
 		}
 	}
 
 	/** Responsibilities: _measurement asynchronous lint operation_. **/
-	public async measure_async<T>(stage_name: string, operation: AsyncOperation<T>): Promise<T> {
+	public async measure_async<T>(stage_name: string, operation: CallableAsyncOperation<T>): Promise<T> {
 		const start_time = performance.now();
 		try {
 			return await operation();
 		} finally {
-			this.add_duration(stage_name, performance.now() - start_time);
+			this.add_duration({ name: stage_name, duration_ms: performance.now() - start_time });
 		}
 	}
 
 	/** Responsibilities: _exposure measurement stage durations_. **/
 	public durations(): readonly LintStageDuration[] {
-		const stage_entries = [...this.durations_by_stage.entries()];
+		const stage_entries = [...this._durations_by_stage.entries()];
 		return stage_entries.map(([name, duration_ms]) => ({
 			name,
 			duration_ms,

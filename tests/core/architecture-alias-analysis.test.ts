@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { ALIAS_RULE_FILES, ALIAS_TEST_FILES } from "tests/core/constants/alias_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -21,7 +21,7 @@ describe("architecture and alias analysis", () => {
 		);
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"wrapped-dynamic-runtime.ts": [
 					"declare const target: object;",
@@ -43,11 +43,13 @@ describe("architecture and alias analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			dynamic_runtime: violations.filter((item) => item.rule_id === "typescript-dynamic-runtime-usage").length,
-			five_reference: violations.filter((item) => item.rule_id === "class-reference-info").map((item) => item.message),
+			dynamic_runtime: violations.filter((item) => item.rule_id() === "typescript-dynamic-runtime-usage").length,
+			five_reference: violations
+				.filter((item) => item.rule_id() === "class-reference-info")
+				.map((item) => item.message()),
 			fifteen_reference: violations
-				.filter((item) => item.rule_id === "class-reference-warning")
-				.map((item) => [item.message, item.priority]),
+				.filter((item) => item.rule_id() === "class-reference-warning")
+				.map((item) => [item.message(), item.priority()]),
 		}).toEqual({
 			dynamic_runtime: 4,
 			five_reference: expect.arrayContaining([
@@ -62,7 +64,7 @@ describe("architecture and alias analysis", () => {
 	test("detects invalid reexports, inline types, and aliases in both languages", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				...ALIAS_RULE_FILES,
 				...ALIAS_TEST_FILES,
@@ -86,7 +88,7 @@ describe("architecture and alias analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect({
 			temporary_assignments: messages.filter((message) => message === "avoid pointless temporary assignments").length,
 			inline_object_types: messages.filter((message) => message === "avoid inline object types").length,
@@ -94,7 +96,7 @@ describe("architecture and alias analysis", () => {
 			reexport_message: messages.includes(
 				"avoid re-exporting imported symbols: use the defining module directly instead of re-exporting it",
 			),
-			reexports: violations.filter((item) => item.rule_id === "reexports").length,
+			reexports: violations.filter((item) => item.rule_id() === "reexports").length,
 		}).toEqual({
 			temporary_assignments: 9,
 			inline_object_types: 8,

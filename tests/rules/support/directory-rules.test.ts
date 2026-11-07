@@ -42,12 +42,12 @@ describe("coding-lint directory rules", () => {
 			const directory_files: DirectoryFileSet = { virtual_project: true, files: paths };
 			return directory_rules.collect_directory_violations(paths, root, new Map(), new Map(), directory_files);
 		});
-		expect({
-			minimum: violations[0]?.[0]?.rule_id === "directory-min-size",
-			three: violations[1],
-			forty: violations[2],
-			maximum: violations[3]?.[0]?.rule_id === "directory-max-size",
-		}).toEqual({ minimum: true, three: [], forty: [], maximum: true });
+		expect(violations.map((directory_violations) => directory_violations.map((item) => item.rule_id()))).toEqual([
+			["directory-min-size"],
+			[],
+			[],
+			["directory-max-size"],
+		]);
 	});
 
 	test("does not apply production directory-size limits to test folders", () => {
@@ -71,19 +71,19 @@ describe("coding-lint directory rules", () => {
 			violations,
 			file,
 			text,
-			classes: normalized_ast.classes,
-			docstring_spans: normalized_ast.docstring_spans,
+			classes: normalized_ast.source.classes,
+			docstring_spans: normalized_ast.module_declarations.docstring_spans,
 			normalized_ast,
 		});
 
-		expect(violations.map((item) => item.rule_id)).toContain("file-min-size");
+		expect(violations.map((item) => item.rule_id())).toContain("file-min-size");
 	});
 
 	test("allows a minimal pytest plugin entrypoint", () => {
 		const file = join(root, "tests/conftest.py");
 		const text = 'pytest_plugins = ("support.server_fixtures",)';
-		const ast_model = new AstModel();
-		const normalized_ast = ast_model.empty_ast_file("python");
+		const ast_model = new AstModel("python");
+		const normalized_ast = ast_model.empty_ast_file();
 		const violations: ViolationContract[] = [];
 		const file_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
 
@@ -96,6 +96,6 @@ describe("coding-lint directory rules", () => {
 			normalized_ast,
 		});
 
-		expect(violations.map((item) => item.rule_id)).not.toContain("file-min-size");
+		expect(violations.map((item) => item.rule_id())).not.toContain("file-min-size");
 	});
 });

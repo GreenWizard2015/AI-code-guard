@@ -1,16 +1,16 @@
-import "src/linting/orchestration/runtime/global-analysis/composition_model";
+import "src/linting/composition/composition_model";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
+import "src/callable_usage";
 import { describe, expect, test } from "@jest/globals";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint callable usage - typed ownership", () => {
 	const test_fixture = new TestFixture();
 	test("resolves methods through destructured typed class properties", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": ["export class Service {", "  once() { return 1; }", "}"].join("\n"),
 				"caller.ts": [
@@ -30,11 +30,11 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Service.once" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Service.once" is used'))).toBe(false);
 	});
 	test("keeps imported classes with the same name bound to their defining module", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.ts": ["export class Worker {", "  run(): void {}", "}"].join("\n"),
 				"second.ts": ["export class Worker {", "  run(): void {}", "}"].join("\n"),
@@ -46,13 +46,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Worker.run" has insufficient production usage (found 0'),
+				violation.message().includes('method "Worker.run" has insufficient production usage (found 0'),
 			),
 		).toBe(true);
 	});
 	test("counts methods bound after typed object destructuring", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export class Service {",
@@ -78,13 +78,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Service.once" has insufficient production usage (found 0'),
+				violation.message().includes('method "Service.once" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
 	test("keeps repeated parameter names scoped through nested callbacks", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export class Composer {",
@@ -109,11 +109,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Composer.submit" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Composer.submit" is used'))).toBe(
+			false,
+		);
 	});
 	test("counts bound Python methods as production usage", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": ["class Service:", "    def once(self):", "        return 1"].join("\n"),
 				"one.py": ["from source import Service", "service = Service()", "callback = service.once.bind(service)"].join(
@@ -127,11 +129,11 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Service.once" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Service.once" is used'))).toBe(false);
 	});
 	test("resolves Python typed properties and delegated method aliases", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class Dependency:",
@@ -157,13 +159,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.message)).not.toContain(
+		expect(violations.map((violation) => violation.message())).not.toContain(
 			'method "Dependency.run" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
 		);
 	});
 	test("resolves Python properties initialized with imported classes", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"worker.py": ["class Worker:", "    def run(self):", "        return None"].join("\n"),
 				"consumer.py": [
@@ -181,7 +183,7 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		expect(messages).not.toContain(
 			'method "Worker.run" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
 		);
@@ -191,7 +193,7 @@ describe("coding-lint callable usage - typed ownership", () => {
 	});
 	test("counts Python calls through untyped protocol attributes", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class Writer:",
@@ -212,13 +214,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Writer.send_json" has insufficient production usage (found 0'),
+				violation.message().includes('method "Writer.send_json" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
 	test("resolves methods through typed instance fields assigned in constructors", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": ["class Registry:", "    def list_names(self):", "        return []"].join("\n"),
 				"transport.py": [
@@ -234,11 +236,11 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Registry.list_names"'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Registry.list_names"'))).toBe(false);
 	});
 	test("resolves methods through nested typed instance properties", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"inner.py": ["class Inner:", "    def entries(self):", "        return []"].join("\n"),
 				"outer.py": [
@@ -254,13 +256,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.message)).not.toContain(
+		expect(violations.map((violation) => violation.message())).not.toContain(
 			'method "Inner.entries" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);
 	});
 	test("counts calls dispatched through an imported interface contract", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"protocols.ts": ["export type ComposerSessionPort = { clear(): void; submit(): void };"].join("\n"),
 				"session.ts": [
@@ -296,8 +298,8 @@ describe("coding-lint callable usage - typed ownership", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.message)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.message())
 				.filter(
 					(message) => message.includes('"ComposerSession.clear"') || message.includes('"ComposerSession.submit"'),
 				),
@@ -305,7 +307,7 @@ describe("coding-lint callable usage - typed ownership", () => {
 	});
 	test("counts concrete methods used through an aliased shared contract", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"protocols.ts": [
 					"export interface ValueStateContract<T> {",
@@ -340,13 +342,13 @@ describe("coding-lint callable usage - typed ownership", () => {
 		expect(
 			violations.some(
 				(violation) =>
-					violation.rule_id === "unused-callable" && violation.message.includes('"PresentValueState.missing"'),
+					violation.rule_id() === "unused-callable" && violation.message().includes('"PresentValueState.missing"'),
 			),
 		).toBe(false);
 	});
 	test("counts methods called through an imported state-holder type", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"state.ts": [
 					"export class StateData {",
@@ -372,14 +374,14 @@ describe("coding-lint callable usage - typed ownership", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.message)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.message())
 				.filter((message) => message.includes('"StateData.with_phase"')),
 		).toEqual([]);
 	});
 	test("keeps Python local instance types scoped to their method", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"options.py": ["class Options:", "    def initialize(self):", "        return self"].join("\n"),
 				"caller.py": [
@@ -396,7 +398,7 @@ describe("coding-lint callable usage - typed ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.message)).not.toContain(
+		expect(violations.map((violation) => violation.message())).not.toContain(
 			'method "Options.initialize" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);
 	});

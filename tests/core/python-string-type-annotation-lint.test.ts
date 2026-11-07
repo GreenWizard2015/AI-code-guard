@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python string type annotations", () => {
 	test("reports quoted field, parameter, and return annotations", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"service.py": [
 					"class Service:",
@@ -22,14 +22,14 @@ describe("Python string type annotations", () => {
 		);
 
 		expect(
-			execution.report.violations.filter((violation) => violation.rule_id === "python-string-type-annotation"),
+			execution.report.violations.filter((violation) => violation.rule_id() === "python-string-type-annotation"),
 		).toHaveLength(3);
 	});
 
 	test("allows direct annotations", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"service.py": [
 					"class Service:",
@@ -43,7 +43,7 @@ describe("Python string type annotations", () => {
 		);
 
 		expect(
-			execution.report.violations.filter((violation) => violation.rule_id === "python-string-type-annotation"),
+			execution.report.violations.filter((violation) => violation.rule_id() === "python-string-type-annotation"),
 		).toHaveLength(0);
 	});
 });

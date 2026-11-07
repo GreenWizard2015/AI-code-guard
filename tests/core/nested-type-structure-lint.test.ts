@@ -1,14 +1,14 @@
-import { TestFixture } from "tests/core/test-fixture";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
-import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint nested type declarations", () => {
 	test("rejects aliases, interfaces, and enums in every nested scope", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested-types.ts": [
 					"namespace Scope {",
@@ -26,15 +26,13 @@ describe("coding-lint nested type declarations", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "nested-type")).toEqual([
-			expect.objectContaining({ priority: 8 }),
-		]);
+		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([8]);
 	});
 
 	test("gives nested type violations higher priority than type checks", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested-type-priority.ts": [
 					"function create(): unknown {",
@@ -46,17 +44,18 @@ describe("coding-lint nested type declarations", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const nested = violations.find((item) => item.rule_id === "nested-type");
-		const unbounded = violations.find((item) => item.rule_id === "unbounded-type");
+		const priorities = {
+			nested: violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority()),
+			unbounded: violations.filter((item) => item.rule_id() === "unbounded-type").map((item) => item.priority()),
+		};
 
-		expect(nested?.priority).toBe(8);
-		expect(unbounded?.priority).toBe(5);
+		expect(priorities).toEqual({ nested: [8], unbounded: [5, 5] });
 	});
 
 	test("rejects nested Python type aliases", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested-types.py": [
 					"from typing import TypeAlias",
@@ -70,15 +69,13 @@ describe("coding-lint nested type declarations", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "nested-type")).toEqual([
-			expect.objectContaining({ priority: 8 }),
-		]);
+		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([8]);
 	});
 
 	test("does not treat a module constant used inside a method as a nested type alias", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"config.py": 'WARM_MODE = "warm"',
 				"snapshot.py": [
@@ -93,6 +90,6 @@ describe("coding-lint nested type declarations", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "nested-type")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "nested-type")).toEqual([]);
 	});
 });

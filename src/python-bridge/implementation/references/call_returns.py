@@ -1,70 +1,106 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import REFERENCE_GENERICS
 from implementation.references.protocols import (
     PythonAnnotationResolverContract,
     PythonCallReturnStateContract,
     PythonReferenceContextContract,
+    PythonReferenceNameResolverContract,
 )
-from implementation.references.python_call_return_state import PythonCallReturnState
 
 
 class CallReturns:
     """Responsibilities: _collection callable output owners_, _output state reset_."""
 
-    call_return_state: PythonCallReturnStateContract
+    _values: dict[str, str]
 
-    def _call_key(self, owner: str, function_name: str) -> str:
-        """Responsibilities: _construction qualified callable output_."""
-        if owner:
-            return f"{owner}.{function_name}"
+    def _call_key(self, qualified_owner: str, function_name: str) -> str:
+        """Responsibilities: _qualified callable output identity_."""
+        if qualified_owner:
+            return f"{qualified_owner}.{function_name}"
         return function_name
+
+    def _resolved_return_owner(
+        self,
+        return_annotation: ast.expr,
+        reference_names: PythonReferenceNameResolverContract,
+    ) -> str:
+        """Responsibilities: _callable return annotation resolution_."""
+        return reference_names.annotation_name(
+            self._annotation_resolver,
+            return_annotation,
+            set(REFERENCE_GENERICS),
+        )
+
+    def _record_return_owner(
+        self,
+        callable_node: ast.AST,
+        name_resolver: PythonReferenceNameResolverContract,
+        enclosing_class_name: str,
+    ) -> None:
+        """Responsibilities: _callable return owner recording_."""
+        match callable_node:
+            case ast.FunctionDef(name=name, returns=annotation) | ast.AsyncFunctionDef(
+                name=name,
+                returns=annotation,
+            ):
+                pass
+            case _:
+                return
+        if annotation is None:
+            return
+        return_owner = self._resolved_return_owner(annotation, name_resolver)
+        if not return_owner:
+            return
+        self.store(self._call_key(enclosing_class_name, name), return_owner)
+        self.store(name_resolver.callable_key(callable_node), return_owner)
 
     def __init__(
         self,
         annotation_resolver: PythonAnnotationResolverContract,
-        *provided_states: PythonCallReturnStateContract,
+        node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _annotation resolver initialization_."""
-        self.annotation_resolver: Any = annotation_resolver
-        self.call_return_state: PythonCallReturnStateContract = next(
-            iter(provided_states), PythonCallReturnState()
-        )
-
-    def store_call_return(
-        self, node: ast.AST, owner: str, context: PythonReferenceContextContract
-    ) -> None:
-        """Responsibilities: _callable output annotation storage_."""
-        if type(node) not in (ast.FunctionDef, ast.AsyncFunctionDef):
-            return
-        ownership = context.reference_ownership()
-        name_resolver = ownership.name_resolver()
-        return_owner: Any = name_resolver.annotation_name(
-            self.annotation_resolver, node.returns, REFERENCE_GENERICS
-        )
-        function_name: Any = node.name
-        if not return_owner:
-            return
-        self.call_return_state.store(self._call_key(owner, function_name), return_owner)
-        self.call_return_state.store(name_resolver.callable_key(node), return_owner)
+        self._annotation_resolver: PythonAnnotationResolverContract = annotation_resolver
+        self._node_index: PythonAstNodeIndexContract = node_index
+        self._values = {}
 
     def collect_call_returns(
         self,
-        node: ast.AST,
-        context: PythonReferenceContextContract,
-        owner: str = "",
+        syntax_node: ast.AST,
+        reference_context: PythonReferenceContextContract,
+        enclosing_class_name: str = "",
     ) -> None:
-        """Responsibilities: _AST nodes traversal_, _collection callable output_."""
-        current_owner: Any = owner
-        if type(node) is ast.ClassDef:
-            current_owner: Any = node.name
-        self.store_call_return(node, current_owner, context)
-        for child in ast.iter_child_nodes(node):
-            self.collect_call_returns(child, context, current_owner)
+        """Responsibilities: _callable return owner traversal_."""
+        current_class_name = enclosing_class_name
+        match syntax_node:
+            case ast.ClassDef(name=class_name):
+                current_class_name = class_name
+            case ast.FunctionDef() | ast.AsyncFunctionDef():
+                name_resolver = reference_context.name_resolver()
+                self._record_return_owner(
+                    syntax_node,
+                    name_resolver,
+                    current_class_name,
+                )
+        for child in self._node_index.children(syntax_node):
+            self.collect_call_returns(child, reference_context, current_class_name)
+
+    def value(self, key: str) -> str:
+        """Responsibilities: _callable output owner retrieval_."""
+        return self._values.get(key, "")
+
+    def store(self, key: str, resolved_return_type: str) -> None:
+        """Responsibilities: _callable output owner storage_."""
+        self._values.update({key: resolved_return_type})
+
+    def state_cleanup(self) -> None:
+        """Responsibilities: _callable output owner cleanup_."""
+        self._values.clear()
 
     def return_state(self) -> PythonCallReturnStateContract:
-        """Responsibilities: _result state contract_."""
-        return self.call_return_state
+        """Responsibilities: _callable output state access_."""
+        return self

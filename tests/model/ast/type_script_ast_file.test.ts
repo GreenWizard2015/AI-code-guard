@@ -3,7 +3,7 @@ import ts from "typescript";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
 
-import { TYPE_NODE_SOURCE, AST_SOURCE } from "tests/core/constants/ast_nodes/constants";
+import { AST_SOURCE, TYPE_NODE_SOURCE } from "tests/core/constants/ast_nodes/constants";
 
 describe("TypeScriptAstFile", () => {
 	test("wraps TypeScript type-node predicates and details", () => {
@@ -13,49 +13,71 @@ describe("TypeScriptAstFile", () => {
 		const nodes = declarations.map((declaration) => new TypeScriptTypeNode(declaration.type));
 		const details = nodes.map((node) => node.details());
 		expect({
-			parenthesized: details[0].parenthesized_type !== undefined,
-			union: details[1].union,
-			union_count: details[1].union_types.length,
-			function: details[2].is_function,
-			reference: details[3].reference_name,
-			argument_count: details[3].reference_arguments.length,
+			parenthesized: details.map((detail) => detail.parenthesized_type.length > 0),
+			union: details.map((detail) => detail.union),
+			union_count: details.map((detail) => detail.union_types.length),
+			function: details.map((detail) => detail.is_function),
+			reference: details.map((detail) => detail.reference_name),
+			argument_count: details.map((detail) => detail.reference_arguments.length),
 		}).toEqual({
-			parenthesized: true,
-			union: true,
-			union_count: 2,
-			function: true,
-			reference: "Array",
-			argument_count: 1,
+			parenthesized: [true, false, false, false],
+			union: [false, true, false, false],
+			union_count: [0, 2, 0, 0],
+			function: [false, false, true, false],
+			reference: ["", "", "", "Array"],
+			argument_count: [0, 0, 0, 1],
 		});
 	});
 
 	test("extracts top-level classes and methods", () => {
 		const parsed = new TypeScriptAstFile("fixture.ts", AST_SOURCE);
 		const class_nodes = parsed.classes();
-		const first_class = class_nodes[0];
-		const first_class_methods = first_class.methods;
-		const second_method = first_class_methods[1];
 		expect({
-			classes: class_nodes.map((node) => node.name),
-			methods: first_class_methods.map((node) => [node.name, node.argument_count]),
-			sloc: first_class.sloc,
-			lines: first_class.lines,
-			argument_uses: second_method.argument_uses,
+			classes: class_nodes.map((node) => node.identity.name),
+			methods: class_nodes.map((class_node) =>
+				class_node.structure.methods.map((node) => [node.identity.name, node.metrics.argument_count]),
+			),
+			sloc: class_nodes.map((class_node) => class_node.identity.sloc),
+			lines: class_nodes.map((class_node) => class_node.identity.lines),
+			base_class_names: class_nodes.map((class_node) => class_node.structure.base_class_names),
+			argument_uses: class_nodes.flatMap((class_node) =>
+				class_node.structure.methods.flatMap((method) => method.signature.argument_uses),
+			),
 		}).toEqual({
 			classes: ["Service", "Worker"],
 			methods: [
-				["constructor", 1],
-				["run", 2],
+				[
+					["constructor", 1],
+					["run", 2],
+				],
+				[["execute", 0]],
 			],
-			sloc: 4,
-			lines: 4,
+			sloc: [4, 3],
+			lines: [4, 3],
+			base_class_names: [["Record"], []],
 			argument_uses: expect.arrayContaining([expect.objectContaining({ name: "first", count: 4 })]),
+		});
+	});
+
+	test("collects nested classes, interfaces, and class-expression variable names", () => {
+		const parsed = new TypeScriptAstFile(
+			"nested.ts",
+			"const Service = class {}; class Outer { run(): void { class Nested {} } } namespace Shapes { export interface Shape { id: string; } }",
+		);
+		const declarations = parsed.classes();
+
+		expect({
+			names: declarations.map((node) => node.identity.name),
+			fields: declarations.map((node) => node.field_analysis.fields.map((field) => field.name)),
+		}).toEqual({
+			names: ["Service", "Outer", "Nested", "Shape"],
+			fields: [[], [], [], ["id"]],
 		});
 	});
 
 	test("extracts functions and metrics", () => {
 		const parsed = new TypeScriptAstFile("fixture.ts", AST_SOURCE);
-		expect(parsed.functions().map((node) => [node.name, node.argument_count])).toEqual([
+		expect(parsed.functions().map((node) => [node.identity.name, node.metrics.argument_count])).toEqual([
 			["build", 2],
 			["convert", 1],
 		]);
@@ -66,12 +88,10 @@ describe("TypeScriptAstFile", () => {
 		expect({
 			methods_have_characters: parsed
 				.classes()
-				.flatMap((node) => node.methods)
-				.every((node) => node.characters !== undefined && node.characters > 0),
-			functions_have_characters: parsed
-				.functions()
-				.every((node) => node.characters !== undefined && node.characters > 0),
-			parse_issues: parsed.normalized().parse_issues,
+				.flatMap((node) => node.structure.methods)
+				.every((node) => node.metrics.characters > 0),
+			functions_have_characters: parsed.functions().every((node) => node.metrics.characters > 0),
+			parse_issues: parsed.normalized().source.parse_issues,
 		}).toEqual({ methods_have_characters: true, functions_have_characters: true, parse_issues: [] });
 	});
 
@@ -86,65 +106,28 @@ describe("TypeScriptAstFile", () => {
 
 	test("reuses the complete cached normalized AST result", () => {
 		const ast_file = new TypeScriptAstFile("item.ts", "type Item = string;\n");
-		const cached_result = { ...ast_file.normalized(), call_references: [] };
+		const cached_ast = ast_file.normalized();
+		const cached_result = {
+			...cached_ast,
+			references: { ...cached_ast.references, call_references: [] },
+		};
 
 		expect(ast_file.reference_normalization(cached_result)).toBe(cached_result);
 		expect(ast_file.normalized()).toBe(cached_result);
 	});
+	test("keeps declaration metadata bound to each source file", () => {
+		const first = new TypeScriptAstFile("first.ts", "\nconst FIRST = 1;\n");
+		const second = new TypeScriptAstFile("second.ts", "\n\nconst SECOND = 2;\n");
+		const first_symbols = first.normalized().references.named_symbols;
+		const second_symbols = second.normalized().references.named_symbols;
 
-	test("reuses the AST traversal and preserves constructor state", () => {
-		const ast_file = new TypeScriptAstFile(
-			"item.ts",
-			"class Service { constructor() { this.value = 1; } run() { return this.value; } }",
-		);
-
-		let first_count = 0;
-		let second_count = 0;
-		let child_count = 0;
-		let constructor_body = false;
-		ast_file.traversal.visit((node, inside_constructor) => {
-			first_count += 1;
-			if (inside_constructor && ts.isBlock(node)) {
-				constructor_body = true;
-			}
-		});
-		ast_file.traversal.visit(() => {
-			second_count += 1;
-		});
-		ast_file.traversal.visit_children(() => {
-			child_count += 1;
-		});
 		expect({
-			reused: second_count === first_count,
-			constructor_body,
-			traversed_nodes: first_count > 1,
-			children_exclude_root: child_count === first_count - 1,
+			first: first_symbols.map(({ name, line }) => [name, line]),
+			second: second_symbols.map(({ name, line }) => [name, line]),
 		}).toEqual({
-			reused: true,
-			constructor_body: true,
-			traversed_nodes: true,
-			children_exclude_root: true,
+			first: [["FIRST", 1]],
+			second: [["SECOND", 2]],
 		});
-	});
-
-	test("reuses function owners for branch analysis", () => {
-		const ast_file = new TypeScriptAstFile(
-			"branches.ts",
-			"function run() { if (true) { return 1; } }\nconst nested = () => { if (false) { return 2; } };",
-		);
-		const owners: string[] = [];
-		ast_file.traversal.visit_function_owners((node, owner) => {
-			if (!ts.isIfStatement(node)) {
-				return;
-			}
-			if (!ts.isFunctionDeclaration(owner)) {
-				return;
-			}
-			if (owner.name !== undefined) {
-				owners.push(owner.name.text);
-			}
-		});
-		expect(owners).toEqual(["run"]);
 	});
 
 	test("distinguishes template, generic, named, and basic arguments", () => {
@@ -161,14 +144,18 @@ describe("TypeScriptAstFile", () => {
 		);
 
 		const class_nodes = parsed.classes();
-		const service_class = class_nodes[1];
-		const service_methods = service_class.methods;
-		const run_method = service_methods[0];
-		expect(run_method.typed_arguments).toEqual([
-			{ name: "this", type: "Service<T>", kind: "generic" },
-			{ name: "value", type: "T", kind: "template" },
-			{ name: "result", type: "Promise<Result>", kind: "generic" },
-			{ name: "id", type: "string", kind: "basic" },
+		expect(
+			class_nodes.map((class_node) => class_node.structure.methods.map((method) => method.signature.typed_arguments)),
+		).toEqual([
+			[],
+			[
+				[
+					{ name: "this", type: "Service<T>", kind: "generic" },
+					{ name: "value", type: "T", kind: "template" },
+					{ name: "result", type: "Promise<Result>", kind: "generic" },
+					{ name: "id", type: "string", kind: "basic" },
+				],
+			],
 		]);
 	});
 
@@ -181,7 +168,7 @@ describe("TypeScriptAstFile", () => {
 			].join("\n"),
 		);
 
-		expect(parsed.normalized().reference_aliases).toEqual([{ name: "RequestAlias", target: "RequestData" }]);
+		expect(parsed.normalized().references.reference_aliases).toEqual([{ name: "RequestAlias", target: "RequestData" }]);
 	});
 
 	test("collects named symbols from declaration candidates", () => {
@@ -195,7 +182,7 @@ describe("TypeScriptAstFile", () => {
 			].join("\n"),
 		);
 
-		expect(parsed.normalized().named_symbols.map((symbol) => symbol.name)).toEqual(
+		expect(parsed.normalized().references.named_symbols.map((symbol) => symbol.name)).toEqual(
 			expect.arrayContaining(["_value", "module_value", "field", "parameter", "read", "argument"]),
 		);
 	});
@@ -210,7 +197,7 @@ describe("TypeScriptAstFile", () => {
 			].join("\n"),
 		);
 
-		expect(parsed.normalized().named_symbols.map((symbol) => symbol.name)).toEqual(
+		expect(parsed.normalized().references.named_symbols.map((symbol) => symbol.name)).toEqual(
 			expect.arrayContaining(["_value", "read", "argument"]),
 		);
 	});

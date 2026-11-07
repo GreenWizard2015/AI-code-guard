@@ -1,54 +1,52 @@
 # `module-placement`
 
-Description: Reports a production module that is nested below the common directory of its
-importers. The diagnostic includes concrete destination candidates.
+Description: Reports production modules nested below the common directory of their importers. Applies to classes, interfaces, protocols, types, constants, variables, functions, and mixed exports.
 
-A deeper path is valid when its first focused folder is distinct from every
-caller folder. The diagnostic also reminds the caller not to place the module
-in a directory ignored by Git.
+The diagnostic lists every top-level declaration with a destination: sibling `constants.ts`, `types.ts`, or `protocols.ts`; free functions go in the project-root `functions.ts`; other declarations go to the common importer boundary or a focused subdirectory. Move related exports with their module. Never suggest a path above the project root or inside a Git-ignored directory.
 
-A grouped ownership path may be one or two directories below the common importer
-boundary when its immediate directory contains at least three source files.
-This permits populated domain groups while still reporting isolated deep files.
+A focused directory may sit one or two levels below the common boundary when it contains at least three source files and is distinct from every caller directory. Isolated deep files move to the common boundary.
 
-Prefer moving a module and its exported types/functions together. If the
-module is shared, place it at the common boundary; otherwise keep it in one
-focused folder that is not a caller folder and is not ignored by Git.
+**Example:** `a/b/c/parser.ts` imported by `a/c/service.ts` and `a/view.ts` can move to `a/parser.ts` or `a/parser/parser.ts`.
 
-Reports a production module whose directory is deeper than the directory shared by its production importers.
-
-This applies to modules containing classes, types, functions, or mixed exports. The dependency should live at the first common ownership level, or in one deliberately focused subdirectory.
-
-**Example:** `a/b/c/parser.ts` imported by `a/c/service.ts` and `a/view.ts` is a candidate for `a/parser.ts` or `a/parser/parser.ts`.
-
-
-Fix: inspect all importers, move the module and its related exports to the ownership boundary, then update imports. Do not move a file only to silence the diagnostic or create a generic shared folder.
-
-The diagnostic lists every top-level class, interface, protocol, type, constant,
-variable, and function found in the misplaced module, followed by its focused
-destination. Constants use the exact sibling `constants.ts` or `constants.py`,
-types and interfaces use `types.ts` or `types.py`, protocols use
-`protocols.ts` or `protocols.py`, and free functions use the project-root
-`functions.ts` or `functions.py` file. This makes the move precise even when
-the file contains constants or contracts rather than a class.
-When the importer boundary is the repository root, it suggests either the file
-in the repository root or a focused subdirectory directly under the root; it
-never suggests moving above the root. A populated grouped ownership directory
-is also valid within the documented depth limit.
+Fix: inspect all importers, move the module and related declarations to the suggested ownership boundary, then update imports. Do not move files only to silence the diagnostic or create a generic shared folder.
 
 ## Bad
 
 ```ts
 // File: src/a/b/c/constants.ts
 export const MAX_ATTEMPTS = 3; // <- error
+// File: src/a/attempt_reporter.ts
+export class AttemptReporter {
+	private readonly prefix: string;
+
+	public constructor(prefix: string) {
+		this.prefix = prefix;
+	}
+
+	public format_max_attempts(max_attempts: number): string {
+		return `${this.prefix}: ${max_attempts}`;
+	}
+
+	public report_max_attempts(max_attempts: number): void {
+		console.log(this.format_max_attempts(max_attempts));
+	}
+}
 // File: src/a/cli.ts
-#!/usr/bin/env node
 import { MAX_ATTEMPTS } from "src/a/b/c/constants";
-(function () { console.log(MAX_ATTEMPTS); })();
+import { AttemptReporter } from "src/a/attempt_reporter";
+
+(function run(): void {
+	const reporter = new AttemptReporter("primary maximum");
+	reporter.report_max_attempts(MAX_ATTEMPTS);
+})();
 // File: src/a/b/cli.ts
-#!/usr/bin/env node
 import { MAX_ATTEMPTS } from "src/a/b/c/constants";
-(function () { console.log(MAX_ATTEMPTS); })();
+import { AttemptReporter } from "src/a/attempt_reporter";
+
+(function run(): void {
+	const reporter = new AttemptReporter("secondary maximum");
+	reporter.report_max_attempts(MAX_ATTEMPTS);
+})();
 ```
 
 
@@ -57,13 +55,75 @@ import { MAX_ATTEMPTS } from "src/a/b/c/constants";
 ```ts
 // File: src/a/constants.ts
 export const MAX_ATTEMPTS = 3;
+// File: src/a/types.ts
+export type AttemptPolicy = {
+	max_attempts: number;
+	warning_threshold: number;
+};
+// File: src/a/attempt_reporter.ts
+import type { AttemptPolicy } from "src/a/types";
+export class AttemptReporter {
+	private readonly _prefix: string;
+	private readonly _warning_threshold: number;
+	private readonly _max_attempts_value: number;
+
+	public constructor(prefix: string, policy: AttemptPolicy) {
+		this._prefix = prefix;
+		this._max_attempts_value = policy.max_attempts;
+		this._warning_threshold = policy.warning_threshold;
+	}
+
+	public format_max_attempts(): string {
+		return `${this._prefix}: ${this._max_attempts_value}`;
+	}
+	public exceeds_warning_threshold(): boolean {
+		return this._max_attempts_value > this._warning_threshold;
+	}
+	public threshold_status(): string {
+		if (this._max_attempts_value > this._warning_threshold) {
+			return "above warning threshold";
+		}
+		if (this._max_attempts_value === this._warning_threshold) {
+			return "at warning threshold";
+		}
+		return "within warning threshold";
+	}
+	public warning_message(): string {
+		if (!this.exceeds_warning_threshold()) {
+			return "";
+		}
+		return `review ${this._max_attempts_value} attempts`;
+	}
+
+	public report_max_attempts(): void {
+		const parts = [
+			this.format_max_attempts(),
+			this.threshold_status(),
+		];
+		const warning = this.warning_message();
+		if (warning.length > 0) {
+			parts.push(warning);
+		}
+		console.log(parts.join(" | "));
+	}
+}
 // File: src/a/cli.ts
-#!/usr/bin/env node
 import { MAX_ATTEMPTS } from "src/a/constants";
-(function () { console.log(MAX_ATTEMPTS); })();
+import { AttemptReporter } from "src/a/attempt_reporter";
+
+(function run(): void {
+	const policy = { max_attempts: MAX_ATTEMPTS, warning_threshold: 2 };
+	const reporter = new AttemptReporter("primary maximum", policy);
+	reporter.report_max_attempts();
+})();
 // File: src/a/b/cli.ts
-#!/usr/bin/env node
 import { MAX_ATTEMPTS } from "src/a/constants";
-(function () { console.log(MAX_ATTEMPTS); })();
+import { AttemptReporter } from "src/a/attempt_reporter";
+
+(function run(): void {
+	const policy = { max_attempts: MAX_ATTEMPTS, warning_threshold: 2 };
+	const reporter = new AttemptReporter("secondary maximum", policy);
+	reporter.report_max_attempts();
+})();
 ```
 

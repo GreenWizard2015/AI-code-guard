@@ -1,223 +1,204 @@
-import { Syntax } from "src/parser/analysis/syntax";
-import { TypeScriptTypeDeclarations } from "src/parser/type_script_type_declarations";
-import { TypeScriptTypeMembers } from "src/model/ast/declarations/type_script_type_members";
+import ts from "typescript";
+
+import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_METADATA_STAGE_PREFIX } from "src/constants";
+import type {
+	AstCallableNode,
+	AstCallableReference,
+	AstClassNode,
+	AstImportIssue,
+	AstParseIssue,
+	AstResponsibilityTarget,
+	NormalizedAstFile,
+	NormalizedAstModuleDeclarations,
+	NormalizedAstSource,
+	NormalizedAstSymbolReferences,
+} from "src/model/ast/normalized_ast_types";
+import { TypeScriptAstDeclarationMetadata } from "src/model/ast/type_script_ast_declaration_metadata";
 import { TypeScriptResponsibilityTargets } from "src/model/ast/type_script_responsibility_targets";
 import { TypeScriptTreeMetadataCollector } from "src/model/ast/type_script_tree_metadata_collector";
-import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import ts from "typescript";
-import type { SourceLineResolver } from "src/runtime_types";
-import type { SyntaxContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
+import type {
+	TypeScriptDerivedMetadata,
+	TypeScriptMetadataSpans,
+	TypeScriptNormalizedFileParts,
+} from "src/model/types";
+import { Syntax } from "src/parser/analysis/syntax";
+import { TypeScriptTypeDeclarations } from "src/parser/type_script_type_declarations";
+import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import type { CallableSourceLineResolver } from "src/runtime_types";
+import type { LintStageTimerContract, SyntaxContract } from "src/shared_services_protocols";
+import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
 	TypeScriptAstMetadataContract,
+	TypeScriptAstMetadataOptions,
+	TypeScriptClassMetadataCollection,
+	TypeScriptClassNodesContract,
 	TypeScriptResponsibilityTargetsContract,
 } from "src/typescript_analysis_protocols";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
-import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
-import type { TypeScriptTreeMetadata } from "src/source_types";
-import type {
-	AstCallableNodeContract,
-	AstCallableReference,
-	AstClassNodeContract,
-	AstParseIssue,
-	AstSourceSpan,
-	NormalizedAstFileContract,
-} from "src/types";
-import type {
-	TypeScriptDerivedMetadata,
-	TypeScriptDeclarationMetadata,
-	TypeScriptMetadataSpans,
-	TypeScriptNormalizedMetadataOptions,
-	TypeScriptReferenceMetadata,
-} from "src/model/types";
-import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_METADATA_STAGE_PREFIX } from "src/constants";
+import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
 
-/** Responsibilities: _module metadata collection_, _syntax issue reporting_. **/
+/** Responsibilities: _AST metadata assembly_, _syntax issue collection_. **/
 export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly call_reference_collector: TypeScriptCallReferenceCollectorContract;
-	private readonly syntax: SyntaxContract;
-	private readonly type_declarations: TypeScriptTypeDeclarations;
-	private readonly type_members: TypeScriptTypeMembers;
-	private readonly responsibility_targets: TypeScriptResponsibilityTargetsContract;
-	private readonly stage_timer: LintStageTimerContract;
-	private readonly tree_metadata_collector: TypeScriptTreeMetadataCollector;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _traversal: TypeScriptAstTraversalContract;
+	private readonly _declaration_index: TypeScriptObjectAliasDeclarationIndexContract;
+	private readonly _call_reference_collector: TypeScriptCallReferenceCollectorContract;
+	private readonly _syntax: SyntaxContract;
+	private readonly _type_declarations: TypeScriptTypeDeclarations;
+	private readonly _declaration_metadata: TypeScriptAstDeclarationMetadata;
+	private readonly _responsibility_targets: TypeScriptResponsibilityTargetsContract;
+	private readonly _class_nodes: TypeScriptClassNodesContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
-	/** Responsibilities: _statement position normalization conversion_. **/
-	private statement_span(statement: ts.Statement): AstSourceSpan {
-		const start = this.source_file.getLineAndCharacterOfPosition(statement.getStart(this.source_file));
-		const end = this.source_file.getLineAndCharacterOfPosition(statement.end);
-		return {
-			start_line: start.line,
-			start_column: start.character,
-			end_line: end.line,
-			end_column: end.character,
-		};
-	}
-
-	/** Responsibilities: _collection source spans module_. **/
-	private module_constant_spans(): AstSourceSpan[] {
-		const spans: AstSourceSpan[] = [];
-		const collect = (statements: readonly ts.Statement[]): void => {
-			for (const statement of statements) {
-				if (ts.isVariableStatement(statement)) {
-					if ((statement.declarationList.flags & ts.NodeFlags.Const) !== 0) {
-						spans.push(this.statement_span(statement));
-						continue;
-					}
-				}
-				if (!ts.isModuleDeclaration(statement)) {
-					continue;
-				}
-				if (statement.body === undefined) {
-					continue;
-				}
-				if (ts.isModuleBlock(statement.body)) {
-					collect(statement.body.statements);
-				}
-			}
-		};
-		collect(this.source_file.statements);
-		return spans;
-	}
-
-	/** Responsibilities: _collection source spans module_. **/
-	private module_type_spans(): AstSourceSpan[] {
-		const spans: AstSourceSpan[] = [];
-		for (const statement of this.source_file.statements) {
-			if (ts.isTypeAliasDeclaration(statement) || ts.isEnumDeclaration(statement)) {
-				spans.push(this.statement_span(statement));
-			}
-		}
-		return spans;
-	}
-
-	/** Responsibilities: _collection source spans module_. **/
-	private module_protocol_spans(): AstSourceSpan[] {
-		const spans: AstSourceSpan[] = [];
-		for (const statement of this.source_file.statements) {
-			if (ts.isInterfaceDeclaration(statement)) {
-				spans.push(this.statement_span(statement));
-			}
-		}
-		return spans;
-	}
-
-	/** Responsibilities: _module metadata spans_. **/
-	private metadata_spans(prefix: string): TypeScriptMetadataSpans {
-		return {
-			module_constant_spans: this.stage_timer.measure(`${prefix}.module-constant-spans`, () =>
-				this.module_constant_spans(),
-			),
-			module_type_spans: this.stage_timer.measure(`${prefix}.module-type-spans`, () => this.module_type_spans()),
-			module_protocol_spans: this.stage_timer.measure(`${prefix}.module-protocol-spans`, () =>
-				this.module_protocol_spans(),
-			),
-		};
-	}
-
-	/** Responsibilities: _derived TypeScript metadata_. **/
+	/** Responsibilities: _derived metadata assembly_. **/
 	private derived_metadata(
 		prefix: string,
-		line_for: SourceLineResolver,
+		derived_line: CallableSourceLineResolver,
 		call_references: AstCallableReference[],
 	): TypeScriptDerivedMetadata {
 		return {
-			parse_issues: this.stage_timer.measure(`${prefix}.syntax`, () => this.collect_syntax_issues(line_for)),
+			parse_issues: this._stage_timer.measure(`${prefix}.syntax`, () => this.collect_syntax_issues(derived_line)),
 			call_references,
-			responsibility_targets: this.stage_timer.measure(`${prefix}.responsibility-targets`, () =>
-				this.responsibility_targets.collect(),
+			responsibility_targets: this._stage_timer.measure(`${prefix}.responsibility-targets`, () =>
+				this._responsibility_targets.collect(),
 			),
-			reference_aliases: this.stage_timer.measure(`${prefix}.reference-aliases`, () =>
-				this.type_declarations.collect_reference_aliases(this.source_file),
+			reference_aliases: this._stage_timer.measure(`${prefix}.reference-aliases`, () =>
+				this._type_declarations.collect_reference_aliases(),
 			),
-			type_members: this.stage_timer.measure(`${prefix}.type-members`, () =>
-				this.type_members.collect_type_members(this.source_file),
+			type_members: this._stage_timer.measure(`${prefix}.type-members`, () =>
+				this._declaration_metadata.collect_type_members(),
 			),
 		};
 	}
 
-	/** Responsibilities: _AST declaration mapping_. **/
-	private declaration_metadata(options: TypeScriptNormalizedMetadataOptions): TypeScriptDeclarationMetadata {
-		const { classes, functions, tree } = options;
+	/** Responsibilities: _source model assembly_. **/
+	private source_section(
+		class_nodes: AstClassNode[],
+		callable_nodes: AstCallableNode[],
+		parse_issues: AstParseIssue[],
+		import_issues: AstImportIssue[],
+	): NormalizedAstSource {
 		return {
 			language: TYPESCRIPT_CACHE_OWNER,
-			classes,
-			functions,
-			import_issues: tree.import_issues,
+			classes: class_nodes,
+			functions: callable_nodes,
+			parse_issues,
+			import_issues,
+			coding_issues: [],
+			python_imports: [],
+		};
+	}
+
+	/** Responsibilities: _symbol reference model_. **/
+	private reference_section(
+		tree: TypeScriptTreeMetadata,
+		derived: TypeScriptDerivedMetadata,
+	): NormalizedAstSymbolReferences {
+		return {
 			attribute_accesses: tree.attribute_accesses,
 			named_symbols: tree.named_symbols,
 			type_declarations: tree.type_declarations,
-		};
-	}
-
-	/** Responsibilities: _AST reference mapping_. **/
-	private reference_metadata(tree: TypeScriptTreeMetadata): TypeScriptReferenceMetadata {
-		return {
+			reference_aliases: derived.reference_aliases,
 			symbol_references: tree.symbol_references,
 			literal_references: tree.literal_references,
 			literal_constants: tree.literal_constants,
+			call_references: derived.call_references,
+			type_members: derived.type_members,
 		};
 	}
 
-	/** Responsibilities: _derived metadata mapping_. **/
-	/** Responsibilities: _AST file metadata_. **/
-	private file_metadata(options: TypeScriptNormalizedMetadataOptions): NormalizedAstFileContract {
-		const { tree, spans, derived } = options;
+	/** Responsibilities: _module declaration model_. **/
+	private declaration_section(
+		spans: TypeScriptMetadataSpans,
+		responsibility_targets: AstResponsibilityTarget[],
+	): NormalizedAstModuleDeclarations {
 		return {
-			...this.declaration_metadata(options),
-			...this.reference_metadata(tree),
 			...spans,
-			...derived,
-			private_accesses: [],
-			repeated_branches: [],
-			module_instances: [],
-			coding_issues: [],
-			python_imports: [],
 			python_exports: [],
+			python_callable_count: { count: 0, first_line: 0 },
 			python_main_guard: false,
 			docstring_spans: [],
-			python_callable_count: { count: 0, first_line: 0 },
+			responsibility_targets,
 		};
 	}
 
-	/** Responsibilities: _AST metadata_. **/
-	private normalized_file(
-		classes: AstClassNodeContract[],
-		functions: AstCallableNodeContract[],
-		tree: TypeScriptTreeMetadata,
-		line_for: SourceLineResolver,
-		call_references: AstCallableReference[],
-	): NormalizedAstFileContract {
-		const metadata_prefix = TYPESCRIPT_METADATA_STAGE_PREFIX;
-		const spans = this.metadata_spans(metadata_prefix);
-		const derived = this.derived_metadata(metadata_prefix, line_for, call_references);
-		return this.file_metadata({ classes, functions, tree, spans, derived });
+	/** Responsibilities: _AST normalization_. **/
+	private normalized_sections(parts: TypeScriptNormalizedFileParts): NormalizedAstFile {
+		const { tree, derived } = parts;
+		return {
+			source: this.source_section(parts.classes, parts.functions, derived.parse_issues, tree.import_issues),
+			references: this.reference_section(tree, derived),
+			control_flow: { private_accesses: [], repeated_branches: [], module_instances: [] },
+			module_declarations: this.declaration_section(parts.spans, derived.responsibility_targets),
+		};
 	}
 
-	/** Responsibilities: _initialization source text AST_. **/
-	public constructor(
-		source_file: ts.SourceFile,
-		call_reference_collector: TypeScriptCallReferenceCollectorContract,
-		stage_timer: LintStageTimerContract,
-		traversal: TypeScriptAstTraversalContract,
-	) {
-		this.syntax = new Syntax();
-		this.type_declarations = new TypeScriptTypeDeclarations();
-		this.type_members = new TypeScriptTypeMembers();
-		this.source_file = source_file;
-		this.call_reference_collector = call_reference_collector;
-		this.responsibility_targets = new TypeScriptResponsibilityTargets(source_file);
-		this.stage_timer = stage_timer;
-		this.tree_metadata_collector = new TypeScriptTreeMetadataCollector(
-			source_file,
-			new TypeScriptExpressionAliases("require"),
-			traversal,
+	/** Responsibilities: _AST file metadata assembly_. **/
+	private normalized_file(
+		class_metadata: TypeScriptClassMetadataCollection,
+		functions: AstCallableNode[],
+		tree: TypeScriptTreeMetadata,
+		metadata_line: CallableSourceLineResolver,
+		call_references: AstCallableReference[],
+	): NormalizedAstFile {
+		const metadata_prefix = TYPESCRIPT_METADATA_STAGE_PREFIX;
+		const spans = this._declaration_metadata.metadata_spans(metadata_prefix);
+		const derived = this.derived_metadata(metadata_prefix, metadata_line, call_references);
+		const parts: TypeScriptNormalizedFileParts = {
+			classes: class_metadata.nodes,
+			functions,
+			tree,
+			derived,
+			spans,
+		};
+		return this.normalized_sections(parts);
+	}
+
+	/** Responsibilities: _timed tree metadata collection_. **/
+	private collect_tree_metadata(
+		class_metadata: TypeScriptClassMetadataCollection,
+		line_for: CallableSourceLineResolver,
+	): TypeScriptTreeMetadata {
+		const tree_metadata_collector = new TypeScriptTreeMetadataCollector(
+			this._source_file,
+			new TypeScriptExpressionAliases("require", this._declaration_index),
+			this._traversal,
+		);
+		return this._stage_timer.measure(
+			"startup.project-context.source-records.record-construction.metadata.call-references",
+			() =>
+				this._stage_timer.measure(
+					"startup.project-context.source-records.record-construction.metadata.source-node-dispatch",
+					() =>
+						tree_metadata_collector.collect(
+							line_for,
+							(node, owner) => this._call_reference_collector.append_reference(node, owner),
+							class_metadata,
+							this._stage_timer,
+						),
+				),
 		);
 	}
 
-	/** Responsibilities: _collection syntax policy issues_. **/
-	public collect_syntax_issues(line_for: SourceLineResolver): AstParseIssue[] {
-		const diagnostics = this.syntax.syntax_issues(this.source_file);
+	/** Responsibilities: _metadata dependency setup_. **/
+	public constructor(options: TypeScriptAstMetadataOptions) {
+		const { source_file, call_reference_collector, stage_timer, traversal, declaration_index, class_nodes } = options;
+		this._syntax = new Syntax();
+		this._type_declarations = new TypeScriptTypeDeclarations(source_file);
+		this._source_file = source_file;
+		this._traversal = traversal;
+		this._declaration_index = declaration_index;
+		this._declaration_metadata = new TypeScriptAstDeclarationMetadata({ source_file, stage_timer });
+		this._call_reference_collector = call_reference_collector;
+		this._responsibility_targets = new TypeScriptResponsibilityTargets(source_file);
+		this._stage_timer = stage_timer;
+		this._class_nodes = class_nodes;
+	}
+
+	/** Responsibilities: _syntax diagnostic mapping_. **/
+	public collect_syntax_issues(line_for: CallableSourceLineResolver): AstParseIssue[] {
+		const diagnostics = this._syntax.syntax_issues(this._source_file);
 		if (diagnostics.length === 0) {
 			return [];
 		}
@@ -233,17 +214,15 @@ export class TypeScriptAstMetadata implements TypeScriptAstMetadataContract {
 		});
 	}
 
-	/** Responsibilities: _combination parsing classes functions_. **/
-	public normalized(classes: AstClassNodeContract[], functions: AstCallableNodeContract[]): NormalizedAstFileContract {
-		const line_for = (position: number): number => this.source_file.getLineAndCharacterOfPosition(position).line;
-		const call_references: AstCallableReference[] = [];
-		const tree = this.stage_timer.measure("startup.project-context.source-records.metadata.call-references", () =>
-			this.stage_timer.measure("startup.project-context.source-records.metadata.tree", () =>
-				this.tree_metadata_collector.collect(line_for, (node, owner) =>
-					this.call_reference_collector.append_reference(node, call_references, owner),
-				),
-			),
-		);
-		return this.normalized_file(classes, functions, tree, line_for, call_references);
+	/** Responsibilities: _AST file normalization_. **/
+	public normalized(classes: AstClassNode[], functions: AstCallableNode[]): NormalizedAstFile {
+		const line_for = (position: number): number => this._source_file.getLineAndCharacterOfPosition(position).line;
+		const class_metadata: TypeScriptClassMetadataCollection = {
+			nodes: classes,
+			node_factory: this._class_nodes,
+		};
+		const tree = this.collect_tree_metadata(class_metadata, line_for);
+		class_metadata.nodes.sort((left, right) => left.identity.start - right.identity.start);
+		return this.normalized_file(class_metadata, functions, tree, line_for, this._call_reference_collector.references());
 	}
 }

@@ -1,46 +1,44 @@
-import { NonEnglishSourceTextRules } from "src/rules/support/non_english_source_text_rules";
+import { PYTHON_LANGUAGE } from "src/constants";
+import type { ReexportsContract } from "src/contracts/protocols/lint_runtime_protocols";
+import type { FileRemainingTextRulesContract } from "src/contracts/protocols/lint_runtime_protocols";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ReexportsContract } from "src/linting/orchestration/runtime/protocols";
+import type { RemainingViolationOptions } from "src/model_types";
 import type { RuleContract } from "src/reporting_protocols";
-import type { RemainingViolationOptions } from "src/model/types/types";
-import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
+import { NonEnglishSourceTextRules } from "src/rules/support/non_english_source_text_rules";
 
-/** Responsibilities: _reexport_, _source text_ diagnostics_. **/
-export class FileRemainingTextRules {
-	private readonly reexports: ReexportsContract;
+/** Responsibilities: _module reexport classification_, _source text diagnostics_. **/
+export class FileRemainingTextRules implements FileRemainingTextRulesContract {
+	private readonly _reexports: ReexportsContract;
 
 	/** Responsibilities: _source text diagnostics_. **/
 	private append_foreign_text(options: RemainingViolationOptions, language: string): void {
 		const rule: RuleContract = new DiagnosticRule("non-english-source-text");
 		const text_rules = new NonEnglishSourceTextRules(rule);
 		options.stage_timer.measure(`file-analysis.${language}.post-remaining.non-english-text`, () =>
-			options.violations.push(...text_rules.source_violations(options.file, options.text, options.python)),
+			options.violations.push(
+				...text_rules.source_violations({
+					file: options.file,
+					text: options.text,
+					language: options.source.language,
+					test_file: options.source.file_name.test(),
+				}),
+			),
 		);
 	}
 
 	/** Responsibilities: _text rule dependencies initialization_. **/
 	public constructor(reexports: ReexportsContract) {
-		this.reexports = reexports;
-	}
-
-	/** Responsibilities: _reexport diagnostics_. **/
-	public append_reexports(options: RemainingViolationOptions): void {
-		let language = TYPESCRIPT_LANGUAGE;
-		if (options.python) {
-			language = PYTHON_LANGUAGE;
-		}
-		options.stage_timer.measure(`file-analysis.${language}.post-remaining.reexports`, () =>
-			this.reexports.append_reexport_violations(options.violations, options.file, options.text, options.source),
-		);
+		this._reexports = reexports;
 	}
 
 	/** Responsibilities: _remaining text diagnostics_. **/
 	public append(options: RemainingViolationOptions): void {
-		this.append_reexports(options);
-		let language = TYPESCRIPT_LANGUAGE;
-		if (options.python) {
-			language = PYTHON_LANGUAGE;
+		if (!options.python) {
+			return;
 		}
-		this.append_foreign_text(options, language);
+		options.stage_timer.measure(`file-analysis.${PYTHON_LANGUAGE}.post-remaining.reexports`, () =>
+			this._reexports.append_reexport_violations(options.violations, options.file, options.text, options.source),
+		);
+		this.append_foreign_text(options, PYTHON_LANGUAGE);
 	}
 }

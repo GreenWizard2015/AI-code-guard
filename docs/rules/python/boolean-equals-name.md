@@ -27,13 +27,14 @@ class FileEntry:
     def equals(self, other_content: str) -> bool:
         normalized_content = " ".join(self.content.split())
         return normalized_content == other_content
+    def report(self) -> None:
+        print(f"{self.file_name()} {self.word_count()} {self.equals('hello world')}")
 # File: cli.py
-from file_entry.file_entry import FileEntry
+from src.file_entry.file_entry import FileEntry
+
 if __name__ == "__main__":
     entry = FileEntry("notes.txt", "hello")
-    label = entry.file_name()
-    words = entry.word_count()
-    print(label, words, entry.equals("hello world"))
+    entry.report()
 ```
 
 ## Good
@@ -46,29 +47,31 @@ class FileEntry:
 
     def __init__(self, path: str, content: str) -> None:
         """Responsibilities: _file entry initialization_."""
-        self.path: str = path
-        self.content: str = content
+        self._path: str = path
+        self._content: str = content
 
     def file_name(self) -> str:
         """Responsibilities: _file label composition_."""
-        separator = self.path.rfind("/")
-        return self.path[separator + 1:]
+        separator = self._path.rfind("/")
+        return self._path[separator + 1:]
 
     def word_count(self) -> int:
         """Responsibilities: _word count_."""
-        trimmed_content = self.content.strip()
+        trimmed_content = self._content.strip()
         words = trimmed_content.split()
         return len(words)
 
     def equal_to(self, other_content: str) -> bool:
         """Responsibilities: _content equivalence_."""
-        normalized_content = " ".join(self.content.split())
+        normalized_content = " ".join(self._content.split())
         return normalized_content == other_content
+    def report(self) -> None:
+        """Responsibilities: _file entry output_."""
+        print(f"{self.file_name()} {self.word_count()} {self.equal_to('hello world')}")
 # File: cli.py
-from file_entry.file_entry import FileEntry
+from src.file_entry.file_entry import FileEntry
+
 if __name__ == "__main__":
     entry = FileEntry("notes.txt", "hello")
-    label = entry.file_name()
-    words = entry.word_count()
-    print(label, words, entry.equal_to("hello world"))
+    entry.report()
 ```

@@ -1,14 +1,33 @@
-import { TestFixture } from "tests/core/test-fixture";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
-import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint local type property resolution", () => {
+	test("reports every required-field undefined comparison in a combined condition", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"required-parts.ts": [
+					"type PathParts = { first_segment: string; last_segment: string };",
+					"function has_missing_part(parts: PathParts): boolean {",
+					"  return parts.first_segment === undefined || parts.last_segment === undefined;",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id() === "unnecessary-undefined-check")).toHaveLength(2);
+	});
+
 	test("resolves required fields through local type aliases", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"local-property-alias.ts": [
 					"function candidate(): boolean {",
@@ -22,15 +41,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ line: 4 }),
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
+		).toEqual([4]);
 	});
 
 	test("resolves parenthesized required field comparisons", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"parenthesized-property.ts": [
 					"type Parsed = { attribute_accesses: string[] };",
@@ -43,13 +62,13 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "unnecessary-undefined-check")).toHaveLength(1);
 	});
 
 	test("resolves required fields through local interfaces", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"local-property-interface.ts": [
 					"function candidate(): boolean {",
@@ -63,15 +82,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ line: 4 }),
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
+		).toEqual([4]);
 	});
 
 	test("resolves required fields through namespace imported interfaces", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"model.ts": "export interface Model { id: string; }",
 				"consumer.ts": [
@@ -84,15 +103,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ line: 3 }),
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
+		).toEqual([3]);
 	});
 
 	test("resolves required fields through star re-exported interfaces", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"model.ts": "export interface Model { id: string; }",
 				"barrel.ts": "export * from './model';",
@@ -106,15 +125,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ file: expect.stringContaining("consumer.ts"), line: 3 }),
-		]);
+		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
+		expect(undefined_checks.map((item) => item.line())).toEqual([3]);
+		expect(undefined_checks.map((item) => item.file().includes("consumer.ts"))).toEqual([true]);
 	});
 
 	test("resolves required fields through project-root compiler aliases", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tsconfig.json": JSON.stringify({
 					compilerOptions: { baseUrl: ".", paths: { "@domain/*": ["src/domain/*"] } },
@@ -130,15 +149,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ file: expect.stringContaining("consumer.ts"), line: 3 }),
-		]);
+		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
+		expect(undefined_checks.map((item) => item.line())).toEqual([3]);
+		expect(undefined_checks.map((item) => item.file().includes("consumer.ts"))).toEqual([true]);
 	});
 
 	test("resolves required fields through value aliases", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"object-alias.ts": [
 					"interface Model { id: string; }",
@@ -151,15 +170,15 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ line: 4 }),
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
+		).toEqual([4]);
 	});
 
 	test("keeps same parameter names in separate lexical scopes", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"scoped-property-types.ts": [
 					"type OptionalModel = { value?: string };",
@@ -176,8 +195,8 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unnecessary-undefined-check")).toEqual([
-			expect.objectContaining({ line: 7 }),
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
+		).toEqual([7]);
 	});
 });

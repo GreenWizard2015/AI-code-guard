@@ -1,5 +1,5 @@
 export const SKIPPED_PATH_PARTS = ["/dist/", "/node_modules/", "/coverage/", "/__pycache__/", "/.venv/", "/.tox/"];
-export const AST_ANALYSIS_CACHE_VERSION = 10;
+export const AST_ANALYSIS_CACHE_VERSION = 15;
 export const FILE_ANALYSIS_CACHE_VERSION = 2;
 export const GLOBAL_ANALYSIS_CACHE_VERSION = 2;
 export const LINT_EXECUTION_CACHE_VERSION = 2;
@@ -11,8 +11,8 @@ export const CACHE_INPUT_STABILITY_ATTEMPTS = 3;
 export const INPUT_TOPOLOGY_CHANGED_MESSAGE =
 	"Lint input topology changed while preparing the complete-analysis cache.";
 export const CACHE_INPUT_CONFIRMATION_STAGE = "startup.cache-input-confirmation";
-export const PYTHON_AST_STAGE_PREFIX = "python-bridge";
-export const PYTHON_AST_INCOMPLETE_BATCH_MESSAGE = "Python AST worker returned an incomplete batch.";
+export const NODE_ENV_VARIABLE = "NODE_ENV";
+export const PATH_ENV_VARIABLE = "PATH";
 export const COVERAGE_PARALLEL_MODE_ARGUMENT = "--parallel-mode";
 export const COVERAGE_MODULE = "coverage";
 export const COVERAGE_RUN_COMMAND = "run";

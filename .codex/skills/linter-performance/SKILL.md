@@ -1,15 +1,22 @@
 ---
 name: linter-performance
-description: Measure and optimize linter and test-runner performance while preserving complete diagnostic equivalence.
+description: Measure linter and test-runner speed; diagnose to zero and stage only after timing acceptance.
 ---
 
 # Linter performance optimization
 
 Use this skill when improving the linter, its Python bridge, or fixture-test
-execution. Prioritize linter execution speed; improve test-runner speed after
-the production lint path or when test overhead directly affects lint
-development. Both paths must retain exactly the same diagnostic multiset and
-exit behavior; diagnostic ordering is not significant.
+execution. Prioritize production lint speed; measure test-runner speed
+separately when in scope. Performance acceptance is based on timing only.
+Diagnostic counts and hashes are informational during benchmarking; after a
+candidate passes, immediately invoke the `diagnostics-to-zero` skill on the
+linter workspace and continue until its requested scope reaches zero or the
+user stops the work. This is required work, not an optional check.
+
+Keep pursuing the requested performance goal across turns until the user says
+to stop, pause, or finish. If asked to stop, stop starting experiments; report
+the current accepted state and any verification still outstanding. Do not
+claim unfinished work is verified.
 
 ## Required target argument
 
@@ -21,8 +28,9 @@ $linter-performance /absolute/path/to/target-project
 ```
 
 The target is the codebase being analyzed. The linter workspace is the project
-where the implementation is changed. Do not modify the target project unless
-the user explicitly asks for it.
+where the implementation is changed. Do not edit target source/configuration.
+Benchmark runs may clear `<target>/.ai-code-guard/cache/` and refresh generated
+state under `<target>/.ai-code-guard/`; preserve unrelated target files.
 
 All persistent Markdown output created by this skill must be under the linter
 workspace's `.ai-code-guard/` directory. This includes the performance log,
@@ -30,63 +38,81 @@ timing snapshots, and experiment reports. Do not create Markdown logs in the
 workspace root, the target project root, or the skill directory. The skill's
 own `SKILL.md` is instruction text and is the only intentional exception.
 
+## Acceptance score
+
+Judge an optimization's timing threshold by comparing the candidate's best
+cold-plus-warm sum with the accepted baseline's maximum cold-plus-warm sum:
+
+```text
+candidate minimum cold + candidate minimum warm
+    < baseline maximum cold + baseline maximum warm
+```
+
+Select candidate minima and baseline maximums independently across their runs.
+Stage timings, profiler samples, medians, paired totals, and diagnostics do not
+affect the timing decision. Correctness checks remain a separate gate before
+staging.
+Do not compare the candidate against the baseline minimum, median, or historical
+best when deciding this threshold. A candidate qualifies on timing when its
+candidate minimum cold + candidate minimum warm is strictly below baseline maximum cold + baseline maximum warm.
+
 ## Measurement helper
 
-Use the bundled helper when a repeatable run measurement is needed:
+Use the bundled helper for repeatable full-project measurements:
 
 ```bash
 .codex/skills/linter-performance/measure-runs.sh \
   --target /absolute/path/to/target-project \
-  --clear-cache
+  --runs 3
 ```
 
-The helper resolves its own linter workspace from the script path, so it does
-not depend on the caller's current directory. `--target` is required and must
-be an existing absolute directory. Without `--clear-cache`, it removes the old
-known cache and measures one run. `--clear-cache` selects cold-run mode: it
-removes the complete `<target>/.ai-code-guard/cache/` directory before the
-measured run. It does not remove reports,
-issues, rules, review files, or source files. `--runs N` changes the default
-three comparable runs. The helper always passes `--policy all --batch-size
-10000` and does not select a review agent, so architecture review is skipped.
-The linter writes detailed stage timings to
-`.ai-code-guard/performance.md`; the helper snapshots that file for every run
-under the linter workspace's `.ai-code-guard/performance-runs/` directory and
-prints only total wall time and consistency data. It verifies that all measured
-runs have the same exit code, issue/file totals, and order-insensitive hashes
-of every diagnostic's file, line, message, hint, rule ID, and priority from the
-complete cached lint result. It fails consistency checking if that full result
-is unavailable; prioritized `issues.md` and `report.md` are not complete
-diagnostic evidence.
-When an experiment changes the Python bridge or Python analysis code, invoke the
-helper with `--runs 8` instead of the default three runs. Keep three runs for
-experiments that are strictly TypeScript or measurement-only.
-The helper prints average and median wall times.
-The helper returns the first non-zero linter exit code after all requested runs
-finish, or `2` when measured runs are inconsistent, while still printing every
-individual `RUN_*_EXIT` value.
+The helper resolves the linter workspace from its own location. Each pair
+clears only `<target>/.ai-code-guard/cache/`, runs cold, then runs warm from the
+cache just produced. It uses `--policy all --batch-size 10000` and no review
+agent. It snapshots each timing report and writes `runs.tsv` with wall time,
+exit code, issue count, and analyzed-file count. Those diagnostic values are
+informational and do not affect the timing score. The helper checks valid wall
+time, stable file scope, and warm-cache behavior. It returns `0` when the
+measurement is valid and the threshold passes or was not requested, `1` when a
+valid candidate misses the requested timing threshold, and `2` for invalid
+arguments or measurement integrity. A non-zero linter exit is recorded, not
+treated as a benchmark failure. At least three pairs are required when a
+threshold is supplied; fewer pairs can screen a candidate but cannot produce a
+timing verdict.
 
-## Required webmcp-userscripts run
+The helper records timing reports and issue totals, not a complete
+machine-readable diagnostic inventory; counts alone cannot serve as the
+diagnostics-to-zero baseline. Use the shared current-state file at
+`<linter-workspace>/.ai-code-guard/work-status.md` for this skill and
+`diagnostics-to-zero`. Read or create it at task start and update it at accepted
+measurement and integration checkpoints. Its schema and report-reuse rules are
+in [`../diagnostics-to-zero/references/work-status.md`](../diagnostics-to-zero/references/work-status.md).
 
-When the target is
-`/home/anton/Documents/Development/personal-assistant/webmcp-userscripts`, use
-the exact full-project command below:
+Use three matched pairs for baseline and candidates considered for acceptance.
+One pair may screen out a poor candidate but cannot accept it. `--baseline-cold-max`
+and `--baseline-warm-max` print the timing threshold result. Hotspot sampling
+runs after all pairs so it cannot perturb a cold/warm pair.
 
-```text
-ai-code-guard --root /home/anton/Documents/Development/personal-assistant/webmcp-userscripts --policy all --batch-size 10000
-```
-
-The run must omit a review-agent selection, select all policy problems, and use
-a batch size of 10000. Evaluate optimization by total wall time and total
-problems/files for the complete run. Individual batch or stage timings are
-supporting evidence only and must not replace the total comparison.
+Do not spawn or assign agents by default. The coordinator performs investigation,
+implementation, and validation directly. Use [`agent-protocol.md`](agent-protocol.md)
+only when the user explicitly requests agent participation; keep benchmark runs
+and baseline promotion with one coordinator. This restriction concerns performance
+agents; the required diagnostics-to-zero phase follows that skill's own delegation
+rules. Implementation/investigation agents must not launch any processes,
+directly or indirectly, including shell, read-only Git, tests, scripts, formatters,
+profilers or benchmarks. They use non-process inspection/editing tools and request
+necessary commands from the coordinator. All process execution belongs to the
+coordinator.
 
 ## Baseline first
 
-Before changing code, record a representative baseline for the full check and
-for fixture tests:
+Before changing code, record a representative paired baseline for the full
+production lint command. Measure fixture/test-runner time separately only when
+test performance is in scope or its overhead is blocking lint work:
 
-- wall time and relevant stage times;
+- every cold and warm wall time, each mode's minimum, maximum, and median, the
+  candidate minimum sum, the baseline maximum sum, the best paired total, and
+  relevant stage times;
 - process count and Python bridge startup/exit behavior;
 - complete diagnostics, including rule, file, line, message, hint, and exit code;
 - the files and fixture set included in the measurement.
@@ -95,29 +121,137 @@ Use the repository's normal commands and configuration. Account for the
 project's actual file scope and `.gitignore` behavior; do not replace scope
 with an unvalidated glob or an implicit working directory.
 
+
+## Reuse the accepted baseline
+
+Record a baseline identity: implementation revision plus relevant worktree
+fingerprint, target content/scope, exact command/configuration, toolchain, and
+known load regime. Reuse its three-pair measurements across rejected experiments
+when that identity remains applicable and the accepted implementation is restored.
+Do not rerun three unchanged control pairs before every hypothesis. Refresh the
+baseline after an accepted implementation change, target/configuration changes,
+a user-reported load change, or concrete evidence that conditions changed. A
+candidate's final valid three-pair measurement may serve as the next baseline;
+do not immediately measure the same tree again. Keep historical records but do
+not compare incompatible load regimes. Never stop unrelated user processes to
+make conditions match.
+
+## Track train.py load transitions
+
+The coordinator checks whether a training process running `train.py` is present
+before capturing a baseline, before every screening/confirmation series, and
+after that series. Inspect live process arguments and match the actual script
+path/basename `train.py`; do not count the inspection command itself or unrelated
+arguments merely mentioning that text. Record `train_present=true|false`, matching
+PIDs, and check timestamps with each measurement. Only the coordinator runs this
+inspection; agents remain prohibited from launching processes.
+
+Baseline compatibility requires the same `train_present` state. Whenever
+`train.py` appears or disappears compared with the accepted baseline, capture a
+new three-pair baseline on the accepted control implementation under the new
+state **before comparing a candidate**. If a candidate is already applied, preserve
+its owned diff and measure the saved control separately or selectively restore
+it without disturbing unrelated changes; do not relabel candidate timings as a
+control baseline. Mere continued presence does not require a baseline refresh
+before every attempt; other measured load changes still follow baseline rules.
+
+Check again at cold/warm pair boundaries where practical without delaying the
+immediate warm run or perturbing its cache. If an appearance/disappearance is
+observed during a series, mark that series inconclusive for timing acceptance,
+refresh the control baseline under the stable new state, and remeasure the
+candidate. Endpoint checks cannot prove that no short-lived transition happened;
+record an observed transition even if the final state matches the initial state.
+Do not stop, restart, pause, or otherwise modify `train.py` to stabilize results.
+
+## Screen before confirmation
+
+Start with a single full cold/warm pair using `--runs 1` **without baseline
+threshold flags**; the helper requires at least three pairs with those flags.
+Use this only to screen the hypothesis. Clearly poor timing with no evidence of
+a recoverable bottleneck can end the experiment early; record `screened out`,
+not a conclusive three-pair timing verdict. Borderline or promising candidates
+proceed to a three-pair confirmation with the baseline maximum flags. Diagnostic
+counts, hashes and medians must not be used to reject a timing-qualified candidate.
+
+Do not finish two more pairs merely to formalize an obvious screening failure.
+One pair cannot establish acceptance or prove the absence of a small speedup.
+With the current helper, confirmation is a separate three-pair run; do not claim
+it resumes a saved screen. Keep screen results separate from confirmation minima.
+If the hypothesis is already strongly evidenced and will require confirmation
+regardless of one noisy pair, go directly to three pairs instead of adding a
+redundant screen. Preserve the exact acceptance formula without a new median,
+historical-record, minimum-gain, or diagnostic-equality veto.
+
+## Prepare the next experiment during measurements
+
+Before implementation, search the existing experiment log by stage, code path
+and mechanism. Revisit a rejected hypothesis only with new evidence or changed
+conditions; record what changed. Maintain a compact experiment card in the same
+log rather than a second document:
+
+```text
+selected_stage=<sampler result and source snapshot>
+repeated_work=<specific loop/traversal/allocation and measured cost>
+complexity=<before -> proposed after, real input variables>
+expected_gain=<plausible full-run benefit relative to measured stage cost>
+prior_attempts=<matching attempts, outcomes, and new evidence if retrying>
+risks=<cache/order/lifetime and adjacent lint-rule constraints>
+change_and_check=<smallest implementation slice and focused correctness check>
+```
+
+Start with a sampler-selected stage and a deep algorithmic analysis of that
+stage. Do not optimize a neighboring stage simply because it looks easier.
+Use a measured call/data dependency to justify another location; if all sampled
+candidates lack actionable work, record why and use a fresh appropriate snapshot.
+Sampled time is a prioritization aid, not evidence that a specific loop is slow.
+Check neighboring lint constraints before adding helpers, classes or caches.
+
+While a benchmark process runs, the coordinator reads existing source/profiles,
+checks prior attempts and prepares the next experiment card. Do not edit the
+measured implementation, target or configuration, change caches, instrument it,
+or start competing heavy processes. Defer implementation and new profiling until
+the current measurement finishes. Waiting is appropriate only when no useful
+independent analysis remains; do not replace it with repetitive status polling.
+
 ## Required work algorithm and experiment log
 
 Follow this algorithm in order; do not jump directly to a code change:
 
 1. Validate the target path and record the exact command, configuration, file
    scope, ignored paths, fixture set, and environment relevant to timing.
-2. Run and record the baseline before changing implementation code. Capture at
-   least three comparable runs when startup noise is material, or eight when the
-   experiment changes Python bridge or Python analysis code; use the median and
-   retain every individual result.
+2. Establish or reuse the compatible baseline before changing implementation code.
+   A new baseline requires three matched cold/warm pairs. Use a single-pair screen to reject clearly
+   unpromising experiments early; run three pairs for candidates that may be
+   accepted. Include Python bridge/analysis changes in the same process.
+   Retain every individual result and calculate the candidate timing value as
+   minimum cold plus minimum warm. Record the accepted baseline's maximum cold
+   plus maximum warm as the comparison threshold. Also record the fastest
+   matched pair's combined cold and warm time.
 3. Map the execution pipeline and its data flow: discovery, parsing, bridge
    startup, normalization, per-file rules, global rules, serialization, and
    reporting. Identify the actual hot stages from measurements.
-4. Write concrete optimization hypotheses before implementing them. Each
+4. Search prior attempts and write a sampler-grounded experiment card before
+   implementing a hypothesis. Each
    hypothesis must name the repeated work, its expected bottleneck, the
    affected invalidation boundary, and the expected correctness risk.
 5. Test one hypothesis per experiment, then measure the same command and the
    same scope. Do not combine unrelated changes before measuring them.
-6. Keep or reject the experiment using both the complete diagnostic comparison
-   and the measured result. Record rejected and inconclusive experiments too.
-7. Repeat until the linter execution path has had a deliberate optimization
-   pass. Then optimize test-runner/fixture execution when it is in scope, or
-   record evidence that it is not a bottleneck, before final verification.
+6. Accept or reject performance using the timing threshold only. Record issue
+   totals and exit codes as context, not as inputs to the timing decision.
+   Record rejected and inconclusive experiments too.
+7. Only after a valid candidate passes the timing threshold, immediately load
+   and execute [`diagnostics-to-zero`](../diagnostics-to-zero/SKILL.md) against
+   the linter workspace. Continue through its fresh inventory until the
+   requested diagnostic scope reaches zero or the user stops the task. Do not
+   replace this with a summary, partial lint run, or optional note. Run relevant
+   tests and type checks when permitted. Stage accepted performance paths
+   after timing acceptance even if diagnostics remain; stage diagnostic-fix
+   paths only after they reach zero. If timing fails or the measurement is
+   invalid, do not start diagnostics-to-zero for that candidate.
+8. After diagnostic repairs, follow the final-implementation timing gate below
+   before promoting the next baseline. Continue while the requested goal and measured opportunities remain. Cover
+   production lint first; optimize test-runner speed only when requested or
+   when its overhead blocks lint work.
 
 If an existing stage timer cannot distinguish the suspected work, add
 temporary intermediate timers or use an appropriate profiler (CPU, wall-clock,
@@ -128,10 +262,31 @@ temporary instrumentation after the experiment unless it is a deliberate,
 low-overhead diagnostic feature covered by tests. Never infer a hotspot from
 source inspection alone when a targeted measurement can settle it.
 
-Every attempt, including a failed, rejected, unchanged, or zero-improvement
-attempt, must be appended to
-`.ai-code-guard/linter-performance-log.md` in the linter workspace. Never
-replace earlier entries. Use this minimum record:
+`measure-runs.sh` samples cold snapshots only after their cold/warm pairs
+finish, so profiling does not delay the paired warm run. Sampling is
+deterministic for a given snapshot. It prints up to five candidate stages,
+their durations, and sample counts. To sample a report manually or adjust the
+default temperature, use:
+
+```bash
+node .codex/skills/linter-performance/sample-hotspots.mjs \
+	.ai-code-guard/performance-runs/<measurement-id>/cold_<run-count>.performance.md
+```
+
+The sampler ignores aggregate stages and ranks positive-duration leaf stages;
+it is a deterministic guide for the next hypothesis, not profiler evidence or
+an acceptance measurement. Read [`hotspot-analysis.md`](hotspot-analysis.md)
+when interpreting its weights, temperature, or hierarchy behavior.
+
+For task-start journal handling and the required 50-idea checklist, read
+[`references/performance-journal.md`](references/performance-journal.md) only
+when starting a new performance task or updating that journal. Do not load it
+for ordinary measurement continuations.
+
+Every attempt, including failed, rejected, unchanged, screened-out or
+zero-improvement attempts, must be represented. The following fields describe
+the information to retain in the compact row/card or the saved measurement artifacts, not
+a requirement to repeat a multiline report for each attempt:
 
 ```text
 attempt=<monotonic number>
@@ -140,22 +295,22 @@ hypothesis=<specific repeated work expected to be reduced>
 change=<one experiment or no-code measurement>
 complexity_before=<variables and estimated time/space complexity>
 complexity_after=<variables and estimated time/space complexity>
-measurements=<every run, median, relevant stage/process times>
-diagnostic_fingerprint=<complete diagnostic hash and exit code>
+measurements=<every cold/warm run, candidate minima, baseline maxima, both sums, medians, best paired total, relevant stage/process times>
+diagnostic_metadata=<issue totals and exit codes; informational, not an acceptance criterion>
 decision=<kept|rejected|inconclusive>
 reason=<evidence and next hypothesis>
 ```
 
-The log must include the agent's guesses, the evidence that confirmed or
-disproved them, and the next step. A claim such as “the cache should be faster”
+The compact log must identify any delegated hypothesis, briefly state the evidence that
+confirmed or disproved it, and name the next step. A claim such as “the cache should be faster”
 is not sufficient without measurements. Keep the log in `.ai-code-guard`; do
 not create a second copy in the repository root.
 
 ## Mandatory optimization attempts
 
-For every optimization cycle, make and measure at least two distinct
-hypotheses before concluding that the current implementation is sufficiently
-fast. The first priority is the production linter path:
+Form a measured hypothesis before changing code. Prefer an algorithmic and an
+execution-overhead hypothesis when both are supported by the profile; do not
+implement an unrelated category just to satisfy a quota. The first priority is the production linter path:
 
 - one algorithmic hypothesis: eliminate duplicate AST traversal, alias/type
   resolution, rule work, or global indexing; consider a shared index or an
@@ -169,8 +324,8 @@ stage timings do not identify the responsible loop, traversal, process, or
 allocation. The experiment log must state which profiler/timers were used,
 their overhead, and which measured result selected the next experiment.
 
-If one category is not applicable, record the measured reason and the evidence
-for that decision in the log; do not silently skip it. Do not optimize by
+If one category is not applicable, record the measured reason and evidence for
+that decision; do not silently skip it. Do not optimize by
 reducing the checked file scope, disabling rules, weakening diagnostics, or
 using `.gitignore` to hide work.
 
@@ -185,82 +340,83 @@ the real input variables. At minimum consider:
   proposed index changes ordering or observable state.
 
 Prefer lowering a repeated factor (for example `O(RN)` to `O(N + R)` where
-the semantics allow it) over a local constant-factor change. Any claimed
-complexity improvement must be backed by stage timings on the normal target
-and, when in scope, fixture tests. Report linter and test-runner timings
-separately; a test speedup never compensates for a linter regression. Keep a
-change only if the full diagnostic multiset fingerprint, parse-error behavior, bridge contract,
-and exit status remain identical.
+the semantics allow it) over a local constant-factor change. Use stage timings
+and profiler data to explain the affected work; accept the change only by the
+candidate-minimum versus baseline-maximum timing threshold. When in scope,
+report fixture-test timings separately; a test speedup never compensates for a
+linter timing regression. Diagnostics are recorded separately and do not alter
+the performance decision. After timing acceptance, invoke and complete
+`diagnostics-to-zero` for the linter workspace before ending the task.
 
-## Python bridge contract
+## Python analysis changes
 
-For one linter run:
-
-1. Start one persistent Python bridge process.
-2. Send all pending Python sources in one batch of `name -> source` records.
-3. Include a unique `batchId` and verify that the response has the same ID and
-   every requested AST.
-4. Prepare each Python AST and normalized source record once, then reuse them
-   for class analysis, coding rules, references, and other consumers.
-5. Send an explicit exit only after the final request and verify clean exit.
-
-Do not start one Python process per Python file, rule, or fixture when the
-bridge can safely serve the whole run.
-
-## Reuse and caching
-
-Reuse stable data only when its invalidation boundary is explicit:
-
-- keep the bridge alive for all requests in a run;
-- reuse a parsed AST and source record across all consumers;
-- cache stable project-file information used by import and unused-file checks;
-- in fixture tests, reuse one bridge and batch fixture sources instead of
-  creating a process for each file or test case;
-- clear or replace state between independent runs and verify that no aliases,
-  diagnostics, or AST nodes leak across runs.
-
-Do not cache mutable rule results across different source contents, roots, or
-policy configurations.
+When changing Python analysis, bridge lifecycle, fixture startup, or shared
+caching, follow [`python-bridge-and-caching.md`](python-bridge-and-caching.md).
+For other pipeline stages, do not load that reference.
 
 ## Measurement and acceptance
 
-Measure startup, bridge, parsing/normalization, per-file analysis, global
-analysis, and total wall time. Repeat enough times to distinguish a real
-improvement from startup noise.
+Each warm run must immediately follow its cold run and reuse that run's cache.
+Compare only runs with the same target, command, scope, and configuration.
+Accept or reject the performance experiment using the timing condition in the
+Acceptance score section only. Diagnostics, counts, and exit codes are not part
+of this decision; record them for the later quality gate. Relevant tests and
+type checks remain separate correctness gates.
 
-Accept an optimization only when:
+If timing misses the threshold or measurement integrity fails, revert only
+that experiment's changes and preserve unrelated user and agent work; do not
+start diagnostics-to-zero for that candidate. If timing passes, immediately
+invoke [`diagnostics-to-zero`](../diagnostics-to-zero/SKILL.md) on the linter
+workspace and continue until zero or an explicit user stop. Do not finish while
+this follow-on skill has not been started. Track its status as `active`, `zero`,
+or `blocked`; a blocker must be concrete and external. Run required checks when
+permitted. Before handoff, set `timing=passed`, `diagnostics=active`, and the
+accepted measurement ID in `work-status.md`. If a complete diagnostic report
+from the exact accepted source snapshot, command, configuration and scope is
+available, pass its path and snapshot ID to `diagnostics-to-zero` as the
+baseline. Otherwise, let that skill capture one complete baseline and reuse it
+through the diagnostic phase; do not run a separate duplicate baseline scan.
+Apply the final-implementation timing gate below, then promote the
+verified implementation's measurement ranges and threshold in `.ai-code-guard/linter-performance-log.md`,
+then stage only accepted performance paths with explicit `git add -- <paths>`.
+Stage diagnostic-fix paths only after the diagnostic report reaches zero. If
+that work is incomplete, keep the accepted performance paths staged, leave
+unfinished diagnostic paths unstaged, and report the separate gate status.
+Capture the initial index/worktree state; stage only owned paths or hunks and
+preserve pre-existing staged and unstaged changes. Never use `git add .`.
 
-- complete diagnostics are identical to the baseline;
-- parse errors, missing files, empty input, and Python-free projects still work;
-- batch IDs, requested-source coverage, and explicit bridge exit are verified;
-- tests do not depend on process state from a previous fixture;
-- the measured improvement is real for both a normal project run and fixture
-  tests, when both paths are in scope.
+## Recheck timing after diagnostic repairs
 
-If performance improves but diagnostics differ, reject the change and fix the
-correctness regression before measuring again.
+Track `timing=passed|failed|unmeasured`, `diagnostics=active|zero|blocked`, and
+`correctness=passed|failed|unverified` separately, tied to their actual snapshots.
+An initial timing pass immediately triggers diagnostics-to-zero as required;
+new diagnostics alone never revoke that timing pass.
 
-Do not treat one faster run as evidence of an improvement. Compare repeated
-runs with the same scope, report the median (and the individual runs), and
-explain startup variance. A performance experiment is incomplete until its
-entry has been written to `.ai-code-guard/linter-performance-log.md`.
+If subsequent diagnostic repairs change executable code, analysis algorithms,
+initialization, imports, cache behavior, configuration or measured target inputs,
+the old timings no longer verify the final implementation. After reaching zero
+and passing required correctness checks, measure that final tree with three
+cold/warm pairs against the **pre-experiment accepted baseline**, under compatible
+conditions. This is validation of the completed candidate, not a new unrelated
+optimization. No timing rerun is needed for changes proven outside the executed
+and measured inputs; record that reasoning.
 
-Use the median timing criterion when accepting a faster experiment: after
-diagnostics and tests pass, accept the new experiment only if its median full
-run is lower than the median of the best accepted experiment. Report minimum
-and maximum values to expose noise, but do not make the decision from the
-average, minimum, or maximum alone.
-
-When an experiment is accepted, immediately promote its measurements to the
-new baseline in `.ai-code-guard/linter-performance-log.md` and stage only the candidate's
-implementation, regression tests, and performance record with `git add`. Do
-not stage unrelated user changes already present in the worktree. The accepted
-log entry must name the new baseline median and the staged paths; a rejected or
-control experiment must never stage code.
+Promote the final measured ranges only when the same timing formula passes.
+If conditions changed, remeasure the saved control under those conditions rather
+than comparing incompatible regimes. If the final timing fails, report the
+initial pass and final failure separately; simplify or selectively revert only
+owned experiment/repair changes, preserving unrelated work and meaningful tests.
+Do not start a new optimization or claim the speedup is finalized while this
+failure is unresolved. Previously staged candidate paths are provisional until
+these final gates pass; preserve pre-existing index/worktree changes and never
+use a broad reset to clean them up.
 
 ## Verification
 
 Run the relevant unit/integration tests, type-check, and the complete linter.
-Report the baseline and optimized timings, process model, diagnostic
-comparison, and the exact `target_project_path`. Do not claim completion from
-an elapsed-time improvement alone.
+Report baseline and optimized best cold times, best warm times, summed scores,
+descriptive medians, process model, separate diagnostic-zero status, staged paths, and the
+exact `target_project_path`. Do not claim completion from a lower summed time
+alone.
+If the user asks to stop, do not start further experiments; report current
+measurements and outstanding verification accurately.

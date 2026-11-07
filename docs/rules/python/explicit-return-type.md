@@ -1,41 +1,89 @@
 # `explicit-return-type`
 
-Description: Require every named callable to declare its result type explicitly in both
-TypeScript and Python. The rule covers functions, methods, getters, and
-interface methods. Constructors, setters, and anonymous callback functions are
-excluded because they do not define an independent result boundary.
-
-
-```python
-# Bad
-def load_user(user_id: str):
-    return repository.find(user_id)
-
-# Good
-def load_user(user_id: str) -> User:
-    return repository.find(user_id)
-```
-
-`__init__` must use `-> None`. Do not rely on inference at a callable boundary;
-use `None`, `Result`, or another explicit domain result contract.
+Description: Declare the result type of every named callable explicitly.
 
 ## Bad
 
-
 ```python
-def read_value(value: str):
-    return value
+# File: src/read_value.py
+class ReadValue:
+    """Responsibilities: _text value state_."""
+
+    def __init__(self, raw_value: str) -> None:
+        """Responsibilities: _value initialization_."""
+        self._raw_value: str = raw_value
+
+    def normalized_value(self) -> str:
+        """Responsibilities: _value normalization_."""
+        trimmed = self._raw_value.strip()
+        words = trimmed.split()
+        joined = " ".join(words)
+        normalized = joined.lower()
+        return normalized
+
+    def word_count(self) -> int:
+        """Responsibilities: _normalized word counting_."""
+        words = self.normalized_value().split()
+        count = 0
+        for word in words:
+            if word:
+                count += 1
+        return count
+
+    def render_value(self):  # <- error
+        """Responsibilities: _value reading_."""
+        value = self.normalized_value()
+        count = self.word_count()
+        rendered = f"{value} ({count})"
+        print(rendered)
+        return rendered
+# File: cli.py
+from src.read_value import ReadValue
+
+if __name__ == "__main__":
+    value = ReadValue("ready")
+    value.render_value()
 ```
 
 ## Good
 
-
 ```python
+# File: src/read_value.py
+class ReadValue:
+    """Responsibilities: _text value state_."""
+
+    def __init__(self, raw_value: str) -> None:
+        """Responsibilities: _value initialization_."""
+        self._raw_value: str = raw_value
+
+    def normalized_value(self) -> str:
+        """Responsibilities: _value normalization_."""
+        trimmed = self._raw_value.strip()
+        words = trimmed.split()
+        joined = " ".join(words)
+        normalized = joined.lower()
+        return normalized
+
+    def word_count(self) -> int:
+        """Responsibilities: _normalized word counting_."""
+        words = self.normalized_value().split()
+        count = 0
+        for word in words:
+            if word:
+                count += 1
+        return count
+
+    def render_value(self) -> str:
+        """Responsibilities: _value reading_."""
+        value = self.normalized_value()
+        count = self.word_count()
+        rendered = f"{value} ({count})"
+        print(rendered)
+        return rendered
 # File: cli.py
-def read_value(value: str) -> str:
-    """Responsibilities: _value reading_."""
-    return value
+from src.read_value import ReadValue
 
 if __name__ == "__main__":
-    print(read_value("ready"))
+    value = ReadValue("ready")
+    value.render_value()
 ```

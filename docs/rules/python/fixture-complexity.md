@@ -46,6 +46,14 @@ class FileEntry:
 
     def content_summary(self) -> str:
         return f"{self.file_name()} ({self.word_count()} words)"
+    def report(self) -> None:
+        print(self.content_summary(), self.readable())
+# File: src/cli.py
+from src.file_entry.file_entry import FileEntry
+
+if __name__ == "__main__":
+    entry = FileEntry("guide.md", "dispatch text")
+    entry.report()
 ```
 
 ## Good
@@ -77,30 +85,33 @@ class FileEntry:
 
     def __init__(self, path: str, content: str) -> None:
         """Responsibilities: _file entry initialization_."""
-        self.path: str = path
-        self.content: str = content
+        self._path: str = path
+        self._content: str = content
 
     def file_name(self) -> str:
         """Responsibilities: _file label composition_."""
-        return self.path[self.path.rfind("/") + 1:]
+        return self._path[self._path.rfind("/") + 1:]
 
     def word_count(self) -> int:
         """Responsibilities: _word count_."""
-        content = self.content.strip()
+        content = self._content.strip()
         if not content:
             return 0
         return len(content.split())
 
     def readable(self) -> bool:
         """Responsibilities: _content readability classification_."""
-        return len(self.content.strip()) > 0
+        return len(self._content.strip()) > 0
 
     def content_summary(self) -> str:
         """Responsibilities: _entry summary_."""
         return f"{self.file_name()} ({self.word_count()} words)"
-# File: cli.py
+    def report(self) -> None:
+        """Responsibilities: _entry report output_."""
+        print(self.content_summary(), self.readable())
+# File: src/cli.py
 from src.file_entry.file_entry import FileEntry
 if __name__ == "__main__":
     entry = FileEntry("guide.md", "dispatch text")
-    print(entry.file_name(), entry.word_count(), entry.readable(), entry.content_summary())
+    entry.report()
 ```

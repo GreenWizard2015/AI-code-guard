@@ -1,0 +1,99 @@
+import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptStaticKeyAliases } from "src/parser/typescript-aliases/type_script_static_key_aliases";
+import type { ExpressionNamesContract } from "src/runtime_protocols";
+import type {
+	TypeScriptCallableTypePropertiesContract,
+	TypeScriptStaticKeyAliasesContract,
+} from "src/typescript_runtime_protocols";
+import ts from "typescript";
+
+/** Responsibilities: _callable object property collection_, _class interface property collection_. **/
+export class TypeScriptCallableTypeProperties implements TypeScriptCallableTypePropertiesContract {
+	private readonly _expression_names: ExpressionNamesContract;
+	private readonly _callable_member_kinds: Set<ts.SyntaxKind>;
+	private readonly _static_key_aliases: TypeScriptStaticKeyAliasesContract;
+
+	/** Responsibilities: _typed function property extension_. **/
+	private append_function_property(properties: Set<string>, name: string, member: ts.PropertySignature): void {
+		if (member.type === undefined) {
+			return;
+		}
+		if (ts.isFunctionTypeNode(member.type)) {
+			properties.add(name);
+		}
+	}
+
+	/** Responsibilities: _typed callable property extension_. **/
+	private append_property(properties: Set<string>, member: ts.TypeElement): void {
+		if (member.name === undefined) {
+			return;
+		}
+		const name = this.property_name(member.name);
+		if (name.length === 0) {
+			return;
+		}
+		if (this._callable_member_kinds.has(member.kind)) {
+			properties.add(name);
+			return;
+		}
+		if (!ts.isPropertySignature(member)) {
+			return;
+		}
+		this.append_function_property(properties, name, member);
+	}
+
+	/** Responsibilities: _callable type property composition_. **/
+	public constructor() {
+		this._expression_names = new TypeScriptExpressionNames();
+		this._callable_member_kinds = new Set([ts.SyntaxKind.MethodSignature]);
+		this._static_key_aliases = new TypeScriptStaticKeyAliases();
+	}
+
+	/** Responsibilities: _typed property name resolution_. **/
+	public property_name(name: ts.PropertyName): string {
+		const literal_name = this._expression_names.static_property_name(name);
+		if (literal_name !== "") {
+			return literal_name;
+		}
+		if (ts.isComputedPropertyName(name)) {
+			return this._static_key_aliases.value(name.expression, name);
+		}
+		return "";
+	}
+
+	/** Responsibilities: _type literal callable properties_. **/
+	public object_properties(type: ts.TypeLiteralNode): Set<string> {
+		const properties = new Set<string>();
+		for (const member of type.members) {
+			this.append_property(properties, member);
+		}
+		return properties;
+	}
+
+	/** Responsibilities: _interface callable properties_. **/
+	public interface_properties(node: ts.InterfaceDeclaration): Set<string> {
+		const properties = new Set<string>();
+		for (const member of node.members) {
+			this.append_property(properties, member);
+		}
+		return properties;
+	}
+
+	/** Responsibilities: _class callable properties_. **/
+	public class_properties(node: ts.ClassDeclaration): Set<string> {
+		const properties = new Set<string>();
+		for (const member of node.members) {
+			if (!ts.isMethodDeclaration(member)) {
+				continue;
+			}
+			if (member.name === undefined) {
+				continue;
+			}
+			const name = this.property_name(member.name);
+			if (name.length > 0) {
+				properties.add(name);
+			}
+		}
+		return properties;
+	}
+}

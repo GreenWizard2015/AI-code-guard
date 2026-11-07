@@ -12,24 +12,24 @@ Fix: Remove pass-through layers and keep only classes with their own state or li
 ## Bad
 
 ```ts
-{% const layers = [{"name":"RequestCoordinator","next":"PolicyService","path":"request_coordinator","dependency_path":"policy_service","role":"request coordinator"},{"name":"PolicyService","next":"RecordStore","path":"policy_service","dependency_path":"record_store","role":"policy service"},{"name":"RecordStore","next":"RecordParser","path":"record_store","dependency_path":"record_parser","role":"record store"}] %}
+{% const layers = [{"name":"RequestCoordinator","next":"PolicyService","path":"request_coordinator","dependency_path":"policy_service","role":"request coordinator"},{"name":"PolicyService","next":"RecordStore","path":"policy_service","dependency_path":"record_store","role":"policy service"},{"name":"RecordStore","next":"RecordParser","path":"record_store","dependency_path":"record_parser","role":"record store"},{"name":"RecordParser","next":"RecordValidator","path":"record_parser","dependency_path":"record_validator","role":"record parser"}] %}
+// File: src/request_pipeline.ts
 {%for layer in layers %}
-// File: src/{{layer.path}}.ts
-import { {{layer.next}} } from "src/{{layer.dependency_path}}";
 export class {{layer.name}} {
-	private readonly dependency = new {{layer.next}}();
-	public constructor() {}
-	public run(): string { return this.dependency.run(); } // <- error
+	private readonly _dependency: {{layer.next}};
+	public constructor() { this._dependency = new {{layer.next}}(); }
+	public run(): string { return this._dependency.run(); } // <- error
+	public report(): void { console.log(this.run()); }
 }
 {% endfor %}
-// File: src/record_parser.ts
-export class RecordParser {
-	private readonly state: string = "ready";
-
-	public constructor() {}
-
-	public run(): string { return this.state; }
+export class RecordValidator {
+	private readonly _state: string;
+	public constructor() { this._state = "ready"; }
+	public run(): string { return this._state; }
 }
+// File: cli.ts
+import { RequestCoordinator } from "src/request_pipeline";
+(function () { const coordinator = new RequestCoordinator(); coordinator.report(); })();
 ```
 
 ## Good
@@ -38,22 +38,15 @@ export class RecordParser {
 // File: src/request.ts
 /** Responsibilities: _request state_. **/
 export class Request {
-	private readonly state: string;
+	private readonly _state: string;
 
 	/** Responsibilities: _request initialization_. **/
-	public constructor() {
-		this.state = "ready";
-	}
-
-	/** Responsibilities: _request state access_. **/
-	public run(): string {
-		const state = this.state.trim();
-		if (state.length === 0) { return "Pending"; }
-		return state;
+	public constructor(state: string) {
+		this._state = state;
 	}
 
 	/** Responsibilities: _request readiness classification_. **/
-	public ready(): boolean { return this.state.trim() === "ready"; }
+	public ready(): boolean { return this._state.trim() === "ready"; }
 
 	/** Responsibilities: _request status label_. **/
 	public status_label(): string {
@@ -62,7 +55,7 @@ export class Request {
 	}
 
 	/** Responsibilities: _request state length_. **/
-	public state_length(): number { return this.state.trim().length; }
+	public state_length(): number { return this._state.trim().length; }
 
 	/** Responsibilities: _request summary_. **/
 	public summary(): string {
@@ -70,12 +63,17 @@ export class Request {
 		const length = this.state_length();
 		return `${label} (${length} characters)`;
 	}
+
+	/** Responsibilities: _request report output_. **/
+	public report(): void {
+		console.log(this.summary());
+	}
 }
 // File: cli.ts
 import { Request } from "src/request";
 
 (function () {
-	const request = new Request();
-	console.log(request.run(), request.ready(), request.status_label(), request.state_length(), request.summary());
+	const request = new Request("ready");
+	request.report();
 })();
 ```

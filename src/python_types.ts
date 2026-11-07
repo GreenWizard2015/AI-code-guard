@@ -1,23 +1,27 @@
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
-import type { IOContract } from "src/io/protocols";
-import type { NormalizedAstFileContract } from "src/types";
-import type { ReadonlyStringSet, StringSetMap, StringArrayMap } from "src/analysis_types";
-import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
+import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
+import type { PythonImportSessionContract } from "src/source_protocols";
+import type { AbsoluteImportCandidate } from "src/source_types";
 
-export type PythonImportRootMap = Map<string, readonly string[]>;
+/** Responsibilities: _Python import root lookup_. **/
+export interface PythonImportRootIndexContract {
+	absolute_import_index(): PythonAbsoluteImportIndexContract;
+	root_files(): readonly string[];
+	importable_parts(): Set<string>;
+	import_roots(): readonly string[];
+}
 
-export type PythonImportRootCache = WeakMap<ReadonlyStringSet, PythonImportRootMap>;
+/** Responsibilities: _absolute import index access_. **/
+export interface PythonAbsoluteImportIndexContract {
+	imports(): ReadonlyMap<string, AbsoluteImportCandidate>;
+}
 
-export type PythonImportPartCache = WeakMap<ReadonlyStringSet, StringSetMap>;
-
-export type PythonDirectoryFilesCache = WeakMap<ReadonlyStringSet, StringArrayMap>;
-
-export type PythonAstBatchParser = (texts: readonly string[]) => NormalizedAstFileContract[];
-
-/** Responsibilities: _Python AST batch parsing_. **/
-export type PythonAstDataOptions = {
-	worker: PythonAstWorkerContract;
-	analysis_identity: ProjectAnalysisIdentityContract;
-	split_batch_enabled: boolean;
-	file_io: IOContract;
-};
+export type PythonFilePaths = ReadonlySet<string>;
+export type PythonImportSessionCache = WeakMap<PythonFilePaths, PythonImportSessionContract>;
+export type PythonDirectoryFiles = string[];
+export type PythonImportableParts = Set<string>;
+export type PythonImportRootMap = Map<string, PythonImportRootIndexContract>;
+export type PythonImportRootCache = WeakMap<PythonFilePaths, PythonImportRootMap>;
+export type PythonDirectoryMap = Map<string, PythonDirectoryFiles>;
+export type PythonDirectoryFilesCache = WeakMap<PythonFilePaths, PythonDirectoryMap>;
+export type PythonImportPartCache = Map<string, PythonImportableParts>;
+export type CallablePythonAstBatchParser = (texts: readonly string[]) => NormalizedAstFile[];

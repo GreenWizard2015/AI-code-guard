@@ -1,183 +1,139 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Callable
+from collections.abc import Iterator
+from contextlib import contextmanager
 from time import perf_counter
-from typing import Any
 
+from implementation.ast.constants import AST_REFERENCES_KEY
 from implementation.ast.protocols import (
+    PythonAstContentTreeViewContract,
+    PythonAstMetadataContract,
     PythonLiteralMetadataContract,
     PythonResponsibilityTargetsContract,
 )
-from protocols import PythonAstContentTreeContract
 from implementation.rules.constants import PYTHON_MAIN_NAME, PYTHON_MAIN_VALUE
-from implementation.types import (
-    JsonObject,
-    JsonValue,
-)
-from implementation.types import LiteralMetadata
-
-PythonAstReferenceOperation = Callable[[], JsonValue]
+from implementation.types import JsonObject, JsonValueList, LiteralMetadata
 
 
 class PythonAstReferenceContent:
     """Responsibilities: _symbol reference collection_, _AST metadata reporting_."""
 
-    def _timed(
-        self, stage_name: str, operation: PythonAstReferenceOperation
-    ) -> JsonValue:
+    def _json_records(self, records: list[JsonObject]) -> JsonValueList:
+        """Responsibilities: _JSON record conversion_."""
+        values: JsonValueList = []
+        values.extend(records)
+        return values
+
+    def _json_strings(self, strings: list[str]) -> JsonValueList:
+        """Responsibilities: _JSON string conversion_."""
+        values: JsonValueList = []
+        values.extend(strings)
+        return values
+
+    @contextmanager
+    def _measure(self, stage_name: str) -> Iterator[None]:
         """Responsibilities: _reference stage measurement_."""
         started = perf_counter()
         try:
-            return operation()
+            yield
         finally:
-            timings = self.tree.timings_data()
+            timings = self._tree.timings_data()
             timings[stage_name] = (perf_counter() - started) * 1000
 
     def _main_guard_node(self, node: ast.AST) -> bool:
         """Responsibilities: _main guard node classification_."""
         if type(node) is not ast.If:
             return False
-        test: Any = node.test
+        test = node.test
         if type(test) is not ast.Compare or len(test.ops) != 1:
             return False
         if type(test.ops[0]) is not ast.Eq or len(test.comparators) != 1:
             return False
         if type(test.left) is not ast.Name or test.left.id != PYTHON_MAIN_NAME:
             return False
-        comparator: Any = test.comparators[0]
-        return (
-            type(comparator) is ast.Constant and comparator.value == PYTHON_MAIN_VALUE
-        )
+        comparator = test.comparators[0]
+        return type(comparator) is ast.Constant and comparator.value == PYTHON_MAIN_VALUE
 
-    def _export_names(self, value: ast.AST) -> list[str]:
-        """Responsibilities: _static Python export-name extraction_."""
-        if type(value) is ast.Constant and type(value.value) is str:
-            return [value.value]
-        if type(value) in (ast.List, ast.Tuple, ast.Set):
-            names: list[str] = []
-            for item in value.elts:
-                names.extend(self._export_names(item))
-            return names
-        if type(value) is ast.BinOp and type(value.op) is ast.Add:
-            return self._export_names(value.left) + self._export_names(value.right)
-        return []
-
-    def _is_all_assignment(self, statement: ast.stmt) -> bool:
-        """Responsibilities: _module export assignment classification_."""
-        if type(statement) is ast.Assign:
-            return any(
-                type(target) is ast.Name and target.id == "__all__"
-                for target in statement.targets
-            )
-        if type(statement) in (ast.AnnAssign, ast.AugAssign):
-            target: Any = statement.target
-            return type(target) is ast.Name and target.id == "__all__"
-        return False
-
-    def _assignment_exports(self, statement: ast.stmt) -> list[str]:
-        """Responsibilities: _assigned Python export names_."""
-        if type(statement) is ast.Assign:
-            return self._export_names(statement.value)
-        if type(statement) in (ast.AnnAssign, ast.AugAssign):
-            if statement.value is not None:
-                return self._export_names(statement.value)
-        return []
-
-    def _python_exports(self) -> list[str]:
-        """Responsibilities: _static module export metadata_."""
-        names: list[str] = []
-        for statement in self.tree.tree.body:
-            if not self._is_all_assignment(statement):
-                continue
-            if type(statement) is ast.AnnAssign and statement.value is None:
-                continue
-            declared = self._assignment_exports(statement)
-            if type(statement) is ast.AugAssign:
-                names.extend(declared)
-                continue
-            names = declared
-        return list(dict.fromkeys(names))
-
-    def _docstring_span(self, value: ast.Constant) -> dict[str, int]:
-        """Responsibilities: _docstring span conversion_."""
-        end_line: Any = value.end_lineno or value.lineno
-        end_column: Any = value.end_col_offset or value.col_offset
+    def _module_reference_data(self) -> JsonObject:
+        """Responsibilities: _module reference metadata_."""
+        with self._measure("python-imports"):
+            imports = self._tree.analysis_state().core().source_dependencies().import_nodes().import_records()
+        with self._measure("python-exports"):
+            exports = self._ast_metadata.export_names()
+        with self._measure("main-guard"):
+            main_guard = any(self._main_guard_node(node) for node in self._tree.tree().body)
         return {
-            "start_line": value.lineno - 1,
-            "start_column": value.col_offset,
-            "end_line": end_line - 1,
-            "end_column": end_column,
+            "python_imports": self._json_records(imports),
+            "python_exports": self._json_strings(exports),
+            "python_main_guard": main_guard,
         }
 
-    def _docstring_spans(self) -> list[JsonObject]:
-        """Responsibilities: _docstring span collection_."""
-        spans: list[dict[str, int]] = []
-        owners: Any = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
-        for node in self.tree.node_index.nodes(self.tree.tree):
-            if type(node) not in owners:
-                continue
-            body: Any = node.body
-            if not body:
-                continue
-            if not self.tree.callable_statements.string_statement(body[0]):
-                continue
-            spans.append(self._docstring_span(body[0].value))
-        return spans
+    def _symbol_reference_data(self) -> JsonObject:
+        """Responsibilities: _symbol reference metadata_."""
+        with self._measure("reference-aliases"):
+            tree = self._tree.tree()
+            aliases = (
+                self._tree.analysis_state()
+                .imports()
+                .reference_aliases()
+                .collect(
+                    tree,
+                    self._tree.analysis_state().core().source_dependencies().node_index().nodes(tree),
+                )
+            )
+        with self._measure("symbol-references"):
+            references = self.symbol_references()
+        return {
+            "reference_aliases": self._json_records(aliases),
+            "symbol_references": self._json_records(references),
+        }
 
     def _reference_data(
-        self, literals: LiteralMetadata, call_references: list[JsonObject]
+        self,
+        literals: LiteralMetadata,
+        call_references: list[JsonObject],
     ) -> JsonObject:
         """Responsibilities: _runtime reference content_."""
-        return {
-            "call_references": call_references,
-            "python_imports": self._timed(
-                "python-imports", self.tree.import_nodes.import_records
-            ),
-            "python_exports": self._timed("python-exports", self._python_exports),
-            "python_main_guard": self._timed(
-                "main-guard",
-                lambda: any(
-                    self._main_guard_node(node) for node in self.tree.tree.body
-                ),
-            ),
-            "reference_aliases": self._timed(
-                "reference-aliases",
-                lambda: self.tree.reference_aliases.collect(self.tree.tree),
-            ),
-            "symbol_references": self._timed(
-                "symbol-references", self.symbol_references
-            ),
-            "literal_references": literals["references"],
-            "literal_constants": literals["constants"],
-        }
+        reference_data = self._module_reference_data()
+        reference_data.update(self._symbol_reference_data())
+        reference_data.update(
+            {
+                "call_references": self._json_records(call_references),
+                "literal_references": self._json_records(literals[AST_REFERENCES_KEY]),
+                "literal_constants": self._json_records(literals["constants"]),
+            },
+        )
+        return reference_data
 
     def _metadata_data(self) -> JsonObject:
         """Responsibilities: _reference metadata content_."""
+        with self._measure("docstring-spans"):
+            docstring_spans = self._ast_metadata.docstring_locations()
+        with self._measure("responsibility-targets"):
+            responsibility_targets = self._responsibility_target_collector.collect()
         return {
-            "docstring_spans": self._timed("docstring-spans", self._docstring_spans),
-            "responsibility_targets": self._timed(
-                "responsibility-targets", self.responsibility_target_collector.collect
-            ),
+            "docstring_spans": self._json_records(docstring_spans),
+            "responsibility_targets": self._json_records(responsibility_targets),
         }
 
     def __init__(
         self,
-        tree: PythonAstContentTreeContract,
+        tree: PythonAstContentTreeViewContract,
+        ast_metadata: PythonAstMetadataContract,
         literal_metadata: PythonLiteralMetadataContract,
         responsibility_target_collector: PythonResponsibilityTargetsContract,
     ) -> None:
         """Responsibilities: _reference content initialization_."""
-        self.tree: PythonAstContentTreeContract = tree
-        self.literal_metadata: PythonLiteralMetadataContract = literal_metadata
-        self.responsibility_target_collector: PythonResponsibilityTargetsContract = (
-            responsibility_target_collector
-        )
+        self._tree: PythonAstContentTreeViewContract = tree
+        self._ast_metadata: PythonAstMetadataContract = ast_metadata
+        self._literal_metadata: PythonLiteralMetadataContract = literal_metadata
+        self._responsibility_target_collector: PythonResponsibilityTargetsContract = responsibility_target_collector
 
     def symbol_references(self) -> list[JsonObject]:
         """Responsibilities: _named symbol usage collection_."""
         references: list[JsonObject] = []
-        for node in self.tree.node_index.nodes(self.tree.tree):
+        for node in self._tree.analysis_state().core().source_dependencies().node_index().nodes(self._tree.tree()):
             if type(node) is ast.Name and type(node.ctx) is ast.Load:
                 references.append({"name": node.id, "line": node.lineno - 1})
             if type(node) is ast.Attribute:
@@ -186,13 +142,17 @@ class PythonAstReferenceContent:
 
     def collect(self) -> JsonObject:
         """Responsibilities: _reference content collection_."""
-        literals = self._timed("literal-metadata", self.literal_metadata.collect)
-        call_references = self._timed(
-            "call-references", self.tree.references.collect_references
-        )
-        self.tree.timings_data().update(self.tree.references.timings_data())
+        with self._measure("literal-metadata"):
+            literals = self._literal_metadata.collect()
+        with self._measure("call-references"):
+            call_references = self._tree.analysis_state().imports().references().collect_references()
+        self._tree.timings_data().update(self._tree.analysis_state().imports().references().timings_data())
+        reference_data = self._reference_data(literals, call_references)
+        metadata_data = self._metadata_data()
+        with self._measure("coding-issues"):
+            coding_issues = self._tree.coding_issues()
         return {
-            **self._reference_data(literals, call_references),
-            **self._metadata_data(),
-            "coding_issues": self._timed("coding-issues", self.tree.coding_issues),
+            **reference_data,
+            **metadata_data,
+            "coding_issues": self._json_records(coding_issues),
         }

@@ -1,40 +1,78 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+from functools import cached_property
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
+    PythonReferenceAliasState,
 )
-from implementation.types import JsonObject
 from implementation.rules.constants import (
+    PYTHON_CONSTANT_KIND,
+    PYTHON_MODULE_NESTED_STATEMENT_TYPES,
+    PYTHON_OTHER_DECLARATION_KIND,
+    PYTHON_PROTOCOL_DECLARATION_KIND,
     PYTHON_PROTOCOL_NAME,
+    PYTHON_TYPE_ALIAS_DECLARATION_KIND,
     PYTHON_TYPE_ALIAS_NAME,
     PYTHON_TYPING_EXTENSIONS_MODULE,
     PYTHON_TYPING_MODULE,
 )
+from implementation.types import JsonObject
 
 
 class PythonModuleConstantSpans:
-    """Responsibilities: _module constant span collection_, _type protocol declaration collection_."""
+    """Responsibilities: _module constant spans_, _type alias spans_, _protocol spans_."""
 
-    def _type_alias_names(self) -> set[str]:
-        """Responsibilities: _collection TypeAlias import names_."""
+    _tree: ast.Module
+
+    @cached_property
+    def _type_alias_names(self) -> frozenset[str]:
+        """Responsibilities: _imported TypeAlias names_."""
+        references = PythonReferenceAliases(PythonReferenceAliasState())
         names = {PYTHON_TYPE_ALIAS_NAME}
-        reference_aliases = PythonReferenceAliases()
-        aliases = reference_aliases.collect(self.tree)
-        for alias in aliases:
+        type_alias_names = frozenset({PYTHON_TYPE_ALIAS_NAME})
+        nodes = self._node_index.nodes(self._tree)
+        for alias in references.collect(self._tree, nodes):
             name = str(alias["name"])
-            if reference_aliases.resolved_name(
-                name, frozenset({PYTHON_TYPE_ALIAS_NAME})
-            ):
+            if references.resolved_name(name, type_alias_names):
                 names.add(name)
-        return names
+        return frozenset(names)
 
-    def _type_alias_annotation(self, annotation: ast.AST) -> bool:
-        """Responsibilities: _classification type alias annotation_."""
+    def _final_annotation(self, annotation: ast.AST) -> bool:
+        """Responsibilities: _Final annotation recognition_."""
+        while type(annotation) is ast.Subscript:
+            annotation = annotation.value
         if type(annotation) is ast.Name:
-            return annotation.id in self._type_alias_names()
+            return annotation.id == "Final"
+        if type(annotation) is ast.Attribute:
+            return annotation.attr == "Final"
+        return False
+
+    def _constant(self, declaration: ast.stmt) -> bool:
+        """Responsibilities: _module constant recognition_."""
+        if type(declaration) is ast.Assign:
+            return any(self._uppercase_name(target) for target in declaration.targets)
+        if type(declaration) is not ast.AnnAssign:
+            return False
+        if self._uppercase_name(declaration.target):
+            return True
+        return self._final_annotation(declaration.annotation)
+
+    def _uppercase_name(self, candidate: ast.AST) -> bool:
+        """Responsibilities: _uppercase declaration recognition_."""
+        if type(candidate) is not ast.Name:
+            return False
+        return candidate.id.isupper()
+
+    def _type_alias(self, declaration: ast.AnnAssign) -> bool:
+        """Responsibilities: _module type alias recognition_."""
+        if type(declaration.target) is not ast.Name:
+            return False
+        annotation = declaration.annotation
+        if type(annotation) is ast.Name:
+            return annotation.id in self._type_alias_names
         if type(annotation) is not ast.Attribute:
             return False
         if annotation.attr != PYTHON_TYPE_ALIAS_NAME:
@@ -46,13 +84,63 @@ class PythonModuleConstantSpans:
             PYTHON_TYPING_EXTENSIONS_MODULE,
         }
 
-    def _span(self, node: ast.AST) -> dict[str, int]:
-        """Responsibilities: _module declaration source conversion_."""
-        end_line: Any = node.lineno + self._span_line_count(node)
-        end_line = end_line - 1
-        end_column: Any = node.end_col_offset
-        if end_column is None:
-            end_column: Any = node.col_offset
+    def _protocol(self, declaration: ast.ClassDef) -> bool:
+        """Responsibilities: _Protocol class recognition_."""
+        for base in declaration.bases:
+            if type(base) is ast.Name and base.id == PYTHON_PROTOCOL_NAME:
+                return True
+            if type(base) is ast.Attribute and base.attr == PYTHON_PROTOCOL_NAME:
+                return True
+        return False
+
+    def _kind(self, declaration: ast.stmt) -> str:
+        """Responsibilities: _module declaration classification_."""
+        if self._constant(declaration):
+            return PYTHON_CONSTANT_KIND
+        if type(declaration) is ast.AnnAssign:
+            if self._type_alias(declaration):
+                return PYTHON_TYPE_ALIAS_DECLARATION_KIND
+        if type(declaration) is ast.ClassDef:
+            if self._protocol(declaration):
+                return PYTHON_PROTOCOL_DECLARATION_KIND
+        return PYTHON_OTHER_DECLARATION_KIND
+
+    def _nested_statements(self, node: ast.stmt) -> list[ast.stmt]:
+        """Responsibilities: _nested module statement extraction_."""
+        if type(node) not in PYTHON_MODULE_NESTED_STATEMENT_TYPES:
+            return []
+        statements: list[ast.stmt] = []
+        for child in ast.iter_child_nodes(node):
+            match child:
+                case ast.stmt() as statement:
+                    statements.append(statement)
+                case _:
+                    continue
+        for child in ast.iter_child_nodes(node):
+            if type(child) is ast.ExceptHandler:
+                statements.extend(child.body)
+            if type(child) is ast.match_case:
+                statements.extend(child.body)
+        return statements
+
+    def _module_statements(self) -> list[ast.stmt]:
+        """Responsibilities: _recursive module declaration traversal_."""
+        statements: list[ast.stmt] = []
+        pending = list(reversed(self._tree.body))
+        while pending:
+            statement = pending.pop()
+            statements.append(statement)
+            pending.extend(reversed(self._nested_statements(statement)))
+        return statements
+
+    def _span(self, node: ast.AST) -> JsonObject:
+        """Responsibilities: _source span record creation_."""
+        end_line = node.lineno
+        if node.end_lineno is not None:
+            end_line = node.end_lineno
+        end_column = node.col_offset
+        if node.end_col_offset is not None:
+            end_column = node.end_col_offset
         return {
             "start_line": node.lineno - 1,
             "start_column": node.col_offset,
@@ -60,121 +148,32 @@ class PythonModuleConstantSpans:
             "end_column": end_column,
         }
 
-    def _span_line_count(self, node: ast.AST) -> int:
-        """Responsibilities: _calculation line count represented_."""
-        end_line: Any = node.end_lineno
-        if end_line is None:
-            end_line: Any = node.lineno
-        line_count = end_line - node.lineno
-        return line_count + 1
+    def _matching_spans(
+        self,
+        statements: list[ast.stmt],
+        kind: str,
+    ) -> list[JsonObject]:
+        """Responsibilities: _matching declaration span collection_."""
+        spans: list[JsonObject] = []
+        for statement in statements:
+            if self._kind(statement) != kind:
+                continue
+            spans.append(self._span(statement))
+        return spans
 
-    def _is_constant_assignment(self, node: ast.AST) -> bool:
-        """Responsibilities: _classification module assignment constant_."""
-        if type(node) is ast.Assign:
-            return any(self._constant_target(target) for target in node.targets)
-        if type(node) is ast.AnnAssign:
-            return self._annotated_constant(node)
-        return False
-
-    def _constant_target(self, target: ast.AST) -> bool:
-        """Responsibilities: _classification uppercase constant target_."""
-        if type(target) is not ast.Name:
-            return False
-        return target.id.isupper()
-
-    def _annotated_constant(self, node: ast.AnnAssign) -> bool:
-        """Responsibilities: _classification annotated constant target_."""
-        if type(node.target) is not ast.Name:
-            return False
-        if node.target.id.isupper():
-            return True
-        return self._is_final_annotation(node.annotation)
-
-    def _is_final_annotation(self, annotation: ast.AST) -> bool:
-        """Responsibilities: _classification final constant annotation_."""
-        if type(annotation) is ast.Name:
-            return annotation.id == "Final"
-        if type(annotation) is ast.Attribute:
-            return annotation.attr == "Final"
-        if type(annotation) is ast.Subscript:
-            return self._is_final_annotation(annotation.value)
-        return False
-
-    def _module_nodes(self, statements: list[ast.stmt]) -> list[ast.stmt]:
-        """Responsibilities: _collection conditional module statements_."""
-        nodes: list[ast.stmt] = []
-        for node in statements:
-            nodes.append(node)
-            nested = self._nested_statements(node)
-            nodes.extend(self._module_nodes(nested))
-        return nodes
-
-    def _nested_statements(self, node: ast.stmt) -> list[ast.stmt]:
-        """Responsibilities: _nested module statement collection_."""
-        if type(node) in (ast.If, ast.For, ast.AsyncFor, ast.While):
-            return [*node.body, *node.orelse]
-        if type(node) in (ast.With, ast.AsyncWith):
-            return list(node.body)
-        if type(node) in (ast.Try, ast.TryStar):
-            return self._try_statements(node)
-        if type(node) is ast.Match:
-            return [statement for case in node.cases for statement in case.body]
-        return []
-
-    def _try_statements(self, node: ast.AST) -> list[ast.stmt]:
-        """Responsibilities: _nested try statement collection_."""
-        nested = [*node.body, *node.orelse, *node.finalbody]
-        for handler in node.handlers:
-            nested.extend(handler.body)
-        return nested
-
-    def _is_type_alias(self, node: ast.AST) -> bool:
-        """Responsibilities: _classification module assignment type_."""
-        is_annotated_assignment = type(node) is ast.AnnAssign
-        if not is_annotated_assignment:
-            return False
-        if type(node.target) is not ast.Name:
-            return False
-        return self._type_alias_annotation(node.annotation)
-
-    def _is_protocol(self, node: ast.AST) -> bool:
-        """Responsibilities: _classification class declaration Protocol_."""
-        if type(node) is not ast.ClassDef:
-            return False
-        return any(self._is_protocol_base(base) for base in node.bases)
-
-    def _is_protocol_base(self, base: ast.AST) -> bool:
-        """Responsibilities: _classification base expression Protocol_."""
-        if type(base) is ast.Name:
-            return base.id == PYTHON_PROTOCOL_NAME
-        if type(base) is ast.Attribute:
-            return base.attr == PYTHON_PROTOCOL_NAME
-        return False
-
-    def __init__(self, tree: ast.Module) -> None:
-        """Responsibilities: _initialization module tree usage_."""
-        self.tree: Any = tree
+    def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexContract) -> None:
+        """Responsibilities: _module declaration analysis dependencies_."""
+        self._tree: ast.Module = tree
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     def collect_spans(self) -> list[JsonObject]:
-        """Responsibilities: _collection source spans module_."""
-        spans: list[dict[str, int]] = []
-        for node in self._module_nodes(self.tree.body):
-            if self._is_constant_assignment(node):
-                spans.append(self._span(node))
-        return spans
+        """Responsibilities: _module constant span collection_."""
+        return self._matching_spans(self._module_statements(), PYTHON_CONSTANT_KIND)
 
     def collect_types(self) -> list[JsonObject]:
-        """Responsibilities: _collection source spans module_."""
-        spans: list[dict[str, int]] = []
-        for node in self.tree.body:
-            if self._is_type_alias(node):
-                spans.append(self._span(node))
-        return spans
+        """Responsibilities: _module type span collection_."""
+        return self._matching_spans(self._tree.body, PYTHON_TYPE_ALIAS_DECLARATION_KIND)
 
     def collect_protocols(self) -> list[JsonObject]:
-        """Responsibilities: _collection source spans module_."""
-        spans: list[dict[str, int]] = []
-        for node in self.tree.body:
-            if self._is_protocol(node):
-                spans.append(self._span(node))
-        return spans
+        """Responsibilities: _module Protocol span collection_."""
+        return self._matching_spans(self._tree.body, PYTHON_PROTOCOL_DECLARATION_KIND)

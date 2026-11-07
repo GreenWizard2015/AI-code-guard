@@ -1,24 +1,24 @@
-import type {
-	PythonDeclarationLineScanState,
-	PythonDeclarationStringLines,
-	SourceTextOccurrence,
-} from "src/model/types/types";
-import type { RuleContract, ViolationContract } from "src/reporting_protocols";
+import type { SourceTextAnalysisOptions, SourceTextOccurrence } from "src/model_types";
+import type { RuleContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 import { MarkdownProseLines } from "src/rules/support/markdown_prose_lines";
 import { PythonSourceTextScanner } from "src/rules/support/python_source_text_scanner";
 import { TypeScriptSourceTextScanner } from "src/rules/support/type_script_source_text_scanner";
-import { TestPathSyntax } from "src/test_path_syntax";
+import type { NonEnglishSourceTextRulesContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _non-English source text detection_, _text-file diagnostics_. **/
-export class NonEnglishSourceTextRules {
-	private readonly rule: RuleContract;
-	private readonly test_paths: TestPathSyntax;
-	private readonly non_latin_letter = /\p{L}/u;
-	private readonly latin_script = /\p{Script=Latin}/u;
+export class NonEnglishSourceTextRules implements NonEnglishSourceTextRulesContract {
+	private readonly _rule: RuleContract;
+	private readonly _non_latin_letter: RegExp;
+	private readonly _latin_script: RegExp;
+	private readonly _non_ascii_character: RegExp;
 	/** Responsibilities: _non-Latin text detection_. **/
-	private non_latin_text(text: string): boolean {
-		for (const character of text) {
-			if (this.non_latin_letter.test(character) && !this.latin_script.test(character)) {
+	private non_latin_text(source_text: string): boolean {
+		if (!this._non_ascii_character.test(source_text)) {
+			return false;
+		}
+		for (const character of source_text) {
+			if (this._non_latin_letter.test(character) && !this._latin_script.test(character)) {
 				return true;
 			}
 		}
@@ -36,74 +36,9 @@ export class NonEnglishSourceTextRules {
 				continue;
 			}
 			reported_lines.add(occurrence.line);
-			violations.push(this.rule.violation(file, occurrence.line, {}));
+			violations.push(this._rule.violation(file, occurrence.line, {}));
 		}
 		return violations;
-	}
-
-	/** Responsibilities: _Python signature line indexing_. **/
-	private append_signature_line(line_number: number, trimmed: string, state: PythonDeclarationLineScanState): void {
-		if (/^(async\s+)?def\s+[A-Za-z_]\w*\s*\(/u.test(trimmed)) {
-			state.in_signature = true;
-		}
-		if (!state.in_signature) {
-			return;
-		}
-		state.annotation_lines.add(line_number);
-		if (trimmed.endsWith(":")) {
-			state.in_signature = false;
-		}
-	}
-
-	/** Responsibilities: _Python export line indexing_. **/
-	private append_export_line(
-		line_number: number,
-		line: string,
-		trimmed: string,
-		state: PythonDeclarationLineScanState,
-	): void {
-		if (/^__all__\s*(?:\+?=)/u.test(trimmed)) {
-			state.in_exports = true;
-			state.export_depth = 0;
-		}
-		if (!state.in_exports) {
-			return;
-		}
-		state.export_lines.add(line_number);
-		this.update_export_depth(line, state);
-		if (state.export_depth <= 0) {
-			state.in_exports = false;
-		}
-	}
-
-	/** Responsibilities: _Python export delimiter depth_. **/
-	private update_export_depth(line: string, state: PythonDeclarationLineScanState): void {
-		const opening = line.match(/[([{]/gu);
-		const closing = line.match(/[)\]}]/gu);
-		if (opening !== null) {
-			state.export_depth += opening.length;
-		}
-		if (closing !== null) {
-			state.export_depth -= closing.length;
-		}
-	}
-
-	/** Responsibilities: _Python declaration metadata_. **/
-	private python_declaration_lines(text: string): PythonDeclarationStringLines {
-		const state: PythonDeclarationLineScanState = {
-			in_signature: false,
-			in_exports: false,
-			export_depth: 0,
-			annotation_lines: new Set<number>(),
-			export_lines: new Set<number>(),
-		};
-		for (const [index, line] of text.split("\n").entries()) {
-			const line_number = index + 1;
-			const trimmed = line.trim();
-			this.append_signature_line(line_number, trimmed, state);
-			this.append_export_line(line_number, line, trimmed, state);
-		}
-		return { annotation: state.annotation_lines, exports: state.export_lines };
 	}
 
 	/** Responsibilities: _Python string annotation classification_. **/
@@ -126,57 +61,83 @@ export class NonEnglishSourceTextRules {
 	}
 
 	/** Responsibilities: _Python source violations_. **/
-	private python_source_violations(file: string, text: string): ViolationContract[] {
+	private python_source_violations(python_options: SourceTextAnalysisOptions): ViolationContract[] {
 		const scanner = new PythonSourceTextScanner();
-		if (this.test_paths.test_file(file)) {
-			return this.violations(file, scanner.scan_comments(text));
+		if (python_options.test_file) {
+			return this.violations(python_options.file, scanner.scan_comments(python_options.text));
 		}
-		const declaration_lines = this.python_declaration_lines(text);
-		const lines = text.split("\n");
+		const declaration_lines = scanner.declaration_lines(python_options.text);
+		const lines = python_options.text.split("\n");
 		const occurrences = scanner
-			.scan(text)
+			.scan(python_options.text)
 			.filter(
 				(occurrence) =>
 					occurrence.kind !== "string" ||
 					(!declaration_lines.exports.has(occurrence.line) &&
 						!this.python_annotation_string(occurrence, lines, declaration_lines.annotation)),
 			);
-		return this.violations(file, occurrences);
+		return this.violations(python_options.file, occurrences);
 	}
 
 	/** Responsibilities: _TypeScript source violations_. **/
-	private typescript_source_violations(file: string, text: string): ViolationContract[] {
-		const scanner = new TypeScriptSourceTextScanner();
-		if (this.test_paths.test_file(file)) {
-			return this.violations(file, scanner.scan_comments(text));
+	private typescript_source_violations(typescript_options: SourceTextAnalysisOptions): ViolationContract[] {
+		const scanner = new TypeScriptSourceTextScanner(typescript_options.text);
+		if (typescript_options.test_file) {
+			return this.violations(typescript_options.file, scanner.scan_comments());
 		}
-		return this.violations(file, scanner.scan(text));
+		return this.violations(typescript_options.file, scanner.scan());
+	}
+
+	/** Responsibilities: _explicit localized-document ownership_. **/
+	private declared_localized_prose(document_text: string): boolean {
+		const lines = document_text.split("\n");
+		const first_line = lines[0];
+		if (first_line === undefined || first_line.trim() !== "---") {
+			return false;
+		}
+		for (const line of lines.slice(1)) {
+			const value = line.trim();
+			if (value === "---") {
+				return false;
+			}
+			if (!/^language:\s*[a-z]{2,3}(?:-[A-Z]{2})?$/u.test(value)) {
+				continue;
+			}
+			return value.slice(value.indexOf(":") + 1).trim() !== "en";
+		}
+		return false;
 	}
 
 	/** Responsibilities: _diagnostic dependency initialization_. **/
 	public constructor(rule: RuleContract) {
-		this.rule = rule;
-		this.test_paths = new TestPathSyntax();
+		this._rule = rule;
+		this._non_latin_letter = /\p{L}/u;
+		this._latin_script = /\p{Script=Latin}/u;
+		this._non_ascii_character = /[^\p{ASCII}]/u;
 	}
 
 	/** Responsibilities: _source code violations collection_. **/
-	public source_violations(file: string, text: string, python: boolean): ViolationContract[] {
-		if (!this.non_latin_text(text)) {
+	public source_violations(source_options: SourceTextAnalysisOptions): ViolationContract[] {
+		if (!this.non_latin_text(source_options.text)) {
 			return [];
 		}
-		if (python) {
-			return this.python_source_violations(file, text);
+		if (source_options.language === "python") {
+			return this.python_source_violations(source_options);
 		}
-		return this.typescript_source_violations(file, text);
+		return this.typescript_source_violations(source_options);
 	}
 
 	/** Responsibilities: _text-file violations collection_. **/
-	public text_file_violations(file: string, text: string): ViolationContract[] {
-		const markdown_prose = new MarkdownProseLines(file, text);
+	public text_file_violations(document_file: string, document_text: string): ViolationContract[] {
+		if (this.declared_localized_prose(document_text)) {
+			return [];
+		}
+		const markdown_prose = new MarkdownProseLines(document_file, document_text);
 		const prose_lines = markdown_prose.prose_lines();
 		for (let index = 0; index < prose_lines.length; index += 1) {
-			if (this.non_latin_text(prose_lines[index])) {
-				return [this.rule.violation(file, index + 1, {})];
+			const prose_line = prose_lines[index];
+			if (prose_line !== undefined && this.non_latin_text(prose_line)) {
+				return [this._rule.violation(document_file, index + 1, {})];
 			}
 		}
 		return [];

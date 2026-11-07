@@ -8,71 +8,96 @@ Replace it with the concrete domain action or split the responsibilities.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public process_payment(): string { return "value"; }
+// File: src/payment.ts
+export class Payment {
+	private readonly account_id: string;
+	private readonly amount: number;
+
+	private approval_status(): string {
+		if (this.amount > 0) {
+			return "approved";
+		}
+		return "review";
+	}
+
+	private charge_line(): string {
+		return `${this.account_id}: ${this.amount.toFixed(2)}`;
+	}
+
+	public constructor(account_id: string, amount: number) {
+		this.account_id = account_id;
+		this.amount = amount;
+	}
+
+	public process_payment(): string {
+		const approval = this.approval_status();
+		const charge = this.charge_line();
+		return `${approval}: ${charge}`;
+	}
+
+	public report(): void {
+		const receipt = this.process_payment();
+		console.log(receipt);
+	}
 }
+// File: cli.ts
+import { Payment } from "src/payment";
+
+(function run(): void {
+	const payment = new Payment("account-1", 25.5);
+	payment.report();
+})();
 ```
 
 
 ## Good
 
 ```ts
-// File: src/price_labels.ts
-/** Responsibilities: _price label mapping_. **/
-export class PriceLabels {
-	private readonly prices: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+// File: src/payment.ts
+/** Responsibilities: _payment authorization_, _account charging_, _receipt reporting_. **/
+export class Payment {
+	private readonly _account_id: string;
+	private readonly _amount: number;
 
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(prices: ReadonlyMap<string, string>, fallback: string) {
-		this.prices = prices;
-		this.fallback = fallback;
+	/** Responsibilities: _payment initialization_. **/
+	public constructor(account_id: string, amount: number) {
+		this._account_id = account_id;
+		this._amount = amount;
 	}
 
-	/** Responsibilities: _price label selection_. **/
-	public price_label(price_code: string): string {
-		const label = this.prices.get(price_code);
-		if (label === undefined) {
-			return this.fallback;
+	/** Responsibilities: _payment approval status_. **/
+	public approval_status(): string {
+		if (this._amount > 0) {
+			return "approved";
 		}
-		return label;
+		return "review";
 	}
 
-	/** Responsibilities: _prefixed label composition_. **/
-	public prefixed_price_label(prefix: string, price_code: string): string {
-		const label = this.price_label(price_code);
-		return `${prefix}: ${label}`;
+	/** Responsibilities: _account charge description_. **/
+	public charge_account(): string {
+		const account = this._account_id.trim();
+		const amount = this._amount.toFixed(2);
+		return `${account}: ${amount}`;
 	}
 
-	/** Responsibilities: _fallback capitalization_. **/
-	public formatted_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
+	/** Responsibilities: _payment receipt_. **/
+	public receipt(): string {
+		const approval = this.approval_status();
+		const charge = this.charge_account();
+		return `${approval}: ${charge}`;
 	}
 
-	/** Responsibilities: _mapping size reporting_. **/
-	public price_count(): number {
-		let count = 0;
-		for (const price_code of this.prices.keys()) {
-			if (price_code.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	/** Responsibilities: _receipt output_. **/
+	public report(): void {
+		const receipt = this.receipt();
+		console.log(receipt);
 	}
 }
 // File: cli.ts
-import { PriceLabels } from "src/price_labels";
+import { Payment } from "src/payment";
 
-(function () {
-	const prices = new Map<string, string>();
-	prices.set("sale", "Sale");
-	prices.set("tax", "Tax");
-	const price_labels = new PriceLabels(prices, "Unknown");
-	const label = price_labels.price_label("sale");
-	const detailed = price_labels.prefixed_price_label("State", "tax");
-	const fallback = price_labels.formatted_fallback();
-	const count = price_labels.price_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+(function run(): void {
+	const payment = new Payment("account-1", 25.5);
+	payment.report();
 })();
 ```

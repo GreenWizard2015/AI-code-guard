@@ -15,7 +15,7 @@ class PythonAnnotatedTypeAliasCollector:
 
     def __init__(self, aliases: list[JsonObject]) -> None:
         """Responsibilities: _alias target ownership_."""
-        self.aliases: list[JsonObject] = aliases
+        self._aliases: list[JsonObject] = aliases
 
     def type_alias_annotation(self, annotation: ast.AST) -> bool:
         """Responsibilities: _TypeAlias annotation classification_."""
@@ -27,10 +27,7 @@ class PythonAnnotatedTypeAliasCollector:
         """Responsibilities: _named TypeAlias resolution_."""
         if name == PYTHON_TYPE_ALIAS_NAME:
             return True
-        for alias in self.aliases:
-            if alias["name"] == name and alias["target"] == PYTHON_TYPE_ALIAS_NAME:
-                return True
-        return False
+        return any(alias["name"] == name and alias["target"] == PYTHON_TYPE_ALIAS_NAME for alias in self._aliases)
 
     def qualified_type_alias(self, annotation: ast.AST) -> bool:
         """Responsibilities: _qualified TypeAlias recognition_."""
@@ -52,7 +49,7 @@ class PythonAnnotatedTypeAliasCollector:
         if not self.type_alias_annotation(node.annotation):
             return False
         if type(node.target) is ast.Name and node.value is not None:
-            self.aliases.append(
-                {"name": node.target.id, "target": ast.unparse(node.value)}
+            self._aliases.append(
+                {"name": node.target.id, "target": ast.unparse(node.value)},
             )
         return True

@@ -1,25 +1,25 @@
-import { TYPESCRIPT_LANGUAGE } from "src/constants";
-import type { AstDiskCacheContract } from "src/source_protocols";
 import type { ContextSourceRecordCacheContract } from "src/cache_protocols";
+import { TYPESCRIPT_LANGUAGE } from "src/constants";
+import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { LintSourceRecord } from "src/source_types";
-import type { NormalizedAstFileContract } from "src/types";
+import type { AstDiskCacheContract } from "src/source_protocols";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _TypeScript AST retrieval_, _persistent AST cache lifecycle_. **/
 export class ContextSourceRecordCache implements ContextSourceRecordCacheContract {
-	private readonly disk_cache: AstDiskCacheContract;
-	private readonly enabled: boolean;
+	private readonly _disk_cache: AstDiskCacheContract;
+	private readonly _enabled: boolean;
 
 	/** Responsibilities: _cache construction_. **/
 	public constructor(disk_cache: AstDiskCacheContract, enabled: boolean) {
-		this.disk_cache = disk_cache;
-		this.enabled = enabled;
+		this._disk_cache = disk_cache;
+		this._enabled = enabled;
 	}
 
 	/** Responsibilities: _stale cache removal_. **/
 	public clean(): void {
-		if (this.enabled) {
-			this.disk_cache.clean_unused_records();
+		if (this._enabled) {
+			this._disk_cache.clean_unused_records();
 		}
 	}
 
@@ -28,9 +28,9 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
 		stage_timer: LintStageTimerContract,
-	): Map<string, NormalizedAstFileContract> {
-		const cached = new Map<string, NormalizedAstFileContract>();
-		if (!this.enabled) {
+	): Map<string, NormalizedAstFile> {
+		const cached = new Map<string, NormalizedAstFile>();
+		if (!this._enabled) {
 			return cached;
 		}
 		return stage_timer.measure("startup.project-context.typescript-ast-disk-cache-read", () => {
@@ -40,7 +40,7 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 				if (text !== undefined) {
 					source_text = text;
 				}
-				const entry = this.disk_cache.content(file, source_text);
+				const entry = this._disk_cache.content(file, source_text);
 				if (entry.should_reparse()) {
 					continue;
 				}
@@ -57,11 +57,11 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 	public write(
 		files: readonly string[],
 		texts: ReadonlyMap<string, string>,
-		records: readonly LintSourceRecord[],
-		cached: ReadonlyMap<string, NormalizedAstFileContract>,
+		records: readonly LintSourceRecordData[],
+		cached: ReadonlyMap<string, NormalizedAstFile>,
 		stage_timer: LintStageTimerContract,
-	): LintSourceRecord[] {
-		if (!this.enabled) {
+	): LintSourceRecordData[] {
+		if (!this._enabled) {
 			return [...records];
 		}
 		return stage_timer.measure("startup.project-context.typescript-ast-disk-cache-write", () => {
@@ -76,7 +76,7 @@ export class ContextSourceRecordCache implements ContextSourceRecordCacheContrac
 					if (text !== undefined) {
 						source_text = text;
 					}
-					this.disk_cache.write(file, source_text, record.normalized_ast);
+					this._disk_cache.write(file, source_text, record.normalized_ast);
 				}
 			}
 			return [...records];

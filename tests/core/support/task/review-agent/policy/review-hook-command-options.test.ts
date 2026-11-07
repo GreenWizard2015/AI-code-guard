@@ -6,7 +6,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 
 describe("review hook command options", () => {
 	test("rejects recursive symlink traversal and additional sed scripts", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			rg_long_follow: policy.read_only("rg --follow -n needle ."),
 			rg_short_follow: policy.read_only("rg -L -n needle ."),
@@ -45,7 +45,7 @@ describe("review hook command options", () => {
 	});
 
 	test("keeps ordinary recursive reads and line printing available", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect({
 			rg_read: policy.read_only("rg -n needle src"),
 			sed_read: policy.read_only("sed -n '1,20p' package.json"),

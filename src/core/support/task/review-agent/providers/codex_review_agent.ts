@@ -1,14 +1,15 @@
-import type {
-	ReviewAgentProcessContract,
-	ReviewAgentContract,
-} from "src/core/support/task/review-agent/protocols";
-import type { ReviewAgentProcessResult, ReviewAgentRequest } from "src/types";
 import { REVIEW_ADD_DIRECTORY_ARGUMENT } from "src/core/support/task/review-agent/constants";
+import type {
+	ReviewAgentContract,
+	ReviewAgentProcessContract,
+	ReviewAgentProcessRequest,
+} from "src/core/support/task/review-agent/protocols";
 import { ReviewAgentHookCommand } from "src/core/support/task/review-agent/review_agent_hook_command";
+import type { ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
 
 /** Responsibilities: _Codex review invocation_, _Codex hook settings assembly_. **/
 export class CodexReviewAgent implements ReviewAgentContract {
-	private readonly process: ReviewAgentProcessContract;
+	private readonly _process: ReviewAgentProcessContract;
 
 	/** Responsibilities: _Codex hook configuration_. **/
 	private hooks_config(request: ReviewAgentRequest): string {
@@ -17,6 +18,7 @@ export class CodexReviewAgent implements ReviewAgentContract {
 			request.hook.hook_file,
 			request.hook.review_prefix,
 			request.hook.review_phase,
+			request.hook.review_start_ms,
 		);
 		const handler = `{type="command",command=${JSON.stringify(hook_command.command())}}`;
 		return `hooks={SessionStart=[{hooks=[${handler}]}],PreToolUse=[{matcher=".*",hooks=[${handler}]}],PostToolUse=[{matcher=".*",hooks=[${handler}]}],Stop=[{hooks=[${handler}]}]}`;
@@ -24,7 +26,7 @@ export class CodexReviewAgent implements ReviewAgentContract {
 
 	/** Responsibilities: _Codex process dependency initialization_. **/
 	public constructor(process: ReviewAgentProcessContract) {
-		this.process = process;
+		this._process = process;
 	}
 
 	/** Responsibilities: _Codex provider identity_. **/
@@ -34,14 +36,14 @@ export class CodexReviewAgent implements ReviewAgentContract {
 
 	/** Responsibilities: _Codex CLI availability_. **/
 	public available(): boolean {
-		return this.process.available(this.agent_name());
+		return this._process.available(this.agent_name());
 	}
 
 	/** Responsibilities: _parallel Codex architecture-review execution_. **/
 	public run_async(request: ReviewAgentRequest): Promise<ReviewAgentProcessResult> {
-		return this.process.run_async(
-			this.agent_name(),
-			[
+		const process_request: ReviewAgentProcessRequest = {
+			command: this.agent_name(),
+			arguments_list: [
 				"exec",
 				"--json",
 				"--ignore-user-config",
@@ -56,7 +58,8 @@ export class CodexReviewAgent implements ReviewAgentContract {
 				this.hooks_config(request),
 				request.prompt,
 			],
-			request.root,
-		);
+			root: request.root,
+		};
+		return this._process.run_async(process_request);
 	}
 }

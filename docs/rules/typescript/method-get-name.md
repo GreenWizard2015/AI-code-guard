@@ -9,71 +9,74 @@ This is a review signal, not a ban at a technical adapter boundary.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public get_price(): number { return 10; }
+// File: src/price_quote.ts
+export class PriceQuote {
+	private readonly item_label: string;
+	private readonly amount: number;
+	private readonly tax_rate: number;
+	public constructor(item_label: string, amount: number, tax_rate: number) {
+		this.item_label = item_label;
+		this.amount = amount;
+		this.tax_rate = tax_rate;
+	}
+	public get_price(): number { return this.amount; } // <- error
+	public price_with_tax(): number {
+		const tax_amount = this.amount * this.tax_rate;
+		return this.amount + tax_amount;
+	}
+	public summary(): string {
+		const base_price = this.get_price();
+		const taxed_price = this.price_with_tax();
+		return `${this.item_label}: ${base_price} / ${taxed_price}`;
+	}
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
+	}
 }
+// File: cli.ts
+import { PriceQuote } from "src/price_quote";
+(function () {
+	const quote = new PriceQuote("Notebook", 12, 0.08);
+	quote.report();
+})();
 ```
-
 
 ## Good
 
 ```ts
-// File: src/price_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
-
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+// File: src/price_quote.ts
+export class PriceQuote {
+	private readonly _item_label: string;
+	private readonly _amount: number;
+	private readonly _tax_rate: number;
+	public constructor(item_label: string, amount: number, tax_rate: number) {
+		this._item_label = item_label;
+		this._amount = amount;
+		this._tax_rate = tax_rate;
 	}
-
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
-		}
-		return label;
+	public price(): number {
+		if (this._amount < 0) { return 0; }
+		return this._amount;
 	}
-
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
+	public price_with_tax(): number {
+		const tax_amount = this._amount * this._tax_rate;
+		return this._amount + tax_amount;
 	}
-
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
+	public summary(): string {
+		const base_price = this.price();
+		const taxed_price = this.price_with_tax();
+		return `${this._item_label}: ${base_price} / ${taxed_price}`;
 	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
 	}
 }
 // File: cli.ts
-import { PriceLabels } from "src/price_labels";
-
+import { PriceQuote } from "src/price_quote";
 (function () {
-	const labels = new Map<string, string>();
-	labels.set("ready", "Ready");
-	labels.set("blocked", "Blocked");
-	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	const quote = new PriceQuote("Notebook", 12, 0.08);
+	quote.report();
 })();
 ```

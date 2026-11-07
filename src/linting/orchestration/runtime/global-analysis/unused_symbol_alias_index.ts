@@ -1,34 +1,34 @@
-import type { LintSourceRecord } from "src/source_types";
+import type { UnusedSymbolAliasIndexContract } from "src/contracts/protocols/global_analysis_protocols";
 import type { UnusedSymbolAliasCache, UnusedSymbolAliasMap } from "src/core/types";
-import type { UnusedSymbolAliasIndexContract } from "src/linting/orchestration/runtime/global-analysis/protocols";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _source alias indexing_, _reference name expansion_. **/
 export class UnusedSymbolAliasIndex implements UnusedSymbolAliasIndexContract {
-	private readonly aliases_by_file: UnusedSymbolAliasCache;
+	private readonly _aliases_by_file: UnusedSymbolAliasCache;
 
 	/** Responsibilities: _alias index initialization_. **/
 	public constructor() {
-		this.aliases_by_file = new Map<string, UnusedSymbolAliasMap>();
+		this._aliases_by_file = new Map<string, UnusedSymbolAliasMap>();
 	}
 
 	/** Responsibilities: _source alias indexing_. **/
-	public add_source(source: LintSourceRecord): void {
-		if (this.aliases_by_file.has(source.absolute_path)) {
+	public add_source(source: LintSourceRecordData): void {
+		if (this._aliases_by_file.has(source.absolute_path)) {
 			return;
 		}
 		const aliases = new Map<string, string>();
-		for (const alias of source.normalized_ast.reference_aliases) {
+		for (const alias of source.normalized_ast.references.reference_aliases) {
 			if (!aliases.has(alias.name)) {
 				aliases.set(alias.name, alias.target);
 			}
 		}
-		this.aliases_by_file.set(source.absolute_path, aliases);
+		this._aliases_by_file.set(source.absolute_path, aliases);
 	}
 
 	/** Responsibilities: _reference binding names_. **/
-	public names(source: LintSourceRecord, name: string): string[] {
+	public names(source: LintSourceRecordData, name: string): string[] {
 		const names = [name];
-		const aliases = this.aliases_by_file.get(source.absolute_path);
+		const aliases = this._aliases_by_file.get(source.absolute_path);
 		if (aliases === undefined) {
 			return names;
 		}

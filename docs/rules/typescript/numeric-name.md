@@ -24,21 +24,73 @@ rule.
 ## Bad
 
 ```ts
+// File: src/status.ts
+export class Status {
+	private readonly value: string;
+	public constructor(value: string) { this.value = value; }
+	public normalized(): string { return this.value.trim().toLowerCase(); }
+	public ready(): boolean { return this.normalized() === "ready"; }
+	public contains(fragment: string): boolean {
+		const normalized_fragment = fragment.trim().toLowerCase();
+		const status_value = this.normalized();
+		if (normalized_fragment.length === 0) { return false; }
+		return status_value.includes(normalized_fragment);
+	}
+	public label(item1: string): string { return `${item1}: ${this.normalized()}`; }
+	public report(): void {
+		const normalized = this.normalized();
+		const ready = this.ready();
+		const label = this.label("State");
+		console.log(normalized, ready, label, this.contains("ead"));
+	}
+}
 // File: cli.ts
+import { Status } from "src/status";
 (function () {
-	const item1 = 1;
-	console.log(item1);
+	const status = new Status(" READY ");
+	status.report();
 })();
 ```
-
 
 ## Good
 
 ```ts
+// File: src/status.ts
+export class Status {
+	private readonly _value: string;
+	private readonly _normalized_values: Map<string, string>;
+	public constructor(value: string) {
+		this._value = value;
+		this._normalized_values = new Map();
+	}
+	public normalized(): string {
+		const cached_value = this._normalized_values.get(this._value);
+		if (cached_value !== undefined) {
+			return cached_value;
+		}
+		const normalized_value = this._value.trim().toLowerCase();
+		this._normalized_values.set(this._value, normalized_value);
+		return normalized_value;
+	}
+	public ready(): boolean { return this.normalized() === "ready"; }
+	public contains(fragment: string): boolean {
+		const normalized_fragment = fragment.trim().toLowerCase();
+		const status_value = this.normalized();
+		if (normalized_fragment.length === 0) { return false; }
+		return status_value.includes(normalized_fragment);
+	}
+	public label(prefix: string): string { return `${prefix}: ${this.normalized()}`; }
+	public report(): void {
+		const normalized = this.normalized();
+		const ready = this.ready();
+		const label = this.label("State");
+		console.log(normalized, ready, label, this.contains("ead"));
+	}
+}
 // File: cli.ts
+import { Status } from "src/status";
 (function () {
-	const item_count = 1;
-	console.log(item_count);
+	const status = new Status(" READY ");
+	status.report();
 })();
 ```
-

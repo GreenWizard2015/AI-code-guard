@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint logical chain rules", () => {
 	test("requires a named condition for more than three parts", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditions.ts":
 					"function ready(a: boolean, b: boolean, c: boolean, d: boolean): boolean { return a && b && c && d; }",
@@ -17,13 +17,13 @@ describe("coding-lint logical chain rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "logical-chain-size")).toHaveLength(2);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size")).toHaveLength(2);
 	});
 
 	test("requires a named condition when a three-part expression is 100+ characters", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditions.ts":
 					"function ready(request: Request): boolean { return request.user.permission_names_that_are_loaded_from_the_remote_permission_registry && request.user.is_active && request.user.is_verified; }",
@@ -33,13 +33,13 @@ describe("coding-lint logical chain rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "logical-chain-size")).toHaveLength(2);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size")).toHaveLength(2);
 	});
 
 	test("allows a long chain inside a named variable", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditions.ts":
 					"function ready(a: boolean, b: boolean, c: boolean, d: boolean): boolean { const is_ready = a && b && c && d; return is_ready; }",
@@ -49,13 +49,13 @@ describe("coding-lint logical chain rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "logical-chain-size")).toHaveLength(0);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size")).toHaveLength(0);
 	});
 
 	test("rejects long chains in concise arrow bodies", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"concise-arrow.ts":
 					"const ready = (a: boolean, b: boolean, c: boolean, d: boolean): boolean => a && b && c && d;",
@@ -63,13 +63,13 @@ describe("coding-lint logical chain rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "logical-chain-size")).toHaveLength(1);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size")).toHaveLength(1);
 	});
 
 	test("requires a named condition for 100+ character two-part chains but ignores one part", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditions.ts": [
 					"function two(request: Request): boolean { return request.user.permission_names_that_are_loaded_from_the_remote_permission_registry && request.user.is_active; }",
@@ -85,17 +85,17 @@ describe("coding-lint logical chain rules", () => {
 			},
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
-		const logical_violations = execution.report.violations.filter((item) => item.rule_id === "logical-chain-size");
+		const logical_violations = execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size");
 		expect({
-			typescript: logical_violations.filter((item) => item.file.endsWith("conditions.ts")).length,
-			python: logical_violations.filter((item) => item.file.endsWith("conditions.py")).length,
+			typescript: logical_violations.filter((item) => item.file().endsWith("conditions.ts")).length,
+			python: logical_violations.filter((item) => item.file().endsWith("conditions.py")).length,
 		}).toEqual({ typescript: 1, python: 1 });
 	});
 
 	test("counts only the logical expression, not its surrounding function", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditions.ts": [
 					"function ready(a: boolean, b: boolean, third_parameter_with_a_descriptive_name: string, fourth_parameter_with_a_descriptive_name: string): boolean {",
@@ -110,6 +110,6 @@ describe("coding-lint logical chain rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "logical-chain-size")).toHaveLength(0);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "logical-chain-size")).toHaveLength(0);
 	});
 });

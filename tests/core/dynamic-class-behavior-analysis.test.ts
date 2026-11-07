@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("dynamic class behavior analysis", () => {
 	test("reports dynamic factories, static methods, and dynamic execution", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"dynamic-container.ts": [
 					"declare const module_name: string;",
@@ -45,13 +45,13 @@ describe("dynamic class behavior analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect({
 			dynamic_class_construction:
 				messages.filter((message) => message === "avoid dynamic class construction with type(...)").length > 0,
 			static_methods: messages.filter((message) => message === "avoid static methods").length,
 			dynamic_imports: messages.includes("avoid dynamic imports"),
-			conditional_execution: messages.filter((message) => message === "avoid conditional execution operators").length,
+			conditional_execution: violations.filter((item) => item.rule_id() === "conditional-execution").length,
 		}).toEqual({
 			dynamic_class_construction: true,
 			static_methods: 2,
@@ -63,7 +63,7 @@ describe("dynamic class behavior analysis", () => {
 	test("reports prototype mutation, temporary-result access, and repeated branch comparisons", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"prototype-key-alias.ts": [
 					"class Constructor {}",
@@ -93,6 +93,22 @@ describe("dynamic class behavior analysis", () => {
 					'  return "other";',
 					"}",
 				].join("\n"),
+				"repeated-prefix.ts": [
+					"function render(kind: string) {",
+					'  if (kind === "A") return "first";',
+					'  else if (kind === "A") return "second";',
+					'  else if (kind.length > 1) return "non-equality";',
+					'  return "other";',
+					"}",
+				].join("\n"),
+				"mixed-after-repeat.ts": [
+					"function render(kind: string) {",
+					'  if (kind === "A") return "first";',
+					'  else if (kind === "A") return "second";',
+					'  else if (other === "B") return "different";',
+					'  return "other";',
+					"}",
+				].join("\n"),
 				"branches.py": [
 					"def render(kind):",
 					'    if kind == "A":',
@@ -106,18 +122,18 @@ describe("dynamic class behavior analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			prototype_assignments: violations.filter((item) => item.rule_id === "typescript-prototype-assignment").length,
-			temporary_result_access: violations.filter((item) => item.rule_id === "temporary-result-access").length,
+			prototype_assignments: violations.filter((item) => item.rule_id() === "typescript-prototype-assignment").length,
+			temporary_result_access: violations.filter((item) => item.rule_id() === "temporary-result-access").length,
 			repeated_branch_comparisons: violations.filter(
-				(item) => item.message === "repeated comparisons of one variable should use a lookup map",
+				(item) => item.message() === "repeated comparisons of one variable should use a lookup map",
 			).length,
-		}).toEqual({ prototype_assignments: 5, temporary_result_access: 1, repeated_branch_comparisons: 2 });
+		}).toEqual({ prototype_assignments: 5, temporary_result_access: 1, repeated_branch_comparisons: 3 });
 	});
 
 	test("reports mutable prototype aliases only while they retain the prototype", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"mutable-prototype.ts": [
 					'class User { load(): string { return "original"; } }',
@@ -166,8 +182,8 @@ describe("dynamic class behavior analysis", () => {
 
 		expect(
 			violations
-				.filter((item) => item.rule_id === "typescript-prototype-assignment")
-				.map((item) => item.file)
+				.filter((item) => item.rule_id() === "typescript-prototype-assignment")
+				.map((item) => item.file())
 				.sort(),
 		).toEqual(["assigned-prototype.ts", "conditionally-assigned-prototype.ts", "mutable-prototype.ts"]);
 	});

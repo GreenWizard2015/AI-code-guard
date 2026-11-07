@@ -40,16 +40,15 @@ describe('Status', () => {
 		expect(value).toBe(true);
 	});
 });
-// File: cli.ts
-#!/usr/bin/env node
+// File: src/example_runner.ts
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
 	console.log(status.normalized(), status.ready(), status.label('State'));
 })();
+// File: cli.ts
+import 'src/example_runner';
 ```
-
-
 Rank by references outside imports; source import order breaks ties. Resolve named exports and
 re-exports, including configured package aliases. Continue through resolved production imports until
 one matches the test module path. Ignore tests, support, external, standard-library, type-only,
@@ -60,10 +59,20 @@ side-effect, module, and constant imports.
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _value: string;
+	private readonly _normalized_values: Map<string, string>;
+	public constructor(value: string) {
+		this._value = value;
+		this._normalized_values = new Map();
+	}
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		const cached_value = this._normalized_values.get(this._value);
+		if (cached_value !== undefined) {
+			return cached_value;
+		}
+		const normalized_value = this._value.trim().toLowerCase();
+		this._normalized_values.set(this._value, normalized_value);
+		return normalized_value;
 	}
 	public ready(): boolean {
 		return this.normalized() === 'ready';
@@ -91,12 +100,12 @@ describe('Status', () => {
 		expect(value).toBe(true);
 	});
 });
-// File: cli.ts
-#!/usr/bin/env node
+// File: src/example_runner.ts
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
 	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ready'));
 })();
+// File: cli.ts
+import 'src/example_runner';
 ```
-

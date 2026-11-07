@@ -9,20 +9,56 @@ classes are excluded.
 
 ```python
 # File: src/message_text.py
-class MessageText:
-    pass  # <- error
+MESSAGE_SEPARATOR: str = " | "
+
+
+class MessageText:  # <- error
+    def __init__(self, content: str) -> None:
+        self._content: str = content
+
+    def normalized_text(self) -> str:
+        return " ".join(self._content.split())
+
+    def word_count(self) -> int:
+        return len(self.normalized_text().split())
+
+    def text(self) -> str:
+        return self.normalized_text()
+
+    def report(self) -> None:
+        print(f"{self.text()} ({self.word_count()} words)")
+# File: src/status_reporter.py
+from src.message_text import MESSAGE_SEPARATOR
+
+
+class StatusReporter:
+    def __init__(self, status: str) -> None:
+        self._status: str = status
+
+    def text(self) -> str:
+        return f"Status: {self._status.strip().lower()}"
+
+    def report(self) -> None:
+        print(f"{MESSAGE_SEPARATOR}{self.text()}")
+# File: cli.py
+from src.status_reporter import StatusReporter
+
+if __name__ == "__main__":
+    reporter = StatusReporter("READY")
+    reporter.report()
 ```
 
 ## Good
 
 
 ```python
-class Message:
+# File: src/message_text.py
+class MessageText:
     def __init__(self, content: str) -> None:
-        self.content: str = content
+        self._content: str = content
 
     def normalized_text(self) -> str:
-        trimmed = self.content.strip()
+        trimmed = self._content.strip()
         return " ".join(trimmed.split())
 
     def word_count(self) -> int:
@@ -31,18 +67,44 @@ class Message:
             return 0
         return len(text.split())
 
-    def empty(self) -> bool:
-        return len(self.content) == 0
+    def summary(self) -> str:
+        details = [
+            self.normalized_text(),
+            str(self.word_count()),
+        ]
+        return " | ".join(details)
 
-    def contains(self, fragment: str) -> bool:
-        normalized_fragment = fragment.strip()
-        return normalized_fragment in self.normalized_text()
+# File: src/message_archive.py
+from src.message_text import MessageText
 
-    def uppercase_text(self) -> str:
-        return self.normalized_text().upper()
+
+class MessageArchive:
+    _messages: list[MessageText]
+
+    def __init__(self) -> None:
+        self._messages = []
+
+    def record_content(self, content_text: str) -> None:
+        message = MessageText(content_text)
+        if message.normalized_text():
+            self._messages.append(message)
+
+    def message_count(self) -> int:
+        return len(self._messages)
+
+    def summary(self) -> str:
+        message_summaries: list[str] = []
+        for message in self._messages:
+            message_summaries.append(message.summary())
+        return f"{self.message_count()} messages: {'; '.join(message_summaries)}"
+
+    def report(self) -> None:
+        print(self.summary())
+
 # File: cli.py
-from src.documentation.test_production_usage.message import Message
+from src.message_archive import MessageArchive
 if __name__ == "__main__":
-    message = Message("cli payload")
-    print(message.normalized_text(), message.word_count(), message.empty(), message.contains("cli"), message.uppercase_text())
+    archive = MessageArchive()
+    archive.record_content("cli payload")
+    archive.report()
 ```

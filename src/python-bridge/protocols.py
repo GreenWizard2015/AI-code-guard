@@ -57,6 +57,12 @@ class PythonAstBridgeContract(Protocol):
     def source_ast_timed(self, text: str) -> PythonAstTimedResultContract: ...
 
 
+class PythonBridgeOutputContract(Protocol):
+    """Responsibilities: _bridge response writing_."""
+
+    def write(self, result: JsonObject) -> None: ...
+
+
 class PythonImportNodesContract(Protocol):
     """Responsibilities: _Python import record collection_."""
 
@@ -67,6 +73,8 @@ class PythonBridgeInputContract(Protocol):
     """Responsibilities: _bridge input source resolution_."""
 
     def resolve(self, source: str) -> str: ...
+
+    def file_text(self, file_path: Path) -> str: ...
 
 
 class PythonBridgeFileIOContract(Protocol):

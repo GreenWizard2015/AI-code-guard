@@ -9,12 +9,18 @@ Pytest `conftest.py` files are exempt: even a one-line plugin declaration can be
 This module only forwards behavior already owned by `Order`:
 
 ```python
-# File: order_label.py
-from order import Order
+# File: src/order_label.py
+from src.order import Order
 class OrderLabel:
     def format(self, order: Order) -> str:
         return order.display_label()
-# File: order.py
+    def report(self, order: Order) -> None:
+        label = self.format(order)
+        paid = order.paid()
+        order.add_item("book")
+        item_summary = order.item_summary()
+        print(f"{label} paid={paid} items={item_summary}")
+# File: src/order.py
 class Order:
     def __init__(self, code: str, status: str) -> None:
         normalized_code = code.strip().upper()
@@ -36,15 +42,11 @@ class Order:
     def item_summary(self) -> str:
         return ", ".join(self._items)
 # File: cli.py
-from order import Order
-from order_label import OrderLabel
+from src.order import Order
+from src.order_label import OrderLabel
 if __name__ == "__main__":
     order = Order("ord-42", "paid")
-    label = OrderLabel().format(order)
-    paid = order.paid()
-    order.add_item("book")
-    item_summary = order.item_summary()
-    print([label, paid, item_summary])
+    OrderLabel().report(order)
 ```
 
 ## Good
@@ -52,9 +54,9 @@ if __name__ == "__main__":
 Use the existing owner directly and remove the forwarding module:
 
 ```python
-# File: order.py
+# File: src/order.py
 class Order:
-    def __init__(self, code: str, status: str) -> None:
+    def __init__(self, code: str, status: str, items: list[str]) -> None:
         normalized_code = code.strip().upper()
         if not normalized_code:
             raise ValueError("Order code is required.")
@@ -62,24 +64,21 @@ class Order:
         if not status:
             raise ValueError("Order status is required.")
         self._status: str = status
-        self._items: list[str] = []
+        self._items: list[str] = items
     def display_label(self) -> str:
         return f"Order {self._code}"
     def paid(self) -> bool:
         return self._status == "paid"
-    def add_item(self, item: str) -> None:
-        normalized = item.strip()
-        if normalized:
-            self._items.append(normalized)
     def item_summary(self) -> str:
         return ", ".join(self._items)
+    def report(self) -> None:
+        label = self.display_label()
+        paid = self.paid()
+        items = self.item_summary()
+        print(f"{label} paid={paid} items={items}")
 # File: cli.py
-from order import Order
+from src.order import Order
 if __name__ == "__main__":
-    order = Order("ord-42", "paid")
-    label = order.display_label()
-    paid = order.paid()
-    order.add_item("book")
-    item_summary = order.item_summary()
-    print([label, paid, item_summary])
+    order = Order("ord-42", "paid", ["book"])
+    order.report()
 ```

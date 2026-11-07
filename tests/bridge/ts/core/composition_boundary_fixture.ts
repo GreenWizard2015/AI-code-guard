@@ -1,8 +1,8 @@
-import type { ClassGraph, CodeClass } from "src/model/types/types";
+import type { ClassGraph, CodeClass } from "src/model_types";
 
 /** Responsibilities: _composition graph construction_, _cycle scenario construction_. **/
 export class CompositionBoundaryFixture {
-	private readonly classes: Map<string, CodeClass>;
+	private readonly _classes: Map<string, CodeClass>;
 
 	/** Responsibilities: _deep class fixture addition_. **/
 	private append_deep_class(root: string, index: number, depth: number): void {
@@ -12,27 +12,28 @@ export class CompositionBoundaryFixture {
 		if (index + 1 < depth) {
 			dependencies = [dependency];
 		}
-		this.classes.set(key, {
+		this._classes.set(key, {
 			key,
 			file: `${root}/src/deep-${index}.ts`,
 			line: 0,
 			name: `Deep${index}`,
 			dependencies,
+			language: "typescript",
 		});
 	}
 
 	/** Responsibilities: _composition boundary fixture initialization_. **/
 	public constructor() {
-		this.classes = new Map<string, CodeClass>();
+		this._classes = new Map<string, CodeClass>();
 	}
 
 	/** Responsibilities: _deep dependency graph fixture_. **/
 	public deep_graph(root: string, depth: number): ClassGraph {
-		this.classes.clear();
+		this._classes.clear();
 		for (let index = 0; index < depth; index += 1) {
 			this.append_deep_class(root, index, depth);
 		}
-		return { classes: this.classes, classes_by_file: new Map(), imports_by_file: new Map() };
+		return { classes: this._classes, classes_by_file: new Map(), imports_by_file: new Map() };
 	}
 
 	/** Responsibilities: _empty composition graph fixture_. **/
@@ -74,6 +75,7 @@ export class CompositionBoundaryFixture {
 				line: 0,
 				name,
 				dependencies: dependency_keys,
+				language: "typescript",
 			});
 		}
 		return { classes, classes_by_file: new Map(), imports_by_file: new Map() };
@@ -119,7 +121,14 @@ export class CompositionBoundaryFixture {
 			if (key === undefined || class_dependencies === undefined) {
 				continue;
 			}
-			classes.set(key, { key, file: `${root}/src/${name}.ts`, line: 0, name, dependencies: [...class_dependencies] });
+			classes.set(key, {
+				key,
+				file: `${root}/src/${name}.ts`,
+				line: 0,
+				name,
+				dependencies: [...class_dependencies],
+				language: "typescript",
+			});
 		}
 		return { classes, classes_by_file: new Map(), imports_by_file: new Map() };
 	}
@@ -159,7 +168,14 @@ export class CompositionBoundaryFixture {
 			if (key === undefined || class_dependencies === undefined) {
 				continue;
 			}
-			classes.set(key, { key, file: `${root}/src/${name}.ts`, line: 0, name, dependencies: [...class_dependencies] });
+			classes.set(key, {
+				key,
+				file: `${root}/src/${name}.ts`,
+				line: 0,
+				name,
+				dependencies: [...class_dependencies],
+				language: "typescript",
+			});
 		}
 		return { classes, classes_by_file: new Map(), imports_by_file: new Map() };
 	}

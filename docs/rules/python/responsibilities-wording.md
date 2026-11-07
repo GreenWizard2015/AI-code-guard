@@ -52,26 +52,67 @@ class ParityResult:
         """Responsibilities: _uppercase text_."""
         text = self.text()
         return text.upper()
+
+    def report(self) -> None:
+        """Responsibilities: _parity summary reporting_."""
+        normalized = self.text()
+        length = self.text_length()
+        words = self.word_count()
+        uppercase = self.uppercase_text()
+        print(f"{normalized} ({length} characters, {words} words, {uppercase})")
 # File: cli.py
 from src.parity_result import ParityResult
+
 if __name__ == "__main__":
     first_result = ParityResult("ready state")
     second_result = ParityResult("blocked state")
-    first_result.text()
-    first_result.text_length()
-    first_result.word_count()
-    first_result.uppercase_text()
-    second_result.text()
-    second_result.text_length()
-    second_result.word_count()
-    second_result.uppercase_text()
+    first_result.report()
+    second_result.report()
 ```
 
 ## Good
 
 
 ```python
+# File: src/parity_result.py
+class ParityResult:
+    """Responsibilities: _parity result analysis_, _text normalization_."""
+
+    def __init__(self, result_text: str) -> None:
+        """Responsibilities: _result initialization_."""
+        self._result_text: str = result_text
+
+    def text(self) -> str:
+        """Responsibilities: _text normalization_."""
+        return " ".join(self._result_text.strip().split())
+
+    def text_length(self) -> int:
+        """Responsibilities: _text length_."""
+        normalized = self.text()
+        visible_characters = [character for character in normalized if not character.isspace()]
+        return len(visible_characters)
+
+    def word_count(self) -> int:
+        """Responsibilities: _word count_."""
+        words = self.text().split()
+        return len(words)
+
+    def uppercase_text(self) -> str:
+        """Responsibilities: _uppercase text_."""
+        normalized = self.text()
+        return normalized.upper()
+
+    def report(self) -> None:
+        """Responsibilities: _parity summary reporting_."""
+        normalized = self.text()
+        length = self.text_length()
+        words = self.word_count()
+        uppercase = self.uppercase_text()
+        print(f"{normalized} ({length} characters, {words} words, {uppercase})")
 # File: cli.py
+from src.parity_result import ParityResult
+
 if __name__ == "__main__":
-    value: str = "ready"
+    result = ParityResult("ready state")
+    result.report()
 ```

@@ -7,13 +7,17 @@ class PythonMethodRecordValue:
     """Responsibilities: _method syntax_, _field access state_."""
 
     def __init__(
-        self, name: str, node: ast.AST, written: set[str], read: set[str]
+        self,
+        name: str,
+        node: ast.AST,
+        written: set[str],
+        read: set[str],
     ) -> None:
         """Responsibilities: _method temporal record initialization_."""
         self._name: str = name
         self._node: ast.AST = node
-        self._written: set[str] = written
-        self._read: set[str] = read
+        self._written: frozenset[str] = frozenset(written)
+        self._read: frozenset[str] = frozenset(read)
 
     def method_name(self) -> str:
         """Responsibilities: _method name state_."""
@@ -25,8 +29,8 @@ class PythonMethodRecordValue:
 
     def written_set(self) -> set[str]:
         """Responsibilities: _mutation values_."""
-        return self._written
+        return set(self._written)
 
     def access_set(self) -> set[str]:
         """Responsibilities: _field access method state_."""
-        return self._read
+        return set(self._read)

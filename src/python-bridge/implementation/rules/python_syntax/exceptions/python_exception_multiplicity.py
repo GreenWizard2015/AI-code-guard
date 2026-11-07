@@ -16,17 +16,17 @@ class PythonExceptionMultiplicity:
         values: list[ast.AST] = []
         for item in source.elts:
             if type(item) is ast.Starred:
-                values.extend(self.container_values.container_values(item.value))
+                values.extend(self._container_values.container_values(item.value))
                 continue
             values.append(item)
         return len(values) > 1
 
     def _subscript_matches(self, source: ast.Subscript) -> bool:
         """Responsibilities: _sliced exception source_."""
-        resolved = self.container_values.container_value(source)
+        resolved = self._container_values.container_value(source)
         if not resolved.found():
             return False
-        values = self.container_values.container_values(resolved.expression_node())
+        values = self._container_values.container_values(resolved.expression_node())
         return len(values) > 1
 
     def __init__(
@@ -36,9 +36,9 @@ class PythonExceptionMultiplicity:
         multiple_names: set[str],
     ) -> None:
         """Responsibilities: _exception multiplicity setup_."""
-        self.container_values: PythonContainerValuesContract = container_values
-        self.assignment_aliases: PythonReferenceAliasesContract = assignment_aliases
-        self.multiple_names: set[str] = multiple_names
+        self._container_values: PythonContainerValuesContract = container_values
+        self._assignment_aliases: PythonReferenceAliasesContract = assignment_aliases
+        self._multiple_names: set[str] = set(multiple_names)
 
     def matches(self, source: ast.AST) -> bool:
         """Responsibilities: _multiple exception source_."""
@@ -47,9 +47,9 @@ class PythonExceptionMultiplicity:
         if type(source) is ast.Tuple:
             return self._tuple_many(source)
         if type(source) is ast.Call:
-            return len(self.container_values.container_values(source)) > 1
+            return len(self._container_values.container_values(source)) > 1
         if type(source) is ast.Name:
-            return source.id in self.multiple_names
+            return source.id in self._multiple_names
         return False
 
     def configure(self, targets: list[ast.AST], value: ast.AST) -> None:
@@ -57,19 +57,26 @@ class PythonExceptionMultiplicity:
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(
-                    target, value, references_only=False
-                )
+                self._assignment_aliases.target_values(
+                    target,
+                    value,
+                    references_only=False,
+                ),
             )
-        for target, source in target_values.items():
-            self.multiple_names.discard(target)
+        for target_name, source in target_values.items():
+            self._multiple_names.discard(target_name)
             if self.matches(source):
-                self.multiple_names.add(target)
+                self._multiple_names.add(target_name)
 
     def names(self) -> set[str]:
         """Responsibilities: _multiple exception names_."""
-        return self.multiple_names
+        return set(self._multiple_names)
+
+    def restore_names(self, names: set[str]) -> None:
+        """Responsibilities: _exception name state restoration_."""
+        self._multiple_names.clear()
+        self._multiple_names.update(names)
 
     def aliases(self) -> PythonReferenceAliasesContract:
         """Responsibilities: _exception assignment aliases_."""
-        return self.assignment_aliases
+        return self._assignment_aliases

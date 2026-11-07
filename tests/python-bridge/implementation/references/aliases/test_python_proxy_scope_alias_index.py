@@ -1,6 +1,8 @@
 import unittest
 
-from implementation.references.aliases.python_proxy_scope_alias_index import PythonProxyScopeAliasIndex
+from implementation.references.aliases.python_proxy_scope_alias_index import (
+    PythonProxyScopeAliasIndex,
+)
 
 
 class PythonProxyScopeAliasIndexTest(unittest.TestCase):
@@ -11,7 +13,7 @@ class PythonProxyScopeAliasIndexTest(unittest.TestCase):
     def test_selects_latest_assignment_for_each_query_line(self) -> None:
         """Responsibilities: _line-specific receiver alias result_."""
         index = PythonProxyScopeAliasIndex(
-            {"receiver": [(2, "receiver", "self"), (3, "receiver", "other"), (3, "receiver", "cls")]}
+            {"receiver": [(2, "receiver", "self"), (3, "receiver", "other"), (3, "receiver", "cls")]},
         )
 
         self.assertEqual(
@@ -27,7 +29,7 @@ class PythonProxyScopeAliasIndexTest(unittest.TestCase):
     def test_resolves_chained_aliases_at_the_use_line(self) -> None:
         """Responsibilities: _receiver alias chain result_."""
         index = PythonProxyScopeAliasIndex(
-            {"receiver": [(2, "receiver", "other")], "other": [(5, "other", "self")]}
+            {"receiver": [(2, "receiver", "other")], "other": [(5, "other", "self")]},
         )
 
         self.assertEqual(index.resolve("other", 5), "self")

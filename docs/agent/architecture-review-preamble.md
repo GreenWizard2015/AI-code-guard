@@ -20,3 +20,10 @@ Do not accept an existing implementation or an established decision as
 justification by itself. It is appropriate to challenge inherited or outdated
 choices when current evidence shows a material defect or a better-supported
 design.
+
+## Existing findings to exclude
+
+Read the existing open findings listed below. Do not report the same defects
+again; continue reviewing other behavior and test boundaries.
+
+{{OPEN_REVIEWS}}

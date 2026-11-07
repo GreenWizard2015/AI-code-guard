@@ -1,9 +1,9 @@
-import ts from "typescript";
 import type { TypeScriptInstanceFilesContract } from "src/model/protocols";
+import ts from "typescript";
 
 /** Responsibilities: _initializer class resolution_, _assignment class identity lookup_. **/
 export class TypeScriptInstanceClassIdentity {
-	private readonly instance_files: TypeScriptInstanceFilesContract;
+	private readonly _instance_files: TypeScriptInstanceFilesContract;
 
 	/** Responsibilities: _transparent initializer normalization_. **/
 	private next_initializer(expression: ts.Expression): ts.Expression {
@@ -62,14 +62,14 @@ export class TypeScriptInstanceClassIdentity {
 			return unwrapped.expression.text;
 		}
 		if (ts.isIdentifier(unwrapped)) {
-			return this.instance_files.instance_class(unwrapped.text, node);
+			return this._instance_files.instance_class(unwrapped.text, node);
 		}
 		return "";
 	}
 
 	/** Responsibilities: _instance class resolver initialization_. **/
 	public constructor(instance_files: TypeScriptInstanceFilesContract) {
-		this.instance_files = instance_files;
+		this._instance_files = instance_files;
 	}
 
 	/** Responsibilities: _assignment receiver class resolution_. **/
@@ -79,7 +79,7 @@ export class TypeScriptInstanceClassIdentity {
 			return initializer.expression.text;
 		}
 		if (ts.isIdentifier(initializer)) {
-			return this.instance_files.instance_class(initializer.text, node);
+			return this._instance_files.instance_class(initializer.text, node);
 		}
 		return "";
 	}

@@ -1,32 +1,42 @@
-import ts from "typescript";
-import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
-import type { AstImportIssue, AstImportIssueFlags } from "src/types";
-import type { LineOf } from "src/parser/types";
 import { IMPORT_KINDS } from "src/constants";
+import type { AstImportIssue } from "src/model/ast/normalized_ast_types";
+import type { TypeScriptNodeImportIssuesContract } from "src/model/protocols";
+import type { CallableLineOf } from "src/parser/types";
+import type { AstImportIssueFlags } from "src/types";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _import diagnostics_, _import positions_. **/
-export class TypeScriptImportIssues {
-	private readonly import_kinds = IMPORT_KINDS;
-	private readonly require_aliases: TypeScriptExpressionAliasesContract;
+export class TypeScriptImportIssues implements TypeScriptNodeImportIssuesContract {
+	private readonly _import_kinds: ReadonlySet<ts.SyntaxKind>;
+	private readonly _require_aliases: TypeScriptExpressionAliasesContract;
 
-	/** Responsibilities: _classification import usage relative_. **/
-	private is_relative_import(node: ts.Node): boolean {
-		let module_name: string | undefined;
-		if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-			module_name = node.moduleSpecifier.text;
-		} else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
-			const expression = node.moduleReference.expression;
-			if (ts.isStringLiteral(expression)) {
-				module_name = expression.text;
-			}
-		}
+	/** Responsibilities: _relative module name classification_. **/
+	private relative_module_name(module_name: string): boolean {
 		if (module_name === "." || module_name === "..") {
 			return true;
 		}
-		if (module_name === undefined) {
+		return module_name.startsWith("./") || module_name.startsWith("../");
+	}
+
+	/** Responsibilities: _import declaration path classification_. **/
+	private relative_import_declaration(declaration: ts.ImportDeclaration): boolean {
+		if (!ts.isStringLiteral(declaration.moduleSpecifier)) {
 			return false;
 		}
-		return module_name.startsWith("./") || module_name.startsWith("../");
+		return this.relative_module_name(declaration.moduleSpecifier.text);
+	}
+
+	/** Responsibilities: _import assignment path classification_. **/
+	private relative_import_equals(declaration: ts.ImportEqualsDeclaration): boolean {
+		if (!ts.isExternalModuleReference(declaration.moduleReference)) {
+			return false;
+		}
+		const expression = declaration.moduleReference.expression;
+		if (!ts.isStringLiteral(expression)) {
+			return false;
+		}
+		return this.relative_module_name(expression.text);
 	}
 
 	/** Responsibilities: _creation normalization import issues_. **/
@@ -44,47 +54,44 @@ export class TypeScriptImportIssues {
 		return issues;
 	}
 
-	/** Responsibilities: _classification import nested callable_. **/
-	private is_nested_import(node: ts.Node): boolean {
-		if (!this.import_kinds.has(node.kind)) {
+	/** Responsibilities: _nested import classification_. **/
+	private nested_import(parent: ts.Node, is_import_kind: boolean): boolean {
+		if (!is_import_kind) {
 			return false;
 		}
-		return !ts.isSourceFile(node.parent);
+		return !ts.isSourceFile(parent);
 	}
 
-	/** Responsibilities: _classification node performs dynamic_. **/
-	private is_dynamic_import(node: ts.Node): boolean {
-		if (ts.isImportTypeNode(node)) {
+	/** Responsibilities: _dynamic import classification_. **/
+	private dynamic_import(kind: ts.SyntaxKind, is_dynamic_call: boolean): boolean {
+		if (kind === ts.SyntaxKind.ImportType) {
 			return true;
 		}
-		if (!ts.isCallExpression(node)) {
-			return false;
-		}
-		if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+		return is_dynamic_call;
+	}
+
+	/** Responsibilities: _dynamic call classification_. **/
+	private dynamic_call(call: ts.CallExpression): boolean {
+		if (call.expression.kind === ts.SyntaxKind.ImportKeyword) {
 			return true;
 		}
-		return this.dynamic_identifier(node);
-	}
-
-	/** Responsibilities: _identifier require alias classification_. **/
-	private dynamic_identifier(node: ts.CallExpression): boolean {
-		if (!ts.isIdentifier(node.expression)) {
+		if (!ts.isIdentifier(call.expression)) {
 			return false;
 		}
-		return this.require_aliases.receiver(node.expression, node);
+		return this._require_aliases.receiver({ expression: call.expression, node: call });
 	}
 
-	/** Responsibilities: _collection imports occur after_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor(require_aliases: TypeScriptExpressionAliasesContract) {
-		this.require_aliases = require_aliases;
+	/** Responsibilities: _import issue classification initialization_. **/
+	public constructor(require_aliases: TypeScriptExpressionAliasesContract) {
+		this._import_kinds = IMPORT_KINDS;
+		this._require_aliases = require_aliases;
 	}
 	/** Responsibilities: _public operation_. **/
-	public late_import_issues(source_file: ts.SourceFile, line_of: LineOf): AstImportIssue[] {
+	public late_import_issues(source_file: ts.SourceFile, line_of: CallableLineOf): AstImportIssue[] {
 		let imports_closed = false;
 		const issues: AstImportIssue[] = [];
 		for (const statement of source_file.statements) {
-			if (this.import_kinds.has(statement.kind)) {
+			if (this._import_kinds.has(statement.kind)) {
 				if (imports_closed) {
 					issues.push({
 						line: line_of(statement.getStart(source_file)),
@@ -99,11 +106,17 @@ export class TypeScriptImportIssues {
 	}
 
 	/** Responsibilities: _collection import issues represented_. **/
-	public node_import_issues(node: ts.Node, source_file: ts.SourceFile, line_of: LineOf): AstImportIssue[] {
-		const line = line_of(node.getStart(source_file));
-		const dynamic = this.is_dynamic_import(node);
-		const nested = this.is_nested_import(node);
-		const relative = this.is_relative_import(node);
+	public node_import_issues(node: ts.Node, line: number): AstImportIssue[] {
+		const is_dynamic_call = ts.isCallExpression(node) && this.dynamic_call(node);
+		const dynamic = this.dynamic_import(node.kind, is_dynamic_call);
+		const nested = this.nested_import(node.parent, this._import_kinds.has(node.kind));
+		let relative = false;
+		if (ts.isImportDeclaration(node)) {
+			relative = this.relative_import_declaration(node);
+		}
+		if (ts.isImportEqualsDeclaration(node)) {
+			relative = this.relative_import_equals(node);
+		}
 		return this.create_import_issues(line, { dynamic, nested, relative });
 	}
 }

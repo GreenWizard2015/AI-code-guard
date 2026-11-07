@@ -12,7 +12,22 @@ Hint: Move the function and its state into a focused domain class in a focused m
 ```python
 # File: functions.py
 def resolve_user(user_id: str) -> str:
-    return user_id
+    return user_id.strip()
+
+def report_user(user_id: str) -> None:
+    print(f"User: {resolve_user(user_id)}")
+
+def format_invoice(invoice_id: str) -> str:
+    return f"Invoice {invoice_id.strip()}"
+
+def report_invoice(invoice_id: str) -> None:
+    print(format_invoice(invoice_id))
+# File: cli.py
+from functions import report_invoice, report_user
+
+if __name__ == "__main__":
+    report_user("user-7")
+    report_invoice("invoice-3")
 ```
 
 ## Good
@@ -25,14 +40,14 @@ class StatusLabels:
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -41,25 +56,28 @@ class StatusLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+    def report(self) -> None:
+        """Responsibilities: _status summary reporting_."""
+        label = self.label("ready")
+        detailed = self.label_with_prefix("State", "blocked")
+        fallback = self.uppercase_fallback()
+        count = self.status_count()
+        print(f"{label} {detailed} {fallback} {count}")
 # File: cli.py
-from status_labels.status_labels import StatusLabels
+from src.status_labels.status_labels import StatusLabels
 
 if __name__ == "__main__":
     labels = {"ready": "Ready", "blocked": "Blocked"}
     status_labels = StatusLabels(labels, "Unknown")
-    label = status_labels.label("ready")
-    detailed = status_labels.label_with_prefix("State", "blocked")
-    fallback = status_labels.uppercase_fallback()
-    count = status_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    status_labels.report()
 ```

@@ -12,12 +12,45 @@ Split the class by cohesive capabilities without adding placeholder methods or h
 
 
 ```python
-{% const status_methods = [{"name":"member","visibility":"public","prefix":""},{"name":"group","visibility":"public","prefix":""},{"name":"page","visibility":"public","prefix":""},{"name":"post","visibility":"public","prefix":""},{"name":"photo","visibility":"public","prefix":""},{"name":"video","visibility":"public","prefix":""},{"name":"event","visibility":"public","prefix":""},{"name":"comment","visibility":"public","prefix":""},{"name":"reaction","visibility":"private","prefix":"_"},{"name":"message","visibility":"private","prefix":"_"},{"name":"thread","visibility":"private","prefix":"_"},{"name":"story","visibility":"private","prefix":"_"},{"name":"album","visibility":"private","prefix":"_"},{"name":"notification","visibility":"private","prefix":"_"},{"name":"attachment","visibility":"private","prefix":"_"},{"name":"contact","visibility":"private","prefix":"_"},{"name":"search","visibility":"public","prefix":""},{"name":"billing","visibility":"public","prefix":""},{"name":"audit","visibility":"public","prefix":""},{"name":"access","visibility":"public","prefix":""},{"name":"settings","visibility":"public","prefix":""},{"name":"export","visibility":"public","prefix":""}] %}
+{% const statuses = [{"name":"member","value":"member"},{"name":"group","value":"group"},{"name":"page","value":"page"},{"name":"post","value":"post"},{"name":"photo","value":"photo"},{"name":"video","value":"video"},{"name":"event","value":"event"},{"name":"comment","value":"comment"},{"name":"_reaction","value":"reaction"},{"name":"_message","value":"message"},{"name":"_thread","value":"thread"},{"name":"_story","value":"story"},{"name":"_album","value":"album"},{"name":"_notification","value":"notification"},{"name":"_attachment","value":"attachment"},{"name":"_contact","value":"contact"},{"name":"search","value":"search"},{"name":"billing","value":"billing"},{"name":"audit","value":"audit"},{"name":"access","value":"access"},{"name":"settings","value":"settings"},{"name":"export","value":"export"}] %}
+# File: src/status_labels.py
 class StatusLabels:
-{%for method in status_methods %}
-    def {{method.prefix}}{{method.name}}_status(self) -> str:
-        return "{{method.name}}"
+{%for status in statuses %}
+    def {{status.name}}_status(self) -> str:
+        return "{{status.value}}"
 {% endfor %}
+    def report(self) -> None:
+        statuses = [
+            self.member_status(),
+            self.group_status(),
+            self.page_status(),
+            self.post_status(),
+            self.photo_status(),
+            self.video_status(),
+            self.event_status(),
+            self.comment_status(),
+            self._reaction_status(),
+            self._message_status(),
+            self._thread_status(),
+            self._story_status(),
+            self._album_status(),
+            self._notification_status(),
+            self._attachment_status(),
+            self._contact_status(),
+            self.search_status(),
+            self.billing_status(),
+            self.audit_status(),
+            self.access_status(),
+            self.settings_status(),
+            self.export_status(),
+        ]
+        print(" | ".join(statuses))
+# File: cli.py
+from src.status_labels import StatusLabels
+
+if __name__ == "__main__":
+    status_labels = StatusLabels()
+    status_labels.report()
 ```
 
 ## Good
@@ -30,14 +63,14 @@ class StatusLabels:
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -46,25 +79,28 @@ class StatusLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+
+    def report(self) -> None:
+        label = self.label("ready")
+        detailed = self.label_with_prefix("State", "blocked")
+        fallback = self.uppercase_fallback()
+        count = self.status_count()
+        print(f"{label} {detailed} {fallback} {count}")
 # File: cli.py
-from status_labels.status_labels import StatusLabels
+from src.status_labels.status_labels import StatusLabels
 
 if __name__ == "__main__":
     labels = {"ready": "Ready", "blocked": "Blocked"}
     status_labels = StatusLabels(labels, "Unknown")
-    label = status_labels.label("ready")
-    detailed = status_labels.label_with_prefix("State", "blocked")
-    fallback = status_labels.uppercase_fallback()
-    count = status_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    status_labels.report()
 ```

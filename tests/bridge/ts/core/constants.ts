@@ -1,4 +1,4 @@
-import type { ReviewAgentRequest } from "src/types";
+import type { ReviewAgentRequest } from "src/task_review_types";
 import {
 	ACCESS_SOURCE,
 	CONTRACT_FIELD_FILES,
@@ -123,6 +123,7 @@ export const METACHARACTER_REQUEST: ReviewAgentRequest = {
 		hook_command: "/tools/tsx",
 		review_prefix: "review-$(touch injected)-",
 		review_phase: "cleanup",
+		review_start_ms: 0,
 	},
 	review_stage: "boundaries",
 	review_stage_plan: "boundaries: review-boundaries-",

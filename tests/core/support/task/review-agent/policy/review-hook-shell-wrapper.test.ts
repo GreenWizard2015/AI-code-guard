@@ -6,19 +6,19 @@ import { NodeFileIO } from "src/io/node_file_io";
 
 describe("review hook shell wrappers", () => {
 	test("rejects nested Bash login wrappers around reads", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect(policy.read_only("/bin/bash -lc 'rg -n review-agent src'", process.cwd())).toBe(false);
 	});
 
 	test("rejects a wrapped write command", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		expect(
 			policy.read_only("/bin/bash -lc 'cat > .ai-code-guard/review/review-boundaries-finding.md'", process.cwd()),
 		).toBe(false);
 	});
 
 	test("allows read-only rg commands with regex escapes and literal paths", () => {
-		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO()));
+		const policy = new ReviewReadPolicy(new ReviewPathPolicy(new NodeFileIO(process.cwd()), process.cwd()));
 		const command = "rg -n 'identity\\\\(|cached_result' src/core/cache src/type_script_reference.ts; cat src/types.ts";
 
 		expect(policy.read_only(command, process.cwd())).toBe(true);

@@ -1,22 +1,72 @@
-import type { ReportViolation } from "src/reporting_protocols";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
+import type { IOContract } from "src/io/protocols";
+import type { TaskFileSelection } from "src/model_types";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ReviewAgentSelection } from "src/task_review_types";
+import type { TaskReviewRunResult } from "src/task_review_types";
 import type {
 	ReviewAgentRunOptions,
 	ReviewStatus,
-	TaskReportingOptions,
 	TaskBatchReplacementOptions,
+	TaskReportingOptions,
 	TaskWorkspaceDocument,
 } from "src/task_types";
-import type { ReviewAgentSelection, TaskReviewRunResult } from "src/types";
-import type { TaskFileSelection } from "src/model/types/types";
+import type { CliOptions } from "src/task_types";
+
+/** Responsibilities: _one task issue section_. **/
+export type TaskIssueRuleSectionOptions = {
+	readonly root: string;
+	readonly rule_id: string;
+	readonly first: ViolationContract;
+	readonly violations: readonly ViolationContract[];
+	readonly documents: TaskWorkspaceDocumentsContract;
+	readonly file_io: IOContract;
+	readonly boundary_failures: SystemFailureClassificationContract;
+};
+
+/** Responsibilities: _rule issue section_. **/
+export interface TaskIssueRuleSectionContract {
+	format(): string;
+}
+
+/** Responsibilities: _issue source file context_. **/
+export interface TaskIssueSourceFileContract {
+	absolute_path(): string;
+	directory(): boolean;
+	source_line(line: number): string;
+}
+
+/** Responsibilities: _one CLI option application_. **/
+export type CliOptionApplicationInput = {
+	readonly options: CliOptions;
+	readonly option: string;
+	readonly next_value: string;
+	readonly has_next_value: boolean;
+};
+
+/** Responsibilities: _CLI argument application_. **/
+export interface CliOptionApplicationContract {
+	apply(): boolean;
+}
+
+/** Responsibilities: _CLI option parsing_. **/
+export interface CommandLineOptionsContract {
+	value(): CliOptions;
+}
 
 /** Responsibilities: _diagnostic task formatting_. **/
 export interface TaskReportingFormatContract {
-	format(violations: readonly ReportViolation[], options: TaskReportingOptions): string;
+	format(violations: readonly ViolationContract[], options: TaskReportingOptions): string;
+}
+
+/** Responsibilities: _lint report rendering_. **/
+export interface TaskReportDocumentContract {
+	markdown(): string;
+	write(): void;
 }
 
 /** Responsibilities: _diagnostic task reporting_. **/
 export interface TaskReportingContract extends TaskReportingFormatContract {
-	review_requested(violations: readonly ReportViolation[]): boolean;
 	review_status(): ReviewStatus;
 	run_review_agent(selection: ReviewAgentSelection, options: ReviewAgentRunOptions): Promise<TaskReviewRunResult>;
 }
@@ -56,10 +106,22 @@ export interface TaskReviewDocumentationContract {
 /** Responsibilities: _task review operations_. **/
 export interface TaskReviewContract {
 	files(): string[];
-	line_count(file: string): number;
-	text(file: string): string;
+	file(path: string): TaskReviewFileContract;
 	primary_instruction(): string;
 	completed(): boolean;
+}
+
+/** Responsibilities: _review file contract_. **/
+export interface TaskReviewFileContract {
+	path(): string;
+	active(): boolean;
+	line_count(): number;
+	text(): string;
+}
+
+/** Responsibilities: _review archive state_. **/
+export interface ResolvedReviewArchiveContract {
+	status(file: string): string;
 }
 
 /** Responsibilities: _task review-agent execution_. **/
@@ -70,8 +132,8 @@ export interface TaskReviewAgentContract {
 
 /** Responsibilities: _task violation file selection_. **/
 export interface TaskFileSelectorContract {
-	select_top_category(violations: readonly ReportViolation[], batch_size: number): TaskFileSelection;
-	select_all(violations: readonly ReportViolation[], batch_size: number): TaskFileSelection;
+	select_top_category(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection;
+	select_all(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection;
 }
 
 /** Responsibilities: _task report formatting_. **/
@@ -82,7 +144,7 @@ export interface TaskCleanReportContract {
 /** Responsibilities: _task issue document writing_. **/
 export interface TaskIssueDocumentContract {
 	write(
-		violations: readonly ReportViolation[],
+		violations: readonly ViolationContract[],
 		review_files: readonly string[],
 		documents: ReadonlyMap<TaskWorkspaceDocument, string>,
 	): void;

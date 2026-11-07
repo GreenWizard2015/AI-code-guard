@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("duplicate test setup analysis", () => {
 	test("normalizes annotated and plain Python setup assignments", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"duplicate_setup_test.py": [
 					"import unittest",
@@ -23,13 +23,13 @@ describe("duplicate test setup analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "test-duplicate-setup")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "test-duplicate-setup")).toHaveLength(1);
 	});
 
 	test("reports adjacent duplicate setup in Jest and unittest methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"duplicate.test.ts": [
 					'describe("records", () => {',
@@ -57,13 +57,13 @@ describe("duplicate test setup analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-duplicate-setup")).toHaveLength(3);
+		expect(violations.filter((item) => item.rule_id() === "test-duplicate-setup")).toHaveLength(3);
 	});
 
 	test("ignores separated, nested, and assertion setup calls as well as string contents", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"non-adjacent.test.ts": [
 					'describe("records", () => {',
@@ -103,6 +103,6 @@ describe("duplicate test setup analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-duplicate-setup")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "test-duplicate-setup")).toHaveLength(0);
 	});
 });

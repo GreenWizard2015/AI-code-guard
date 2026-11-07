@@ -17,8 +17,24 @@ Declare the field first, then initialize it in `constructor`, `__init__`, or
 
 
 ```python
+# File: src/service.py
+class Client:
+    def request(self) -> str:
+        return "ok"
+
+
 class Service:
     _client = Client()
+
+    def report(self) -> None:
+        print(self._client.request())
+
+# File: cli.py
+from src.service import Service
+
+if __name__ == "__main__":
+    service = Service()
+    service.report()
 ```
 
 ## Good
@@ -31,14 +47,14 @@ class StatusLabels:
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -47,23 +63,27 @@ class StatusLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+
+    def report(self) -> None:
+        """Responsibilities: _status report output_."""
+        print(self.label("ready"))
+        print(self.label_with_prefix("State", "ready"))
+        print(self.uppercase_fallback())
+        print(self.status_count())
 # File: cli.py
 from src.status_labels.status_labels import StatusLabels
 
 if __name__ == "__main__":
     owner = StatusLabels({"ready": "Ready"}, "Unknown")
-    print(owner.label("ready"))
-    print(owner.label_with_prefix("State", "ready"))
-    print(owner.uppercase_fallback())
-    print(owner.status_count())
+    owner.report()
 ```

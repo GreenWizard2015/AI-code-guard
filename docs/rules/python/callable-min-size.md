@@ -17,6 +17,9 @@ The separate 100-significant-character limit ignores whitespace; do not pad code
 # File: src/content_record.py
 class ContentRecord:
 
+    def _content_label(self) -> str:
+        return f"{self.name}: {self.content}"
+
     def __init__(self, name: str, content: str) -> None:
         self.name: str = name
         self.content: str = content
@@ -31,19 +34,22 @@ class ContentRecord:
         words = normalized.split()
         return len(words)
 
-    def _content_label(self) -> str:
-        return f"{self.name}: {self.content}"
-
     def summary(self) -> str:
         label = self._content_label()
         count = self.word_count()
         return f"{label} ({count} words)"
+
+    def report(self) -> None:
+        summary = self.summary()
+        count = self.word_count()
+        output = f"{summary}\nWord count: {count}"
+        print(output)
+
 # File: cli.py
-from content_record import ContentRecord
+from src.content_record import ContentRecord
 if __name__ == "__main__":
     record = ContentRecord("notes.txt", "ready value")
-    count = record.word_count()
-    print(count, record.summary())
+    record.report()
 ```
 
 ## Good
@@ -56,12 +62,12 @@ class ContentRecord:
 
     def __init__(self, name: str, content: str) -> None:
         """Responsibilities: _record initialization_."""
-        self.name: str = name
-        self.content: str = content
+        self._name: str = name
+        self._content: str = content
 
     def normalized_content(self) -> str:
         """Responsibilities: _content normalization_."""
-        words = self.content.split()
+        words = self._content.split()
         normalized = " ".join(words)
         return normalized
 
@@ -73,18 +79,26 @@ class ContentRecord:
 
     def content_label(self) -> str:
         """Responsibilities: _content label_."""
-        return f"{self.name}: {self.content}"
+        clean_name = self._name.strip()
+        clean_content = self._content.strip()
+        label = f"{clean_name}: {clean_content}"
+        return label
 
     def summary(self) -> str:
         """Responsibilities: _record summary_."""
         label = self.content_label()
         count = self.word_count()
         return f"{label} ({count} words)"
+
+    def report(self) -> None:
+        """Responsibilities: _record report output_."""
+        summary = self.summary()
+        count = self.word_count()
+        output = f"{summary}\nWord count: {count}"
+        print(output)
 # File: cli.py
-from content_record import ContentRecord
+from src.content_record import ContentRecord
 if __name__ == "__main__":
     record = ContentRecord("notes.txt", "ready value")
-    label = record.content_label()
-    count = record.word_count()
-    print(label, count, record.summary())
+    record.report()
 ```

@@ -1,16 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
-import "src/rules/typescript/syntax-rules/types/rest_union_contract_rule";
+import "src/rules/typescript/syntax-rules/types/rest_union/rest_union_rule";
 import "src/rules/typescript/syntax-rules/runtime/type_script_basic_rules";
 
 describe("coding-lint duplicate type shapes", () => {
 	test("reports TypeScript declarations with the same sorted field shape", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"duplicate-types.ts": [
 					"type JsonResponse = { content: Record<string, unknown>; };",
@@ -22,18 +22,16 @@ describe("coding-lint duplicate type shapes", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "duplicate-type-shape",
-				message: "duplicate type shape: JsonResponse, TextResponse",
-			}),
-		);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), message: item.message() }))).toContainEqual({
+			rule_id: "duplicate-type-shape",
+			message: "duplicate type shape: JsonResponse, TextResponse",
+		});
 	});
 
 	test("reports Python classes with the same field shape", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"duplicate-types.py": [
 					"from dataclasses import dataclass",
@@ -54,18 +52,16 @@ describe("coding-lint duplicate type shapes", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "duplicate-type-shape",
-				message: "duplicate type shape: CompletionContext, CompletionErrorContext",
-			}),
-		);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), message: item.message() }))).toContainEqual({
+			rule_id: "duplicate-type-shape",
+			message: "duplicate type shape: CompletionContext, CompletionErrorContext",
+		});
 	});
 
 	test("keeps Python wrappers with different native bases distinct", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"json-value-states.py": [
 					"class JsonObjectState(dict):",
@@ -79,13 +75,13 @@ describe("coding-lint duplicate type shapes", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "duplicate-type-shape")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "duplicate-type-shape")).toHaveLength(0);
 	});
 
 	test("keeps TypeScript declarations with different native bases distinct", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"native-base-types.ts": [
 					"interface JsonValue extends Record<string, unknown> {",
@@ -99,6 +95,6 @@ describe("coding-lint duplicate type shapes", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "duplicate-type-shape")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "duplicate-type-shape")).toHaveLength(0);
 	});
 });

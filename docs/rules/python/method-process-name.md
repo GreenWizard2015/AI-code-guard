@@ -9,56 +9,75 @@ Replace it with the concrete domain action or split the responsibilities.
 
 
 ```python
-class PriceLabels:
-    def process_payment(self) -> str:
-        return 10
+# File: src/payment.py
+class Payment:
+    def __init__(self, account_id: str, amount: float) -> None:
+        self._account_id: str = account_id
+        self._amount: float = amount
+
+    def _approval_status(self) -> str:
+        if self._amount > 0:
+            return "approved"
+        return "review"
+
+    def _charge_line(self) -> str:
+        return f"{self._account_id}: {self._amount:.2f}"
+
+    def process_payment(self) -> str:  # <- error
+        approval = self._approval_status()
+        charge = self._charge_line()
+        return f"{approval}: {charge}"
+
+    def report(self) -> None:
+        receipt = self.process_payment()
+        print(receipt)
+# File: cli.py
+from src.payment import Payment
+
+if __name__ == "__main__":
+    payment = Payment("account-1", 25.5)
+    payment.report()
 ```
 
 ## Good
 
 
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _price label mapping_."""
+# File: src/payment.py
+class Payment:
+    """Responsibilities: _payment authorization_, _account charging_, _receipt reporting_."""
 
-    def __init__(self, prices: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.prices: dict[str, str] = prices
-        self.fallback: str = fallback
+    def __init__(self, account_id: str, amount: float) -> None:
+        """Responsibilities: _payment initialization_."""
+        self._account_id: str = account_id
+        self._amount: float = amount
 
-    def price_label(self, price_code: str) -> str:
-        """Responsibilities: _price label selection_."""
-        if price_code in self.prices:
-            return self.prices[price_code]
-        return self.fallback
+    def approval_status(self) -> str:
+        """Responsibilities: _payment approval status_."""
+        if self._amount > 0:
+            return "approved"
+        return "review"
 
-    def prefixed_price_label(self, prefix: str, price_code: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.price_label(price_code)
-        return f"{prefix}: {label}"
+    def charge_account(self) -> str:
+        """Responsibilities: _account charge description_."""
+        account = self._account_id.strip()
+        amount = f"{self._amount:.2f}"
+        return f"{account}: {amount}"
 
-    def formatted_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
+    def receipt(self) -> str:
+        """Responsibilities: _payment receipt_."""
+        approval = self.approval_status()
+        charge = self.charge_account()
+        return f"{approval}: {charge}"
 
-    def price_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for price_code in self.prices:
-            if price_code:
-                count += 1
-        return count
+    def report(self) -> None:
+        """Responsibilities: _receipt output_."""
+        receipt = self.receipt()
+        print(receipt)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.payment import Payment
 
 if __name__ == "__main__":
-    prices = {"sale": "Sale", "tax": "Tax"}
-    price_labels = PriceLabels(prices, "Unknown")
-    label = price_labels.price_label("sale")
-    detailed = price_labels.prefixed_price_label("State", "tax")
-    fallback = price_labels.formatted_fallback()
-    count = price_labels.price_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    payment = Payment("account-1", 25.5)
+    payment.report()
 ```

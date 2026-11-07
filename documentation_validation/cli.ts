@@ -1,12 +1,16 @@
 #!/usr/bin/env node
+import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DocumentationValidationSession } from "src/core/support/documentation_validation_session";
-import { CliDocumentationValidation } from "#documentation_validation/cli_documentation_validation";
-import { SourceText } from "src/source_text";
+import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
+import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
 import { RULE_DATA } from "src/constants";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { DocumentationValidationSession } from "src/core/support/documentation_validation_session";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 
-(function run_cli(): void {
+(async function run_cli(): Promise<void> {
 	const command_directory = dirname(fileURLToPath(import.meta.url));
 	const project_root = resolve(command_directory, "..");
 	const requested_arguments = process.argv.slice(2);
@@ -26,8 +30,12 @@ import { RULE_DATA } from "src/constants";
 		process.stdout.write(`${rule_ids.join("\n")}\n`);
 		return;
 	}
-	const session = new DocumentationValidationSession();
+	const sandbox = new DocumentationExampleSandbox(spawnSync);
 	const source_text = new SourceText();
-	const validation = new CliDocumentationValidation(project_root, session.rule_ids(), session, source_text);
-	process.exitCode = validation.run(requested_arguments);
+	const file_io = new NodeFileIO(project_root);
+	const configuration = new LintRunConfiguration(source_text, file_io);
+	const session = new DocumentationValidationSession(configuration, configuration);
+	const validation = new CliDocumentationValidation(project_root, session.rule_ids(), session, sandbox, source_text);
+	const status = await validation.run(requested_arguments);
+	process.exit(status);
 })();

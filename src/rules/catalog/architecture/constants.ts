@@ -1,4 +1,19 @@
 export const ARCHITECTURE_RULE_DATA = {
+	"finite-variant-mapping-is-incomplete": {
+		message: "finite enum mapping sends unhandled variants to a generic fallback",
+		hint: "Map each source enum variant explicitly. Do not: collapse unhandled source variants into one target enum value.",
+		priority: 4,
+	},
+	"concrete-collaborator-created-per-operation": {
+		message: "operation creates a concrete implementation of a project contract",
+		hint: "Inject the collaborator through its project contract and create it at the composition boundary. Do not: choose the concrete implementation inside each operation.",
+		priority: 4,
+	},
+	"protocol-downcast-to-implementation": {
+		message: "project contract value is downcast to a concrete implementation",
+		hint: "Move implementation-specific behavior into the project contract or handle external input at its boundary. Do not: branch on a concrete implementation inside domain behavior.",
+		priority: 4,
+	},
 	"python-class-method": {
 		message: "avoid class methods",
 		hint: "replace the class-level factory or operation with a module-level function. Do not: keep behavior on @classmethod.",
@@ -29,6 +44,16 @@ export const ARCHITECTURE_RULE_DATA = {
 		hint: "make the collection private or protected and expose a read-only view or an owning method. Do not: let callers mutate a class collection directly.",
 		priority: 5,
 	},
+	"public-field-on-contract-implementation": {
+		message: "contract implementation declares a public field",
+		hint: "keep implementation state private and expose contract behavior through methods. Do not: add public fields to a class implementing an interface or protocol.",
+		priority: 5,
+	},
+	"object-field-write": {
+		message: "assignment writes to a field outside the owner's private state",
+		hint: "write only to this._field or self._field and their nested named fields. Do not: write to another object, a public own field, or a computed field.",
+		priority: 5,
+	},
 	"python-direct-class-init": {
 		message: "avoid direct calls to Class.__init__",
 		hint: "use super().__init__ inside the subclass constructor or construct the object normally. Do not: invoke another class constructor through Class.__init__(...).",
@@ -36,12 +61,7 @@ export const ARCHITECTURE_RULE_DATA = {
 	},
 	"field-in-constructor": {
 		message: "initialize object fields in the constructor",
-		hint: "Declare the field without constructing its value, then initialize it in the constructor, __init__, or __post_init__. Do not: call an object constructor or factory in a field initializer.",
-		priority: 5,
-	},
-	"mutable-field-assignment": {
-		message: "avoid assigning class fields outside constructors",
-		hint: "assign instance fields in __init__, __post_init__, or the constructor and keep methods immutable. Do not: mutate self.field from ordinary methods.",
+		hint: "Keep simple scalar defaults inline. Declare collections, constructed objects, and computed values without initializers, then assign them in the constructor, __init__, or __post_init__. Do not: create or compute object state in a field initializer.",
 		priority: 5,
 	},
 	"proxy-callable": {
@@ -149,11 +169,6 @@ export const ARCHITECTURE_RULE_DATA = {
 		message: "unbounded retry loop has no attempt owner",
 		hint: "Give retries an explicit attempt limit, backoff, and owning operation. Do not: continue forever after a failed operation without a retry policy.",
 		priority: 3,
-	},
-	"incomplete-cache-key": {
-		message: "cache lookup and write use different key expressions",
-		hint: "Use one named cache-key operation for both lookup and write. Do not: derive different keys for get and set on the same cache in one callable.",
-		priority: 4,
 	},
 	singleton: {
 		message: "module-level class instance may be a singleton",

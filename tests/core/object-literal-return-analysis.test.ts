@@ -1,15 +1,48 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("object-literal return analysis", () => {
+	test("allows data-only object returns and reports callable behavioral returns", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"project-names.ts": [
+					"export type ProjectNames = {",
+					"  readonly project_class_names: ReadonlySet<string>;",
+					"  readonly project_alias_names: ReadonlySet<string>;",
+					"};",
+					"export function project_names(): ProjectNames {",
+					"  const names = new Set<string>();",
+					"  return { project_class_names: names, project_alias_names: names };",
+					"}",
+				].join("\n"),
+				"behavior.ts": [
+					"export interface ProjectBehavior { run(): void; }",
+					"export function create_behavior(): ProjectBehavior { return { run() {} }; }",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const object_return_violations = violations.filter(
+			(violation) => violation.rule_id() === "typescript-object-literal-return",
+		);
+
+		expect(object_return_violations.filter((violation) => violation.file().endsWith("project-names.ts"))).toHaveLength(
+			0,
+		);
+		expect(object_return_violations.filter((violation) => violation.file().endsWith("behavior.ts"))).toHaveLength(1);
+	});
+
 	test("detects callable object returns through direct and wrapped contract types", () => {
 		const fixture = new TestFixture();
 		const count = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"direct.ts": [
 						"export class Contract { run(): void {} }",
@@ -30,7 +63,7 @@ describe("object-literal return analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "typescript-fake-object").length;
+			.filter((item) => item.rule_id() === "typescript-fake-object").length;
 		expect(count).toBe(3);
 	});
 
@@ -38,7 +71,7 @@ describe("object-literal return analysis", () => {
 		const fixture = new TestFixture();
 		const count = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"namespace.ts": [
 						"export class Contract { run(): void {} }",
@@ -60,7 +93,7 @@ describe("object-literal return analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "typescript-fake-object").length;
+			.filter((item) => item.rule_id() === "typescript-fake-object").length;
 		expect(count).toBe(2);
 	});
 });

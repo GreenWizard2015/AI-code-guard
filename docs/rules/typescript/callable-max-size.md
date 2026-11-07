@@ -41,12 +41,16 @@ export class ContentRecord {
 		const count = this.word_count();
 		return `${this.name} (${count} words)`;
 	}
+
+	public report(): void {
+		console.log(`${this.describe_value()} | ${this.summary()}`);
+	}
 }
 // File: cli.ts
 import { ContentRecord } from "src/content_record";
 (function () {
 	const record = new ContentRecord("notes.txt", "alpha beta gamma delta epsilon");
-	console.log(record.describe_value(), record.summary());
+	record.report();
 })();
 ```
 
@@ -56,15 +60,15 @@ import { ContentRecord } from "src/content_record";
 // File: src/content_record.ts
 /** Responsibilities: _content record state_. **/
 export class ContentRecord {
-	private readonly name: string;
-	private readonly content: string;
-	private readonly descriptions: ReadonlyMap<string, string>;
+	private readonly _name: string;
+	private readonly _content: string;
+	private readonly _descriptions: ReadonlyMap<string, string>;
 
 	/** Responsibilities: _record initialization_. **/
 	public constructor(name: string, content: string) {
-		this.name = name;
-		this.content = content;
-		this.descriptions = new Map([
+		this._name = name;
+		this._content = content;
+		this._descriptions = new Map([
 			["alpha", "first"],
 			["beta", "second"],
 			["gamma", "third"],
@@ -77,13 +81,13 @@ export class ContentRecord {
 
 	/** Responsibilities: _word count_. **/
 	public word_count(): number {
-		return this.content.trim().split(/\s+/u).filter(Boolean).length;
+		return this._content.trim().split(/\s+/u).filter(Boolean).length;
 	}
 
 	/** Responsibilities: _value description_. **/
 	public describe_value(): string {
-		for (const [term, description] of this.descriptions) {
-			if (this.content.includes(term)) {
+		for (const [term, description] of this._descriptions) {
+			if (this._content.includes(term)) {
 				return description;
 			}
 		}
@@ -93,13 +97,18 @@ export class ContentRecord {
 	/** Responsibilities: _record summary_. **/
 	public summary(): string {
 		const count = this.word_count();
-		return `${this.name} (${count} words)`;
+		return `${this._name}: ${this.describe_value()} (${count} words)`;
+	}
+
+	/** Responsibilities: _content record report output_. **/
+	public report(): void {
+		console.log(this.summary());
 	}
 }
 // File: cli.ts
 import { ContentRecord } from "src/content_record";
 (function () {
 	const record = new ContentRecord("notes.txt", "alpha beta gamma delta epsilon");
-	console.log(record.describe_value(), record.word_count(), record.summary());
+	record.report();
 })();
 ```

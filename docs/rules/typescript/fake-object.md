@@ -46,11 +46,72 @@ If the operation is stateless, use explicit module functions instead of a callab
 ## Bad
 
 ```ts
-return { value, run: () => value };
+// File: src/result_action.ts
+export const RESULT_ACTION = {
+	value: " ready ",
+	reported_values: [] as string[],
+	display_value(): string {
+		const normalized_value = this.value.trim().toUpperCase();
+		if (normalized_value.length === 0) {
+			return "";
+		}
+		return normalized_value;
+	},
+	report(): void {
+		const value = this.display_value();
+		this.reported_values.push(value);
+		let label = value;
+		let availability = "available";
+		if (value.length === 0) {
+			label = "EMPTY";
+			availability = "empty";
+		}
+		const fields = [label, `state=${availability}`, `reports=${this.reported_values.length}`];
+		console.log(fields.join(" | "));
+	},
+};
+// File: cli.ts
+import { RESULT_ACTION } from "src/result_action";
+(function () {
+	RESULT_ACTION.report();
+})();
 ```
 
 ## Good
 
 ```ts
-return new Result(value);
+// File: src/result_action.ts
+export class ResultAction {
+	private readonly _value: string;
+	private readonly _reported_values: string[];
+	public constructor(value: string) {
+		this._value = value;
+		this._reported_values = [];
+	}
+	public display_value(): string {
+		const normalized_value = this._value.trim().toUpperCase();
+		if (normalized_value.length === 0) {
+			return "";
+		}
+		return normalized_value;
+	}
+	public report(): void {
+		const value = this.display_value();
+		this._reported_values.push(value);
+		let label = value;
+		let availability = "available";
+		if (value.length === 0) {
+			label = "EMPTY";
+			availability = "empty";
+		}
+		const fields = [label, `state=${availability}`, `reports=${this._reported_values.length}`];
+		console.log(fields.join(" | "));
+	}
+}
+// File: cli.ts
+import { ResultAction } from "src/result_action";
+(function () {
+	const result = new ResultAction("ready");
+	result.report();
+})();
 ```

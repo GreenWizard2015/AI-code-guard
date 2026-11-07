@@ -1,63 +1,33 @@
-import ts from "typescript";
-
-import { MAX_IMPORT_FAN_OUT } from "src/constants";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { ImportFanOutContract } from "src/contracts/protocols/lint_runtime_protocols";
+import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { ImportFanOutContract } from "src/linting/orchestration/runtime/protocols";
-import type { NormalizedAstFileContract } from "src/types";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _module dependencies_, _fan-out diagnostics_. **/
 export class ImportFanOut implements ImportFanOutContract {
-	private readonly max_imports: number;
-	/** Responsibilities: _TypeScript import registration_. **/
-	private append_typescript_module(modules: Set<string>, statement: ts.Statement): void {
-		if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
-			modules.add(statement.moduleSpecifier.text);
-			return;
-		}
-		if (!ts.isImportEqualsDeclaration(statement)) {
-			return;
-		}
-		if (!ts.isExternalModuleReference(statement.moduleReference)) {
-			return;
-		}
-		if (ts.isStringLiteral(statement.moduleReference.expression)) {
-			modules.add(statement.moduleReference.expression.text);
-		}
-	}
-
-	/** Responsibilities: _TypeScript module dependencies_. **/
-	private typescript_modules(source_file: ts.SourceFile): Set<string> {
-		const modules = new Set<string>();
-		for (const statement of source_file.statements) {
-			this.append_typescript_module(modules, statement);
-		}
-		return modules;
-	}
-
+	private readonly _max_imports: number;
+	private readonly _rule: RuleContract;
 	/** Responsibilities: _excessive import fan-out violation_. **/
-	private append_if_excessive(violations: ViolationContract[], file: string, count: number): void {
-		if (count <= this.max_imports) {
-			return;
+	private excessive_violations(file: string, count: number): ViolationContract[] {
+		if (count <= this._max_imports) {
+			return [];
 		}
-		const rule = new DiagnosticRule("import-fan-out");
-		violations.push(rule.violation(file, 1));
+		return [this._rule.violation(file, 1, {})];
 	}
 
 	/** Responsibilities: _fan-out policy initialization_. **/
-	public constructor() {
-		this.max_imports = MAX_IMPORT_FAN_OUT;
+	public constructor(max_imports: number, rule: RuleContract) {
+		this._max_imports = max_imports;
+		this._rule = rule;
 	}
 
-	/** Responsibilities: _TypeScript import fan-out_. **/
-	public append_typescript(violations: ViolationContract[], file: string, source_file: ts.SourceFile): void {
-		this.append_if_excessive(violations, file, this.typescript_modules(source_file).size);
-	}
-
-	/** Responsibilities: _Python import fan-out_. **/
-	public append_python(violations: ViolationContract[], file: string, ast: NormalizedAstFileContract): void {
-		const source_modules = ast.python_imports.map((item) => item.module);
-		const modules = new Set(source_modules);
-		this.append_if_excessive(violations, file, modules.size);
+	/** Responsibilities: _language-specific import fan-out_. **/
+	public append(violations: ViolationContract[], source: LintSourceRecordData): void {
+		if (source.language !== "python") {
+			return;
+		}
+		const imports = source.normalized_ast.source.python_imports;
+		const modules = new Set(imports.map((item) => item.module));
+		violations.push(...this.excessive_violations(source.relative_path, modules.size));
 	}
 }

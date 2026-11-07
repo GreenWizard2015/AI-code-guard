@@ -2,7 +2,7 @@ import ts from "typescript";
 
 /** Responsibilities: _arithmetic operator grouping_, _mixed precedence detection_. **/
 export class TypeScriptArithmeticPrecedence {
-	private readonly arithmetic_kinds: Set<ts.SyntaxKind>;
+	private readonly _arithmetic_kinds: ReadonlySet<ts.SyntaxKind>;
 
 	/** Responsibilities: _classification arithmetic parent_. **/
 	private parent_group(node: ts.BinaryExpression): boolean {
@@ -17,7 +17,7 @@ export class TypeScriptArithmeticPrecedence {
 		if (!ts.isBinaryExpression(node)) {
 			return false;
 		}
-		return this.arithmetic_kinds.has(node.operatorToken.kind);
+		return this._arithmetic_kinds.has(node.operatorToken.kind);
 	}
 
 	/** Responsibilities: _collection arithmetic operators_. **/
@@ -28,7 +28,7 @@ export class TypeScriptArithmeticPrecedence {
 		if (!ts.isBinaryExpression(node)) {
 			return;
 		}
-		if (!this.arithmetic_kinds.has(node.operatorToken.kind)) {
+		if (!this._arithmetic_kinds.has(node.operatorToken.kind)) {
 			return;
 		}
 		operators.add(node.operatorToken.kind);
@@ -36,17 +36,9 @@ export class TypeScriptArithmeticPrecedence {
 		this.append_operators(node.right, operators, false);
 	}
 
-	/** Responsibilities: _arithmetic operator collection API_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.arithmetic_kinds = new Set([
-			ts.SyntaxKind.PlusToken,
-			ts.SyntaxKind.MinusToken,
-			ts.SyntaxKind.AsteriskToken,
-			ts.SyntaxKind.SlashToken,
-			ts.SyntaxKind.PercentToken,
-			ts.SyntaxKind.AsteriskAsteriskToken,
-		]);
+	/** Responsibilities: _arithmetic precedence policy ownership_. **/
+	public constructor(arithmetic_kinds: ReadonlySet<ts.SyntaxKind>) {
+		this._arithmetic_kinds = arithmetic_kinds;
 	}
 	/** Responsibilities: _public operation_. **/
 	public arithmetic_operators(node: ts.Expression): ReadonlySet<ts.SyntaxKind> {
@@ -60,7 +52,7 @@ export class TypeScriptArithmeticPrecedence {
 		if (!ts.isBinaryExpression(node)) {
 			return false;
 		}
-		if (!this.arithmetic_kinds.has(node.operatorToken.kind)) {
+		if (!this._arithmetic_kinds.has(node.operatorToken.kind)) {
 			return false;
 		}
 		if (this.parent_group(node)) {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python callable usage", () => {
@@ -9,7 +9,7 @@ describe("Python callable usage", () => {
 
 	test("keeps same-named methods owned by different modules", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.py": ["class Worker:", "    def run(self) -> None:", "        return None"].join("\n"),
 				"second.py": ["class Worker:", "    def run(self) -> None:", "        return None"].join("\n"),
@@ -21,14 +21,14 @@ describe("Python callable usage", () => {
 
 		expect(
 			violations.some(
-				(violation) => violation.file.endsWith("second.py") && violation.message.includes('method "Worker.run"'),
+				(violation) => violation.file().endsWith("second.py") && violation.message().includes('method "Worker.run"'),
 			),
 		).toBe(true);
 	});
 
 	test("counts methods invoked through structural contracts", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"contract.py": [
 					"from typing import Protocol",
@@ -48,7 +48,7 @@ describe("Python callable usage", () => {
 
 		expect(
 			violations.some(
-				(violation) => violation.file.endsWith("/worker.py") && violation.message.includes('method "Worker.run"'),
+				(violation) => violation.file().endsWith("/worker.py") && violation.message().includes('method "Worker.run"'),
 			),
 		).toBe(false);
 	});

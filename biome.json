@@ -3,5 +3,75 @@
 	"formatter": {
 		"enabled": true,
 		"lineWidth": 120
-	}
+	},
+	"files": {
+		"ignore": ["**/.mypy_cache/**"]
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"all": true,
+			"style": {
+				"useNamingConvention": "off",
+				"useCollapsedElseIf": "off",
+				"noDoneCallback": "off"
+			},
+			"correctness": {
+				"all": true,
+				"noUndeclaredDependencies": "off",
+				"noNodejsModules": "off"
+			},
+			"suspicious": {
+				"all": true,
+				"noConsole": "off",
+				"noConsoleLog": "off"
+			},
+			"nursery": {
+				"all": true,
+				"noEnum": "off",
+				"noSecrets": "off",
+				"noProcessEnv": "off",
+				"useExplicitType": "off",
+				"useCollapsedIf": "off",
+				"useConsistentMemberAccessibility": {
+					"level": "error",
+					"options": {
+						"accessibility": "explicit"
+					}
+				}
+			},
+			"complexity": {
+				"all": true,
+				"useSimplifiedLogicExpression": "off",
+				"useOptionalChain": "off"
+			},
+			"performance": {
+				"useTopLevelRegex": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"include": ["tests/**"],
+			"javascript": {
+				"globals": ["describe", "expect", "test"]
+			},
+			"linter": {
+				"rules": {
+					"nursery": { "noTemplateCurlyInString": "off" },
+					"suspicious": { "noEmptyBlockStatements": "off" }
+				}
+			}
+		},
+		{
+			"include": ["**/*.mjs"],
+			"linter": {
+				"rules": {
+					"nursery": {
+						"useConsistentMemberAccessibility": "off"
+					}
+				}
+			}
+		}
+	]
 }

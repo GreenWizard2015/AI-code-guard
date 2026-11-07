@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("callback contract size", () => {
@@ -9,7 +9,7 @@ describe("callback contract size", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"callbacks.ts": "type MemberChanged = (owner: Owner, name: string, before: Value, after: Value) => void;",
 					"callbacks.py": [
@@ -21,7 +21,7 @@ describe("callback contract size", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "callback-contract-size");
+			.filter((item) => item.rule_id() === "callback-contract-size");
 
 		expect(violations).toHaveLength(2);
 	});
@@ -30,7 +30,7 @@ describe("callback contract size", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"callbacks.ts": "type MemberChanged = (owner: Owner, name: string, value: Value) => void;",
 					"callbacks.py": [
@@ -42,7 +42,7 @@ describe("callback contract size", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "callback-contract-size");
+			.filter((item) => item.rule_id() === "callback-contract-size");
 
 		expect(violations).toHaveLength(0);
 	});

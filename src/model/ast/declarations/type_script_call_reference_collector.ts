@@ -1,213 +1,251 @@
-import { TypeScriptCallReference } from "src/model/ast/declarations/type_script_call_reference";
+import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
+import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
 import { TypeScriptCallExpressionInspector } from "src/parser/analysis/type_script_call_expression_inspector";
 import ts from "typescript";
 
-import type { AstCallableReference } from "src/types";
-import { TypeScriptReferenceOwnership } from "src/parser/references/identity/references/type_script_reference_ownership";
-
-import type { CallTargetKind } from "src/types";
-import type { AstCallableReferenceContract } from "src/source_types";
-import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
-import type { TypeScriptCallExpressionInspectorContract, TypeScriptReferenceOwnershipContract } from "src/typescript_analysis_protocols";
+import { METRIC_KIND_FUNCTION, METRIC_KIND_METHOD } from "src/metrics/constants";
+import type { AstCallableReference } from "src/model/ast/normalized_ast_types";
 import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
+import { TypeScriptReferenceResolution } from "src/model/type_script_reference_resolution";
+import { TypeScriptReferenceQueryKind } from "src/model/types";
 import type { TypeScriptCallReferenceCollectorOptions } from "src/model/types";
+import { TypeScriptReferenceOwnership } from "src/parser/references/identity/references/type_script_reference_ownership";
+import type { CallReferenceOptions } from "src/parser/types";
+import type { AstCallableReferenceRecord } from "src/source_types";
+import type {
+	TypeScriptCallExpressionInspectorContract,
+	TypeScriptReferenceOwnershipContract,
+} from "src/typescript_analysis_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _syntax traversal_, _reference ownership_. **/
 export class TypeScriptCallReferenceCollector implements TypeScriptCallReferenceCollectorContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly context: TypeScriptReferenceOwnershipContract;
-	private readonly expression_inspector: TypeScriptCallExpressionInspectorContract;
-	private readonly traversal: TypeScriptAstTraversalContract;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _context: TypeScriptReferenceOwnershipContract;
+	private readonly _expression_inspector: TypeScriptCallExpressionInspectorContract;
+	private readonly _traversal: TypeScriptAstTraversalContract;
+	private readonly _collected_references: AstCallableReferenceRecord[];
+	private readonly _node_dispatcher: TypeScriptAstNodeObserverRegistry<void>;
 
-	/** Responsibilities: _node routing invocation traversal_. **/
-	private visit_node(node: ts.Node, references: AstCallableReferenceContract[], owner: string = ""): void {
-		let current_owner = owner;
-		if (ts.isClassDeclaration(node)) {
-			if (node.name !== undefined) {
-				current_owner = node.name.text;
-			}
-		} else if (ts.isClassExpression(node)) {
-			if (node.name !== undefined) {
-				current_owner = node.name.text;
-			}
-		}
-		this.append_reference(node, references, current_owner);
-		ts.forEachChild(node, (child) => this.visit_node(child, references, current_owner));
+	/** Responsibilities: _method reference construction_. **/
+	private method_reference(expression: ts.AccessExpression, line: number, caller_owner: string): AstCallableReference {
+		const resolution = this._context.resolve_reference({
+			kind: TypeScriptReferenceQueryKind.MethodReference,
+			expression,
+			owner: caller_owner,
+		});
+		return resolution.callable_reference(METRIC_KIND_METHOD, line);
 	}
 
+	/** Responsibilities: _callable reference normalization_. **/
+	private call_reference(expression: ts.Expression, options: CallReferenceOptions): AstCallableReference {
+		const line = this._source_file.getLineAndCharacterOfPosition(expression.getStart(this._source_file)).line;
+		if (ts.isIdentifier(expression)) {
+			const identity = this._context.function_reference(expression);
+			const resolution = new TypeScriptReferenceResolution("", identity.name, identity.target_file);
+			return resolution.callable_reference(METRIC_KIND_FUNCTION, line);
+		}
+		if (ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression)) {
+			return this.method_reference(expression, line, options.current_owner);
+		}
+		throw new Error("Unsupported TypeScript call reference expression.");
+	}
+
+	/** Responsibilities: _node routing invocation traversal_. **/
 	/** Responsibilities: _nested node preservation traversal_. **/
-	private append_nested_node(node: ts.Node, references: AstCallableReferenceContract[], owner: string = ""): void {
-		if (ts.isCallExpression(node)) {
-			this.append_nested_values(node, references, owner);
-			this.append_call_target(node, references, owner);
+	private append_nested_node(nested_expression: ts.Node, container_owner = ""): void {
+		if (ts.isCallExpression(nested_expression)) {
+			this.append_nested_values(nested_expression, container_owner);
+			this.append_call_target(nested_expression, container_owner);
 			return;
 		}
-		if (ts.isNewExpression(node)) {
-			this.append_new_node(node, references, owner);
+		if (ts.isNewExpression(nested_expression)) {
+			this.append_new_node(nested_expression, container_owner);
 			return;
 		}
-		if (ts.isArrayLiteralExpression(node)) {
-			this.append_nested_values(node, references, owner);
+		if (ts.isArrayLiteralExpression(nested_expression)) {
+			this.append_nested_values(nested_expression, container_owner);
 		}
 	}
 
 	/** Responsibilities: _aggregation constructor references inspection_. **/
-	private append_new_node(
-		node: ts.NewExpression,
-		references: AstCallableReferenceContract[],
-		owner: string = "",
-	): void {
-		this.append_nested_values(node, references, owner);
-		if (ts.isIdentifier(node.expression) || ts.isPropertyAccessExpression(node.expression)) {
-			const call_reference = new TypeScriptCallReference();
-			references.push(call_reference.call_reference(this.source_file, this.context, node.expression));
+	private append_new_node(construction: ts.NewExpression, construction_owner = ""): void {
+		this.append_nested_values(construction, construction_owner);
+		if (ts.isIdentifier(construction.expression) || ts.isPropertyAccessExpression(construction.expression)) {
+			this.append_expression_reference(construction.expression, {
+				current_owner: construction_owner,
+				is_bound: false,
+				is_call: false,
+			});
 		}
 	}
 
 	/** Responsibilities: _nested object values traversal_. **/
-	private append_nested_values(node: ts.Node, references: AstCallableReferenceContract[], owner: string = ""): void {
-		if (ts.isArrayLiteralExpression(node)) {
-			this.append_argument_values(node.elements, references, owner);
+	private append_nested_values(container: ts.Node, nested_owner = ""): void {
+		if (ts.isArrayLiteralExpression(container)) {
+			this.append_argument_values(container.elements, nested_owner);
 			return;
 		}
-		if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
-			if (node.arguments !== undefined) {
-				this.append_argument_values(node.arguments, references, owner);
-			}
+		if ((ts.isCallExpression(container) || ts.isNewExpression(container)) && container.arguments !== undefined) {
+			this.append_argument_values(container.arguments, nested_owner);
 		}
 	}
 
 	/** Responsibilities: _invocation argument expressions traversal_. **/
-	private append_argument_values(
-		arguments_list: readonly ts.Expression[],
-		references: AstCallableReferenceContract[],
-		owner: string = "",
-	): void {
+	private append_argument_values(arguments_list: readonly ts.Expression[], argument_owner = ""): void {
 		for (const argument of arguments_list) {
 			if (ts.isSpreadElement(argument)) {
-				this.append_expression_reference(argument.expression, references, owner);
+				this.append_expression_reference(argument.expression, {
+					current_owner: argument_owner,
+					is_bound: false,
+					is_call: false,
+				});
 				continue;
 			}
-			this.append_expression_reference(argument, references, owner);
+			this.append_expression_reference(argument, {
+				current_owner: argument_owner,
+				is_bound: false,
+				is_call: false,
+			});
 		}
 	}
 
 	/** Responsibilities: _identification supported callable reference_. **/
-	private supported_reference(node: ts.Node): boolean {
-		if (ts.isIdentifier(node) || ts.isPropertyAccessExpression(node)) {
+	private supported_reference(reference_expression: ts.Node): boolean {
+		if (ts.isIdentifier(reference_expression) || ts.isPropertyAccessExpression(reference_expression)) {
 			return true;
 		}
-		if (!ts.isElementAccessExpression(node)) {
+		if (!ts.isElementAccessExpression(reference_expression)) {
 			return false;
 		}
-		const argument = node.argumentExpression;
+		const argument = reference_expression.argumentExpression;
 		return ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument);
 	}
 
+	/** Responsibilities: _method reference collection_. **/
+	private append_method_reference(reference: AstCallableReference, context: CallReferenceOptions): void {
+		let caller_owner = context.current_owner;
+		if (caller_owner.length === 0) {
+			caller_owner = reference.caller_owner;
+		}
+		let is_call = context.is_call;
+		if (!is_call) {
+			is_call = reference.is_call;
+		}
+		this._collected_references.push({ ...reference, caller_owner, is_call });
+	}
+
 	/** Responsibilities: _collection supported callable reference_. **/
-	private append_expression_reference(
-		expression: ts.Expression,
-		references: AstCallableReferenceContract[],
-		owner: string = "",
-	): void {
+	private append_expression_reference(expression: ts.Expression, options: CallReferenceOptions): void {
 		if (!this.supported_reference(expression)) {
 			return;
 		}
-		const call_reference = new TypeScriptCallReference();
-		references.push(
-			call_reference.call_reference(this.source_file, this.context, expression, {
-				current_owner: owner,
-				is_bound: false,
-				is_call: false,
-			}),
-		);
+		const reference = this.call_reference(expression, options);
+		if (ts.isIdentifier(expression) || options.is_bound) {
+			this._collected_references.push(reference);
+			return;
+		}
+		this.append_method_reference(reference, options);
 	}
 
 	/** Responsibilities: _aggregation callable target invocation_. **/
-	private append_call_target(
-		node: ts.CallExpression,
-		references: AstCallableReferenceContract[],
-		owner: string = "",
-	): void {
-		const bound_expressions = this.expression_inspector.bind_target(node);
-		if (bound_expressions.length > 0) {
-			this.append_target(bound_expressions[0], references, "bound", owner);
+	private append_call_target(invocation: ts.CallExpression, invocation_owner = ""): void {
+		for (const bound_expression of this._expression_inspector.bind_target(invocation)) {
+			this.append_expression_reference(bound_expression, {
+				current_owner: invocation_owner,
+				is_bound: true,
+				is_call: false,
+			});
 			return;
 		}
-		if (this.supported_reference(node.expression)) {
-			this.append_target(node.expression, references, "call", owner);
+		if (this.supported_reference(invocation.expression)) {
+			this.append_expression_reference(invocation.expression, {
+				current_owner: invocation_owner,
+				is_bound: false,
+				is_call: true,
+			});
 		}
 	}
 
-	/** Responsibilities: _aggregation resolution callable reference_. **/
-	private append_target(
-		expression: ts.Node,
-		references: AstCallableReferenceContract[],
-		target_kind: CallTargetKind,
-		owner: string = "",
-	): void {
-		const options = { current_owner: owner, is_bound: false, is_call: false };
-		if (target_kind === "bound") {
-			options.is_bound = true;
-		} else {
-			options.is_call = true;
-		}
-		if (!this.supported_reference(expression)) {
+	/** Responsibilities: _direct callable expression reference_. **/
+	private append_direct_reference(expressions: readonly ts.Expression[], direct_owner: string): void {
+		for (const expression of expressions) {
+			this.append_expression_reference(expression, {
+				current_owner: direct_owner,
+				is_bound: false,
+				is_call: false,
+			});
 			return;
 		}
-		const call_reference = new TypeScriptCallReference();
-		references.push(call_reference.call_reference(this.source_file, this.context, expression, options));
 	}
 
 	/** Responsibilities: _initialization source context callable-reference_. **/
-	constructor(options: TypeScriptCallReferenceCollectorOptions) {
-		this.expression_inspector = new TypeScriptCallExpressionInspector();
-		this.source_file = options.source_file;
-		this.traversal = options.traversal;
-		this.context = new TypeScriptReferenceOwnership(
-			options.source_file,
-			options.project_root,
-			options.stage_timer,
-			options.source_files,
-			options.source_io,
+	public constructor(options: TypeScriptCallReferenceCollectorOptions) {
+		this._expression_inspector = new TypeScriptCallExpressionInspector(options.declaration_index);
+		this._collected_references = [];
+		this._source_file = options.source_file;
+		this._traversal = options.traversal;
+		this._node_dispatcher = new TypeScriptAstNodeObserverRegistry();
+		const reference_node_kinds: ts.SyntaxKind[] = [
+			ts.SyntaxKind.PropertyAssignment,
+			ts.SyntaxKind.VariableDeclaration,
+			ts.SyntaxKind.Parameter,
+			ts.SyntaxKind.ReturnStatement,
+			ts.SyntaxKind.BinaryExpression,
+			ts.SyntaxKind.CallExpression,
+			ts.SyntaxKind.NewExpression,
+			ts.SyntaxKind.ArrayLiteralExpression,
+		];
+		this._node_dispatcher.register(TypeScriptAstDispatchPhase.ReferenceState, reference_node_kinds, ({ node, owner }) =>
+			this.append_reference(node, owner),
 		);
+		this._context = new TypeScriptReferenceOwnership({
+			source_file: options.source_file,
+			traversal: options.traversal,
+			project_root: options.project_root,
+			stage_timer: options.stage_timer,
+			source_files: options.source_files,
+			source_io: options.source_io,
+		});
 	}
 
 	/** Responsibilities: _callable reference aggregation_. **/
-	public append_reference(node: ts.Node, references: AstCallableReferenceContract[], owner: string = ""): void {
-		switch (node.kind) {
+	public append_reference(visited_node: ts.Node, traversal_owner = ""): void {
+		switch (visited_node.kind) {
 			case ts.SyntaxKind.PropertyAssignment:
 			case ts.SyntaxKind.VariableDeclaration:
 			case ts.SyntaxKind.Parameter:
 			case ts.SyntaxKind.ReturnStatement:
 			case ts.SyntaxKind.BinaryExpression: {
-				const expressions = this.expression_inspector.direct_value_expression(node);
-				if (expressions.length > 0) {
-					this.append_expression_reference(expressions[0], references, owner);
-				}
+				const expressions = this._expression_inspector.direct_value_expression(visited_node);
+				this.append_direct_reference(expressions, traversal_owner);
 				return;
 			}
 			case ts.SyntaxKind.CallExpression:
 			case ts.SyntaxKind.NewExpression:
-			case ts.SyntaxKind.ArrayLiteralExpression:
-				this.append_nested_node(node, references, owner);
+			case ts.SyntaxKind.ArrayLiteralExpression: {
+				this.append_nested_node(visited_node, traversal_owner);
 				return;
+			}
 			default:
 				return;
 		}
 	}
 
-	/** Responsibilities: _collection callable references source-file_. **/
+	/** Responsibilities: _callable reference snapshot_. **/
 	public collect(): AstCallableReference[] {
-		const references: AstCallableReferenceContract[] = [];
-		this.traversal.visit((node, _, owner) => this.append_reference(node, references, owner));
-		return references;
+		this._collected_references.length = 0;
+		this._node_dispatcher.dispatch(
+			TypeScriptAstDispatchPhase.ReferenceState,
+			this._traversal,
+			this._source_file,
+			undefined,
+		);
+		return [...this._collected_references];
 	}
 
-	/** Responsibilities: _collection callable references AST_. **/
-	public collect_node(node: ts.Node): AstCallableReference[] {
-		const references: AstCallableReferenceContract[] = [];
-		this.visit_node(node, references);
-		return references;
+	/** Responsibilities: _callable reference snapshot_. **/
+	public references(): AstCallableReference[] {
+		return [...this._collected_references];
 	}
 }

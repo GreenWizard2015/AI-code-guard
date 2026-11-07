@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
+import { CLI_ENTRY } from "src/constants";
 import { CliApplication } from "src/core/cli_application";
 import { NodeFileIO } from "src/io/node_file_io";
-import { SourceText } from "src/source_text";
-import { CLI_ENTRY } from "src/constants";
+import { SourceText } from "src/io/source_text";
 
 /** Responsibilities: _CLI entrypoint execution_. **/
 async function start_cli(): Promise<void> {
@@ -17,11 +17,10 @@ async function start_cli(): Promise<void> {
 	if (!entry_file.endsWith(CLI_ENTRY)) {
 		return;
 	}
-	const previous_exit_code = process.exitCode;
-	const cli = new CliApplication(new NodeFileIO(), new SourceText());
-	await cli.run_cli();
-	if (previous_exit_code !== undefined && process.exitCode === undefined) {
-		process.exitCode = previous_exit_code;
+	const cli = new CliApplication(new NodeFileIO(process.cwd()), new SourceText());
+	const STATUS = await cli.run_cli(process.argv);
+	if (STATUS.lint_failed || STATUS.review_failed) {
+		process.exit(1);
 	}
 }
 

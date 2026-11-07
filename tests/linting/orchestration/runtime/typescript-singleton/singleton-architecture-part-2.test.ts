@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import ts from "typescript";
 import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
+import ts from "typescript";
 
 describe("singleton architecture rules", () => {
 	test("reports TypeScript singleton initialization variants", () => {
@@ -21,7 +21,7 @@ describe("singleton architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector(file, source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.map((item) => item.line)).toEqual([3, 4, 5, 6]);
+		expect(violations.map((item) => item.line())).toEqual([3, 4, 5, 6]);
 	});
 
 	test("reports singleton factory results through callable aliases", () => {
@@ -117,7 +117,7 @@ describe("singleton architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector(file, source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations).toEqual([expect.objectContaining({ line: 8 })]);
+		expect(violations.map((item) => item.line())).toEqual([8]);
 	});
 
 	test("reports singleton constructors through namespace import aliases", () => {

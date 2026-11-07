@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python test framework and structure", () => {
 	test("uses unittest consistently and resolves imported base aliases", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/test_pytest_one.py": "def test_one():\n    return True\n",
 				"tests/test_pytest_two.py": "def test_two():\n    return True\n",
@@ -34,18 +34,18 @@ describe("Python test framework and structure", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const consistency_violations = violations.filter((item) => item.rule_id === "python-test-framework-consistency");
-		expect(consistency_violations.map((item) => item.file)).toEqual([
+		const consistency_violations = violations.filter((item) => item.rule_id() === "python-test-framework-consistency");
+		expect(consistency_violations.map((item) => item.file())).toEqual([
 			"tests/test_pytest_one.py",
 			"tests/test_pytest_two.py",
 		]);
-		expect(violations.filter((item) => item.rule_id === "python-test-class-inheritance")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "python-test-class-inheritance")).toHaveLength(0);
 	});
 
 	test("requires each Python test class to inherit only from unittest.TestCase", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/test_plain_class.py": ["class TestPlain:", "    def test_value(self):", "        return True"].join(
 					"\n",
@@ -78,8 +78,8 @@ describe("Python test framework and structure", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const inheritance_violations = violations.filter((item) => item.rule_id === "python-test-class-inheritance");
-		expect(inheritance_violations.map((item) => item.file)).toEqual([
+		const inheritance_violations = violations.filter((item) => item.rule_id() === "python-test-class-inheritance");
+		expect(inheritance_violations.map((item) => item.file())).toEqual([
 			"tests/test_dot_test.test.py",
 			"tests/test_local_base.py",
 			"tests/test_multiple_bases.py",
@@ -91,7 +91,7 @@ describe("Python test framework and structure", () => {
 	test("rejects direct, aliased, and reflected self.subTest usage", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/test_subtests.py": [
 					"import unittest",
@@ -114,11 +114,11 @@ describe("Python test framework and structure", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const subtest_violations = violations.filter((item) => item.rule_id === "python-test-subtest");
+		const subtest_violations = violations.filter((item) => item.rule_id() === "python-test-subtest");
 		expect({
 			count: subtest_violations.length,
-			lines: subtest_violations.map((item) => item.line),
-			parameterized_hint: subtest_violations.every((item) => item.hint.includes("parameterized.expand")),
+			lines: subtest_violations.map((item) => item.line()),
+			parameterized_hint: subtest_violations.every((item) => item.hint().includes("parameterized.expand")),
 		}).toEqual({ count: 3, lines: [4, 9, 13], parameterized_hint: true });
 	});
 });

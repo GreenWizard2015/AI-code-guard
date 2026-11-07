@@ -1,206 +1,95 @@
 import ts from "typescript";
 
-import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
-import type { TypeScriptClassCallableNodesContract } from "src/model/protocols";
-import { TypeScriptClassMembers } from "src/parser/analysis/type_script_class_members";
-
-import type { ClassNodeData, ClassNodeOptions, SourceRange } from "src/types";
-import type { TypeScriptClassMembersContract, TypeScriptClassNodesContract } from "src/typescript_analysis_protocols";
 import { ANONYMOUS_CLASS_NAME } from "src/constants";
+import { TypeScriptClassDeclarationMetadata } from "src/model/ast/declarations/type_script_class_declaration_metadata";
+import type { AstClassNode } from "src/model/ast/normalized_ast_types";
+import type { TypeScriptClassCallableNodesContract } from "src/model/protocols";
+import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
+import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
+import { TypeScriptClassMembers } from "src/parser/analysis/type_script_class_members";
+import type { TypeScriptClassMembersContract, TypeScriptClassNodesContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 
-/** Responsibilities: _class node construction_, _interface node construction_. **/
+/** Responsibilities: _class node collection_, _interface node collection_. **/
 export class TypeScriptClassNodes implements TypeScriptClassNodesContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly callable_nodes: TypeScriptClassCallableNodesContract;
-	private readonly member_data: TypeScriptClassMembersContract;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _callable_nodes: TypeScriptClassCallableNodesContract;
+	private readonly _member_data: TypeScriptClassMembersContract;
+	private readonly _traversal: TypeScriptAstTraversalContract;
 
-	/** Responsibilities: _collection variable-declaration class nodes_. **/
-	private append_variable_nodes(statement: ts.VariableStatement, classes: AstClassNodeContract[]): void {
-		for (const declaration of statement.declarationList.declarations) {
-			const initializer = declaration.initializer;
-			if (initializer !== undefined) {
-				if (ts.isClassExpression(initializer)) {
-					this.append_class_nodes(initializer, classes, declaration.name.getText(this.source_file));
-					continue;
-				}
-			}
-			this.append_class_nodes(declaration, classes);
-		}
+	/** Responsibilities: _interface metadata construction_. **/
+	private interface_node(node: ts.InterfaceDeclaration): AstClassNode {
+		const interface_node = this._callable_nodes.interface_node(node);
+		return {
+			...interface_node,
+			field_analysis: {
+				...interface_node.field_analysis,
+				fields: this._member_data.interface_fields(node),
+			},
+		};
 	}
 
-	/** Responsibilities: _collection nested class nodes_. **/
-	private append_class_nodes(node: ts.Node, classes: AstClassNodeContract[], fallback_name = ""): void {
-		if (ts.isClassDeclaration(node)) {
-			classes.push(this.class_node(node, ANONYMOUS_CLASS_NAME));
-		} else if (ts.isClassExpression(node)) {
-			classes.push(this.class_node(node, fallback_name));
+	/** Responsibilities: _class expression name resolution_. **/
+	private class_expression_node(node: ts.ClassExpression): AstClassNode {
+		let fallback_name = "";
+		const parent = node.parent;
+		if (ts.isVariableDeclaration(parent) && parent.initializer === node) {
+			fallback_name = parent.name.getText(this._source_file);
 		}
-		if (ts.isVariableStatement(node)) {
-			this.append_variable_nodes(node, classes);
+		return this.class_node(node, fallback_name);
+	}
+
+	/** Responsibilities: _class node metadata_. **/
+	private class_node(class_declaration: ts.ClassLikeDeclaration, fallback_name: string): AstClassNode {
+		const metadata = new TypeScriptClassDeclarationMetadata({
+			class_declaration,
+			fallback_name,
+			source_file: this._source_file,
+			callable_nodes: this._callable_nodes,
+			member_data: this._member_data,
+		});
+		const sections = metadata.sections();
+		return { identity: metadata.identity(), ...sections };
+	}
+
+	/** Responsibilities: _class analyzer initialization_. **/
+	public constructor(
+		source_file: ts.SourceFile,
+		callable_nodes: TypeScriptClassCallableNodesContract,
+		traversal: TypeScriptAstTraversalContract,
+	) {
+		this._source_file = source_file;
+		this._callable_nodes = callable_nodes;
+		this._member_data = new TypeScriptClassMembers(source_file);
+		this._traversal = traversal;
+	}
+
+	/** Responsibilities: _declaration kind dispatch_. **/
+	public append_node(node: ts.Node, declarations: AstClassNode[]): void {
+		if (ts.isInterfaceDeclaration(node)) {
+			declarations.push(this.interface_node(node));
 			return;
 		}
-		node.forEachChild((child) => this.append_class_nodes(child, classes));
-	}
-
-	/** Responsibilities: _collection nested interface nodes_. **/
-	private append_interface_nodes(node: ts.Node, interfaces: AstClassNodeContract[]): void {
-		if (ts.isInterfaceDeclaration(node)) {
-			interfaces.push({
-				...this.callable_nodes.interface_node(node),
-				fields: this.member_data.interface_fields(node),
-			});
+		if (ts.isClassDeclaration(node)) {
+			declarations.push(this.class_node(node, ANONYMOUS_CLASS_NAME));
+			return;
 		}
-		node.forEachChild((child) => this.append_interface_nodes(child, interfaces));
-	}
-
-	/** Responsibilities: _combine class data_. **/
-	private class_node(node: ts.ClassLikeDeclaration, fallback_name: string): AstClassNodeContract {
-		const methods = this.callable_nodes.class_method_nodes(node, fallback_name);
-		const range = this.class_line_range(node);
-		const interfaces = this.implemented_interfaces(node);
-		return this.build_class_node({
-			node,
-			fallback_name,
-			methods,
-			range,
-			interfaces,
-		});
-	}
-
-	/** Responsibilities: _class line range calculation_. **/
-	private class_line_range(node: ts.Node): SourceRange {
-		const start_position = node.getStart(this.source_file);
-		const end_position = Math.max(start_position, node.end - 1);
-		return {
-			start: this.source_file.getLineAndCharacterOfPosition(start_position).line,
-			end: this.source_file.getLineAndCharacterOfPosition(end_position).line,
-		};
-	}
-
-	/** Responsibilities: _implemented interfaces collection_. **/
-	private implemented_interfaces(node: ts.ClassLikeDeclaration): string[] {
-		const interfaces: string[] = [];
-		const clauses = node.heritageClauses;
-		if (clauses === undefined) {
-			return interfaces;
+		if (!ts.isClassExpression(node)) {
+			return;
 		}
-		for (const clause of clauses) {
-			if (clause.token !== ts.SyntaxKind.ImplementsKeyword) {
-				continue;
-			}
-			interfaces.push(...clause.types.map((type) => type.expression.getText(this.source_file)));
-		}
-		return interfaces;
+		declarations.push(this.class_expression_node(node));
 	}
 
-	/** Responsibilities: _class metrics assembly_. **/
-	private build_class_node(options: ClassNodeOptions): AstClassNodeContract {
-		const callbacks = this.member_data.callback_counts(options.node);
-		const fields = this.member_data.class_fields(options.node);
-		return {
-			...this.class_data(options),
-			base_class_names: [],
-			extends_external_class: false,
-			is_data_class: false,
-			type_contract: false,
-			protocol: false,
-			callback_fields: callbacks.total,
-			inline_callback_fields: callbacks.inline,
-			fields,
-			untyped_fields: [],
-			dependencies: [],
-		};
+	/** Responsibilities: _class-like metadata construction_. **/
+	public declaration_nodes(): AstClassNode[] {
+		const declarations: AstClassNode[] = [];
+		const dispatcher = new TypeScriptAstNodeObserverRegistry<void>();
+		dispatcher.register(
+			TypeScriptAstDispatchPhase.SourceMetadata,
+			[ts.SyntaxKind.ClassDeclaration, ts.SyntaxKind.ClassExpression, ts.SyntaxKind.InterfaceDeclaration],
+			({ node }) => this.append_node(node, declarations),
+		);
+		dispatcher.dispatch(TypeScriptAstDispatchPhase.SourceMetadata, this._traversal, this._source_file, undefined);
+		return declarations;
 	}
-
-	/** Responsibilities: _derive class identity_. **/
-	private class_data(options: ClassNodeOptions): ClassNodeData {
-		const start = options.range.start;
-		const end = options.range.end;
-		let name = options.fallback_name;
-		if (options.node.name !== undefined) {
-			name = options.node.name.text;
-		}
-		return {
-			name,
-			start,
-			end,
-			lines: this.class_lines(options.node),
-			sloc: this.class_sloc(options.node, options.methods),
-			interfaces: options.interfaces,
-			base_class_name: this.extends_class_name(options.node),
-			methods: options.methods,
-		};
-	}
-
-	/** Responsibilities: _direct base name resolution_. **/
-	private extends_class_name(node: ts.ClassLikeDeclaration): string {
-		const clauses = node.heritageClauses;
-		if (clauses === undefined) {
-			return "";
-		}
-		for (const clause of clauses) {
-			if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
-				continue;
-			}
-			if (!clause.types[0]) {
-				continue;
-			}
-			return clause.types[0].expression.getText(this.source_file);
-		}
-		return "";
-	}
-
-	/** Responsibilities: _sum member lines_. **/
-	private class_sloc(node: ts.ClassLikeDeclaration, methods: AstCallableNodeContract[]): number {
-		const method_sloc_map = new Map<number, number>();
-		for (const method of methods) {
-			method_sloc_map.set(method.start, method.sloc);
-		}
-		let total = 1;
-		for (const member of node.members) {
-			const line = this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line;
-			total += this.method_sloc_at(method_sloc_map, line);
-		}
-		return total;
-	}
-
-	/** Responsibilities: _retrieve member SLOC_. **/
-	private method_sloc_at(methods: ReadonlyMap<number, number>, line: number): number {
-		const sloc = methods.get(line);
-		if (sloc === undefined) {
-			return 1;
-		}
-		return sloc;
-	}
-
-	/** Responsibilities: _member line span calculation_. **/
-	private class_lines(node: ts.ClassLikeDeclaration): number {
-		return node.members.reduce((total, member) => {
-			const first_line = this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line;
-			const last_line = this.source_file.getLineAndCharacterOfPosition(member.end - 1).line;
-			return total + (last_line - first_line) + 1;
-		}, 0);
-	}
-
-	/** Responsibilities: _class analyzers initialization_. **/
-	public constructor(source_file: ts.SourceFile, callable_nodes: TypeScriptClassCallableNodesContract) {
-		this.source_file = source_file;
-		this.callable_nodes = callable_nodes;
-		this.member_data = new TypeScriptClassMembers(source_file);
-	}
-
-	/** Responsibilities: _class metrics collection_. **/
-	public class_nodes(): AstClassNodeContract[] {
-		const classes: AstClassNodeContract[] = [];
-		this.append_class_nodes(this.source_file, classes);
-		return classes;
-	}
-
-	/** Responsibilities: _interface metrics collection_. **/
-	public interface_nodes(): AstClassNodeContract[] {
-		const interfaces: AstClassNodeContract[] = [];
-		this.append_interface_nodes(this.source_file, interfaces);
-		return interfaces;
-	}
-
 }

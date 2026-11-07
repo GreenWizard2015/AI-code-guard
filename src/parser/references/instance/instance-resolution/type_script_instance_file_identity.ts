@@ -1,14 +1,14 @@
-import ts from "typescript";
 import type { TypeScriptInstanceFilesContract } from "src/model/protocols";
+import ts from "typescript";
 
 /** Responsibilities: _file identity_, _declaration aliases_. **/
 export class TypeScriptInstanceFileIdentity {
-	private readonly imported_binding_files: ReadonlyMap<string, string>;
-	private readonly instance_files: TypeScriptInstanceFilesContract;
+	private readonly _imported_binding_files: ReadonlyMap<string, string>;
+	private readonly _instance_files: TypeScriptInstanceFilesContract;
 
 	/** Responsibilities: _imported instance file lookup_. **/
 	private imported_file(name: string): string {
-		const file = this.imported_binding_files.get(name);
+		const file = this._imported_binding_files.get(name);
 		if (file === undefined) {
 			return "";
 		}
@@ -16,25 +16,25 @@ export class TypeScriptInstanceFileIdentity {
 	}
 
 	/** Responsibilities: _transparent initializer normalization_. **/
-	private next_initializer(expression: ts.Expression): ts.Expression {
-		if (ts.isParenthesizedExpression(expression)) {
-			return expression.expression;
+	private next_initializer(wrapper_expression: ts.Expression): ts.Expression {
+		if (ts.isParenthesizedExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isAsExpression(expression)) {
-			return expression.expression;
+		if (ts.isAsExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isSatisfiesExpression(expression)) {
-			return expression.expression;
+		if (ts.isSatisfiesExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isTypeAssertionExpression(expression)) {
-			return expression.expression;
+		if (ts.isTypeAssertionExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		return expression;
+		return wrapper_expression;
 	}
 
 	/** Responsibilities: _transparent initializer unwrapping_. **/
-	private unwrapped_initializer(expression: ts.Expression): ts.Expression {
-		let current = expression;
+	private unwrapped_initializer(initializer_expression: ts.Expression): ts.Expression {
+		let current = initializer_expression;
 		while (true) {
 			const next = this.next_initializer(current);
 			if (next === current) {
@@ -45,8 +45,8 @@ export class TypeScriptInstanceFileIdentity {
 	}
 
 	/** Responsibilities: _constructor expression file resolution_. **/
-	private expression_file(expression: ts.Expression): string {
-		const initializer = this.unwrapped_initializer(expression);
+	private expression_file(source_expression: ts.Expression): string {
+		const initializer = this.unwrapped_initializer(source_expression);
 		if (!ts.isNewExpression(initializer) && !ts.isCallExpression(initializer)) {
 			return "";
 		}
@@ -57,22 +57,22 @@ export class TypeScriptInstanceFileIdentity {
 	}
 
 	/** Responsibilities: _declaration initializer file resolution_. **/
-	private declaration_file(node: ts.Node): string {
-		if (!ts.isVariableDeclaration(node) && !ts.isParameter(node)) {
+	private declaration_file(initialized_declaration: ts.Node): string {
+		if (!ts.isVariableDeclaration(initialized_declaration) && !ts.isParameter(initialized_declaration)) {
 			return "";
 		}
-		if (node.initializer === undefined) {
+		if (initialized_declaration.initializer === undefined) {
 			return "";
 		}
-		return this.expression_file(node.initializer);
+		return this.expression_file(initialized_declaration.initializer);
 	}
 
 	/** Responsibilities: _type reference name resolution_. **/
-	private type_name(node: ts.Node): string {
-		if (!ts.isVariableDeclaration(node) && !ts.isParameter(node)) {
+	private type_name(typed_declaration: ts.Node): string {
+		if (!ts.isVariableDeclaration(typed_declaration) && !ts.isParameter(typed_declaration)) {
 			return "";
 		}
-		const type = node.type;
+		const type = typed_declaration.type;
 		if (type === undefined) {
 			return "";
 		}
@@ -86,8 +86,8 @@ export class TypeScriptInstanceFileIdentity {
 	}
 
 	/** Responsibilities: _typed declaration file resolution_. **/
-	private type_file(node: ts.Node): string {
-		const name = this.type_name(node);
+	private type_file(typed_declaration: ts.Node): string {
+		const name = this.type_name(typed_declaration);
 		if (name.length === 0) {
 			return "";
 		}
@@ -95,15 +95,15 @@ export class TypeScriptInstanceFileIdentity {
 	}
 
 	/** Responsibilities: _variable alias file resolution_. **/
-	private alias_file(node: ts.VariableDeclaration): string {
-		if (node.initializer === undefined) {
+	private alias_file(alias_declaration: ts.VariableDeclaration): string {
+		if (alias_declaration.initializer === undefined) {
 			return "";
 		}
-		const unwrapped = this.unwrapped_initializer(node.initializer);
+		const unwrapped = this.unwrapped_initializer(alias_declaration.initializer);
 		if (!ts.isIdentifier(unwrapped)) {
 			return "";
 		}
-		return this.instance_files.instance_file(unwrapped.text, node);
+		return this._instance_files.instance_file(unwrapped.text, alias_declaration);
 	}
 
 	/** Responsibilities: _instance file resolver initialization_. **/
@@ -111,34 +111,30 @@ export class TypeScriptInstanceFileIdentity {
 		imported_binding_files: ReadonlyMap<string, string>,
 		instance_files: TypeScriptInstanceFilesContract,
 	) {
-		this.imported_binding_files = imported_binding_files;
-		this.instance_files = instance_files;
+		this._imported_binding_files = imported_binding_files;
+		this._instance_files = instance_files;
 	}
 
 	/** Responsibilities: _assignment receiver file resolution_. **/
-	public assignment_file(node: ts.BinaryExpression): string {
-		const initializer = this.unwrapped_initializer(node.right);
+	public assignment_file(assignment: ts.BinaryExpression): string {
+		const initializer = this.unwrapped_initializer(assignment.right);
 		if (ts.isIdentifier(initializer)) {
-			return this.instance_files.instance_file(initializer.text, node);
+			return this._instance_files.instance_file(initializer.text, assignment);
 		}
 		return this.expression_file(initializer);
 	}
 
 	/** Responsibilities: _instance file resolution_. **/
-	public file(node: ts.Node): string {
-		let file = this.declaration_file(node);
+	public file(file_query: ts.Node): string {
+		let file = this.declaration_file(file_query);
 		if (file.length === 0) {
-			file = this.type_file(node);
+			file = this.type_file(file_query);
 		}
-		if (file.length === 0) {
-			if (ts.isVariableDeclaration(node)) {
-				file = this.alias_file(node);
-			}
+		if (file.length === 0 && ts.isVariableDeclaration(file_query)) {
+			file = this.alias_file(file_query);
 		}
-		if (file.length === 0) {
-			if (ts.isBinaryExpression(node) && ts.isIdentifier(node.left)) {
-				file = this.assignment_file(node);
-			}
+		if (file.length === 0 && ts.isBinaryExpression(file_query) && ts.isIdentifier(file_query.left)) {
+			file = this.assignment_file(file_query);
 		}
 		return file;
 	}

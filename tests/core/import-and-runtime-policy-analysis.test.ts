@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { DYNAMIC_IMPORT_FILES } from "tests/core/constants/alias_analysis/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -9,7 +9,7 @@ describe("import and runtime policy analysis", () => {
 	test("detects Object.prototype.toString through a local alias", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"object-string-alias.ts": [
 					"export class ObjectTagReader {",
@@ -60,13 +60,14 @@ describe("import and runtime policy analysis", () => {
 		expect(
 			violations.filter(
 				(violation) =>
-					violation.file === "object-string-alias.ts" && violation.rule_id === "typescript-object-prototype-string",
+					violation.file() === "object-string-alias.ts" && violation.rule_id() === "typescript-object-prototype-string",
 			),
 		).toHaveLength(6);
 		expect(
 			violations.filter(
 				(violation) =>
-					violation.file === "custom-object-string.ts" && violation.rule_id === "typescript-object-prototype-string",
+					violation.file() === "custom-object-string.ts" &&
+					violation.rule_id() === "typescript-object-prototype-string",
 			),
 		).toHaveLength(0);
 	});
@@ -74,7 +75,7 @@ describe("import and runtime policy analysis", () => {
 	test("detects dynamic, nested, late, and relative imports", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				...DYNAMIC_IMPORT_FILES,
 				"require-alias.ts": ["const load = require;", "load(module_name);"].join("\n"),
@@ -86,19 +87,19 @@ describe("import and runtime policy analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect({
 			dynamic_imports: messages.filter((message) => message === "avoid dynamic imports").length,
 			nested_imports: messages.filter((message) => message === "avoid nested imports").length,
 			late_imports: messages.filter((message) => message === "imports must be at the beginning of the file").length,
-			relative_imports: violations.filter((item) => item.rule_id === "relative-import").length,
+			relative_imports: violations.filter((item) => item.rule_id() === "relative-import").length,
 		}).toEqual({ dynamic_imports: 15, nested_imports: 1, late_imports: 2, relative_imports: 6 });
 	});
 
 	test("detects Python path mutation, object runtime hacks, and reflective APIs", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"path.py": [
 					"import sys as system",
@@ -190,7 +191,7 @@ describe("import and runtime policy analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect({
 			path_mutations: messages.filter((message) => message === "avoid sys.path mutations").length,
 			object_assign: messages.includes("avoid Object.assign"),

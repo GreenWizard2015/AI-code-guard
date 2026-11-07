@@ -5,9 +5,24 @@ Description: An implementation class must not expose mutable collection state di
 ## Bad
 
 ```ts
-class Registry {
-  public items: Map<string, Item>;
+// File: src/registry.ts
+export interface Item { label: string; }
+export class Registry {
+	public items: Map<string, Item>;
+	public constructor(items: Map<string, Item>) { this.items = items; }
+	public report(): void {
+		const labels = Array.from(this.items.values()).map((item) => item.label);
+		console.log(labels.join(", "));
+	}
 }
+// File: cli.ts
+import { Registry } from "src/registry";
+import type { Item } from "src/registry";
+(function () {
+	const items = new Map<string, Item>([["primary", { label: "ready" }]]);
+	const registry = new Registry(items);
+	registry.report();
+})();
 ```
 
 
@@ -21,20 +36,20 @@ protected fields, interfaces, protocols, and data contracts.
 // File: src/status_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
@@ -47,19 +62,15 @@ export class StatusLabels {
 
 	/** Responsibilities: _fallback capitalization_. **/
 	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
+		const normalized = this._fallback.trim();
 		return normalized.toUpperCase();
 	}
 
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "blocked");
+		const fallback = this.uppercase_fallback();
+		console.log(`${label} ${detailed} ${fallback}`);
 	}
 }
 // File: cli.ts
@@ -70,10 +81,6 @@ import { StatusLabels } from "src/status_labels";
 	labels.set("ready", "Ready");
 	labels.set("blocked", "Blocked");
 	const status_labels = new StatusLabels(labels, "Unknown");
-	const label = status_labels.label("ready");
-	const detailed = status_labels.label_with_prefix("State", "blocked");
-	const fallback = status_labels.uppercase_fallback();
-	const count = status_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	status_labels.report();
 })();
 ```

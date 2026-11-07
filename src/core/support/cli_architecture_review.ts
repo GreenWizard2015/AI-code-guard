@@ -1,71 +1,57 @@
+import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { TaskReportingContract } from "src/task_protocols";
-import type { ReportViolation } from "src/reporting_protocols";
+import type { TaskReviewRunResult } from "src/task_review_types";
 import type { CliOptions, ReviewStatus } from "src/task_types";
-import type { TaskReviewRunResult } from "src/types";
 
-/** Responsibilities: _review eligibility_, _execution_, _exit status_. **/
+/** Responsibilities: _review eligibility_, _review execution_, _exit status_. **/
 export class CliArchitectureReview {
-	private readonly task_reporting: TaskReportingContract;
-	private readonly stage_timer: LintStageTimerContract;
-
-	/** Responsibilities: _review eligibility_. **/
-	private review_ready(options: CliOptions, violations: readonly ReportViolation[], review_pending: boolean): boolean {
-		if (!review_pending) {
-			return false;
-		}
-		const has_violations = violations.length !== 0;
-		const review_not_forced = !options.force_review;
-		if (has_violations && review_not_forced) {
-			return false;
-		}
-		return options.review_agent !== "none";
-	}
-
-	/** Responsibilities: _review request decision_. **/
-	private review_requested(options: CliOptions, violations: readonly ReportViolation[]): boolean {
-		if (options.review_agent === "none") {
-			return false;
-		}
-		if (options.force_review) {
-			return true;
-		}
-		return this.task_reporting.review_requested(violations);
-	}
+	private readonly _task_reporting: TaskReportingContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _review execution_. **/
 	private async run_architecture_review(
 		options: CliOptions,
-		violations: readonly ReportViolation[],
+		violations: readonly ViolationContract[],
 		review_pending: boolean,
 	): Promise<TaskReviewRunResult> {
-		if (!this.review_ready(options, violations, review_pending)) {
-			return { provider: "none", message: "Architecture review was not requested." };
+		const agent_selected = options.review_agent !== "none";
+		let report_is_clean = options.force_review;
+		if (violations.length === 0) {
+			report_is_clean = true;
 		}
-		return this.stage_timer.measure_async("architecture-review", () =>
-			this.task_reporting.run_review_agent(options.review_agent, {
-				review_cleanup: options.review_cleanup,
-				force_review: options.force_review,
-				review_stages: options.review_stages,
-			}),
-		);
+		if (review_pending && agent_selected && report_is_clean) {
+			return this._stage_timer.measure_async("architecture-review", () =>
+				this._task_reporting.run_review_agent(options.review_agent, {
+					review_cleanup: options.review_cleanup,
+					force_review: options.force_review,
+					review_stages: options.review_stages,
+				}),
+			);
+		}
+		return { provider: "none", message: "Architecture review was not requested." };
 	}
 
 	/** Responsibilities: _review dependency initialization_. **/
 	public constructor(task_reporting: TaskReportingContract, stage_timer: LintStageTimerContract) {
-		this.task_reporting = task_reporting;
-		this.stage_timer = stage_timer;
+		this._task_reporting = task_reporting;
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _review status collection_. **/
-	public async status(options: CliOptions, violations: readonly ReportViolation[]): Promise<ReviewStatus> {
-		const review_pending = this.review_requested(options, violations);
-		const review_result = await this.run_architecture_review(options, violations, review_pending);
-		const review_state = this.task_reporting.review_status();
-		let failed = false;
-		if (review_pending) {
-			failed = review_result.provider === "none";
+	public async status(options: CliOptions, violations: readonly ViolationContract[]): Promise<ReviewStatus> {
+		const initial_review_state = this._task_reporting.review_status();
+		const review_is_eligible = violations.length === 0 && !initial_review_state.completed;
+		let review_pending = false;
+		if (options.review_agent !== "none") {
+			review_pending = options.force_review;
+			if (!review_pending && review_is_eligible) {
+				review_pending = true;
+			}
 		}
+		const review_result = await this.run_architecture_review(options, violations, review_pending);
+		const failed = review_pending && review_result.provider === "none";
+		const review_state = this._task_reporting.review_status();
 		return {
 			required: review_pending,
 			active: review_state.active,

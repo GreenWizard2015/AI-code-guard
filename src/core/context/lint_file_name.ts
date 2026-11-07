@@ -8,45 +8,54 @@ import {
 	TYPESCRIPT_TEST_SUFFIXES,
 } from "src/constants";
 import { PYTHON_LANGUAGE, PYTHON_SOURCE_EXTENSION, TYPESCRIPT_LANGUAGE } from "src/constants";
-import type { AstLanguage } from "src/types";
+import type { LintFileNameContract } from "src/core/support/protocols";
+import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 
 /** Responsibilities: _path normalization_, _test-path identity_. **/
-export class LintFileName {
-	public readonly value: string;
-	public readonly is_functions_file: boolean;
+export class LintFileName implements LintFileNameContract {
+	private readonly _path_value: string;
+	private readonly _functions_file_value: boolean;
 
 	/** Responsibilities: _test path classification_. **/
 	private tests_directory(): boolean {
-		if (this.value.startsWith(TESTS_DIRECTORY_PREFIX)) {
+		if (this._path_value.startsWith(TESTS_DIRECTORY_PREFIX)) {
 			return true;
 		}
-		if (this.value.includes(TESTS_DIRECTORY_FRAGMENT)) {
+		if (this._path_value.includes(TESTS_DIRECTORY_FRAGMENT)) {
 			return true;
 		}
-		if (this.value.startsWith(DUNDER_TESTS_DIRECTORY_PREFIX)) {
+		if (this._path_value.startsWith(DUNDER_TESTS_DIRECTORY_PREFIX)) {
 			return true;
 		}
-		return this.value.includes(DUNDER_TESTS_DIRECTORY_FRAGMENT);
+		return this._path_value.includes(DUNDER_TESTS_DIRECTORY_FRAGMENT);
 	}
 
 	/** Responsibilities: _file-name suffix classification_. **/
 	private is_test_suffix(): boolean {
-		const file_name = this.value.slice(this.value.lastIndexOf("/") + 1);
-		if (file_name.startsWith("test_")) {
-			if (file_name.endsWith(".py")) {
-				return true;
-			}
-		}
-		if (TYPESCRIPT_TEST_SUFFIXES.some((suffix) => this.value.endsWith(suffix))) {
+		const file_name = this._path_value.slice(this._path_value.lastIndexOf("/") + 1);
+		if (file_name.startsWith("test_") && file_name.endsWith(".py")) {
 			return true;
 		}
-		return PYTHON_TEST_SUFFIXES.some((suffix) => this.value.endsWith(suffix));
+		if (TYPESCRIPT_TEST_SUFFIXES.some((suffix) => this._path_value.endsWith(suffix))) {
+			return true;
+		}
+		return PYTHON_TEST_SUFFIXES.some((suffix) => this._path_value.endsWith(suffix));
 	}
 
 	/** Responsibilities: _file path normalization_. **/
 	public constructor(file: string) {
-		this.value = file.split("\\").join("/");
-		this.is_functions_file = FUNCTION_MODULE_NAMES.has(this.value);
+		this._path_value = file.split("\\").join("/");
+		this._functions_file_value = FUNCTION_MODULE_NAMES.has(this._path_value);
+	}
+
+	/** Responsibilities: _path value access_. **/
+	public value(): string {
+		return this._path_value;
+	}
+
+	/** Responsibilities: _functions-file classification_. **/
+	public functions_file(): boolean {
+		return this._functions_file_value;
 	}
 
 	/** Responsibilities: _test file classification_. **/
@@ -73,7 +82,7 @@ export class LintFileName {
 
 	/** Responsibilities: _source language classification_. **/
 	public language(): AstLanguage {
-		if (this.value.toLowerCase().endsWith(PYTHON_SOURCE_EXTENSION)) {
+		if (this._path_value.toLowerCase().endsWith(PYTHON_SOURCE_EXTENSION)) {
 			return PYTHON_LANGUAGE;
 		}
 		return TYPESCRIPT_LANGUAGE;

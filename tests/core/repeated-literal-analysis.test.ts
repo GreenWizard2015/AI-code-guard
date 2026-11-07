@@ -1,14 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
-import { SourceText } from "src/source_text";
+import { SourceText } from "src/io/source_text";
+import { LiteralConstantReferenceIndex } from "src/literal_constant_reference_index";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("project-wide repeated literal analysis", () => {
 	test("does not treat Python __all__ export names as repeated string literals", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tools/webmcp_project/__init__.py": [
 					"__all__ = [",
@@ -36,7 +38,7 @@ describe("project-wide repeated literal analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const literal_diagnostics = violations.filter(
-			(item) => item.rule_id === "repeated-literal" || item.rule_id === "literal-constant-reuse",
+			(item) => item.rule_id() === "repeated-literal" || item.rule_id() === "literal-constant-reuse",
 		);
 
 		expect(literal_diagnostics).toEqual([]);
@@ -45,7 +47,7 @@ describe("project-wide repeated literal analysis", () => {
 	test("excludes test literals from repeated-literal and constant-reuse diagnostics", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"messages.ts": 'export const SHARED_MESSAGE = "production response unavailable";',
 				"messages.py": 'SHARED_MESSAGE = "production response unavailable"',
@@ -80,12 +82,12 @@ describe("project-wide repeated literal analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const literal_diagnostics = violations.filter(
-			(item) => item.rule_id === "repeated-literal" || item.rule_id === "literal-constant-reuse",
+			(item) => item.rule_id() === "repeated-literal" || item.rule_id() === "literal-constant-reuse",
 		);
-		const test_file_diagnostics = literal_diagnostics.filter((item) => item.file.startsWith("tests/"));
+		const test_file_diagnostics = literal_diagnostics.filter((item) => item.file().startsWith("tests/"));
 		const production_reuse_files = literal_diagnostics
-			.filter((item) => item.rule_id === "literal-constant-reuse")
-			.map((item) => item.file)
+			.filter((item) => item.rule_id() === "literal-constant-reuse")
+			.map((item) => item.file())
 			.sort();
 
 		expect({ test_file_diagnostics, production_reuse_files }).toEqual({
@@ -97,7 +99,7 @@ describe("project-wide repeated literal analysis", () => {
 	test("reports every repeated occurrence and reuses matching constants", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"occurrences.ts": [
 					"function report(): void {",
@@ -153,8 +155,8 @@ describe("project-wide repeated literal analysis", () => {
 		);
 		/** Responsibilities: _literal occurrence counts_. **/
 		const repeated_in = (file: string): number =>
-			violations.filter((item) => item.rule_id === "repeated-literal" && item.file === file).length;
-		const constant_uses = violations.filter((item) => item.rule_id === "literal-constant-reuse");
+			violations.filter((item) => item.rule_id() === "repeated-literal" && item.file() === file).length;
+		const constant_uses = violations.filter((item) => item.rule_id() === "literal-constant-reuse");
 		expect({
 			occurrences_ts: repeated_in("occurrences.ts"),
 			occurrences_py: repeated_in("occurrences.py"),
@@ -162,7 +164,7 @@ describe("project-wide repeated literal analysis", () => {
 			requested_py: repeated_in("requested.py"),
 			documented_ts: repeated_in("documented.ts"),
 			documented_py: repeated_in("documented.py"),
-			constant_targets: constant_uses.map((item) => item.file).sort(),
+			constant_targets: constant_uses.map((item) => item.file()).sort(),
 		}).toEqual({
 			occurrences_ts: 3,
 			occurrences_py: 3,
@@ -174,10 +176,43 @@ describe("project-wide repeated literal analysis", () => {
 		});
 	});
 
+	test("selects the same matching constant regardless of source order", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.collect_fixture_execution({
+			"a-message.ts": 'export const ZULU_MESSAGE = "a shared response";',
+			"z-message.ts": 'export const ALPHA_MESSAGE = "a shared response";',
+			"consumer.ts": 'export function message(): string { return "a shared response"; }',
+		});
+		const sources = execution.context.files();
+		const ordered_index = new LiteralConstantReferenceIndex(
+			sources,
+			new DiagnosticRule("literal-constant-reuse"),
+			new DiagnosticRule("repeated-literal"),
+		);
+		ordered_index.register_constants();
+		ordered_index.register_references();
+		const ordered_messages = ordered_index.collect_violations().map((violation) => violation.message());
+		const reversed_sources = [...sources];
+		reversed_sources.reverse();
+		const reversed_index = new LiteralConstantReferenceIndex(
+			reversed_sources,
+			new DiagnosticRule("literal-constant-reuse"),
+			new DiagnosticRule("repeated-literal"),
+		);
+		reversed_index.register_constants();
+		reversed_index.register_references();
+		const reversed_messages = reversed_index.collect_violations().map((violation) => violation.message());
+
+		expect({ ordered_messages, reversed_messages }).toEqual({
+			ordered_messages: ['non-trivial string literal must use existing constant "ALPHA_MESSAGE"'],
+			reversed_messages: ['non-trivial string literal must use existing constant "ALPHA_MESSAGE"'],
+		});
+	});
+
 	test("keeps nested production repetition while excluding test values from reuse", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"local-constant.ts": [
 					"export function first(): string {",
@@ -226,11 +261,11 @@ describe("project-wide repeated literal analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const repeated_locations = violations
-			.filter((item) => item.rule_id === "repeated-literal")
-			.map((item) => [item.file, item.line]);
-		const constant_reuse_count = violations.filter((item) => item.rule_id === "literal-constant-reuse").length;
-		const enum_file_violations = violations.filter((item) => item.file === "enum-values.ts");
-		const enum_value_count = enum_file_violations.filter((item) => item.rule_id.includes("literal")).length;
+			.filter((item) => item.rule_id() === "repeated-literal")
+			.map((item) => [item.file(), item.line()]);
+		const constant_reuse_count = violations.filter((item) => item.rule_id() === "literal-constant-reuse").length;
+		const enum_file_violations = violations.filter((item) => item.file() === "enum-values.ts");
+		const enum_value_count = enum_file_violations.filter((item) => item.rule_id().includes("literal")).length;
 		expect({ repeated_locations, constant_reuse_count, enum_value_count }).toEqual({
 			repeated_locations: [
 				["limited.ts", 8],

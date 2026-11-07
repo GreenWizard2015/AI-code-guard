@@ -13,27 +13,33 @@ Fix: Remove pass-through layers and keep only classes with their own state or li
 
 
 ```python
-{% const layers = [{"name":"RequestCoordinator","next":"PolicyService","path":"request_coordinator","dependency_path":"policy_service","role":"request coordinator"},{"name":"PolicyService","next":"RecordStore","path":"policy_service","dependency_path":"record_store","role":"policy service"},{"name":"RecordStore","next":"RecordParser","path":"record_store","dependency_path":"record_parser","role":"record store"}] %}
+{% const layers = [{"name":"RequestCoordinator","next":"PolicyService","path":"request_coordinator","dependency_path":"policy_service","role":"request coordinator"},{"name":"PolicyService","next":"RecordStore","path":"policy_service","dependency_path":"record_store","role":"record store"},{"name":"RecordStore","next":"RecordParser","path":"record_store","dependency_path":"record_parser","role":"record store"},{"name":"RecordParser","next":"RecordValidator","path":"record_parser","dependency_path":"record_validator","role":"record parser"}] %}
+# File: src/request_pipeline.py
 {%for layer in layers %}
-# File: src/{{layer.path}}.py
-from src.{{layer.dependency_path}} import {{layer.next}}
-
 class {{layer.name}}:
 
     def __init__(self) -> None:
-        self.dependency: {{layer.next}} = {{layer.next}}()
+        self._dependency: {{layer.next}} = {{layer.next}}()
 
     def run(self) -> str:
-        return self.dependency.run()  # <- error
+        return self._dependency.run()  # <- error
+
+    def report(self) -> None:
+        print(self.run())
 {% endfor %}
-# File: src/record_parser.py
-class RecordParser:
+class RecordValidator:
 
     def __init__(self) -> None:
-        self.state: str = "ready"
+        self._state: str = "ready"
 
     def run(self) -> str:
-        return self.state
+        return self._state
+# File: cli.py
+from src.request_pipeline import RequestCoordinator
+
+if __name__ == "__main__":
+    coordinator = RequestCoordinator()
+    coordinator.report()
 ```
 
 ## Good
@@ -46,18 +52,11 @@ class Request:
 
     def __init__(self) -> None:
         """Responsibilities: _request initialization_."""
-        self.state: str = "ready"
-
-    def run(self) -> str:
-        """Responsibilities: _request state access_."""
-        state = self.state.strip()
-        if len(state) == 0:
-            return "Pending"
-        return state
+        self._state: str = "ready"
 
     def ready(self) -> bool:
         """Responsibilities: _request readiness classification_."""
-        return self.state.strip() == "ready"
+        return self._state.strip() == "ready"
 
     def status_label(self) -> str:
         """Responsibilities: _request status label_."""
@@ -67,17 +66,21 @@ class Request:
 
     def state_length(self) -> int:
         """Responsibilities: _request state length_."""
-        return len(self.state.strip())
+        return len(self._state.strip())
 
     def summary(self) -> str:
         """Responsibilities: _request summary_."""
         label = self.status_label()
         length = self.state_length()
         return f"{label} ({length} characters)"
+
+    def report(self) -> None:
+        """Responsibilities: _request report output_."""
+        print(self.summary())
 # File: cli.py
 from src.request import Request
 
 if __name__ == "__main__":
     request = Request()
-    print(request.run(), request.ready(), request.status_label(), request.state_length(), request.summary())
+    request.report()
 ```

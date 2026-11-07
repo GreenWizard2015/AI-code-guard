@@ -1,50 +1,51 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
+import { NODE_ENV_VARIABLE } from "src/core/constants";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
-import { PythonAstData } from "src/core/python_ast_data";
+import { PythonAstData } from "src/core/python-ast/python_ast_data";
+import type { PythonAstBridgeOptions } from "src/core/python-ast/types";
 import { LintReportMode, type LintReportOptions } from "src/core/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { NodeFileIO } from "src/io/node_file_io";
 import type { IOContract } from "src/io/protocols";
+import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { LintRunResult } from "src/project_analysis_types";
-import type { PythonAstDataOptions } from "src/python_types";
+import type { PythonAstWorkerCapabilityContract } from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintExecutionReport } from "src/runtime_types";
-import { SourceText } from "src/source_text";
 import { FixtureAstMapper } from "tests/core/fixture_ast_mapper";
 import { ProjectSourceFixture } from "tests/core/project_source_fixture";
-import type { Fixture } from "tests/core/types";
+import type { CallableLintRequest, CallablePathAction, Fixture } from "tests/core/types";
 
 /** Responsibilities: _in-memory project fixtures_, _lint execution fixtures_, _AST fixtures_. **/
 export class TestFixture {
 	private readonly placement_fixture_prefix = "module-placement-";
-	private readonly python_ast_worker: PythonAstWorkerContract;
-	public readonly ast_nodes: FixtureAstMapper;
-	public readonly project_source: ProjectSourceFixture;
+	private readonly _python_ast_worker: PythonAstWorkerCapabilityContract;
+	public readonly _ast_nodes: FixtureAstMapper;
+	public readonly _project_source: ProjectSourceFixture;
 
 	/** Responsibilities: _fixture lint configuration creation_. **/
 	private lint_configuration(): LintRunConfiguration {
-		return new LintRunConfiguration(new SourceText(), new NodeFileIO());
+		return new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd()));
 	}
 
 	/** Responsibilities: _fixture adapter initialization_. **/
 	public constructor() {
-		this.python_ast_worker = this.lint_configuration().python_ast_worker;
-		this.ast_nodes = new FixtureAstMapper();
-		this.project_source = new ProjectSourceFixture(this.python_ast_worker);
+		this._python_ast_worker = this.lint_configuration().active_worker_session().worker();
+		this._ast_nodes = new FixtureAstMapper();
+		this._project_source = new ProjectSourceFixture(this._python_ast_worker);
 	}
 
 	/** Responsibilities: _fixture file access_. **/
 	public file_io(): IOContract {
-		return new NodeFileIO();
+		return new NodeFileIO(process.cwd());
 	}
 
 	/** Responsibilities: _shared Python worker access_. **/
-	public worker(): PythonAstWorkerContract {
-		return this.python_ast_worker;
+	public worker(): PythonAstWorkerCapabilityContract {
+		return this._python_ast_worker;
 	}
 
 	/** Responsibilities: _test stage timer creation_. **/
@@ -53,13 +54,14 @@ export class TestFixture {
 	}
 
 	/** Responsibilities: _Python AST parser options_. **/
-	public python_ast_options(split_batch_enabled = false): PythonAstDataOptions {
-		const file_io = new NodeFileIO();
+	public python_ast_options(split_batch_enabled = false): PythonAstBridgeOptions {
+		const file_io = new NodeFileIO(process.cwd());
 		return {
 			worker: this.worker(),
 			analysis_identity: new ProjectAnalysisIdentity(file_io),
-			split_batch_enabled,
-			file_io,
+			split_batch_enabled: split_batch_enabled,
+			file_io: file_io,
+			cache_enabled: process.env[NODE_ENV_VARIABLE] !== "test",
 		};
 	}
 
@@ -69,16 +71,17 @@ export class TestFixture {
 	}
 
 	/** Responsibilities: _isolated PATH configuration_. **/
-	public with_empty_path<T>(callback: () => T): T {
-		const original_path = process.env.PATH;
-		process.env.PATH = "";
+	public with_empty_path<T>(callback: CallablePathAction<T>): T {
+		const path_key = "PATH";
+		const original_path = process.env[path_key];
+		process.env[path_key] = "";
 		try {
 			return callback();
 		} finally {
 			if (original_path === undefined) {
-				process.env.PATH = undefined;
+				process.env[path_key] = undefined;
 			} else {
-				process.env.PATH = original_path;
+				process.env[path_key] = original_path;
 			}
 		}
 	}
@@ -116,7 +119,7 @@ export class TestFixture {
 			return 0;
 		});
 		const source_entries = entries.filter(([file]) =>
-			[".ts", ".tsx", ".py"].some((extension) => file.endsWith(extension)),
+			[".ts", ".tsx", ".mts", ".cts", ".py"].some((extension) => file.endsWith(extension)),
 		);
 		const markdown_entries = entries.filter(([file]) => file.endsWith(".md"));
 		const project_paths = source_entries.map(([file]) => resolve(virtual_root, file));
@@ -154,6 +157,7 @@ export class TestFixture {
 				stage_timer: new LintStageTimer(),
 				inputs,
 				source_texts,
+				configuration_snapshot_complete: false,
 				entry_files: [...entry_files],
 			},
 			mode: LintReportMode.IN_MEMORY_PROJECT,
@@ -164,7 +168,7 @@ export class TestFixture {
 	public with_lint_request<T>(
 		configuration: LintRunConfiguration,
 		files: Record<string, string>,
-		callback: (configuration: LintRunConfiguration, options: LintReportOptions, mode: LintReportMode) => T,
+		callback: CallableLintRequest<T>,
 		selected_files: readonly string[] = [],
 		entry_files: readonly string[] = [],
 	): T {
@@ -176,7 +180,7 @@ export class TestFixture {
 	public with_shared_lint_request<T>(
 		configuration: LintRunConfiguration,
 		files: Record<string, string>,
-		callback: (configuration: LintRunConfiguration, options: LintReportOptions, mode: LintReportMode) => T,
+		callback: CallableLintRequest<T>,
 		selected_files: readonly string[] = [],
 		entry_files: readonly string[] = [],
 	): T {
@@ -202,16 +206,28 @@ export class TestFixture {
 		return this.collect_fixture_report(files, selected_files, entry_files).violations;
 	}
 
+	/** Responsibilities: _production fixture violations_. **/
+	public collect_fixture_violations_with(
+		configuration: LintRunConfiguration,
+		files: Record<string, string>,
+	): ViolationContract[] {
+		return this.with_lint_request(
+			configuration,
+			files,
+			(lint_configuration, options, mode) => lint_configuration.lint_report(options, mode).report.violations,
+		);
+	}
+
 	/** Responsibilities: _fixture violation messages collection_. **/
 	public violation_messages(files: Record<string, string>): string[] {
 		const violations = this.collect_fixture_violations(files);
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		return [...messages];
 	}
 
 	/** Responsibilities: _shared-parameter violations selection_. **/
 	public shared_violations(violations: readonly ViolationContract[]): ViolationContract[] {
-		const shared = violations.filter((violation) => violation.message.includes("share parameter"));
+		const shared = violations.filter((violation) => violation.message().includes("share parameter"));
 		if (shared.length === 0) {
 			return [];
 		}

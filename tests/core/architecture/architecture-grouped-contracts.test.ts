@@ -1,16 +1,16 @@
-import { TestFixture } from "tests/core/test-fixture";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
-import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { TestFixture } from "tests/core/test-fixture";
 
-import { GROUPED_PROTOCOL_FILES, COMPOSITION_FILES } from "tests/core/constants/architecture/constants";
+import { COMPOSITION_FILES, GROUPED_PROTOCOL_FILES } from "tests/core/constants/architecture/constants";
 
 describe("coding-lint architecture and metrics rules - grouped contracts", () => {
 	test("applies the ordinary minimum file size to a small Python protocol file", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"message_reader.py": [
 					"from typing import Protocol",
@@ -23,24 +23,24 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.rule_id)).toContain("file-min-size");
-		expect(violations.some((violation) => violation.rule_id === "python-protocol-grouping")).toBe(false);
+		expect(violations.map((violation) => violation.rule_id())).toContain("file-min-size");
+		expect(violations.some((violation) => violation.rule_id() === "python-protocol-grouping")).toBe(false);
 	});
 
 	test("applies the ordinary minimum file size to grouped Python protocol files", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			GROUPED_PROTOCOL_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
 		expect({
-			short: violations.some((item) => item.message === "file is too short"),
-			protocol: violations.some((item) => item.rule_id === "python-protocol-grouping"),
-			multiple_classes: violations.some((item) => item.message === "file contains too many top-level classes"),
+			short: violations.some((item) => item.message() === "file is too short"),
+			protocol: violations.some((item) => item.rule_id() === "python-protocol-grouping"),
+			multiple_classes: violations.some((item) => item.message() === "file contains too many top-level classes"),
 		}).toEqual({ short: true, protocol: false, multiple_classes: false });
 	});
 
@@ -48,7 +48,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"single-error.ts": "export class SingleError extends Error {}",
 			},
@@ -56,19 +56,17 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				message: "exception class should be colocated with its caller",
-				priority: 7,
-			}),
-		);
+		expect(violations.map((item) => ({ message: item.message(), priority: item.priority() }))).toContainEqual({
+			message: "exception class should be colocated with its caller",
+			priority: 7,
+		});
 	});
 
 	test("does not suggest exception grouping when the caller is colocated", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"agent-response.ts": [
 					"export class AgentValidationError extends Error {}",
@@ -79,12 +77,8 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).not.toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					message: "exception class should be colocated with its caller",
-				}),
-			]),
+		expect(violations.map((item) => item.message())).not.toContain(
+			"exception class should be colocated with its caller",
 		);
 	});
 
@@ -92,7 +86,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"small-data.py": [
 					"from dataclasses import dataclass",
@@ -110,8 +104,8 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 		expect(
 			violations.filter(
 				(violation) =>
-					(violation.file === "small-data.py" || violation.file === "small-error.ts") &&
-					violation.message.includes("file has"),
+					(violation.file() === "small-data.py" || violation.file() === "small-error.ts") &&
+					violation.message().includes("file has"),
 			),
 		).toHaveLength(0);
 	});
@@ -120,7 +114,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested-class.ts": ["class Outer {", "  static Inner = class Inner {};", "}"].join("\n"),
 				"nested-class.py": ["class Outer:", "    class Inner:", "        pass"].join("\n"),
@@ -128,7 +122,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 
 		expect(messages).toEqual(expect.arrayContaining(["nested classes are not allowed (1)"]));
 		expect(messages.filter((message) => message === "nested classes are not allowed (1)")).toHaveLength(2);
@@ -137,7 +131,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 	test("rejects nested classes in functions and object expressions", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested-expressions.ts": [
 					"const create = () => class FunctionInner {};",
@@ -147,21 +141,35 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 
 		expect(messages).toContain("nested classes are not allowed (2)");
+	});
+
+	test("allows a class declared directly in a namespace", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"status_model.ts": ["export namespace StatusModel {", "  export class StatusBoard {}", "}"].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.map((item) => item.rule_id())).not.toContain("nested-class");
 	});
 
 	test("reports composition deeper than three classes", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			COMPOSITION_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 
 		expect(messages).toContain(
 			"class composition is too deep (found 4 levels): CompositionRoot -> CompositionMiddle -> CompositionLeaf -> CompositionEnd",

@@ -13,7 +13,7 @@ describe("in-memory test path snapshots", () => {
 		expect({
 			source_file: checker.file("src/domain/status.ts"),
 			source_directory: checker.directory("src/domain"),
-			valid_test_layout: organization.valid("tests/domain/status.test.ts"),
+			valid_test_layout: organization.for_file("tests/domain/status.test.ts").valid(),
 		}).toEqual({ source_file: true, source_directory: true, valid_test_layout: true });
 	});
 
@@ -55,6 +55,6 @@ describe("in-memory test path snapshots", () => {
 		const checker = new FileSystemTestPathChecker(root, ["src/domain/status.ts"]);
 		const organization = new TestFileOrganization(root, checker);
 
-		expect(organization.valid("tests/performance/status.test.ts")).toBe(false);
+		expect(organization.for_file("tests/performance/status.test.ts").valid()).toBe(false);
 	});
 });

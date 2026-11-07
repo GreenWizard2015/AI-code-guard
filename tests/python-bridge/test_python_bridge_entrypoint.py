@@ -3,11 +3,12 @@ import json
 import unittest
 from pathlib import Path
 
-from python_bridge_entrypoint import PythonBridgeEntrypoint
-from path_python_bridge_file_io import PathPythonBridgeFileIO
-from python_bridge_input import PythonBridgeInput
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
+from implementation.types import JsonObject, JsonValue, JsonValueList, JsonValueMap
+from path_python_bridge_file_io import PathPythonBridgeFileIO
+from python_bridge_entrypoint import PythonBridgeEntrypoint
+from python_bridge_input import PythonBridgeInput
 
 
 class InMemoryPythonFileIO:
@@ -15,33 +16,97 @@ class InMemoryPythonFileIO:
 
     def __init__(self, files: dict[Path, str]) -> None:
         """Responsibilities: _virtual source map initialization_."""
-        self.files: dict[Path, str] = files
+        self._files: dict[Path, str] = files
 
     def file_present(self, path: Path) -> bool:
         """Responsibilities: _virtual source membership_."""
-        return path in self.files
+        return path in self._files
 
     def source_content(self, path: Path) -> str:
         """Responsibilities: _virtual source text retrieval_."""
-        return self.files[path]
+        return self._files[path]
 
 
 class PythonBridgeEntrypointTest(unittest.TestCase):
     """Responsibilities: _bridge input routing_, _AST response verification_."""
 
+    def _object(self, value: JsonValue) -> JsonObject:
+        """Responsibilities: _bridge response object validation_."""
+        if type(value) is dict:
+            return value
+        return {"invalid_object": value}
+
+    def _json_value(self, value: JsonValue) -> JsonValue:
+        """Responsibilities: _JSON value validation_."""
+        if value is None or type(value) in (str, int, float, bool):
+            return value
+        if type(value) is list:
+            return [self._json_value(item) for item in value]
+        if type(value) is dict:
+            return self._json_object_values(value)
+        return {"invalid_json_value": type(value).__name__}
+
+    def _json_object_values(self, value: JsonValueMap) -> JsonValueMap:
+        """Responsibilities: _JSON object value validation_."""
+        values: JsonValueMap = {}
+        for key, item in value.items():
+            values[key] = self._json_value(item)
+        return values
+
+    def _output_object(self, text: str) -> JsonObject:
+        """Responsibilities: _bridge JSON response decoding_."""
+        return self._object(self._json_value(json.loads(text)))
+
+    def _first_symbol_name(self, result: JsonObject, collection: str) -> str:
+        """Responsibilities: _symbol name lookup_."""
+        source = self._object(result.get("source"))
+        match source.get(collection):
+            case list() as symbols if symbols:
+                symbol = self._object(symbols[0])
+            case _:
+                return ""
+        identity = self._object(symbol.get("identity"))
+        match identity.get("name"):
+            case str() as name:
+                return name
+            case _:
+                return ""
+
+    def _parse_issues(self, result: JsonObject) -> JsonValueList:
+        """Responsibilities: _syntax diagnostic collection_."""
+        source = self._object(result.get("source"))
+        match source.get("parse_issues"):
+            case list() as issues:
+                return issues
+            case _:
+                return [{"invalid_parse_issues": source.get("parse_issues")}]
+
+    def _first_parse_issue_line(self, result: JsonObject) -> int:
+        """Responsibilities: _syntax diagnostic line lookup_."""
+        match self._parse_issues(result):
+            case [first_issue, *_]:
+                issue = self._object(first_issue)
+            case _:
+                return -1
+        match issue.get("line"):
+            case int() as line if type(line) is int:
+                return line
+            case _:
+                return -1
+
     def test_runs_text_mode(self) -> None:
         """Responsibilities: _text mode output_."""
         bridge = PythonAstBridge(PythonAstTree)
         output = io.StringIO()
-        input_source = PythonBridgeInput(PathPythonBridgeFileIO(Path(".")))
+        input_source = PythonBridgeInput(PathPythonBridgeFileIO(Path()))
         entrypoint = PythonBridgeEntrypoint(bridge, io.StringIO(), output, input_source)
         entrypoint.run_text("class Item:\n    pass\n")
-        result = json.loads(output.getvalue())
-        self.assertEqual(result["classes"][0]["name"], "Item")
+        result = self._output_object(output.getvalue())
+        self.assertEqual(self._first_symbol_name(result, "classes"), "Item")
 
     def test_resolves_code_source_prefix(self) -> None:
         """Responsibilities: _code source routing_."""
-        source = PythonBridgeInput(PathPythonBridgeFileIO(Path(".")))
+        source = PythonBridgeInput(PathPythonBridgeFileIO(Path()))
         self.assertEqual(source.resolve("code:class Item:\n    pass\n"), "class Item:\n    pass\n")
 
     def test_resolves_file_source_prefix(self) -> None:
@@ -49,6 +114,12 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         path = Path("/virtual/item.py")
         source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
         self.assertEqual(source.resolve(f"File:{path}"), "class Item:\n    pass\n")
+
+    def test_reads_resolved_file_path(self) -> None:
+        """Responsibilities: _source file content_."""
+        path = Path("/virtual/item.py")
+        source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
+        self.assertEqual(source.file_text(path), "class Item:\n    pass\n")
 
     def test_runs_file_source_mode(self) -> None:
         """Responsibilities: _file mode output_."""
@@ -58,8 +129,8 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
         entrypoint = PythonBridgeEntrypoint(bridge, io.StringIO(f"File:{path}"), output, source)
         entrypoint.run_cli(["entrypoint"])
-        result = json.loads(output.getvalue())
-        self.assertEqual(result["classes"][0]["name"], "Item")
+        result = self._output_object(output.getvalue())
+        self.assertEqual(self._first_symbol_name(result, "classes"), "Item")
 
     def test_stream_reports_syntax(self) -> None:
         """Responsibilities: _stream syntax reporting_."""
@@ -67,17 +138,13 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         output = io.StringIO()
         entrypoint = PythonBridgeEntrypoint(
             bridge,
-            io.StringIO("def run():\n    return None\n"),
+            io.StringIO("def broken(:\n    pass\n"),
             output,
-            PythonBridgeInput(PathPythonBridgeFileIO(Path("."))),
+            PythonBridgeInput(PathPythonBridgeFileIO(Path())),
         )
         entrypoint.run_cli(["entrypoint"])
-        result = json.loads(output.getvalue())
-        syntax = bridge.source_ast("def broken(:\n    pass\n")
-        self.assertEqual(
-            {"function": result["functions"][0]["name"], "syntax_line": syntax["parse_issues"][0]["line"]},
-            {"function": "run", "syntax_line": 0},
-        )
+        result = self._output_object(output.getvalue())
+        self.assertEqual(self._first_parse_issue_line(result), 0)
 
     def test_runs_batch_mode(self) -> None:
         """Responsibilities: _batch response collection verification_."""
@@ -89,11 +156,21 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
             bridge,
             io.StringIO(request),
             output,
-            PythonBridgeInput(PathPythonBridgeFileIO(Path("."))),
+            PythonBridgeInput(PathPythonBridgeFileIO(Path())),
         )
         entrypoint.run_cli(["entrypoint", "--batch"])
-        results = [json.loads(line) for line in output.getvalue().splitlines()]
+        results: list[JsonObject] = [self._output_object(line) for line in output.getvalue().splitlines()]
         self.assertEqual(
-            {"class": results[0]["classes"][0]["name"], "function": results[1]["functions"][0]["name"]},
-            {"class": "First", "function": "second"},
+            {
+                "result_count": len(results),
+                "parse_issues": [self._parse_issues(item) for item in results],
+                "class": self._first_symbol_name(results[0], "classes"),
+                "function": self._first_symbol_name(results[1], "functions"),
+            },
+            {
+                "result_count": 2,
+                "parse_issues": [[], []],
+                "class": "First",
+                "function": "second",
+            },
         )

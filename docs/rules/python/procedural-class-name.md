@@ -36,9 +36,28 @@ split ownership instead of only renaming it.
 
 
 ```python
+# File: src/message_processor.py
 class MessageProcessor:  # <- error
-    def process(self, message: str) -> str:
-        return message.strip()
+    """Responsibilities: _message processing_."""
+
+    def __init__(self, source_text: str) -> None:
+        """Responsibilities: _processor initialization_."""
+        self._source_text: str = source_text
+
+    def process(self) -> str:
+        """Responsibilities: _message normalization_."""
+        words = self._source_text.strip().split()
+        return " ".join(words)
+
+    def report(self) -> None:
+        """Responsibilities: _message report output_."""
+        print(f"Message: {self.process()}")
+# File: cli.py
+from src.message_processor import MessageProcessor
+
+if __name__ == "__main__":
+    processor = MessageProcessor(" ready state ")
+    processor.report()
 ```
 
 ## Good
@@ -53,36 +72,44 @@ class Message:
 
     def __init__(self, content: str) -> None:
         """Responsibilities: _message initialization_."""
-        self.text: str = content.strip()
+        self._text: str = content.strip()
 
     def empty(self) -> bool:
         """Responsibilities: _empty message classification_."""
-        return len(self.text) == 0
+        return len(self._text) == 0
 
     def word_count(self) -> int:
         """Responsibilities: _message word count_."""
-        if not self.text:
+        if not self._text:
             return 0
-        return len(self.text.split())
+        return len(self._text.split())
 
     def character_count(self) -> int:
         """Responsibilities: _message character count_."""
-        return sum(1 for _ in self.text)
+        return sum(1 for _ in self._text)
 
     def contains(self, fragment: str) -> bool:
         """Responsibilities: _message content search_."""
         value = fragment.strip()
         if not value:
             return False
-        return value in self.text.split()
+        return value in self._text.split()
 
     def summary(self) -> str:
         """Responsibilities: _message summary_."""
-        return f"{self.text} ({self.word_count()} words)"
+        word_total = self.word_count()
+        character_total = self.character_count()
+        empty_state = self.empty()
+        hello_match = self.contains("hello")
+        return f"{self._text} ({word_total} words, {character_total} characters; empty={empty_state}; hello={hello_match})"
+
+    def report(self) -> None:
+        """Responsibilities: _message report output_."""
+        print(self.summary())
 # File: cli.py
 from src.message import Message
 
 if __name__ == "__main__":
     message = Message(" hello world ")
-    print(message.text, message.empty(), message.word_count(), message.character_count(), message.contains("hello"), message.summary())
+    message.report()
 ```

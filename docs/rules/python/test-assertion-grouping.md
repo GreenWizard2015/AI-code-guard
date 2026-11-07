@@ -26,6 +26,9 @@ class Status:
         if not value:
             return False
         return value in normalized
+    def report_summary(self) -> None:
+        output = [self.normalized(), self.ready(), self.label('State'), self.contains('ead')]
+        print(output)
 # File: tests/documentation/test_status.py
 import unittest
 from src.documentation.status import Status
@@ -44,8 +47,7 @@ class TestStatus(unittest.TestCase):
 from src.documentation.status import Status
 if __name__ == '__main__':
     status = Status(' READY ')
-    output = [status.normalized(), status.ready(), status.label('State'), status.contains('ead')]
-    print(output)
+    status.report_summary()
 ```
 
 ## Good
@@ -55,9 +57,9 @@ if __name__ == '__main__':
 # File: src/documentation/status.py
 class Status:
     def __init__(self, value: str) -> None:
-        self.value: str = value
+        self._value: str = value
     def normalized(self) -> str:
-        trimmed = self.value.strip()
+        trimmed = self._value.strip()
         normalized_value = trimmed.lower()
         return normalized_value
     def ready(self) -> bool:
@@ -72,6 +74,9 @@ class Status:
         if not value:
             return False
         return value in normalized
+    def report_summary(self) -> None:
+        output = [self.normalized(), self.ready(), self.label('State'), self.contains('ead')]
+        print(output)
 # File: tests/documentation/test_status.py
 import unittest
 from src.documentation.status import Status
@@ -88,6 +93,5 @@ class TestStatus(unittest.TestCase):
 from src.documentation.status import Status
 if __name__ == '__main__':
     status = Status(' READY ')
-    output = [status.normalized(), status.ready(), status.label('State'), status.contains('ead')]
-    print(output)
+    status.report_summary()
 ```

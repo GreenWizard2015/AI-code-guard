@@ -1,11 +1,16 @@
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _class nesting_, _source boundaries_. **/
 export class ClassStructure {
+	private readonly _file: string;
+	private readonly _lines: string[];
+	private readonly _python: boolean;
+	private readonly _parsed_indexes: number[];
 	private readonly top_level_indentation = 0;
+	private readonly _nested_scope_kinds: ReadonlySet<ts.SyntaxKind>;
 
 	/** Responsibilities: _source indentation width_. **/
 	private indentation(line: string): number {
@@ -55,38 +60,31 @@ export class ClassStructure {
 	}
 
 	/** Responsibilities: _nested Python class lookup_. **/
-	private nested_python_classes(lines: string[]): number[] {
+	private nested_python_classes(): number[] {
 		const indexes: number[] = [];
-		for (const [index, line] of lines.entries()) {
-			if (this.indentation(line) > this.top_level_indentation) {
-				if (this.class_header(line)) {
-					indexes.push(index);
-				}
+		for (const [index, line] of this._lines.entries()) {
+			if (this.indentation(line) > this.top_level_indentation && this.class_header(line)) {
+				indexes.push(index);
 			}
 		}
 		return indexes;
 	}
 
 	/** Responsibilities: _selection parsing TypeScript source_. **/
-	private typescript_source_file(file: string, lines: string[], ...source_files: ts.SourceFile[]): ts.SourceFile {
-		if (source_files.length === 0) {
-			const source_text = lines.join("\n");
-			const ast_file = new TypeScriptAstFile(file, source_text);
-			return ast_file.source_file;
-		}
-		return source_files[0];
+	private typescript_source_file(): ts.SourceFile {
+		const source_text = this._lines.join("\n");
+		const ast_file = new TypeScriptAstFile(this._file, source_text);
+		return ast_file.source_file_node();
 	}
 
 	/** Responsibilities: _nested TypeScript class lookup_. **/
-	private nested_typescript_classes(file: string, lines: string[], ...source_files: ts.SourceFile[]): number[] {
-		const source_file = this.typescript_source_file(file, lines, ...source_files);
+	private nested_typescript_classes(): number[] {
+		const source_file = this.typescript_source_file();
 		const indexes: number[] = [];
 		const visit = (node: ts.Node, inside_nested_scope: boolean): void => {
 			const is_class = this.is_class_node(node);
-			if (is_class) {
-				if (inside_nested_scope) {
-					indexes.push(source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line);
-				}
+			if (is_class && inside_nested_scope) {
+				indexes.push(source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line);
 			}
 			let child_nested_scope = inside_nested_scope;
 			if (is_class) {
@@ -106,7 +104,7 @@ export class ClassStructure {
 		if (ts.isClassLike(node) || ts.isFunctionLike(node)) {
 			return true;
 		}
-		if (ts.isModuleBlock(node) || ts.isBlock(node)) {
+		if (ts.isBlock(node)) {
 			return true;
 		}
 		if (ts.isObjectLiteralExpression(node) || ts.isArrayLiteralExpression(node)) {
@@ -115,7 +113,7 @@ export class ClassStructure {
 		if (ts.isPropertyAssignment(node) || ts.isConditionalExpression(node)) {
 			return true;
 		}
-		return ts.isCaseBlock(node);
+		return this._nested_scope_kinds.has(node.kind);
 	}
 
 	/** Responsibilities: _classification TypeScript AST node_. **/
@@ -126,52 +124,40 @@ export class ClassStructure {
 		return ts.isClassExpression(node);
 	}
 
-	/** Responsibilities: _top-level class declaration lookup_. **/
-	private top_class_indexes(file: string, lines: string[], python: boolean): number[] {
-		if (python) {
-			return lines
-				.map((line, index) => ({ line, index }))
-				.filter((item) => {
-					if (this.indentation(item.line) !== this.top_level_indentation) {
-						return false;
-					}
-					return this.class_header(item.line);
-				})
-				.map((item) => item.index);
-		}
-		const ast = new TypeScriptAstFile(file, lines.join("\n"));
-		return ast
-			.classes()
-			.filter((node) => !node.type_contract && !node.protocol)
-			.map((node) => node.start);
+	/** Responsibilities: _source-file structure analysis initialization_. **/
+	public constructor(file: string, lines: string[], python: boolean, parsed_indexes: number[]) {
+		this._file = file;
+		this._lines = lines;
+		this._python = python;
+		this._parsed_indexes = parsed_indexes;
+		this._nested_scope_kinds = new Set([
+			ts.SyntaxKind.Block,
+			ts.SyntaxKind.ObjectLiteralExpression,
+			ts.SyntaxKind.ArrayLiteralExpression,
+			ts.SyntaxKind.CaseBlock,
+		]);
 	}
 
 	/** Responsibilities: _aggregation nested-class violations source_. **/
-	public append_nested_class(
-		violations: ViolationContract[],
-		file: string,
-		lines: string[],
-		python: boolean,
-		...source_files: ts.SourceFile[]
-	): void {
+	public append_nested_class(violations: ViolationContract[]): void {
 		let indexes: number[];
-		if (python) {
-			indexes = this.nested_python_classes(lines);
+		if (this._python) {
+			indexes = this.nested_python_classes();
 		} else {
-			indexes = this.nested_typescript_classes(file, lines, ...source_files);
+			indexes = this.nested_typescript_classes();
 		}
 		if (indexes.length === 0) {
 			return;
 		}
 		const rule = new DiagnosticRule("nested-class");
-		violations.push(rule.violation(file, indexes[0] + 1, { count: String(indexes.length) }));
+		const first_index = indexes.at(0);
+		if (first_index !== undefined) {
+			violations.push(rule.violation(this._file, first_index + 1, { count: String(indexes.length) }));
+		}
 	}
 
 	/** Responsibilities: _output top-level class indexing_. **/
-	public class_indexes_for(file: string, lines: string[], python: boolean, ...parsed_lists: number[][]): number[] {
-		if (parsed_lists[0] !== undefined) {
-			return parsed_lists[0];
-		}
-		return this.top_class_indexes(file, lines, python);
+	public class_indexes(): number[] {
+		return this._parsed_indexes;
 	}
 }

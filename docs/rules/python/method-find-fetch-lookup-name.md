@@ -7,58 +7,70 @@ free to use a cache, construct the value, or retrieve it remotely.
 
 ## Bad
 
-
 ```python
-class PriceLabels:
-    def find_receipt(self) -> str:
-        return 10
+# File: src/receipt_book.py
+class ReceiptBook:
+    def __init__(self, receipt_id: str, item_count: int, amount: float) -> None:
+        self._receipt_id: str = receipt_id
+        self._item_count: int = item_count
+        self._amount: float = amount
+
+    def find_receipt(self) -> str:  # <- error
+        return f"{self._receipt_id}: {self._amount}"
+
+    def item_summary(self) -> str:
+        return f"{self._item_count} items"
+
+    def total_label(self) -> str:
+        return f"Total {self._amount:.2f}"
+
+    def summary(self) -> str:
+        receipt = self.find_receipt()
+        items = self.item_summary()
+        return f"{receipt} | {items} | {self.total_label()}"
+
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
+# File: cli.py
+from src.receipt_book import ReceiptBook
+
+if __name__ == "__main__":
+    receipt = ReceiptBook("R-17", 3, 24.5)
+    receipt.report()
 ```
 
 ## Good
 
-
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/receipt_book.py
+class ReceiptBook:
+    def __init__(self, receipt_id: str, item_count: int, amount: float) -> None:
+        self._receipt_id: str = receipt_id
+        self._item_count: int = item_count
+        self._amount: float = amount
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def receipt(self) -> str:
+        return f"{self._receipt_id}: {self._amount}"
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def item_summary(self) -> str:
+        return f"{self._item_count} items"
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
+    def total_label(self) -> str:
+        return f"Total {self._amount:.2f}"
 
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
+    def summary(self) -> str:
+        receipt = self.receipt()
+        items = self.item_summary()
+        return f"{receipt} | {items} | {self.total_label()}"
 
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.receipt_book import ReceiptBook
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    receipt = ReceiptBook("R-17", 3, 24.5)
+    receipt.report()
 ```

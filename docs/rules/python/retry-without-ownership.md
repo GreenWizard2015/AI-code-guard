@@ -8,37 +8,34 @@ A profile synchronizer retries every failed request forever. No object owns an a
 
 ```python
 # File: src/profile_synchronizer.py
-from urllib.parse import urlparse
-
-
 class ProfileSynchronizer:
-    _endpoint: str
+    _attempts: int
 
-    def __init__(self, endpoint: str) -> None:
-        self._endpoint: str = endpoint
+    def _fetch_profile(self) -> None:
+        self._attempts += 1
+        if self._attempts == 1:
+            raise RuntimeError("Temporary profile failure.")
+
+    def __init__(self) -> None:
+        self._attempts: int = 0
 
     def synchronize(self) -> None:
         while True:
             try:
-                fetch_profile(self._endpoint)
+                self._fetch_profile()
                 return
-            except OSError:
+            except RuntimeError:
                 continue
 
-    def endpoint_host(self) -> str:
-        parsed = urlparse(self._endpoint)
-        host = parsed.hostname
-        if host is None:
-            raise ValueError("Endpoint must include a host.")
-        return host
+    def report(self) -> None:
+        self.synchronize()
+        print("Synchronized local profile")
 # File: cli.py
-from profile_synchronizer import ProfileSynchronizer
+from src.profile_synchronizer import ProfileSynchronizer
 
 if __name__ == "__main__":
-    synchronizer = ProfileSynchronizer("https://example.test/profile")
-    synchronizer.synchronize()
-    host = synchronizer.endpoint_host()
-    print(host)
+    synchronizer = ProfileSynchronizer()
+    synchronizer.report()
 ```
 ## Good
 
@@ -46,40 +43,37 @@ The same synchronizer owns a finite attempt limit and propagates the final netwo
 
 ```python
 # File: src/profile_synchronizer.py
-from urllib.parse import urlparse
-
-
 class ProfileSynchronizer:
-    _endpoint: str
     _attempt_limit: int
 
-    def __init__(self, endpoint: str, attempt_limit: int) -> None:
+    def _profile_response(self, attempt_number: int) -> str:
+        if attempt_number < 2:
+            return ""
+        profile_words = "local profile".split()
+        normalized_words = [profile_word.upper() for profile_word in profile_words]
+        return " ".join(normalized_words)
+
+    def __init__(self, attempt_limit: int) -> None:
         if attempt_limit < 1:
             raise ValueError("Attempt limit must be positive.")
-        self._endpoint: str = endpoint
         self._attempt_limit: int = attempt_limit
 
-    def synchronize(self) -> None:
-        for attempt in range(self._attempt_limit):
-            try:
-                fetch_profile(self._endpoint)
-                return
-            except OSError:
-                if attempt + 1 == self._attempt_limit:
-                    raise
+    def synchronize(self) -> str:
+        for attempt_number in range(1, self._attempt_limit + 1):
+            profile = self._profile_response(attempt_number)
+            if profile:
+                return profile
+            if attempt_number == self._attempt_limit:
+                raise RuntimeError("Profile synchronization failed.")
+        raise RuntimeError("Profile synchronization ended without a result.")
 
-    def endpoint_host(self) -> str:
-        parsed = urlparse(self._endpoint)
-        host = parsed.hostname
-        if host is None:
-            raise ValueError("Endpoint must include a host.")
-        return host
+    def report(self) -> None:
+        profile = self.synchronize()
+        print(f"Synchronized {profile}")
 # File: cli.py
-from profile_synchronizer import ProfileSynchronizer
+from src.profile_synchronizer import ProfileSynchronizer
 
 if __name__ == "__main__":
-    synchronizer = ProfileSynchronizer("https://example.test/profile", 3)
-    synchronizer.synchronize()
-    host = synchronizer.endpoint_host()
-    print(host)
+    synchronizer = ProfileSynchronizer(3)
+    synchronizer.report()
 ```

@@ -1,10 +1,10 @@
-import ts from "typescript";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _structured key resolution_, _value expression classification_. **/
 export class StructuredValueRules {
-	private readonly static_expression_values: StaticExpressionValuesContract;
-	private readonly structured_names: Set<string>;
+	private readonly _static_expression_values: StaticExpressionValuesContract;
+	private readonly _structured_names: Set<string>;
 
 	/** Responsibilities: _structured key wrapper_. **/
 	private key_wrapper(expression: ts.Expression): boolean {
@@ -19,26 +19,27 @@ export class StructuredValueRules {
 
 	/** Responsibilities: _structured key unwrapping_. **/
 	private unwrapped_key(expression: ts.Expression): ts.Expression {
-		while (this.key_wrapper(expression)) {
-			if (ts.isParenthesizedExpression(expression) || ts.isNonNullExpression(expression)) {
-				expression = expression.expression;
+		let current_expression = expression;
+		while (this.key_wrapper(current_expression)) {
+			if (ts.isParenthesizedExpression(current_expression) || ts.isNonNullExpression(current_expression)) {
+				current_expression = current_expression.expression;
 				continue;
 			}
-			if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression)) {
-				expression = expression.expression;
+			if (ts.isAsExpression(current_expression) || ts.isTypeAssertionExpression(current_expression)) {
+				current_expression = current_expression.expression;
 				continue;
 			}
-			if (ts.isSatisfiesExpression(expression)) {
-				expression = expression.expression;
+			if (ts.isSatisfiesExpression(current_expression)) {
+				current_expression = current_expression.expression;
 			}
 		}
-		return expression;
+		return current_expression;
 	}
 
 	/** Responsibilities: _structured value rule initialization_. **/
 	public constructor(static_expression_values: StaticExpressionValuesContract) {
-		this.structured_names = new Set(["structuredContent", "unwrap_tool_result"]);
-		this.static_expression_values = static_expression_values;
+		this._structured_names = new Set(["structuredContent", "unwrap_tool_result"]);
+		this._static_expression_values = static_expression_values;
 	}
 
 	/** Responsibilities: _structured result key_. **/
@@ -51,13 +52,13 @@ export class StructuredValueRules {
 		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
 			return key.text;
 		}
-		return this.static_expression_values.value(argument, node);
+		return this._static_expression_values.value(argument, node);
 	}
 
 	/** Responsibilities: _structured result value_. **/
 	public structured_value(node: ts.Node): boolean {
 		if (ts.isIdentifier(node)) {
-			return this.structured_names.has(node.text);
+			return this._structured_names.has(node.text);
 		}
 		if (!ts.isElementAccessExpression(node)) {
 			return false;
@@ -66,6 +67,6 @@ export class StructuredValueRules {
 		if (key.length === 0) {
 			return false;
 		}
-		return this.structured_names.has(key);
+		return this._structured_names.has(key);
 	}
 }

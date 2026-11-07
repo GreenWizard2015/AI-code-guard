@@ -1,65 +1,59 @@
-import type { GitIgnoreGlobMatcherContract, GitIgnoreGlobTokenContract } from "src/runtime_protocols";
+import { GitIgnoreGlobCandidateEvaluation } from "src/core/support/git_ignore_tokens/git_ignore_glob_candidate_evaluation";
 import type { GitIgnoreGlobMatchResult } from "src/project_analysis_types";
+import type {
+	GitIgnoreGlobCandidateEvaluationContract,
+	GitIgnoreGlobMatcherContract,
+	GitIgnoreGlobTokenContract,
+} from "src/runtime_protocols";
 
 /** Responsibilities: _bounded Gitignore glob matching_, _path segment matching_. **/
 export class GitIgnoreGlobMatcher implements GitIgnoreGlobMatcherContract {
-	private readonly tokens: readonly GitIgnoreGlobTokenContract[];
-	private readonly candidate_match_cache: Map<string, boolean>;
+	private readonly _tokens: readonly GitIgnoreGlobTokenContract[];
+	private readonly _candidate_match_cache: Map<string, boolean>;
+	private readonly _minimum_candidate_length: number;
+	private readonly _variable_candidate_length: boolean;
 
-	/** Responsibilities: _token suffix evaluation_. **/
-	private append_token_row(
-		token: GitIgnoreGlobTokenContract,
-		candidate: string,
-		current_row: Uint8Array,
-		next_row: Uint8Array,
-	): void {
-		for (let index = candidate.length; index >= 0; index -= 1) {
-			current_row[index] = token.advance(candidate, index, current_row, next_row) ? 1 : 0;
+	/** Responsibilities: _candidate length rejection_. **/
+	private candidate_length_impossible(candidate_length: number): boolean {
+		if (candidate_length < this._minimum_candidate_length) {
+			return true;
 		}
+		return !this._variable_candidate_length && candidate_length !== this._tokens.length;
 	}
 
-	/** Responsibilities: _initial dynamic-programming match row_. **/
-	private initial_match_row(candidate_length: number): Uint8Array {
-		const row = new Uint8Array(candidate_length + 1);
-		row[candidate_length] = 1;
-		return row;
-	}
-
-	/** Responsibilities: _candidate state evaluation_. **/
-	private calculate_candidate_match(candidate: string): GitIgnoreGlobMatchResult {
-		let next_row: Uint8Array = this.initial_match_row(candidate.length);
-		let current_row: Uint8Array = new Uint8Array(next_row.length);
-		let visited_states = next_row.length;
-		for (let token_index = this.tokens.length - 1; token_index >= 0; token_index -= 1) {
-			const token = this.tokens[token_index];
-			if (token === undefined) {
-				continue;
-			}
-			this.append_token_row(token, candidate, current_row, next_row);
-			visited_states += current_row.length;
-			const previous_row = next_row;
-			next_row = current_row;
-			current_row = previous_row;
+	/** Responsibilities: _candidate evaluation dispatch_. **/
+	private evaluate(evaluation: GitIgnoreGlobCandidateEvaluationContract): GitIgnoreGlobMatchResult {
+		if (this._variable_candidate_length) {
+			return evaluation.match();
 		}
-		return { matched: next_row[0] === 1, visited_states };
+		return evaluation.match_fixed_width();
 	}
 
 	/** Responsibilities: _Gitignore pattern matching_. **/
 	public constructor(tokens: readonly GitIgnoreGlobTokenContract[]) {
-		this.tokens = tokens;
-		this.candidate_match_cache = new Map<string, boolean>();
+		this._tokens = tokens;
+		this._candidate_match_cache = new Map<string, boolean>();
+		this._minimum_candidate_length = tokens.reduce((total, token) => total + token.minimum_candidate_length(), 0);
+		this._variable_candidate_length = tokens.some((token) => token.variable_candidate_length());
 	}
 
 	/** Responsibilities: _bounded candidate evaluation_. **/
 	public match_candidate(candidate: string): GitIgnoreGlobMatchResult {
-		if (candidate.includes("/")) {
-			return this.calculate_candidate_match(candidate);
+		const cacheable = !candidate.includes("/");
+		if (cacheable) {
+			const cached = this._candidate_match_cache.get(candidate);
+			if (cached !== undefined) {
+				return { matched: cached, visited_states: 0 };
+			}
 		}
-		if (this.candidate_match_cache.has(candidate)) {
-			return { matched: this.candidate_match_cache.get(candidate) === true, visited_states: 0 };
+		if (this.candidate_length_impossible(candidate.length)) {
+			return { matched: false, visited_states: 0 };
 		}
-		const result = this.calculate_candidate_match(candidate);
-		this.candidate_match_cache.set(candidate, result.matched);
+		const evaluation = new GitIgnoreGlobCandidateEvaluation(this._tokens, candidate);
+		const result = this.evaluate(evaluation);
+		if (cacheable) {
+			this._candidate_match_cache.set(candidate, result.matched);
+		}
 		return result;
 	}
 

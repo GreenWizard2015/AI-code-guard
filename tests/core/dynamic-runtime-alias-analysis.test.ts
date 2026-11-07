@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("dynamic runtime alias analysis", () => {
@@ -9,7 +9,7 @@ describe("dynamic runtime alias analysis", () => {
 		const fixture = new TestFixture();
 		const count = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"spread.ts": [
 						"const reflect_source = { Reflect };",
@@ -37,7 +37,7 @@ describe("dynamic runtime alias analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "typescript-dynamic-runtime-usage").length;
+			.filter((item) => item.rule_id() === "typescript-dynamic-runtime-usage").length;
 		expect(count).toBe(4);
 	});
 
@@ -45,7 +45,7 @@ describe("dynamic runtime alias analysis", () => {
 		const fixture = new TestFixture();
 		const count = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"members.ts": [
 						"const reflect_holder = { Reflect };",
@@ -75,7 +75,48 @@ describe("dynamic runtime alias analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "typescript-dynamic-runtime-usage").length;
+			.filter((item) => item.rule_id() === "typescript-dynamic-runtime-usage").length;
 		expect(count).toBe(8);
+	});
+
+	test("resolves runtime aliases from enclosing lexical scopes", () => {
+		const fixture = new TestFixture();
+		const count = fixture
+			.with_lint_request(
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+				{
+					"nested-scope.ts": [
+						"function outer() {",
+						"  const runtime = { Reflect };",
+						"  function inner() {",
+						'    runtime.Reflect.get(target, "nested");',
+						"  }",
+						"}",
+					].join("\n"),
+				},
+				(production_lint_configuration, options, mode) =>
+					production_lint_configuration.lint_report(options, mode).report.violations,
+			)
+			.filter((item) => item.rule_id() === "typescript-dynamic-runtime-usage").length;
+		expect(count).toBe(1);
+	});
+
+	test("detects runtime APIs through array aliases", () => {
+		const fixture = new TestFixture();
+		const all_violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"runtime-arrays.ts": [
+					"const reflect_methods = [Reflect];",
+					'reflect_methods[0].get(target, "reflect");',
+					"const proxy_methods = [Proxy];",
+					"new proxy_methods[0](target, handler);",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const dynamic_violations = all_violations.filter((item) => item.rule_id() === "typescript-dynamic-runtime-usage");
+		expect(dynamic_violations.length).toBe(2);
 	});
 });

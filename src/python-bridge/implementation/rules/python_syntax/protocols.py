@@ -17,7 +17,7 @@ class PythonDynamicImportReferenceContract(Protocol):
 class PythonDynamicImportNamesContract(Protocol):
     """Responsibilities: _dynamic import names contract_."""
 
-    def configure(self, tree: ast.AST) -> None: ...
+    def configure(self) -> None: ...
 
     def observe(self, node: ast.AST) -> None: ...
 
@@ -28,21 +28,26 @@ class PythonDynamicImportReferenceResolverContract(Protocol):
     """Responsibilities: _dynamic module reference_."""
 
     def reference(
-        self, value: ast.AST, seen: set[int]
+        self,
+        expression: ast.AST,
     ) -> PythonDynamicImportReferenceContract: ...
 
 
 class PythonDynamicImportSubscriptOwnerContract(Protocol):
     """Responsibilities: _dynamic import subscript owner_."""
 
-    def module_value(self) -> str: ...
+    @property
+    def module(self) -> str: ...
 
-    def name_value(self) -> str: ...
+    @property
+    def name(self) -> str: ...
 
 
 class PythonDynamicImportCallTargetContract(Protocol):
     """Responsibilities: _dynamic import target_."""
 
-    def reference_value(self) -> PythonDynamicImportReferenceContract: ...
+    @property
+    def reference(self) -> PythonDynamicImportReferenceContract: ...
 
-    def name_value(self) -> str: ...
+    @property
+    def name(self) -> str: ...

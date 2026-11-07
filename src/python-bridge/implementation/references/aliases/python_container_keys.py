@@ -49,17 +49,17 @@ class PythonContainerKeys:
 
     def __init__(self, state: PythonContainerAliasStateContract) -> None:
         """Responsibilities: _container key state binding_."""
-        self.state: PythonContainerAliasStateContract = state
+        self._state: PythonContainerAliasStateContract = state
 
     def static_key(self, value: ast.AST) -> str:
         """Responsibilities: _static container key resolution_."""
-        self.state.select_scope_node(value)
+        self._state.select_scope_node(value)
         if type(value) is ast.Constant:
             return self._constant_key(value)
         if type(value) is ast.BinOp:
             return self._binary_key(value)
         if type(value) is ast.Name:
-            return self.state.static_alias(value.id)
+            return self._state.alias(value.id).static_value()
         return ""
 
     def string_value(self, node: ast.AST) -> str:

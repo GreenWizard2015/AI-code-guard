@@ -1,108 +1,69 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.constants import PYTHON_INSTANCE_BINDING_NODE_TYPES
 from implementation.references.instances.python_annotated_instance_bindings import (
     PythonAnnotatedInstanceBindings,
 )
-from implementation.references.instances.python_assignment_effects import (
-    PythonAssignmentEffects,
+from implementation.references.instances.python_instance_binding_analysis import (
+    PythonInstanceBindingAnalysis,
+    PythonInstanceBindingSource,
 )
 from implementation.references.instances.python_instance_owner import (
     PythonInstanceOwner,
 )
 from implementation.references.protocols import (
-    PythonAnnotationResolverContract,
     PythonAnnotatedInstanceBindingsContract,
+    PythonAnnotationResolverContract,
     PythonInstanceOwnerContract,
     PythonReferenceContextContract,
 )
-from implementation.ast.protocols import PythonAstNodeIndexContract
 
 
 class PythonInstanceBindings:
     """Responsibilities: _annotated binding collection_, _instance alias recording_."""
 
-    owner_resolver: PythonInstanceOwnerContract
-    annotated_bindings: PythonAnnotatedInstanceBindingsContract
-    node_index: PythonAstNodeIndexContract
+    _owner_resolver: PythonInstanceOwnerContract
+    _annotated_bindings: PythonAnnotatedInstanceBindingsContract
+    _node_index: PythonAstNodeIndexContract
 
-    def _record_name_alias(
+    def _binding_node(self, loop_node: ast.AST) -> ast.AST:
+        """Responsibilities: _loop alias binding_."""
+        match loop_node:
+            case ast.comprehension():
+                pass
+            case _:
+                return loop_node
+        parents = self._node_index.parents(loop_node)
+        if not parents:
+            return loop_node
+        return parents[0]
+
+    def _bind_loop_element(
         self,
-        target: ast.Name,
-        node: ast.AST,
-        owner: str,
-        annotation_resolver: PythonAnnotationResolverContract,
+        target_name: str,
+        source_expression: ast.expr,
+        enclosing_owner: str,
+        binding_node: ast.AST,
     ) -> None:
-        """Responsibilities: _storage named instance alias_."""
-        instance_type: Any = self.owner_resolver.owner(node, owner, annotation_resolver)
-        effects = PythonAssignmentEffects(node)
-        element = self.context.collection_element_owner(effects.assigned_value(), owner)
-        self.context.reference_ownership().record_binding(
-            target.id, instance_type, element, node
+        """Responsibilities: _loop element binding_."""
+        element_owner = self._context.collection_element_owner(
+            source_expression,
+            enclosing_owner,
         )
-
-    def _record_property_alias(
-        self,
-        target: ast.Attribute,
-        node: ast.AST,
-        owner: str,
-        annotation_resolver: PythonAnnotationResolverContract,
-    ) -> None:
-        """Responsibilities: _storage property instance alias_."""
-        if not owner:
-            return
-        if self.context.attribute_owner(target.value, owner) != owner:
-            return
-        value_owner = self.owner_resolver.owner(node, owner, annotation_resolver)
-        self.context.reference_ownership()._record_property(
-            owner, target.attr, value_owner, node
+        if not element_owner:
+            element_owner = self._context.attribute_owner(
+                source_expression,
+                enclosing_owner,
+            )
+        self._context.bindings().record_binding(
+            target_name,
+            element_owner,
+            "",
+            binding_node,
         )
-
-    def _record_alias(
-        self,
-        node: ast.AST,
-        owner: str,
-        annotation_resolver: PythonAnnotationResolverContract,
-    ) -> None:
-        """Responsibilities: _known instance alias recording_."""
-        effects = PythonAssignmentEffects(node)
-        if type(node) is ast.AnnAssign:
-            if not effects.runtime_value_present():
-                self._record_annotation_alias(node, owner, annotation_resolver)
-                return
-        for target in effects.assignment_targets():
-            if type(target) is ast.Name:
-                self._record_name_alias(target, node, owner, annotation_resolver)
-                continue
-            if type(target) is ast.Attribute:
-                self._record_property_alias(target, node, owner, annotation_resolver)
-
-    def _record_annotation_alias(
-        self,
-        node: ast.AnnAssign,
-        owner: str,
-        annotation_resolver: PythonAnnotationResolverContract,
-    ) -> None:
-        """Responsibilities: _annotation-only instance binding_."""
-        if type(node.target) is not ast.Name:
-            return
-        if self.owner_resolver.container_name(node.annotation):
-            return
-        instance_owner = self.owner_resolver.owner(node, owner, annotation_resolver)
-        self.context.reference_ownership()._record_annotation(
-            node.target.id, instance_owner, node
-        )
-
-    def _binding_node(self, current: ast.AST) -> ast.AST:
-        """Responsibilities: _comprehension binding source location_."""
-        if type(current) is not ast.comprehension:
-            return current
-        parents = self.node_index.parents(current)
-        if parents:
-            return parents[0]
-        return current
 
     def __init__(
         self,
@@ -110,31 +71,28 @@ class PythonInstanceBindings:
         node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _initialization binding context_."""
-        self.context: PythonReferenceContextContract = context
-        self.node_index: PythonAstNodeIndexContract = node_index
-        self.owner_resolver: PythonInstanceOwnerContract = PythonInstanceOwner(context)
-        self.annotated_bindings: PythonAnnotatedInstanceBindingsContract = (
-            PythonAnnotatedInstanceBindings(
-                context,
-                self.owner_resolver,
-            )
+        self._context: PythonReferenceContextContract = context
+        self._node_index: PythonAstNodeIndexContract = node_index
+        self._owner_resolver: PythonInstanceOwnerContract = PythonInstanceOwner(context)
+        self._annotated_bindings: PythonAnnotatedInstanceBindingsContract = PythonAnnotatedInstanceBindings(
+            context,
+            self._owner_resolver,
         )
 
     def record_for_alias(self, current: ast.AST, owner: str) -> None:
         """Responsibilities: _storage loop instance alias_."""
-        if type(current) not in (ast.For, ast.comprehension):
+        match current:
+            case ast.For(target=target, iter=iterable) | ast.comprehension(
+                target=target,
+                iter=iterable,
+            ):
+                pass
+            case _:
+                return
+        if type(target) is not ast.Name:
             return
-        if type(current.target) is not ast.Name:
-            return
-        iterable_owner: Any = self.context.attribute_owner(current.iter, owner)
-        iterable_element: Any = self.context.collection_element_owner(
-            current.iter, owner
-        )
-        if iterable_element:
-            iterable_owner = iterable_element
         binding_node = self._binding_node(current)
-        ownership = self.context.reference_ownership()
-        ownership.record_binding(current.target.id, iterable_owner, "", binding_node)
+        self._bind_loop_element(target.id, iterable, owner, binding_node)
 
     def collect(
         self,
@@ -144,11 +102,13 @@ class PythonInstanceBindings:
         receiver_owner: str = "",
     ) -> None:
         """Responsibilities: _record current instance bindings_."""
-        self.annotated_bindings.collect_function_parameters(
-            current, annotation_resolver, receiver_owner
+        if type(current) not in PYTHON_INSTANCE_BINDING_NODE_TYPES:
+            return
+        source = PythonInstanceBindingSource(current, owner, annotation_resolver)
+        analysis = PythonInstanceBindingAnalysis(
+            source,
+            self._context,
+            self._owner_resolver,
+            self._annotated_bindings,
         )
-        if type(current) is ast.AnnAssign:
-            self.annotated_bindings.collect_annotation(
-                current, owner, annotation_resolver
-            )
-        self._record_alias(current, owner, annotation_resolver)
+        analysis.collect(receiver_owner)

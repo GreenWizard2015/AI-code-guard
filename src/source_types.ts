@@ -1,23 +1,24 @@
-import type ts from "typescript";
-import type { NormalizedAstFileContract } from "src/types";
 import type {
-	ReadonlyStringSet,
+	CallableReferenceKindTag,
 	ReadonlyStringMap,
+	ReadonlyStringSet,
 	StringBooleanMap,
-	CallableReferenceKindContract,
 } from "src/analysis_types";
-import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type { LintFileNameContract } from "src/core/support/protocols";
+import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type {
+	AstCallableUse,
 	AstImportIssue,
-	AstLanguage,
 	AstLiteralConstant,
 	AstLiteralReference,
 	LineDepth,
 	NamedLine,
 	NamedSymbol,
-} from "src/types";
+} from "src/model/ast/normalized_ast_types";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract, ProjectSourcePythonContract } from "src/source_protocols";
+import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type ts from "typescript";
 
 export type PythonProjectImportContext = {
 	root: string;
@@ -25,43 +26,19 @@ export type PythonProjectImportContext = {
 	resolver: ProjectSourcePythonContract;
 };
 
-export type FileNameLike = { value: string };
-export type LintFileNameContract = {
-	value: string;
-	is_functions_file: boolean;
-	test(): boolean;
-	product(): boolean;
+/** Responsibilities: _immutable source record data_. **/
+export type LintSourceRecordData = {
+	readonly absolute_path: string;
+	readonly relative_path: string;
+	readonly file_name: LintFileNameContract;
+	readonly text: string;
+	readonly normalized_ast: NormalizedAstFile;
+	readonly language: AstLanguage;
+	readonly typescript_ast: TypeScriptAstFileContract;
+	readonly source_resolver: SourceFileResolver;
+	readonly traversal: TypeScriptAstTraversalContract;
 };
-export type LintSourceRecord = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFileContract;
-	language: AstLanguage;
-	typescript_ast: TypeScriptAstFileContract;
-	source_resolver: SourceFileResolver;
-	traversal: TypeScriptAstTraversalContract;
-	typescript(): boolean;
-	python(): boolean;
-};
-export type PendingUnusedSymbolReference = { source: LintSourceRecord; name: string; line: number };
-export type LintSourceRecordOptions = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFileContract;
-};
-
-export type TypeScriptLintSourceRecordOptions = {
-	absolute_path: string;
-	relative_path: string;
-	file_name: LintFileNameContract;
-	text: string;
-	normalized_ast: NormalizedAstFileContract;
-	source_resolver: SourceFileResolver;
-};
+export type PendingUnusedSymbolReference = { source: LintSourceRecordData; name: string; line: number };
 export type TypeScriptAstCreation = {
 	ast_file: TypeScriptAstFileContract;
 	traversal: TypeScriptAstTraversalContract;
@@ -71,8 +48,8 @@ export type ContextSourceRecordOptions = {
 	file: string;
 	text: string;
 	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>;
-	typescript_asts: ReadonlyMap<string, NormalizedAstFileContract>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
+	typescript_asts: ReadonlyMap<string, NormalizedAstFile>;
 	stage_timer: LintStageTimerContract;
 	source_io: ProjectSourceIOContract;
 };
@@ -90,8 +67,16 @@ export type ContextSourceRecordsOptions = {
 	files: string[];
 	texts: ReadonlyMap<string, string>;
 	source_files: ReadonlyMap<string, ts.SourceFile>;
-	python_file_asts: ReadonlyMap<string, NormalizedAstFileContract>;
+	python_file_asts: ReadonlyMap<string, NormalizedAstFile>;
 	stage_timer: LintStageTimerContract;
+	virtual_project: boolean;
+	source_io: ProjectSourceIOContract;
+};
+export type ContextSourceRecordCacheOptions = {
+	repo_root: string;
+	project_files: string[];
+	files: string[];
+	texts: ReadonlyMap<string, string>;
 	virtual_project: boolean;
 	source_io: ProjectSourceIOContract;
 };
@@ -128,15 +113,16 @@ export type SourceFileReadonlyStringMapCache = WeakMap<ts.SourceFile, ReadonlySt
 
 export type SourceFileBooleanMapCache = WeakMap<ts.SourceFile, StringBooleanMap>;
 
-export type AstCallableReferenceContract = {
+export type AstCallableReferenceRecord = {
 	name: string;
-	kind: CallableReferenceKindContract;
+	kind: CallableReferenceKindTag;
 	target_file: string;
 	owner: string;
 	caller_owner: string;
 	is_call: boolean;
 	dynamic: boolean;
 	line: number;
+	call_use: AstCallableUse;
 };
 
 export type CodingRuleSourceOptions = { file: string; text: string };
@@ -144,7 +130,7 @@ export type CodingRuleSourceOptions = { file: string; text: string };
 export type CodingRuleSourceData = {
 	file: string;
 	text: string;
-	normalized_ast: NormalizedAstFileContract;
+	normalized_ast: NormalizedAstFile;
 	source_file: ts.SourceFile;
 	source_resolver: SourceFileResolver;
 	traversal: TypeScriptAstTraversalContract;

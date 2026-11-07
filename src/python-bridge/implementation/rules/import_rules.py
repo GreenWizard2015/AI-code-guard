@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from protocols import PythonSysPathRulesContract
-from implementation.references.protocols import PythonContainerAliasesContract
-from implementation.rules.constants import IMPORT_SCOPE_TYPES
+from implementation.rules.constants import (
+    IMPORT_OBSERVER_NODE_TYPES,
+    SYS_PATH_MUTATION_NODE_TYPES,
+)
 from implementation.rules.python_syntax.protocols import (
     PythonDynamicImportNamesContract,
 )
 from implementation.types import JsonObject
+from protocols import PythonSysPathRulesContract
 
 
 class ImportRules:
@@ -29,72 +30,79 @@ class ImportRules:
     def _late_import_issues(self, body: list[ast.stmt]) -> list[JsonObject]:
         """Responsibilities: _reporting imports occur after_."""
         issues: list[JsonObject] = []
-        imports_closed: Any = False
+        imports_closed = False
         for node in body:
             if self._is_import_preamble(node):
                 continue
-            is_import: Any = type(node) in (ast.Import, ast.ImportFrom)
+            is_import = type(node) in (ast.Import, ast.ImportFrom)
             if not is_import:
-                imports_closed: Any = True
+                imports_closed = True
             else:
                 if imports_closed:
                     issues.append({"line": max(0, node.lineno - 1), "kind": "late"})
         return issues
 
-    def _is_dynamic_import(self, node: ast.AST) -> bool:
+    def _is_dynamic_import(self, call_candidate: ast.AST) -> bool:
         """Responsibilities: _identification dynamic import invocation_."""
-        if type(node) is not ast.Call:
+        if type(call_candidate) is not ast.Call:
             return False
-        return self.dynamic_import_names.matches(node.func)
+        return self._dynamic_import_names.matches(call_candidate.func)
+
+    def _path_mutation(self, node: ast.AST) -> bool:
+        """Responsibilities: _sys.path mutation classification_."""
+        if type(node) not in SYS_PATH_MUTATION_NODE_TYPES:
+            return False
+        return self._sys_path_rules.path_mutation(node)
 
     def _append_node_issues(
-        self, node: ast.AST, issues: list[JsonObject], nested: bool
+        self,
+        syntax_node: ast.AST,
+        issues: list[JsonObject],
+        nested: bool,
     ) -> None:
         """Responsibilities: _collection current import issues_."""
-        self.dynamic_import_names.observe(node)
-        if type(node) in (ast.Import, ast.ImportFrom):
+        if type(syntax_node) in IMPORT_OBSERVER_NODE_TYPES:
+            self._dynamic_import_names.observe(syntax_node)
+        if type(syntax_node) in (ast.Import, ast.ImportFrom):
             if nested:
-                issues.append({"line": max(0, node.lineno - 1), "kind": "nested"})
-        if type(node) is ast.ImportFrom and node.level > 0:
-            issues.append({"line": max(0, node.lineno - 1), "kind": "relative"})
-        if self._is_dynamic_import(node):
-            issues.append({"line": max(0, node.lineno - 1), "kind": "dynamic"})
-        if self.sys_path_rules.path_mutation(node):
-            issues.append(
-                {"line": max(0, node.lineno - 1), "kind": "sys_path_mutation"}
-            )
+                issues.append(
+                    {"line": max(0, syntax_node.lineno - 1), "kind": "nested"},
+                )
+        if type(syntax_node) is ast.ImportFrom and syntax_node.level > 0:
+            issues.append({"line": max(0, syntax_node.lineno - 1), "kind": "relative"})
+        if self._is_dynamic_import(syntax_node):
+            issues.append({"line": max(0, syntax_node.lineno - 1), "kind": "dynamic"})
+        if self._path_mutation(syntax_node):
+            issues.append({"line": max(0, syntax_node.lineno - 1), "kind": "sys_path_mutation"})
 
     def __init__(
         self,
-        container_aliases: PythonContainerAliasesContract,
         dynamic_import_names: PythonDynamicImportNamesContract,
         sys_path_rules: PythonSysPathRulesContract,
         node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _import rule configuration initialization_."""
-        self.import_scope_types: Any = IMPORT_SCOPE_TYPES
-        self.dynamic_import_names: PythonDynamicImportNamesContract = (
-            dynamic_import_names
-        )
-        self.sys_path_rules: PythonSysPathRulesContract = sys_path_rules
-        self.node_index: PythonAstNodeIndexContract = node_index
+        self._dynamic_import_names: PythonDynamicImportNamesContract = dynamic_import_names
+        self._sys_path_rules: PythonSysPathRulesContract = sys_path_rules
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     def collect_import_issues(
-        self, node: ast.AST, issues: list[JsonObject], nested: bool
+        self,
+        tree: ast.Module,
+        issues: list[JsonObject],
     ) -> None:
-        """Responsibilities: _collection path mutation nested_."""
-        self._append_node_issues(node, issues, nested)
-        child_nested: Any = nested
-        if type(node) in IMPORT_SCOPE_TYPES:
-            child_nested: Any = True
-        for child in self.node_index.children(node):
-            self.collect_import_issues(child, issues, child_nested)
+        """Responsibilities: _indexed import issue collection_."""
+        scopes = self._node_index.scopes(tree)
+        for statement in tree.body:
+            for syntax_node in self._node_index.nodes(statement):
+                nested = scopes[syntax_node] != "module"
+                self._append_node_issues(syntax_node, issues, nested)
 
     def import_issues(self, tree: ast.Module) -> list[JsonObject]:
         """Responsibilities: _collection import issues module_."""
-        self.dynamic_import_names.configure(tree)
-        self.sys_path_rules.configure(tree)
+        self._dynamic_import_names.configure()
+        self._sys_path_rules.configure(tree)
         issues: list[JsonObject] = []
-        self.collect_import_issues(tree, issues, False)
+        self.collect_import_issues(tree, issues)
         issues.extend(self._late_import_issues(tree.body))
         return issues

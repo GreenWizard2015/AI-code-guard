@@ -35,9 +35,30 @@ split ownership instead of only renaming it.
 ## Bad
 
 ```ts
-class MessageProcessor { // <- error
-	public process(message: string): string { return message.trim(); }
+// File: src/message_processor.ts
+/** Responsibilities: _message processing_. **/
+export class MessageProcessor { // <- error
+	private readonly source_text: string;
+	/** Responsibilities: _processor initialization_. **/
+	public constructor(source_text: string) {
+		this.source_text = source_text;
+	}
+	/** Responsibilities: _message normalization_. **/
+	public normalized_message(): string {
+		const words = this.source_text.trim().split(/\s+/u);
+		return words.join(" ");
+	}
+	/** Responsibilities: _message report output_. **/
+	public report(): void {
+		console.log(`Message: ${this.normalized_message()}`);
+	}
 }
+// File: cli.ts
+import { MessageProcessor } from "src/message_processor";
+(function () {
+	const processor = new MessageProcessor(" ready state ");
+	processor.report();
+})();
 ```
 
 
@@ -49,36 +70,44 @@ class MessageProcessor { // <- error
 // File: src/message.ts
 /** Responsibilities: _message value_. **/
 export class Message {
-	public readonly text: string;
+	public readonly _text: string;
 	/** Responsibilities: _message initialization_. **/
-	public constructor(content: string) { this.text = content.trim(); }
+	public constructor(content: string) { this._text = content.trim(); }
 	/** Responsibilities: _empty message classification_. **/
-	public empty(): boolean { return this.text.length === 0; }
+	public empty(): boolean { return this._text.length === 0; }
 	/** Responsibilities: _message word count_. **/
 	public word_count(): number {
-		if (this.text.length === 0) { return 0; }
-		return this.text.split(/\s+/u).length;
+		if (this._text.length === 0) { return 0; }
+		return this._text.split(/\s+/u).length;
 	}
 	/** Responsibilities: _message character count_. **/
 	public character_count(): number {
 		let count = 0;
-		for (let index = 0; index < this.text.length; index += 1) { count += 1; }
+		for (let index = 0; index < this._text.length; index += 1) { count += 1; }
 		return count;
 	}
 	/** Responsibilities: _message content search_. **/
 	public contains(fragment: string): boolean {
 		const value = fragment.trim();
 		if (value.length === 0) { return false; }
-		return this.text.split(/\s+/u).includes(value);
+		return this._text.split(/\s+/u).includes(value);
 	}
 	/** Responsibilities: _message summary_. **/
-	public summary(): string { return `${this.text} (${this.word_count()} words)`; }
+	public summary(): string {
+		const word_total = this.word_count();
+		const character_total = this.character_count();
+		const empty_state = this.empty();
+		const hello_match = this.contains("hello");
+		return `${this._text} (${word_total} words, ${character_total} characters; empty=${empty_state}; hello=${hello_match})`;
+	}
+	/** Responsibilities: _message report output_. **/
+	public report(): void { console.log(this.summary()); }
 }
 // File: cli.ts
 import { Message } from "src/message";
 (function () {
 	const message = new Message(" hello world ");
-	console.log(message.text, message.empty(), message.word_count(), message.character_count(), message.contains("hello"), message.summary());
+	message.report();
 })();
 ```
 

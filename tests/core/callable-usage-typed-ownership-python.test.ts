@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python typed callable ownership", () => {
@@ -9,7 +9,7 @@ describe("Python typed callable ownership", () => {
 
 	test("resolves methods called on temporary class instances", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"selector.py": ["class Selector:", "    def select(self):", '        return "selected"'].join("\n"),
 				"caller.py": ["from selector import Selector", "def run():", "    return Selector().select()"].join("\n"),
@@ -20,14 +20,14 @@ describe("Python typed callable ownership", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Selector.select" has insufficient production usage (found 0'),
+				violation.message().includes('method "Selector.select" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
 
 	test("does not report unused methods declared by a Python Protocol", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"protocols.py": [
 					"from typing import Protocol",
@@ -40,13 +40,13 @@ describe("Python typed callable ownership", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.rule_id === "unused-callable")).toBe(false);
+		expect(violations.some((violation) => violation.rule_id() === "unused-callable")).toBe(false);
 	});
 
 	test("reports Python temporary class aliases", () => {
 		const rule_ids = test_fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"temporary-instance-alias.py": [
 						"class Reader:",
@@ -60,7 +60,7 @@ describe("Python typed callable ownership", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.map((violation) => violation.rule_id);
+			.map((violation) => violation.rule_id());
 
 		expect(rule_ids).toContain("temporary-result-access");
 	});

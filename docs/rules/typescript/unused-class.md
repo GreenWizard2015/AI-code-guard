@@ -8,44 +8,127 @@ classes are excluded.
 
 ```ts
 // File: src/message_text.ts
-export class MessageText {} // <- error
-```
+export const MESSAGE_SEPARATOR = " | ";
 
+export class MessageText { // <- error
+	private readonly content: string;
+
+	public constructor(content: string) {
+		this.content = content;
+	}
+
+	public normalized_text(): string {
+		return this.content.trim().replace(/\s+/gu, " ");
+	}
+
+	public word_count(): number {
+		const normalized_text = this.normalized_text();
+		if (normalized_text.length === 0) {
+			return 0;
+		}
+		return normalized_text.split(" ").length;
+	}
+
+	public text(): string {
+		return this.normalized_text();
+	}
+
+	public report(): void {
+		console.log(`${this.text()} (${this.word_count()} words)`);
+	}
+}
+// File: src/status_reporter.ts
+import { MESSAGE_SEPARATOR } from "src/message_text";
+export class StatusReporter {
+	private readonly status: string;
+
+	public constructor(status: string) {
+		this.status = status;
+	}
+
+	public text(): string {
+		return `Status: ${this.status.trim().toLowerCase()}`;
+	}
+
+	public report(): void {
+		console.log(`${MESSAGE_SEPARATOR}${this.text()}`);
+	}
+}
+// File: cli.ts
+import { StatusReporter } from "src/status_reporter";
+(function () {
+	const reporter = new StatusReporter("READY");
+	reporter.report();
+})();
+```
 
 ## Good
 
 ```ts
-export class Message {
-	private readonly content: string;
-	/** Responsibilities: _message initialization_. **/
-	public constructor(content: string) { this.content = content; }
+// File: src/message_text.ts
+export class MessageText {
+	private readonly _content: string;
+	public constructor(content: string) {
+		this._content = content;
+	}
 	/** Responsibilities: _normalized message text_. **/
 	public normalized_text(): string {
-		const trimmed = this.content.trim();
-		return trimmed.replace(/\s+/gu, " " );
+		const trimmed = this._content.trim();
+		return trimmed.replace(/\s+/gu, " ");
 	}
-	/** Responsibilities: _message word count_. **/
 	public word_count(): number {
 		const text = this.normalized_text();
-		if (text.length === 0) { return 0; }
+		if (text.length === 0) {
+			return 0;
+		}
 		return text.split(/\s+/u).length;
 	}
-	/** Responsibilities: _empty message classification_. **/
-	public empty(): boolean { return this.content.length === 0; }
-	/** Responsibilities: _message fragment search_. **/
-	public contains(fragment: string): boolean {
-		const normalized_fragment = fragment.trim();
-		return this.normalized_text().includes(normalized_fragment);
+	public nonempty(): boolean {
+		return this._content.trim().length > 0;
 	}
-	/** Responsibilities: _uppercase message text_. **/
-	public uppercase_text(): string { return this.normalized_text().toUpperCase(); }
+	public labeled_text(prefix: string): string {
+		const label = prefix.trim();
+		const content = this.normalized_text();
+		return `${label}: ${content}`;
+	}
+}
+// File: src/message_archive.ts
+import { MessageText } from "src/message_text";
+
+/** Responsibilities: _message archive reporting_. **/
+export class MessageArchive {
+	private readonly _messages: MessageText[];
+	public constructor() {
+		this._messages = [];
+	}
+	public record_content(content_text: string): void {
+		const message = new MessageText(content_text);
+		if (message.nonempty()) {
+			this._messages.push(message);
+		}
+	}
+	public message_count(): number {
+		return this._messages.length;
+	}
+	public summary(): string {
+		const message_summaries: string[] = [];
+		for (const message of this._messages) {
+			const word_count = message.word_count();
+			message_summaries.push(`${message.labeled_text("Message")} (${word_count} words)`);
+		}
+		return `${this.message_count()} messages: ${message_summaries.join("; ")}`;
+	}
+	public report(): void {
+		console.log(this.summary());
+	}
 }
 // File: cli.ts
 #!/usr/bin/env node
-import { Message } from "src/documentation/test-production-usage/message";
+import { MessageArchive } from "src/message_archive";
 (function () {
-	const message = new Message("cli payload");
-	console.log(message.normalized_text(), message.word_count(), message.empty(), message.contains("cli"), message.uppercase_text());
+	const archive = new MessageArchive();
+	archive.record_content("cli payload");
+	archive.report();
 })();
 ```
 

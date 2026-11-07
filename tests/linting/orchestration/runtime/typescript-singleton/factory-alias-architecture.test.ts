@@ -1,6 +1,6 @@
-import ts from "typescript";
-import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
 import { describe, expect, test } from "@jest/globals";
+import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
+import ts from "typescript";
 
 describe("factory alias architecture rules", () => {
 	test("reports singleton factory results through array aliases", () => {
@@ -18,7 +18,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factory results through aliased arrays", () => {
@@ -37,7 +37,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factory results through array spreads", () => {
@@ -56,7 +56,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factory results through spread objects", () => {
@@ -75,7 +75,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factory results through computed object keys", () => {
@@ -94,7 +94,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton inline factories in object registries", () => {
@@ -112,7 +112,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through parenthesized array elements", () => {
@@ -131,7 +131,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through nested array destructuring", () => {
@@ -149,7 +149,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports inline singleton factories through nested arrays", () => {
@@ -162,7 +162,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports inline singleton factories through nested objects", () => {
@@ -180,7 +180,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports inline singleton factories through mixed arrays and objects", () => {
@@ -198,7 +198,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports inline singleton factories through aliased objects in arrays", () => {
@@ -217,7 +217,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports inline singleton factories through array-object-array aliases", () => {
@@ -235,7 +235,7 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("reports singleton factories through shorthand object properties in arrays", () => {
@@ -254,6 +254,6 @@ describe("factory alias architecture rules", () => {
 		const singleton_collector = new TypeScriptSingletonCollector("factory.ts", source_file, new Set(["Service"]));
 		const violations = singleton_collector.collect();
 
-		expect(violations.filter((item) => item.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "singleton")).toHaveLength(1);
 	});
 });

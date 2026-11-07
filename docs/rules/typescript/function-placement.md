@@ -13,6 +13,20 @@ code inline in `cli.{ext}`.
 export function resolve_status(status: string): string {
 	return status.toUpperCase();
 }
+// File: src/status_reporter.ts
+export class StatusReporter {
+	public report(status: string): void {
+		console.log(`Status: ${status}`);
+	}
+}
+// File: cli.ts
+import { StatusReporter } from "src/status_reporter";
+import { resolve_status } from "src/worker";
+(function () {
+	const resolved_status = resolve_status("ready");
+	const reporter = new StatusReporter();
+	reporter.report(resolved_status);
+})();
 ```
 
 
@@ -22,20 +36,20 @@ export function resolve_status(status: string): string {
 // File: src/status_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
@@ -48,19 +62,30 @@ export class StatusLabels {
 
 	/** Responsibilities: _fallback capitalization_. **/
 	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
+		const normalized = this._fallback.trim();
 		return normalized.toUpperCase();
 	}
 
 	/** Responsibilities: _mapping size reporting_. **/
 	public status_count(): number {
 		let count = 0;
-		for (const status_name of this.labels.keys()) {
+		for (const status_name of this._labels.keys()) {
 			if (status_name.length > 0) {
 				count += 1;
 			}
 		}
 		return count;
+	}
+
+	/** Responsibilities: _status report output_. **/
+	public report(): void {
+		const lines = [
+			this.label("ready"),
+			this.label_with_prefix("State", "ready"),
+			this.uppercase_fallback(),
+			String(this.status_count()),
+		];
+		console.log(lines.join(" | "));
 	}
 }
 // File: cli.ts
@@ -69,9 +94,6 @@ import { StatusLabels } from "src/status_labels";
 (function () {
 	const labels = new Map<string, string>([["ready", "Ready"]]);
 	const owner = new StatusLabels(labels, "Unknown");
-	console.log(owner.label("ready"));
-	console.log(owner.label_with_prefix("State", "ready"));
-	console.log(owner.uppercase_fallback());
-	console.log(owner.status_count());
+	owner.report();
 })();
 ```

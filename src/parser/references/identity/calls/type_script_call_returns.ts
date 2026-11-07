@@ -1,24 +1,24 @@
-import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
-import type { TypeScriptCallReturnsContract } from "src/model/protocols";
-import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
-import type { TypeScriptPropertySide } from "src/types";
-import { TypeScriptImportedCallOwners } from "src/parser/references/identity/calls/type_script_imported_call_owners";
 import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
-import ts from "typescript";
+import type { TypeScriptCallReturnsContract } from "src/model/protocols";
+import { TypeScriptImportedCallOwners } from "src/parser/references/identity/calls/type_script_imported_call_owners";
+import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
 import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { TypeScriptPropertySide } from "src/types";
+import type { TypeScriptImportedCallOwnersContract } from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _callable results_, _owner identity_. **/
 export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly aliases: ReadonlyMap<string, string>;
-	private readonly owners: Map<string, string>;
-	private readonly imported_call_owners: TypeScriptImportedCallOwnersContract;
-	private readonly call_return_analysis: TypeScriptCallReturnAnalysis;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _aliases: ReadonlyMap<string, string>;
+	private readonly _owners: Map<string, string>;
+	private readonly _imported_call_owners: TypeScriptImportedCallOwnersContract;
+	private readonly _call_return_analysis: TypeScriptCallReturnAnalysis;
 
 	/** Responsibilities: _index top-level function declarations_. **/
 	private add_local_functions(): void {
 		const call_return_analysis = new TypeScriptCallReturnAnalysis();
-		for (const statement of this.source_file.statements) {
+		for (const statement of this._source_file.statements) {
 			if (!ts.isFunctionDeclaration(statement)) {
 				continue;
 			}
@@ -30,21 +30,21 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 			}
 			const owner = call_return_analysis.reference_owner(statement.type);
 			if (owner) {
-				this.owners.set(statement.name.text, owner);
+				this._owners.set(statement.name.text, owner);
 			}
 		}
 	}
 
 	/** Responsibilities: _indexing function-valued constructor-valued variables_. **/
 	private add_local_variables(): void {
-		for (const statement of this.source_file.statements) {
+		for (const statement of this._source_file.statements) {
 			if (!ts.isVariableStatement(statement)) {
 				continue;
 			}
 			for (const declaration of statement.declarationList.declarations) {
 				const owner = this.local_variable_owner(declaration);
 				if (owner && ts.isIdentifier(declaration.name)) {
-					this.owners.set(declaration.name.text, owner);
+					this._owners.set(declaration.name.text, owner);
 				}
 			}
 		}
@@ -63,7 +63,11 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 		if (initializers.length === 0) {
 			return "";
 		}
-		return this.function_initializer_owner(initializers[0]);
+		const initializer = initializers.at(0);
+		if (initializer === undefined) {
+			return "";
+		}
+		return this.function_initializer_owner(initializer);
 	}
 
 	/** Responsibilities: _resolution owner represented function_. **/
@@ -74,15 +78,15 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 		if (initializer.type === undefined) {
 			return "";
 		}
-		return this.call_return_analysis.reference_owner(initializer.type);
+		return this._call_return_analysis.reference_owner(initializer.type);
 	}
 
 	/** Responsibilities: _class method receiver side_. **/
-	private class_method_side(member: ts.ClassElement): TypeScriptPropertySide {
-		if (!ts.canHaveModifiers(member)) {
+	private class_method_side(side_member: ts.ClassElement): TypeScriptPropertySide {
+		if (!ts.canHaveModifiers(side_member)) {
 			return INSTANCE_PROPERTY_SIDE;
 		}
-		const modifiers = ts.getModifiers(member);
+		const modifiers = ts.getModifiers(side_member);
 		if (modifiers === undefined) {
 			return INSTANCE_PROPERTY_SIDE;
 		}
@@ -94,7 +98,7 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 
 	/** Responsibilities: _indexing methods declared inside_. **/
 	private add_local_methods(): void {
-		for (const statement of this.source_file.statements) {
+		for (const statement of this._source_file.statements) {
 			if (ts.isClassDeclaration(statement) || ts.isClassExpression(statement)) {
 				this.add_class_methods(statement);
 			}
@@ -112,40 +116,40 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 			const method_name = this.class_method_name(member);
 			if (owner && method_name) {
 				const side = this.class_method_side(member);
-				this.owners.set([class_name, side, method_name].join("."), owner);
+				this._owners.set([class_name, side, method_name].join("."), owner);
 			}
 		}
 	}
 
 	/** Responsibilities: _resolution owner class class_. **/
-	private class_method_owner(member: ts.ClassElement): string {
-		if (!ts.isMethodDeclaration(member)) {
+	private class_method_owner(owner_member: ts.ClassElement): string {
+		if (!ts.isMethodDeclaration(owner_member)) {
 			return "";
 		}
-		if (!member.name) {
+		if (!owner_member.name) {
 			return "";
 		}
-		if (member.type === undefined) {
+		if (owner_member.type === undefined) {
 			return "";
 		}
-		return this.call_return_analysis.reference_owner(member.type);
+		return this._call_return_analysis.reference_owner(owner_member.type);
 	}
 
 	/** Responsibilities: _resolution stable name class_. **/
-	private class_method_name(member: ts.ClassElement): string {
-		if (!ts.isMethodDeclaration(member) || !member.name) {
+	private class_method_name(name_member: ts.ClassElement): string {
+		if (!ts.isMethodDeclaration(name_member) || !name_member.name) {
 			return "";
 		}
-		return member.name.getText();
+		return name_member.name.getText();
 	}
 
 	/** Responsibilities: _resolution callable owner through_. **/
 	private owner_from_alias(key: string): string {
-		const alias = this.aliases.get(key);
+		const alias = this._aliases.get(key);
 		if (alias === undefined) {
 			return "";
 		}
-		const owner = this.owners.get(alias);
+		const owner = this._owners.get(alias);
 		if (owner === undefined) {
 			return "";
 		}
@@ -153,18 +157,18 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 	}
 
 	/** Responsibilities: _initialization source aliases callable_. **/
-	constructor(
+	public constructor(
 		source_file: ts.SourceFile,
 		aliases: ReadonlyMap<string, string>,
 		project_root: string,
 		source_files: ReadonlyMap<string, ts.SourceFile>,
 		source_io: ProjectSourceIOContract,
 	) {
-		this.owners = new Map<string, string>();
-		this.call_return_analysis = new TypeScriptCallReturnAnalysis();
-		this.source_file = source_file;
-		this.aliases = aliases;
-		this.imported_call_owners = new TypeScriptImportedCallOwners(source_file, project_root, source_files, source_io);
+		this._owners = new Map<string, string>();
+		this._call_return_analysis = new TypeScriptCallReturnAnalysis();
+		this._source_file = source_file;
+		this._aliases = aliases;
+		this._imported_call_owners = new TypeScriptImportedCallOwners(source_file, project_root, source_files, source_io);
 	}
 
 	/** Responsibilities: _local callable owner index_. **/
@@ -172,19 +176,19 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 		this.add_local_functions();
 		this.add_local_variables();
 		this.add_local_methods();
-		this.imported_call_owners.append_to(this.owners);
+		this._imported_call_owners.append_to(this._owners);
 	}
 
 	/** Responsibilities: _resolution owner callable name_. **/
 	public owner_for(name: string, owner: string, side: TypeScriptPropertySide): string {
-		if (this.owners.size === 0) {
+		if (this._owners.size === 0) {
 			this.initialize();
 		}
 		let key = name;
 		if (owner) {
 			key = [owner, side, name].join(".");
 		}
-		const direct_owner = this.owners.get(key);
+		const direct_owner = this._owners.get(key);
 		if (direct_owner !== undefined) {
 			return direct_owner;
 		}

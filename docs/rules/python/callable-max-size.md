@@ -25,21 +25,24 @@ class ContentRecord:
         return len(self.content.split())
 
     def describe_value(self) -> str:  # <- error
-        {% const descriptions = [{"term":"alpha","value":"first"},{"term":"beta","value":"second"},{"term":"gamma","value":"third"},{"term":"delta","value":"fourth"},{"term":"epsilon","value":"fifth"},{"term":"zeta","value":"sixth"},{"term":"eta","value":"seventh"}] %}
-        {%for item in descriptions %}
+{% const descriptions = [{"term":"alpha","value":"first"},{"term":"beta","value":"second"},{"term":"gamma","value":"third"},{"term":"delta","value":"fourth"},{"term":"epsilon","value":"fifth"},{"term":"zeta","value":"sixth"},{"term":"eta","value":"seventh"}] %}
+{% for item in descriptions %}
         if "{{item.term}}" in self.content:
             return "{{item.value}}"
-        {% endfor %}
+{% endfor %}
         return "other"
 
     def summary(self) -> str:
         count = self.word_count()
         return f"{self.name} ({count} words)"
+
+    def report(self) -> None:
+        print(f"{self.describe_value()} | {self.summary()}")
 # File: cli.py
-from content_record import ContentRecord
+from src.content_record import ContentRecord
 if __name__ == "__main__":
     record = ContentRecord("notes.txt", "alpha beta gamma delta epsilon")
-    print(record.describe_value(), record.summary())
+    record.report()
 ```
 
 ## Good
@@ -52,9 +55,9 @@ class ContentRecord:
 
     def __init__(self, name: str, content: str) -> None:
         """Responsibilities: _record initialization_."""
-        self.name: str = name
-        self.content: str = content
-        self.descriptions: dict[str, str] = {
+        self._name: str = name
+        self._content: str = content
+        self._descriptions: dict[str, str] = {
             "alpha": "first",
             "beta": "second",
             "gamma": "third",
@@ -66,22 +69,25 @@ class ContentRecord:
 
     def word_count(self) -> int:
         """Responsibilities: _word count_."""
-        return len(self.content.split())
+        return len(self._content.split())
 
     def describe_value(self) -> str:
         """Responsibilities: _value description_."""
-        for term, description in self.descriptions.items():
-            if term in self.content:
+        for term, description in self._descriptions.items():
+            if term in self._content:
                 return description
         return "other"
 
     def summary(self) -> str:
         """Responsibilities: _record summary_."""
         count = self.word_count()
-        return f"{self.name} ({count} words)"
+        return f"{self._name}: {self.describe_value()} ({count} words)"
+    def report(self) -> None:
+        """Responsibilities: _content record report output_."""
+        print(self.summary())
 # File: cli.py
-from content_record import ContentRecord
+from src.content_record import ContentRecord
 if __name__ == "__main__":
     record = ContentRecord("notes.txt", "alpha beta gamma delta epsilon")
-    print(record.describe_value(), record.word_count(), record.summary())
+    record.report()
 ```

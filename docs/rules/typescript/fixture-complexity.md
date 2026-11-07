@@ -6,11 +6,36 @@ Description: Keep test lifecycle hooks small; move substantial shared setup into
 
 ```ts
 {% const documents = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliet", "kilo", "lima", "mike", "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "xray", "yankee"] %}
+// File: src/file_entry.ts
+export class FileEntry {
+	private readonly path: string;
+	private readonly content: string;
+	public constructor(path: string, content: string) {
+		this.path = path;
+		this.content = content;
+	}
+	public file_name(): string {
+		const separator = this.path.lastIndexOf("/");
+		return this.path.slice(separator + 1);
+	}
+	public word_count(): number {
+		return this.content.trim().split(/\s+/u).filter((word) => word.length > 0).length;
+	}
+	public readable(): boolean {
+		return this.content.trim().length > 0;
+	}
+	public content_summary(): string {
+		return `${this.file_name()} (${this.word_count()} words)`;
+	}
+	public report(): void {
+		console.log(this.content_summary(), this.readable());
+	}
+}
 // File: tests/file_entry/file_entry.test.ts
 import { FileEntry } from "src/file_entry";
 const entries: FileEntry[] = [];
 describe("FileEntry", () => {
-	beforeEach(() => { // <- error
+	beforeEach(() => { // <- error: oversized shared setup
 		entries.length = 0;
 {%for document in documents %}
 		entries.push(new FileEntry("{{document}}.txt", "{{document}} text"));
@@ -19,31 +44,66 @@ describe("FileEntry", () => {
 	test("counts words", () => {
 		let total = 0;
 		for (const entry of entries) { total += entry.word_count(); }
+		const sample_entry = new FileEntry("sample.txt", "hello world");
+		const sample_count = sample_entry.word_count();
+		expect(sample_count).toBe(2);
 		expect(total).toBe(50);
 	});
 	test("extracts a file name", () => {
-		const name = entries[1].file_name();
-		expect(name).toBe("bravo.txt");
+		const sample_entry = new FileEntry("docs/bravo.txt", "bravo text");
+		expect(sample_entry.file_name()).toBe("bravo.txt");
 	});
 });
-// File: src/file_entry.ts
-export class FileEntry {
-	private readonly path: string;
-	private readonly content: string;
-	public constructor(path: string, content: string) { this.path = path; this.content = content; }
-	public file_name(): string { return this.path.slice(this.path.lastIndexOf("/") + 1); }
-	public word_count(): number {
-		const content = this.content.trim();
-		return content.split(/\s+/u).filter(Boolean).length;
-	}
-	public readable(): boolean { return this.content.trim().length > 0; }
-	public content_summary(): string { return `${this.file_name()} (${this.word_count()} words)`; }
-}
+// File: src/cli.ts
+import { FileEntry } from "src/file_entry";
+
+(() => {
+	const entry = new FileEntry("guide.md", "dispatch text");
+	entry.report();
+})();
 ```
 
 ## Good
 
 ```ts
+// File: src/file_entry.ts
+/** Responsibilities: _file entry state_. **/
+export class FileEntry {
+	private readonly _path: string;
+	private readonly _content: string;
+	/** Responsibilities: _file entry initialization_. **/
+	public constructor(path: string, content: string) {
+		this._path = path;
+		this._content = content;
+	}
+	/** Responsibilities: _file label composition_. **/
+	public file_name(): string {
+		if (this._path.endsWith("/")) {
+			return "";
+		}
+		const separator = this._path.lastIndexOf("/");
+		return this._path.slice(separator + 1);
+	}
+	/** Responsibilities: _word counting_. **/
+	public word_count(): number {
+		const content = this._content.trim();
+		return content.split(/\s+/u).filter(Boolean).length;
+	}
+	/** Responsibilities: _content readability_. **/
+	public readable(): boolean {
+		const normalized_content = this._content.trim();
+		return normalized_content.length > 0;
+	}
+	/** Responsibilities: _entry summary_. **/
+	public content_summary(): string {
+		const name = this.file_name();
+		const count = this.word_count();
+		return `${name} (${count} words)`;
+	}
+	public report(): void {
+		console.log(this.content_summary(), this.readable());
+	}
+}
 // File: tests/file_entry/file_entry.test.ts
 import { FileEntry } from "src/file_entry";
 describe("FileEntry", () => {
@@ -61,47 +121,11 @@ describe("FileEntry", () => {
 		expect(summary).toBe("notes.txt (1 words)");
 	});
 });
-// File: src/file_entry.ts
-/** Responsibilities: _file entry state_. **/
-export class FileEntry {
-	private readonly path: string;
-	private readonly content: string;
-	/** Responsibilities: _file entry initialization_. **/
-	public constructor(path: string, content: string) {
-		this.path = path;
-		this.content = content;
-	}
-	/** Responsibilities: _file label composition_. **/
-	public file_name(): string {
-		const separator = this.path.lastIndexOf("/");
-		return this.path.slice(separator + 1);
-	}
-	/** Responsibilities: _word counting_. **/
-	public word_count(): number {
-		const content = this.content.trim();
-		return content.split(/\s+/u).filter(Boolean).length;
-	}
-	/** Responsibilities: _content readability_. **/
-	public readable(): boolean {
-		const normalized_content = this.content.trim();
-		return normalized_content.length > 0;
-	}
-	/** Responsibilities: _entry summary_. **/
-	public content_summary(): string {
-		const name = this.file_name();
-		const count = this.word_count();
-		return `${name} (${count} words)`;
-	}
-}
-// File: cli.ts
+// File: src/cli.ts
 #!/usr/bin/env node
 import { FileEntry } from "src/file_entry";
 (function () {
 	const entry = new FileEntry("guide.md", "dispatch text");
-	const name = entry.file_name();
-	const count = entry.word_count();
-	const readable = entry.readable();
-	const summary = entry.content_summary();
-	console.log(name, count, readable, summary);
+	entry.report();
 })();
 ```

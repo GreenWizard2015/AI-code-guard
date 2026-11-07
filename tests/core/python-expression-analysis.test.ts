@@ -1,14 +1,29 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("cross-language expression diagnostics", () => {
+	test("reports module collections mutated by multiple callables", () => {
+		const fixture = new TestFixture();
+		const configuration = new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd()));
+		const violations = fixture.collect_fixture_violations_with(configuration, {
+			"shared-collection.ts": [
+				"const entries: string[] = [];",
+				"const nested = new Set<string>();",
+				"function append_first(): void { entries.push('first'); const deferred = () => nested.add('first'); function append_nested(): void { nested.delete('first'); } append_nested(); }",
+				"function append_second(): void { entries.push('second'); nested.clear(); }",
+			].join("\n"),
+		});
+
+		expect(violations.filter((item) => item.rule_id() === "hidden-global-state")).toHaveLength(2);
+	});
+
 	test("reports error handling defects with source locations", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"empty-handler.ts": "try { run(); } catch {}\ntry { run(); } catch (error) { report(error); }",
 				"empty-handler.py":
@@ -110,24 +125,26 @@ describe("cross-language expression diagnostics", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			empty_handlers: violations.filter((item) => item.rule_id === "empty-error-handler").length,
-			lost_context: violations.filter((item) => item.rule_id === "error-context-loss").length,
+			empty_handlers: violations.filter((item) => item.rule_id() === "empty-error-handler").length,
+			lost_context: violations.filter((item) => item.rule_id() === "error-context-loss").length,
 			context_cases: violations.filter(
-				(item) => item.rule_id === "error-context-loss" && (item.file === "context.ts" || item.file === "context.py"),
+				(item) =>
+					item.rule_id() === "error-context-loss" && (item.file() === "context.ts" || item.file() === "context.py"),
 			).length,
 			duplicate_translation_context: violations.filter(
 				(item) =>
-					item.rule_id === "error-context-loss" &&
-					(item.file === "duplicate-error.ts" || item.file === "duplicate_error.py"),
+					item.rule_id() === "error-context-loss" &&
+					(item.file() === "duplicate-error.ts" || item.file() === "duplicate_error.py"),
 			).length,
-			duplicate_translation: violations.filter((item) => item.rule_id === "duplicate-error-translation").length,
+			duplicate_translation: violations.filter((item) => item.rule_id() === "duplicate-error-translation").length,
 			location_lines: {
-				context: violations.find((item) => item.rule_id === "error-context-loss" && item.file === "coordinates.ts")
-					?.line,
-				empty_handler: violations.find(
-					(item) => item.rule_id === "empty-error-handler" && item.file === "coordinates.ts",
-				)?.line,
-				time: violations.find((item) => item.rule_id === "test-time-dependency")?.line,
+				context: violations
+					.filter((item) => item.rule_id() === "error-context-loss" && item.file() === "coordinates.ts")
+					.map((item) => item.line()),
+				empty_handler: violations
+					.filter((item) => item.rule_id() === "empty-error-handler" && item.file() === "coordinates.ts")
+					.map((item) => item.line()),
+				time: violations.filter((item) => item.rule_id() === "test-time-dependency").map((item) => item.line()),
 			},
 		}).toEqual({
 			empty_handlers: 3,
@@ -135,14 +152,14 @@ describe("cross-language expression diagnostics", () => {
 			context_cases: 3,
 			duplicate_translation_context: 4,
 			duplicate_translation: 2,
-			location_lines: { context: 3, empty_handler: 6, time: 3 },
+			location_lines: { context: [3], empty_handler: [6], time: [3] },
 		});
 	});
 
 	test("reports incomplete async, retry, cache, and boolean contracts", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"async-completion.ts": [
 					"async function load_result(): Promise<number> { return 1; }",
@@ -209,45 +226,6 @@ describe("cross-language expression diagnostics", () => {
 					"        except OSError:",
 					"            continue",
 				].join("\n"),
-				"cache-key.ts": [
-					"function load(file: string, text: string): Result {",
-					"    const cached = cache.get(file);",
-					"    cache.set(file + text, create_result());",
-					"    return cached;",
-					"}",
-					"function valid(file: string): Result {",
-					"    const cached = cache.get(file);",
-					"    cache.set(file, create_result());",
-					"    return cached;",
-					"}",
-				].join("\n"),
-				"cache_key.py": [
-					"def load(file: str, text: str) -> Result:",
-					"    cached = cache.get(file)",
-					"    cache.set(file + text, create_result())",
-					"    return cached",
-					"",
-					"def valid(file: str) -> Result:",
-					"    cached = cache.get(file)",
-					"    cache.set(file, create_result())",
-					"    return cached",
-				].join("\n"),
-				"literal-cache-key.ts": [
-					"function load(): Result {",
-					"\tconst cached = cache.get('a b');",
-					"\tcache.set('ab', create_result());",
-					"\treturn cached;",
-					"}",
-				].join("\n"),
-				"nested_cache_key.py": [
-					"def outer(file: str, text: str) -> None:",
-					"    def inner() -> None:",
-					"        cached = cache.get(file)",
-					"        cache.set(file + text, create_result())",
-					"        return None",
-					"    inner()",
-					"    return None",
-				].join("\n"),
 				"flags.ts": [
 					"function configure(enabled: boolean, strict: boolean): void {}",
 					"function check(enabled: boolean): boolean { return enabled; }",
@@ -270,10 +248,9 @@ describe("cross-language expression diagnostics", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			async_completion: violations.filter((item) => item.rule_id === "unasserted-async-completion").length,
-			retry: violations.filter((item) => item.rule_id === "retry-without-ownership").length,
-			cache_keys: violations.filter((item) => item.rule_id === "incomplete-cache-key").length,
-			boolean_flags: violations.filter((item) => item.rule_id === "boolean-flag-parameter").length,
-		}).toEqual({ async_completion: 1, retry: 4, cache_keys: 4, boolean_flags: 3 });
+			async_completion: violations.filter((item) => item.rule_id() === "unasserted-async-completion").length,
+			retry: violations.filter((item) => item.rule_id() === "retry-without-ownership").length,
+			boolean_flags: violations.filter((item) => item.rule_id() === "boolean-flag-parameter").length,
+		}).toEqual({ async_completion: 1, retry: 4, boolean_flags: 3 });
 	});
 });

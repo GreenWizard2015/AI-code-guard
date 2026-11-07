@@ -1,33 +1,34 @@
-import type { ReviewAgentDialogueOptions } from "src/core/support/task/review-agent/types";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
+import { BoundaryFailureCategory } from "src/analysis_protocols";
+import { ReviewAgentDialoguePlan } from "src/core/support/task/review-agent/dialogue/review_agent_dialogue_plan";
+import { ReviewAgentExecution } from "src/core/support/task/review-agent/dialogue/review_agent_execution";
 import type {
 	ReviewAgentCatalogContract,
+	ReviewAgentDialogueContract,
 	ReviewAgentFilesContract,
 } from "src/core/support/task/review-agent/protocols";
-import type { ReviewAgentExecutionResult, ReviewAgentName, ReviewAgentRequest, ReviewAgentSelection } from "src/types";
-import { ReviewAgentExecution } from "src/core/support/task/review-agent/dialogue/review_agent_execution";
-import { ReviewAgentDialoguePlan } from "src/core/support/task/review-agent/dialogue/review_agent_dialogue_plan";
+import type { ReviewAgentDialogueOptions } from "src/core/support/task/review-agent/types";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { SYSTEM_FAILURE_CODES } from "src/io/constants";
+import type { ReviewAgentExecutionResult, ReviewAgentRequest } from "src/task_review_types";
 
 /** Responsibilities: _initial review dialogue_, _review cleanup dialogue_. **/
-export class ReviewAgentDialogue {
-	private readonly boundary_failures: BoundaryFailureClassifier;
-	private readonly review_documents: ReviewAgentFilesContract;
-	private readonly agent_catalog: ReviewAgentCatalogContract;
-	private readonly execution: ReviewAgentExecution;
-	private readonly request_plan: ReviewAgentDialoguePlan;
+export class ReviewAgentDialogue implements ReviewAgentDialogueContract {
+	private readonly _boundary_failures: SystemFailureClassificationContract;
+	private readonly _review_documents: ReviewAgentFilesContract;
+	private readonly _agent_catalog: ReviewAgentCatalogContract;
+	private readonly _execution: ReviewAgentExecution;
+	private readonly _request_plan: ReviewAgentDialoguePlan;
 
 	/** Responsibilities: _review note sizes_. **/
-	private async review_sizes_async(
-		selection: ReviewAgentSelection,
-		execution: ReviewAgentExecutionResult,
-	): Promise<ReviewAgentExecutionResult> {
+	private async review_sizes_async(execution: ReviewAgentExecutionResult): Promise<ReviewAgentExecutionResult> {
 		let current = execution;
 		for (let attempt = 0; attempt < 2; attempt += 1) {
-			const feedback = this.review_documents.size_feedback();
+			const feedback = this._review_documents.size_feedback();
 			if (feedback.length === 0) {
 				return current;
 			}
-			current = await this.initial_dialogue_async(selection, this.request_plan.size_feedback(feedback), false);
+			current = await this.initial_dialogue_async(this._request_plan.size_feedback(feedback), false);
 			if (current.provider === "none" || current.process.exit_code !== 0) {
 				return current;
 			}
@@ -36,80 +37,72 @@ export class ReviewAgentDialogue {
 	}
 
 	/** Responsibilities: _parallel initial review dialogue_. **/
-	private async initial_dialogue_async(
-		selection: ReviewAgentSelection,
-		prompt = "",
-		reset = true,
-	): Promise<ReviewAgentExecutionResult> {
+	private async initial_dialogue_async(prompt = "", reset = true): Promise<ReviewAgentExecutionResult> {
 		if (reset) {
-			this.review_documents.reset();
+			this._review_documents.reset();
 		}
 		try {
 			const dialogue = prompt.length === 0 ? "initial" : "initial-size";
-			return await this.execution.initial_dialogue_async(
-				selection,
-				this.request_plan.initial_request(prompt),
+			return await this._execution.run_dialogue_async({
+				request: this._request_plan.initial_request(prompt),
 				dialogue,
-			);
+				phase: "initial",
+			});
 		} catch (error) {
-			if (!this.boundary_failures.system_failure_message(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;
 			}
 			const message = String(error);
-			this.review_documents.write_failure(message);
-			return this.execution.system_failure(message);
+			this._review_documents.write_failure(message);
+			return this._execution.system_failure(message);
 		}
 	}
 
 	/** Responsibilities: _review-agent dialogue initialization_. **/
-	constructor(options: ReviewAgentDialogueOptions) {
-		this.review_documents = options.collaborators.review_documents;
-		this.boundary_failures = new BoundaryFailureClassifier();
-		this.agent_catalog = options.collaborators.agent_catalog;
-		this.execution = new ReviewAgentExecution({
+	public constructor(options: ReviewAgentDialogueOptions) {
+		this._review_documents = options.collaborators.review_documents;
+		this._boundary_failures = new BoundaryFailureClassifier(SYSTEM_FAILURE_CODES);
+		this._agent_catalog = options.collaborators.agent_catalog;
+		this._execution = new ReviewAgentExecution({
+			selection: options.selection,
 			root: options.execution.root,
 			review_root: options.execution.review_root,
 			hook_file: options.execution.hook_file,
 			review_stage: options.stage.review_stage,
 			review_prefix: options.stage.review_prefix,
+			review_start_ms: options.stage.review_start_ms,
 			debug_log: options.collaborators.debug_log,
-			agent_catalog: this.agent_catalog,
+			agent_catalog: this._agent_catalog,
 			hooks: options.collaborators.hooks,
 		});
-		this.request_plan = new ReviewAgentDialoguePlan(options);
+		this._request_plan = new ReviewAgentDialoguePlan(options);
 	}
 
-	/** Responsibilities: _parallel initial review continuity_. **/
-	public async initial_retry_async(selection: ReviewAgentSelection): Promise<ReviewAgentExecutionResult> {
-		const first_execution = await this.initial_dialogue_async(selection, "", false);
-		if (first_execution.provider === "none" || first_execution.process.exit_code !== 0) {
-			return first_execution;
+	/** Responsibilities: _single initial review dialogue_. **/
+	public async initial_async(): Promise<ReviewAgentExecutionResult> {
+		const execution = await this.initial_dialogue_async("", false);
+		if (execution.provider === "none" || execution.process.exit_code !== 0) {
+			return execution;
 		}
-		if (this.review_documents.review_notes().length > 0) {
-			return this.review_sizes_async(selection, first_execution);
-		}
-		const retry_execution = await this.initial_dialogue_async(selection, "", false);
-		if (retry_execution.provider === "none" || retry_execution.process.exit_code !== 0) {
-			return retry_execution;
-		}
-		return this.review_sizes_async(selection, retry_execution);
+		return this.review_sizes_async(execution);
 	}
 
 	/** Responsibilities: _parallel review cleanup dialogue_. **/
-	public async cleanup_dialogue_async(
-		selection: ReviewAgentName,
-		request: ReviewAgentRequest,
-	): Promise<ReviewAgentExecutionResult> {
+	public async cleanup_dialogue_async(request: ReviewAgentRequest): Promise<ReviewAgentExecutionResult> {
 		try {
-			const prompt = this.agent_catalog.cleanup_prompt({ cleanup_request: request });
-			return await this.execution.cleanup_async(selection, { ...request, prompt });
+			const prompt = this._agent_catalog.cleanup_prompt({ cleanup_request: request });
+			return await this._execution.run_dialogue_async({
+				request: { ...request, prompt },
+				dialogue: "cleanup",
+				phase: "cleanup",
+			});
 		} catch (error) {
-			if (!this.boundary_failures.system_failure_message(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;
 			}
 			const message = String(error);
-			this.review_documents.write_failure(message);
-			return this.execution.system_failure(message);
+			this._review_documents.write_failure(message);
+			return this._execution.system_failure(message);
 		}
 	}
 }

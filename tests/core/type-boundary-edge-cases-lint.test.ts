@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint type boundary edge cases", () => {
 	test("rejects optional parameters in protocol methods and implementations", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"protocol.ts": [
 					"interface PollingCancellation {",
@@ -22,13 +22,13 @@ describe("coding-lint type boundary edge cases", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "nullable-domain-type")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "nullable-domain-type")).toHaveLength(2);
 	});
 
 	test("rejects optional parameters in implemented rule methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"diagnostic-rule.ts": [
 					"interface RuleContract {",
@@ -45,26 +45,26 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "nullable-domain-type")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "nullable-domain-type")).toHaveLength(2);
 	});
 
 	test("keeps optional parameters outside contracts visible", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"domain.ts": "function load(options?: AddEventListenerOptions): void {}",
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "nullable-domain-type")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "nullable-domain-type")).toHaveLength(1);
 	});
 
 	test("rejects any unions in rest parameters", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"rest-union.ts": [
 					"type Context = { value: string };",
@@ -78,13 +78,13 @@ describe("coding-lint type boundary edge cases", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "typescript-rest-union-contract")).toHaveLength(3);
+		expect(violations.filter((item) => item.rule_id() === "typescript-rest-union-contract")).toHaveLength(3);
 	});
 
 	test("rejects a zero-index value followed by an undefined guard", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"array-guard.ts": [
 					"function read(...parameter_values: readonly string[]): string {",
@@ -103,13 +103,13 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "single-item-array-state")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "single-item-array-state")).toHaveLength(2);
 	});
 
 	test("rejects parenthesized zero-index guards", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"array-guard-parenthesized.ts": [
 					"function read(...parameter_values: readonly string[]): string {",
@@ -123,13 +123,13 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "single-item-array-state")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "single-item-array-state")).toHaveLength(1);
 	});
 
 	test("rejects parenthesized zero-index initializers", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"array-initializer-parenthesized.ts": [
 					"function read(...parameter_values: readonly string[]): string {",
@@ -153,13 +153,13 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "single-item-array-state")).toHaveLength(3);
+		expect(violations.filter((item) => item.rule_id() === "single-item-array-state")).toHaveLength(3);
 	});
 
 	test("rejects normalized zero-index arguments", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"array-index-parenthesized.ts": [
 					"function read(...parameter_values: readonly string[]): string {",
@@ -178,13 +178,13 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "single-item-array-state")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "single-item-array-state")).toHaveLength(2);
 	});
 
 	test("rejects normalized zero-index assertions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"array-index-nonnull.ts": [
 					"function read(...parameter_values: readonly string[]): string {",
@@ -203,13 +203,13 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "single-item-array-state")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "single-item-array-state")).toHaveLength(2);
 	});
 
 	test("rejects explicit TypeScript type assertions but allows const inference", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"assertions.ts": [
 					"const first = value as string;",
@@ -221,6 +221,6 @@ describe("coding-lint type boundary edge cases", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "typescript-type-assertion")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "typescript-type-assertion")).toHaveLength(2);
 	});
 });

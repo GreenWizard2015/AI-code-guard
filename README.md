@@ -248,8 +248,7 @@ directory as history and are ignored on later runs.
 Start a review with:
 
 ```bash
-ai-code-guard --review-agent codex
-ai-code-guard --review-agent claude
+ai-code-guard --review-agent <codex|claude>
 ```
 
 The usual workflow is:
@@ -309,6 +308,14 @@ rules have only their applicable version. The diagnostic registry in
 validator checks that every required version exists and contains examples in
 the correct language.
 
+Every TypeScript or Python example must end with a `cli.ts` or `cli.py` file.
+The validator expands Markdown templates, then runs each example and requires
+exit code `0` plus non-empty stdout. Output must come from an imported
+implementation module; the CLI entrypoint itself must not write to stdout.
+Examples use virtual source files and a time limit. Before execution, the
+validator rejects external imports and filesystem, network, process, and
+dynamic-code access. Python examples also run with restricted builtins.
+
 Each run creates `.ai-code-guard` in the project root. The selected task is
 written to `.ai-code-guard/issues.md`, and the referenced rule documents are
 copied to `.ai-code-guard/rules/`. The complete rule summary is written to
@@ -318,6 +325,45 @@ copied to `.ai-code-guard/rules/`. The complete rule summary is written to
 selected external agent and presents one review note at a time.
 
 ## Development workflow
+
+The project uses the AST linter together with TypeScript, Ruff, and mypy checks.
+These tools catch different classes of errors, so I recommend running the same
+checks on other projects that use TypeScript or Python as well.
+
+Ruff checks every discovered Python source file with its full rule set and
+argument checks. It runs isolated from Ruff configuration files and ignores
+only rules that conflict with this project's own contracts:
+
+```bash
+# AI Code Guard
+ai-code-guard
+
+# TypeScript
+pnpm exec tsc --noEmit
+pnpm exec biome lint --reporter=summary --max-diagnostics=none .
+
+# Python lint
+python3 -m ruff check --isolated --select ALL --extend-select ARG --ignore D101,D102,D103,D105,D106,D107,FBT001,FBT002,N803,PT009 .
+
+# Python types
+python3 -m mypy --strict --extra-checks --warn-unreachable --explicit-package-bases .
+
+ai-code-guard --review-agent <codex|claude>
+```
+
+The ignored rules cover docstring-presence checks where the linter requires
+Responsibilities docstrings, boolean-argument checks that reject a permitted
+single boolean parameter, uppercase parameter naming covered by the naming
+rule, and pytest-style assertions that conflict with the required unittest
+style.
+
+Mypy also checks every discovered Python source file, including tests and
+performance tooling. The test runner adds the bridge and test-support
+directories to `MYPYPATH`.
+
+`--warn-unreachable` reports branches mypy can prove unreachable. Strict type
+checking and import following catch type inconsistencies across module
+boundaries that the AST linter cannot infer from syntax alone.
 
 For a normal change, use this sequence:
 

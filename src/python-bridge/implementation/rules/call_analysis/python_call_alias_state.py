@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.protocols import PythonContainerLookupContract
 from implementation.references.aliases.python_container_lookup import (
     PythonContainerLookup,
 )
+from implementation.references.protocols import PythonContainerLookupContract
 from implementation.rules.constants import PYTHON_BUILTINS_MODULE, PYTHON_DICT_ATTRIBUTE
+from implementation.types import PythonCallAliasEntries
 
 
 class PythonCallAliasState:
     """Responsibilities: _invocation aliases_, _container values_."""
+
+    _aliases: dict[str, PythonCallAliasEntries]
+    _names: dict[str, ast.AST]
 
     def _key(self, value: ast.AST) -> str:
         """Responsibilities: _static key resolution_."""
@@ -23,7 +27,7 @@ class PythonCallAliasState:
     def _literal_items(self, value: ast.Dict) -> dict[str, ast.AST]:
         """Responsibilities: _literal dictionary entry resolution_."""
         items: dict[str, ast.AST] = {}
-        for key, item in zip(value.keys, value.values):
+        for key, item in zip(value.keys, value.values, strict=False):
             if key is None:
                 continue
             name = self._key(key)
@@ -34,7 +38,7 @@ class PythonCallAliasState:
     def _items(self, value: ast.AST) -> dict[str, ast.AST]:
         """Responsibilities: _container items resolution_."""
         if type(value) is ast.Name:
-            return dict(self.aliases.get(value.id, {}))
+            return dict(self._aliases.get(value.id, {}))
         if type(value) is ast.Subscript:
             resolved = self.container_value(value)
             if not resolved.found():
@@ -46,34 +50,38 @@ class PythonCallAliasState:
 
     def _observe_assignment(self, node: ast.Assign) -> None:
         """Responsibilities: _assignment observation_."""
-        if len(node.targets) != 1 or type(node.targets[0]) is not ast.Name:
+        if len(node.targets) != 1:
             return
-        if self._observe_builtin_subscript(node):
+        target = node.targets[0]
+        if type(target) is not ast.Name:
             return
-        self.aliases[node.targets[0].id] = self._items(node.value)
+        if self._observe_builtin_subscript(node, target):
+            return
+        self._aliases.update({target.id: self._items(node.value)})
 
-    def _observe_builtin_subscript(self, node: ast.Assign) -> bool:
+    def _builtin_dictionary_key(self, lookup: ast.Subscript) -> str:
+        """Responsibilities: _builtin dictionary key resolution_."""
+        owner = lookup.value
+        if type(owner) is not ast.Attribute or owner.attr != PYTHON_DICT_ATTRIBUTE:
+            return ""
+        if type(owner.value) is not ast.Name or owner.value.id != PYTHON_BUILTINS_MODULE:
+            return ""
+        return self._key(lookup.slice)
+
+    def _observe_builtin_subscript(self, node: ast.Assign, target: ast.Name) -> bool:
         """Responsibilities: _builtin alias observation_."""
         if type(node.value) is not ast.Subscript:
             return False
-        owner = node.value.value
-        if type(owner) is not ast.Attribute or owner.attr != PYTHON_DICT_ATTRIBUTE:
-            return False
-        if (
-            type(owner.value) is not ast.Name
-            or owner.value.id != PYTHON_BUILTINS_MODULE
-        ):
-            return False
-        key = self._key(node.value.slice)
+        key = self._builtin_dictionary_key(node.value)
         if not key:
             return False
-        self.names[node.targets[0].id] = ast.Name(id=key, ctx=ast.Load())
+        self._names.update({target.id: ast.Name(id=key, ctx=ast.Load())})
         return True
 
     def __init__(self) -> None:
-        """Responsibilities: _state initialization_."""
-        self.aliases: dict[str, dict[str, ast.AST]] = {}
-        self.names: dict[str, ast.AST] = {}
+        """Responsibilities: _call alias state initialization_."""
+        self._aliases = {}
+        self._names = {}
 
     def observe(self, node: ast.AST) -> None:
         """Responsibilities: _node observation_."""
@@ -82,8 +90,8 @@ class PythonCallAliasState:
 
     def observe_all(self, nodes: list[ast.AST]) -> None:
         """Responsibilities: _node batch observation_."""
-        self.aliases.clear()
-        self.names.clear()
+        self._aliases.clear()
+        self._names.clear()
         for node in nodes:
             self.observe(node)
 
@@ -91,15 +99,15 @@ class PythonCallAliasState:
         """Responsibilities: _container value resolution_."""
         key = self._key(value.slice)
         if not key:
-            return PythonContainerLookup(False, value.slice)
+            return PythonContainerLookup(found_value=False, expression=value.slice)
         item = self._items(value.value).get(key)
         if item is None:
-            return PythonContainerLookup(False, value.slice)
-        return PythonContainerLookup(True, item)
+            return PythonContainerLookup(found_value=False, expression=value.slice)
+        return PythonContainerLookup(found_value=True, expression=item)
 
     def named_value(self, name: str) -> PythonContainerLookupContract:
         """Responsibilities: _named alias resolution_."""
-        value = self.names.get(name)
+        value = self._names.get(name)
         if value is None:
-            return PythonContainerLookup(False, ast.Name(id=name))
-        return PythonContainerLookup(True, value)
+            return PythonContainerLookup(found_value=False, expression=ast.Name(id=name))
+        return PythonContainerLookup(found_value=True, expression=value)

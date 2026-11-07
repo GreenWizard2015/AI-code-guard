@@ -1,7 +1,7 @@
 import type { IOContract } from "src/io/protocols";
-import type { QualityCheckRunOptions } from "test-runner/types";
 import type { TaskRuleDocumentationContract } from "src/task_protocols";
-import type { ReviewAgentSelection } from "src/types";
+import type { ReviewAgentSelection } from "src/task_review_types";
+import type { QualityCheckRunOptions, TestRunnerRequest } from "test-runner/types";
 
 export type TaskWorkspaceDocument = "issues" | "report" | "lint-output";
 export type TaskBatchReplacementOptions = {
@@ -9,6 +9,11 @@ export type TaskBatchReplacementOptions = {
 	rule_ids: readonly string[];
 	issues: string;
 	documents: ReadonlyMap<TaskWorkspaceDocument, string>;
+};
+export type StaleClaimOwnerSnapshot = {
+	readonly owner_path: string;
+	readonly exists: boolean;
+	readonly text: string;
 };
 export type CliOptions = {
 	ignored_directories: string[];
@@ -37,7 +42,7 @@ export type ReviewAgentRunOptions = {
 	review_stages: readonly string[];
 };
 
-export type QualityCheckContract = {
+export type QualityCheckData = {
 	label: string;
 	command: string;
 	args: readonly string[];
@@ -46,14 +51,16 @@ export type QualityCheckContract = {
 	supports_review_agent: boolean;
 };
 
-export type QualityCheckDefinitionsContract = {
-	all_checks(): QualityCheckContract[];
-};
+/** Responsibilities: _quality check catalog access_. **/
+export interface QualityCheckCatalogContract {
+	all_checks(): QualityCheckData[];
+}
 
-export type QualityCheckProcessContract = {
-	run(options: QualityCheckRunOptions): void;
-	available_checks(): boolean;
-};
+/** Responsibilities: _quality check execution_. **/
+export interface QualityCheckRunnerContract {
+	run(options: QualityCheckRunOptions): number;
+	run_test_request(request: TestRunnerRequest): number;
+}
 
 /** Responsibilities: _task reporting IO_, _rule-document source injection_. **/
 export type TaskReportingDependencies = {

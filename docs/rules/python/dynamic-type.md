@@ -7,56 +7,64 @@ normal domain classes with explicit state and operations instead.
 
 
 ```python
-# File: cli.py
+# File: src/model_reporter.py
+class ModelReporter:
+    def __init__(self, section: str, subject: str) -> None:
+        self.section: str = section
+        self.subject: str = subject
+
+    def report_model(self, model_type: type) -> None:
+        is_runtime_class = isinstance(model_type, type)
+        section_label = self.section.upper()
+        subject_label = self.subject.lower()
+        print(f"{section_label}: {subject_label} runtime class={is_runtime_class}")
+# File: src/cli.py
+from src.model_reporter import ModelReporter
+
 if __name__ == "__main__":
-    class_factory = type
-    runtime_model = class_factory("RuntimeModel", (), {})
-    print(runtime_model)
+    runtime_model = type("RuntimeModel", (), {})
+    reporter = ModelReporter("runtime", "model")
+    reporter.report_model(runtime_model)
 ```
 
 ## Good
 
 
 ```python
-# File: src/status_labels/status_labels.py
-class StatusLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/status_model.py
+class StatusModel:
+    """Hold an explicit status and its descriptive detail."""
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def __init__(self, status: str, detail: str) -> None:
+        self._status: str = status
+        self._detail: str = detail
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def normalized_status(self) -> str:
+        """Normalize the stored status label."""
+        trimmed_status = self._status.strip()
+        return trimmed_status.lower()
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
+    def summary(self) -> str:
+        """Compose the status and detail for a caller."""
+        status_label = self.normalized_status().upper()
+        detail_label = self._detail.strip()
+        return f"{status_label}: {detail_label}"
 
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
+    def detail_length(self) -> int:
+        """Return the visible detail length."""
+        normalized_detail = self._detail.strip()
+        return len(normalized_detail)
 
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
-# File: cli.py
-from src.status_labels.status_labels import StatusLabels
+    def report(self) -> None:
+        """Print the model's observable status report."""
+        summary = self.summary()
+        normalized_status = self.normalized_status()
+        size = self.detail_length()
+        print(f"{summary} ({normalized_status}, {size} characters)")
+# File: src/cli.py
+from src.status_model import StatusModel
 
 if __name__ == "__main__":
-    owner = StatusLabels({"ready": "Ready"}, "Unknown")
-    print(owner.label("ready"))
-    print(owner.label_with_prefix("State", "ready"))
-    print(owner.uppercase_fallback())
-    print(owner.status_count())
+    model = StatusModel("ready", "request accepted")
+    model.report()
 ```

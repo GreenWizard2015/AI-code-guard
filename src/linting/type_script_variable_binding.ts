@@ -1,13 +1,18 @@
-import ts from "typescript";
+import type { PreferredVariableDeclaration } from "src/linting/types";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
-import type { TypeScriptTypeNodeContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
+import type {
+	TypeScriptTypeNodeContract,
+	TypeScriptVariableDeclarationIndexContract,
+} from "src/typescript_analysis_protocols";
 import type { TypeScriptVariableBindingContract } from "src/typescript_analysis_types";
+import type { VisibleVariableDeclarationQuery } from "src/typescript_analysis_types";
+import ts from "typescript";
 
 /** Responsibilities: _lexical scope resolution_, _visible declaration lookup_. **/
 export class TypeScriptVariableBinding implements TypeScriptVariableBindingContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly type_nodes: Map<ts.TypeNode, TypeScriptTypeNodeContract>;
-	private readonly declaration_index: TypeScriptVariableDeclarationIndexContract;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _type_nodes: Map<ts.TypeNode, TypeScriptTypeNodeContract>;
+	private readonly _declaration_index: TypeScriptVariableDeclarationIndexContract;
 
 	/** Responsibilities: _classification lexical scope nodes_. **/
 	private is_scope(node: ts.Node): boolean {
@@ -45,79 +50,84 @@ export class TypeScriptVariableBinding implements TypeScriptVariableBindingContr
 		return scopes;
 	}
 
-	/** Responsibilities: _selection eligible declaration scope_. **/
-	private candidate_scope(declaration: ts.VariableDeclaration, scopes: readonly ts.Node[], reference: ts.Node): number {
-		if (declaration.pos > reference.pos) {
-			return -1;
+	/** Responsibilities: _resolution cached type wrapper_. **/
+	private type_node(node: ts.TypeNode): TypeScriptTypeNodeContract {
+		const existing = this._type_nodes.get(node);
+		if (existing !== undefined) {
+			return existing;
 		}
-		return scopes.indexOf(this.declaration_scope(declaration));
+		const type_node = new TypeScriptTypeNode(node);
+		this._type_nodes.set(node, type_node);
+		return type_node;
 	}
 
-	/** Responsibilities: _selection preferred visible declaration_. **/
-	private prefers(
-		declaration: ts.VariableDeclaration,
+	/** Responsibilities: _visible declaration preference_. **/
+	private declaration_preferred(
+		current: ts.Node,
+		candidate: ts.VariableDeclaration,
 		scope_index: number,
-		selected: ts.Node,
 		selected_scope: number,
 	): boolean {
 		if (scope_index < selected_scope) {
 			return true;
 		}
-		if (!ts.isVariableDeclaration(selected)) {
-			return true;
+		if (scope_index !== selected_scope || !ts.isVariableDeclaration(current)) {
+			return false;
 		}
-		return declaration.pos > selected.pos;
+		return candidate.pos > current.pos;
 	}
 
-	/** Responsibilities: _selection visible variable declaration_. **/
-	private visible_declaration(
-		declarations: readonly ts.VariableDeclaration[],
-		scopes: readonly ts.Node[],
-		reference: ts.Node,
-	): ts.Node {
-		let selected: ts.Node = this.source_file;
-		let selected_scope = scopes.length;
-		for (const declaration of declarations) {
-			const scope_index = this.candidate_scope(declaration, scopes, reference);
-			if (scope_index < 0 || scope_index > selected_scope) {
-				continue;
-			}
-			if (this.prefers(declaration, scope_index, selected, selected_scope)) {
-				selected = declaration;
-				selected_scope = scope_index;
+	/** Responsibilities: _nearest visible variable declaration_. **/
+	private nearest_declaration(input: VisibleVariableDeclarationQuery): ts.Node {
+		let selected: ts.Node = this._source_file;
+		let selected_scope = input.scopes.length;
+		for (const candidate of input.declarations) {
+			const match = this.preferred_declaration(input, selected, selected_scope, candidate);
+			if (match.found) {
+				selected = match.declaration;
+				selected_scope = match.scope_index;
 			}
 		}
 		return selected;
 	}
 
-	/** Responsibilities: _resolution cached type wrapper_. **/
-	private type_node(node: ts.TypeNode): TypeScriptTypeNodeContract {
-		const existing = this.type_nodes.get(node);
-		if (existing !== undefined) {
-			return existing;
+	/** Responsibilities: _visible declaration candidate selection_. **/
+	private preferred_declaration(
+		input: VisibleVariableDeclarationQuery,
+		selected: ts.Node,
+		selected_scope: number,
+		candidate: ts.VariableDeclaration,
+	): PreferredVariableDeclaration {
+		if (candidate.pos > input.reference.pos) {
+			return { found: false, declaration: selected, scope_index: selected_scope };
 		}
-		const type_node = new TypeScriptTypeNode(node);
-		this.type_nodes.set(node, type_node);
-		return type_node;
+		const scope_index = input.scopes.indexOf(this.declaration_scope(candidate));
+		if (scope_index < 0 || scope_index > selected_scope) {
+			return { found: false, declaration: selected, scope_index: selected_scope };
+		}
+		if (!this.declaration_preferred(selected, candidate, scope_index, selected_scope)) {
+			return { found: false, declaration: selected, scope_index: selected_scope };
+		}
+		return { found: true, declaration: candidate, scope_index };
 	}
 
 	/** Responsibilities: _initialization source variable bindings_. **/
 	public constructor(source_file: ts.SourceFile, declaration_index: TypeScriptVariableDeclarationIndexContract) {
-		this.type_nodes = new Map<ts.TypeNode, TypeScriptTypeNodeContract>();
-		this.declaration_index = declaration_index;
-		this.source_file = source_file;
+		this._type_nodes = new Map<ts.TypeNode, TypeScriptTypeNodeContract>();
+		this._declaration_index = declaration_index;
+		this._source_file = source_file;
 	}
 
 	/** Responsibilities: _exposure visible variable declaration_. **/
 	public declaration(name: string, reference: ts.Node): ts.Node {
-		const declarations = this.declaration_index.declarations(this.source_file, name);
+		const declarations = this._declaration_index.declarations(this._source_file, name);
 		const scopes = this.scope_chain(reference);
-		return this.visible_declaration(declarations, scopes, reference);
+		return this.nearest_declaration({ declarations, scopes, reference });
 	}
 
 	/** Responsibilities: _classification visible primitive binding_. **/
 	public primitive(name: string, reference: ts.Node): boolean {
-		if (!this.declaration_index.declarations_present(this.source_file, name)) {
+		if (!this._declaration_index.declarations_present(this._source_file, name)) {
 			return false;
 		}
 		const declaration = this.declaration(name, reference);

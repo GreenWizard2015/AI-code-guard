@@ -1,80 +1,104 @@
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
-	ISSUES_DOCUMENT_NAME,
 	LINT_OUTPUT_DOCUMENT,
-	LINT_OUTPUT_DOCUMENT_NAME,
-	REPORT_DOCUMENT_NAME,
+	TASK_PUBLICATION_LOCK_DIRECTORY,
+	TASK_PUBLICATION_TRANSACTION_PREFIX,
 } from "src/core/support/task/constants";
-import type { TaskPublicationRecoveryContract } from "src/core/support/task/types";
+import { TaskPublicationJournal } from "src/core/support/task/publication/task_publication_journal";
+import { TaskPublicationJournalFile } from "src/core/support/task/publication/task_publication_journal_file";
+import { TaskPublicationOwner } from "src/core/support/task/publication/task_publication_owner";
+import { TaskPublicationRollback } from "src/core/support/task/publication/task_publication_rollback";
+import type {
+	TaskPublicationJournalContract,
+	TaskPublicationOwnerContract,
+	TaskPublicationRecoveryContract,
+	TaskPublicationRollbackContract,
+} from "src/core/support/task/types";
+import type { IOContract } from "src/io/protocols";
 import type { TaskWorkspaceDocumentsContract } from "src/task_protocols";
 import type { TaskWorkspaceDocument } from "src/task_types";
-import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _task publication rollback_, _workspace document restoration_. **/
 export class TaskPublicationRecovery implements TaskPublicationRecoveryContract {
-	private readonly documents: TaskWorkspaceDocumentsContract;
-	private readonly rules_root: string;
-	private readonly file_io: IOContract;
+	private readonly _documents: TaskWorkspaceDocumentsContract;
+	private readonly _rules_root: string;
+	private readonly _file_io: IOContract;
 
-	/** Responsibilities: _task rules restoration_. **/
-	private restore_rules(transaction: string, rules_existed: boolean): void {
-		const backup_rules = join(transaction, "rules");
-		if (this.file_io.file_paths.path_exists(backup_rules)) {
-			this.file_io.directory_operations.remove_path(this.rules_root);
-			this.file_io.directory_operations.move_path(backup_rules, this.rules_root);
-		} else if (!rules_existed) {
-			this.file_io.directory_operations.remove_path(this.rules_root);
+	/** Responsibilities: _publication lock ownership verification_. **/
+	private verify_lock_owner(owner_path: string, expected_owner: TaskPublicationOwnerContract): void {
+		if (!this._file_io.path_is_file(owner_path)) {
+			throw new Error(`Task publication lock owner changed during recovery: ${owner_path}`);
+		}
+		const [pid_text, transaction_text = "", token = ""] = this._file_io.file(owner_path).file_text().split("\n");
+		const current_owner = new TaskPublicationOwner(
+			Number(pid_text),
+			transaction_text.trim(),
+			token.trim(),
+			"",
+			this._file_io,
+		);
+		const same_token = expected_owner.same_token(current_owner);
+		const same_transaction = expected_owner.abandoned_transaction() === current_owner.abandoned_transaction();
+		if (!same_token || !same_transaction) {
+			throw new Error(`Task publication lock owner changed during recovery: ${owner_path}`);
 		}
 	}
 
-	/** Responsibilities: _task document restoration_. **/
-	private restore_documents(transaction: string, existing_documents: ReadonlySet<TaskWorkspaceDocument>): void {
-		for (const [document, backup] of this.backup_documents(transaction)) {
-			const current = this.documents.path_for_document(document);
-			if (this.file_io.file_paths.path_exists(backup)) {
-				this.file_io.directory_operations.remove_path(current);
-				this.file_io.directory_operations.move_path(backup, current);
-			} else if (!existing_documents.has(document)) {
-				this.file_io.directory_operations.remove_path(current);
-			}
+	/** Responsibilities: _journal-directed transaction recovery_. **/
+	private recover_journal(owner: TaskPublicationOwnerContract, journal: TaskPublicationJournalContract): void {
+		const transaction = owner.abandoned_transaction();
+		if (!journal.valid()) {
+			throw new Error(`Task publication transaction journal is unavailable: ${transaction}`);
 		}
+		const owner_path = join(dirname(this._rules_root), TASK_PUBLICATION_LOCK_DIRECTORY, "owner");
+		this.verify_lock_owner(owner_path, owner);
+		if (journal.committed()) {
+			this._file_io.remove_path(transaction);
+			return;
+		}
+		this.for_transaction(transaction).restore(journal.rules_to_restore(), new Set(journal.prior_documents()));
 	}
 
 	/** Responsibilities: _task rollback dependencies_. **/
 	public constructor(documents: TaskWorkspaceDocumentsContract, rules_root: string, file_io: IOContract) {
-		this.documents = documents;
-		this.rules_root = rules_root;
-		this.file_io = file_io;
+		this._documents = documents;
+		this._file_io = file_io;
+		this._rules_root = rules_root;
 	}
 
-	/** Responsibilities: _task backup document paths_. **/
-	public backup_documents(transaction: string): Map<TaskWorkspaceDocument, string> {
-		return new Map<TaskWorkspaceDocument, string>([
-			["issues", join(transaction, ISSUES_DOCUMENT_NAME)],
-			["report", join(transaction, REPORT_DOCUMENT_NAME)],
-			[LINT_OUTPUT_DOCUMENT, join(transaction, LINT_OUTPUT_DOCUMENT_NAME)],
-		]);
+	/** Responsibilities: _transaction rollback scope_. **/
+	public for_transaction(transaction: string): TaskPublicationRollbackContract {
+		return new TaskPublicationRollback(this._documents, this._rules_root, transaction, this._file_io);
 	}
 
 	/** Responsibilities: _existing task documents_. **/
 	public existing_documents(): ReadonlySet<TaskWorkspaceDocument> {
 		const existing = new Set<TaskWorkspaceDocument>();
 		for (const document of ["issues", "report", LINT_OUTPUT_DOCUMENT] as const) {
-			if (this.file_io.directory_entries.path_is_file(this.documents.path_for_document(document))) {
+			if (this._file_io.path_is_file(this._documents.path_for_document(document))) {
 				existing.add(document);
 			}
 		}
 		return existing;
 	}
 
-	/** Responsibilities: _task state restoration_. **/
-	public restore(
-		transaction: string,
-		rules_existed: boolean,
-		existing_documents: ReadonlySet<TaskWorkspaceDocument>,
-	): void {
-		this.restore_rules(transaction, rules_existed);
-		this.restore_documents(transaction, existing_documents);
-		this.file_io.directory_operations.remove_path(transaction);
+	/** Responsibilities: _abandoned publication transaction recovery_. **/
+	public recover_abandoned_transaction(owner: TaskPublicationOwnerContract): void {
+		const transaction = owner.abandoned_transaction();
+		if (transaction.length === 0) {
+			return;
+		}
+		const transaction_root = resolve(dirname(dirname(this._rules_root)));
+		const expected_prefix = join(transaction_root, TASK_PUBLICATION_TRANSACTION_PREFIX);
+		if (!resolve(transaction).startsWith(expected_prefix)) {
+			throw new Error(`Task publication transaction is outside the workspace: ${transaction}`);
+		}
+		if (!this._file_io.file(transaction).path_exists()) {
+			return;
+		}
+		const journal_path = join(transaction, "journal");
+		const journal_file = new TaskPublicationJournalFile(journal_path, this._file_io);
+		const journal = new TaskPublicationJournal(journal_file.state());
+		this.recover_journal(owner, journal);
 	}
 }

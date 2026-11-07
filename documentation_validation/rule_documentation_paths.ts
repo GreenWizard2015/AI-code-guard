@@ -1,25 +1,25 @@
 import { join } from "node:path";
-import { RULE_DOCUMENT_SUFFIX } from "#documentation_validation/constants";
-import { RULE_DOCUMENT_DIRECTORY, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
+import { RULE_DOCUMENT_SUFFIX } from "documentation_validation/constants";
 import type {
-	RuleDocumentationPathInventory,
 	RuleDocumentPath,
 	RuleDocumentPresence,
-} from "#documentation_validation/types";
+	RuleDocumentationPathInventory,
+} from "documentation_validation/types";
+import { RULE_DOCUMENT_DIRECTORY, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _canonical rule-document paths_, _documentation inventory_. **/
 export class RuleDocumentationPaths {
-	private readonly root: string;
-	private readonly rule_ids: readonly string[];
-	private readonly source_io: ProjectSourceIOContract;
+	private readonly _root: string;
+	private readonly _rule_ids: readonly string[];
+	private readonly _source_io: ProjectSourceIOContract;
 
 	/** Responsibilities: _rule-document path map_. **/
 	private registered_paths(): Map<string, string> {
 		const paths = new Map(
-			this.rule_ids.flatMap((rule_id) => this.rule_file_paths(rule_id).map((path) => [path, rule_id] as const)),
+			this._rule_ids.flatMap((rule_id) => this.rule_file_paths(rule_id).map((path) => [path, rule_id] as const)),
 		);
-		const expected_count = this.rule_ids.reduce((count, rule_id) => count + this.rule_file_paths(rule_id).length, 0);
+		const expected_count = this._rule_ids.reduce((count, rule_id) => count + this.rule_file_paths(rule_id).length, 0);
 		if (paths.size !== expected_count) {
 			throw new Error("Multiple registered rules resolve to the same Markdown document path.");
 		}
@@ -56,9 +56,9 @@ export class RuleDocumentationPaths {
 
 	/** Responsibilities: _rule path catalog setup_. **/
 	public constructor(root: string, rule_ids: readonly string[], source_io: ProjectSourceIOContract) {
-		this.root = root;
-		this.rule_ids = rule_ids;
-		this.source_io = source_io;
+		this._root = root;
+		this._rule_ids = rule_ids;
+		this._source_io = source_io;
 	}
 
 	/** Responsibilities: _rule file path lookup_. **/
@@ -80,16 +80,16 @@ export class RuleDocumentationPaths {
 
 	/** Responsibilities: _registry-document consistency report_. **/
 	public scan(): RuleDocumentationPathInventory {
-		const directory = join(this.root, RULE_DOCUMENT_DIRECTORY);
+		const directory = join(this._root, RULE_DOCUMENT_DIRECTORY);
 		const registered_paths = this.registered_paths();
-		const entries = this.source_io
+		const entries = this._source_io
 			.source_paths(directory, new Set<string>())
 			.map((path) => path.slice(directory.length + 1).replaceAll("\\", "/"));
 		const { present_documents, missing_documents } = this.missing_paths(registered_paths, entries);
 		const invalid_entries = this.invalid_entries(entries, registered_paths);
 		return {
 			present_documents,
-			registered_rule_ids: new Set(this.rule_ids),
+			registered_rule_ids: new Set(this._rule_ids),
 			invalid_entries,
 			missing_documents,
 		};

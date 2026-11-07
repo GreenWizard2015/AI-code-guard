@@ -1,217 +1,78 @@
-import type { HookDecision } from "src/model/types/types";
-import {
-	SHELL_ESCAPE_AMPERSAND,
-	SHELL_ESCAPE_CARRIAGE_RETURN,
-	SHELL_ESCAPE_NEWLINE,
-	SHELL_ESCAPE_PIPE,
-	SHELL_ESCAPE_SEMICOLON,
-} from "src/core/support/task/review-agent/constants";
+import { basename, resolve } from "node:path";
+import type { StringSetMap } from "src/analysis_types";
+import { REVIEW_FILES_FROM_OPTION, REVIEW_IGNORE_FILE_OPTION } from "src/core/support/task/review-agent/constants";
+import { CommandOptionPolicy } from "src/core/support/task/review-agent/policy/command_option_policy";
 import { CommandPolicy } from "src/core/support/task/review-agent/policy/command_policy";
+import { RecursiveReviewSearchPolicy } from "src/core/support/task/review-agent/policy/recursive_review_search_policy";
+import { ReviewShellCommand } from "src/core/support/task/review-agent/policy/review_shell_command";
 import type {
 	CommandPolicyContract,
 	ReviewPathPolicyContract,
+	ReviewReadCommandContext,
 	ReviewReadPolicyContract,
 } from "src/core/support/task/review-agent/protocols";
+import type { HookDecision } from "src/model_types";
 
 /** Responsibilities: _read-only shell classification_, _read-only shell authorization_. **/
 export class ReviewReadPolicy implements ReviewReadPolicyContract {
-	private readonly command_policy: CommandPolicyContract;
-	private readonly path_policy: ReviewPathPolicyContract;
+	private readonly _command_policy: CommandPolicyContract;
+	private readonly _path_policy: ReviewPathPolicyContract;
+	private readonly _cwd: string;
+	private readonly _file_value_options: StringSetMap;
+	private readonly _recursive_review_search: RecursiveReviewSearchPolicy;
 
-	/** Responsibilities: _shell command safety_. **/
-	private safe_command(words: readonly string[]): boolean {
-		const command_name = words[0];
-		if (!this.command_policy.supported(command_name)) {
-			return false;
-		}
-		return this.command_policy.arguments_safe(words);
-	}
-
-	/** Responsibilities: _shell expansion prevention_. **/
-	private has_shell_expansion(command: string): boolean {
-		if (command.includes("$")) {
+	/** Responsibilities: _command option boundary_. **/
+	private option_matches(option_candidate: string, flag: string): boolean {
+		if (option_candidate.startsWith(`${flag}=`)) {
 			return true;
 		}
-		return false;
+		return flag.length === 2 && option_candidate.startsWith(flag) && option_candidate.length > flag.length;
 	}
 
-	/** Responsibilities: _shell quote-boundary validation_. **/
-	private command_character(command: string, index: number): string {
-		const character = command[index];
-		if (character === undefined) {
-			return "";
+	/** Responsibilities: _command option path value_. **/
+	private option_value(option_word: string, flag: string): string {
+		let value_start = flag.length;
+		if (option_word.startsWith(`${flag}=`)) {
+			value_start += 1;
 		}
-		return character;
+		return option_word.slice(value_start);
 	}
 
-	/** Responsibilities: _shell quote-boundary validation_. **/
-	private quote_is_concatenated(command: string, index: number, quote: string): boolean {
-		if (quote === "") {
-			const previous = this.command_character(command, index - 1);
-			if (previous === "") {
-				return false;
-			}
-			return /\S/u.test(previous);
+	/** Responsibilities: _command option path authorization_. **/
+	private option_path_allowed(read_command: ReviewReadCommandContext, path_option_word: string): boolean {
+		const options = this._file_value_options.get(basename(read_command.command));
+		if (options === undefined) {
+			return true;
 		}
-		const next = this.command_character(command, index + 1);
-		if (next === "") {
-			return false;
-		}
-		return /\S/u.test(next);
-	}
-
-	/** Responsibilities: _shell quote state transition_. **/
-	private next_quote(character: string, quote: string): string {
-		if (quote === "") {
-			return character;
-		}
-		return "";
-	}
-
-	/** Responsibilities: _shell quote-boundary validation_. **/
-	private has_concatenated_quotes(command: string): boolean {
-		let quote = "";
-		for (let index = 0; index < command.length; index += 1) {
-			const character = this.command_character(command, index);
-			if (character !== "'" && character !== '"') {
+		for (const option of options) {
+			if (!this.option_matches(path_option_word, option)) {
 				continue;
 			}
-			if (this.quote_is_concatenated(command, index, quote)) {
-				return true;
-			}
-			quote = this.next_quote(character, quote);
+			const path = this.option_value(path_option_word, option);
+			return this._path_policy.allows_path_from(path, read_command.command_cwd);
 		}
-		return quote !== "";
+		return true;
 	}
 
-	/** Responsibilities: _unquoted glob prevention_. **/
-	private has_unquoted_glob(command: string): boolean {
-		let quote = "";
-		for (const character of command) {
-			if (quote !== "") {
-				if (character === quote) {
-					quote = "";
-				}
-				continue;
-			}
-			if (character === "'" || character === '"') {
-				quote = character;
-				continue;
-			}
-			if (character === "*" || character === "?" || character === "[") {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/** Responsibilities: _shell word parsing_. **/
-	private shell_words(segment: string): string[] {
-		const matches = segment.match(/'[^']*'|"[^"]*"|\S+/gu);
-		if (matches === null) {
-			return [];
-		}
-		return matches.map((word) => this.unquote_word(word));
-	}
-
-	/** Responsibilities: _shell quote removal_. **/
-	private unquote_word(word: string): string {
-		if (word.length < 2) {
-			return word;
-		}
-		const first = word.at(0);
-		const last = word.at(-1);
-		if ((first === "'" || first === '"') && first === last) {
-			return word.slice(1, -1);
-		}
-		return word;
-	}
-
-	/** Responsibilities: _shell syntax exclusion_. **/
-	private unsafe_syntax(command: string, unquoted_command: string): boolean {
-		if (unquoted_command.includes("\\") || unquoted_command.includes("~")) {
+	/** Responsibilities: _command word authorization_. **/
+	private allows_read_word(command_context: ReviewReadCommandContext, word_index: number): boolean {
+		const word = command_context.words[word_index];
+		if (word === undefined) {
 			return true;
 		}
-		if (this.has_shell_expansion(command)) {
-			return true;
+		if (word.startsWith("-")) {
+			return this.option_path_allowed(command_context, word);
 		}
-		return unquoted_command.includes(">") || unquoted_command.includes("<");
+		if (command_context.recursive) {
+			return this._path_policy.allows_recursive_path(word, command_context.command_cwd);
+		}
+		return this._path_policy.allows_path_from(word, command_context.command_cwd);
 	}
 
-	/** Responsibilities: _shell substitution exclusion_. **/
-	private unsafe_substitution(command: string, unquoted_command: string): boolean {
-		if (command.includes("`") || command.includes("$(") || command.includes("${")) {
-			return true;
-		}
-		return unquoted_command.replaceAll("&&", "").includes("&");
-	}
-
-	/** Responsibilities: _shell syntax validation_. **/
-	private safe_syntax(command: string): boolean {
-		if (this.has_concatenated_quotes(command) || this.has_unquoted_glob(command)) {
-			return false;
-		}
-		const unquoted_command = command.replace(/'[^']*'|"[^"]*"/gu, "");
-		if (this.unsafe_syntax(command, unquoted_command)) {
-			return false;
-		}
-		return !this.unsafe_substitution(command, unquoted_command);
-	}
-
-	/** Responsibilities: _shell segment validation_. **/
-	private safe_segment(segment: string, cwd: string, command_cwd: string): boolean {
-		const words = this.shell_words(segment);
-		if (words.length === 0) {
-			return false;
-		}
-		if (!this.safe_command(words)) {
-			return false;
-		}
-		let command_name = "";
-		for (const word of words) {
-			command_name = word;
-			break;
-		}
-		if (command_name === "") {
-			return false;
-		}
-		return this.path_policy.allows_read_command(command_name, words, cwd, command_cwd);
-	}
-
-	/** Responsibilities: _shell segment parsing_. **/
-	private shell_segments(command: string): string[] {
-		const protected_command = command.replace(/'[^']*'|"[^"]*"/gu, (quoted) => {
-			return quoted
-				.replaceAll("&", SHELL_ESCAPE_AMPERSAND)
-				.replaceAll("|", SHELL_ESCAPE_PIPE)
-				.replaceAll(";", SHELL_ESCAPE_SEMICOLON)
-				.replaceAll("\r", SHELL_ESCAPE_CARRIAGE_RETURN)
-				.replaceAll("\n", SHELL_ESCAPE_NEWLINE);
-		});
-		const segments = protected_command.split(/\s*(?:&&|\|\|?|\||;|\r?\n)\s*/u);
-		for (const segment of segments) {
-			if (segment.trim() === "") {
-				return [];
-			}
-		}
-		return segments.map((segment) =>
-			segment
-				.replaceAll(SHELL_ESCAPE_AMPERSAND, "&")
-				.replaceAll(SHELL_ESCAPE_PIPE, "|")
-				.replaceAll(SHELL_ESCAPE_SEMICOLON, ";")
-				.replaceAll(SHELL_ESCAPE_CARRIAGE_RETURN, "\r")
-				.replaceAll(SHELL_ESCAPE_NEWLINE, "\n"),
-		);
-	}
-
-	/** Responsibilities: _read-only shell classification_. **/
-	private safe_segments(command: string, cwd: string, command_cwd: string): boolean {
-		const segments = this.shell_segments(command);
-		if (segments.length === 0) {
-			return false;
-		}
-		for (const segment of segments) {
-			if (!this.safe_segment(segment, cwd, command_cwd)) {
+	/** Responsibilities: _command argument authorization_. **/
+	private allows_command_words(read_command: ReviewReadCommandContext): boolean {
+		for (let word_index = 1; word_index < read_command.words.length; word_index += 1) {
+			if (!this.allows_read_word(read_command, word_index)) {
 				return false;
 			}
 		}
@@ -220,29 +81,111 @@ export class ReviewReadPolicy implements ReviewReadPolicyContract {
 
 	/** Responsibilities: _policy state_. **/
 	public constructor(path_policy: ReviewPathPolicyContract) {
-		this.command_policy = new CommandPolicy();
-		this.path_policy = path_policy;
+		const unsafe_options = new Set([
+			"-c",
+			"-delete",
+			"-exec",
+			"-execdir",
+			"-fls",
+			"-i",
+			"--in-place",
+			"--follow",
+			"--output",
+			"--pre",
+			"--pre-glob",
+			"-o",
+			"-ok",
+			"-okdir",
+		]);
+		const option_policy = new CommandOptionPolicy(unsafe_options, REVIEW_FILES_FROM_OPTION);
+		this._command_policy = new CommandPolicy(
+			["/bin", "/usr/bin", "/usr/local/bin", "/sbin", "/usr/sbin"],
+			new Set([
+				"awk",
+				"cat",
+				"cut",
+				"find",
+				"grep",
+				"head",
+				"ls",
+				"printf",
+				"pwd",
+				"readlink",
+				"rg",
+				"sort",
+				"sed",
+				"stat",
+				"tail",
+				"true",
+				"wc",
+				"which",
+			]),
+			option_policy,
+			new Set(["-H", "-P", "-type", "-name", "-path", "-maxdepth", "-mindepth", "-print", "-print0", "-o"]),
+		);
+		this._path_policy = path_policy;
+		this._cwd = path_policy.project_root();
+		this._recursive_review_search = new RecursiveReviewSearchPolicy(path_policy);
+		this._file_value_options = new Map([
+			["awk", new Set(["-f"])],
+			["grep", new Set(["-f", "--file"])],
+			["rg", new Set(["-f", "--file", REVIEW_IGNORE_FILE_OPTION])],
+			["sed", new Set(["-f"])],
+			["sort", new Set([REVIEW_FILES_FROM_OPTION])],
+		]);
 	}
 
 	/** Responsibilities: _read-only shell classification_. **/
 	public read_only(command: string, cwd = "", command_cwd = ""): boolean {
-		let effective_command_cwd = cwd;
+		const body = command.trim();
+		if (body === "pwd") {
+			return true;
+		}
+		let effective_command_cwd = this._cwd;
+		if (cwd !== "") {
+			effective_command_cwd = cwd;
+		}
 		if (command_cwd !== "") {
 			effective_command_cwd = command_cwd;
 		}
-		const body = command.trim();
-		if (body.trim() === "pwd") {
-			return true;
-		}
-		if (!this.safe_syntax(body)) {
+		const shell_command = new ReviewShellCommand(body, effective_command_cwd, this._command_policy, this);
+		if (!shell_command.safe_syntax()) {
 			return false;
 		}
-		return this.safe_segments(body, cwd, effective_command_cwd);
+		return shell_command.safe_segments();
 	}
 
-	/** Responsibilities: _read-only shell authorization_. **/
-	public decision(command: string, cwd = "", command_cwd = ""): HookDecision {
-		if (this.read_only(command, cwd, command_cwd)) {
+	/** Responsibilities: _command working directory resolution_. **/
+	public command_working_directory(workdir: string): string {
+		if (workdir === "") {
+			return this._cwd;
+		}
+		if (!this._path_policy.allows_read_path(workdir)) {
+			return "";
+		}
+		return resolve(this._cwd, workdir);
+	}
+
+	/** Responsibilities: _command access policy_. **/
+	public allows_read_command(command_name: string, words: readonly string[], command_cwd: string): boolean {
+		let effective_command_cwd = command_cwd;
+		if (effective_command_cwd === "") {
+			effective_command_cwd = this._cwd;
+		}
+		if (this._recursive_review_search.blocks(command_name, words, effective_command_cwd)) {
+			return false;
+		}
+		return this.allows_command_words({
+			command: command_name,
+			words,
+			command_cwd: effective_command_cwd,
+			recursive: this._recursive_review_search.recursive(command_name, words),
+		});
+	}
+
+	/** Responsibilities: _read-only shell decision_. **/
+	public decision(shell_command: string, cwd = "", command_cwd = ""): HookDecision {
+		if (this.read_only(shell_command, cwd, command_cwd)) {
 			return { allowed: true, reason: "" };
 		}
 		return {

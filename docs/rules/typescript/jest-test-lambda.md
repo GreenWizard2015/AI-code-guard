@@ -24,6 +24,9 @@ export class Status {
 		const words = this.normalized().split(/\s+/u);
 		return words.includes(normalized_word);
 	}
+	public report(): void {
+		console.log(this.normalized());
+	}
 }
 // File: tests/documentation/status.test.ts
 import { Status } from 'src/documentation/status';
@@ -46,6 +49,7 @@ import { Status } from 'src/documentation/status';
 	status.ready();
 	status.label('Current');
 	status.contains_word('ready');
+	status.report();
 })();
 ```
 
@@ -54,12 +58,27 @@ import { Status } from 'src/documentation/status';
 ```ts
 // File: src/documentation/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) {
-		this.value = value;
+	private readonly _status_history: string[];
+	private readonly _current_value: Map<string, string>;
+	private current_value(): string {
+		const value = this._current_value.get("value");
+		if (value === undefined) {
+			return "";
+		}
+		return value;
 	}
+	public constructor(value: string) {
+		this._status_history = [value];
+		this._current_value = new Map([["value", value]]);
+	}
+
+	public change_value(value: string): void {
+		this._status_history.push(value);
+		this._current_value.set("value", value);
+	}
+
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		return this.current_value().trim().toLowerCase();
 	}
 	public ready(): boolean { return this.normalized() === 'ready'; }
 	public label(prefix: string): string {
@@ -70,6 +89,9 @@ export class Status {
 		const normalized_word = word.trim().toLowerCase();
 		const words = this.normalized().split(/\s+/u);
 		return words.includes(normalized_word);
+	}
+	public report(): void {
+		console.log(this.normalized());
 	}
 }
 // File: tests/documentation/status.test.ts
@@ -89,10 +111,12 @@ describe('Status', () => {
 // File: cli.ts
 import { Status } from 'src/documentation/status';
 (function () {
-	const status = new Status(' READY value ');
+	const status = new Status("queued");
+	status.change_value(' READY value ');
 	status.normalized();
 	status.ready();
 	status.label('Current');
 	status.contains_word('ready');
+	status.report();
 })();
 ```

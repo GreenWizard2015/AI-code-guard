@@ -1,14 +1,89 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("proxy lambda rules", () => {
+	test("reports a short contract implementation that only forwards its call", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"contract-proxy.ts": [
+					"interface ValueReaderContract { read(value: string): string; }",
+					"class ValueReader { public read(value: string): string { return value; } }",
+					"class ValueReaderAdapter implements ValueReaderContract {",
+					"  public constructor(private readonly reader: ValueReader) {}",
+					"  public read(value: string): string { return this.reader.read(value); }",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
+		);
+
+		expect(execution.report.violations.some((item) => item.rule_id() === "proxy-callable")).toBe(true);
+	});
+
+	test("reports short contract methods that only expose an instance field", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"contract-field-accessor.ts": [
+					"interface SourceRecordContract { absolute_path(): string; }",
+					"class SourceRecord implements SourceRecordContract {",
+					"  private readonly _absolute_path: string = '/source.ts';",
+					"  public absolute_path(): string { return this._absolute_path; }",
+					"}",
+				].join("\n"),
+				"local-field-accessor.ts": [
+					"class LocalRecord {",
+					"  private readonly _local_path: string = '/local.ts';",
+					"  public local_path(): string { return this._local_path; }",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
+		);
+
+		const proxy_files = execution.report.violations
+			.filter((item) => item.rule_id() === "proxy-callable")
+			.map((item) => item.file());
+		expect(proxy_files).toEqual(["contract-field-accessor.ts"]);
+	});
+
+	test("reports short contract methods forwarding to differently named accessors", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"contract-property-forwarding.ts": [
+					"interface ProjectPathRelationContract { path(): string; inside_root(): boolean; }",
+					"class ProjectPathRelation implements ProjectPathRelationContract {",
+					"  private readonly _relative_path = 'src/file.ts';",
+					"  private readonly _inside = true;",
+					"  public path(): string { return this.relative_path; }",
+					"  public inside_root(): boolean { return this.inside; }",
+					"  public get relative_path(): string { return this._relative_path; }",
+					"  public get inside(): boolean { return this._inside; }",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
+		);
+
+		const proxy_lines = execution.report.violations
+			.filter((item) => item.rule_id() === "proxy-callable")
+			.map((item) => item.line())
+			.sort((left, right) => left - right);
+		expect(proxy_lines).toEqual([5, 6]);
+	});
+
 	test("rejects proxy lambdas in both languages", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"proxy-lambda.ts": [
 					"type Expression = string;",
@@ -35,13 +110,13 @@ describe("proxy lambda rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "proxy-lambda")).toHaveLength(2);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-lambda")).toHaveLength(2);
 	});
 
 	test("rejects parenthesized proxy lambda calls", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"proxy-lambda.ts": [
 					"type Expression = string;",
@@ -57,13 +132,13 @@ describe("proxy lambda rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "proxy-lambda")).toHaveLength(1);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-lambda")).toHaveLength(1);
 	});
 
 	test("does not report event listener callbacks as proxy lambdas", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"event-listener.ts": [
 					"class Context {",
@@ -77,13 +152,13 @@ describe("proxy lambda rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "proxy-lambda")).toHaveLength(0);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-lambda")).toHaveLength(0);
 	});
 
 	test("allows direct delegation to a Node platform API in an adapter", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"node-file-adapter.ts": [
 					'import { existsSync } from "node:fs";',
@@ -95,13 +170,57 @@ describe("proxy lambda rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "proxy-callable")).toHaveLength(0);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-callable")).toHaveLength(0);
+	});
+
+	test("allows delegation through an adapter of an imported Node API type", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"node-process-adapter.ts": [
+					'import type { ChildProcess } from "node:child_process";',
+					"class ProcessAdapter {",
+					"  private readonly child: ChildProcess;",
+					"  public kill(signal: NodeJS.Signals): boolean { return this.child.kill(signal); }",
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
+		);
+
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-callable")).toHaveLength(0);
+	});
+
+	test("allows methods that mutate their own collection state", () => {
+		const fixture = new TestFixture();
+		const execution = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"collection-state.ts": [
+					"class CollectionState {",
+					"  private readonly values: string[] = [];",
+					"  public add(value: string): void { this.values.push(value); }",
+					"}",
+				].join("\n"),
+				"collection_state.py": [
+					"class CollectionState:",
+					"    def __init__(self) -> None:",
+					"        self.values: list[str] = []",
+					"    def add(self, value: str) -> None:",
+					"        self.values.append(value)",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
+		);
+
+		expect(execution.report.violations.filter((item) => item.rule_id() === "proxy-callable")).toHaveLength(0);
 	});
 
 	test("limits implemented interfaces and protocols per class", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"interfaces.ts": [
 					"interface FirstPort {}",
@@ -123,6 +242,6 @@ describe("proxy lambda rules", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 
-		expect(execution.report.violations.filter((item) => item.rule_id === "class-interface-count")).toHaveLength(2);
+		expect(execution.report.violations.filter((item) => item.rule_id() === "class-interface-count")).toHaveLength(2);
 	});
 });

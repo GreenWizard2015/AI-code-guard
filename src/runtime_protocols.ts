@@ -1,20 +1,24 @@
-import type { PythonAstWorkerContract } from "src/core/python-ast-worker.mjs";
+import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import type { LintReportOptions } from "src/core/types";
 import type {
 	GitIgnoreGlobMatchResult,
 	LintAnalysisStage,
 	LintRunResult,
-	LintRunStateContract,
+	LintRunState,
 } from "src/project_analysis_types";
 import type { LintInputFiles } from "src/project_analysis_types";
+import type {
+	PythonAstDataContract,
+	PythonAstWorkerCapabilityContract,
+	PythonAstWorkerSessionContract,
+} from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { AliasAppender, ExpressionNormalizer } from "src/runtime_types";
+import type { CallableAliasAppender, CallableExpressionNormalizer } from "src/runtime_types";
 import type { LintExecutionReport } from "src/runtime_types";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { LintSourceRecord } from "src/source_types";
-import type { RuleContextData } from "src/types";
+import type { ProjectSourceIOContract } from "src/source_protocols";
+import type { LintSourceRecordData } from "src/source_types";
 import type ts from "typescript";
-import type { PythonAstWorkerSession } from "#external/python_ast_worker_session.mjs";
 
 /** Responsibilities: _callable body metrics_. **/
 export interface CallableBodyMetricsContract {
@@ -36,18 +40,39 @@ export interface ClassNodeContract {
 export interface ProjectAnalysisIdentityContract {
 	analyzer(): string;
 	content(value: string): string;
-	context(records: readonly LintSourceRecord[]): string;
+	context(records: readonly LintSourceRecordData[]): string;
 	directory_context(root: string): string;
 	selection(files: ReadonlySet<string>, ignored_files: ReadonlySet<string>, entry_files: ReadonlySet<string>): string;
 }
 
 /** Responsibilities: _project lint configuration access_. **/
 export interface LintRunConfigurationContract {
-	readonly python_ast_worker: PythonAstWorkerContract;
-	readonly worker_session: PythonAstWorkerSession;
 	input_files(repo_root: string, configured: readonly string[]): LintInputFiles;
 	lint_report(options: LintReportOptions): LintExecutionReport;
 }
+
+/** Responsibilities: _Python worker session recovery_, _parser access_. **/
+export interface LintRunWorkerLifecycleContract {
+	ensure_active(): void;
+	worker(): PythonAstWorkerCapabilityContract;
+	session(): PythonAstWorkerSessionContract;
+	parser(): PythonAstDataContract;
+}
+
+/** Responsibilities: _worker session lease state_. **/
+export interface WorkerSessionLeaseContract {
+	active(): boolean;
+	close(): Promise<void>;
+}
+
+/** Responsibilities: _active worker session_, _worker session cleanup_. **/
+export interface WorkerSessionProviderContract {
+	active_worker_session(): WorkerSessionLeaseContract;
+	close_worker_session(): Promise<void>;
+}
+
+/** Responsibilities: _lint runtime configuration_, _worker session ownership_. **/
+export interface LintRunRuntimeContract extends LintRunConfigurationContract, WorkerSessionProviderContract {}
 
 /** Responsibilities: _Git ignored path filtering_. **/
 export interface GitIgnoredPathsContract {
@@ -57,6 +82,9 @@ export interface GitIgnoredPathsContract {
 /** Responsibilities: _bounded Gitignore glob matching_. **/
 export interface GitIgnoreGlobTokenContract {
 	advance(candidate: string, index: number, current_row: Uint8Array, next_row: Uint8Array): boolean;
+	advance_row(candidate: string, current_row: Uint8Array, next_row: Uint8Array): void;
+	minimum_candidate_length(): number;
+	variable_candidate_length(): boolean;
 }
 
 /** Responsibilities: _Gitignore glob matching_. **/
@@ -65,33 +93,41 @@ export interface GitIgnoreGlobMatcherContract {
 	match_segments(candidate: string): GitIgnoreGlobMatchResult;
 }
 
+/** Responsibilities: _Gitignore candidate evaluation operations_. **/
+export interface GitIgnoreGlobCandidateEvaluationContract {
+	match(): GitIgnoreGlobMatchResult;
+	match_fixed_width(): GitIgnoreGlobMatchResult;
+}
+
 /** Responsibilities: _lint stage analysis coordination_. **/
 export interface LintRunAnalysisContract {
-	collect_directory(state: LintRunStateContract): ViolationContract[];
-	collect_file(state: LintRunStateContract, stage_timer: LintStageTimerContract): ViolationContract[];
+	collect_directory(state: LintRunState): ViolationContract[];
+	collect_file(state: LintRunState, stage_timer: LintStageTimerContract, context_identity: string): ViolationContract[];
 	collect_global(stage: LintAnalysisStage): ViolationContract[];
 	collect(stage: LintAnalysisStage): LintRunResult;
 }
 
 /** Responsibilities: _text violation discovery contract_. **/
 export interface TextFileDiscoveryContract {
-	violations(
-		repo_root: string,
-		configured_ignored: ReadonlySet<string>,
-		source_texts: ReadonlyMap<string, string>,
-	): ViolationContract[];
-	violations_for_files(
-		files: readonly string[],
-		repo_root: string,
-		source_texts: ReadonlyMap<string, string>,
-	): ViolationContract[];
-	files_unfiltered(repo_root: string, configured_ignored: ReadonlySet<string>): string[];
+	for_project(repo_root: string, configured_ignored: ReadonlySet<string>): TextFileProjectContract;
 }
 
-/** Responsibilities: _source declaration names contract_. **/
-export interface SourceNamesContract {
-	names_for_source(source: LintSourceRecord, include_type_declarations: boolean): string[];
+/** Responsibilities: _project-scoped text file analysis_. **/
+export interface TextFileProjectContract {
+	files(): string[];
+	files_unfiltered(): string[];
+	files_unfiltered_from(paths: readonly string[]): string[];
+	violations(source_texts: ReadonlyMap<string, string>): ViolationContract[];
+	violations_for_files(files: readonly string[], source_texts: ReadonlyMap<string, string>): ViolationContract[];
 }
+
+/** Responsibilities: _project-scoped text file analysis inputs_. **/
+export type TextFileProjectOptions = {
+	repo_root: string;
+	configured_ignored: ReadonlySet<string>;
+	source_io: ProjectSourceIOContract;
+	git_ignored_paths: GitIgnoredPathsContract;
+};
 
 /** Responsibilities: _boolean expression classification contract_. **/
 export interface BooleanExpressionContract {
@@ -115,6 +151,7 @@ export interface ExpressionNamesContract {
 	unwrap_transparent_expression(expression: ts.Expression): ts.Expression;
 	static_property_name(node: ts.Node): string;
 	static_binding_name(element: ts.BindingElement): string;
+	static_element_name(element: ts.ObjectLiteralElementLike): string;
 }
 
 /** Responsibilities: _binding alias collection_. **/
@@ -123,8 +160,8 @@ export interface BindingAliasesContract {
 		aliases: Set<string>,
 		binding: ts.BindingName,
 		initializer: ts.Expression,
-		normalize_initializer: ExpressionNormalizer,
-		append_alias: AliasAppender,
+		normalize_initializer: CallableExpressionNormalizer,
+		append_alias: CallableAliasAppender,
 	): boolean;
 }
 
@@ -148,8 +185,8 @@ export interface ProxyCallContract {
 }
 
 /** Responsibilities: _dynamic runtime usage contract_. **/
-export interface DynamicRuntimeUsageContract {
-	append_candidate_rule(node: ts.Node, context: RuleContextData): void;
+export interface DynamicRuntimeUsageContract extends ASTSourceRuleContract {
+	dynamic(node: ts.Node, source_file: ts.SourceFile): boolean;
 }
 
 /** Responsibilities: _dynamic runtime member contract_. **/
@@ -164,19 +201,52 @@ export interface ObjectValueRulesContract {
 	object_string(node: ts.Node): boolean;
 	object_assign(node: ts.Node): boolean;
 	object_method(node: ts.Node): boolean;
+	object_has_own(node: ts.Node): boolean;
 }
 
 /** Responsibilities: _dynamic object member aliases_. **/
 export interface DynamicObjectMemberAliasesContract {
-	member_name(expression: ts.Expression): string;
-	receiver(expression: ts.Expression, source: ts.Node): boolean;
-	member(expression: ts.Expression, source: ts.Node, member_name: string): boolean;
+	member_name(query: DynamicObjectMemberNameQuery): string;
+	receiver(query: DynamicObjectReceiverQuery): boolean;
+	member(query: DynamicObjectMemberQuery): boolean;
 }
+
+/** Responsibilities: _dynamic member name query_. **/
+export type DynamicObjectMemberNameQuery = {
+	readonly expression: ts.Expression;
+};
+
+/** Responsibilities: _dynamic member lookup_. **/
+export type DynamicObjectMemberQuery = {
+	readonly expression: ts.Expression;
+	readonly source: ts.Node;
+	readonly member_name: string;
+};
+
+/** Responsibilities: _object receiver lookup_. **/
+export type DynamicObjectReceiverQuery = {
+	readonly expression: ts.Expression;
+	readonly source: ts.Node;
+};
+
+/** Responsibilities: _property value lookup_. **/
+export type DynamicObjectPropertyValuesQuery = {
+	readonly expression: ts.Expression;
+	readonly source: ts.Node;
+	readonly property_name: string;
+};
+
+/** Responsibilities: _member value lookup_. **/
+export type DynamicObjectMemberValueQuery = {
+	readonly value: ts.Expression;
+	readonly source: ts.Node;
+	readonly member_name: string;
+};
 
 /** Responsibilities: _class design metrics_, _class size metrics_. **/
 export interface ClassStructureReporterContract {
+	report_test_limits(): void;
+	report_class_methods(): void;
 	report_design(): void;
 	report_sizes(): void;
-	report_max_sizes(): void;
-	append_interface_limit(): void;
 }

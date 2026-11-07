@@ -11,6 +11,7 @@ describe("review hook payload normalization", () => {
 		const raw: RawHookPayload = {
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
+			stop_hook_active: false,
 			tool_name: "Write",
 			tool_input: {
 				...HOOK_TOOL_CONTEXT,
@@ -25,10 +26,10 @@ describe("review hook payload normalization", () => {
 			review_prefix: "wrong-prefix-",
 			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-algorithms-");
+		const normalizer = new HookPayloadNormalizer("review-algorithms-", "initial", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
-		const application = new AgentHookApplication(io);
+		const application = new AgentHookApplication(io, PROJECT_ROOT);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 
@@ -42,6 +43,7 @@ describe("review hook payload normalization", () => {
 		const raw: RawHookPayload = {
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
+			stop_hook_active: false,
 			tool_name: "command_execution",
 			tool_input: { ...HOOK_TOOL_CONTEXT, command: "", cmd: "pwd", file_path: "", path: "", patch: "" },
 			cwd: PROJECT_ROOT,
@@ -49,10 +51,10 @@ describe("review hook payload normalization", () => {
 			review_prefix: "wrong-prefix-",
 			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-tests-");
+		const normalizer = new HookPayloadNormalizer("review-tests-", "initial", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
-		const application = new AgentHookApplication(io);
+		const application = new AgentHookApplication(io, PROJECT_ROOT);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 
@@ -64,10 +66,11 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("preserves and authorizes the command execution context", () => {
-		const normalizer = new HookPayloadNormalizer("review-boundaries-");
+		const normalizer = new HookPayloadNormalizer("review-boundaries-", "initial", Number.POSITIVE_INFINITY);
 		const payload = normalizer.normalize({
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
+			stop_hook_active: false,
 			tool_name: "command_execution",
 			tool_input: {
 				command: "",
@@ -86,7 +89,7 @@ describe("review hook payload normalization", () => {
 		});
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
-		const application = new AgentHookApplication(io);
+		const application = new AgentHookApplication(io, PROJECT_ROOT);
 		const decision = application.decision(payload);
 
 		expect({
@@ -98,13 +101,14 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("allows bare pwd without an active review prefix", () => {
-		const normalizer = new HookPayloadNormalizer("");
+		const normalizer = new HookPayloadNormalizer("", "initial", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
-		const application = new AgentHookApplication(io);
+		const application = new AgentHookApplication(io, PROJECT_ROOT);
 		const payload = normalizer.normalize({
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
+			stop_hook_active: false,
 			tool_name: "command_execution",
 			tool_input: { ...HOOK_TOOL_CONTEXT, command: "", cmd: "pwd", file_path: "", path: "", patch: "" },
 			cwd: "",
@@ -120,6 +124,7 @@ describe("review hook payload normalization", () => {
 		const raw: RawHookPayload = {
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
+			stop_hook_active: false,
 			tool_name: "apply_patch",
 			tool_input: {
 				...HOOK_TOOL_CONTEXT,
@@ -134,10 +139,10 @@ describe("review hook payload normalization", () => {
 			review_prefix: "review-abstractions-",
 			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-abstractions-");
+		const normalizer = new HookPayloadNormalizer("review-abstractions-", "initial", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
-		const application = new AgentHookApplication(io);
+		const application = new AgentHookApplication(io, PROJECT_ROOT);
 		const payload = normalizer.normalize(raw);
 		const decision = application.decision(payload);
 
@@ -148,7 +153,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("normalizes a payload with omitted optional fields", () => {
-		const normalizer = new HookPayloadNormalizer("review-contract-");
+		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", Number.POSITIVE_INFINITY);
 		const normalized = normalizer.normalize(JSON.parse('{"event":"PreToolUse","tool_name":"Bash"}'));
 
 		expect({
@@ -162,5 +167,23 @@ describe("review hook payload normalization", () => {
 			cwd: "",
 			review_prefix: "review-contract-",
 		});
+	});
+
+	test("preserves the provider stop-continuation state", () => {
+		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", Number.POSITIVE_INFINITY);
+		const normalized = normalizer.normalize(
+			JSON.parse('{"event":"Stop","hook_event_name":"Stop","stop_hook_active":true}'),
+		);
+
+		expect(normalized.stop_hook_active).toBe(true);
+	});
+
+	test("uses the trusted review start timestamp for the finding cutoff", () => {
+		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", 1234);
+		const normalized = normalizer.normalize(
+			JSON.parse('{"event":"PostToolUse","tool_name":"Write","review_start_ms":1}'),
+		);
+
+		expect(normalized.review_start_ms).toBe(1234);
 	});
 });

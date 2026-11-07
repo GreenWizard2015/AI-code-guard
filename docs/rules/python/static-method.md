@@ -25,6 +25,7 @@ Fix: Move it to `parse(text: str) -> Result` with explicit dependencies.
 ## Bad
 
 ```python
+# File: src/parser.py
 class Parser:
     def __init__(self, prefix: str) -> None:
         self.prefix: str = prefix
@@ -32,6 +33,15 @@ class Parser:
     @staticmethod
     def parse(text: str) -> str:
         return text.strip().lower()
+
+    def report(self, text: str) -> None:
+        print(f"{self.prefix}: {self.parse(text)}")
+# File: src/cli.py
+from src.parser import Parser
+
+if __name__ == "__main__":
+    parser = Parser("status")
+    parser.report(" READY ")
 ```
 
 ## Good
@@ -39,27 +49,39 @@ class Parser:
 ```python
 # File: src/message_policy.py
 class MessagePolicy:
-    def __init__(self, prefix: str) -> None:
-        self.prefix: str = prefix.strip().lower()
-
-    def normalized(self, text: str) -> str:
+    def _normalized(self, text: str) -> str:
         trimmed = text.strip()
-        return trimmed.lower()
+        normalized = trimmed.lower()
+        return normalized
 
-    def matches(self, text: str) -> bool:
-        normalized = self.normalized(text)
-        return normalized.startswith(self.prefix)
+    def __init__(self, prefix: str) -> None:
+        normalized_prefix = prefix.strip().lower()
+        self._prefix: str = normalized_prefix
 
-    def describe(self, text: str) -> str:
-        normalized = self.normalized(text)
-        return self.prefix + ':' + normalized
+    def matches(self, candidate: str) -> bool:
+        normalized = self._normalized(candidate)
+        matches = normalized.startswith(self._prefix)
+        if not matches:
+            return False
+        return True
 
-    def same_prefix(self, text: str) -> bool:
-        normalized = self.normalized(text)
-        return normalized[:len(self.prefix)] == self.prefix
-# File: cli.py
+    def describe(self, message: str) -> str:
+        normalized = self._normalized(message)
+        description = self._prefix + ':' + normalized
+        return description
+
+    def same_prefix(self, value: str) -> bool:
+        normalized = self._normalized(value)
+        prefix = normalized[:len(self._prefix)]
+        return prefix == self._prefix
+    def report(self, message: str, prefix_probe: str) -> None:
+        matched = self.matches(message)
+        description = self.describe(message)
+        shares_prefix = self.same_prefix(prefix_probe)
+        print(matched, description, shares_prefix)
+# File: src/cli.py
 from src.message_policy import MessagePolicy
 if __name__ == '__main__':
     policy = MessagePolicy('status')
-    print(policy.normalized(' READY '), policy.matches('status ready'), policy.describe('ready'), policy.same_prefix('status now'))
+    policy.report('status ready', 'status now')
 ```

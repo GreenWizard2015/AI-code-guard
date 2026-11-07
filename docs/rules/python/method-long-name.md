@@ -12,29 +12,43 @@ boundary and decompose responsibilities before shortening mechanically.
 
 
 ```python
-class PriceLabels:
-    def register_component_for_the_project_configuration_validation(self) -> str:
-        return 10
+# File: src/component_registry.py
+class ComponentRegistry:
+    def __init__(self, component_name: str) -> None:
+        self._component_name: str = component_name
+
+    def register_component_for_the_project_configuration_validation(self) -> str:  # <- error
+        return f"Validated {self._component_name}"
+
+    def report(self) -> None:
+        result = self.register_component_for_the_project_configuration_validation()
+        print(result)
+# File: cli.py
+from src.component_registry import ComponentRegistry
+
+if __name__ == "__main__":
+    registry = ComponentRegistry("search-index")
+    registry.report()
 ```
 
 ## Good
 
 
 ```python
-# File: src/price_labels/price_labels.py
+# File: src/price_labels.py
 class PriceLabels:
     """Responsibilities: _status label mapping_."""
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -43,25 +57,27 @@ class PriceLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+    def report(self) -> None:
+        label = self.label("ready")
+        detailed = self.label_with_prefix("State", "blocked")
+        fallback = self.uppercase_fallback()
+        count = self.status_count()
+        print(f"{label} {detailed} {fallback} {count}")
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.price_labels import PriceLabels
 
 if __name__ == "__main__":
     labels = {"ready": "Ready", "blocked": "Blocked"}
     price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    price_labels.report()
 ```

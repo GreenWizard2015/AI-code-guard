@@ -8,8 +8,8 @@ import { CommandLineOptions } from "src/core/support/command_line_options";
 
 describe("command line options", () => {
 	test("skips architecture review when no review agent is selected", () => {
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments(["node", "cli"]);
+		const command_line_options = new CommandLineOptions(["node", "cli"]);
+		const options = command_line_options.value();
 
 		expect({ review_agent: options.review_agent, skip_review: options.skip_review }).toEqual({
 			review_agent: "none",
@@ -18,14 +18,14 @@ describe("command line options", () => {
 	});
 
 	test("enables review cleanup explicitly", () => {
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments(["node", "cli", "--review-cleanup"]);
+		const command_line_options = new CommandLineOptions(["node", "cli", "--review-cleanup"]);
+		const options = command_line_options.value();
 		expect(options.review_cleanup).toBe(true);
 	});
 
 	test("enables forced architecture review explicitly", () => {
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments(["node", "cli", "--force-review"]);
+		const command_line_options = new CommandLineOptions(["node", "cli", "--force-review"]);
+		const options = command_line_options.value();
 		expect({ skip_review: options.skip_review, force_review: options.force_review }).toEqual({
 			skip_review: true,
 			force_review: true,
@@ -33,8 +33,8 @@ describe("command line options", () => {
 	});
 
 	test("keeps review cleanup disabled by default", () => {
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments(["node", "cli"]);
+		const command_line_options = new CommandLineOptions(["node", "cli"]);
+		const options = command_line_options.value();
 
 		expect({
 			skip_review: options.skip_review,
@@ -50,8 +50,8 @@ describe("command line options", () => {
 	});
 
 	test("enables review when a provider is explicitly selected", () => {
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments(["node", "cli", "--review-agent", "codex"]);
+		const command_line_options = new CommandLineOptions(["node", "cli", "--review-agent", "codex"]);
+		const options = command_line_options.value();
 
 		expect({ review_agent: options.review_agent, skip_review: options.skip_review }).toEqual({
 			review_agent: "codex",
@@ -64,8 +64,7 @@ describe("command line options", () => {
 		const cli_path = `${project_root}/src/core/cli.ts`;
 		const tsx_path = createRequire(import.meta.url).resolve("tsx/cli");
 		const ignored_source_directory = `${project_root}/src/core`;
-		const parser = new CommandLineOptions();
-		const options = parser.from_arguments([
+		const command_line_options = new CommandLineOptions([
 			"node",
 			cli_path,
 			"--root",
@@ -73,6 +72,7 @@ describe("command line options", () => {
 			"--ignore-dir",
 			ignored_source_directory,
 		]);
+		const options = command_line_options.value();
 		const result = spawnSync(
 			process.execPath,
 			[tsx_path, cli_path, "--root", options.root, "--ignore-dir", ignored_source_directory],
@@ -83,9 +83,15 @@ describe("command line options", () => {
 			},
 		);
 		const output = `${result.stdout}\n${result.stderr}`;
+		let spawn_error: string | undefined;
+		if (result.error !== undefined) {
+			spawn_error = result.error.message;
+		} else if (!output.includes("Total issues:")) {
+			spawn_error = `status=${result.status}; signal=${result.signal}; output=${output}`;
+		}
 
 		expect({
-			spawn_error: result.error?.message,
+			spawn_error,
 			review_agent: options.review_agent,
 			lint_completed: output.includes("Total issues:"),
 			context_count_mismatch: output.includes("different file counts"),

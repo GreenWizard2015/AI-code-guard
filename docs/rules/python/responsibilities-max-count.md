@@ -8,11 +8,21 @@ Split the owner or method into focused boundaries and keep each child responsibi
 
 
 ```python
+# File: src/account_session.py
 class AccountSession:
     """Responsibilities: _account identity_, _session state_."""
     def refresh(self, account_id: str) -> str:
         """Responsibilities: _account validation_, _session renewal_, _failure notification_."""
         return account_id.strip()
+    def report(self) -> None:
+        """Responsibilities: _session report output_."""
+        print(self.refresh("account-1"))
+# File: cli.py
+from src.account_session import AccountSession
+
+if __name__ == "__main__":
+    session = AccountSession()
+    session.report()
 ```
 
 ## Good
@@ -27,31 +37,33 @@ class UserSessionContract(Protocol):
     def close(self) -> str: ...
     def status_label(self) -> str: ...
 # File: src/user_session.py
-#!/usr/bin/env python3
-from logging import Logger, getLogger
 from src.protocols import UserSessionContract
 class UserSession(UserSessionContract):
     """Responsibilities: _account identity_, _session state_."""
-    def __init__(self, logger: Logger, account_id: str) -> None:
+    def __init__(self, account_id: str) -> None:
         """Responsibilities: _session initialization_."""
-        self.logger: Logger = logger
-        self.account_id: str = account_id
+        self._account_id: str = account_id
     def refresh(self) -> str:
         """Responsibilities: _account validation_."""
-        account = self.account_id.strip()
+        account = self._account_id.strip()
         if len(account) == 0: return "invalid"
-        self.logger.info(f"refresh {account}")
         return "refreshed"
     def close(self) -> str:
         """Responsibilities: _session closure_."""
-        self.logger.info(f"close {self.account_id}")
-        return "closed"
+        return f"closed {self._account_id.strip()}"
     def status_label(self) -> str:
         """Responsibilities: _session status_."""
-        account = self.account_id.strip()
+        account = self._account_id.strip()
         if len(account) == 0: return "unavailable"
         return f"Account {account}"
+    def report(self) -> None:
+        """Responsibilities: _session report output_."""
+        session_state = [self.refresh(), self.close(), self.status_label()]
+        print(" | ".join(session_state))
+# File: cli.py
+from src.user_session import UserSession
+
 if __name__ == "__main__":
-    session = UserSession(getLogger("sessions"), "account-1")
-    print(session.refresh(), session.close(), session.status_label())
+    session = UserSession("account-1")
+    session.report()
 ```

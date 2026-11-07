@@ -41,10 +41,10 @@ class PythonInstanceWriteLookup(PythonInstanceWriteLookupContract):
             if not write.at_or_after(self._line_number, self._column_offset):
                 return self
         return PythonInstanceWriteLookup(
-            True,
-            write.owner_name(),
-            write.line_number(),
-            write.column_offset(),
+            is_present=True,
+            owner_name=write.owner_name(),
+            line_number=write.line_number(),
+            column_offset=write.column_offset(),
         )
 
     def present(self) -> bool:

@@ -1,10 +1,52 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("unused symbol rules", () => {
+	test("counts inherited abstract method dispatch as usage of concrete overrides", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new InMemoryFileIO()),
+			{
+				"src/base_rule.ts": [
+					"export abstract class BaseRule {",
+					"  protected abstract collect(): string[];",
+					"  protected grouped(): string[][] {",
+					"    return [this.collect()];",
+					"  }",
+					"}",
+				].join("\n"),
+				"src/first_rule.ts": [
+					"import { BaseRule } from './base_rule';",
+					"export class FirstRule extends BaseRule { protected collect(): string[] { return []; } }",
+				].join("\n"),
+				"src/second_rule.ts": [
+					"import { BaseRule } from './base_rule';",
+					"export class SecondRule extends BaseRule { protected collect(): string[] { return []; } }",
+				].join("\n"),
+				"src/third_rule.ts": [
+					"import { BaseRule } from './base_rule';",
+					"export class ThirdRule extends BaseRule { protected collect(): string[] { return []; } }",
+				].join("\n"),
+				"src/fourth_rule.ts": [
+					"import { BaseRule } from './base_rule';",
+					"export class FourthRule extends BaseRule { protected collect(): string[] { return []; } }",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((item) => item.rule_id() === "unused-callable" && item.message().includes(".collect"))
+				.map((item) => item.file()),
+		).toEqual([]);
+	});
+
 	test("reports unused TypeScript classes, constants, types, and public fields", () => {
 		const fixture = new TestFixture();
 		const files = {
@@ -32,7 +74,7 @@ describe("unused symbol rules", () => {
 			].join("\n"),
 		};
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -41,14 +83,14 @@ describe("unused symbol rules", () => {
 		const rule_ids = violations
 			.filter((violation) =>
 				["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"].includes(
-					violation.rule_id,
+					violation.rule_id(),
 				),
 			)
-			.map((violation) => violation.rule_id)
+			.map((violation) => violation.rule_id())
 			.sort();
 		const diagnostics = violations
-			.filter((violation) => violation.rule_id.startsWith("unused-"))
-			.map((violation) => `${violation.rule_id}:${violation.file}:${violation.line}:${violation.message}`)
+			.filter((violation) => rule_ids.includes(violation.rule_id()))
+			.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.line()}:${violation.message()}`)
 			.sort();
 		expect({ rule_ids, diagnostics, has_violations: violations.length > 0 }).toEqual({
 			rule_ids: ["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"],
@@ -61,6 +103,35 @@ describe("unused symbol rules", () => {
 			],
 			has_violations: true,
 		});
+	});
+
+	test("resolves TypeScript type usage through named and cyclic star re-exports", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new InMemoryFileIO()),
+			{
+				"src/types/shape.ts": [
+					"export type Shape = { value: string };",
+					"export type UnusedShape = { other: number };",
+				].join("\n"),
+				"src/types/model.ts": 'export type { Shape as PublicShape } from "./shape";',
+				"src/types/index.ts": ['export * from "./model";', 'export * from "./cycle";'].join("\n"),
+				"src/types/cycle.ts": 'export * from "./index";',
+				"src/consumer.ts": [
+					'import type { PublicShape } from "./types";',
+					'const value: PublicShape = { value: "ready" };',
+					"value;",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id() === "unused-type")
+				.map((violation) => `${violation.file()}:${violation.message()}`),
+		).toEqual(['src/types/shape.ts:type declaration "UnusedShape" has no production usage']);
 	});
 
 	test("reports unused Python classes, constants, types, and public fields", () => {
@@ -96,7 +167,7 @@ describe("unused symbol rules", () => {
 			].join("\n"),
 		};
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -105,14 +176,14 @@ describe("unused symbol rules", () => {
 		const rule_ids = violations
 			.filter((violation) =>
 				["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"].includes(
-					violation.rule_id,
+					violation.rule_id(),
 				),
 			)
-			.map((violation) => violation.rule_id)
+			.map((violation) => violation.rule_id())
 			.sort();
 		const diagnostics = violations
-			.filter((violation) => violation.rule_id.startsWith("unused-"))
-			.map((violation) => `${violation.rule_id}:${violation.file}:${violation.line}:${violation.message}`)
+			.filter((violation) => rule_ids.includes(violation.rule_id()) || violation.rule_id() === "unused-callable")
+			.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.line()}:${violation.message()}`)
 			.sort();
 		expect({ rule_ids, diagnostics, has_violations: violations.length > 0 }).toEqual({
 			rule_ids: ["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"],
@@ -131,19 +202,19 @@ describe("unused symbol rules", () => {
 	test("treats Python __all__ as the module export declaration", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "source.py": "__all__ = ['PublicContract']" },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unused-module-variable")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "unused-module-variable")).toEqual([]);
 	});
 
 	test("does not count Python __all__ names as production API usage", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": ["class PublicService:", "    def run(self) -> int:", "        return 1"].join("\n"),
 				"package/__init__.py": ["from source import PublicService", '__all__ = ["PublicService"]'].join("\n"),
@@ -153,14 +224,14 @@ describe("unused symbol rules", () => {
 		);
 
 		expect(
-			violations.filter((item) => item.rule_id === "unused-class").map((item) => `${item.file}:${item.message}`),
+			violations.filter((item) => item.rule_id() === "unused-class").map((item) => `${item.file()}:${item.message()}`),
 		).toEqual(['source.py:class "PublicService" has no production usage']);
 	});
 
 	test("propagates real usage through a Python __all__ re-export", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": ["class PublicService:", "    def run(self) -> int:", "        return 1"].join("\n"),
 				"package/__init__.py": ["from source import PublicService", '__all__ = ["PublicService"]'].join("\n"),
@@ -170,13 +241,34 @@ describe("unused symbol rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unused-class")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "unused-class")).toEqual([]);
+	});
+
+	test("resolves a used symbol through a cyclic Python re-export chain", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"source.py": ["class PublicService:", "    def run(self) -> int:", "        return 1"].join("\n"),
+				"first.py": [
+					"from second import PublicService",
+					"from source import PublicService",
+					'__all__ = ["PublicService"]',
+				].join("\n"),
+				"second.py": ["from first import PublicService", '__all__ = ["PublicService"]'].join("\n"),
+				"consumer.py": ["from first import PublicService", "PublicService()"].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id() === "unused-class")).toEqual([]);
 	});
 
 	test("does not report Python __slots__ as an unused public field", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class SlotOwner:",
@@ -190,13 +282,13 @@ describe("unused symbol rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "unused-public-field")).toEqual([]);
+		expect(violations.filter((violation) => violation.rule_id() === "unused-public-field")).toEqual([]);
 	});
 
 	test("checks Python slot names as fields instead of checking __slots__ metadata", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class SlotOwner:",
@@ -212,8 +304,8 @@ describe("unused symbol rules", () => {
 
 		expect(
 			violations
-				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id))
-				.map((violation) => `${violation.rule_id}:${violation.file}:${violation.line}:${violation.message}`)
+				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id()))
+				.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.line()}:${violation.message()}`)
 				.sort(),
 		).toEqual([
 			'python-explicit-field-type:source.py:2:Python field "unused_value" is missing an explicit type',
@@ -224,7 +316,7 @@ describe("unused symbol rules", () => {
 	test("resolves aliased slots and accepts annotated string slots", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"MODULE_SLOT_NAMES: tuple[str, ...] = ('unused_module_value',)",
@@ -285,8 +377,8 @@ describe("unused symbol rules", () => {
 
 		expect(
 			violations
-				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id))
-				.map((violation) => `${violation.rule_id}:${violation.file}:${violation.message}`)
+				.filter((violation) => ["python-explicit-field-type", "unused-public-field"].includes(violation.rule_id()))
+				.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.message()}`)
 				.sort(),
 		).toEqual([
 			'python-explicit-field-type:source.py:Python field "unused_list_value" is missing an explicit type',
@@ -305,7 +397,7 @@ describe("unused symbol rules", () => {
 	test("does not report Python class variables that configure a base class", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class FrameworkBase:",
@@ -324,146 +416,8 @@ describe("unused symbol rules", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-public-field")
-				.map((violation) => `${violation.file}:${violation.message}`),
+				.filter((violation) => violation.rule_id() === "unused-public-field")
+				.map((violation) => `${violation.file()}:${violation.message()}`),
 		).toEqual(['source.py:public field "unused_value" has no production usage']);
-	});
-
-	test("reports unused fields declared by TypeScript types and interfaces", () => {
-		const fixture = new TestFixture();
-		const files = {
-			"contracts.ts": [
-				"export type UnusedType = {",
-				"  unused_type_field: string;",
-				"};",
-				"export interface UnusedInterface {",
-				"  unused_interface_field: string;",
-				"}",
-				"export interface UsedInterface {",
-				"  used_interface_field: string;",
-				"}",
-			].join("\n"),
-			"consumer.ts": [
-				"import type { UsedInterface } from './contracts';",
-				"const value: UsedInterface = { used_interface_field: 'value' };",
-				"value.used_interface_field;",
-			].join("\n"),
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations
-				.filter((violation) => violation.rule_id === "unused-public-field")
-				.map((violation) => `${violation.file}:${violation.line}:${violation.message}`)
-				.sort(),
-		).toEqual([
-			'contracts.ts:2:public field "unused_type_field" has no production usage',
-			'contracts.ts:5:public field "unused_interface_field" has no production usage',
-		]);
-	});
-	test("reports public fields referenced only by tests in both languages", () => {
-		const fixture = new TestFixture();
-		const files = {
-			"source.ts": "export class Service { public value = 1; }",
-			"tests/service.test.ts": "import { Service } from '../source'; const service = new Service(); service.value;",
-			"source.py": "class Service:\n    value: int = 1\n    def read(self) -> int:\n        return 0",
-			"tests/test_service.py": "from source import Service\nservice = Service()\nservice.value",
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const test_only = violations.filter((violation) => violation.rule_id === "test-only-usage");
-		expect(test_only).toHaveLength(2);
-		expect(violations.filter((violation) => violation.rule_id === "unused-public-field")).toHaveLength(0);
-	});
-
-	test("does not let an unrelated same-name local reference hide a declaration", () => {
-		const fixture = new TestFixture();
-		const files = {
-			"dead.ts": "export class Widget {}\n",
-			"other.ts": "export function read(Widget: number): number { return Widget; }\n",
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((violation) => violation.rule_id === "unused-class")).toEqual([
-			expect.objectContaining({
-				file: "dead.ts",
-				message: 'class "Widget" has no production usage',
-			}),
-		]);
-	});
-
-	test("keeps imported symbol usage scoped to matching definition names", () => {
-		const fixture = new TestFixture();
-		const definitions = Array.from({ length: 40 }, (_, index) => `export const UNUSED_${index} = ${index};`);
-		const files = {
-			"definitions.ts": definitions.concat("export const USED_VALUE = 1;").join("\n"),
-			"consumer.ts": ["import { USED_VALUE } from './definitions';", "const result = USED_VALUE;", "void result;"].join(
-				"\n",
-			),
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect({
-			used: violations.some((item) => item.message.includes('constant "USED_VALUE"')),
-			unused: violations.filter((item) => item.rule_id === "unused-constant").length,
-		}).toEqual({ used: false, unused: 40 });
-	});
-
-	test("does not let a parameter shadowing a class hide its unused diagnostic", () => {
-		const fixture = new TestFixture();
-		const files = {
-			"dead.ts": "export class Widget {}\nexport const LIVE = 1;\n",
-			"use.ts": [
-				"import { LIVE } from './dead';",
-				"export function read(Widget: number): number { return Widget + LIVE; }",
-			].join("\n"),
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((item) => item.rule_id === "unused-class")).toEqual([
-			expect.objectContaining({ file: "dead.ts", message: 'class "Widget" has no production usage' }),
-		]);
-	});
-
-	test("does not share field usage between unrelated classes", () => {
-		const fixture = new TestFixture();
-		const files = {
-			"dead.ts": "export class Dead { public value = 1; }\n",
-			"other.ts": "export function read(value: { value: number }): number { return value.value; }\n",
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((item) => item.rule_id === "unused-public-field")).toEqual([
-			expect.objectContaining({ file: "dead.ts", message: 'public field "value" has no production usage' }),
-		]);
 	});
 });

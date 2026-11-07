@@ -1,80 +1,111 @@
-import { relative } from "node:path";
 import { readFileSync } from "node:fs";
-import { PythonAstData } from "src/core/python_ast_data";
-import { PythonAstBridge } from "src/core/python_ast_bridge";
+import { extname, relative } from "node:path";
+import { TEST_PATH_SUFFIXES } from "src/constants";
+import { FUNCTION_MODULE_NAMES, PYTHON_PACKAGE_SUFFIX, SOURCE_EXTENSIONS } from "src/constants";
+import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
+import { PythonAstData } from "src/core/python-ast/python_ast_data";
+import type { ProjectContextState, ProjectSourceOptions } from "src/model_types";
+import type { TestPathSyntaxContract } from "src/shared_services_protocols";
+import type { ProjectSourceEntryContract, ProjectSourcePath } from "src/source_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
-import type { ProjectContextState, ProjectSourceOptions } from "src/model/types/types";
-import type { ProjectSourceEntryContract } from "src/source_protocols";
-import { FUNCTION_MODULE_NAMES, PYTHON_PACKAGE_SUFFIX } from "src/constants";
+import { TestPathKind } from "src/types";
 
 /** Responsibilities: _entry point classification_, _project-relative path resolution_. **/
 export class ProjectSourceEntry implements ProjectSourceEntryContract {
-	protected readonly root: string;
-	private readonly source_context_state: ProjectContextState;
-	private readonly entry_files: ReadonlySet<string>;
-	private readonly python_ast_data: PythonAstData;
-	private readonly test_path_syntax: TestPathSyntax;
+	protected readonly _root: string;
+	private readonly _source_context_state: ProjectContextState;
+	private readonly _entry_files: ReadonlySet<string>;
+	private readonly _relative_paths: Map<string, string>;
+	private readonly _python_ast_data: PythonAstData;
+	private readonly _test_path_syntax: TestPathSyntaxContract;
+
+	/** Responsibilities: _project source text access_. **/
+	private source_text(absolute_path: string): string {
+		if (this._source_context_state.available) {
+			return this._source_context_state.value.source_record(absolute_path).text;
+		}
+		return readFileSync(absolute_path, "utf8");
+	}
 
 	/** Responsibilities: _classification Python path entry_. **/
-	private python_entry(file: string, path: string): boolean {
+	private python_entry(source: ProjectSourcePath): boolean {
+		const { absolute, relative: path } = source;
 		if (!path.endsWith(".py")) {
 			return false;
 		}
 		if (path.endsWith(PYTHON_PACKAGE_SUFFIX)) {
 			return true;
 		}
-		if (!this.source_context_state.available) {
-			return this.python_ast_data.source_ast(readFileSync(file, "utf8")).python_main_guard === true;
+		if (!this._source_context_state.available) {
+			return (
+				this._python_ast_data.source_ast(this.source_text(absolute)).module_declarations.python_main_guard === true
+			);
 		}
-		return this.source_context_state.value.source_record(file).normalized_ast.python_main_guard === true;
+		return (
+			this._source_context_state.value.source_record(absolute).normalized_ast.module_declarations.python_main_guard ===
+			true
+		);
 	}
 
-	/** Responsibilities: _classification Node TypeScript path_. **/
-	private node_entry(file: string, path: string): boolean {
-		if (!path.endsWith(".ts") && !path.endsWith(".tsx")) {
+	/** Responsibilities: _TypeScript entry classification_. **/
+	private node_entry(source: ProjectSourcePath): boolean {
+		const extension = extname(source.relative);
+		if (extension === ".py") {
 			return false;
 		}
-		let text: string;
-		if (this.source_context_state.available) {
-			text = this.source_context_state.value.source_record(file).text;
-		} else {
-			text = readFileSync(file, "utf8");
+		if (!SOURCE_EXTENSIONS.has(extension)) {
+			return false;
 		}
-		const lines = text.split("\n", 1);
-		const first_line = lines[0].replace("\r", "");
-		return first_line === "#!/usr/bin/env node";
+		const text = this.source_text(source.absolute);
+		const first_line = text.split("\n", 1).at(0);
+		if (first_line === undefined) {
+			return false;
+		}
+		return first_line.replace("\r", "") === "#!/usr/bin/env node";
 	}
 
 	/** Responsibilities: _initialization project root source-discovery_. **/
 	public constructor(root: string, options: ProjectSourceOptions) {
-		this.python_ast_data = new PythonAstData(new PythonAstBridge());
-		this.test_path_syntax = new TestPathSyntax();
-		this.root = root;
-		this.source_context_state = options.context_state;
-		this.entry_files = new Set(options.entry_files);
+		const python_ast_bridge = new PythonAstBridge();
+		const python_ast_options = python_ast_bridge.options();
+		this._python_ast_data = new PythonAstData(python_ast_options);
+		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
+		this._root = root;
+		this._source_context_state = options.context_state;
+		this._entry_files = new Set(options.entry_files);
+		this._relative_paths = new Map();
 	}
 
 	/** Responsibilities: _normalization source file path_. **/
 	public relative_path(file: string): string {
-		const path = relative(this.root, file).split("\\").join("/");
-		if (!path) {
-			return ".";
+		const cached = this._relative_paths.get(file);
+		if (cached !== undefined) {
+			return cached;
 		}
-		return path;
+		const path = relative(this._root, file).split("\\").join("/");
+		let normalized = path;
+		if (!normalized) {
+			normalized = ".";
+		}
+		this._relative_paths.set(file, normalized);
+		return normalized;
 	}
 
 	/** Responsibilities: _reporting file project entry_. **/
 	public entry(file: string): boolean {
 		const path = this.relative_path(file);
+		const source = { absolute: file, relative: path };
 		if (FUNCTION_MODULE_NAMES.has(path)) {
 			return true;
 		}
-		if (this.python_entry(file, path) || this.node_entry(file, path)) {
+		const runtime_entry = this.python_entry(source) || this.node_entry(source);
+		const cli_entry = /^cli\.(?:ts|tsx|mts|cts|py)$/u.test(path.slice(path.lastIndexOf("/") + 1));
+		if (runtime_entry || cli_entry) {
 			return true;
 		}
-		if (this.entry_files.has(path)) {
+		if (this._entry_files.has(path)) {
 			return true;
 		}
-		return this.test_path_syntax.test_file(path);
+		return this._test_path_syntax.classify(path).has(TestPathKind.TestFile);
 	}
 }

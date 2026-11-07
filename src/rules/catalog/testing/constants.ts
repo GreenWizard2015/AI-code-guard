@@ -114,6 +114,11 @@ export const TESTING_RULE_DATA = {
 		hint: "assert the returned value or collected diagnostics directly. Do not: call console methods from a Jest test.",
 		priority: 6,
 	},
+	"runtime-patching": {
+		message: "do not patch or replace existing behavior",
+		hint: "Define a test double that implements the dependency protocol and inject it into the subject. Do not: patch imported functions, object methods, modules, or globals.",
+		priority: 6,
+	},
 	"test-min-count": {
 		message: "test suite has too few test methods (found {count})",
 		hint: "Add a focused test method or remove an unnecessary suite. Do not: add a placeholder test to satisfy the minimum.",

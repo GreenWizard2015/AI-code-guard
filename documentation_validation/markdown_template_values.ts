@@ -1,19 +1,20 @@
-import { MARKDOWN_LOOP_OBJECT_ERROR, MARKDOWN_LOOP_VALUE_ERROR } from "#documentation_validation/constants";
+import { MARKDOWN_LOOP_OBJECT_ERROR, MARKDOWN_LOOP_VALUE_ERROR } from "documentation_validation/constants";
+import { BoundaryFailureCategory } from "src/analysis_protocols";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 
 /** Responsibilities: _Markdown loop value ownership_, _placeholder binding_. **/
 export class MarkdownTemplateValues {
-	private readonly boundary_failures: SystemFailureClassificationContract;
-	private readonly variable: string;
-	private readonly values_literal: string;
+	private readonly _boundary_failures: SystemFailureClassificationContract;
+	private readonly _variable: string;
+	private readonly _values_literal: string;
 
 	/** Responsibilities: _JSON loop value parsing_. **/
 	private parsed_values(): string[] {
 		let parsed: unknown;
 		try {
-			parsed = JSON.parse(this.values_literal);
+			parsed = JSON.parse(this._values_literal);
 		} catch (error) {
-			if (!this.boundary_failures.json_parse_failure(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.JsonParse)) {
 				throw error;
 			}
 			throw new Error(`Markdown loop values must be a JSON array of strings, numbers, or booleans: ${String(error)}`);
@@ -39,7 +40,7 @@ export class MarkdownTemplateValues {
 			throw new Error(MARKDOWN_LOOP_VALUE_ERROR);
 		}
 		if (!item_json.startsWith("{")) {
-			return new Map([[this.variable, String(JSON.parse(item_json))]]);
+			return new Map([[this._variable, String(JSON.parse(item_json))]]);
 		}
 		return this.object_bindings(item_json);
 	}
@@ -47,7 +48,7 @@ export class MarkdownTemplateValues {
 	/** Responsibilities: _object loop property bindings_. **/
 	private object_bindings(item_json: string): ReadonlyMap<string, string> {
 		const item = JSON.parse(item_json);
-		const bindings = new Map<string, string>([[this.variable, item_json]]);
+		const bindings = new Map<string, string>([[this._variable, item_json]]);
 		for (const [name, property] of Object.entries(item)) {
 			const property_json = JSON.stringify(property);
 			if (property_json === undefined) {
@@ -69,7 +70,7 @@ export class MarkdownTemplateValues {
 		if (property_json.startsWith("[") || property_json.startsWith("{")) {
 			throw new Error(MARKDOWN_LOOP_OBJECT_ERROR);
 		}
-		bindings.set(`${this.variable}.${name}`, String(JSON.parse(property_json)));
+		bindings.set(`${this._variable}.${name}`, String(JSON.parse(property_json)));
 	}
 
 	/** Responsibilities: _single loop iteration substitution_. **/
@@ -85,9 +86,9 @@ export class MarkdownTemplateValues {
 
 	/** Responsibilities: _loop value source initialization_. **/
 	public constructor(values_literal: string, variable: string, boundary_failures: SystemFailureClassificationContract) {
-		this.values_literal = values_literal;
-		this.variable = variable;
-		this.boundary_failures = boundary_failures;
+		this._values_literal = values_literal;
+		this._variable = variable;
+		this._boundary_failures = boundary_failures;
 	}
 
 	/** Responsibilities: _loop iteration bindings_. **/

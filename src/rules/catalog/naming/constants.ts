@@ -86,7 +86,7 @@ export const NAMING_RULE_DATA = {
 	},
 	"naming-private": {
 		message: '{label} "{name}" must not use a leading underscore',
-		hint: "remove the leading underscore. Leading underscores are reserved for fields, private methods, and names made only of underscores.",
+		hint: "Remove the leading underscore. Only class fields, private methods, and names made only of underscores may keep it; TypeScript type fields may not.",
 		priority: 2,
 	},
 } as const;

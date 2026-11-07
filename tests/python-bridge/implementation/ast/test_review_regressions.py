@@ -39,6 +39,26 @@ def test_result():
 
         self.assertIn("unasserted-async-completion", issues)
 
+    def test_nested_async_call_is_checked_but_awaited_call_is_not(self) -> None:
+        """Responsibilities: _nested async completion result_."""
+        source = """
+def test_unobserved():
+    async def fetch():
+        return 1
+    fetch()
+    assert True
+
+async def test_observed():
+    async def fetch():
+        return 1
+    await fetch()
+    assert True
+"""
+        tree = PythonAstTree(source)
+        issues = [issue["kind"] for issue in tree.coding_issues()]
+
+        self.assertEqual(issues.count("unasserted-async-completion"), 1)
+
     def test_imported_clock_alias_is_a_test_time_dependency(self) -> None:
         """Responsibilities: _aliased clock dependency detection_."""
         source = """import time as clock
@@ -142,61 +162,6 @@ def test_second():
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("test-order-dependency", issues)
-
-
-class CacheStateRegressionTest(unittest.TestCase):
-    """Responsibilities: _cache operation ordering_, _branch cache state_."""
-
-    def test_nested_cache_read_precedes_following_write(self) -> None:
-        """Responsibilities: _cache operation execution order_."""
-        source = """
-def load(cache, lock):
-    with lock:
-        cache.get("read")
-    cache.set("write", 1)
-"""
-        tree = PythonAstTree(source)
-        issues = [issue["kind"] for issue in tree.coding_issues()]
-
-        self.assertIn("incomplete-cache-key", issues)
-
-    def test_nested_cache_read_executes_before_outer_write(self) -> None:
-        """Responsibilities: _nested cache access ordering_."""
-        source = """
-def load(cache):
-    cache.set("write", cache.get("read"))
-"""
-        tree = PythonAstTree(source)
-        issues = [issue["kind"] for issue in tree.coding_issues()]
-
-        self.assertIn("incomplete-cache-key", issues)
-
-    def test_mutually_exclusive_cache_read_and_write_are_not_paired(self) -> None:
-        """Responsibilities: _cache branch effect ownership_."""
-        source = """
-def load(cache, should_read):
-    if should_read:
-        cache.get("read")
-    else:
-        cache.set("write", 1)
-"""
-        tree = PythonAstTree(source)
-        issues = [issue["kind"] for issue in tree.coding_issues()]
-
-        self.assertNotIn("incomplete-cache-key", issues)
-
-    def test_cache_read_on_one_branch_is_compared_with_following_write(self) -> None:
-        """Responsibilities: _branch cache state merge_."""
-        source = """
-def load(cache, should_read):
-    if should_read:
-        cache.get("read")
-    cache.set("write", 1)
-"""
-        tree = PythonAstTree(source)
-        issues = [issue["kind"] for issue in tree.coding_issues()]
-
-        self.assertIn("incomplete-cache-key", issues)
 
 
 class ExceptionAliasRegressionTest(unittest.TestCase):

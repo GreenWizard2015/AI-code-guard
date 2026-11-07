@@ -6,18 +6,19 @@ describe("Python package import resolution", () => {
 	test("prefers package initializers independent of source order", () => {
 		const module = "/project/widget.py";
 		const initializer = "/project/widget/__init__.py";
-		const resolver = new ProjectSourcePython();
+		const resolver = new ProjectSourcePython("/project");
 		const files = [module, initializer, "/project/main.py"];
 		const reversed_files = [...files];
 		reversed_files.reverse();
-		const module_first = resolver.python_import_path("/project", "/project/main.py", "widget", new Set(files));
-		const package_first = resolver.python_import_path(
-			"/project",
-			"/project/main.py",
-			"widget",
-			new Set(reversed_files),
-		);
-		const relative_module = resolver.python_import_path("/project", "/project/main.py", ".widget", new Set(files));
+		const module_first = resolver
+			.for_files(new Set(files))
+			.resolve_import({ importer: "/project/main.py", specifier: "widget" });
+		const package_first = resolver
+			.for_files(new Set(reversed_files))
+			.resolve_import({ importer: "/project/main.py", specifier: "widget" });
+		const relative_module = resolver
+			.for_files(new Set(files))
+			.resolve_import({ importer: "/project/main.py", specifier: ".widget" });
 
 		expect({ module_first, package_first, relative_module }).toEqual({
 			module_first: initializer,
@@ -33,19 +34,17 @@ describe("Python package import resolution", () => {
 			"child.py": "from widget import LocalBase\nclass Child(LocalBase):\n    pass\n",
 		};
 		const fixture = new TestFixture();
-		const project = fixture.project_source.source_scanner_fixture(source_files);
+		const project = fixture._project_source.source_scanner_fixture(source_files);
 		const violations = fixture.collect_fixture_violations(source_files);
-		const resolver = new ProjectSourcePython();
-		const imported_module = resolver.python_import_path(
-			project.root,
-			resolve(project.root, "child.py"),
-			"widget",
-			new Set(project.files),
-		);
+		const resolver = new ProjectSourcePython(project.root);
+		const imported_module = resolver
+			.for_files(new Set(project.files))
+			.resolve_import({ importer: resolve(project.root, "child.py"), specifier: "widget" });
 
-		expect({ imported_module, violations }).toEqual({
-			imported_module: resolve(project.root, "widget/__init__.py"),
-			violations: expect.arrayContaining([expect.objectContaining({ file: "child.py", rule_id: "local-inheritance" })]),
+		expect(imported_module).toBe(resolve(project.root, "widget/__init__.py"));
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "child.py",
+			rule_id: "local-inheritance",
 		});
 	});
 
@@ -55,19 +54,17 @@ describe("Python package import resolution", () => {
 			"child.py": "from logging import LocalBase\nclass Child(LocalBase):\n    pass\n",
 		};
 		const fixture = new TestFixture();
-		const project = fixture.project_source.source_scanner_fixture(source_files);
+		const project = fixture._project_source.source_scanner_fixture(source_files);
 		const violations = fixture.collect_fixture_violations(source_files);
-		const resolver = new ProjectSourcePython();
-		const imported_module = resolver.python_import_path(
-			project.root,
-			resolve(project.root, "child.py"),
-			"logging",
-			new Set(project.files),
-		);
+		const resolver = new ProjectSourcePython(project.root);
+		const imported_module = resolver
+			.for_files(new Set(project.files))
+			.resolve_import({ importer: resolve(project.root, "child.py"), specifier: "logging" });
 
-		expect({ imported_module, violations }).toEqual({
-			imported_module: resolve(project.root, "logging.py"),
-			violations: expect.arrayContaining([expect.objectContaining({ file: "child.py", rule_id: "local-inheritance" })]),
+		expect(imported_module).toBe(resolve(project.root, "logging.py"));
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "child.py",
+			rule_id: "local-inheritance",
 		});
 	});
 });

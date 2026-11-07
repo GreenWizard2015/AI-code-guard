@@ -18,14 +18,46 @@ export const METRIC_KIND_LONG_FUNCTION = "long_function";
 export const METRIC_KIND_LONG_METHOD = "long_method";
 export const METRIC_KIND_METHOD = "method";
 export const METRIC_KIND_FUNCTION = "function";
+export const EMPTY_MUTATED_FIELDS: ReadonlySet<string> = new Set<string>();
 export const CONSTRUCTOR_NAME = "constructor";
 export const PYTHON_CONSTRUCTOR_NAME = "__init__";
+export const PYTHON_POST_INIT_METHOD = "__post_init__";
 export const CONTRACT_SUFFIX = "Contract";
 export const RESOLVER_SUFFIX = "Resolver";
-export const PLUGIN_MARKER_TOKEN = "marker";
-export const PLUGIN_MARKER_NAME = "pluginmarker";
+export const PROCEDURAL_CLASS_JOB_TITLE_SUFFIXES = [
+	"Manager",
+	"Controller",
+	"Handler",
+	"Processor",
+	"Helper",
+	"Utils",
+	"Utility",
+	"Reader",
+	"Writer",
+	"Parser",
+	"Validator",
+	"Converter",
+	"Sorter",
+	"Encoder",
+	"Decoder",
+	"Router",
+	"Dispatcher",
+	"Listener",
+	"Observer",
+	"Runner",
+	"Locator",
+	"Client",
+	"Service",
+	"Factory",
+	"Builder",
+	"Provider",
+	"Loader",
+	"Fetcher",
+	RESOLVER_SUFFIX,
+	"Generator",
+	"Calculator",
+] as const;
 export const READONLY_BUILTIN_TYPES: ReadonlySet<string> = new Set(["ReadonlyArray", "ReadonlyMap", "ReadonlySet"]);
 export const UNDEFINED_TYPE_NAME = "undefined";
-export const NAMESPACE_PARAMETER_CATEGORY = "namespace";
 export const SHARED_PARAMETER_REFERENCE_KIND = "reference";
 export const TYPESCRIPT_ARRAY_TYPE_NAME = "Array";

@@ -26,8 +26,16 @@ class PerformanceWorkloadIdentity:
         """Responsibilities: _Python file-count identity access_."""
         return self._python_files
 
+    def complete(self) -> bool:
+        """Responsibilities: _workload identity completeness_."""
+        return bool(self._project_root) and self._typescript_files >= 0 and self._python_files >= 0
+
     def matches(self, other: PerformanceWorkloadIdentityContract) -> bool:
         """Responsibilities: _workload identity comparison_."""
+        if not self.complete():
+            return False
+        if not other.complete():
+            return False
         if self.project_root() != other.project_root():
             return False
         if self.typescript_files() != other.typescript_files():

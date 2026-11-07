@@ -1,14 +1,17 @@
-import ts from "typescript";
+import type { StringSetMap } from "src/analysis_types";
 import { MODULE_CLASS_KIND, MODULE_INTERFACE_KIND, MODULE_ROOT_KIND } from "src/constants";
-import type { TypeScriptTreeMetadata } from "src/source_types";
 import type {
-	AstCallableNodeContract,
+	AstCallableNode,
 	AstCallableReference,
-	AstClassNodeContract,
+	AstClassField,
+	AstClassNode,
+	AstClassNodeClassification,
+	AstClassNodeFieldAnalysis,
+	AstClassNodeStructure,
 	AstImportIssue,
-	AstParseIssue,
 	AstLiteralConstant,
 	AstLiteralReference,
+	AstParseIssue,
 	AstReferenceAlias,
 	AstResponsibilityTarget,
 	AstSourceSpan,
@@ -18,15 +21,43 @@ import type {
 	LineDepth,
 	NamedLine,
 	NamedSymbol,
-} from "src/types";
-import type { TypeScriptPropertyStateContract } from "src/model/protocols";
+} from "src/model/ast/normalized_ast_types";
+import type { ImportedFunction } from "src/model/ast/normalized_ast_types";
+import type { TypeScriptClassCallableNodesContract, TypeScriptPropertyStateContract } from "src/model/protocols";
+import type { CallableSourceLineResolver } from "src/runtime_types";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { SourceLineResolver } from "src/runtime_types";
-import type { StringSetMap } from "src/analysis_types";
+import type { TypeScriptTreeMetadata } from "src/source_types";
+import type { TypeScriptClassMembersContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
-import type { TypeScriptMetadataNodeVisitor } from "src/typescript_analysis_types";
-import type { ImportedFunction } from "src/types";
+import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
+import type ts from "typescript";
+
+/** Responsibilities: _diagnostic rule metadata_. **/
+export type TaskReportDiagnosticScope = "directory" | "file-placement" | "unclassified";
+
+export type DiagnosticRuleData = {
+	readonly message: string;
+	readonly hint: string;
+	readonly priority: number;
+	readonly task_report_scope: TaskReportDiagnosticScope;
+};
+
+/** Responsibilities: _reference query classification_. **/
+export enum TypeScriptReferenceQueryKind {
+	CallOwner = "call-owner",
+	PropertyOwner = "property-owner",
+	CallOrPropertyOwner = "call-or-property-owner",
+	MethodReference = "method-reference",
+}
+
+export type TypeScriptMetadataSourceLocation = { readonly line: number };
+
+export enum TypeScriptReferenceOwnerQueryKind {
+	CallOwner = "call-owner",
+	PropertyOwner = "property-owner",
+	CallOrPropertyOwner = "call-or-property-owner",
+}
 
 export type TypeScriptClassFieldContext = {
 	file: string;
@@ -48,13 +79,15 @@ export type DestructuredInstanceOptions = {
 export type TypeScriptSourceResolver = ReadonlyMap<string, ts.SourceFile>;
 export type TypeScriptAstOptions = {
 	source_file: ts.SourceFile;
-	source_resolver: TypeScriptSourceResolver;
+	traversal: TypeScriptAstTraversalContract;
+	source_resolver: ReadonlyMap<string, ts.SourceFile>;
 	source_io: ProjectSourceIOContract;
 	project_root: string;
 	stage_timer: LintStageTimerContract;
 };
 export type TypeScriptCallReferenceCollectorOptions = {
 	source_file: ts.SourceFile;
+	declaration_index: TypeScriptObjectAliasDeclarationIndexContract;
 	project_root: string;
 	stage_timer: LintStageTimerContract;
 	source_files: TypeScriptSourceResolver;
@@ -66,14 +99,45 @@ export type TypeScriptMetadataSpans = {
 	module_type_spans: AstSourceSpan[];
 	module_protocol_spans: AstSourceSpan[];
 };
-export type TypeScriptLiteralMetadataResult = {
-	references: AstLiteralReference[];
-	constants: AstLiteralConstant[];
+export type TypeScriptAstDeclarationMetadataOptions = {
+	source_file: ts.SourceFile;
+	stage_timer: LintStageTimerContract;
 };
-export type TypeScriptReferenceMetadata = {
-	symbol_references: NamedLine[];
-	literal_references: AstLiteralReference[];
-	literal_constants: AstLiteralConstant[];
+export type TypeScriptClassMemberMetrics = {
+	lines: number;
+	sloc: number;
+};
+export type TypeScriptClassHeritage = {
+	interfaces: string[];
+	base_class_names: string[];
+};
+/** Responsibilities: _class node structure_. **/
+export type TypeScriptClassNodeStructure = {
+	readonly interfaces: string[];
+	readonly base_class_names: readonly string[];
+	readonly methods: AstCallableNode[];
+	readonly fields: AstClassField[];
+	readonly dependencies: string[];
+};
+/** Responsibilities: _class analysis state_. **/
+export type TypeScriptClassNodeAnalysis = {
+	readonly extends_external_class: boolean;
+	readonly is_data_class: boolean;
+	readonly type_contract: boolean;
+	readonly protocol: boolean;
+	readonly callback_fields: number;
+	readonly inline_callback_fields: number;
+	readonly untyped_fields: NamedLine[];
+};
+/** Responsibilities: _class node features_. **/
+export type TypeScriptClassNodeFeatures = {
+	readonly structure: TypeScriptClassNodeStructure;
+	readonly analysis: TypeScriptClassNodeAnalysis;
+};
+export type TypeScriptClassAstSections = {
+	structure: AstClassNodeStructure;
+	classification: AstClassNodeClassification;
+	field_analysis: AstClassNodeFieldAnalysis;
 };
 export type TreeMetadataState = {
 	import_issues: AstImportIssue[];
@@ -84,11 +148,10 @@ export type TreeMetadataState = {
 };
 
 export type TypeScriptMetadataCollectionOptions = {
-	line_for: SourceLineResolver;
 	state: TreeMetadataState;
 	literal_references: AstLiteralReference[];
 	literal_constants: AstLiteralConstant[];
-	on_node: TypeScriptMetadataNodeVisitor;
+	line_for: CallableSourceLineResolver;
 };
 export type TypeScriptDerivedMetadata = {
 	parse_issues: AstParseIssue[];
@@ -97,21 +160,12 @@ export type TypeScriptDerivedMetadata = {
 	reference_aliases: AstReferenceAlias[];
 	type_members: AstTypeMembers;
 };
-export type TypeScriptNormalizedMetadataOptions = {
-	classes: AstClassNodeContract[];
-	functions: AstCallableNodeContract[];
-	tree: TypeScriptTreeMetadata;
-	spans: TypeScriptMetadataSpans;
-	derived: TypeScriptDerivedMetadata;
-};
-export type TypeScriptDeclarationMetadata = {
-	language: "typescript";
-	classes: AstClassNodeContract[];
-	functions: AstCallableNodeContract[];
-	import_issues: AstImportIssue[];
-	attribute_accesses: LineDepth[];
-	named_symbols: NamedSymbol[];
-	type_declarations: NamedLine[];
+export type TypeScriptNormalizedFileParts = {
+	readonly classes: AstClassNode[];
+	readonly functions: AstCallableNode[];
+	readonly tree: TypeScriptTreeMetadata;
+	readonly derived: TypeScriptDerivedMetadata;
+	readonly spans: TypeScriptMetadataSpans;
 };
 /** Responsibilities: _kind TypeScript traversal representation_. **/
 export const RESPONSIBILITY_CONTAINER_KIND = {
@@ -127,6 +181,19 @@ export type CallableDataOptions = {
 	node: ts.SignatureDeclarationBase;
 	visibility: AstVisibility;
 	owner: string;
+};
+export type ClassCallableNodeOptions = {
+	member: ts.ClassElement;
+	callable: ts.FunctionLikeDeclaration;
+	name: string;
+	owner: string;
+};
+export type TypeScriptClassDeclarationMetadataOptions = {
+	class_declaration: ts.ClassLikeDeclaration;
+	fallback_name: string;
+	source_file: ts.SourceFile;
+	callable_nodes: TypeScriptClassCallableNodesContract;
+	member_data: TypeScriptClassMembersContract;
 };
 export type ArgumentUse = { name: string; count: number };
 export type TypedArgument = { name: string; type: string; kind: AstTypeKind };

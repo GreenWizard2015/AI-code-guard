@@ -2,77 +2,100 @@
 
 Description: Business logic should consume one normalized response representation.
 
+Fix: Normalize upstream variants once, then pass one response contract to business logic.
+
 ## Bad
 
-
 ```python
-# File: response_content.py
-def content_from_response(response: dict[str, str]) -> str:
-    structured_content = response.get("structuredContent")
-    if structured_content is not None:
-        return structured_content
-    return response.get("unwrap_tool_result", "")  # <- error
-```
-
-The fallback makes business logic depend on two upstream response shapes.
-
-## Good
-
-
-```python
-# File: protocols.py
-from typing import Protocol
-
-
-class ToolResponseContract(Protocol):
-    def content_text(self) -> str:
-        ...
-
-    def summary(self) -> str:
-        ...
-
-    def content_size(self) -> int:
-        ...
-
-# File: tool_response.py
-from protocols import ToolResponseContract
-
-
-class ToolResponse(ToolResponseContract):
-    """Responsibilities: _normalized response content access_."""
-
-    def __init__(self, content: str) -> None:
-        """Responsibilities: _response initialization_."""
-        self.content: str = content
+# File: src/tool_response.py
+class ToolResponse:
+    def __init__(self, response: dict[str, str]) -> None:
+        self._response: dict[str, str] = response
 
     def content_text(self) -> str:
-        """Responsibilities: _response content normalization_."""
-        normalized = self.content.strip()
-        if len(normalized) == 0:
-            return "empty"
-        return normalized.upper()
-
-    def summary(self) -> str:
-        """Responsibilities: _response summary composition_."""
-        content = self.content_text()
-        label = "empty" if len(content) == 0 else "content"
-        return f"{label}: {content}"
+        structured_content = self._response.get("structuredContent")
+        if structured_content is not None:
+            return structured_content
+        nested_content = self._response.get("result.content")
+        if nested_content is not None:
+            return nested_content
+        return self._response.get("unwrap_tool_result", "")
 
     def content_size(self) -> int:
-        """Responsibilities: _response content size calculation_."""
         size = 0
         for character in self.content_text():
             if character.strip():
                 size += 1
         return size
 
-# File: cli.py
-from tool_response import ToolResponse
+    def summary(self) -> str:
+        content = self.content_text()
+        label = "empty" if len(content) == 0 else "content"
+        return f"{label} ({self.content_size()}): {content}"
 
+    def report(self) -> None:
+        print(self.summary())
+# File: cli.py
+from src.tool_response import ToolResponse
+
+if __name__ == "__main__":
+    responses = [
+        {"structuredContent": "ready"},
+        {"result.content": "queued"},
+        {"unwrap_tool_result": "finished"},
+    ]
+    for response_data in responses:
+        response = ToolResponse(response_data)
+        response.report()
+```
+
+## Good
+
+```python
+# File: src/protocols.py
+from typing import Protocol
+
+class ToolResponseContract(Protocol):
+    def content_text(self) -> str: ...
+
+    def summary(self) -> str: ...
+
+    def content_size(self) -> int: ...
+
+    def report(self) -> None: ...
+# File: src/tool_response.py
+from src.protocols import ToolResponseContract
+
+class ToolResponse(ToolResponseContract):
+    """Responsibilities: _normalized response content access_."""
+
+    def __init__(self, content: str) -> None:
+        self._content: str = content
+
+    def content_text(self) -> str:
+        normalized = self._content.strip()
+        if len(normalized) == 0:
+            return "empty"
+        return normalized.upper()
+
+    def summary(self) -> str:
+        content = self.content_text()
+        label = "empty" if len(content) == 0 else "content"
+        return f"{label}: {content}"
+
+    def content_size(self) -> int:
+        size = 0
+        for character in self.content_text():
+            if character.strip():
+                size += 1
+        return size
+
+    def report(self) -> None:
+        print(f"{self.summary()} ({self.content_size()})")
+# File: cli.py
+from src.tool_response import ToolResponse
 
 if __name__ == "__main__":
     response = ToolResponse("ready")
-    print(response.content_text(), response.summary(), response.content_size())
+    response.report()
 ```
-
-Normalize upstream variants once, then pass one response contract to business logic.

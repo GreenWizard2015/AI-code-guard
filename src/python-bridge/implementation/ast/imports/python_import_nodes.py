@@ -1,27 +1,51 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.types import JsonObject
+from implementation.types import JsonObject, JsonValueList
 
 
 class PythonImportNodes:
     """Responsibilities: _import record normalization_, _module import indexing_."""
 
+    def _named_import_records(self, node: ast.Import) -> list[JsonObject]:
+        """Responsibilities: _plain import record collection_."""
+        records: list[JsonObject] = []
+        for item in node.names:
+            name: JsonObject = {"name": item.name, "alias": item.asname or ""}
+            records.append(
+                {
+                    "line": node.lineno - 1,
+                    "kind": "import",
+                    "module": item.name,
+                    "names": [name],
+                },
+            )
+        return records
+
+    def _statement_import_records(self, node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _import statement record selection_."""
+        if type(node) is ast.ImportFrom:
+            return [self.import_record(node)]
+        if type(node) is ast.Import:
+            return self._named_import_records(node)
+        return []
+
     def __init__(
-        self, tree: ast.Module, node_index: PythonAstNodeIndexContract
+        self,
+        tree: ast.Module,
+        node_index: PythonAstNodeIndexContract,
     ) -> None:
-        """Responsibilities: _initialization import node collection_."""
-        self.tree: ast.Module = tree
-        self.node_index: PythonAstNodeIndexContract = node_index
+        """Responsibilities: _import node collection initialization_."""
+        self._tree: ast.Module = tree
+        self._node_index: PythonAstNodeIndexContract = node_index
 
     def import_record(self, node: ast.ImportFrom) -> JsonObject:
         """Responsibilities: _import record normalization_."""
-        names: list[dict[str, str]] = []
+        names: JsonValueList = []
         for item in node.names:
-            name: Any = {"name": item.name, "alias": item.asname or ""}
+            name: JsonObject = {"name": item.name, "alias": item.asname or ""}
             names.append(name)
         module_name = node.module or ""
         return {
@@ -34,20 +58,6 @@ class PythonImportNodes:
     def import_records(self) -> list[JsonObject]:
         """Responsibilities: _module declarations_."""
         imports: list[JsonObject] = []
-        for node in self.node_index.nodes(self.tree):
-            if type(node) is ast.ImportFrom:
-                imports.append(self.import_record(node))
-                continue
-            if type(node) is not ast.Import:
-                continue
-            for item in node.names:
-                name: Any = {"name": item.name, "alias": item.asname or ""}
-                imports.append(
-                    {
-                        "line": node.lineno - 1,
-                        "kind": "import",
-                        "module": item.name,
-                        "names": [name],
-                    }
-                )
+        for node in self._node_index.nodes(self._tree):
+            imports.extend(self._statement_import_records(node))
         return imports

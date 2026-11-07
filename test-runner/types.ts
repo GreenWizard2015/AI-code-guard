@@ -1,9 +1,10 @@
-import type { ReviewAgentSelection } from "src/types";
 import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
+import type { Writable } from "node:stream";
+import type { ReviewAgentSelection } from "src/task_review_types";
 
 export type CommandResult = { status: number; error_message: string };
 export type CommandSpawnResult = SpawnSyncReturns<Buffer>;
-export type CommandSpawnContract = (
+export type CallableCommandSpawn = (
 	command: string,
 	args: readonly string[],
 	options: SpawnSyncOptions,
@@ -33,6 +34,11 @@ export type QualityCheck = {
 	readonly supports_review_agent: boolean;
 };
 
+export type PythonUnusedChecks = {
+	readonly imports: QualityCheck;
+	readonly declarations: QualityCheck;
+};
+
 export type QualityCheckRunOptions = {
 	readonly force_review: boolean;
 	readonly review_cleanup: boolean;
@@ -44,13 +50,14 @@ export type QualityCheckArgument = {
 	readonly argument: string;
 };
 
-export type QualityCheckExecutionOptions = {
-	readonly skip_quality: boolean;
-	readonly force_review: boolean;
-	readonly review_cleanup: boolean;
-	readonly review_agent: ReviewAgentSelection;
-};
+export type ProjectPythonSourceFilePaths = readonly string[];
 /** Responsibilities: _process exit signaling_. **/
 export interface ProcessExitContract {
 	exit(status: number): void;
 }
+
+/** Responsibilities: _test-runner standard output_, _test-runner error output_. **/
+export type TestRunnerOutput = {
+	readonly stdout: Writable;
+	readonly stderr: Writable;
+};

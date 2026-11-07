@@ -33,6 +33,10 @@ class PerformanceWorkloadIdentityContract(Protocol):
         """Responsibilities: _Python file-count identity access_."""
         ...
 
+    def complete(self) -> bool:
+        """Responsibilities: _workload identity completeness_ ."""
+        ...
+
     def matches(self, other: PerformanceWorkloadIdentityContract) -> bool:
         """Responsibilities: _workload identity comparison_."""
         ...
@@ -64,6 +68,10 @@ class PerformanceSnapshotContract(Protocol):
 
 class PerformanceSnapshotsContract(Protocol):
     """Responsibilities: _performance snapshot collection contract_."""
+
+    def validated(self) -> PerformanceSnapshotsContract:
+        """Responsibilities: _snapshot collection validation_."""
+        ...
 
     def file_counts(self) -> dict[str, int]:
         """Responsibilities: _performance file-count collection access_."""

@@ -4,11 +4,10 @@ import ast
 from typing import Protocol
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.protocols import (
-    PythonTypingAliasesContract,
     PythonUnionAnnotationRulesContract,
 )
-from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.types import JsonObject
 
 
@@ -32,7 +31,9 @@ class PythonUnionAnnotationIssueCollectorContract(Protocol):
     def issues_for_candidates(self, candidates: list[ast.AST]) -> list[JsonObject]: ...
 
     def issues_for_values(
-        self, node: ast.AST, values: list[ast.AST]
+        self,
+        node: ast.AST,
+        values: list[ast.AST],
     ) -> list[JsonObject]: ...
 
 
@@ -45,6 +46,36 @@ class UnionRulesOptionsContract(Protocol):
 
     def container_aliases(self) -> PythonContainerAliasesContract: ...
 
-    def python_typing_aliases(self) -> PythonTypingAliasesContract: ...
+    def python_typing_aliases(self) -> PythonObservedTypingAliasesContract: ...
 
     def annotation_rules(self) -> PythonUnionAnnotationRulesContract: ...
+
+
+class PythonConditionalTypeAliasAnalysisContract(Protocol):
+    """Responsibilities: _conditional type alias diagnostics_."""
+
+    def type_alias(self, alias_expression: ast.AST) -> bool: ...
+
+    def issue(self, node: ast.AST) -> list[JsonObject]: ...
+
+
+class PythonUnionDeclarationAnnotationsContract(Protocol):
+    """Responsibilities: _union declaration annotation lookup_."""
+
+    def annotations(self, node: ast.AST) -> list[ast.AST]: ...
+
+    def field_declaration(self, field_candidate: ast.AST) -> bool: ...
+
+    def module_alias_statements(self) -> list[ast.stmt]: ...
+
+
+class PythonObservedTypingAliasesContract(Protocol):
+    """Responsibilities: _typing alias observation_."""
+
+    def expression_name(self, expression: ast.AST) -> str: ...
+
+    def matches_optional(self, name: str) -> bool: ...
+
+    def matches_union(self, name: str) -> bool: ...
+
+    def observe(self, node: ast.AST) -> None: ...

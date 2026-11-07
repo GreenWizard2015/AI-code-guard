@@ -8,12 +8,16 @@ representations in one signature.
 
 
 ```python
+# File: src/lookup.py
+class Lookup:
+    def emit(self, values: list[dict[str, str]]) -> None:
+        print(values[0]["value"])
+
 # File: cli.py
-def lookup_result(values: list[dict[str, str]]) -> str:
-    return values[0]["value"]
+from src.lookup import Lookup
 
 if __name__ == "__main__":
-    print(lookup_result([{"value": "ready"}]))
+    Lookup().emit([{"value": "ready"}])
 ```
 
 ## Good
@@ -21,12 +25,39 @@ if __name__ == "__main__":
 
 ```python
 # File: src/types.py
-from typing import TypeAlias
+LookupRecord = dict[str, str]
+LookupResults = list[LookupRecord]
+# File: src/lookup_results_reporter.py
+from src.types import LookupRecord, LookupResults
 
-Item: TypeAlias = str
+class LookupResultsReporter:
+    def __init__(self) -> None:
+        self._results_by_key: dict[str, LookupRecord] = {}
+
+    def add(self, results: LookupResults) -> None:
+        for record in results:
+            self._results_by_key[record["value"]] = record
+
+    def result_count(self) -> int:
+        return len(self._results_by_key)
+
+    def format_results(self) -> str:
+        values = [record["value"] for record in self._results_by_key.values()]
+        return ",".join(values)
+
+    def report(self) -> None:
+        print(self.format_results())
+
+    def clear(self) -> None:
+        self._results_by_key.clear()
+
 # File: cli.py
-from src.types import Item
+from src.lookup_results_reporter import LookupResultsReporter
+
 if __name__ == "__main__":
-    items: list[Item] = ["ready"]
-    print(len(items))
+    reporter = LookupResultsReporter()
+    reporter.add([{"value": "ready"}])
+    if reporter.result_count() > 0:
+        reporter.report()
+    reporter.clear()
 ```

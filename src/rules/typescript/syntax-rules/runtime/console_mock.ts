@@ -1,212 +1,143 @@
+import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
+import type {
+	TypeScriptConsoleAliasResolverContract,
+	TypeScriptMemberAliasesContract,
+	TypeScriptObjectAliasDeclarationIndexContract,
+} from "src/typescript_runtime_protocols";
 import ts from "typescript";
-import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
-import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptObjectAliases } from "src/typescript-aliases/type_script_object_aliases";
-import { TypeScriptObjectAliasDeclarationIndex } from "src/typescript-aliases/type_script_object_alias_declaration_index";
-import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
-import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
-import type { TypeScriptMemberAliasesContract, TypeScriptObjectAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _console mock identification_, _mock alias scope tracking_. **/
 export class ConsoleMock {
-	private readonly mock_methods: Set<string>;
-	private readonly assignment_methods: Set<string>;
-	private readonly console_aliases: TypeScriptMemberAliasesContract;
-	private readonly jest_aliases: TypeScriptMemberAliasesContract;
-	private readonly expression_aliases: TypeScriptExpressionAliases;
-	private readonly static_expression_values: TypeScriptStaticExpressionValues;
-	private readonly aliases_by_scope: Map<ts.Node, TypeScriptObjectAliasesContract>;
-	private readonly declaration_index: TypeScriptObjectAliasDeclarationIndex;
+	private readonly _mock_methods: Set<string>;
+	private readonly _assignment_methods: Set<string>;
+	private readonly _console_aliases: TypeScriptMemberAliasesContract;
+	private readonly _jest_aliases: TypeScriptMemberAliasesContract;
+	private readonly _console_alias_resolver: TypeScriptConsoleAliasResolverContract;
 
-	/** Responsibilities: _source object aliases_. **/
-	private scope_key(node: ts.Node): ts.Node {
-		let current = node;
-		while (!ts.isSourceFile(current)) {
-			if (ts.isFunctionLike(current)) {
-				return current;
-			}
-			current = current.parent;
+	/** Responsibilities: _mock method resolution_. **/
+	private mock_method(mock_invocation: ts.CallExpression): string {
+		const method = this._console_alias_resolver.member_name(mock_invocation.expression, mock_invocation);
+		if (method !== "") {
+			return method;
 		}
-		return current;
-	}
-
-	/** Responsibilities: _enclosing scope collection_. **/
-	private scope_nodes(node: ts.Node): ts.Node[] {
-		const scopes: ts.Node[] = [];
-		let current = node;
-		while (!ts.isSourceFile(current)) {
-			if (ts.isFunctionLike(current)) {
-				scopes.push(current);
-			}
-			current = current.parent;
-		}
-		scopes.push(current);
-		return scopes.reverse();
-	}
-
-	/** Responsibilities: _source object aliases_. **/
-	private object_aliases(source: ts.Node): TypeScriptObjectAliasesContract {
-		const key = this.scope_key(source);
-		const cached = this.aliases_by_scope.get(key);
-		if (cached !== undefined) {
-			return cached;
-		}
-		const aliases = new TypeScriptObjectAliases(this.declaration_index);
-		for (const scope of this.scope_nodes(source)) {
-			aliases.collect(scope);
-		}
-		this.aliases_by_scope.set(key, aliases);
-		return aliases;
-	}
-
-	/** Responsibilities: _static console member name_. **/
-	private member_name(expression: ts.Expression, source: ts.Node): string {
-		if (ts.isPropertyAccessExpression(expression)) {
-			return expression.name.text;
-		}
-		if (!ts.isElementAccessExpression(expression)) {
+		if (!ts.isIdentifier(mock_invocation.expression)) {
 			return "";
 		}
-		if (expression.argumentExpression === undefined) {
+		if (
+			!this._jest_aliases.property({
+				expression: mock_invocation.expression,
+				node: mock_invocation,
+				name: "spyOn",
+			})
+		) {
 			return "";
 		}
-		const key = this.expression_aliases.unwrapped(expression.argumentExpression);
-		if (ts.isStringLiteral(key) || ts.isNoSubstitutionTemplateLiteral(key)) {
-			return key.text;
-		}
-		return this.static_expression_values.value(expression.argumentExpression, source);
+		return "spyOn";
 	}
 
-	/** Responsibilities: _classification invocation invokes configuration_. **/
-	private is_mock_call(node: ts.CallExpression): boolean {
-		let method = this.member_name(node.expression, node);
-		if (method === "") {
-			if (!ts.isIdentifier(node.expression)) {
-				return false;
-			}
-			if (!this.jest_aliases.property(node.expression, node, "spyOn")) {
-				return false;
-			}
-			method = "spyOn";
-		}
-		if (!this.mock_methods.has(method)) {
+	/** Responsibilities: _console mock call classification_. **/
+	private is_mock_call(mock_invocation: ts.CallExpression): boolean {
+		const method = this.mock_method(mock_invocation);
+		if (!this._mock_methods.has(method)) {
 			return false;
 		}
-		if (node.arguments.length === 0) {
+		if (mock_invocation.arguments.length === 0) {
 			return false;
 		}
-		return this.console_expression(node.arguments[0], node);
+		const argument = mock_invocation.arguments.at(0);
+		if (argument === undefined) {
+			return false;
+		}
+		return this._console_alias_resolver.console_expression(argument, mock_invocation);
 	}
 
 	/** Responsibilities: _classification assignment targets console_. **/
-	private console_assignment(node: ts.BinaryExpression): boolean {
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
+	private console_assignment(assignment: ts.BinaryExpression): boolean {
+		if (assignment.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
 			return false;
 		}
-		if (!this.console_assignment_target(node.left, node)) {
+		if (!this.console_assignment_target(assignment.left, assignment)) {
 			return false;
 		}
-		return this.assignment_value_allowed(node.right, node);
+		return this.assignment_value_allowed(assignment.right, assignment);
 	}
 
 	/** Responsibilities: _classification left-hand side console_. **/
-	private console_assignment_target(node: ts.Expression, source: ts.Node): boolean {
-		if (!ts.isPropertyAccessExpression(node)) {
+	private console_assignment_target(target_expression: ts.Expression, access_source: ts.Node): boolean {
+		if (!ts.isPropertyAccessExpression(target_expression)) {
 			return false;
 		}
-		return this.console_expression(node.expression, source);
+		return this._console_alias_resolver.console_expression(target_expression.expression, access_source);
 	}
 
 	/** Responsibilities: _classification console assignment value_. **/
-	private assignment_value_allowed(node: ts.Expression, source: ts.Node): boolean {
-		if (!ts.isCallExpression(node)) {
+	private assignment_value_allowed(assignment_value: ts.Expression, value_source: ts.Node): boolean {
+		if (!ts.isCallExpression(assignment_value)) {
 			return false;
 		}
-		const method = this.member_name(node.expression, source);
+		const method = this._console_alias_resolver.member_name(assignment_value.expression, value_source);
 		if (method === "") {
 			return false;
 		}
-		return this.assignment_methods.has(method);
+		return this._assignment_methods.has(method);
 	}
 
 	/** Responsibilities: _classification node accesses console_. **/
-	private is_console_property(node: ts.Node): boolean {
-		if (!ts.isPropertyAccessExpression(node) && !ts.isElementAccessExpression(node)) {
+	private is_console_property(property_access: ts.Node): boolean {
+		if (!ts.isPropertyAccessExpression(property_access) && !ts.isElementAccessExpression(property_access)) {
 			return false;
 		}
-		return this.console_expression(node.expression, node);
-	}
-
-	/** Responsibilities: _classification console property assignment_. **/
-	private console_usage_assignment(node: ts.Node): boolean {
-		if (!ts.isBinaryExpression(node)) {
-			return false;
-		}
-		if (!ts.isPropertyAccessExpression(node.left) && !ts.isElementAccessExpression(node.left)) {
-			return false;
-		}
-		return this.console_expression(node.left.expression, node);
+		return this._console_alias_resolver.console_expression(property_access.expression, property_access);
 	}
 
 	/** Responsibilities: _classification console member alias_. **/
-	private is_console_alias(node: ts.CallExpression): boolean {
-		if (!ts.isIdentifier(node.expression)) {
+	private is_console_alias(console_invocation: ts.CallExpression): boolean {
+		if (!ts.isIdentifier(console_invocation.expression)) {
 			return false;
 		}
-		return this.console_aliases.member(node.expression, node);
+		return this._console_aliases.member({ expression: console_invocation.expression, node: console_invocation });
 	}
 
 	/** Responsibilities: _reporting expression valid console_. **/
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.mock_methods = new Set(["spyOn", "stub"]);
-		this.assignment_methods = new Set(["fn", "mock"]);
-		this.console_aliases = new TypeScriptMemberAliases("console", () => "");
-		this.jest_aliases = new TypeScriptMemberAliases("jest", () => "");
-		this.expression_aliases = new TypeScriptExpressionAliases("");
-		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
-		this.aliases_by_scope = new Map<ts.Node, TypeScriptObjectAliasesContract>();
-		this.declaration_index = new TypeScriptObjectAliasDeclarationIndex();
-	}
-	/** Responsibilities: _public operation_. **/
-	public console_expression(node: ts.Expression, source: ts.Node): boolean {
-		if (ts.isIdentifier(node)) {
-			return node.text === "console";
-		}
-		if (ts.isPropertyAccessExpression(node)) {
-			const values = this.object_aliases(source).property_values(node.expression, node.name.text);
-			return values.some((value) => this.console_expression(value, source));
-		}
-		if (!ts.isElementAccessExpression(node)) {
-			return false;
-		}
-		if (node.argumentExpression === undefined) {
-			return false;
-		}
-		const property_name = this.static_expression_values.value(node.argumentExpression, source);
-		const values = this.object_aliases(source).property_values(node.expression, property_name);
-		return values.some((value) => this.console_expression(value, source));
+	public constructor(
+		console_alias_resolver: TypeScriptConsoleAliasResolverContract,
+		declaration_index: TypeScriptObjectAliasDeclarationIndexContract,
+	) {
+		this._mock_methods = new Set(["spyOn", "stub"]);
+		this._assignment_methods = new Set(["fn", "mock"]);
+		this._console_aliases = new TypeScriptMemberAliases("console", () => "", declaration_index);
+		this._jest_aliases = new TypeScriptMemberAliases("jest", () => "", declaration_index);
+		this._console_alias_resolver = console_alias_resolver;
 	}
 
 	/** Responsibilities: _reporting node defines console_. **/
-	public console_mock(node: ts.Node): boolean {
-		if (ts.isCallExpression(node)) {
-			return this.is_mock_call(node);
+	public console_mock(mock_candidate: ts.Node): boolean {
+		if (ts.isCallExpression(mock_candidate)) {
+			return this.is_mock_call(mock_candidate);
 		}
-		if (!ts.isBinaryExpression(node)) {
+		if (!ts.isBinaryExpression(mock_candidate)) {
 			return false;
 		}
-		return this.console_assignment(node);
+		return this.console_assignment(mock_candidate);
 	}
 
 	/** Responsibilities: _reporting node performs disallowed_. **/
-	public console_usage(node: ts.Node): boolean {
-		if (ts.isCallExpression(node)) {
-			if (this.is_console_property(node.expression)) {
+	public console_usage(usage_candidate: ts.Node): boolean {
+		if (ts.isCallExpression(usage_candidate)) {
+			if (this.is_console_property(usage_candidate.expression)) {
 				return true;
 			}
-			return this.is_console_alias(node);
+			return this.is_console_alias(usage_candidate);
 		}
-		return this.console_usage_assignment(node);
+		if (!ts.isBinaryExpression(usage_candidate)) {
+			return false;
+		}
+		if (!ts.isPropertyAccessExpression(usage_candidate.left)) {
+			if (!ts.isElementAccessExpression(usage_candidate.left)) {
+				return false;
+			}
+		}
+		return this._console_alias_resolver.console_expression(usage_candidate.left.expression, usage_candidate);
 	}
 }

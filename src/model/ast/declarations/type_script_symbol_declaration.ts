@@ -1,26 +1,19 @@
-import { MODULE_CONSTANT_KIND, MODULE_VARIABLE_KIND, PROTECTED_VISIBILITY } from "src/constants";
-import { MODULE_FUNCTION_KIND } from "src/rules/constants";
+import {
+	MODULE_CONSTANT_KIND,
+	MODULE_VARIABLE_KIND,
+	PROTECTED_VISIBILITY,
+	TYPE_FIELD_SYMBOL_KIND,
+} from "src/constants";
+import type { AstVisibility, NamedSymbol, NamedSymbolKind } from "src/model/ast/normalized_ast_types";
 import type { ModuleSymbolFlags, NamedSymbolOptions } from "src/parser/types";
-import type { AstVisibility, NamedSymbol, NamedSymbolKind } from "src/types";
+import { MODULE_FUNCTION_KIND } from "src/rules/constants";
 import ts from "typescript";
 
 /** Responsibilities: _symbol declarations_, _declaration metadata_. **/
 export class TypeScriptSymbolDeclaration {
-	private readonly declaration_kinds: ReadonlySet<ts.SyntaxKind>;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _declaration_kinds: ReadonlySet<ts.SyntaxKind>;
 	private readonly default_visibility: AstVisibility = "public";
-
-	/** Responsibilities: _named declaration symbols_. **/
-	private named_declaration(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		const function_value = this.function_symbol(node, source_file);
-		if (function_value.length > 0) {
-			return function_value;
-		}
-		const method_value = this.method_symbol(node, source_file);
-		if (method_value.length > 0) {
-			return method_value;
-		}
-		return this.member_symbol(node, source_file);
-	}
 
 	/** Responsibilities: _module symbol flags_. **/
 	private module_flags(kind: NamedSymbolKind, is_module_scope: boolean): ModuleSymbolFlags {
@@ -54,10 +47,7 @@ export class TypeScriptSymbolDeclaration {
 	private is_module_scope(node: ts.VariableDeclaration): boolean {
 		let current: ts.Node = node.parent;
 		while (!ts.isSourceFile(current)) {
-			if (ts.isFunctionLike(current)) {
-				return false;
-			}
-			if (ts.isClassLike(current)) {
+			if (ts.isFunctionLike(current) || ts.isClassLike(current)) {
 				return false;
 			}
 			current = current.parent;
@@ -66,112 +56,151 @@ export class TypeScriptSymbolDeclaration {
 	}
 
 	/** Responsibilities: _symbol metadata normalization_. **/
-	private named_symbol(
-		name: string,
-		node: ts.Node,
-		kind: NamedSymbolKind,
-		source_file: ts.SourceFile,
-		options: NamedSymbolOptions,
-	): NamedSymbol {
-		const visibility: AstVisibility = options.visibility;
-		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
+	private named_symbol(name: string, node: ts.Node, kind: NamedSymbolKind, options: NamedSymbolOptions): NamedSymbol {
+		const line = this._source_file.getLineAndCharacterOfPosition(node.getStart(this._source_file)).line;
 		return {
 			name,
 			line,
 			kind,
 			is_module_constant: options.is_module_constant === true,
 			is_module_variable: options.is_module_variable === true,
-			visibility,
+			visibility: options.visibility,
 			is_module_function: options.is_module_function === true,
 		};
 	}
 
 	/** Responsibilities: _method visibility_. **/
 	private declaration_visibility(node: ts.MethodDeclaration): AstVisibility {
-		if (node.name) {
-			if (ts.isPrivateIdentifier(node.name)) {
-				return "private";
-			}
+		if (node.name && ts.isPrivateIdentifier(node.name)) {
+			return "private";
 		}
-		if (ts.canHaveModifiers(node)) {
-			const modifiers = ts.getModifiers(node);
-			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
-				return "private";
-			}
-			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
-				return PROTECTED_VISIBILITY;
-			}
+		if (!ts.canHaveModifiers(node)) {
+			return this.default_visibility;
 		}
-		return "public";
+		const modifiers = ts.getModifiers(node);
+		if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+			return "private";
+		}
+		if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+			return PROTECTED_VISIBILITY;
+		}
+		return this.default_visibility;
 	}
 
 	/** Responsibilities: _function symbol construction_. **/
-	private function_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (!ts.isFunctionDeclaration(node) || !node.name) {
+	private function_symbol(declaration: ts.FunctionDeclaration): NamedSymbol[] {
+		if (declaration.name === undefined) {
 			return [];
 		}
 		return [
-			this.named_symbol(node.name.text, node, MODULE_FUNCTION_KIND, source_file, {
+			this.named_symbol(declaration.name.text, declaration, MODULE_FUNCTION_KIND, {
 				is_module_constant: false,
 				is_module_variable: false,
 				visibility: this.default_visibility,
-				is_module_function: ts.isSourceFile(node.parent),
+				is_module_function: ts.isSourceFile(declaration.parent),
 			}),
 		];
 	}
 
-	/** Responsibilities: _method symbol construction_. **/
-	private method_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		let name = "";
-		let visibility = this.default_visibility;
-		if (ts.isMethodDeclaration(node) && node.name) {
-			name = node.name.getText(source_file);
-			visibility = this.declaration_visibility(node);
-		} else if (ts.isMethodSignature(node) && node.name && ts.isInterfaceDeclaration(node.parent)) {
-			name = node.name.getText(source_file);
-		} else {
-			return [];
-		}
+	/** Responsibilities: _method declaration symbol construction_. **/
+	private method_declaration_symbol(declaration: ts.MethodDeclaration): NamedSymbol[] {
+		const name = declaration.name.getText(this._source_file);
 		return [
-			this.named_symbol(name, node, "method", source_file, {
+			this.named_symbol(name, declaration, "method", {
 				is_module_constant: false,
 				is_module_variable: false,
-				visibility,
+				visibility: this.declaration_visibility(declaration),
 				is_module_function: false,
 			}),
 		];
 	}
 
-	/** Responsibilities: _member symbol construction_. **/
-	private member_symbol(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node)) {
-			if (node.name) {
-				return [
-					this.named_symbol(node.name.getText(source_file), node, "field", source_file, {
-						is_module_constant: false,
-						is_module_variable: false,
-						visibility: this.default_visibility,
-						is_module_function: false,
-					}),
-				];
-			}
+	/** Responsibilities: _interface method symbol construction_. **/
+	private method_signature_symbol(signature: ts.MethodSignature): NamedSymbol[] {
+		if (!ts.isInterfaceDeclaration(signature.parent)) {
+			return [];
 		}
-		if (ts.isParameter(node) && ts.isIdentifier(node.name)) {
-			return [
-				this.named_symbol(node.name.text, node, MODULE_VARIABLE_KIND, source_file, {
-					is_module_constant: false,
-					is_module_variable: false,
-					visibility: this.default_visibility,
-					is_module_function: false,
-				}),
-			];
+		return [
+			this.named_symbol(signature.name.getText(this._source_file), signature, "method", {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility: this.default_visibility,
+				is_module_function: false,
+			}),
+		];
+	}
+
+	/** Responsibilities: _property declaration symbol construction_. **/
+	private property_declaration_symbol(property: ts.PropertyDeclaration): NamedSymbol[] {
+		return [
+			this.named_symbol(property.name.getText(this._source_file), property, "field", {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility: this.default_visibility,
+				is_module_function: false,
+			}),
+		];
+	}
+
+	/** Responsibilities: _property signature symbol construction_. **/
+	private property_signature_symbol(property: ts.PropertySignature): NamedSymbol[] {
+		return [
+			this.named_symbol(property.name.getText(this._source_file), property, TYPE_FIELD_SYMBOL_KIND, {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility: this.default_visibility,
+				is_module_function: false,
+			}),
+		];
+	}
+
+	/** Responsibilities: _parameter symbol construction_. **/
+	private parameter_symbol(parameter: ts.ParameterDeclaration): NamedSymbol[] {
+		if (!ts.isIdentifier(parameter.name)) {
+			return [];
+		}
+		return [
+			this.named_symbol(parameter.name.text, parameter, MODULE_VARIABLE_KIND, {
+				is_module_constant: false,
+				is_module_variable: false,
+				visibility: this.default_visibility,
+				is_module_function: false,
+			}),
+		];
+	}
+
+	/** Responsibilities: _callable symbol selection_. **/
+	private callable_symbols(callable_declaration: ts.Node): NamedSymbol[] {
+		if (ts.isFunctionDeclaration(callable_declaration)) {
+			return this.function_symbol(callable_declaration);
+		}
+		if (ts.isMethodDeclaration(callable_declaration)) {
+			return this.method_declaration_symbol(callable_declaration);
+		}
+		if (ts.isMethodSignature(callable_declaration)) {
+			return this.method_signature_symbol(callable_declaration);
+		}
+		return [];
+	}
+
+	/** Responsibilities: _member symbol selection_. **/
+	private member_symbols(member_declaration: ts.Node): NamedSymbol[] {
+		if (ts.isPropertyDeclaration(member_declaration)) {
+			return this.property_declaration_symbol(member_declaration);
+		}
+		if (ts.isPropertySignature(member_declaration)) {
+			return this.property_signature_symbol(member_declaration);
+		}
+		if (ts.isParameter(member_declaration)) {
+			return this.parameter_symbol(member_declaration);
 		}
 		return [];
 	}
 
 	/** Responsibilities: _symbol declaration initialization_. **/
-	public constructor() {
-		this.declaration_kinds = new Set([
+	public constructor(source_file: ts.SourceFile) {
+		this._source_file = source_file;
+		this._declaration_kinds = new Set([
 			ts.SyntaxKind.FunctionDeclaration,
 			ts.SyntaxKind.MethodDeclaration,
 			ts.SyntaxKind.MethodSignature,
@@ -183,19 +212,14 @@ export class TypeScriptSymbolDeclaration {
 	}
 
 	/** Responsibilities: _variable symbol construction_. **/
-	public variable_symbols(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (!ts.isVariableDeclaration(node)) {
-			return [];
-		}
+	public variable_symbols(node: ts.VariableDeclaration): NamedSymbol[] {
 		let kind: NamedSymbolKind = MODULE_VARIABLE_KIND;
-		if (ts.isVariableDeclarationList(node.parent)) {
-			if ((node.parent.flags & ts.NodeFlags.Const) !== 0) {
-				kind = MODULE_CONSTANT_KIND;
-			}
+		if (ts.isVariableDeclarationList(node.parent) && (node.parent.flags & ts.NodeFlags.Const) !== 0) {
+			kind = MODULE_CONSTANT_KIND;
 		}
 		const is_module_scope = this.is_module_scope(node);
 		return this.binding_names(node.name).map((name) =>
-			this.named_symbol(name.text, name, kind, source_file, {
+			this.named_symbol(name.text, name, kind, {
 				...this.module_flags(kind, is_module_scope),
 				visibility: this.default_visibility,
 				is_module_function: false,
@@ -204,14 +228,19 @@ export class TypeScriptSymbolDeclaration {
 	}
 
 	/** Responsibilities: _declaration symbol construction_. **/
-	public declaration_symbols(node: ts.Node, source_file: ts.SourceFile): NamedSymbol[] {
-		if (!this.declaration_kinds.has(node.kind)) {
+	public declaration_symbols(node: ts.Node): NamedSymbol[] {
+		if (!this._declaration_kinds.has(node.kind)) {
 			return [];
 		}
-		const declaration = this.named_declaration(node, source_file);
-		if (declaration.length > 0) {
-			return declaration;
+		if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isMethodSignature(node)) {
+			return this.callable_symbols(node);
 		}
-		return this.variable_symbols(node, source_file);
+		if (ts.isPropertyDeclaration(node) || ts.isPropertySignature(node) || ts.isParameter(node)) {
+			return this.member_symbols(node);
+		}
+		if (ts.isVariableDeclaration(node)) {
+			return this.variable_symbols(node);
+		}
+		return [];
 	}
 }

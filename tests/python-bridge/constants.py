@@ -1,8 +1,8 @@
 BUILTINS_DICTIONARY_SOURCE = (
     "import builtins\n"
-    "broad_exception = builtins.__dict__[\"Exception\"]\n"
-    "is_instance = builtins.__dict__[\"isinstance\"]\n"
-    "static = builtins.__dict__[\"staticmethod\"]\n"
+    'broad_exception = builtins.__dict__["Exception"]\n'
+    'is_instance = builtins.__dict__["isinstance"]\n'
+    'static = builtins.__dict__["staticmethod"]\n'
     "\n"
     "def read_value() -> None:\n"
     "    try:\n"

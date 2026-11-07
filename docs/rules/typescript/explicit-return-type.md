@@ -1,42 +1,110 @@
 # `explicit-return-type`
 
-Description: Require every named callable to declare its result type explicitly in both
-TypeScript and Python. The rule covers functions, methods, getters, and
-interface methods. Constructors, setters, and anonymous callback functions are
-excluded because they do not define an independent result boundary.
-
-```ts
-// Bad
-function load_user(user_id: string) {
-  return repository.find(user_id);
-}
-
-// Good
-function load_user(user_id: string): User {
-  return repository.find(user_id);
-}
-```
-
-
-`__init__` must use `-> None`. Do not rely on inference at a callable boundary;
-use `None`, `Result`, or another explicit domain result contract.
+Description: Declare the result type of every named callable explicitly.
 
 ## Bad
 
 ```ts
-function read_value(value: string) { return value; }
-```
+// File: src/read_value.ts
+/** Responsibilities: _text value state_. **/
+export class ReadValue {
+	private readonly raw_value: string;
 
+	/** Responsibilities: _value initialization_. **/
+	public constructor(raw_value: string) {
+		this.raw_value = raw_value;
+	}
+
+	/** Responsibilities: _value normalization_. **/
+	public normalized_value(): string {
+		const trimmed = this.raw_value.trim();
+		const words = trimmed.split(/\s+/u);
+		const joined = words.join(" ");
+		const normalized = joined.toLowerCase();
+		return normalized;
+	}
+
+	/** Responsibilities: _normalized word counting_. **/
+	public word_count(): number {
+		const words = this.normalized_value().split(/\s+/u);
+		let count = 0;
+		for (const word of words) {
+			if (word.length > 0) {
+				count += 1;
+			}
+		}
+		return count;
+	}
+
+	/** Responsibilities: _value reading_. **/
+	public render_value() { // <- error
+		const value = this.normalized_value();
+		const count = this.word_count();
+		const rendered = `${value} (${count})`;
+		console.log(rendered);
+		return rendered;
+	}
+}
+// File: cli.ts
+import { ReadValue } from "src/read_value";
+
+(function () {
+	const value = new ReadValue("ready");
+	value.render_value();
+})();
+```
 
 ## Good
 
 ```ts
+// File: src/read_value.ts
+/** Responsibilities: _text value state_. **/
+export class ReadValue {
+	private readonly _raw_value: string;
+
+	/** Responsibilities: _value initialization_. **/
+	public constructor(raw_value: string) {
+		this._raw_value = raw_value;
+	}
+
+	/** Responsibilities: _value normalization_. **/
+	public normalized_value(): string {
+		const trimmed = this._raw_value.trim();
+		const words = trimmed.split(/\s+/u);
+		const joined = words.join(" ");
+		const normalized = joined.toLowerCase();
+		return normalized;
+	}
+
+	/** Responsibilities: _normalized word counting_. **/
+	public word_count(): number {
+		if (this._raw_value.trim().length === 0) {
+			return 0;
+		}
+		const words = this.normalized_value().split(/\s+/u);
+		let count = 0;
+		for (const word of words) {
+			if (word.length > 0) {
+				count += 1;
+			}
+		}
+		return count;
+	}
+
+	/** Responsibilities: _value reading_. **/
+	public render_value(): string {
+		const value = this.normalized_value();
+		const count = this.word_count();
+		const rendered = `${value} (${count})`;
+		console.log(rendered);
+		return rendered;
+	}
+}
 // File: cli.ts
-/** Responsibilities: _value reading_. **/
-function read_value(value: string): string { return value; }
+import { ReadValue } from "src/read_value";
 
 (function () {
-	console.log(read_value("ready"));
+	const value = new ReadValue("ready");
+	value.render_value();
 })();
 ```
-

@@ -1,11 +1,20 @@
 import { basename } from "node:path";
+import { TEST_PATH_SUFFIXES } from "src/constants";
 import { MAX_FILE_LINES, MIN_FILE_LINES } from "src/constants";
-import { DirectoryCommentSegments } from "src/core/support/source-analysis/directory_comment_segments";
+import { DirectoryCommentSegments } from "src/core/support/directory_comment_segments";
 import type { IOContract } from "src/io/protocols";
+import type { AstClassNode, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { DirectoryFileViolationOptions } from "src/model/types/types";
+import type { DirectoryFileViolationOptions } from "src/model_types";
 import type { DirectoryFileSet } from "src/project_analysis_types";
-import type { RuleContract, ViolationContract } from "src/reporting_protocols";
+import type { RuleContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import {
+	MODULE_CONSTANT_FILES,
+	MODULE_DECLARATION_FILES,
+	MODULE_PROTOCOL_FILES,
+	MODULE_TYPE_FILES,
+} from "src/rules/constants";
 import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_rule";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
 import { ModuleDeclarationsRule } from "src/rules/support/module_declarations_rule";
@@ -16,28 +25,28 @@ import type {
 	SingleClassFileNameRuleContract,
 } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { AstClassNodeContract, NormalizedAstFileContract } from "src/types";
+import { TestPathSyntax } from "src/test_path_syntax";
 
 /** Responsibilities: _directory structure_, _directory diagnostics_. **/
 export class DirectoryRules implements DirectoryRulesContract {
-	private readonly file_size_rule: RuleContract;
-	private readonly file_max_rule: RuleContract;
-	private readonly directory_comment_segments: DirectoryCommentSegments;
-	private readonly max_file_lines = MAX_FILE_LINES;
-	private readonly min_file_lines = MIN_FILE_LINES;
-	private readonly module_declarations_rule: ModuleDeclarationsRuleContract;
-	private readonly file_name_rule: SingleClassFileNameRuleContract;
-	private readonly ignore_rule: AiCodeGuardIgnoreRule;
-	private readonly file_io: IOContract;
+	private readonly _file_size_rule: RuleContract;
+	private readonly _file_max_rule: RuleContract;
+	private readonly _directory_comment_segments: DirectoryCommentSegments;
+	private readonly _max_file_lines: number;
+	private readonly _min_file_lines: number;
+	private readonly _module_declarations_rule: ModuleDeclarationsRuleContract;
+	private readonly _file_name_rule: SingleClassFileNameRuleContract;
+	private readonly _ignore_rule: AiCodeGuardIgnoreRule;
+	private readonly _file_io: IOContract;
 
 	/** Responsibilities: _maximum file-size violations addition_. **/
 	private append_file_max(violations: ViolationContract[], file: string, text: string): void {
 		const raw_line_count = text.split("\n").length;
-		if (raw_line_count <= this.max_file_lines) {
+		if (raw_line_count <= this._max_file_lines) {
 			return;
 		}
 		violations.push(
-			this.file_max_rule.violation(file, 1, {
+			this._file_max_rule.violation(file, 1, {
 				count: String(raw_line_count),
 			}),
 		);
@@ -49,31 +58,38 @@ export class DirectoryRules implements DirectoryRulesContract {
 		if (basename(file) === "conftest.py") {
 			return;
 		}
-		const line_count = this.directory_comment_segments.count_code_lines(text, file.endsWith(".py"), docstring_spans);
-		if (line_count >= this.min_file_lines) {
+		const line_count = this._directory_comment_segments.count_code_lines(text, file.endsWith(".py"), docstring_spans);
+		if (line_count >= this._min_file_lines) {
 			return;
 		}
-		violations.push(this.file_size_rule.violation(file, 1, {}));
+		violations.push(this._file_size_rule.violation(file, 1, {}));
 	}
 
 	/** Responsibilities: _aggregation configuration file-size diagnostics_. **/
 	/** Responsibilities: _directory rule initialization_. **/
 	public constructor(file_io: IOContract, source_io: ProjectSourceIOContract) {
-		this.file_io = file_io;
-		this.file_size_rule = new DiagnosticRule("file-min-size");
-		this.file_max_rule = new DiagnosticRule("file-max-size");
-		this.directory_comment_segments = new DirectoryCommentSegments();
-		this.file_name_rule = new SingleClassFileNameRule();
-		this.module_declarations_rule = new ModuleDeclarationsRule();
-		this.ignore_rule = new AiCodeGuardIgnoreRule(source_io);
+		this._file_io = file_io;
+		this._max_file_lines = MAX_FILE_LINES;
+		this._min_file_lines = MIN_FILE_LINES;
+		this._file_size_rule = new DiagnosticRule("file-min-size");
+		this._file_max_rule = new DiagnosticRule("file-max-size");
+		this._directory_comment_segments = new DirectoryCommentSegments("/*", "*/", "#", "//");
+		this._file_name_rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		this._module_declarations_rule = new ModuleDeclarationsRule(
+			MODULE_DECLARATION_FILES,
+			MODULE_CONSTANT_FILES,
+			MODULE_TYPE_FILES,
+			MODULE_PROTOCOL_FILES,
+		);
+		this._ignore_rule = new AiCodeGuardIgnoreRule(source_io);
 	}
 
 	/** Responsibilities: _directory file violation collection_. **/
 	public append_file_violation(options: DirectoryFileViolationOptions): void {
 		const { violations, file, text, normalized_ast } = options;
 		this.append_file_max(violations, file, text);
-		this.file_name_rule.append(violations, file, normalized_ast.classes);
-		this.module_declarations_rule.append(violations, file, normalized_ast);
+		this._file_name_rule.append(violations, file, normalized_ast.source.classes);
+		this._module_declarations_rule.append(violations, file, normalized_ast);
 		this.append_file_size(options);
 	}
 
@@ -81,15 +97,19 @@ export class DirectoryRules implements DirectoryRulesContract {
 	public collect_directory_violations(
 		files: string[],
 		repo_root: string,
-		class_counts: ReadonlyMap<string, readonly AstClassNodeContract[]>,
-		source_asts: ReadonlyMap<string, NormalizedAstFileContract>,
+		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
+		source_asts: ReadonlyMap<string, NormalizedAstFile>,
 		directory_files: DirectoryFileSet,
 	): ViolationContract[] {
-		const directory_structure_rules = new DirectoryStructureRules(directory_files, this.file_io);
+		const directory_structure_rules = new DirectoryStructureRules(
+			directory_files,
+			this._file_io,
+			this._module_declarations_rule,
+		);
 
 		const violations: ViolationContract[] = [];
 		if (!directory_files.virtual_project) {
-			this.ignore_rule.append(violations, repo_root);
+			this._ignore_rule.append(violations, repo_root);
 		}
 		directory_structure_rules.append_directory_violations(violations, files, repo_root, class_counts, source_asts);
 		return violations;

@@ -1,4 +1,4 @@
-Defects remaining to find: {N}. The minimum remaining count is 0.
+Defects remaining to find: {N}
 
 Continue checking bugs, algorithmic complexity, optimization opportunities,
 missing important tests, duplicate or obsolete tests, simpler abstractions, and

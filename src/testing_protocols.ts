@@ -1,18 +1,13 @@
+import type { AstPythonImport, JestSuite, TestTargetImport } from "src/model/ast/normalized_ast_types";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
-import type { AstPythonImport, JestSuite, TestTargetImport } from "src/types";
-import type ts from "typescript";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableConsumer } from "src/runtime_types";
+import type { LintSourceRecordData } from "src/source_types";
+import type ts from "typescript";
 
 /** Responsibilities: _Jest test rule collection_. **/
 export interface JestTestRulesContract {
-	append_violations(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		resolver: TypeScriptModuleResolverContract,
-	): void;
-	jest_file(file: string): boolean;
+	append_violations(violations: ViolationContract[], resolver: TypeScriptModuleResolverContract): void;
 }
 
 /** Responsibilities: _Jest callback extraction_. **/
@@ -21,67 +16,53 @@ export interface JestSuiteCollectorContract {
 	suites(source_file: ts.SourceFile): JestSuite[];
 }
 
+/** Responsibilities: _Jest test callback traversal state_. **/
+export type JestTestCallbackTraversal = {
+	readonly active_suites: JestSuite[];
+	readonly suites: JestSuite[];
+	readonly callback_depth: number;
+};
+
 /** Responsibilities: _Jest asynchronous completion diagnostics_. **/
 export interface JestAsyncCompletionRulesContract {
 	append(violations: ViolationContract[], file: string, source_file: ts.SourceFile, tests: ts.CallExpression[]): void;
 }
 
-/** Responsibilities: _Jest declaration identity resolution_. **/
+/** Responsibilities: _Jest async declaration lookup_. **/
 export interface JestBindingIndexContract {
-	readonly async_declarations: ReadonlySet<ts.Declaration>;
+	async_call(call: ts.CallExpression): boolean;
 	binding_is(identifier: ts.Identifier, declarations: ReadonlySet<ts.Declaration>): boolean;
 }
 
+/** Responsibilities: _Jest declaration binding registration_. **/
+export type JestDeclarationBindingRegistration = {
+	scope: ts.Node;
+	candidate: ts.Node;
+};
+
 /** Responsibilities: _Jest setup rule collection_. **/
 export interface JestSetupRulesContract {
-	append_duplicate_setup(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		tests: ts.CallExpression[],
-	): void;
-	append_fixture_complexity(violations: ViolationContract[], file: string, source_file: ts.SourceFile): void;
-}
-
-/** Responsibilities: _Jest test-shape diagnostics contract_. **/
-export interface JestTestShapeViolationsContract {
-	shape_diagnostics(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		tests: ts.CallExpression[],
-	): void;
-	result_diagnostics(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		tests: ts.CallExpression[],
-	): void;
-	assertion_diagnostics(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		tests: ts.CallExpression[],
-	): void;
+	append_duplicate_setup(tests: ts.CallExpression[]): ViolationContract[];
+	fixture_complexity(): ViolationContract[];
 }
 
 /** Responsibilities: _Jest test-size contract_. **/
 export interface JestTestSizeContract {
-	body(source_file: ts.SourceFile, bodies: ts.Block[]): number;
+	body(bodies: ts.Block[]): number;
 	test_body(body: ts.ConciseBody): number;
-	suite(source_file: ts.SourceFile, suite: JestSuite): number;
+	suite(suite: JestSuite): number;
 }
 
 /** Responsibilities: _Jest test-shape rule contract_. **/
 export interface JestTestShapeRuleContract {
-	non_arrow_lines(source_file: ts.SourceFile, tests: ts.CallExpression[]): number[];
-	missing_expect_lines(source_file: ts.SourceFile, tests: ts.CallExpression[]): number[];
+	non_arrow_lines(tests: ts.CallExpression[]): number[];
+	missing_expect_lines(tests: ts.CallExpression[]): number[];
 }
 
 /** Responsibilities: _Jest assertion classification_. **/
 export interface JestTestAssertionContract {
-	shape_test_lines(source_file: ts.SourceFile, tests: ts.CallExpression[]): number[];
-	exception_test_lines(source_file: ts.SourceFile, tests: ts.CallExpression[]): number[];
+	shape_test_lines(tests: ts.CallExpression[]): number[];
+	exception_test_lines(tests: ts.CallExpression[]): number[];
 }
 
 /** Responsibilities: _Jest assertion analysis_. **/
@@ -110,14 +91,25 @@ export interface JestExceptionFlagBindingsContract {
 	index_declarations(): void;
 	exception_flags(callback: ts.ArrowFunction): ReadonlySet<ts.Node>;
 	exception_flag(identifier: ts.Identifier, flags: ReadonlySet<ts.Node>): boolean;
+	assertion_matches(node: ts.Node, flags: ReadonlySet<ts.Node>): boolean;
 }
 
 /** Responsibilities: _test file organization lookup_. **/
 export interface TestFileOrganizationContract {
-	valid(file: string): boolean;
-	source_directory(segments: string[]): boolean;
-	module_paths(file: string): string[][];
+	for_file(file: string): TestFileOrganizationPathContract;
 }
+
+/** Responsibilities: _test file organization_, _test module paths_. **/
+export interface TestFileOrganizationPathContract {
+	valid(): boolean;
+	module_paths(): string[][];
+}
+
+/** Responsibilities: _test project organization_, _test target resolution_. **/
+export type TestTargetProject = {
+	readonly organization: TestFileOrganizationContract;
+	readonly targets: TestTargetsContract;
+};
 
 /** Responsibilities: _test path classification_. **/
 export interface TestPathCheckerContract {
@@ -129,13 +121,17 @@ export interface TestPathCheckerContract {
 export interface TestTargetsContract {
 	valid(file: string, text: string, python: boolean, python_imports: readonly AstPythonImport[]): boolean;
 	valid_typescript(file: string, source_file: ts.SourceFile): boolean;
+	valid_source(source: LintSourceRecordData): boolean;
 }
 
-/** Responsibilities: _test target root resolution_. **/
-export interface TestTargetRootsContract {
-	common_root(file: string, imports: string[], python: boolean, module_path: string[]): string[];
-	matches(file: string, imports: string[], python: boolean): boolean;
-	matches_target_path(file: string, declaration_path: string): boolean;
+/** Responsibilities: _test-file target match_. **/
+export interface TestTargetFileMatchContract {
+	matches(): boolean;
+}
+
+/** Responsibilities: _test-source production target matching_. **/
+export interface TestTargetSourceContract {
+	matches_target(resolver: TestTargetImportResolverContract): boolean;
 }
 
 /** Responsibilities: _project-aware test import resolution_. **/
@@ -144,11 +140,18 @@ export interface TestTargetImportResolverContract {
 	declaration_paths(file: string, imports: readonly TestTargetImport[], python: boolean): string[];
 }
 
-/** Responsibilities: _test path classification_. **/
-export interface TestPathSyntaxContract {
-	test_file_name(file: string): boolean;
-	test_file(file: string, tests_directory_only: boolean): boolean;
+/** Responsibilities: _test-file violation collection_. **/
+export interface TestFileViolationCollectorContract {
+	append(violations: ViolationContract[], source: LintSourceRecordData, file: string, root: string): void;
+	append_location(violations: ViolationContract[], source: LintSourceRecordData, file: string): void;
 }
+
+/** Responsibilities: _test path classification_. **/
+export type TestPathSuffixes = {
+	test_file: readonly string[];
+	typescript: readonly string[];
+	python: readonly string[];
+};
 
 /** Responsibilities: _Jest expression matching_. **/
 export interface JestExpressionMatchContract {

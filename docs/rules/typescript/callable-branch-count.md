@@ -15,13 +15,24 @@ The callable itself exceeds the branch limit:
 
 ```ts
 {% const statuses = ["alpha","bravo","charlie","delta","echo","foxtrot","golf","hotel","india","juliet","kilo"] %}
-// File: functions.ts
-export function resolve_value(flags: ReadonlySet<string>): string {
+// File: src/status_resolver.ts
+export class StatusResolver {
+	public resolve_value(flags: ReadonlySet<string>): string {
 {%for status in statuses %}
-	if (flags.has("{{status}}")) { return "{{status}}"; }
+		if (flags.has("{{status}}")) { return "{{status}}"; }
 {% endfor %}
-	return "Unknown";
+		return "Unknown";
+	}
+	public report(): void {
+		console.log(this.resolve_value(new Set(["alpha"])));
+	}
 }
+// File: cli.ts
+import { StatusResolver } from "src/status_resolver";
+(() => {
+	const resolver = new StatusResolver();
+	resolver.report();
+})();
 ```
 
 
@@ -34,43 +45,51 @@ The lookup preserves the same eleven mappings, priority order, and fallback.
 // File: src/status_labels.ts
 /** Responsibilities: _status label collection_. **/
 export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _status label initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _single status lookup_. **/
 	public label_for_status(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
 
 	/** Responsibilities: _priority status resolution_. **/
 	public resolve_value(flags: ReadonlySet<string>): string {
-		for (const status of this.labels.keys()) {
+		for (const status of this._labels.keys()) {
 			if (flags.has(status)) {
 				return this.label_for_status(status);
 			}
 		}
-		return this.fallback;
+		return this._fallback;
 	}
 
 	/** Responsibilities: _available status-label counting_. **/
 	public label_count(): number {
 		let count = 0;
-		for (const label of this.labels.values()) {
+		for (const label of this._labels.values()) {
 			if (label.length > 0) {
 				count += 1;
 			}
 		}
 		return count;
+	}
+
+	/** Responsibilities: _status resolution report_. **/
+	public report(): void {
+		const flags = new Set<string>(["alpha"]);
+		const label = this.resolve_value(flags);
+		const fallback = this.label_for_status("unknown");
+		console.log(`${label} ${fallback} ${this.label_count()}`);
 	}
 }
 // File: cli.ts
@@ -80,13 +99,8 @@ import { StatusLabels } from "src/status_labels";
 {%for status in statuses %}
 	labels.set("{{status}}", "{{status}}");
 {% endfor %}
-	const flags = new Set<string>();
-	flags.add("alpha");
 	const status_labels = new StatusLabels(labels, "Unknown");
-	const label = status_labels.resolve_value(flags);
-	const fallback = status_labels.label_for_status("unknown");
-	const count = status_labels.label_count();
-	console.log(label, fallback, count);
+	status_labels.report();
 })();
 ```
 

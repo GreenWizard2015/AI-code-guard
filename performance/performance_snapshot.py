@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from performance.constants import (
+    FILE_KEY_SUFFIX,
     PROJECT_ROOT_KEY,
     PYTHON_FILES_KEY,
-    FILE_KEY_SUFFIX,
     STAGE_KEY_PREFIX,
     TYPESCRIPT_FILES_KEY,
 )
@@ -18,14 +18,14 @@ class PerformanceSnapshot:
 
     def __init__(self, values: dict[str, str], mode: str, source_path: str) -> None:
         """Responsibilities: _performance snapshot state initialization_."""
-        self.values: dict[str, str] = values
-        self.mode: str = mode
-        self.source: str = source_path
+        self._values: dict[str, str] = dict(values)
+        self._mode: str = mode
+        self._source: str = source_path
 
     def stage_values(self) -> dict[str, float]:
         """Responsibilities: _performance stage value conversion_."""
         stage_values: dict[str, float] = {}
-        for key, value in self.values.items():
+        for key, value in self._values.items():
             if not key.startswith(STAGE_KEY_PREFIX):
                 continue
             stage_values[key.removeprefix(STAGE_KEY_PREFIX)] = float(value)
@@ -34,7 +34,7 @@ class PerformanceSnapshot:
     def file_counts(self) -> dict[str, int]:
         """Responsibilities: _performance language file-count conversion_."""
         file_counts: dict[str, int] = {}
-        for key, value in self.values.items():
+        for key, value in self._values.items():
             if not key.endswith(FILE_KEY_SUFFIX):
                 continue
             file_counts[key] = int(value)
@@ -42,17 +42,17 @@ class PerformanceSnapshot:
 
     def mode_name(self) -> str:
         """Responsibilities: _performance snapshot mode access_."""
-        return self.mode
+        return self._mode
 
     def workload_identity(self) -> PerformanceWorkloadIdentityContract:
         """Responsibilities: _comparable workload identity construction_."""
         counts = self.file_counts()
         return PerformanceWorkloadIdentity(
-            self.values.get(PROJECT_ROOT_KEY, ""),
-            counts.get(TYPESCRIPT_FILES_KEY, 0),
-            counts.get(PYTHON_FILES_KEY, 0),
+            self._values.get(PROJECT_ROOT_KEY, ""),
+            counts.get(TYPESCRIPT_FILES_KEY, -1),
+            counts.get(PYTHON_FILES_KEY, -1),
         )
 
     def source_path(self) -> str:
         """Responsibilities: _snapshot source path access_."""
-        return self.source
+        return self._source

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
-import ts from "typescript";
 import { TypeScriptSingletonCollector } from "src/linting/orchestration/runtime/typescript-singleton/type_script_singleton_collector";
+import ts from "typescript";
 
 describe("singleton alias architecture rules", () => {
 	test("reports singleton constructors through parenthesized aliases", () => {

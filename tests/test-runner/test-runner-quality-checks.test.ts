@@ -1,195 +1,136 @@
 import "src/core/lint_project_context_creator";
 import "src/lint_stage_timer";
-import { describe, expect, jest, test } from "@jest/globals";
-import { delimiter } from "node:path";
+import { PassThrough } from "node:stream";
+import { describe, expect, test } from "@jest/globals";
 import { TestExecution } from "test-runner/test_execution";
 import { CommandExecutionTestDouble } from "tests/core/command_execution_test_double";
 import { PROJECT_ROOT } from "tests/core/constants";
 
 describe("test runner quality checks", () => {
 	test("uses the repository root when the test runner has no explicit root", () => {
-		const output: string[] = [];
-		const write = jest.spyOn(process.stdout, "write").mockImplementation((chunk) => {
-			output.push(String(chunk));
-			return true;
-		});
-		try {
-			const execution = new TestExecution(PROJECT_ROOT, new CommandExecutionTestDouble([]));
-			execution.run_args(["--help"]);
-		} finally {
-			write.mockRestore();
-		}
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, new CommandExecutionTestDouble([]), output);
+		execution.run_args(["--help"]);
 
-		expect(output.join("")).toContain(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`);
-	});
-
-	test("stops after a failed Python command without starting TypeScript tests", () => {
-		const runner = new CommandExecutionTestDouble([3]);
-		const previous_exit_code = process.exitCode;
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-		let observed_exit_code = -1;
-		try {
-			execution.run_tests([], { ...process.env, CI: "true" });
-			if (typeof process.exitCode === "number") {
-				observed_exit_code = process.exitCode;
-			}
-		} finally {
-			process.exitCode = previous_exit_code;
-		}
-		expect({ exit_code: observed_exit_code, calls: runner.calls }).toEqual({
-			exit_code: 3,
-			calls: [["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`]],
-		});
-	});
-
-	test("stops before tests when dependency installation fails", () => {
-		const runner = new CommandExecutionTestDouble([3]);
-		const previous_exit_code = process.exitCode;
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-		let tests_started = true;
-		try {
-			tests_started = execution.run_tests([], { ...process.env, CI: "false" });
-		} finally {
-			process.exitCode = previous_exit_code;
-		}
-
-		expect({ tests_started, calls: runner.calls }).toEqual({
-			tests_started: false,
-			calls: [["pnpm", "--dir", PROJECT_ROOT, "install"]],
-		});
-	});
-
-	test("installs dependencies before both test suites", () => {
-		const runner = new CommandExecutionTestDouble([0, 0, 0]);
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-
-		expect(execution.run_tests([], { ...process.env, CI: "false" })).toBe(true);
-		expect(runner.calls).toEqual([
-			["pnpm", "--dir", PROJECT_ROOT, "install"],
-			["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
-			["pnpm", "--dir", PROJECT_ROOT, "exec", "jest", "--maxWorkers=4"],
-		]);
-	});
-
-	test("forwards the Python bridge import root and project cwd", () => {
-		const runner = new CommandExecutionTestDouble([0, 0]);
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-
-		expect(execution.run_tests([], { ...process.env, CI: "true" })).toBe(true);
-		expect({
-			python_path: runner.environments[0]?.PYTHONPATH,
-			python_cwd: runner.working_directories[0],
-			typescript_cwd: runner.working_directories[1],
-		}).toEqual({
-			python_path: [`${PROJECT_ROOT}/src/python-bridge`, `${PROJECT_ROOT}/tests/python-bridge`].join(delimiter),
-			python_cwd: PROJECT_ROOT,
-			typescript_cwd: PROJECT_ROOT,
-		});
-	});
-
-	test("preserves inherited CI mode when headless was not passed", () => {
-		const runner = new CommandExecutionTestDouble([0, 0, 0]);
-		const previous_ci = process.env.CI;
-		process.env.CI = "true";
-		try {
-			const execution = new TestExecution(PROJECT_ROOT, runner);
-			execution.run_args(["--skip-quality"]);
-		} finally {
-			if (previous_ci === undefined) {
-				delete process.env.CI;
-			} else {
-				process.env.CI = previous_ci;
-			}
-		}
-
-		expect({
-			calls: runner.calls,
-			ci_values: runner.environments.map((environment) => environment.CI),
-		}).toEqual({
-			calls: [
-				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
-				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest", "--maxWorkers=4"],
-			],
-			ci_values: ["true", "true"],
-		});
-	});
-
-	test("propagates a failed TypeScript test command after Python passes", () => {
-		const runner = new CommandExecutionTestDouble([0, 3]);
-		const previous_exit_code = process.exitCode;
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-		let observed_exit_code = -1;
-		try {
-			execution.run_tests([], { ...process.env, CI: "true" });
-			if (typeof process.exitCode === "number") {
-				observed_exit_code = process.exitCode;
-			}
-		} finally {
-			process.exitCode = previous_exit_code;
-		}
-		expect({ exit_code: observed_exit_code, calls: runner.calls }).toEqual({
-			exit_code: 3,
-			calls: [
-				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
-				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest", "--maxWorkers=4"],
-			],
-		});
+		const help_output = output.stdout.read();
+		expect(String(help_output)).toContain(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`);
 	});
 
 	test("does not run quality checks after a failed TypeScript test command", () => {
 		const runner = new CommandExecutionTestDouble([0, 3, 0]);
-		const output: string[] = [];
-		const write = jest.spyOn(process.stdout, "write").mockImplementation((chunk) => {
-			output.push(String(chunk));
-			return true;
-		});
-		const previous_exit_code = process.exitCode;
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-		try {
-			execution.run_args(["--headless"]);
-		} finally {
-			write.mockRestore();
-			process.exitCode = previous_exit_code;
-		}
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args(["--headless"]);
+		const output_text = output.stdout.read();
+		const snapshot = runner.snapshot();
+		const calls = [...snapshot.calls];
 
 		expect({
-			calls: runner.calls,
-			exit_code: runner.exit_status,
-			success_message: output.join("").includes("All tests passed!"),
+			calls,
+			exit_code,
+			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
 			calls: [
 				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
-				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest", "--maxWorkers=4"],
+				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest"],
 			],
-			exit_code: -1,
+			exit_code: 3,
 			success_message: false,
 		});
 	});
 
 	test("stops the complete runner before quality checks after a failed test command", () => {
 		const runner = new CommandExecutionTestDouble([3]);
-		const output: string[] = [];
-		const write = jest.spyOn(process.stdout, "write").mockImplementation((chunk) => {
-			output.push(String(chunk));
-			return true;
-		});
-		const execution = new TestExecution(PROJECT_ROOT, runner);
-		const previous_exit_code = process.exitCode;
-		try {
-			execution.run_args(["--headless"]);
-		} finally {
-			write.mockRestore();
-			process.exitCode = previous_exit_code;
-		}
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args(["--headless"]);
+		const output_text = output.stdout.read();
+		const snapshot = runner.snapshot();
+		const calls = [...snapshot.calls];
 
 		expect({
-			calls: runner.calls,
-			exit_code: runner.exit_status,
-			success_message: output.join("").includes("All tests passed!"),
+			calls,
+			exit_code,
+			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
 			calls: [["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`]],
-			exit_code: -1,
+			exit_code: 3,
 			success_message: false,
+		});
+	});
+
+	test("returns a quality command failure without printing success", () => {
+		const runner = new CommandExecutionTestDouble([0, 0, 0, 3]);
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args(["--headless"]);
+		const output_text = output.stdout.read();
+		const snapshot = runner.snapshot();
+
+		expect({
+			exit_code,
+			command_count: snapshot.calls.length,
+			success_message: String(output_text).includes("All tests passed!"),
+		}).toEqual({
+			exit_code: 3,
+			command_count: 4,
+			success_message: false,
+		});
+	});
+
+	test("runs quality checks after tests and reports successful completion", () => {
+		const runner = new CommandExecutionTestDouble([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args([
+			"--headless",
+			"--force-review",
+			"--review-cleanup",
+			"--review-agent",
+			"codex",
+		]);
+		const snapshot = runner.snapshot();
+		const calls = [...snapshot.calls];
+		const all_arguments = calls.flat();
+		const quality_commands = calls.slice(2).map((call) => {
+			if (call[0] === "python3") {
+				return call[2];
+			}
+			if (call[0] === "vulture") {
+				return call[0];
+			}
+			return call.slice(3, 5).join(" ");
+		});
+
+		expect({
+			exit_code,
+			success_message: String(output.stdout.read()).includes("All tests passed!"),
+			test_commands: calls.slice(0, 2),
+			quality_commands,
+			review_options: all_arguments.filter((argument) =>
+				["--force-review", "--review-cleanup", "--review-agent", "codex"].includes(argument),
+			),
+		}).toEqual({
+			exit_code: 0,
+			success_message: true,
+			test_commands: [
+				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
+				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest"],
+			],
+			quality_commands: [
+				"exec biome",
+				"exec biome",
+				"exec tsc",
+				"exec biome",
+				"black",
+				"ruff",
+				"pyflakes",
+				"mypy",
+				"vulture",
+				"lint --",
+				"validate:rule-docs",
+			],
+			review_options: ["--force-review", "--review-cleanup", "--review-agent", "codex"],
 		});
 	});
 });

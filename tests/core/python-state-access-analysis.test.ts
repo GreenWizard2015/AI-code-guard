@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python state access analysis", () => {
 	test("detects object setattr aliases and direct private member access", () => {
 		const fixture = new TestFixture();
 		const count = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"object-setattr-alias.py": [
 					"set_attr = object.__setattr__",
@@ -54,16 +54,16 @@ describe("Python state access analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect(
-			count.filter((item) => item.message === "private class members must not be accessed from outside their class"),
+			count.filter((item) => item.message() === "private class members must not be accessed from outside their class"),
 		).toHaveLength(9);
-		expect(count.filter((item) => item.message === "avoid direct object.__setattr__ calls")).toHaveLength(2);
+		expect(count.filter((item) => item.message() === "avoid direct object.__setattr__ calls")).toHaveLength(2);
 	});
 
 	test("detects private access through lexical aliases, dictionaries, and vars mappings", () => {
 		const fixture = new TestFixture();
 		const count = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"private-lexical-alias.py": [
 						"class Sample:",
@@ -104,7 +104,9 @@ describe("Python state access analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.message === "private class members must not be accessed from outside their class").length;
+			.filter(
+				(item) => item.message() === "private class members must not be accessed from outside their class",
+			).length;
 		expect(count).toBe(10);
 	});
 });

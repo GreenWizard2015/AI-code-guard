@@ -1,6 +1,9 @@
 import unittest
+from io import StringIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
+from performance.path_performance_snapshot_io import PathPerformanceSnapshotIO
 from performance.performance_report import PerformanceReport
 
 
@@ -9,15 +12,15 @@ class InMemoryPerformanceSnapshotIO:
 
     def __init__(self, snapshots: dict[Path, str]) -> None:
         """Responsibilities: _snapshot collection initialization_."""
-        self.snapshots: dict[Path, str] = snapshots
+        self._snapshots: dict[Path, str] = snapshots
 
     def snapshot_paths(self, inputs: list[str]) -> list[Path]:
         """Responsibilities: _snapshot path selection_."""
-        return [Path(value) for value in inputs if Path(value) in self.snapshots]
+        return [Path(value) for value in inputs if Path(value) in self._snapshots]
 
     def snapshot_text(self, path: Path) -> str:
         """Responsibilities: _snapshot source text lookup_."""
-        return self.snapshots[path]
+        return self._snapshots[path]
 
 
 class PerformanceReportModesTest(unittest.TestCase):
@@ -50,10 +53,10 @@ class PerformanceReportModesTest(unittest.TestCase):
     def _matching_snapshots(self) -> dict[Path, str]:
         """Responsibilities: _matching mode snapshot fixtures_."""
         snapshots = [
-            self._snapshot("cold_first.performance.md", 10, True),
-            self._snapshot("cold_second.performance.md", 14, True),
-            self._snapshot("warm_first.performance.md", 2, False, True),
-            self._snapshot("warm_second.performance.md", 4, False, True),
+            self._snapshot("cold_first.performance.md", 10, cold_only=True),
+            self._snapshot("cold_second.performance.md", 14, cold_only=True),
+            self._snapshot("warm_first.performance.md", 2, cold_only=False, warm_only=True),
+            self._snapshot("warm_second.performance.md", 4, cold_only=False, warm_only=True),
         ]
         return {path: content for snapshot in snapshots for path, content in snapshot.items()}
 
@@ -81,3 +84,39 @@ class PerformanceReportModesTest(unittest.TestCase):
             },
             {"cold_only": True, "warm_only": True},
         )
+
+    def test_execution_writes_the_existing_successful_report(self) -> None:
+        """Responsibilities: _successful report result delivery_."""
+        snapshots = self._matching_snapshots()
+        report_source = PerformanceReport([str(path) for path in snapshots], InMemoryPerformanceSnapshotIO(snapshots))
+        expected_report = report_source.markdown()
+        output = StringIO()
+        errors = StringIO()
+
+        status = report_source.write_report(output, errors)
+
+        self.assertEqual((status, output.getvalue(), errors.getvalue()), (0, expected_report, ""))
+
+    def test_discovers_nested_snapshots_and_deduplicates_overlapping_inputs(self) -> None:
+        """Responsibilities: _nested snapshot discovery_, _input deduplication_."""
+        with TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            nested = root / "runs" / "nested"
+            nested.mkdir(parents=True)
+            cold = nested / "cold_run.performance.md"
+            warm = nested / "warm_run.performance.md"
+            cold.write_text(
+                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 10 sec |\n",
+                encoding="utf-8",
+            )
+            warm.write_text(
+                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 2 sec |\n",
+                encoding="utf-8",
+            )
+            (nested / "notes.md").write_text("not a timing snapshot\n", encoding="utf-8")
+            snapshot_io = PathPerformanceSnapshotIO()
+            report_source = PerformanceReport([str(root), str(cold)], snapshot_io)
+            report = report_source.markdown()
+
+        self.assertEqual(report.count("| startup |"), 1)
+        self.assertIn("| startup | 2.0 sec +- 0.0 | 10.0 sec +- 0.0 |", report)

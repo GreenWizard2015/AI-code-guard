@@ -12,50 +12,109 @@ the call expresses each mode explicitly.
 
 
 ```python
-ModeFlag = bool
+# File: src/article_publisher.py
+class ArticlePublisher:
+    """Responsibilities: _article publication_."""
 
+    def __init__(self, channel: str) -> None:
+        """Responsibilities: _publisher initialization_."""
+        self._channel: str = channel
 
-def publish(article: Article, notify: ModeFlag, dry_run: ModeFlag) -> None:
-    pass
+    def publish(self, article: str, notify: bool, dry_run: bool) -> str:
+        """Responsibilities: _publication decision_."""
+        normalized_article = article.strip()
+        if dry_run:
+            return f"Preview: {normalized_article}"
+        if notify:
+            return f"{self._channel}: {normalized_article}"
+        return f"Stored: {normalized_article}"
 
-publish(article, True, False)
+    def summary(self) -> str:
+        """Responsibilities: _publication summary formatting_."""
+        return self.publish("Release notes", True, False)
+
+    def report(self) -> None:
+        """Responsibilities: _publication report output_."""
+        print(self.summary())
+# File: cli.py
+from src.article_publisher import ArticlePublisher
+
+if __name__ == "__main__":
+    publisher = ArticlePublisher("Notification")
+    publisher.report()
 ```
 
 ## Good
 
 
 ```python
-# File: src/publication_policy/publication_policy.py
-class PublicationPolicy:
-    """Responsibilities: _publication capability_."""
+# File: src/constants.py
+ARTICLE_TEXT = "Release notes"
+DRY_RUN_OPTION = "dry_run"
+NOTIFY_OPTION = "notify"
+PREVIEW_PREFIX = "Preview: "
+NOTIFICATION_PREFIX = "Notification: "
+STORAGE_PREFIX = "Stored: "
+PREVIEW_MODE = "Preview mode"
+NOTIFICATION_MODE = "Notification mode"
+STORAGE_MODE = "Storage mode"
+# File: src/article_publisher.py
+from src.constants import (
+    ARTICLE_TEXT,
+    DRY_RUN_OPTION,
+    NOTIFY_OPTION,
+    NOTIFICATION_MODE,
+    NOTIFICATION_PREFIX,
+    PREVIEW_MODE,
+    PREVIEW_PREFIX,
+    STORAGE_MODE,
+    STORAGE_PREFIX,
+)
 
-    def __init__(self, mode: str) -> None:
-        """Responsibilities: _publication mode initialization_."""
-        self.mode: str = mode
+class ArticlePublisher:
+    """Responsibilities: _article publication_."""
 
-    def publishable(self) -> bool:
-        """Responsibilities: _publication capability decision_."""
-        return self.mode == "notify"
+    def __init__(self, options: dict[str, bool]) -> None:
+        """Responsibilities: _publisher initialization_."""
+        self._options: dict[str, bool] = options
+
+    def normalized_article(self, article_text: str) -> str:
+        """Responsibilities: _article text normalization_."""
+        return " ".join(article_text.split())
+
+    def publish(self, article: str) -> str:
+        """Responsibilities: _publication decision_."""
+        normalized_article = self.normalized_article(article)
+        if self._options[DRY_RUN_OPTION]:
+            return f"{PREVIEW_PREFIX}{normalized_article}"
+        if self._options[NOTIFY_OPTION]:
+            return f"{NOTIFICATION_PREFIX}{normalized_article}"
+        return f"{STORAGE_PREFIX}{normalized_article}"
 
     def delivery_description(self) -> str:
         """Responsibilities: _delivery mode description_."""
-        normalized_mode = self.mode.strip()
-        return normalized_mode.upper()
+        if self._options[DRY_RUN_OPTION]:
+            return PREVIEW_MODE
+        if self._options[NOTIFY_OPTION]:
+            return NOTIFICATION_MODE
+        return STORAGE_MODE
 
-    def delivery_channel(self) -> str:
-        """Responsibilities: _delivery channel selection_."""
-        if self.mode == "notify":
-            return "email"
-        if self.mode == "preview":
-            return "preview"
-        return "none"
+    def summary(self) -> str:
+        """Responsibilities: _publication summary formatting_."""
+        publication = self.publish(ARTICLE_TEXT)
+        delivery = self.delivery_description()
+        article_size = len(self.normalized_article(ARTICLE_TEXT))
+        return f"{publication} | {delivery} | {article_size} characters"
+
+    def report(self) -> None:
+        """Responsibilities: _publication report output_."""
+        print(self.summary())
 # File: cli.py
-from publication_policy.publication_policy import PublicationPolicy
+from src.constants import DRY_RUN_OPTION, NOTIFY_OPTION
+from src.article_publisher import ArticlePublisher
 
 if __name__ == "__main__":
-    publication_policy = PublicationPolicy("preview")
-    publishable = publication_policy.publishable()
-    delivery_mode = publication_policy.delivery_description()
-    channel = publication_policy.delivery_channel()
-    print(f"{publishable} {delivery_mode} {channel}")
+    options: dict[str, bool] = {NOTIFY_OPTION: True, DRY_RUN_OPTION: False}
+    publisher = ArticlePublisher(options)
+    publisher.report()
 ```

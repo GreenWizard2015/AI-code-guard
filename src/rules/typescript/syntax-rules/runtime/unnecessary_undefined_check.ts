@@ -1,43 +1,39 @@
-import ts from "typescript";
-
-import { AstPropertyType } from "src/rules/typescript/syntax-rules/ast/ast_property_type";
+import type { UnnecessaryUndefinedCheckContract } from "src/analysis_protocols";
+import { RULE_IDS } from "src/linting/constants";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
-import { RULE_IDS } from "src/constants";
+import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
+import { PROPERTY_STATE_REQUIRED } from "src/rules/constants";
+import { AstPropertyType } from "src/rules/typescript/syntax-rules/ast/ast_property_type";
 import type { AstPropertySourceIndexContract } from "src/source_protocols";
-import type { RuleAppender } from "src/types";
 import type { AstPropertyTypeContract } from "src/source_protocols";
 import type { SourceFileResolver } from "src/source_types";
-import type { UnnecessaryUndefinedCheckContract } from "src/analysis_protocols";
-import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
+import type { CallableRuleAppender } from "src/types";
+import ts from "typescript";
 
 /** Responsibilities: _undefined checks_, _field types_. **/
 export class UnnecessaryUndefinedCheck implements UnnecessaryUndefinedCheckContract {
-	private readonly comparison_operators: Set<ts.SyntaxKind>;
-	private readonly resolver: AstPropertyTypeContract;
-	private readonly append_rule: RuleAppender;
+	private readonly _comparison_operators: Set<ts.SyntaxKind>;
+	private readonly _resolver: AstPropertyTypeContract;
+	private readonly _append_rule: CallableRuleAppender;
 
 	/** Responsibilities: _classification binary expressions compare_. **/
-	private is_undefined_comparison(node: ts.BinaryExpression): boolean {
-		const operator = node.operatorToken.kind;
-		if (this.comparison_operators.has(operator)) {
+	private is_undefined_comparison(undefined_test: ts.BinaryExpression): boolean {
+		const operator = undefined_test.operatorToken.kind;
+		if (this._comparison_operators.has(operator)) {
 			return true;
 		}
 		return false;
 	}
 
 	/** Responsibilities: _expression resolution validation_. **/
-	private checked_expression(node: ts.BinaryExpression): ts.Expression {
-		if (ts.isIdentifier(node.left)) {
-			if (node.left.text === UNDEFINED_TYPE_NAME) {
-				return node.right;
-			}
+	private checked_expression(operand_comparison: ts.BinaryExpression): ts.Expression {
+		if (ts.isIdentifier(operand_comparison.left) && operand_comparison.left.text === UNDEFINED_TYPE_NAME) {
+			return operand_comparison.right;
 		}
-		if (ts.isIdentifier(node.right)) {
-			if (node.right.text === UNDEFINED_TYPE_NAME) {
-				return node.left;
-			}
+		if (ts.isIdentifier(operand_comparison.right) && operand_comparison.right.text === UNDEFINED_TYPE_NAME) {
+			return operand_comparison.left;
 		}
-		return node;
+		return operand_comparison;
 	}
 
 	/** Responsibilities: _static element field names_. **/
@@ -74,100 +70,93 @@ export class UnnecessaryUndefinedCheck implements UnnecessaryUndefinedCheckContr
 	}
 
 	/** Responsibilities: _known field lookup_. **/
-	private required_field(expression: ts.Expression, name: string): boolean {
-		if (!ts.isIdentifier(expression)) {
+	private required_field(receiver: ts.Expression, property_name: string): boolean {
+		if (!ts.isIdentifier(receiver)) {
 			return false;
 		}
-		if (name === "") {
+		if (property_name === "") {
 			return false;
 		}
-		if (!this.resolver.known_field(expression, name)) {
-			return false;
-		}
-		return this.resolver.required_field(expression, name);
+		return this._resolver.field_state(receiver, property_name) === PROPERTY_STATE_REQUIRED;
 	}
 
 	/** Responsibilities: _known field expressions_. **/
-	private required_field_expression(expression: ts.Expression): boolean {
-		expression = this.unwrapped_key(expression);
-		if (ts.isPropertyAccessExpression(expression)) {
-			return this.required_field(expression.expression, expression.name.text);
+	private required_field_expression(property_expression: ts.Expression): boolean {
+		const unwrapped_expression = this.unwrapped_key(property_expression);
+		if (ts.isPropertyAccessExpression(unwrapped_expression)) {
+			return this.required_field(unwrapped_expression.expression, unwrapped_expression.name.text);
 		}
-		if (!ts.isElementAccessExpression(expression)) {
+		if (!ts.isElementAccessExpression(unwrapped_expression)) {
 			return false;
 		}
-		return this.required_field(expression.expression, this.element_name(expression));
+		return this.required_field(unwrapped_expression.expression, this.element_name(unwrapped_expression));
 	}
 
 	/** Responsibilities: _classification undefined comparison targets_. **/
-	private is_unnecessary_comparison(node: ts.BinaryExpression): boolean {
-		if (!this.is_undefined_comparison(node)) {
+	private is_unnecessary_comparison(candidate_comparison: ts.BinaryExpression): boolean {
+		if (!this.is_undefined_comparison(candidate_comparison)) {
 			return false;
 		}
-		const expression = this.checked_expression(node);
-		return this.required_field_expression(expression);
+		const checked_value = this.checked_expression(candidate_comparison);
+		return this.required_field_expression(checked_value);
 	}
 
 	/** Responsibilities: _classification property access known_. **/
-	private is_unnecessary_access(node: ts.PropertyAccessExpression): boolean {
-		if (node.questionDotToken === undefined) {
+	private is_unnecessary_access(optional_access: ts.PropertyAccessExpression): boolean {
+		if (optional_access.questionDotToken === undefined) {
 			return false;
 		}
-		const expression = this.unwrapped_key(node.expression);
-		if (!ts.isIdentifier(expression)) {
+		const receiver = this.unwrapped_key(optional_access.expression);
+		if (!ts.isIdentifier(receiver)) {
 			return false;
 		}
-		const known = this.resolver.known_field(expression, node.name.text);
-		if (!known) {
-			return false;
-		}
-		return this.resolver.required_field(expression, node.name.text);
+		return this._resolver.field_state(receiver, optional_access.name.text) === PROPERTY_STATE_REQUIRED;
 	}
 
 	/** Responsibilities: _optional element access classification_. **/
-	private unnecessary_element(node: ts.ElementAccessExpression): boolean {
-		if (node.questionDotToken === undefined) {
+	private unnecessary_element(optional_access: ts.ElementAccessExpression): boolean {
+		if (optional_access.questionDotToken === undefined) {
 			return false;
 		}
-		return this.required_field(node.expression, this.element_name(node));
+		return this.required_field(optional_access.expression, this.element_name(optional_access));
 	}
 
 	/** Responsibilities: _initialization source property state_. **/
 	public constructor(
 		source_file: ts.SourceFile,
-		append_rule: RuleAppender,
+		append_rule: CallableRuleAppender,
 		source_resolver: SourceFileResolver,
 		module_exports: TypeScriptPropertyModuleResolverContract,
 		source_index: AstPropertySourceIndexContract,
 	) {
-		this.comparison_operators = new Set([
+		this._comparison_operators = new Set([
 			ts.SyntaxKind.EqualsEqualsEqualsToken,
 			ts.SyntaxKind.ExclamationEqualsEqualsToken,
 			ts.SyntaxKind.EqualsEqualsToken,
 			ts.SyntaxKind.ExclamationEqualsToken,
 		]);
-		this.resolver = new AstPropertyType(source_file, source_resolver, module_exports, source_index);
-		this.append_rule = append_rule;
+		this._resolver = new AstPropertyType(source_file, source_resolver, module_exports, source_index);
+		this._append_rule = append_rule;
 	}
 
 	/** Responsibilities: _reporting node contains unnecessary_. **/
-	public matches(node: ts.Node): boolean {
-		if (ts.isBinaryExpression(node)) {
-			return this.is_unnecessary_comparison(node);
+	public matches(candidate_node: ts.Node): boolean {
+		if (ts.isBinaryExpression(candidate_node)) {
+			return this.is_unnecessary_comparison(candidate_node);
 		}
-		if (!ts.isPropertyAccessExpression(node)) {
-			if (!ts.isElementAccessExpression(node)) {
+		if (!ts.isPropertyAccessExpression(candidate_node)) {
+			if (!ts.isElementAccessExpression(candidate_node)) {
 				return false;
 			}
-			return this.unnecessary_element(node);
+			return this.unnecessary_element(candidate_node);
 		}
-		return this.is_unnecessary_access(node);
+		return this.is_unnecessary_access(candidate_node);
 	}
 
 	/** Responsibilities: _aggregation diagnostic node violates_. **/
-	public append(node: ts.Node): void {
-		if (this.matches(node)) {
-			this.append_rule(node, RULE_IDS.unnecessary_undefined_check);
+	public append(candidate_node: ts.Node): void {
+		if (this.matches(candidate_node)) {
+			this._append_rule(candidate_node, RULE_IDS.unnecessary_undefined_check);
 		}
 	}
 }

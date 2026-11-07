@@ -1,15 +1,17 @@
-import ts from "typescript";
-import type { TypeScriptInstanceLookup } from "src/model/types";
 import type { TypeScriptInstanceFileScopeContract } from "src/model/protocols";
+import type { TypeScriptInstanceLookup } from "src/model/types";
+import { TypeScriptInstanceBindingNames } from "src/parser/references/instance/instance-resolution/type_script_instance_binding_names";
+import ts from "typescript";
 
 /** Responsibilities: _lexical names_, _class scope_. **/
 export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeContract {
-	private readonly imported_binding_files: ReadonlyMap<string, string>;
-	private readonly values: Map<string, { declaration: ts.Node; file: string; class_name: string }[]>;
+	private readonly _imported_binding_files: ReadonlyMap<string, string>;
+	private readonly _values: Map<string, { declaration: ts.Node; file: string; class_name: string }[]>;
+	private readonly _declaration_names: TypeScriptInstanceBindingNames;
 
 	/** Responsibilities: _imported instance file lookup_. **/
-	private imported_file(name: string): string {
-		const file = this.imported_binding_files.get(name);
+	private imported_file(imported_name: string): string {
+		const file = this._imported_binding_files.get(imported_name);
 		if (file === undefined) {
 			return "";
 		}
@@ -17,25 +19,25 @@ export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeC
 	}
 
 	/** Responsibilities: _transparent initializer normalization_. **/
-	private next_initializer(expression: ts.Expression): ts.Expression {
-		if (ts.isParenthesizedExpression(expression)) {
-			return expression.expression;
+	private next_initializer(wrapper_expression: ts.Expression): ts.Expression {
+		if (ts.isParenthesizedExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isAsExpression(expression)) {
-			return expression.expression;
+		if (ts.isAsExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isSatisfiesExpression(expression)) {
-			return expression.expression;
+		if (ts.isSatisfiesExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		if (ts.isTypeAssertionExpression(expression)) {
-			return expression.expression;
+		if (ts.isTypeAssertionExpression(wrapper_expression)) {
+			return wrapper_expression.expression;
 		}
-		return expression;
+		return wrapper_expression;
 	}
 
 	/** Responsibilities: _transparent initializer normalization_. **/
-	private unwrapped_initializer(expression: ts.Expression): ts.Expression {
-		let current = expression;
+	private unwrapped_initializer(initializer_expression: ts.Expression): ts.Expression {
+		let current = initializer_expression;
 		while (true) {
 			const next = this.next_initializer(current);
 			if (next === current) {
@@ -47,11 +49,11 @@ export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeC
 
 	/** Responsibilities: _instance initializer file resolution_. **/
 	private initializer_file(initializer: ts.Expression): string {
-		initializer = this.unwrapped_initializer(initializer);
-		if (!ts.isNewExpression(initializer) && !ts.isCallExpression(initializer)) {
+		const normalized_initializer = this.unwrapped_initializer(initializer);
+		if (!ts.isNewExpression(normalized_initializer) && !ts.isCallExpression(normalized_initializer)) {
 			return "";
 		}
-		const expression = initializer.expression;
+		const expression = normalized_initializer.expression;
 		if (!ts.isIdentifier(expression)) {
 			return "";
 		}
@@ -75,20 +77,20 @@ export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeC
 	}
 
 	/** Responsibilities: _binding source file resolution_. **/
-	private resolved_file(node: ts.Node, inherited_file: string): string {
+	private resolved_file(binding_node: ts.Node, inherited_file: string): string {
 		if (inherited_file.length > 0) {
 			return inherited_file;
 		}
-		if (ts.isVariableDeclaration(node)) {
-			return this.variable_file(node);
+		if (ts.isVariableDeclaration(binding_node)) {
+			return this.variable_file(binding_node);
 		}
-		if (ts.isParameter(node)) {
-			return this.parameter_file(node);
+		if (ts.isParameter(binding_node)) {
+			return this.parameter_file(binding_node);
 		}
-		if (ts.isBinaryExpression(node) && ts.isIdentifier(node.left)) {
-			const initializer = this.unwrapped_initializer(node.right);
+		if (ts.isBinaryExpression(binding_node) && ts.isIdentifier(binding_node.left)) {
+			const initializer = this.unwrapped_initializer(binding_node.right);
 			if (ts.isIdentifier(initializer)) {
-				return this.file(initializer.text, node).value;
+				return this.file(initializer.text, binding_node).value;
 			}
 			return this.initializer_file(initializer);
 		}
@@ -98,9 +100,9 @@ export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeC
 	/** Responsibilities: _position-matched instance file_. **/
 	private binding_file(
 		bindings: readonly { declaration: ts.Node; file: string }[],
-		reference: ts.Node,
+		binding_reference: ts.Node,
 	): TypeScriptInstanceLookup {
-		const reference_start = reference.getStart(reference.getSourceFile());
+		const reference_start = binding_reference.getStart(binding_reference.getSourceFile());
 		let file: TypeScriptInstanceLookup = { bound: false, value: "" };
 		for (const binding of bindings) {
 			const declaration_start = binding.declaration.getStart(binding.declaration.getSourceFile());
@@ -111,129 +113,73 @@ export class TypeScriptInstanceFileScope implements TypeScriptInstanceFileScopeC
 		return file;
 	}
 
-	/** Responsibilities: _instance declaration name_. **/
-	private assignment_names(node: ts.Node): readonly string[] {
-		if (!ts.isBinaryExpression(node)) {
-			return [];
-		}
-		if (!ts.isIdentifier(node.left)) {
-			return [];
-		}
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
-			return [];
-		}
-		return [node.left.text];
-	}
-
-	/** Responsibilities: _binding name recursion_. **/
-	private append_binding_names(name: ts.BindingName, names: string[]): void {
-		if (ts.isIdentifier(name)) {
-			names.push(name.text);
-			return;
-		}
-		for (const element of name.elements) {
-			if (ts.isBindingElement(element)) {
-				this.append_binding_names(element.name, names);
-			}
-		}
-	}
-
-	/** Responsibilities: _declaration instance names_. **/
-	private variable_names(node: ts.VariableDeclaration): readonly string[] {
-		const names: string[] = [];
-		this.append_binding_names(node.name, names);
-		return names;
-	}
-
-	/** Responsibilities: _parameter instance names_. **/
-	private parameter_names(node: ts.ParameterDeclaration): readonly string[] {
-		const names: string[] = [];
-		this.append_binding_names(node.name, names);
-		return names;
-	}
-
-	/** Responsibilities: _instance declaration name_. **/
-	private binding_names(node: ts.Node): readonly string[] {
-		const assignment_names = this.assignment_names(node);
-		if (assignment_names.length > 0) {
-			return assignment_names;
-		}
-		if (ts.isVariableDeclaration(node)) {
-			return this.variable_names(node);
-		}
-		if (ts.isParameter(node)) {
-			return this.parameter_names(node);
-		}
-		return [];
-	}
-
 	/** Responsibilities: _instance binding storage_. **/
-	private append_binding(name: string, node: ts.Node, file: string, class_name: string): void {
-		let bindings = this.values.get(name);
+	private append_binding(binding_name: string, declaration_node: ts.Node, file: string, class_name: string): void {
+		let bindings = this._values.get(binding_name);
 		if (bindings === undefined) {
 			bindings = [];
-			this.values.set(name, bindings);
+			this._values.set(binding_name, bindings);
 		}
-		bindings.push({ declaration: node, file, class_name });
+		bindings.push({ declaration: declaration_node, file, class_name });
 	}
 
 	/** Responsibilities: _assignment class identity_. **/
-	private assignment_class_name(node: ts.BinaryExpression): string {
-		if (!ts.isIdentifier(node.left)) {
+	private assignment_class_name(assignment: ts.BinaryExpression): string {
+		if (this._declaration_names.assignment_target(assignment).length === 0) {
 			return "";
 		}
-		if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) {
-			return "";
-		}
-		const initializer = this.unwrapped_initializer(node.right);
+		const initializer = this.unwrapped_initializer(assignment.right);
 		if (ts.isNewExpression(initializer) && ts.isIdentifier(initializer.expression)) {
 			return initializer.expression.text;
 		}
 		if (ts.isIdentifier(initializer)) {
-			return this.class_name(initializer.text, node).value;
+			return this.class_name(initializer.text, assignment).value;
 		}
 		return "";
 	}
 
 	/** Responsibilities: _scope file storage initialization_. **/
 	public constructor(imported_binding_files: ReadonlyMap<string, string>) {
-		this.imported_binding_files = imported_binding_files;
-		this.values = new Map<string, { declaration: ts.Node; file: string; class_name: string }[]>();
+		this._imported_binding_files = imported_binding_files;
+		this._values = new Map<string, { declaration: ts.Node; file: string; class_name: string }[]>();
+		this._declaration_names = new TypeScriptInstanceBindingNames();
 	}
 
 	/** Responsibilities: _scope local instance discovery_. **/
-	public append(node: ts.Node, inherited_file: string, class_name: string = ""): void {
-		const names = this.binding_names(node);
+	public append(scope_node: ts.Node, inherited_file: string, class_name = ""): void {
+		const names = this._declaration_names.names(scope_node);
 		if (names.length === 0) {
 			return;
 		}
-		const file = this.resolved_file(node, inherited_file);
+		const file = this.resolved_file(scope_node, inherited_file);
 		let resolved_class_name = class_name;
-		if (ts.isBinaryExpression(node)) {
-			const assignment_class_name = this.assignment_class_name(node);
+		if (ts.isBinaryExpression(scope_node)) {
+			const assignment_class_name = this.assignment_class_name(scope_node);
 			if (assignment_class_name.length > 0) {
 				resolved_class_name = assignment_class_name;
 			}
 		}
-		for (const name of names) this.append_binding(name, node, file, resolved_class_name);
+		for (const name of names) {
+			this.append_binding(name, scope_node, file, resolved_class_name);
+		}
 	}
 
 	/** Responsibilities: _scope file lookup_. **/
-	public file(name: string, reference: ts.Node): TypeScriptInstanceLookup {
-		const bindings = this.values.get(name);
+	public file(instance_name: string, file_reference: ts.Node): TypeScriptInstanceLookup {
+		const bindings = this._values.get(instance_name);
 		if (bindings === undefined) {
 			return { bound: false, value: "" };
 		}
-		return this.binding_file(bindings, reference);
+		return this.binding_file(bindings, file_reference);
 	}
 
 	/** Responsibilities: _scope instance class lookup_. **/
-	public class_name(name: string, reference: ts.Node): TypeScriptInstanceLookup {
-		const bindings = this.values.get(name);
+	public class_name(class_lookup_name: string, class_reference: ts.Node): TypeScriptInstanceLookup {
+		const bindings = this._values.get(class_lookup_name);
 		if (bindings === undefined) {
 			return { bound: false, value: "" };
 		}
-		const reference_start = reference.getStart(reference.getSourceFile());
+		const reference_start = class_reference.getStart(class_reference.getSourceFile());
 		let class_name: TypeScriptInstanceLookup = { bound: false, value: "" };
 		for (const binding of bindings) {
 			if (binding.declaration.getStart(binding.declaration.getSourceFile()) <= reference_start) {

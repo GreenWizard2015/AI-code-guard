@@ -1,9 +1,9 @@
-import ts from "typescript";
 import type { ImportedNamesContract } from "src/shared_services_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _imported name collection_, _import binding membership_. **/
 export class ImportedNames implements ImportedNamesContract {
-	private readonly source_file: ts.SourceFile;
+	private readonly _source_file: ts.SourceFile;
 
 	/** Responsibilities: _aggregation local names named_. **/
 	private append_named_bindings(names: Set<string>, bindings: ts.NamedImports): void {
@@ -24,14 +24,14 @@ export class ImportedNames implements ImportedNamesContract {
 	}
 
 	/** Responsibilities: _initialization source file usage_. **/
-	constructor(source_file: ts.SourceFile) {
-		this.source_file = source_file;
+	public constructor(source_file: ts.SourceFile) {
+		this._source_file = source_file;
 	}
 
 	/** Responsibilities: _collection local names introduced_. **/
 	public collect(): ReadonlySet<string> {
 		const names = new Set<string>();
-		for (const statement of this.source_file.statements) {
+		for (const statement of this._source_file.statements) {
 			if (ts.isImportDeclaration(statement) && statement.importClause) {
 				this.append_import_clause(names, statement.importClause);
 			}

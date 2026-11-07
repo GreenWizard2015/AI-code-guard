@@ -50,8 +50,8 @@ export const TYPES_RULE_DATA = {
 		priority: 5,
 	},
 	"contract-naming": {
-		message: "contract declaration must end with Contract and avoid Prot, Proto, Protocol, or Interface",
-		hint: "Use a domain name ending in Contract. Do not: include Prot, Proto, Protocol, or Interface in the name.",
+		message: "only interface or protocol declarations may contain Contract, as the final suffix",
+		hint: "Use Contract only as the suffix of an interface or protocol name. Do not: put Contract in a class, type alias, or another declaration name.",
 		priority: 5,
 	},
 	"typescript-prototype-assignment": {
@@ -118,6 +118,11 @@ export const TYPES_RULE_DATA = {
 		message: 'callback contract "{name}" has too many parameters (found {count})',
 		hint: "Replace a callback with more than three parameters with a named interface, protocol, or event object. Do not: keep an unnamed multi-role callback contract.",
 		priority: 3,
+	},
+	"callable-type-alias": {
+		message: "inline function type must use a Callable-prefixed type alias",
+		hint: "Declare the function contract once as a named type alias whose name starts with Callable, then reference that alias. Do not: inline a function signature in a parameter, field, or another type.",
+		priority: 5,
 	},
 	"typescript-typeof": {
 		message: "avoid repeated typeof checks in business logic",
@@ -225,8 +230,8 @@ export const TYPES_RULE_DATA = {
 		priority: 5,
 	},
 	"typescript-interface-shape": {
-		message: "use an interface instead of a callable-heavy type alias or object shape",
-		hint: "Refactor the shape into an interface when the shared contract is mostly behavior, or into a focused wrapper class when it owns state or lifecycle. Do not: keep a namespace-shaped type alias with many callable fields.",
+		message: "use an interface instead of a type alias with method signatures",
+		hint: "Move method signatures from a type alias to a named interface. Do not: keep behavior methods in an ordinary type alias.",
 		priority: 5,
 	},
 	"type-field-count": {
@@ -280,8 +285,13 @@ export const TYPES_RULE_DATA = {
 		priority: 7,
 	},
 	"contract-fields": {
-		message: '{kind} "{class_name}" must not declare mutable field "{field_name}"',
-		hint: "Keep mutable state behind methods. Immutable TypeScript readonly snapshots are allowed; expose Python values through methods. Do not: expose writable interface or Protocol attributes.",
+		message: '{kind} "{class_name}" must not declare {field_policy} field "{field_name}"',
+		hint: "Keep interface contracts behavior-only. Move TypeScript data into a class or return it through a method; expose Python Protocol values through properties or methods. Do not: declare fields in a TypeScript interface.",
+		priority: 5,
+	},
+	"typescript-contract-getter": {
+		message: "TypeScript contracts must declare methods instead of getters",
+		hint: "Declare the operation as a method and implement it explicitly. Do not: expose getter signatures in interfaces.",
 		priority: 5,
 	},
 	"type-info": {
@@ -327,11 +337,6 @@ export const TYPES_RULE_DATA = {
 	"tuple-type": {
 		message: "avoid tuple types",
 		hint: "replace positional tuple types with a named interface or class whose fields express the contract. Do not: return or pass data through unnamed tuple positions.",
-		priority: 5,
-	},
-	"shared-parameter-type": {
-		message: 'multiple {noun} share parameter type "{parameters}" ({support}). Candidates: {candidates}.',
-		hint: "Inspect every production use of the shared type before refactoring. When appropriate, create a focused wrapper around the project type as a focused project wrapper, or extend the owning project class/protocol. Do not: hide the contract with type transformations or duplicate it across callables.",
 		priority: 5,
 	},
 	"functions-file-type-declaration": {

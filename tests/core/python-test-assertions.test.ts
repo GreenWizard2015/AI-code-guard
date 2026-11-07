@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint Python unittest assertions", () => {
@@ -20,7 +20,7 @@ describe("coding-lint Python unittest assertions", () => {
 		];
 		source_lines.push(...oversized_methods);
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/test_count.py": source_lines.join("\n"),
 			},
@@ -28,15 +28,15 @@ describe("coding-lint Python unittest assertions", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			minimum: violations.filter((item) => item.rule_id === "test-min-count").length,
-			maximum: violations.filter((item) => item.rule_id === "test-max-count").length,
+			minimum: violations.filter((item) => item.rule_id() === "test-min-count").length,
+			maximum: violations.filter((item) => item.rule_id() === "test-max-count").length,
 		}).toEqual({ minimum: 1, maximum: 1 });
 	});
 
 	test("requires self.assert* assertions for unittest test methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/unittest_test.py": [
 					"import unittest",
@@ -54,15 +54,18 @@ describe("coding-lint Python unittest assertions", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const assertion_violations = violations.filter(
-			(violation) => violation.message === "Python unittest test must contain a direct self.assert* assertion",
+			(violation) => violation.message() === "Python unittest test must contain a direct self.assert* assertion",
 		);
-		expect({ count: assertion_violations.length, line: assertion_violations[0]?.line }).toEqual({ count: 1, line: 4 });
+		expect({ count: assertion_violations.length, lines: assertion_violations.map((item) => item.line()) }).toEqual({
+			count: 1,
+			lines: [4],
+		});
 	});
 
 	test("recognizes reflected unittest assertions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/unittest_test.py": [
 					"import unittest",
@@ -74,13 +77,13 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-test-assert")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "python-test-assert")).toHaveLength(0);
 	});
 
 	test("rejects unittest tests that only check exceptions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/exception_test.py": [
 					"import unittest",
@@ -101,13 +104,13 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-exception-only")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "test-exception-only")).toHaveLength(2);
 	});
 
 	test("rejects Python exception-only bypass patterns", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/bypass_test.py": [
 					"class TestService:",
@@ -135,13 +138,13 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-exception-only")).toHaveLength(3);
+		expect(violations.filter((item) => item.rule_id() === "test-exception-only")).toHaveLength(3);
 	});
 
 	test("requires assertions at test level in a final consecutive block", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/unittest_test.py": [
 					"import unittest",
@@ -161,15 +164,15 @@ describe("coding-lint Python unittest assertions", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			missing_direct_assertion: violations.filter((item) => item.rule_id === "python-test-assert").length,
-			ending: violations.filter((item) => item.rule_id === "python-test-assert-ending").length,
+			missing_direct_assertion: violations.filter((item) => item.rule_id() === "python-test-assert").length,
+			ending: violations.filter((item) => item.rule_id() === "python-test-assert-ending").length,
 		}).toEqual({ missing_direct_assertion: 0, ending: 2 });
 	});
 
 	test("rejects assertions hidden in a Python helper lambda", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/unittest_test.py":
 					"import unittest\n\nclass TestService(unittest.TestCase):\n    def test_helper(self):\n        check = lambda: self.assertEqual(1, 1)\n        check()\n",
@@ -177,7 +180,7 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-test-assert")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "python-test-assert")).toHaveLength(1);
 	});
 
 	test("limits assertion count only on actual unittest test methods", () => {
@@ -195,21 +198,21 @@ describe("coding-lint Python unittest assertions", () => {
 		];
 		const source = source_lines.join("\n");
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "tests/test_assertion_scope.py": source },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "test-too-many-assertions").map((item) => item.line)).toEqual([
-			10,
-		]);
+		expect(
+			violations.filter((item) => item.rule_id() === "test-too-many-assertions").map((item) => item.line()),
+		).toEqual([10]);
 	});
 
 	test("requires Python properties to use explicit methods", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"service.py": [
 					"class Service:",
@@ -225,13 +228,13 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-property")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "python-property")).toHaveLength(1);
 	});
 
 	test("rejects aliased Python property setters", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"service.py": [
 					"class Profile:",
@@ -250,7 +253,7 @@ describe("coding-lint Python unittest assertions", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "python-property-setter")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "python-property-setter")).toHaveLength(1);
 	});
 
 	test("applies shared min and max size rules to individual Python tests", () => {
@@ -285,14 +288,14 @@ describe("coding-lint Python unittest assertions", () => {
 		];
 		const source = source_lines.join("\n");
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "tests/test_size.py": source },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "test-min-size").map((item) => item.line)).toEqual([4]);
-		expect(violations.filter((item) => item.rule_id === "test-max-size").map((item) => item.line)).toEqual([27]);
+		expect(violations.filter((item) => item.rule_id() === "test-min-size").map((item) => item.line())).toEqual([4]);
+		expect(violations.filter((item) => item.rule_id() === "test-max-size").map((item) => item.line())).toEqual([27]);
 	});
 
 	test("does not apply aggregate class-size rules to Python test classes", () => {
@@ -306,15 +309,15 @@ describe("coding-lint Python unittest assertions", () => {
 		];
 		const source = source_lines.join("\n");
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "tests/test_large.py": source },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
 		expect(
-			violations.filter((item) => ["class-min-size", "class-max-size", "class-size"].includes(item.rule_id)),
+			violations.filter((item) => ["class-min-size", "class-max-size", "class-size"].includes(item.rule_id())),
 		).toEqual([]);
-		expect(violations.filter((item) => item.rule_id === "test-max-size")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "test-max-size")).toHaveLength(1);
 	});
 });

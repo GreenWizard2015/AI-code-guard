@@ -28,6 +28,63 @@ describe("TypeScript reference identity", () => {
 		expect(identity).toEqual({ name: "execute", target_file: "first.ts" });
 	});
 
+	test("resolves an inherited method to the declaring base class file", () => {
+		const root = "/virtual/inherited-method-identity";
+		const texts = {
+			"base.ts": "export class Base { execute(): number { return 1; } }",
+			"child.ts": "import { Base } from './base'; export class Child extends Base {}",
+			"consumer.ts": "import { Child } from './child'; const child = new Child(); child.execute();",
+		};
+		const source_files = fixture.source_files(root, texts);
+		const consumer = fixture.required_source_file(source_files, `${root}/consumer.ts`);
+		const resolver = new TypeScriptReferenceIdentity(consumer, root, source_files, fixture.source_io(root, texts));
+
+		expect(resolver.method_reference(fixture.property_access(consumer, "execute"), "Child")).toEqual({
+			name: "execute",
+			target_file: "base.ts",
+		});
+	});
+
+	test("resolves a locally constructed class from the source index", () => {
+		const root = "/virtual/local-class-identity";
+		const texts = {
+			"local.ts": [
+				"class LocalService { execute(): number { return 1; } }",
+				"const service = new LocalService();",
+				"service.execute();",
+			].join("\n"),
+		};
+		const source_files = fixture.source_files(root, texts);
+		const local_file = fixture.required_source_file(source_files, `${root}/local.ts`);
+		const resolver = new TypeScriptReferenceIdentity(local_file, root, source_files, fixture.source_io(root, texts));
+
+		expect(resolver.method_reference(fixture.property_access(local_file, "execute"), "LocalService")).toEqual({
+			name: "execute",
+			target_file: "local.ts",
+		});
+	});
+
+	test("resolves a nested local class while indexing its instance ownership", () => {
+		const root = "/virtual/nested-local-class-identity";
+		const texts = {
+			"local.ts": [
+				"function create_service(): void {",
+				"\tclass LocalService { execute(): number { return 1; } }",
+				"\tconst service = new LocalService();",
+				"\tservice.execute();",
+				"}",
+			].join("\n"),
+		};
+		const source_files = fixture.source_files(root, texts);
+		const local_file = fixture.required_source_file(source_files, `${root}/local.ts`);
+		const resolver = new TypeScriptReferenceIdentity(local_file, root, source_files, fixture.source_io(root, texts));
+
+		expect(resolver.method_reference(fixture.property_access(local_file, "execute"), "LocalService")).toEqual({
+			name: "execute",
+			target_file: "local.ts",
+		});
+	});
+
 	test("keeps same-named imported parameter types tied to their declaration file", () => {
 		const root = "/virtual/parameter-identity";
 		const texts = {

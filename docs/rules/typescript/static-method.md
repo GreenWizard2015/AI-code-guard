@@ -27,12 +27,25 @@ Fix: Use `function create_user(id: string): User` or inject a factory.
 
 ```ts
 // File: src/user.ts
-class User {
-	public static create(user_id: string): User {
-		return new User(user_id);
+export class User {
+	private readonly user_id: string;
+	public constructor(user_id: string) {
+		this.user_id = user_id;
 	}
-	public constructor(public readonly user_id: string) {}
+	public static create(user_id: string): User {
+		return new User(user_id.trim());
+	}
+	public report(): void {
+		console.log(`user: ${this.user_id}`);
+	}
 }
+// File: src/cli.ts
+import { User } from "src/user";
+
+(() => {
+	const user = User.create("account-1");
+	user.report();
+})();
 ```
 
 ## Good
@@ -44,22 +57,45 @@ export interface UserSessionContract {
 	refresh(): string;
 	close(): string;
 	status_label(): string;
+	report(): void;
 }
 // File: src/user_session.ts
-#!/usr/bin/env node
-import { UserSessionContract } from "src/protocols";
+import type { UserSessionContract } from "src/protocols";
 /** Responsibilities: _account identity_, _session state_. **/
 export class UserSession implements UserSessionContract {
-	private readonly logger: Console;
-	private readonly account_id: string;
+	private readonly _account_id: string;
 	/** Responsibilities: _session initialization_. **/
-	public constructor(logger: Console, account_id: string) { this.logger = logger; this.account_id = account_id; }
+	public constructor(account_id: string) {
+		this._account_id = account_id;
+	}
 	/** Responsibilities: _account validation_. **/
-	public refresh(): string { const account = this.account_id.trim(); if (account.length === 0) { return "invalid"; } this.logger.log(`refresh ${account}`); return "refreshed"; }
+	public refresh(): string {
+		const account = this._account_id.trim().toLowerCase();
+		if (account.length === 0) { return "invalid"; }
+		return "refreshed";
+	}
 	/** Responsibilities: _session closure_. **/
-	public close(): string { this.logger.log(`close ${this.account_id}`); return "closed"; }
+	public close(): string {
+		return "closed";
+	}
 	/** Responsibilities: _session status_. **/
-	public status_label(): string { const account = this.account_id.trim(); if (account.length === 0) { return "unavailable"; } return `Account ${account}`; }
+	public status_label(): string {
+		const account = this._account_id.trim().toLowerCase();
+		if (account.length === 0) { return "unavailable"; }
+		return `Account ${account}`;
+	}
+	/** Responsibilities: _session report output_. **/
+	public report(): void {
+		const label = this.status_label();
+		const refreshed = this.refresh();
+		const closed = this.close();
+		console.log(`${label}: ${refreshed}, ${closed}`);
+	}
 }
-(function () { const session = new UserSession(console, "account-1"); console.log(session.refresh(), session.close(), session.status_label()); })();
+// File: src/cli.ts
+import { UserSession } from "src/user_session";
+(function () {
+	const session = new UserSession("account-1");
+	session.report();
+})();
 ```

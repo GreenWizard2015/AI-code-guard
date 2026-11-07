@@ -1,72 +1,58 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+
+from implementation.types import PythonCharacterColumnsByLine
 
 
 class SourceSegments:
-    """Responsibilities: _source span validation_, _segment extraction and positions_."""
+    """Responsibilities: _source span access_, _UTF-8 column mapping_."""
 
-    def _build_character_columns(self, line: str) -> dict[int, int]:
+    def _segment_text(self, line: int, end_line: int, start_column: int, end_column: int) -> str:
+        """Responsibilities: _UTF-8 AST span slicing_."""
+        if end_line == line:
+            line_bytes = self._lines[line].encode()
+            return line_bytes[start_column:end_column].decode()
+        first_bytes = self._lines[line].encode()
+        last_bytes = self._lines[end_line].encode()
+        first = first_bytes[start_column:].decode()
+        last = last_bytes[:end_column].decode()
+        segment_lines = self._lines[line + 1 : end_line]
+        segment_lines.insert(0, first)
+        segment_lines.append(last)
+        return "".join(segment_lines)
+
+    def _build_character_columns(self, source_line: str) -> dict[int, int]:
         """Responsibilities: _UTF-8 column map construction_."""
         columns = {0: 0}
         byte_column = 0
-        for character_column, character in enumerate(line, 1):
+        for character_column, character in enumerate(source_line, 1):
             byte_column += len(character.encode())
             columns[byte_column] = character_column
         return columns
 
-    def _valid_span(self, node: ast.AST) -> bool:
-        """Responsibilities: _AST node span classification_."""
-        if node.lineno is None or node.end_lineno is None:
-            return False
-        if node.col_offset is None or node.end_col_offset is None:
-            return False
-        if node.lineno <= 0:
-            return False
-        return node.end_lineno <= self.line_count()
-
-    def _byte_segment(self, line: str, start: int, end: int) -> str:
-        """Responsibilities: _UTF-8 source segment decoding_."""
-        encoded_line = line.encode()
-        segment = encoded_line[start:end]
-        return segment.decode()
-
-    def _multiple_line_segment(self, node: ast.AST, line: int, end_line: int) -> str:
-        """Responsibilities: _multi-line AST source extraction_."""
-        first_line = self.lines[line]
-        last_line = self.lines[end_line]
-        encoded_first_line = first_line.encode()
-        first_bytes = encoded_first_line[node.col_offset :]
-        first = first_bytes.decode()
-        last = self._byte_segment(last_line, 0, node.end_col_offset)
-        middle_lines = self.lines[line + 1 : end_line]
-        middle = "".join(middle_lines)
-        return first + middle + last
-
     def __init__(self, source: str) -> None:
-        """Responsibilities: _initialization source text split_."""
-        self.lines: Any = ast._splitlines_no_ff(source)
-        self.character_columns: dict[str, dict[int, int]] = {}
-
-    def line_count(self) -> int:
-        """Responsibilities: _output number source lines_."""
-        return len(self.lines)
+        """Responsibilities: _source segment state initialization_."""
+        self._source: str = source
+        self._lines: list[str] = source.splitlines(keepends=True)
+        unsupported_line_breaks = ("\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029")
+        self._has_non_ast_line_break: bool = any(line.endswith(unsupported_line_breaks) for line in self._lines)
+        self._character_columns: PythonCharacterColumnsByLine = {}
 
     def line(self, line_number: int) -> str:
         """Responsibilities: _source line access_."""
-        return self.lines[line_number - 1]
+        return self._lines[line_number - 1]
 
-    def character_column(self, line: str, byte_column: int) -> int:
+    def character_column(self, line_text: str, byte_column: int) -> int:
         """Responsibilities: _UTF-8 byte-column conversion_."""
-        columns = self.character_columns.get(line)
+        columns = self._character_columns.get(line_text)
         if columns is None:
-            columns = self._build_character_columns(line)
-            self.character_columns[line] = columns
+            columns = self._build_character_columns(line_text)
+            self._character_columns.update({line_text: columns})
         character_column = columns.get(byte_column)
         if character_column is not None:
             return character_column
-        encoded_line = line.encode()
+        encoded_line = line_text.encode()
         prefix = encoded_line[:byte_column]
         return len(prefix.decode())
 
@@ -75,13 +61,22 @@ class SourceSegments:
         return len("".join(text.split()))
 
     def segment(self, node: ast.AST) -> str:
-        """Responsibilities: _output source segment represented_."""
-        if not self._valid_span(node):
-            return ""
-        line: Any = node.lineno - 1
-        end_line: Any = node.end_lineno - 1
-        if end_line == line:
-            return self._byte_segment(
-                self.lines[line], node.col_offset, node.end_col_offset
+        """Responsibilities: _AST source segment extraction_."""
+        try:
+            if self._has_non_ast_line_break:
+                source_segment = ast.get_source_segment(self._source, node)
+                if source_segment is None:
+                    return ""
+                return source_segment
+            if node.end_lineno is None or node.end_col_offset is None:
+                return ""
+            return self._segment_text(
+                node.lineno - 1,
+                node.end_lineno - 1,
+                node.col_offset,
+                node.end_col_offset,
             )
-        return self._multiple_line_segment(node, line, end_line)
+        except IndexError:
+            return ""
+        except AttributeError:
+            return ""

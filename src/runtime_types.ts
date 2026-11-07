@@ -1,7 +1,7 @@
-import type ts from "typescript";
-import type { StringSetMap, ObjectSourceVisitor } from "src/analysis_types";
-import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type { StringSetMap } from "src/analysis_types";
 import type { LintRunResult } from "src/project_analysis_types";
+import type { LintProjectContextContract } from "src/shared_services_protocols";
+import type ts from "typescript";
 
 export type LintExecutionReport = { context: LintProjectContextContract; report: LintRunResult };
 export type LintStageDuration = { name: string; duration_ms: number };
@@ -14,13 +14,11 @@ export type LintStageFormatState = {
 	indent: string;
 };
 
-export type BindingAliasAppender = (binding: ts.BindingName, initializer: ts.Expression) => boolean;
+export type CallableExpressionNormalizer = (expression: ts.Expression) => ts.Expression;
 
-export type ExpressionNormalizer = (expression: ts.Expression) => ts.Expression;
+export type CallableAliasAppender = (name: string, initializer: ts.Expression) => boolean;
 
-export type AliasAppender = (name: string, initializer: ts.Expression) => boolean;
-
-export type MemberAliasAppender = (aliases: StringSetMap, name: string, property: string) => boolean;
+export type CallableMemberAliasAppender = (aliases: StringSetMap, name: string, property: string) => boolean;
 
 export type MemberValueAppendRequest = {
 	aliases: StringSetMap;
@@ -29,34 +27,36 @@ export type MemberValueAppendRequest = {
 	node: ts.Node;
 };
 
-export type MemberValueAppender = (request: MemberValueAppendRequest) => boolean;
+export type CallableMemberValueAppender = (request: MemberValueAppendRequest) => boolean;
 
-export type ExpressionUnwrapper = (expression: ts.Expression) => ts.Expression;
+export type CallableExpressionUnwrapper = (expression: ts.Expression) => ts.Expression;
 
-export type StaticObjectBranchAppender = (expression: ts.Expression) => boolean;
+export type CallableStaticObjectBranchAppender = (expression: ts.Expression) => boolean;
 
-export type StaticObjectValueAppender = (value: ts.Expression) => boolean;
+export type CallableStaticObjectValueAppender = (value: ts.Expression) => boolean;
 
-export type SourceLineResolver = (position: number) => number;
+export type CallableSourceLineResolver = (position: number) => number;
 
-export type Operation<T> = () => T;
+export type CallableOperation<T> = () => T;
 
-export type AsyncOperation<T> = () => Promise<T>;
+export type CallableAsyncOperation<T> = () => Promise<T>;
 
-export type SpreadValueAppender = (expression: ts.Expression) => boolean;
+export type CallableSpreadValueAppender = (expression: ts.Expression) => boolean;
 
-export type StaticValueResolver = (expression: ts.Expression, node: ts.Node) => string;
+export type CallableStaticValueResolver = (expression: ts.Expression, node: ts.Node) => string;
 
-export type MapValueAppender = (values: Map<string, string>, name: string, initializer: ts.Expression) => boolean;
+export type CallableMapValueAppender = (
+	values: Map<string, string>,
+	name: string,
+	initializer: ts.Expression,
+) => boolean;
 
-export type NodeBodyResolver<T> = (body: ts.Node) => T;
+export type CallableNodeBodyResolver<T> = (body: ts.Node) => T;
 
-export type StatementPredicate = (statement: ts.Statement) => boolean;
+export type CallableStatementPredicate = (statement: ts.Statement) => boolean;
 
-export type NameRelationsResolver = (name: string) => string[];
-
-export type ObjectSourceAppender = (expression: ts.Expression, visitor: ObjectSourceVisitor) => void;
+export type CallableNameRelationsResolver = (name: string) => string[];
 
 export type CallableConsumer = (callback: ts.FunctionLikeDeclaration) => void;
 
-export type ArrayValuesVisitor = (values: readonly ts.Expression[]) => void;
+export type CallableArrayValuesVisitor = (values: readonly ts.Expression[]) => void;

@@ -2,7 +2,7 @@ import ts from "typescript";
 
 /** Responsibilities: _expression tokenization_, _structural equality comparison_. **/
 export class TypeScriptExpressionIdentity {
-	private readonly values: WeakMap<ts.Node, string>;
+	private readonly _values: WeakMap<ts.Node, string>;
 
 	/** Responsibilities: _expression token scanning_. **/
 	private tokens(node: ts.Node): string[] {
@@ -27,17 +27,17 @@ export class TypeScriptExpressionIdentity {
 
 	/** Responsibilities: _identity cache initialization_. **/
 	public constructor() {
-		this.values = new WeakMap<ts.Node, string>();
+		this._values = new WeakMap<ts.Node, string>();
 	}
 
 	/** Responsibilities: _expression token identity_. **/
 	public value(node: ts.Node): string {
-		const cached = this.values.get(node);
+		const cached = this._values.get(node);
 		if (cached !== undefined) {
 			return cached;
 		}
 		const value = this.tokens(node).join("|");
-		this.values.set(node, value);
+		this._values.set(node, value);
 		return value;
 	}
 

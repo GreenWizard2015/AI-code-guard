@@ -1,84 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
-import ts from "typescript";
-import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
-import { TypeScriptConditionalRules } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_rules";
-import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/type_script_overload_rules";
-import { ProxyCall } from "src/rules/typescript/syntax-rules/callables/proxy_call";
-import { ProxyRules } from "src/rules/typescript/syntax-rules/callables/proxy_rules";
-import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
 import { TypeScriptVariableDeclarationIndex } from "src/linting/type_script_variable_declaration_index";
 import { ValueRules } from "src/linting/value_rules";
-
-/** Responsibilities: _analysis source setup_, _named binding selection_. **/
-class TypeScriptAnalysisScenario {
-	public readonly source_file: ts.SourceFile;
-	public initializer: ts.Expression;
-	public binding_found: boolean;
-	public count_name: ts.Identifier;
-	public enabled_name: ts.Identifier;
-	public count_binding_found: boolean;
-	public enabled_binding_found: boolean;
-
-	/** Responsibilities: _source file creation_. **/
-	public constructor(file: string, source_text: string) {
-		this.source_file = ts.createSourceFile(file, source_text, ts.ScriptTarget.Latest, true);
-		this.initializer = ts.factory.createIdentifier("missing");
-		this.binding_found = false;
-		this.count_name = ts.factory.createIdentifier("missing");
-		this.enabled_name = ts.factory.createIdentifier("missing");
-		this.count_binding_found = false;
-		this.enabled_binding_found = false;
-	}
-
-	/** Responsibilities: _initializer selection_. **/
-	public select_initializer(binding_name: string): void {
-		for (const statement of this.source_file.statements) {
-			if (!ts.isVariableStatement(statement)) {
-				continue;
-			}
-			for (const declaration of statement.declarationList.declarations) {
-				if (!ts.isIdentifier(declaration.name)) {
-					continue;
-				}
-				if (declaration.name.text !== binding_name || declaration.initializer === undefined) {
-					continue;
-				}
-				this.initializer = declaration.initializer;
-				this.binding_found = true;
-			}
-		}
-	}
-
-	/** Responsibilities: _named declaration lookup_. **/
-	public select_named_declarations(): void {
-		for (const statement of this.source_file.statements) {
-			if (!ts.isVariableStatement(statement)) {
-				continue;
-			}
-			for (const declaration of statement.declarationList.declarations) {
-				if (!ts.isIdentifier(declaration.name)) {
-					continue;
-				}
-				if (declaration.name.text === "count") {
-					this.count_name = declaration.name;
-					this.count_binding_found = true;
-				}
-				if (declaration.name.text === "enabled") {
-					this.enabled_name = declaration.name;
-					this.enabled_binding_found = true;
-				}
-			}
-		}
-	}
-}
+import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
+import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
+import { ProxyCall } from "src/rules/typescript/syntax-rules/callables/proxy_call";
+import { ProxyRules } from "src/rules/typescript/syntax-rules/callables/proxy_rules";
+import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/type_script_overload_rules";
+import { TypeScriptConditionalRules } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_rules";
+import { TypeScriptAnalysisScenario } from "tests/linting/type-script-analysis-scenario";
+import ts from "typescript";
 
 describe("TypeScript analysis algorithm regressions", () => {
 	test("classifies a shared boolean initializer", () => {
 		const scenario = new TypeScriptAnalysisScenario("flags.ts", "const seed = true;\nconst shared = seed && seed;");
 		scenario.select_initializer("shared");
 		const boolean_expression = new TypeScriptBooleanExpression(new TypeScriptVariableDeclarationIndex());
-		const result = boolean_expression.boolean_expression(scenario.initializer, scenario.source_file);
-		expect({ binding_found: scenario.binding_found, result }).toEqual({
+		const result = boolean_expression.boolean_expression(scenario._initializer, scenario._source_file);
+		expect({ binding_found: scenario._binding_found, result }).toEqual({
 			binding_found: true,
 			result: true,
 		});
@@ -91,8 +30,8 @@ describe("TypeScript analysis algorithm regressions", () => {
 		);
 		scenario.select_initializer("cycle");
 		const boolean_expression = new TypeScriptBooleanExpression(new TypeScriptVariableDeclarationIndex());
-		const result = boolean_expression.boolean_expression(scenario.initializer, scenario.source_file);
-		expect({ binding_found: scenario.binding_found, result }).toEqual({
+		const result = boolean_expression.boolean_expression(scenario._initializer, scenario._source_file);
+		expect({ binding_found: scenario._binding_found, result }).toEqual({
 			binding_found: true,
 			result: false,
 		});
@@ -105,15 +44,15 @@ describe("TypeScript analysis algorithm regressions", () => {
 		);
 		scenario.select_named_declarations();
 		const declaration_index = new TypeScriptVariableDeclarationIndex();
-		const primitive_rules = new ValueRules(declaration_index);
+		const primitive_rules = new ValueRules(declaration_index, new TypeScriptObjectAliasDeclarationIndex());
 		const boolean_rules = new TypeScriptBooleanExpression(declaration_index);
-		const primitive_result = primitive_rules.typed_primitive(scenario.count_name, scenario.source_file);
-		const boolean_result = boolean_rules.boolean_expression(scenario.enabled_name, scenario.source_file);
-		const first_index = declaration_index.declarations(scenario.source_file, "count");
-		const reused_index = declaration_index.declarations(scenario.source_file, "count");
+		const primitive_result = primitive_rules.typed_primitive(scenario._count_name, scenario._source_file);
+		const boolean_result = boolean_rules.boolean_expression(scenario._enabled_name, scenario._source_file);
+		const first_index = declaration_index.declarations(scenario._source_file, "count");
+		const reused_index = declaration_index.declarations(scenario._source_file, "count");
 		expect({
-			count_binding_found: scenario.count_binding_found,
-			enabled_binding_found: scenario.enabled_binding_found,
+			count_binding_found: scenario._count_binding_found,
+			enabled_binding_found: scenario._enabled_binding_found,
 			primitive_result,
 			boolean_result,
 			declaration_cache_reused: first_index === reused_index,
@@ -165,7 +104,10 @@ describe("TypeScript analysis algorithm regressions", () => {
 		];
 		const source = source_lines.join("\n");
 		const source_file = ts.createSourceFile("forwarders.ts", source, ts.ScriptTarget.Latest, true);
-		const rules = new ProxyRules(new ProxyCall(new TypeScriptExpressionNames()));
+		const rules = new ProxyRules(
+			new ProxyCall(new TypeScriptExpressionNames()),
+			new TypeScriptObjectAliasDeclarationIndex(),
+		);
 		const forwarders = source_file.statements.filter(ts.isFunctionDeclaration);
 		const classified = forwarders.map((node) => rules.proxy_callable(node));
 		expect(classified).toEqual(Array.from({ length: forward_count }, () => false));
@@ -180,11 +122,7 @@ describe("TypeScript analysis algorithm regressions", () => {
 			ts.ScriptTarget.Latest,
 			true,
 		);
-		const predicate = {
-			field_assignment: (): boolean => false,
-			primitive_assignment: (): boolean => false,
-		};
-		const rules = new TypeScriptConditionalRules(predicate, new TypeScriptVariableDeclarationIndex());
+		const rules = new TypeScriptConditionalRules(new TypeScriptVariableDeclarationIndex());
 		let append_count = 0;
 		/** Responsibilities: _conditional source traversal_. **/
 		const visit = (node: ts.Node): void => {

@@ -1,19 +1,67 @@
-import "src/linting/orchestration/runtime/global-analysis/composition_model";
+import "src/linting/composition/composition_model";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
+import "src/callable_usage";
+import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { STRUCTURAL_ALIAS_FILES } from "tests/core/constants/alias_analysis/constants";
-import { join } from "node:path";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint callable usage rule", () => {
+	test("does not attribute calls to a same-name contract to another implementation file", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"implementation.ts": ["export class Worker {", "  run(): void {}", "}"].join("\n"),
+				"contract.ts": "export interface Worker { run(): void; }",
+				"first.ts": [
+					"import type { Worker } from './contract';",
+					"export function first(worker: Worker): void { worker.run(); }",
+				].join("\n"),
+				"second.ts": [
+					"import type { Worker } from './contract';",
+					"export function second(worker: Worker): void { worker.run(); }",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.some(
+				(violation) => violation.rule_id() === "unused-callable" && violation.message().includes("Worker.run"),
+			),
+		).toBe(true);
+	});
+
+	test("still counts cross-file calls to a concrete class sharing a contract name", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"implementation.ts": ["export class Worker {", "  run(): void {}", "}"].join("\n"),
+				"contract.ts": "export interface Worker { run(): void; }",
+				"first.ts": ["import { Worker } from './implementation';", "new Worker().run();"].join("\n"),
+				"second.ts": ["import { Worker } from './implementation';", "new Worker().run();"].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations.some(
+				(violation) => violation.rule_id() === "unused-callable" && violation.message().includes("Worker.run"),
+			),
+		).toBe(false);
+	});
+
 	test("does not report methods implementing an interface declared in another file", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"contract.ts": ["export interface ServicePort { run(): void; }"].join("\n"),
 				"service.ts": [
@@ -30,14 +78,14 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Service.run"'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Service.run"'))).toBe(false);
 	});
 
 	test("resolves structural methods through nested port types", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export interface AgentPort { load(): void; }",
@@ -58,7 +106,7 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "AgentService.load" has insufficient production usage (found 0'),
+				violation.message().includes('method "AgentService.load" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
@@ -67,7 +115,7 @@ describe("coding-lint callable usage rule", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"leaf.ts": ["export class Leaf {", "  run(): void {}", "}"].join("\n"),
 				"holder.ts": [
@@ -92,9 +140,9 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes(
-					'method "Leaf.run" has insufficient production usage (found 0 other production files',
-				),
+				violation
+					.message()
+					.includes('method "Leaf.run" has insufficient production usage (found 0 other production files'),
 			),
 		).toBe(false);
 	});
@@ -102,7 +150,7 @@ describe("coding-lint callable usage rule", () => {
 	test("keeps factory results bound to their exported class file", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.ts": [
 					"export class Service { execute(): number { return 1; } }",
@@ -118,8 +166,8 @@ describe("coding-lint callable usage rule", () => {
 		);
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.file)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.file())
 				.filter((file) => file === "first.ts" || file === "second.ts"),
 		).toEqual(["second.ts"]);
 	});
@@ -127,7 +175,7 @@ describe("coding-lint callable usage rule", () => {
 	test("keeps generic factory results bound to the outer class", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"item.ts": "export class Item { execute(): number { return 1; } }",
 				"box.ts": "export class Box<T> { execute(): number { return 2; } }",
@@ -146,8 +194,8 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.file)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.file())
 				.filter((file) => file === "box.ts" || file === "item.ts"),
 		).toEqual(["item.ts"]);
 	});
@@ -155,7 +203,7 @@ describe("coding-lint callable usage rule", () => {
 	test("does not use an outer factory when a callable parameter shadows it", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.ts": "export class First { execute(): number { return 1; } }",
 				"second.ts": "export class Second { execute(): number { return 2; } }",
@@ -176,8 +224,8 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.file)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.file())
 				.filter((file) => file === "first.ts" || file === "second.ts"),
 		).toEqual(["first.ts", "second.ts"]);
 	});
@@ -185,7 +233,7 @@ describe("coding-lint callable usage rule", () => {
 	test("keeps static and instance factory methods separate", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"first.ts": "export class First { execute(): number { return 1; } }",
 				"second.ts": "export class Second { execute(): number { return 2; } }",
@@ -208,8 +256,8 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations
-				.filter((violation) => violation.rule_id === "unused-callable")
-				.map((violation) => violation.file)
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => violation.file())
 				.filter((file) => file === "first.ts" || file === "second.ts"),
 		).toEqual([]);
 	});
@@ -218,7 +266,7 @@ describe("coding-lint callable usage rule", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export interface ReaderPort { read(): void; }",
@@ -243,14 +291,14 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Reader.read"'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Reader.read"'))).toBe(false);
 	});
 
 	test("resolves methods called through imported singleton instances", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tools.ts": [
 					"export class Tools {",
@@ -265,14 +313,16 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Tools.normalize" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Tools.normalize" is used'))).toBe(
+			false,
+		);
 	});
 
 	test("resolves constructor properties and structural type aliases", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			STRUCTURAL_ALIAS_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -280,7 +330,7 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations.some((violation) =>
-				/method "(Dependency\.run|Consumer\.execute|Panel\.execute)" is used/.test(violation.message),
+				/method "(Dependency\.run|Consumer\.execute|Panel\.execute)" is used/.test(violation.message()),
 			),
 		).toBe(false);
 	});
@@ -307,16 +357,16 @@ describe("coding-lint callable usage rule", () => {
 				"}",
 			].join("\n"),
 		};
-		const references = test_fixture.project_source.with_in_memory_project(
+		const references = test_fixture._project_source.with_in_memory_project(
 			files,
-			(root, context) =>
-				context
-					.source_record(join(root, "consumer.ts"))
-					.normalized_ast.call_references.filter((reference) => reference.name === "match_candidate"),
+			({ root, context }) => {
+				const consumer_references = context.source_record(join(root, "consumer.ts")).normalized_ast.references;
+				return consumer_references.call_references.filter((reference) => reference.name === "match_candidate");
+			},
 			new Map(),
 		);
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -326,8 +376,8 @@ describe("coding-lint callable usage rule", () => {
 			references: references.map((reference) => reference.name),
 			method_violations: violations.filter(
 				(violation) =>
-					(violation.rule_id === "test-only-usage" || violation.rule_id === "unused-callable") &&
-					violation.message.includes("Matcher.match_candidate"),
+					(violation.rule_id() === "test-only-usage" || violation.rule_id() === "unused-callable") &&
+					violation.message().includes("Matcher.match_candidate"),
 			),
 		}).toEqual({ references: ["match_candidate"], method_violations: [] });
 	});

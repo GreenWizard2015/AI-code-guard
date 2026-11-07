@@ -1,34 +1,41 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("type contract policies", () => {
-	test("accepts readonly interface snapshots but reports mutable contract fields", () => {
+	test("reports every interface field, including readonly snapshots", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"io.ts": [
 					"interface MutableStoreContract { cache: Map<string, string>; }",
-					"interface FileEntryContract { readonly name: string; readonly is_file: boolean; }",
+					"interface FileEntry { readonly name: string; readonly is_file: boolean; }",
 				].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const contract_fields = violations.filter((violation) => violation.rule_id === "contract-fields");
+		const contract_fields = violations.filter((violation) => violation.rule_id() === "contract-fields");
 
-		expect(contract_fields.map((violation) => violation.line)).toEqual([1]);
+		expect(contract_fields.map((violation) => violation.line()).sort()).toEqual([1, 2, 2]);
+		expect(contract_fields.map((violation) => violation.message()).sort()).toEqual(
+			[
+				'interface "MutableStoreContract" must not declare any field "cache"',
+				'interface "FileEntry" must not declare any field "name"',
+				'interface "FileEntry" must not declare any field "is_file"',
+			].sort(),
+		);
 	});
 
 	test("reports invalid TypeScript and Python type contract shapes", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
-				"alias.ts": "type AstClassNodeContract = { base_class_name?: string; base_class_names?: string[]; };",
+				"alias.ts": "type AstClassNode = { base_class_name?: string; base_class_names?: string[]; };",
 				"field-count.ts": [
 					"type LargeType = {",
 					Array.from({ length: 11 }, (_, index) => `  field_${index}: string;`).join("\n"),
@@ -56,10 +63,10 @@ describe("type contract policies", () => {
 					"};",
 				].join("\n"),
 				"union-contract.ts": [
-					"type ReportViolationBase = { file: string; line: number; };",
-					"type ReportViolation =",
-					"  | ReportViolationBase",
-					"  | (ReportViolationBase & { readonly rule_id: string; readonly priority: ViolationPriority; });",
+					"type ViolationShapeBase = { file: string; line: number; };",
+					"type ViolationShape =",
+					"  | ViolationShapeBase",
+					"  | (ViolationShapeBase & { readonly rule_id: string; readonly priority: ViolationPriority; });",
 				].join("\n"),
 				"qualified-union.ts": [
 					"namespace ModelTypes { export type Node = { file: string; }; }",
@@ -74,17 +81,17 @@ describe("type contract policies", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations).toEqual(
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id(), line: item.line() }))).toEqual(
 			expect.arrayContaining([
-				expect.objectContaining({ file: "alias.ts", rule_id: "typescript-singular-plural-alias" }),
-				expect.objectContaining({ file: "field-count.ts", rule_id: "type-field-count" }),
-				expect.objectContaining({ file: "field-count.py", rule_id: "type-field-count" }),
-				expect.objectContaining({ file: "inline-union.ts", rule_id: "typescript-inline-union-type" }),
-				expect.objectContaining({ file: "array-state.ts", rule_id: "single-item-array-state" }),
-				expect.objectContaining({ file: "nullable.ts", rule_id: "nullable-domain-type", line: 4 }),
-				expect.objectContaining({ file: "union-contract.ts", rule_id: "typescript-union-contract-bypass" }),
-				expect.objectContaining({ file: "qualified-union.ts", rule_id: "typescript-union-contract-bypass" }),
-				expect.objectContaining({ file: "state-union.ts", rule_id: "composite-state-type" }),
+				{ file: "alias.ts", rule_id: "typescript-singular-plural-alias", line: expect.any(Number) },
+				{ file: "field-count.ts", rule_id: "type-field-count", line: expect.any(Number) },
+				{ file: "field-count.py", rule_id: "type-field-count", line: expect.any(Number) },
+				{ file: "inline-union.ts", rule_id: "typescript-inline-union-type", line: expect.any(Number) },
+				{ file: "array-state.ts", rule_id: "single-item-array-state", line: expect.any(Number) },
+				{ file: "nullable.ts", rule_id: "nullable-domain-type", line: 4 },
+				{ file: "union-contract.ts", rule_id: "typescript-union-contract-bypass", line: expect.any(Number) },
+				{ file: "qualified-union.ts", rule_id: "typescript-union-contract-bypass", line: expect.any(Number) },
+				{ file: "state-union.ts", rule_id: "composite-state-type", line: expect.any(Number) },
 			]),
 		);
 	});
@@ -92,7 +99,7 @@ describe("type contract policies", () => {
 	test("accepts type contracts using named shapes and concrete state classes", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"valid.ts": [
 					"type ClassName = string;",
@@ -121,6 +128,6 @@ describe("type contract policies", () => {
 			"composite-state-type",
 		];
 
-		expect(violations.filter((violation) => forbidden_type_rules.includes(violation.rule_id))).toEqual([]);
+		expect(violations.filter((violation) => forbidden_type_rules.includes(violation.rule_id()))).toEqual([]);
 	});
 });

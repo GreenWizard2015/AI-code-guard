@@ -1,61 +1,82 @@
 import { describe, expect, test } from "@jest/globals";
 import { AstModel } from "src/core/ast_model";
+import { LintFileName } from "src/core/context/lint_file_name";
 import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/import_fan_out";
-import ts from "typescript";
+import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
 import type { ViolationContract } from "src/reporting_protocols";
 
-describe("import fan-out", () => {
-	test("reports more than twenty unique module paths for both languages", () => {
-		const source = Array.from({ length: 21 }, (_, index) => `import value_${index} from "./module_${index}";`).join(
-			"\n",
-		);
-		const source_file = ts.createSourceFile("fanout.ts", source, ts.ScriptTarget.Latest, true);
-		const ast_model = new AstModel();
-		const python_ast = {
-			...ast_model.empty_ast_file("python"),
-			python_imports: Array.from({ length: 21 }, (_, index) => ({
-				line: index + 1,
-				kind: "from" as const,
-				module: `module_${index}`,
-				names: [{ name: `value_${index}`, alias: "" }],
-			})),
+describe("Python import fan-out", () => {
+	test("reports more than twenty unique module paths", () => {
+		const ast_model = new AstModel("python");
+		const empty_ast = ast_model.empty_ast_file();
+		const ast_file = new TypeScriptAstFile("fanout.py", "");
+		const source_file = ast_file.source_file_node();
+		const normalized_ast = {
+			...empty_ast,
+			source: {
+				...empty_ast.source,
+				python_imports: Array.from({ length: 21 }, (_, index) => ({
+					line: index + 1,
+					kind: "from" as const,
+					module: `module_${index}`,
+					names: [{ name: `value_${index}`, alias: "" }],
+				})),
+			},
 		};
-		const fan_out = new ImportFanOut();
-		const typescript_violations: ViolationContract[] = [];
-		const python_violations: ViolationContract[] = [];
-		fan_out.append_typescript(typescript_violations, "fanout.ts", source_file);
-		fan_out.append_python(python_violations, "fanout.py", python_ast);
+		const source = {
+			absolute_path: "/project/fanout.py",
+			relative_path: "fanout.py",
+			file_name: new LintFileName("fanout.py"),
+			text: "",
+			normalized_ast,
+			language: "python" as const,
+			typescript_ast: new TypeScriptAstFile("/project/fanout.py", ""),
+			source_resolver: new Map(),
+			traversal: new TypeScriptAstTraversal(source_file),
+		};
+		const violations: ViolationContract[] = [];
+		const rule = new ImportFanOut(20, new DiagnosticRule("import-fan-out"));
 
-		expect({ typescript: typescript_violations.length, python: python_violations.length }).toEqual({
-			typescript: 1,
-			python: 1,
-		});
+		rule.append(violations, source);
+
+		expect(violations).toHaveLength(1);
 	});
 
 	test("allows twenty unique module paths", () => {
-		const source = Array.from({ length: 20 }, (_, index) => `import value_${index} from "./module_${index}";`).join(
-			"\n",
-		);
-		const source_file = ts.createSourceFile("fanout.ts", source, ts.ScriptTarget.Latest, true);
+		const ast_model = new AstModel("python");
+		const empty_ast = ast_model.empty_ast_file();
+		const ast_file = new TypeScriptAstFile("fanout.py", "");
+		const source_file = ast_file.source_file_node();
+		const normalized_ast = {
+			...empty_ast,
+			source: {
+				...empty_ast.source,
+				python_imports: Array.from({ length: 20 }, (_, index) => ({
+					line: index + 1,
+					kind: "from" as const,
+					module: `module_${index}`,
+					names: [{ name: `value_${index}`, alias: "" }],
+				})),
+			},
+		};
+		const source = {
+			absolute_path: "/project/fanout.py",
+			relative_path: "fanout.py",
+			file_name: new LintFileName("fanout.py"),
+			text: "",
+			normalized_ast,
+			language: "python" as const,
+			typescript_ast: ast_file,
+			source_resolver: new Map(),
+			traversal: new TypeScriptAstTraversal(source_file),
+		};
 		const violations: ViolationContract[] = [];
-		const fan_out = new ImportFanOut();
-		fan_out.append_typescript(violations, "fanout.ts", source_file);
+		const rule = new ImportFanOut(20, new DiagnosticRule("import-fan-out"));
 
-		expect(violations).toHaveLength(0);
-	});
+		rule.append(violations, source);
 
-	test("counts multiple imported names from one path once", () => {
-		const source_lines = [
-			'import { first } from "./shared";',
-			'import { second } from "./shared";',
-			Array.from({ length: 19 }, (_, index) => `import value_${index} from "./module_${index}";`).join("\n"),
-		];
-		const source = source_lines.join("\n");
-		const source_file = ts.createSourceFile("fanout.ts", source, ts.ScriptTarget.Latest, true);
-		const violations: ViolationContract[] = [];
-		const fan_out = new ImportFanOut();
-		fan_out.append_typescript(violations, "fanout.ts", source_file);
-
-		expect(violations).toHaveLength(0);
+		expect(violations).toEqual([]);
 	});
 });

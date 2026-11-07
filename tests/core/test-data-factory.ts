@@ -1,3 +1,4 @@
+import { SharedParameterTypeIdentity } from "src/metrics/shared_parameter/shared_parameter_type_identity";
 import type {
 	AnalyzedCallable,
 	AnalyzedParameter,
@@ -20,28 +21,38 @@ export class TestDataFactory {
 	private parameter(
 		kind: SharedParameterKind,
 		identity: string,
+		primitive: boolean,
 		project_type: boolean,
 		uses: number,
 	): AnalyzedParameter {
 		return {
 			key: this.parameter_key(kind, identity),
 			identity,
+			type_identity: new SharedParameterTypeIdentity([], new Map()),
 			kind,
+			primitive,
 			project_type,
 			uses,
 		};
 	}
 
 	/** Responsibilities: _construction reference parameter fixture_. **/
-	public reference_parameter(identity: string, uses = 1): AnalyzedParameter {
-		return this.parameter(this.reference_kind, identity, true, uses);
+	public reference_parameter(identity: string, uses = 1, name = "value"): AnalyzedParameter {
+		return this.parameter(this.reference_kind, `${name}:${identity}`, false, true, uses);
 	}
 
 	/** Responsibilities: _construction primitive parameter fixture_. **/
 	public primitive_parameter(name: string, type: string, uses = 1): AnalyzedParameter {
 		const normalized_type = type.trim();
 		const identity = `${name}:${normalized_type}`;
-		return this.parameter(this.primitive_kind, identity, false, uses);
+		return this.parameter(this.primitive_kind, identity, true, false, uses);
+	}
+
+	/** Responsibilities: _basic parameter fixture_. **/
+	public basic_parameter(name: string, type: string, uses = 1): AnalyzedParameter {
+		const normalized_type = type.trim();
+		const identity = `${name}:${normalized_type}`;
+		return this.parameter(this.primitive_kind, identity, false, false, uses);
 	}
 
 	/** Responsibilities: _construction analysis callable fixture_. **/

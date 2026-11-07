@@ -1,23 +1,30 @@
-import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
 import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
+import type { TaskPublicationOwnerContract } from "src/core/support/task/types";
 import type { IOContract } from "src/io/protocols";
 
 /** Responsibilities: _publication transaction ownership_, _owner process liveness_. **/
 export class TaskPublicationOwner implements TaskPublicationOwnerContract {
-	private readonly pid: number;
-	private readonly transaction_path: string;
-	private readonly owner_token: string;
-	private readonly process_identity: string;
-	private readonly file_io: IOContract;
+	private readonly _pid: number;
+	private readonly _transaction_path: string;
+	private readonly _owner_token: string;
+	private readonly _process_identity: string;
+	private readonly _file_io: IOContract;
 
 	/** Responsibilities: _owner process identity match_. **/
 	private identity_matches_process(): boolean {
-		if (this.process_identity.length === 0) {
+		if (this._process_identity.length === 0) {
 			return true;
 		}
-		const identity_reader = new ReviewAgentIdentity(0, "", "", false, this.file_io);
-		const stored = identity_reader.stored_identity(this.process_identity);
-		const current = identity_reader.from_process(this.pid);
+		const identity_reader = new ReviewAgentIdentity({
+			pid: 0,
+			start_time: "",
+			boot_id: "",
+			available: false,
+			file_io: this._file_io,
+			ownership_token: "",
+		});
+		const stored = identity_reader.stored_identity(this._process_identity);
+		const current = identity_reader.from_process({ value: this._pid });
 		if (current.serialized().length === 0) {
 			return true;
 		}
@@ -26,25 +33,25 @@ export class TaskPublicationOwner implements TaskPublicationOwnerContract {
 
 	/** Responsibilities: _publication owner initialization_. **/
 	public constructor(pid: number, transaction: string, token: string, process_identity: string, file_io: IOContract) {
-		this.pid = pid;
-		this.transaction_path = transaction;
-		this.owner_token = token;
-		this.process_identity = process_identity;
-		this.file_io = file_io;
+		this._pid = pid;
+		this._transaction_path = transaction;
+		this._owner_token = token;
+		this._process_identity = process_identity;
+		this._file_io = file_io;
 	}
 
 	/** Responsibilities: _publication owner validation_. **/
 	public valid(): boolean {
-		if (!Number.isInteger(this.pid)) {
+		if (!Number.isInteger(this._pid)) {
 			return false;
 		}
-		return this.pid > 0;
+		return this._pid > 0;
 	}
 
 	/** Responsibilities: _publication owner liveness_. **/
 	public live(): boolean {
 		try {
-			process.kill(this.pid, 0);
+			process.kill(this._pid, 0);
 			return this.identity_matches_process();
 		} catch (error) {
 			const message = String(error);
@@ -63,16 +70,16 @@ export class TaskPublicationOwner implements TaskPublicationOwnerContract {
 		if (!this.valid()) {
 			return "";
 		}
-		return this.transaction_path;
+		return this._transaction_path;
 	}
 
 	/** Responsibilities: _publication token ownership check_. **/
 	public owns_token(token: string): boolean {
-		return this.owner_token === token;
+		return this._owner_token === token;
 	}
 
 	/** Responsibilities: _publication token identity_. **/
 	public same_token(owner: TaskPublicationOwnerContract): boolean {
-		return owner.owns_token(this.owner_token);
+		return owner.owns_token(this._owner_token);
 	}
 }

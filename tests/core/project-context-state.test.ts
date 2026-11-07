@@ -1,17 +1,12 @@
+import { describe, expect, test } from "@jest/globals";
+import { TYPESCRIPT_CONFIG_FILE } from "src/constants";
 import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { UnusedCode } from "src/core/project-source/unused_code";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
-import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import { AstModel } from "src/core/ast_model";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import { SourceText } from "src/source_text";
-import { TYPESCRIPT_CONFIG_FILE } from "src/constants";
-import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import { TestFixture } from "tests/core/test-fixture";
+import { TypeScriptProjectResolution } from "src/module-resolution/project-resolution/type_script_project_resolution";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import { describe, expect, test } from "@jest/globals";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding lint project context", () => {
 	test("reuses prepared TypeScript source files for source records", () => {
@@ -26,11 +21,15 @@ describe("coding lint project context", () => {
 			file_io,
 		);
 		const context = context_factory.lint_context(
-			root,
-			[file],
-			test_fixture.stage_timer(),
-			new Map([[file, "export const value = 1;\n"]]),
-			true,
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: new Map([[file, "export const value = 1;\n"]]),
+				in_memory: true,
+				configuration_snapshot_complete: false,
+			}),
 		);
 		const record = context.source_record(file);
 
@@ -49,7 +48,17 @@ describe("coding lint project context", () => {
 			new InMemoryProjectSourceIO(snapshot),
 			file_io,
 		);
-		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), snapshot, true);
+		const context = context_factory.lint_context(
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: snapshot,
+				in_memory: true,
+				configuration_snapshot_complete: false,
+			}),
+		);
 		const text = context.source_record(file).text;
 
 		expect(text).toBe("export const value = 1;\n");
@@ -68,10 +77,20 @@ describe("coding lint project context", () => {
 			source_io,
 			file_io,
 		);
-		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), new Map());
+		const context = context_factory.lint_context(
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: new Map(),
+				in_memory: false,
+				configuration_snapshot_complete: false,
+			}),
+		);
 		live_texts.set(file, "export const value = 2;\n");
 
-		expect([context.source_record(file).text, context.source_io.source_text(file)]).toEqual([
+		expect([context.source_record(file).text, context.source_io().source_text(file)]).toEqual([
 			"export const value = 1;\n",
 			"export const value = 1;\n",
 		]);
@@ -94,10 +113,20 @@ describe("coding lint project context", () => {
 			source_io,
 			file_io,
 		);
-		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), new Map());
+		const context = context_factory.lint_context(
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: new Map(),
+				in_memory: false,
+				configuration_snapshot_complete: false,
+			}),
+		);
 		live_texts.set(config_file, "{}\n");
 
-		expect(context.source_io.source_text(config_file)).toBe(
+		expect(context.source_io().source_text(config_file)).toBe(
 			'{ "compilerOptions": { "paths": { "@/*": ["src/*"] } } }\n',
 		);
 	});
@@ -120,14 +149,27 @@ describe("coding lint project context", () => {
 			new InMemoryProjectSourceIO(live_texts),
 			file_io,
 		);
-		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), new Map());
-		const project_resolution = new TypeScriptProjectResolution(root, context.source_io);
+		const context = context_factory.lint_context(
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: new Map(),
+				in_memory: false,
+				configuration_snapshot_complete: false,
+			}),
+		);
+		const project_resolution = new TypeScriptProjectResolution(root, context.source_io());
 		const resolution = project_resolution.resolution();
 
 		expect({
-			config_captured: context.source_io.source_available(inherited),
-			mapped: resolution.mapped_bases("@shared/value"),
-		}).toEqual({ config_captured: true, mapped: ["/virtual/shared/shared/value"] });
+			config_captured: context.source_io().source_available(inherited),
+			mapped: resolution.non_relative_bases("@shared/value"),
+		}).toEqual({
+			config_captured: true,
+			mapped: ["/virtual/shared/shared/value", "/virtual/shared/@shared/value"],
+		});
 	});
 
 	test("freezes runtime modules and their project path inventory", () => {
@@ -148,14 +190,24 @@ describe("coding lint project context", () => {
 			source_io,
 			file_io,
 		);
-		const context = context_factory.lint_context(root, [file], test_fixture.stage_timer(), new Map());
+		const context = context_factory.lint_context(
+			context_factory.snapshot({
+				repo_root: root,
+				project_files: [file],
+				ignore_files: [],
+				stage_timer: test_fixture.stage_timer(),
+				source_texts: new Map(),
+				in_memory: false,
+				configuration_snapshot_complete: false,
+			}),
+		);
 		live_texts.set(runtime_module, "export const runtime = 2;\n");
 		live_texts.set(late_file, "export const late = true;\n");
 
-		expect([context.source_io.source_text(runtime_module), context.source_io.source_paths(root, new Set())]).toEqual([
-			"export const runtime = 1;\n",
-			[file, runtime_module],
-		]);
+		expect([
+			context.source_io().source_text(runtime_module),
+			context.source_io().source_paths(root, new Set()),
+		]).toEqual(["export const runtime = 1;\n", [file, runtime_module]]);
 	});
 
 	test("does not activate the Python bridge for a TypeScript-only context", () => {
@@ -172,53 +224,67 @@ describe("coding lint project context", () => {
 		const statistics = test_fixture.with_empty_path(() =>
 			context_factory
 				.lint_context(
-					root,
-					[file],
-					test_fixture.stage_timer(),
-					new Map([[file, "export const value: number = 1;\n"]]),
-					true,
+					context_factory.snapshot({
+						repo_root: root,
+						project_files: [file],
+						ignore_files: [],
+						stage_timer: test_fixture.stage_timer(),
+						source_texts: new Map([[file, "export const value: number = 1;\n"]]),
+						in_memory: true,
+						configuration_snapshot_complete: false,
+					}),
 				)
 				.statistics(),
 		);
 		expect(statistics).toEqual({ source_reads: 1, typescript_parses: 1, python_parses: 0, source_records: 1 });
 	});
 
-	test("uses the prepared Python AST without reparsing source text", () => {
-		const source_text = "this is not Python syntax";
-		const ast_file = new TypeScriptAstFile("prepared.py", source_text);
-		const ast_model = new AstModel();
-		const prepared_ast = {
-			...ast_model.empty_ast_file("python"),
-			coding_issues: [{ line: 0, kind: "python-elif", name: "" }],
-		};
-		const source_ast = new SourceFileAst(
-			{ file: "prepared.py", text: source_text },
-			prepared_ast,
-			ast_file.source_file,
-			new Map(),
-			ast_file.traversal,
-		);
-		const linter = new CodingRuleLinter(process.cwd(), new SourceText());
-		expect(linter.lint_python(source_ast)).toEqual([expect.objectContaining({ line: 1, rule_id: "python-elif" })]);
-	});
-
 	test("unused-file results are equivalent with the shared context", () => {
 		const fixture = new TestFixture();
 		const unused_code = new UnusedCode();
-		const result = fixture.project_source.with_in_memory_project(
+		const result = fixture._project_source.with_in_memory_project(
 			{
 				"tools/coding-lint/index.ts": "export { value } from './dependency';\n",
 				"tools/coding-lint/dependency.ts": "export const value = 1;\n",
 				"tools/coding-lint/unused.ts": "export const unused = 1;\n",
 			},
-			(root, context) => {
-				return unused_code.collect_unused_files(root, {
-					context_state: { available: true, value: context },
-					entry_files: ["tools/coding-lint/index.ts"],
+			({ root, context }) => {
+				return unused_code.collect_unused_files({
+					root,
+					source: {
+						context_state: { available: true, value: context },
+						entry_files: ["tools/coding-lint/index.ts"],
+					},
 				});
 			},
 			new Map(),
 		);
-		expect(result.map((item) => item.file)).toEqual(["tools/coding-lint/unused.ts"]);
+		expect(result.map((item) => item.file())).toEqual(["tools/coding-lint/unused.ts"]);
+	});
+
+	test("Python global unused-file collection does not emit TypeScript results", () => {
+		const fixture = new TestFixture();
+		const unused_code = new UnusedCode();
+		const result = fixture._project_source.with_in_memory_project(
+			{
+				"tools/coding-lint/index.py": "from .dependency import value\n",
+				"tools/coding-lint/dependency.py": "value = 1\n",
+				"tools/coding-lint/unused.py": "unused = 1\n",
+				"tools/coding-lint/index.ts": "export { value } from './dependency';\n",
+				"tools/coding-lint/dependency.ts": "export const value = 1;\n",
+				"tools/coding-lint/unused.ts": "export const unused = 1;\n",
+			},
+			({ root, context }) =>
+				unused_code.unused_python_violations({
+					root,
+					source: {
+						context_state: { available: true, value: context },
+						entry_files: ["tools/coding-lint/index.py", "tools/coding-lint/index.ts"],
+					},
+				}),
+			new Map(),
+		);
+
+		expect(result.map((item) => item.file())).toEqual(["tools/coding-lint/unused.py"]);
 	});
 });

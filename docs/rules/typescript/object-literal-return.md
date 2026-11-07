@@ -46,38 +46,87 @@ function create_user(): UserView {
 
 ```ts
 // File: src/protocols.ts
-export interface UserViewContract { name(): string; }
-// File: functions.ts
-export function create_user(): UserViewContract {
-	return { name: () => "Ada" };
+export interface UserViewContract {
+	name(): string;
 }
+// File: src/user_directory.ts
+import type { UserViewContract } from "src/protocols";
+
+/** Responsibilities: _user directory lookup_. **/
+export class UserDirectory {
+	private readonly stored_name: string;
+	/** Responsibilities: _directory initialization_. **/
+	public constructor(user_name: string) {
+		this.stored_name = user_name;
+	}
+	/** Responsibilities: _view creation_. **/
+	public create_view(): UserViewContract {
+		const user_name = this.stored_name;
+		return { name: () => user_name }; // <- error
+	}
+	/** Responsibilities: _user name lookup_. **/
+	public display_name(): string {
+		const view = this.create_view();
+		return view.name();
+	}
+	/** Responsibilities: _user report output_. **/
+	public report(): void {
+		console.log(`User: ${this.display_name()}`);
+	}
+}
+// File: cli.ts
+import { UserDirectory } from "src/user_directory";
+
+(() => {
+	const directory = new UserDirectory("Ada");
+	directory.report();
+})();
 ```
 
 ## Good
 
 ```ts
 // File: src/protocols.ts
-/** Responsibilities: _session contract_, _lifecycle boundary_. **/
-export interface UserSessionContract {
-	refresh(): string;
-	close(): string;
-	status_label(): string;
+/** Responsibilities: _user view behavior contract_. **/
+export interface UserViewContract {
+	display_label(): string;
 }
-// File: src/user_session.ts
-#!/usr/bin/env node
-import { UserSessionContract } from "src/protocols";
-/** Responsibilities: _account identity_, _session state_. **/
-export class UserSession implements UserSessionContract {
-	private readonly logger: Console;
-	private readonly account_id: string;
-	/** Responsibilities: _session initialization_. **/
-	public constructor(logger: Console, account_id: string) { this.logger = logger; this.account_id = account_id; }
-	/** Responsibilities: _account validation_. **/
-	public refresh(): string { const account = this.account_id.trim(); if (account.length === 0) { return "invalid"; } this.logger.log(`refresh ${account}`); return "refreshed"; }
-	/** Responsibilities: _session closure_. **/
-	public close(): string { this.logger.log(`close ${this.account_id}`); return "closed"; }
-	/** Responsibilities: _session status_. **/
-	public status_label(): string { const account = this.account_id.trim(); if (account.length === 0) { return "unavailable"; } return `Account ${account}`; }
+// File: src/named_user.ts
+import type { UserViewContract } from "src/protocols";
+
+/** Responsibilities: _named user identity_. **/
+export class NamedUser implements UserViewContract {
+	private readonly _user_name: string;
+	/** Responsibilities: _user initialization_. **/
+	public constructor(user_name: string) {
+		this._user_name = user_name;
+	}
+	/** Responsibilities: _user label creation_. **/
+	public display_label(): string {
+		const normalized_name = this._user_name.trim().replace(/\s+/gu, " ");
+		return `User: ${normalized_name}`;
+	}
+	/** Responsibilities: _user initials_. **/
+	public initials(): string {
+		const normalized_name = this._user_name.trim().replace(/\s+/gu, " ");
+		const name_parts = normalized_name.split(/\s+/u);
+		const initials = name_parts.map((part) => part.slice(0, 1).toUpperCase());
+		return initials.join("");
+	}
+	/** Responsibilities: _user name length_. **/
+	public name_length(): number {
+		return this._user_name.trim().length;
+	}
+	/** Responsibilities: _user report output_. **/
+	public report(): void {
+		console.log(`${this.display_label()} (${this.initials()}, ${this.name_length()})`);
+	}
 }
-(function () { const session = new UserSession(console, "account-1"); console.log(session.refresh(), session.close(), session.status_label()); })();
+// File: cli.ts
+import { NamedUser } from "src/named_user";
+
+(() => {
+	const user = new NamedUser("Ada");
+	user.report();
+})();
 ```

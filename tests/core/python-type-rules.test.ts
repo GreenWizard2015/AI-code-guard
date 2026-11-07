@@ -1,12 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
-import { TestFixture } from "tests/core/test-fixture";
-import { NULLABLE_DOMAIN_FILES } from "tests/core/constants/callable_usage/constants";
-import { PythonAstData } from "src/core/python_ast_data";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { LintFileName } from "src/core/context/lint_file_name";
-import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { PythonAstData } from "src/core/python-ast/python_ast_data";
+import { SourceText } from "src/io/source_text";
+import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
+import { NULLABLE_DOMAIN_FILES } from "tests/core/constants/callable_usage/constants";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint Python type rules", () => {
 	test("rejects large unions and recommends Optional for nullable annotations", () => {
@@ -28,7 +28,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(messages).toContain("avoid overly broad unions");
 		expect(messages).toContain("use Optional[T] instead of T | None");
 	});
@@ -45,7 +45,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(
 			messages.filter((message) => message === "replace nullable types with specialized state classes"),
 		).toHaveLength(11);
@@ -62,7 +62,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(
 			messages.filter((message) => message === "replace nullable types with specialized state classes"),
 		).toHaveLength(2);
@@ -91,10 +91,10 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
-		expect(messages.some((message) => message.startsWith('multiple methods share parameter type "JsonValue"'))).toBe(
-			true,
-		);
+		const messages = violations.map((item) => item.message());
+		expect(
+			messages.some((message) => message.startsWith('multiple methods share parameter set "body:JsonValue"')),
+		).toBe(true);
 	});
 
 	test("rejects dynamic type factory construction", () => {
@@ -120,7 +120,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(
 			messages.filter(
 				(message) => message === "avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
@@ -135,6 +135,7 @@ describe("coding-lint Python type rules", () => {
 			analysis_identity: new ProjectAnalysisIdentity(test_fixture.file_io()),
 			split_batch_enabled: false,
 			file_io: test_fixture.file_io(),
+			cache_enabled: false,
 		});
 		const source = ["class Implementation(Base):", "    pass"].join("\n");
 		const cached_ast = python_ast_data.source_ast(source);
@@ -147,12 +148,22 @@ describe("coding-lint Python type rules", () => {
 			python_class_names: new Set(["Base"]),
 			project_protocol_names: new Set(["Base"]),
 			project_type_names: new Set<string>(),
+			project_alias_names: new Set<string>(),
 			normalized_ast: cached_ast,
 		};
 		scanner.lint_python_file(input);
-		const first_interfaces = cached_ast.classes[0].interfaces;
+		const first_class = cached_ast.source.classes.at(0);
+		const first_interfaces = first_class?.structure.interfaces;
 		scanner.lint_python_file({ ...input, project_protocol_names: new Set<string>() });
-		expect([first_interfaces, cached_ast.classes[0].interfaces]).toEqual([[], []]);
+		const current_interfaces = cached_ast.source.classes.at(0)?.structure.interfaces;
+
+		expect({
+			class_count: cached_ast.source.classes.length,
+			interfaces: [first_interfaces, current_interfaces],
+		}).toEqual({
+			class_count: 1,
+			interfaces: [[], []],
+		});
 	});
 
 	test("resolves Python aliased bases by declaration file", () => {
@@ -169,7 +180,10 @@ describe("coding-lint Python type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(expect.objectContaining({ file: "child.py", rule_id: "local-inheritance" }));
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "child.py",
+			rule_id: "local-inheritance",
+		});
 	});
 
 	test("resolves Python bases re-exported from a package facade", () => {
@@ -186,7 +200,10 @@ describe("coding-lint Python type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(expect.objectContaining({ file: "child.py", rule_id: "local-inheritance" }));
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "child.py",
+			rule_id: "local-inheritance",
+		});
 	});
 
 	test("keeps a concrete Python boundary forbidden despite a same-named protocol", () => {
@@ -196,6 +213,7 @@ describe("coding-lint Python type rules", () => {
 			analysis_identity: new ProjectAnalysisIdentity(test_fixture.file_io()),
 			split_batch_enabled: false,
 			file_io: test_fixture.file_io(),
+			cache_enabled: false,
 		});
 		const source = ["def consume(value: Item) -> str:", "    return value.value()"].join("\n");
 		const ast = python_ast_data.source_ast(source);
@@ -208,12 +226,14 @@ describe("coding-lint Python type rules", () => {
 			python_class_names: new Set(["Item"]),
 			project_protocol_names: new Set(["Item"]),
 			project_type_names: new Set<string>(),
+			project_alias_names: new Set<string>(),
 			normalized_ast: ast,
 		});
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({ file: "consumer.py", rule_id: "project-type-boundary" }),
-		);
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "consumer.py",
+			rule_id: "project-type-boundary",
+		});
 	});
 
 	test("recognizes imported aliased Python protocols in class ownership", () => {
@@ -243,9 +263,10 @@ describe("coding-lint Python type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({ file: "adapter.py", rule_id: "class-interface-count" }),
-		);
+		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
+			file: "adapter.py",
+			rule_id: "class-interface-count",
+		});
 	});
 
 	test("resolves type factories through indexed tuple values", () => {
@@ -263,7 +284,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(messages).toContain("avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)");
 	});
 
@@ -284,7 +305,7 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message);
+		const messages = violations.map((item) => item.message());
 		expect(messages.filter((message) => message === "avoid dynamic class construction with type(...)")).toHaveLength(4);
 	});
 });

@@ -1,20 +1,23 @@
+import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
+import type { ModulePathResolverContract, TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
 import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/analysis/type_script_module_exports";
-import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
-import type { ModulePathResolver, TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
-import ts from "typescript";
 import type { ProjectSourceIOContract } from "src/source_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _imported instance owner resolution_, _import alias collection_. **/
 export class TypeScriptImportedInstanceAliases {
-	private readonly module_exports: ModulePathResolver;
-	private readonly source_exports: TypeScriptModuleExportLookupContract;
+	private readonly _module_exports: ModulePathResolverContract;
+	private readonly _source_exports: TypeScriptModuleExportLookupContract;
 
 	/** Responsibilities: _resolution import source absolute_. **/
-	private imported_file_path(source_file: ts.SourceFile, statement: ts.Statement): string {
-		if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+	private imported_file_path(importer_source: ts.SourceFile, import_declaration: ts.Statement): string {
+		if (!ts.isImportDeclaration(import_declaration)) {
 			return "";
 		}
-		const file = this.module_exports.module_symbol(source_file.fileName, statement.moduleSpecifier.text);
+		if (!ts.isStringLiteral(import_declaration.moduleSpecifier)) {
+			return "";
+		}
+		const file = this._module_exports.module_symbol(importer_source.fileName, import_declaration.moduleSpecifier.text);
 		if (file !== undefined) {
 			return file;
 		}
@@ -22,11 +25,11 @@ export class TypeScriptImportedInstanceAliases {
 	}
 
 	/** Responsibilities: _extraction named import bindings_. **/
-	private imported_named_bindings(statement: ts.Statement): ts.NamedImports[] {
-		if (!ts.isImportDeclaration(statement)) {
+	private imported_named_bindings(import_statement: ts.Statement): ts.NamedImports[] {
+		if (!ts.isImportDeclaration(import_statement)) {
 			return [];
 		}
-		const bindings = statement.importClause?.namedBindings;
+		const bindings = import_statement.importClause?.namedBindings;
 		if (!bindings || !ts.isNamedImports(bindings)) {
 			return [];
 		}
@@ -57,7 +60,7 @@ export class TypeScriptImportedInstanceAliases {
 
 	/** Responsibilities: _resolution owner exported instance_. **/
 	private exported_instance_owner(file: string, exported_name: string): string {
-		for (const declaration of this.source_exports.resolved_exported_declaration(file, exported_name)) {
+		for (const declaration of this._source_exports.resolved_exported_declaration(file, exported_name)) {
 			if (ts.isVariableDeclaration(declaration)) {
 				return this.new_instance_owner(declaration);
 			}
@@ -85,30 +88,31 @@ export class TypeScriptImportedInstanceAliases {
 		source_files: ReadonlyMap<string, ts.SourceFile>,
 		source_io: ProjectSourceIOContract,
 	) {
-		this.module_exports = new TypeScriptModuleExports(project_root, source_files, false, source_io);
-		this.source_exports = new TypeScriptSourceExports(project_root, source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(project_root, source_files, false, source_io);
+		this._module_exports = exports_context.module_exports();
+		this._source_exports = new TypeScriptSourceExports(project_root, source_files, false, source_io);
 	}
 
 	/** Responsibilities: _resolution imported instance addition_. **/
 	public add_imported_instances(
-		source_file: ts.SourceFile,
-		statement: ts.Statement,
+		import_source: ts.SourceFile,
+		instance_import: ts.Statement,
 		instances: Map<string, string>,
 	): void {
-		const imported_file = this.imported_file_path(source_file, statement);
+		const imported_file = this.imported_file_path(import_source, instance_import);
 		if (!imported_file) {
 			return;
 		}
-		for (const named_bindings of this.imported_named_bindings(statement)) {
+		for (const named_bindings of this.imported_named_bindings(instance_import)) {
 			this.add_imported_bindings(named_bindings, imported_file, instances);
 		}
 	}
 
 	/** Responsibilities: _collection imported instance aliases_. **/
-	public imported_instance_aliases(source_file: ts.SourceFile): Map<string, string> {
+	public imported_instance_aliases(alias_source: ts.SourceFile): Map<string, string> {
 		const instances = new Map<string, string>();
-		for (const statement of source_file.statements) {
-			this.add_imported_instances(source_file, statement, instances);
+		for (const statement of alias_source.statements) {
+			this.add_imported_instances(alias_source, statement, instances);
 		}
 		return instances;
 	}

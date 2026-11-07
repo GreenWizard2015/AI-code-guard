@@ -1,6 +1,6 @@
-import { UnusedCode } from "src/core/project-source/unused_code";
-import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
 import { resolve } from "node:path";
+import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
+import { UnusedCode } from "src/core/project-source/unused_code";
 import { TestFixture } from "tests/core/test-fixture";
 
 import { describe, expect, test } from "@jest/globals";
@@ -9,7 +9,7 @@ describe("unused code checker", () => {
 	const fixture = new TestFixture();
 
 	test("reports unreachable TypeScript files and follows relative imports", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"tools/coding-lint/index.ts": "export { value } from './reachable';\n",
 				"tools/coding-lint/reachable.ts": "export const value = 1;\n",
@@ -19,11 +19,11 @@ describe("unused code checker", () => {
 		);
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
-		expect(violations.map((violation) => violation.file)).toEqual(["tools/coding-lint/unused.ts"]);
+		expect(violations.map((violation) => violation.file())).toEqual(["tools/coding-lint/unused.ts"]);
 	});
 
 	test("does not report an imported module as unused", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"tools/coding-lint/index.ts": "import dependency = require('./dependency');\ndependency.value;\n",
 				"tools/coding-lint/dependency.ts": "export const value = 1;\n",
@@ -36,7 +36,7 @@ describe("unused code checker", () => {
 	});
 
 	test("does not traverse imported runtime modules outside the source inventory", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"tools/coding-lint/index.ts": 'import { Worker } from "./worker.mjs";\nvoid Worker;\n',
 				"tools/coding-lint/worker.mjs": "export class Worker {}\n",
@@ -50,7 +50,7 @@ describe("unused code checker", () => {
 	});
 
 	test("reports files in a disconnected import cycle as unused", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"main.ts": "export const main = true;\n",
 				"a.ts": 'import "./b";\nexport const a = true;\n',
@@ -61,11 +61,11 @@ describe("unused code checker", () => {
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
 
-		expect(violations.map((violation) => violation.file).sort()).toEqual(["a.ts", "b.ts"]);
+		expect(violations.map((violation) => violation.file()).sort()).toEqual(["a.ts", "b.ts"]);
 	});
 
 	test("keeps an import cycle reachable from an entry point", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"main.ts": 'import "./a";\n',
 				"a.ts": 'import "./b";\nexport const a = true;\n',
@@ -79,15 +79,33 @@ describe("unused code checker", () => {
 		expect(violations).toEqual([]);
 	});
 
+	test("finishes traversal of reachable and disconnected multi-file import cycles", () => {
+		const project = fixture._project_source.source_scanner_fixture(
+			{
+				"main.ts": 'import "./a";\n',
+				"a.ts": 'import "./b";\nexport const a = true;\n',
+				"b.ts": 'import "./c";\nexport const b = true;\n',
+				"c.ts": 'import "./a";\nexport const c = true;\n',
+				"orphan-a.ts": 'import "./orphan-b";\nexport const orphan_a = true;\n',
+				"orphan-b.ts": 'import "./orphan-a";\nexport const orphan_b = true;\n',
+			},
+			["main.ts"],
+		);
+		const unused_code = new UnusedCode();
+		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+
+		expect(violations.map((violation) => violation.file()).sort()).toEqual(["orphan-a.ts", "orphan-b.ts"]);
+	});
+
 	test("reports missing configured TypeScript path aliases", () => {
-		const project = fixture.project_source.with_in_memory_project(
+		const project = fixture._project_source.with_in_memory_project(
 			{
 				"tsconfig.json": JSON.stringify({
 					compilerOptions: { baseUrl: ".", paths: { "@domain/*": ["src/domain/*"] } },
 				}),
 				"main.ts": 'import { Item } from "@domain/item";\nexport const item: Item | null = null;\n',
 			},
-			(root, context, files) => ({
+			({ root, context, files }) => ({
 				root,
 				scanner: new ProjectSourceScanner(root, {
 					context_state: { available: true, value: context },
@@ -98,13 +116,13 @@ describe("unused code checker", () => {
 			new Map(),
 		);
 		const importer = resolve(project.root, "main.ts");
-		const unresolved = project.scanner.unresolved_relative_imports(importer, new Set(project.files));
+		const unresolved = project.scanner.imports(importer, new Set(project.files)).unresolved_specifiers();
 
 		expect(unresolved).toContain("@domain/item");
 	});
 
 	test("distinguishes a plain package import from a same-named from-import", () => {
-		const project = fixture.project_source.source_scanner_fixture(
+		const project = fixture._project_source.source_scanner_fixture(
 			{
 				"plain.py": "import pkg\n",
 				"named.py": "from pkg import pkg\n",
@@ -118,8 +136,8 @@ describe("unused code checker", () => {
 		const package_initializer = resolve(project.root, "pkg/__init__.py");
 		const child_module = resolve(project.root, "pkg/pkg.py");
 		const available = new Set(project.files);
-		const plain_import = [...project.scanner.resolved_imports(plain_importer, available)];
-		const named_import = [...project.scanner.resolved_imports(named_importer, available)];
+		const plain_import = [...project.scanner.imports(plain_importer, available).resolved_targets()];
+		const named_import = [...project.scanner.imports(named_importer, available).resolved_targets()];
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
 

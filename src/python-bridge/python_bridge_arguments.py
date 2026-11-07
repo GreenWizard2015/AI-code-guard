@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 
 class PythonBridgeArguments:
     """Responsibilities: _option recognition_, _bridge mode selection_."""
@@ -14,39 +12,26 @@ class PythonBridgeArguments:
             return False
         return bool(argument[2:].strip())
 
-    def _option_names(self) -> list[str]:
-        """Responsibilities: _output configuration bridge option_."""
-        options: Any = []
-        for argument in self.arguments[1:]:
-            if self._is_option(argument):
-                options.append(argument)
-        return options
-
     def __init__(self, arguments: list[str]) -> None:
         """Responsibilities: _initialization raw bridge argument_."""
-        self.arguments: Any = arguments
+        self._arguments: list[str] = list(arguments)
 
     def option(self, option: str) -> bool:
         """Responsibilities: _specific option reporting_."""
-        for name in self._option_names():
-            if name == option:
-                return True
+        for argument in self._arguments[1:]:
+            if self._is_option(argument):
+                if argument == option:
+                    return True
         return False
 
     def text_mode(self) -> bool:
         """Responsibilities: _reporting text input mode_."""
-        if self.option("--text"):
-            return True
-        return False
+        return bool(self.option("--text"))
 
     def batch_mode(self) -> bool:
         """Responsibilities: _reporting batch input mode_."""
-        if self.option("--batch"):
-            return True
-        return False
+        return bool(self.option("--batch"))
 
     def worker_mode(self) -> bool:
         """Responsibilities: _reporting persistent worker mode_."""
-        if self.option("--worker"):
-            return True
-        return False
+        return bool(self.option("--worker"))

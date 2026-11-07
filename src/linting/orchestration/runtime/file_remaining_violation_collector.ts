@@ -1,116 +1,69 @@
-import ts from "typescript";
-import type { LintFileNameContract, LintSourceRecord } from "src/source_types";
-import type { NamedLine } from "src/types";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { RemainingViolationOptions } from "src/model/types/types";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { PYTHON_LANGUAGE, TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_LANGUAGE } from "src/constants";
+import type {
+	FileRemainingTextRulesContract,
+	FunctionPlacementRulesContract,
+	ImportFanOutContract,
+} from "src/contracts/protocols/lint_runtime_protocols";
+import type { LintFileNameContract } from "src/core/support/protocols";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
-import { SingletonCollector } from "src/linting/orchestration/runtime/singleton_collector";
+import type { NamedLine } from "src/model/ast/normalized_ast_types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { RemainingViolationOptions } from "src/model_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { CodingRuleLinterContract } from "src/shared_services_protocols";
-import { FileRemainingPlacementRules } from "src/linting/orchestration/runtime/file_remaining_placement_rules";
-import { FileRemainingTextRules } from "src/linting/orchestration/runtime/file_remaining_text_rules";
-import { Reexports } from "src/linting/orchestration/runtime/python/reexports/reexports";
-import { TypeScriptReexports } from "src/linting/orchestration/runtime/python/reexports/type_script_reexports";
-import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/import_fan_out";
-import { FunctionPlacementRules } from "src/linting/orchestration/runtime/test-targets/function_placement_rules";
-import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
+import { SingletonCollector } from "src/singleton_collector";
+import ts from "typescript";
 
 /** Responsibilities: _remaining violation collection_, _language-specific rule collection_. **/
 export class FileRemainingViolationCollector {
-	private readonly placement_rules: FileRemainingPlacementRules;
-	private readonly text_rules: FileRemainingTextRules;
+	private readonly _options: RemainingViolationOptions;
+	private readonly _import_fan_out: ImportFanOutContract;
+	private readonly _function_placement_rules: FunctionPlacementRulesContract;
+	private readonly _text_rules: FileRemainingTextRulesContract;
+	private readonly _coding_rule_linter: CodingRuleLinterContract;
 
-	/** Responsibilities: _collection singleton violations normalization_. **/
-	private collect_singletons(
-		source: LintSourceRecord,
-		file: string,
-		text: string,
-		python: boolean,
-	): ViolationContract[] {
-		const local_class_names = new Set(source.normalized_ast.classes.map((node) => node.name));
-		let source_file: ts.SourceFile;
-		if (source.typescript()) {
-			source_file = source.typescript_ast.source_file_node();
-		} else {
-			source_file = ts.createSourceFile(file, "", ts.ScriptTarget.Latest, true);
+	/** Responsibilities: _remaining violation context creation_. **/
+	private language(): string {
+		if (this._options.python) {
+			return PYTHON_LANGUAGE;
 		}
-		const singleton_collector = new SingletonCollector(
-			file,
-			text,
-			local_class_names,
-			source.normalized_ast,
-			source_file,
-		);
-		return singleton_collector.collect_violations(python);
+		return TYPESCRIPT_LANGUAGE;
 	}
 
-	/** Responsibilities: _retrieval normalization source record_. **/
-	private source_file(source: LintSourceRecord, file: string): ts.SourceFile {
-		if (source.typescript()) {
+	/** Responsibilities: _source file resolution_. **/
+	private source_file(): ts.SourceFile {
+		const source = this._options.source;
+		if (source.language === TYPESCRIPT_CACHE_OWNER) {
 			return source.typescript_ast.source_file_node();
 		}
-		return ts.createSourceFile(file, "", ts.ScriptTarget.Latest, true);
+		return ts.createSourceFile(this._options.file, "", ts.ScriptTarget.Latest, true);
 	}
 
 	/** Responsibilities: _aggregation coding-rule violations source_. **/
-	private append_coding_rules(options: RemainingViolationOptions, coding_rule_linter: CodingRuleLinterContract): void {
+	private append_coding_rules(): void {
+		const options = this._options;
+		const source = options.source;
 		const source_ast = new SourceFileAst(
 			{ file: options.file, text: options.text },
-			options.source.normalized_ast,
-			this.source_file(options.source, options.file),
-			options.source.source_resolver,
-			options.source.traversal,
+			source.normalized_ast,
+			this.source_file(),
+			source.source_resolver,
+			source.traversal,
 		);
 		if (options.python) {
-			options.violations.push(...coding_rule_linter.lint_python(source_ast));
+			options.violations.push(...this._coding_rule_linter.lint_python(source_ast));
 			return;
 		}
-		options.violations.push(...coding_rule_linter.lint_typescript(source_ast, options.stage_timer));
+		options.violations.push(...this._coding_rule_linter.lint_typescript(source_ast, options.stage_timer));
 	}
 
 	/** Responsibilities: _function placement stage_. **/
-	private append_function_placements(options: RemainingViolationOptions, language: string): void {
-		options.stage_timer.measure(`file-analysis.${language}.post-remaining.function-placement`, () =>
-			this.placement_rules.append_function_placements(
-				options.violations,
-				options.file,
-				options.source.normalized_ast.functions,
-			),
-		);
-	}
-
-	/** Responsibilities: _common remaining violation stages_. **/
-	private append_common(options: RemainingViolationOptions, coding_rule_linter: CodingRuleLinterContract): void {
-		let language = TYPESCRIPT_LANGUAGE;
-		if (options.python) {
-			language = PYTHON_LANGUAGE;
-		}
-		this.placement_rules.append_imports(
-			options.violations,
-			options.file,
-			options.source,
-			this.source_file(options.source, options.file),
-		);
-		this.append_function_placements(options, language);
-		this.text_rules.append(options);
-		options.stage_timer.measure(`file-analysis.${language}.post-remaining.coding-rules`, () =>
-			this.append_coding_rules(options, coding_rule_linter),
-		);
-	}
-
-	/** Responsibilities: _metric remaining violation stages_. **/
-	private append_metrics(options: RemainingViolationOptions): void {
-		let language = TYPESCRIPT_LANGUAGE;
-		if (options.python) {
-			language = PYTHON_LANGUAGE;
-		}
-		options.stage_timer.measure(`file-analysis.${language}.post-remaining.type-declarations`, () =>
-			this.append_type_declarations(
-				options.violations,
-				options.file,
-				options.source.file_name,
-				options.source.normalized_ast.type_declarations,
-			),
+	private append_function_placements(): void {
+		const options = this._options;
+		const source = options.source;
+		const normalized_ast = source.normalized_ast;
+		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.function-placement`, () =>
+			this._function_placement_rules.append(options.violations, options.file, normalized_ast.source.functions),
 		);
 	}
 
@@ -121,7 +74,7 @@ export class FileRemainingViolationCollector {
 		file_name: LintFileNameContract,
 		declarations: readonly NamedLine[],
 	): void {
-		if (!file_name.is_functions_file || file_name.test()) {
+		if (!file_name.functions_file() || file_name.test()) {
 			return;
 		}
 		const rule = new DiagnosticRule("functions-file-type-declaration");
@@ -130,26 +83,64 @@ export class FileRemainingViolationCollector {
 		}
 	}
 
-	/** Responsibilities: _remaining common analysis_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.placement_rules = new FileRemainingPlacementRules(new ImportFanOut(), new FunctionPlacementRules());
-		this.text_rules = new FileRemainingTextRules(new Reexports(new TypeScriptReexports()));
-	}
-	/** Responsibilities: _public operation_. **/
-	public append(options: RemainingViolationOptions, coding_rule_linter: CodingRuleLinterContract): void {
-		this.append_common(options, coding_rule_linter);
-		this.append_metrics(options);
+	/** Responsibilities: _remaining rule dependencies_. **/
+	public constructor(
+		options: RemainingViolationOptions,
+		import_fan_out: ImportFanOutContract,
+		function_placement_rules: FunctionPlacementRulesContract,
+		text_rules: FileRemainingTextRulesContract,
+		coding_rule_linter: CodingRuleLinterContract,
+	) {
+		this._options = options;
+		this._import_fan_out = import_fan_out;
+		this._function_placement_rules = function_placement_rules;
+		this._text_rules = text_rules;
+		this._coding_rule_linter = coding_rule_linter;
 	}
 
-	/** Responsibilities: _remaining language analysis_. **/
-	public append_language(options: RemainingViolationOptions): void {
-		let language = TYPESCRIPT_LANGUAGE;
+	/** Responsibilities: _common remaining violation stages_. **/
+	public append_common_rules(): void {
+		const options = this._options;
+		const source = options.source;
 		if (options.python) {
-			language = PYTHON_LANGUAGE;
+			this._import_fan_out.append(options.violations, source);
+			this.append_function_placements();
 		}
-		options.stage_timer.measure(`file-analysis.${language}.post-remaining.singletons`, () =>
-			options.violations.push(...this.collect_singletons(options.source, options.file, options.text, options.python)),
+		this._text_rules.append(options);
+		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.coding-rules`, () =>
+			this.append_coding_rules(),
+		);
+	}
+
+	/** Responsibilities: _singleton violation collection_. **/
+	public append_singletons(): void {
+		const options = this._options;
+		if (!options.python) {
+			return;
+		}
+		const normalized_ast = options.source.normalized_ast;
+		const local_class_names = new Set(normalized_ast.source.classes.map((node) => node.identity.name));
+		const collector = new SingletonCollector(options.file, local_class_names, normalized_ast, this.source_file());
+		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.singletons`, () =>
+			options.violations.push(...collector.collect_violations(options.python)),
+		);
+	}
+
+	/** Responsibilities: _metric remaining violation stages_. **/
+	public append_metric_rules(): void {
+		const options = this._options;
+		if (!options.python) {
+			return;
+		}
+		const source = options.source;
+		const normalized_ast = source.normalized_ast;
+		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.type-declarations`, () =>
+			this.append_type_declarations(
+				options.violations,
+				options.file,
+				source.file_name,
+				normalized_ast.references.type_declarations,
+			),
 		);
 	}
 }

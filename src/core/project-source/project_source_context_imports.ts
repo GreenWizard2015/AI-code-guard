@@ -1,109 +1,58 @@
-import ts from "typescript";
 import { extname } from "node:path";
+import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_LANGUAGE } from "src/constants";
+import { ProjectSourceContextImportResolution } from "src/core/project-source/project_source_context_import_resolution";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
-import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
-import { TypeScriptProjectResolutionCache } from "src/module-resolution/type_script_project_resolution_cache";
+import type { ContextProjectPaths } from "src/core/types";
+import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
+import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
+import { TypeScriptProjectResolutionCache } from "src/module-resolution/project-resolution/type_script_project_resolution_cache";
+import type { TypeScriptModuleExportsContract, TypeScriptModuleResolutionContract } from "src/module-resolution/types";
 import { TypeScriptImportSpecifierCollector } from "src/parser/analysis/type_script_import_specifier_collector";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
-import type { ProjectSourceContextImportsContract, ProjectSourcePythonContract, ProjectSourceIOContract } from "src/source_protocols";
-import type { NormalizedAstFileContract } from "src/types";
-import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import type {
-	ResolvedTypeScriptExport,
-	TypeScriptModuleExportsContract,
-	TypeScriptModuleResolutionContract,
-} from "src/module-resolution/types";
-import type { ContextProjectPaths } from "src/core/types";
+	ProjectSourceContextImportResolutionContract,
+	ProjectSourceContextImportResolutionOptions,
+	ProjectSourceContextImportsContract,
+	ProjectSourceIOContract,
+	ProjectSourcePythonContract,
+} from "src/source_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _context-bound import resolution_, _cross-language import expansion_. **/
 export class ProjectSourceContextImports implements ProjectSourceContextImportsContract {
-	private readonly root: string;
-	private readonly context: LintProjectContextContract;
-	private readonly source_io: ProjectSourceIOContract;
-	private readonly project_source_python: ProjectSourcePythonContract;
-	private readonly resolvers: WeakMap<LintProjectContextContract, TypeScriptModuleExportsContract>;
-	private readonly resolutions: WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>;
-	private readonly resolution_cache: TypeScriptProjectResolutionCache;
-	private readonly project_files: WeakMap<LintProjectContextContract, ContextProjectPaths>;
+	private readonly _root: string;
+	private readonly _context: LintProjectContextContract;
+	private readonly _source_io: ProjectSourceIOContract;
+	private readonly _project_source_python: ProjectSourcePythonContract;
+	private readonly _resolvers: WeakMap<LintProjectContextContract, TypeScriptModuleExportsContract>;
+	private readonly _resolutions: WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>;
+	private readonly _resolution_cache: TypeScriptProjectResolutionCache;
+	private readonly _project_files: WeakMap<LintProjectContextContract, ContextProjectPaths>;
 
 	/** Responsibilities: _context source file access_. **/
-	private source_file(file: string): ts.SourceFile {
-		const source = this.context.source_record(file);
-		if (source.typescript()) {
+	private source_file(source_record_path: string): ts.SourceFile {
+		const source = this._context.source_record(source_record_path);
+		if (source.language === TYPESCRIPT_CACHE_OWNER) {
 			return source.typescript_ast.source_file_node();
 		}
-		return ts.createSourceFile(file, source.text, ts.ScriptTarget.Latest, true);
-	}
-
-	/** Responsibilities: _TypeScript declaration name matching_. **/
-	private named_declaration(node: ts.Node, name: string): boolean {
-		if (ts.isClassDeclaration(node) || ts.isFunctionDeclaration(node)) {
-			if (node.name !== undefined) {
-				return node.name.text === name;
-			}
-		}
-		return false;
-	}
-
-	/** Responsibilities: _function-valued variable matching_. **/
-	private function_variable(node: ts.Node, name: string): boolean {
-		if (!ts.isVariableStatement(node)) {
-			return false;
-		}
-		return node.declarationList.declarations.some((declaration) => {
-			if (!ts.isIdentifier(declaration.name)) {
-				return false;
-			}
-			if (declaration.name.text !== name) {
-				return false;
-			}
-			const initializer = declaration.initializer;
-			if (initializer === undefined) {
-				return false;
-			}
-			return ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer);
-		});
+		return ts.createSourceFile(source_record_path, source.text, ts.ScriptTarget.Latest, true);
 	}
 
 	/** Responsibilities: _Python project import collection_. **/
-	private python_imports(ast: NormalizedAstFileContract, importer: string): string[] {
+	private python_imports(ast: NormalizedAstFile, importer: string): string[] {
 		const specifiers: string[] = [];
-		for (const item of ast.python_imports) {
-			this.project_source_python.append_import_names(specifiers, item, this.root, importer, this.source_paths());
+		const python_imports = this._project_source_python.for_files(this.source_paths());
+		for (const item of ast.source.python_imports) {
+			specifiers.push(...python_imports.import_names({ importer, item }));
 		}
 		return specifiers;
-	}
-
-	/** Responsibilities: _declaration source path_. **/
-	private declaration_source_path(declaration: ResolvedTypeScriptExport): string {
-		const source = this.context.source_record(declaration.file);
-		if (!source.typescript()) {
-			return "";
-		}
-		if (!this.source_declares(source.typescript_ast.source_file_node(), declaration.name)) {
-			return "";
-		}
-		return declaration.file;
-	}
-
-	/** Responsibilities: _TypeScript declaration lookup_. **/
-	private source_declares(source_file: ts.SourceFile, name: string): boolean {
-		for (const statement of source_file.statements) {
-			if (this.named_declaration(statement, name)) {
-				return true;
-			}
-			if (this.function_variable(statement, name)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/** Responsibilities: _contextual module resolution_. **/
 	private source_files(): Map<string, ts.SourceFile> {
 		const source_files = new Map<string, ts.SourceFile>();
-		for (const source of this.context.files()) {
-			if (source.typescript()) {
+		for (const source of this._context.files()) {
+			if (source.language === TYPESCRIPT_CACHE_OWNER) {
 				source_files.set(source.absolute_path, source.typescript_ast.source_file_node());
 			}
 		}
@@ -112,96 +61,119 @@ export class ProjectSourceContextImports implements ProjectSourceContextImportsC
 
 	/** Responsibilities: _context module resolver access_. **/
 	private module_resolver(): TypeScriptModuleExportsContract {
-		const cached = this.resolvers.get(this.context);
+		const cached = this._resolvers.get(this._context);
 		if (cached !== undefined) {
 			return cached;
 		}
-		const resolver = new TypeScriptModuleExports(this.root, this.source_files(), false, this.source_io);
-		this.resolvers.set(this.context, resolver);
+		const resolver_context = new TypeScriptModuleExportsContext(
+			this._root,
+			this.source_files(),
+			false,
+			this._source_io,
+		);
+		const resolver = resolver_context.module_exports();
+		this._resolvers.set(this._context, resolver);
 		return resolver;
 	}
 
 	/** Responsibilities: _context path mappings_. **/
 	private path_mappings(): TypeScriptModuleResolutionContract {
-		const cached = this.resolutions.get(this.context);
+		const cached = this._resolutions.get(this._context);
 		if (cached !== undefined) {
 			return cached;
 		}
-		const resolution = this.resolution_cache.resolution(this.root, false);
-		this.resolutions.set(this.context, resolution);
+		const resolution = this._resolution_cache.resolution(this._root, false);
+		this._resolutions.set(this._context, resolution);
 		return resolution;
 	}
 
 	/** Responsibilities: _project source path access_. **/
 	private source_paths(): ReadonlySet<string> {
-		const cached = this.project_files.get(this.context);
+		const cached = this._project_files.get(this._context);
 		if (cached !== undefined) {
 			return cached;
 		}
-		const paths = new Set(this.context.files().map((source) => source.absolute_path));
-		this.project_files.set(this.context, paths);
+		const paths = new Set(this._context.files().map((source) => source.absolute_path));
+		this._project_files.set(this._context, paths);
 		return paths;
+	}
+
+	/** Responsibilities: _module source path resolution_. **/
+	private module_source_path(candidate: string): string {
+		if (this.source_paths().has(candidate)) {
+			return candidate;
+		}
+		if (![".js", ".mjs", ".cjs"].includes(extname(candidate))) {
+			return "";
+		}
+		if (this._source_io.source_available(candidate)) {
+			return candidate;
+		}
+		return "";
+	}
+
+	/** Responsibilities: _TypeScript import resolution result_. **/
+	private typescript_resolution(
+		importer_path: string,
+		specifier: string,
+		language: AstLanguage,
+		resolver: TypeScriptModuleExportsContract,
+	): ProjectSourceContextImportResolutionContract {
+		const candidate = resolver.module_symbol(importer_path, specifier);
+		let path_alias_configured = false;
+		if (language === TYPESCRIPT_LANGUAGE) {
+			path_alias_configured = this.path_mappings().path_alias_configured(specifier);
+		}
+		return new ProjectSourceContextImportResolution({
+			context: this._context,
+			source_files: this.source_paths(),
+			resolver,
+			module_file: candidate,
+			resolved_path: this.module_source_path(candidate),
+			path_alias_configured,
+		});
 	}
 
 	/** Responsibilities: _project context imports setup_. **/
 	public constructor(root: string, context: LintProjectContextContract, source_io: ProjectSourceIOContract) {
-		this.root = root;
-		this.context = context;
-		this.source_io = source_io;
-		this.project_source_python = new ProjectSourcePython();
-		this.resolvers = new WeakMap<LintProjectContextContract, TypeScriptModuleExportsContract>();
-		this.resolutions = new WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>();
-		this.resolution_cache = new TypeScriptProjectResolutionCache(source_io);
-		this.project_files = new WeakMap<LintProjectContextContract, ReadonlySet<string>>();
+		this._root = root;
+		this._context = context;
+		this._source_io = source_io;
+		this._project_source_python = new ProjectSourcePython(root);
+		this._resolvers = new WeakMap<LintProjectContextContract, TypeScriptModuleExportsContract>();
+		this._resolutions = new WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>();
+		this._resolution_cache = new TypeScriptProjectResolutionCache(source_io);
+		this._project_files = new WeakMap<LintProjectContextContract, ReadonlySet<string>>();
 	}
 
 	/** Responsibilities: _project import specifiers_. **/
 	public imports(file: string): string[] {
-		const source = this.context.source_record(file);
-		if (!source.typescript()) {
+		const source = this._context.source_record(file);
+		if (source.language !== TYPESCRIPT_CACHE_OWNER) {
 			return this.python_imports(source.normalized_ast, file);
 		}
 		const collector = new TypeScriptImportSpecifierCollector(this.source_file(file));
 		return collector.collect();
 	}
 
-	/** Responsibilities: _project import path resolution_. **/
-	public path(file: string, specifier: string): string {
-		const source = this.context.source_record(file);
-		if (source.language === "python") {
-			return this.project_source_python.python_import_path(this.root, file, specifier, this.source_paths());
-		}
-		const candidate = this.module_resolver().module_symbol(file, specifier);
-		if (this.source_paths().has(candidate)) {
-			return candidate;
-		}
-		if ([".js", ".mjs", ".cjs"].includes(extname(candidate))) {
-			if (this.source_io.source_available(candidate)) {
-				return candidate;
-			}
-		}
-		return "";
-	}
-
-	/** Responsibilities: _path alias classification_. **/
-	public path_alias_configured(file: string, specifier: string): boolean {
-		if (this.context.source_record(file).language !== TYPESCRIPT_LANGUAGE) {
-			return false;
-		}
-		return this.path_mappings().path_alias_configured(specifier);
-	}
-
-	/** Responsibilities: _imported declaration path resolution_. **/
-	public declaration_path(file: string, specifier: string, name: string): string {
+	/** Responsibilities: _project import resolution_. **/
+	public resolve(importer_path: string, specifier: string): ProjectSourceContextImportResolutionContract {
+		const source = this._context.source_record(importer_path);
 		const resolver = this.module_resolver();
-		const module_file = resolver.module_symbol(file, specifier);
-		if (module_file.length === 0) {
-			return "";
+		if (source.language === "python") {
+			const path = this._project_source_python
+				.for_files(this.source_paths())
+				.resolve_import({ importer: importer_path, specifier });
+			const options: ProjectSourceContextImportResolutionOptions = {
+				context: this._context,
+				source_files: this.source_paths(),
+				resolver,
+				module_file: "",
+				resolved_path: path,
+				path_alias_configured: false,
+			};
+			return new ProjectSourceContextImportResolution(options);
 		}
-		const declaration = resolver.resolve(module_file, name);
-		if (declaration.file.length === 0) {
-			return "";
-		}
-		return this.declaration_source_path(declaration);
+		return this.typescript_resolution(importer_path, specifier, source.language, resolver);
 	}
 }

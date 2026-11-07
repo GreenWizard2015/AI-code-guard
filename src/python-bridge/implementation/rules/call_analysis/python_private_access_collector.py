@@ -1,21 +1,18 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
-from implementation.ast.protocols import PythonPrivateAccessOptionsContract
-from implementation.protocols import PythonPrivateAccessClassifierContract
-from implementation.types import JsonObject
-from implementation.rules.call_analysis.python_private_access_classifier import (
+from implementation.rules.call_analysis.private_access_protocols import (
+    PythonPrivateAccessOptionsContract,
+)
+from implementation.rules.call_analysis.reflection.python_private_access_classifier import (
     PythonPrivateAccessClassifier,
 )
 from implementation.rules.constants import (
     PYTHON_CLASS_NAME,
-    PYTHON_CONTAINER_ALIASES_KEY,
     PYTHON_SELF_NAME,
-    PYTHON_TREE_KEY,
-    PYTHON_NODE_INDEX_KEY,
 )
+from implementation.types import JsonObject
 
 
 class PythonPrivateAccessCollector:
@@ -23,12 +20,13 @@ class PythonPrivateAccessCollector:
 
     def _member_name(self, member: ast.AST) -> str:
         """Responsibilities: _resolution attribute member name_."""
-        if type(member) in (ast.FunctionDef, ast.AsyncFunctionDef):
+        if type(member) is ast.FunctionDef:
             return member.name
-        is_annotated_name = type(member) is ast.AnnAssign
-        if is_annotated_name:
-            is_annotated_name = type(member.target) is ast.Name
-        if is_annotated_name:
+        if type(member) is ast.AsyncFunctionDef:
+            return member.name
+        if type(member) is not ast.AnnAssign:
+            return ""
+        if type(member.target) is ast.Name:
             return member.target.id
         return ""
 
@@ -63,44 +61,40 @@ class PythonPrivateAccessCollector:
     def _class_members(self, node: ast.ClassDef) -> set[str]:
         """Responsibilities: _collection private members declared_."""
         result: set[str] = set()
-        option_data = self.options.data()
         for member in node.body:
-            name: Any = self._member_name(member)
-            private_name = self._private_member_name(name)
+            member_name = self._member_name(member)
+            private_name = self._private_member_name(member_name)
             if not private_name:
                 continue
             result.add(private_name)
-        node_index = option_data[PYTHON_NODE_INDEX_KEY]
+        node_index = self._options.node_index
         for nested in node_index.nodes(node):
-            name: Any = self._stored_member(nested)
-            if name:
-                result.add(name)
+            stored_name = self._stored_member(nested)
+            if stored_name:
+                result.add(stored_name)
         return result
 
     def _access_lines(self, nodes: list[ast.AST], members: set[str]) -> set[int]:
         """Responsibilities: _private access lines_."""
         lines: set[int] = set()
+        classifier = PythonPrivateAccessClassifier(self._options, members)
         for node in nodes:
-            lines.update(self.classifier.attribute_lines(node, members))
+            lines.update(classifier.attribute_lines(node))
             if type(node) is ast.Attribute:
                 continue
-            if self.classifier.private_access(node, members):
+            if classifier.private_access(node):
                 lines.add(node.lineno - 1)
         return lines
 
     def __init__(self, options: PythonPrivateAccessOptionsContract) -> None:
         """Responsibilities: _initialization private access collector_."""
-        self.options: PythonPrivateAccessOptionsContract = options
-        self.classifier: PythonPrivateAccessClassifierContract = (
-            PythonPrivateAccessClassifier(options)
-        )
+        self._options: PythonPrivateAccessOptionsContract = options
 
     def member_names(self) -> set[str]:
         """Responsibilities: _collection private member names_."""
         result: set[str] = set()
-        option_data = self.options.data()
-        node_index = option_data[PYTHON_NODE_INDEX_KEY]
-        tree = option_data[PYTHON_TREE_KEY]
+        node_index = self._options.node_index
+        tree = self._options.tree
         for node in node_index.nodes(tree):
             if type(node) is ast.ClassDef:
                 result.update(self._class_members(node))
@@ -108,11 +102,9 @@ class PythonPrivateAccessCollector:
 
     def accesses(self, members: set[str]) -> list[JsonObject]:
         """Responsibilities: _collection private access diagnostics_."""
-        option_data = self.options.data()
-        tree = option_data[PYTHON_TREE_KEY]
-        container_aliases = option_data[PYTHON_CONTAINER_ALIASES_KEY]
-        node_index = option_data[PYTHON_NODE_INDEX_KEY]
-        container_aliases._configure_scope_tree(tree)
+        tree = self._options.tree
+        container_aliases = self._options.container_aliases
+        node_index = self._options.node_index
         nodes = node_index.nodes(tree)
         container_aliases.observe_all(nodes, tree)
         lines = self._access_lines(nodes, members)

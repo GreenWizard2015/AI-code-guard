@@ -25,27 +25,33 @@ export class Status {
 		const words = this.normalized().split(/\s+/u);
 		return words.includes(normalized_word);
 	}
+	public report(): void {
+		const fields = [
+			this.normalized(),
+			String(this.ready()),
+			this.label("Current"),
+			String(this.contains_word("ready")),
+		];
+		console.log(fields.join(" | "));
+	}
 }
 // File: tests/documentation/status.test.ts
 import { Status } from 'src/documentation/status';
 describe("Status", () => {
-	test("constructs a status class", () => {
-		const status = new Status("ready");
-		expect(status).toBeInstanceOf(Status);
+	test("checks the instance type and core member shape", () => {
+		const status: Status = new Status("ready");
+		expect(status.normalized).toBeDefined();
 	});
-	test("classifies ready", () => {
-		const status = new Status("ready");
-		expect(status.ready()).toBe(true);
+	test("checks the remaining member shape", () => {
+		const status: Status = new Status("ready");
+		expect(status.ready).toBeDefined();
 	});
 });
 // File: cli.ts
 import { Status } from 'src/documentation/status';
 (function () {
 	const status = new Status(' READY value ');
-	status.normalized();
-	status.ready();
-	status.label('Current');
-	status.contains_word('ready');
+	status.report();
 })();
 ```
 
@@ -54,14 +60,14 @@ import { Status } from 'src/documentation/status';
 ```ts
 // File: src/documentation/status.ts
 export class Status {
-	private readonly value: string;
+	private readonly _value: string;
 	public constructor(value: string) {
-		this.value = value;
+		this._value = value;
 	}
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		return this._value.trim().toLowerCase();
 	}
-	public ready(): boolean { return this.normalized() === 'ready'; }
+	public ready(): boolean { return this._value.trim().toLowerCase() === 'ready'; }
 	public label(prefix: string): string {
 		const clean_prefix = prefix.trim();
 		return `${clean_prefix}: ${this.normalized()}`;
@@ -70,6 +76,15 @@ export class Status {
 		const normalized_word = word.trim().toLowerCase();
 		const words = this.normalized().split(/\s+/u);
 		return words.includes(normalized_word);
+	}
+	public report(): void {
+		const fields = [
+			this.normalized(),
+			String(this.ready()),
+			this.label("Current"),
+			String(this.contains_word("ready")),
+		];
+		console.log(fields.join(" | "));
 	}
 }
 // File: tests/documentation/status.test.ts
@@ -90,9 +105,6 @@ describe('Status', () => {
 import { Status } from 'src/documentation/status';
 (function () {
 	const status = new Status(' READY value ');
-	status.normalized();
-	status.ready();
-	status.label('Current');
-	status.contains_word('ready');
+	status.report();
 })();
 ```

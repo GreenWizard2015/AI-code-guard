@@ -2,11 +2,11 @@ import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _controlled source discovery failure_, _in-memory source access_. **/
 export class TaskReviewFailingSourceIO implements ProjectSourceIOContract {
-	private readonly failure: Error;
+	private readonly _failure: Error;
 
 	/** Responsibilities: _source failure initialization_. **/
 	public constructor(failure: Error) {
-		this.failure = failure;
+		this._failure = failure;
 	}
 
 	/** Responsibilities: _source membership_. **/
@@ -16,7 +16,7 @@ export class TaskReviewFailingSourceIO implements ProjectSourceIOContract {
 
 	/** Responsibilities: _source discovery failure_. **/
 	public source_paths(_root: string, _ignored_directories: ReadonlySet<string>): readonly string[] {
-		throw this.failure;
+		throw this._failure;
 	}
 
 	/** Responsibilities: _source text access_. **/

@@ -8,58 +8,66 @@ This is a review signal, not a ban at a technical adapter boundary.
 
 ## Bad
 
-
 ```python
-class PriceLabels:
-    def get_price(self) -> int:
-        return 10
+# File: src/price_quote.py
+class PriceQuote:
+    def __init__(self, item_label: str, amount: float, tax_rate: float) -> None:
+        self._item_label: str = item_label
+        self._amount: float = amount
+        self._tax_rate: float = tax_rate
+
+    def get_price(self) -> float:  # <- error
+        return self._amount
+
+    def price_with_tax(self) -> float:
+        tax_amount = self._amount * self._tax_rate
+        return self._amount + tax_amount
+
+    def summary(self) -> str:
+        base_price = self.get_price()
+        taxed_price = self.price_with_tax()
+        return f"{self._item_label}: {base_price} / {taxed_price}"
+
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
+# File: cli.py
+from src.price_quote import PriceQuote
+
+if __name__ == "__main__":
+    quote = PriceQuote("Notebook", 12.0, 0.08)
+    quote.report()
 ```
 
 ## Good
 
-
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/price_quote.py
+class PriceQuote:
+    def __init__(self, item_label: str, amount: float, tax_rate: float) -> None:
+        self._item_label: str = item_label
+        self._amount: float = amount
+        self._tax_rate: float = tax_rate
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def price(self) -> float:
+        return self._amount
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def price_with_tax(self) -> float:
+        tax_amount = self._amount * self._tax_rate
+        return self._amount + tax_amount
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
+    def summary(self) -> str:
+        base_price = self.price()
+        taxed_price = self.price_with_tax()
+        return f"{self._item_label}: {base_price} / {taxed_price}"
 
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
-
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.price_quote import PriceQuote
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    quote = PriceQuote("Notebook", 12.0, 0.08)
+    quote.report()
 ```

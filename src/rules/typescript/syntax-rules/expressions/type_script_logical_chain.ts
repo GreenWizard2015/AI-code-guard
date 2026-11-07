@@ -1,12 +1,11 @@
 import ts from "typescript";
-import { MAX_CALLABLE_CHARACTERS } from "src/constants";
 
 /** Responsibilities: _logical chain measurement_, _long chain detection_. **/
 export class TypeScriptLogicalChain {
-	private readonly maximum_characters = MAX_CALLABLE_CHARACTERS;
+	private readonly _maximum_characters: number;
 	/** Responsibilities: _classification binary node usage_. **/
-	private logical_operator(node: ts.BinaryExpression): boolean {
-		const kind = node.operatorToken.kind;
+	private logical_operator(operator_expression: ts.BinaryExpression): boolean {
+		const kind = operator_expression.operatorToken.kind;
 		if (kind === ts.SyntaxKind.AmpersandAmpersandToken) {
 			return true;
 		}
@@ -17,20 +16,20 @@ export class TypeScriptLogicalChain {
 	}
 
 	/** Responsibilities: _classification logical expression initialization_. **/
-	private named_initializer(node: ts.BinaryExpression): boolean {
-		let parent = node.parent;
+	private named_initializer(initializer_expression: ts.BinaryExpression): boolean {
+		let parent = initializer_expression.parent;
 		while (ts.isParenthesizedExpression(parent)) {
 			parent = parent.parent;
 		}
 		if (!ts.isVariableDeclaration(parent)) {
 			return false;
 		}
-		return parent.initializer === node;
+		return parent.initializer === initializer_expression;
 	}
 
 	/** Responsibilities: _classification logical expression nested_. **/
-	private has_logical_parent(node: ts.BinaryExpression): boolean {
-		let parent = node.parent;
+	private has_logical_parent(chain_expression: ts.BinaryExpression): boolean {
+		let parent = chain_expression.parent;
 		while (ts.isParenthesizedExpression(parent)) {
 			parent = parent.parent;
 		}
@@ -38,8 +37,8 @@ export class TypeScriptLogicalChain {
 	}
 
 	/** Responsibilities: _classification concise arrow expression_. **/
-	private expression_lambda(node: ts.BinaryExpression): boolean {
-		let parent = node.parent;
+	private expression_lambda(expression_candidate: ts.BinaryExpression): boolean {
+		let parent = expression_candidate.parent;
 		while (parent !== undefined) {
 			if (ts.isArrowFunction(parent)) {
 				return !ts.isBlock(parent.body);
@@ -49,9 +48,10 @@ export class TypeScriptLogicalChain {
 		return false;
 	}
 
-	/** Responsibilities: _logical expression part count_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {}
+	/** Responsibilities: _chain length policy_. **/
+	public constructor(maximum_characters: number) {
+		this._maximum_characters = maximum_characters;
+	}
 	/** Responsibilities: _public operation_. **/
 	public logical_part_count(expression: ts.Expression): number {
 		if (ts.isParenthesizedExpression(expression)) {
@@ -66,7 +66,7 @@ export class TypeScriptLogicalChain {
 		return this.logical_part_count(expression.left) + this.logical_part_count(expression.right);
 	}
 
-	/** Responsibilities: _reporting logical chains exceeding_. **/
+	/** Responsibilities: _long chain detection_. **/
 	public long_chain(node: ts.Node): boolean {
 		if (!ts.isBinaryExpression(node) || !this.logical_operator(node)) {
 			return false;
@@ -75,7 +75,7 @@ export class TypeScriptLogicalChain {
 			return false;
 		}
 		const too_many_parts = this.logical_part_count(node) > 3;
-		const too_long = node.getText().replace(/\s+/gu, "").length >= this.maximum_characters;
+		const too_long = node.getText().replace(/\s+/gu, "").length >= this._maximum_characters;
 		const short_arrow = this.expression_lambda(node) && !too_many_parts;
 		if (short_arrow) {
 			return false;

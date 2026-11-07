@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
-from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
-from implementation.references.protocols import PythonAnnotationResolverContract
-from implementation.rules.protocols import PythonAssignmentEffectsContract
+from implementation.references.protocols import (
+    PythonAnnotationResolverContract,
+)
 from implementation.rules.constants import PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME
+from implementation.rules.protocols import PythonAssignmentEffectsContract
 
 
 class PythonPropertyType:
@@ -21,33 +21,23 @@ class PythonPropertyType:
             return False
         return target.id == "self"
 
-    def _annotation_assignment_type(
-        self, effects: PythonAssignmentEffectsContract
-    ) -> str:
-        """Responsibilities: _assignment annotation type_."""
-        if not effects.annotation_present():
-            return ""
-        return self.annotation_type(effects.declared_annotation())
-
-    def _argument_assignment_type(
+    def _runtime_assignment_type(
         self,
         effects: PythonAssignmentEffectsContract,
         arguments: dict[str, str],
     ) -> str:
-        """Responsibilities: _assignment argument type_."""
-        if type(effects.assigned_value()) is not ast.Name:
-            return ""
-        return arguments.get(effects.assigned_value().id, "")
-
-    def _runtime_assignment_type(self, effects: PythonAssignmentEffectsContract) -> str:
-        """Responsibilities: _runtime constructor assignment type_."""
+        """Responsibilities: _runtime assignment type resolution_."""
+        assigned_value = effects.assigned_value()
+        if type(assigned_value) is ast.Name:
+            argument_type = arguments.get(assigned_value.id, "")
+            if argument_type:
+                return argument_type
         if not effects.runtime_value_present():
             return ""
-        return AnnotationNames.resolve_constructor(
-            self.annotation_resolver,
-            effects.assigned_value(),
-            self.class_names,
-            self.aliases,
+        return self._annotation_resolver.resolve_constructor(
+            assigned_value,
+            self._class_names,
+            self._aliases,
         )
 
     def __init__(
@@ -57,14 +47,16 @@ class PythonPropertyType:
         annotation_resolver: PythonAnnotationResolverContract,
     ) -> None:
         """Responsibilities: _initialization aliases known classes_."""
-        self.aliases: Any = aliases
-        self.class_names: Any = class_names
-        self.annotation_resolver: PythonAnnotationResolverContract = annotation_resolver
+        self._aliases: dict[str, str] = aliases
+        self._class_names: set[str] = class_names
+        self._annotation_resolver: PythonAnnotationResolverContract = annotation_resolver
 
-    def annotation_type(self, annotation: ast.AST) -> str:
+    def annotation_type(self, annotation: ast.expr) -> str:
         """Responsibilities: _resolution normalization type name_."""
-        type_name: Any = self.annotation_resolver.annotation_name(
-            annotation, self.aliases, {PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME}
+        type_name = self._annotation_resolver.annotation_name(
+            annotation,
+            self._aliases,
+            {PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME},
         )
         if not type_name:
             return ""
@@ -72,24 +64,28 @@ class PythonPropertyType:
 
     def init_arguments(self, node: ast.AST) -> dict[str, str]:
         """Responsibilities: _index constructor parameter annotations_."""
-        arguments: Any = [*node.args.args, *node.args.kwonlyargs]
+        if type(node) is ast.FunctionDef:
+            function_arguments = node.args
+        else:
+            if type(node) is not ast.AsyncFunctionDef:
+                return {}
+            function_arguments = node.args
+        arguments = [*function_arguments.args, *function_arguments.kwonlyargs]
         result: dict[str, str] = {}
         for argument in arguments:
-            type_name: Any = self.annotation_type(argument.annotation)
+            if argument.annotation is None:
+                continue
+            type_name = self.annotation_type(argument.annotation)
             if type_name:
                 result[argument.arg] = type_name
         return result
 
     def assignment_type(self, node: ast.AST, arguments: dict[str, str]) -> str:
-        """Responsibilities: _resolution type represented assignment_."""
+        """Responsibilities: _assignment type resolution_."""
         effects = PythonAssignmentEffects(node)
-        type_name: Any = self._annotation_assignment_type(effects)
-        if type_name:
-            return type_name
-        type_name = self._argument_assignment_type(effects, arguments)
-        if type_name:
-            return type_name
-        return self._runtime_assignment_type(effects)
+        if effects.annotation_present():
+            return self.annotation_type(effects.declared_annotation())
+        return self._runtime_assignment_type(effects, arguments)
 
     def instance_target(self, target: ast.AST) -> bool:
         """Responsibilities: _classification target assigns instance_."""

@@ -4,23 +4,27 @@ import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonLexicalScopeContract
+from implementation.types import PythonLexicalScopeChain
 
 
 class PythonLexicalScope(PythonLexicalScopeContract):
     """Responsibilities: _lexical ownership scopes_, _source position ordering_."""
 
     _node_index: PythonAstNodeIndexContract
+    _scope_chain_cache: dict[ast.AST, PythonLexicalScopeChain]
 
     def _first_comprehension_iter(self, node: ast.AST, comprehension: ast.AST) -> bool:
         """Responsibilities: _outer-scope comprehension iterable detection_."""
-        if type(comprehension) not in (
-            ast.ListComp,
-            ast.SetComp,
-            ast.DictComp,
-            ast.GeneratorExp,
-        ):
-            return False
-        generators = comprehension.generators
+        match comprehension:
+            case (
+                ast.ListComp(generators=generators)
+                | ast.SetComp(generators=generators)
+                | ast.DictComp(generators=generators)
+                | ast.GeneratorExp(generators=generators)
+            ):
+                pass
+            case _:
+                return False
         if not generators:
             return False
         first_iter = generators[0].iter
@@ -37,19 +41,19 @@ class PythonLexicalScope(PythonLexicalScopeContract):
     def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _AST scope index ownership_."""
         self._node_index: PythonAstNodeIndexContract = node_index
+        self._scope_chain_cache: dict[ast.AST, PythonLexicalScopeChain] = {}
 
     def scope_chain(self, node: ast.AST) -> list[str]:
         """Responsibilities: _lexical ownership scope traversal_."""
+        cached_scopes = self._scope_chain_cache.get(node)
+        if cached_scopes is not None:
+            return list(cached_scopes)
         nested_scopes: list[str] = []
         current = node
         while True:
-            if type(current) in (
-                ast.FunctionDef,
-                ast.AsyncFunctionDef,
-                ast.Lambda,
-                ast.ClassDef,
-            ):
-                nested_scopes.append(str(id(current)))
+            match current:
+                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda() | ast.ClassDef():
+                    nested_scopes.append(str(id(current)))
             is_comprehension = type(current) in (
                 ast.ListComp,
                 ast.SetComp,
@@ -63,7 +67,9 @@ class PythonLexicalScope(PythonLexicalScopeContract):
             if not parents:
                 break
             current = parents[0]
-        return [*nested_scopes, "module"]
+        scopes = [*nested_scopes, "module"]
+        self._scope_chain_cache.update({node: tuple(scopes)})
+        return scopes
 
     def recording_scope(self, node: ast.AST) -> str:
         """Responsibilities: _binding declaration scope selection_."""

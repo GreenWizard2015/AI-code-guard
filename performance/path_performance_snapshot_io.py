@@ -11,9 +11,6 @@ from performance.protocols import PerformanceSnapshotIOContract
 class PathPerformanceSnapshotIO(PerformanceSnapshotIOContract):
     """Responsibilities: _filesystem snapshot discovery_, _snapshot reading_."""
 
-    def __init__(self) -> None:
-        """Responsibilities: _snapshot I/O initialization_."""
-
     def snapshot_paths(self, inputs: list[str]) -> list[Path]:
         """Responsibilities: _snapshot path discovery_."""
         paths: list[Path] = []

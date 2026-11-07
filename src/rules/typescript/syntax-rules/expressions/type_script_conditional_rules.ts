@@ -1,30 +1,40 @@
-import ts from "typescript";
+import { CONDITIONAL_EXECUTION, LOGICAL_ASSIGNMENT, TERNARY } from "src/parser/internals/constants";
+import { TypeScriptAssignmentContext } from "src/parser/internals/type_script_assignment_context";
 import { TypeScriptAssignmentValuePredicates } from "src/parser/internals/type_script_assignment_value_predicates";
 import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
+import { TypeScriptConditionalParentIndex } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_parent_index";
 import { TypeScriptExpressionContainers } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_containers";
+import { TypeScriptNonBooleanCallAnalysis } from "src/rules/typescript/syntax-rules/expressions/type_script_non_boolean_call_analysis";
+import { TypeScriptOptionalCallExecution } from "src/rules/typescript/syntax-rules/expressions/type_script_optional_call_execution";
 import type { BooleanExpressionContract } from "src/runtime_protocols";
-import type { TypeScriptAssignmentPredicatesContract, TypeScriptAssignmentValuePredicatesContract, TypeScriptConditionalRulesContract, TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
-import type { RuleAppender } from "src/types";
-import {
-	POINTLESS_BOOLEAN_OPERATION,
-	CONDITIONAL_EXECUTION,
-	LOGICAL_ASSIGNMENT,
-	TERNARY,
-	TS_BLOCK,
-} from "src/parser/internals/constants";
+import type { CallableRuleAppender } from "src/types";
+import type {
+	TypeScriptAssignmentContextContract,
+	TypeScriptAssignmentValuePredicatesContract,
+	TypeScriptConditionalParentIndexContract,
+	TypeScriptConditionalRulesContract,
+	TypeScriptConditionalSource,
+	TypeScriptVariableDeclarationIndexContract,
+} from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
-/** Responsibilities: _conditional expression diagnostics_, _boolean identity branch diagnostics_. **/
+/** Responsibilities: _conditional expression diagnostics_, _conditional value analysis_. **/
 export class TypeScriptConditionalRules implements TypeScriptConditionalRulesContract {
-	private readonly script_assignment_predicates: TypeScriptAssignmentPredicatesContract;
-	private readonly assignment_value_predicates: TypeScriptAssignmentValuePredicatesContract;
-	private readonly boolean_expression: BooleanExpressionContract;
-	private readonly expression_containers: TypeScriptExpressionContainers;
-	private readonly conditional_parents: WeakMap<ts.BinaryExpression, boolean>;
-	private readonly non_boolean_calls: WeakMap<ts.Node, boolean>;
+	private readonly _assignment_context: TypeScriptAssignmentContextContract;
+	private readonly _assignment_value_predicates: TypeScriptAssignmentValuePredicatesContract;
+	private readonly _boolean_expression: BooleanExpressionContract;
+	private readonly _conditional_parent_index: TypeScriptConditionalParentIndexContract;
+	private readonly _non_boolean_analysis: TypeScriptNonBooleanCallAnalysis;
+	private readonly _optional_call_execution: TypeScriptOptionalCallExecution;
+	private readonly _primitive_type_kinds: ReadonlySet<ts.SyntaxKind>;
 
 	/** Responsibilities: _pure conditional classification_. **/
-	private pure_conditional(node: ts.BinaryExpression, source_file: ts.SourceFile): boolean {
-		if (!this.conditional_parent(node)) {
+	private pure_conditional(pure_source: TypeScriptConditionalSource): boolean {
+		if (!ts.isBinaryExpression(pure_source.node)) {
+			return false;
+		}
+		const node = pure_source.node;
+		if (!this._conditional_parent_index.conditional_parent(node)) {
 			return false;
 		}
 		let parent = node.parent;
@@ -34,232 +44,171 @@ export class TypeScriptConditionalRules implements TypeScriptConditionalRulesCon
 		if (ts.isReturnStatement(parent)) {
 			return false;
 		}
-		return !this.contains_non_boolean(node, source_file);
+		return !this._non_boolean_analysis.contains_non_boolean(node, pure_source.source_file);
 	}
 
-	/** Responsibilities: _conditional parent traversal_. **/
-	private conditional_parent(node: ts.BinaryExpression): boolean {
-		const cached = this.conditional_parents.get(node);
-		if (cached !== undefined) {
-			return cached;
-		}
-		const path: ts.BinaryExpression[] = [];
-		const result = this.find_conditional_parent(node, path);
-		for (const expression of path) {
-			this.conditional_parents.set(expression, result);
-		}
-		return result;
-	}
-
-	/** Responsibilities: _binary parent path tracking_. **/
-	private track_parent_path(current: ts.Node, path: ts.BinaryExpression[]): void {
-		if (ts.isBinaryExpression(current)) {
-			path.push(current);
-		}
-	}
-
-	/** Responsibilities: _conditional parent search_. **/
-	private find_conditional_parent(node: ts.BinaryExpression, path: ts.BinaryExpression[]): boolean {
-		let current: ts.Node = node;
-		while (current.parent !== undefined) {
-			this.track_parent_path(current, path);
-			const container = current.parent;
-			if (!this.expression_containers.contains(container, current)) {
-				return this.statement_condition_parent(container, current);
-			}
-			if (ts.isBinaryExpression(container)) {
-				const cached = this.conditional_parents.get(container);
-				if (cached !== undefined) {
-					return cached;
-				}
-			}
-			current = container;
-		}
-		return false;
-	}
-
-	/** Responsibilities: _conditional statement parent classification_. **/
-	private statement_condition_parent(container: ts.Node, current: ts.Node): boolean {
-		if (ts.isExpressionStatement(container)) {
-			return container.expression === current;
-		}
-		if (ts.isIfStatement(container) || ts.isWhileStatement(container) || ts.isDoStatement(container)) {
-			return container.expression === current;
-		}
-		if (ts.isForStatement(container)) {
-			return container.condition === current;
-		}
-		if (ts.isReturnStatement(container) || ts.isSwitchStatement(container)) {
-			return container.expression === current;
-		}
-		return ts.isConditionalExpression(container) && container.condition === current;
-	}
-
-	/** Responsibilities: _non-boolean invocation classification_. **/
-	private contains_non_boolean(node: ts.Node, source_file: ts.SourceFile): boolean {
-		const cached = this.non_boolean_calls.get(node);
-		if (cached !== undefined) {
-			return cached;
-		}
-		let result = ts.isCallExpression(node) && !this.boolean_expression.boolean_call(node, source_file);
-		if (!result) {
-			node.forEachChild((child) => {
-				if (!result) {
-					result = this.contains_non_boolean(child, source_file);
-				}
-			});
-		}
-		this.non_boolean_calls.set(node, result);
-		return result;
-	}
-
-	/** Responsibilities: _binary result context_. **/
-	/** Responsibilities: _conditional execution classification_. **/
-	private is_conditional_execution(node: ts.Node, source_file: ts.SourceFile): boolean {
-		if (!ts.isBinaryExpression(node)) {
+	/** Responsibilities: _conditional operand policy_. **/
+	private requires_explicit_branch(value_source: TypeScriptConditionalSource): boolean {
+		if (this.pure_conditional(value_source)) {
 			return false;
 		}
-		if (!this.boolean_expression.logical_operator(node)) {
+		const expression = value_source.node;
+		if (!ts.isBinaryExpression(expression)) {
 			return false;
 		}
-		if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
-			return true;
-		}
-		return this.logical_execution(node, source_file);
+		return !this._assignment_value_predicates.operand_allowed(
+			expression.left,
+			expression.right,
+			value_source.source_file,
+		);
 	}
 
-	/** Responsibilities: _logical execution classification_. **/
-	private logical_execution(node: ts.BinaryExpression, source_file: ts.SourceFile): boolean {
-		let parent = node.parent;
+	/** Responsibilities: _logical expression assignment context_. **/
+	private ordinary_conditional_execution(conditional_source: TypeScriptConditionalSource): boolean {
+		const branch_expression = conditional_source.node;
+		if (!ts.isBinaryExpression(branch_expression)) {
+			return false;
+		}
+		let parent = branch_expression.parent;
 		while (ts.isParenthesizedExpression(parent)) {
 			parent = parent.parent;
 		}
-		if (!ts.isExpressionStatement(parent) && !this.conditional_parent(node)) {
-			if (!this.assignment_value_predicates.conditional_assignment(node)) {
-				return false;
+		if (!ts.isExpressionStatement(parent)) {
+			if (!this._conditional_parent_index.conditional_parent(branch_expression)) {
+				return this.conditional_assignment_execution(conditional_source);
 			}
 		}
-		if (this.pure_conditional(node, source_file)) {
+		return this.requires_explicit_branch(conditional_source);
+	}
+
+	/** Responsibilities: _nullish fallback classification_. **/
+	private non_boolean_fallback(fallback_source: TypeScriptConditionalSource): boolean {
+		const { node: fallback, source_file } = fallback_source;
+		if (!ts.isExpression(fallback)) {
 			return false;
 		}
-		if (this.assignment_value_predicates.operand_allowed(node.left, node.right, source_file)) {
+		if (!ts.isBinaryExpression(fallback)) {
+			return this._non_boolean_analysis.detects_nonboolean_call(fallback, source_file);
+		}
+		if (!this._boolean_expression.logical_operator(fallback)) {
+			return false;
+		}
+		return this._non_boolean_analysis.contains_non_boolean(fallback, source_file);
+	}
+
+	/** Responsibilities: _conditional execution classification_. **/
+	private is_conditional_execution(execution_source: TypeScriptConditionalSource): boolean {
+		if (!ts.isBinaryExpression(execution_source.node)) {
+			return false;
+		}
+		const logical_expression = execution_source.node;
+		if (!this._boolean_expression.logical_operator(logical_expression)) {
+			return false;
+		}
+		if (logical_expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
+			return this.non_boolean_fallback({
+				node: logical_expression.right,
+				source_file: execution_source.source_file,
+			});
+		}
+		return this.ordinary_conditional_execution(execution_source);
+	}
+
+	/** Responsibilities: _conditional assignment execution_. **/
+	private conditional_assignment_execution(assignment_source: TypeScriptConditionalSource): boolean {
+		const assignment_expression = assignment_source.node;
+		if (!ts.isBinaryExpression(assignment_expression)) {
+			return false;
+		}
+		if (!this._assignment_context.conditional_assignment(assignment_expression)) {
+			return false;
+		}
+		if (!this._non_boolean_analysis.contains_non_boolean(assignment_expression, assignment_source.source_file)) {
+			return false;
+		}
+		return this.requires_explicit_branch(assignment_source);
+	}
+
+	/** Responsibilities: _primitive type identification_. **/
+	private primitive_assignment(node: ts.ConditionalExpression): boolean {
+		const parent = node.parent;
+		if (!ts.isVariableDeclaration(parent)) {
+			return false;
+		}
+		if (parent.initializer !== node) {
+			return false;
+		}
+		if (parent.type === undefined) {
+			return false;
+		}
+		return this._primitive_type_kinds.has(parent.type.kind);
+	}
+
+	/** Responsibilities: _ternary rule classification_. **/
+	private append_ternary(candidate: ts.Node): boolean {
+		if (!ts.isConditionalExpression(candidate)) {
+			return false;
+		}
+		const complex_true = !this._assignment_value_predicates.primitive_expression(candidate.whenTrue);
+		const complex_false = !this._assignment_value_predicates.primitive_expression(candidate.whenFalse);
+		const complex_branch = complex_true || complex_false;
+		if (!complex_branch) {
+			return false;
+		}
+		if (this.primitive_assignment(candidate)) {
 			return false;
 		}
 		return true;
 	}
 
-	/** Responsibilities: _ternary rule aggregation_. **/
-	private append_ternary_rule(node: ts.ConditionalExpression, append_rule: RuleAppender): void {
-		const complex_true = !this.assignment_value_predicates.primitive_expression(node.whenTrue);
-		const complex_false = !this.assignment_value_predicates.primitive_expression(node.whenFalse);
-		const is_assignment = this.script_assignment_predicates.primitive_assignment(node);
-		if (!complex_true && !complex_false) {
-			return;
+	/** Responsibilities: _conditional execution classification_. **/
+	private append_conditional_execution(execution_source: TypeScriptConditionalSource): boolean {
+		const { node: candidate, source_file } = execution_source;
+		if (ts.isCallExpression(candidate)) {
+			return this._optional_call_execution.optional_call(candidate, source_file);
 		}
-		if (is_assignment) {
-			return;
-		}
-		append_rule(node, TERNARY);
-	}
-
-	/** Responsibilities: _branch statement shape_. **/
-	private single_return_statement(node: ts.IfStatement): boolean {
-		let statement: ts.Statement = node.thenStatement;
-		if (ts.isBlock(statement)) {
-			if (statement.statements.length !== 1) {
-				return false;
-			}
-			statement = statement.statements[0];
-		}
-		return ts.isReturnStatement(statement);
-	}
-
-	/** Responsibilities: _boolean identity expression_. **/
-	private boolean_identity_expression(expression: ts.Expression): boolean {
-		if (!ts.isBinaryExpression(expression)) {
-			return false;
-		}
-		const operator = expression.operatorToken.kind;
-		if (operator !== ts.SyntaxKind.EqualsEqualsToken) {
-			if (operator !== ts.SyntaxKind.EqualsEqualsEqualsToken) {
-				return false;
-			}
-		}
-		const left_boolean = this.boolean_literal(expression.left);
-		const right_boolean = this.boolean_literal(expression.right);
-		if (left_boolean) {
-			return !right_boolean;
-		}
-		return right_boolean;
-	}
-
-	/** Responsibilities: _boolean identity branch_. **/
-	private boolean_identity_return(node: ts.IfStatement): boolean {
-		if (node.elseStatement !== undefined) {
-			return false;
-		}
-		if (!this.single_return_statement(node)) {
-			return false;
-		}
-		return this.boolean_identity_expression(node.expression);
-	}
-
-	/** Responsibilities: _boolean literal detection_. **/
-	private boolean_literal(node: ts.Expression): boolean {
-		if (node.kind === ts.SyntaxKind.TrueKeyword) {
+		if (this._optional_call_execution.optional_member_call(candidate, source_file)) {
 			return true;
 		}
-		return node.kind === ts.SyntaxKind.FalseKeyword;
+		if (!ts.isBinaryExpression(candidate)) {
+			return false;
+		}
+		const source: TypeScriptConditionalSource = { node: candidate, source_file };
+		return this.is_conditional_execution(source);
 	}
 
-	/** Responsibilities: _conditional rule aggregation_. **/
 	/** Responsibilities: _conditional rule composition_. **/
-	public constructor(
-		script_assignment_predicates: TypeScriptAssignmentPredicatesContract,
-		variable_declaration_index: TypeScriptVariableDeclarationIndexContract,
-	) {
-		this.boolean_expression = new TypeScriptBooleanExpression(variable_declaration_index);
-		this.expression_containers = new TypeScriptExpressionContainers();
-		this.conditional_parents = new WeakMap();
-		this.non_boolean_calls = new WeakMap();
-		this.script_assignment_predicates = script_assignment_predicates;
-		this.assignment_value_predicates = new TypeScriptAssignmentValuePredicates(
-			this.boolean_expression,
+	public constructor(variable_declaration_index: TypeScriptVariableDeclarationIndexContract) {
+		this._primitive_type_kinds = new Set([
+			ts.SyntaxKind.StringKeyword,
+			ts.SyntaxKind.NumberKeyword,
+			ts.SyntaxKind.BooleanKeyword,
+			ts.SyntaxKind.BigIntKeyword,
+			ts.SyntaxKind.NullKeyword,
+			ts.SyntaxKind.UndefinedKeyword,
+		]);
+		this._boolean_expression = new TypeScriptBooleanExpression(variable_declaration_index);
+		this._non_boolean_analysis = new TypeScriptNonBooleanCallAnalysis(this._boolean_expression);
+		this._optional_call_execution = new TypeScriptOptionalCallExecution(this._boolean_expression);
+		this._assignment_context = new TypeScriptAssignmentContext(this._boolean_expression);
+		const expression_containers = new TypeScriptExpressionContainers();
+		this._conditional_parent_index = new TypeScriptConditionalParentIndex(expression_containers);
+		this._assignment_value_predicates = new TypeScriptAssignmentValuePredicates(
+			this._boolean_expression,
 			variable_declaration_index,
 		);
 	}
 
 	/** Responsibilities: _conditional rule collection_. **/
-	public append(node: ts.Node, source_file: ts.SourceFile, append_rule: RuleAppender): void {
-		if (this.assignment_value_predicates.logical_assignment(node)) {
-			append_rule(node, LOGICAL_ASSIGNMENT);
+	public append(candidate_node: ts.Node, source_file: ts.SourceFile, append_rule: CallableRuleAppender): void {
+		if (this._assignment_context.logical_assignment(candidate_node)) {
+			append_rule(candidate_node, LOGICAL_ASSIGNMENT);
 		}
-		if (ts.isConditionalExpression(node)) {
-			this.append_ternary_rule(node, append_rule);
+		if (this.append_ternary(candidate_node)) {
+			append_rule(candidate_node, TERNARY);
 		}
-		if (this.is_conditional_execution(node, source_file)) {
-			append_rule(node, CONDITIONAL_EXECUTION);
-		}
-	}
-
-	/** Responsibilities: _branch diagnostics_. **/
-	public append_if_block(node: ts.Node, append_rule: RuleAppender): void {
-		if (!ts.isIfStatement(node)) {
-			return;
-		}
-		if (this.boolean_identity_return(node)) {
-			append_rule(node, POINTLESS_BOOLEAN_OPERATION);
-		}
-		if (!ts.isBlock(node.thenStatement)) {
-			append_rule(node.thenStatement, TS_BLOCK);
-		}
-		if (node.elseStatement === undefined) {
-			return;
-		}
-		const is_else_if = ts.isIfStatement(node.elseStatement);
-		const is_else_block = ts.isBlock(node.elseStatement);
-		if (!is_else_if && !is_else_block) {
-			append_rule(node.elseStatement, TS_BLOCK);
+		if (this.append_conditional_execution({ node: candidate_node, source_file })) {
+			append_rule(candidate_node, CONDITIONAL_EXECUTION);
 		}
 	}
 }

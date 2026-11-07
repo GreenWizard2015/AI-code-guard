@@ -8,71 +8,103 @@ or `ParsedJson`, `convertImage()` → `PngImage`.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public parse_document(): string { return "value"; }
+// File: src/document_text.ts
+export class DocumentText {
+	private readonly raw_document: string;
+
+	public constructor(raw_document: string) {
+		this.raw_document = raw_document;
+	}
+
+	public parse_document(): string { // <- error
+		const words = this.raw_document.trim().split(/\s+/u);
+		return words.join(" ");
+	}
+
+	public word_count(): number {
+		const normalized = this.parse_document();
+		return normalized.split(" ").length;
+	}
+
+	public summary(): string {
+		const document = this.parse_document();
+		const count = this.word_count();
+		return `${count} words: ${document}`;
+	}
+
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
+	}
 }
+// File: cli.ts
+import { DocumentText } from "src/document_text";
+
+(function run(): void {
+	const document = new DocumentText("ready document");
+	document.report();
+})();
 ```
 
 
 ## Good
 
 ```ts
-// File: src/price_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+// File: src/document_text.ts
+/** Responsibilities: _document text representation_, _word measurement_. **/
+export class DocumentText {
+	private readonly _raw_document: string;
 
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+	/** Responsibilities: _document initialization_. **/
+	public constructor(raw_document: string) {
+		this._raw_document = raw_document;
 	}
 
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
+	/** Responsibilities: _document text representation_. **/
+	public document_text(): string {
+		if (this._raw_document.trim().length === 0) {
+			return "";
 		}
-		return label;
+		const parts = this._raw_document.trim().split(/\s+/u);
+		const normalized_parts: string[] = [];
+		for (const part of parts) {
+			if (part.length > 0) {
+				normalized_parts.push(part);
+			}
+		}
+		return normalized_parts.join(" ");
 	}
 
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
-	}
-
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
-	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
+	/** Responsibilities: _word count_. **/
+	public word_count(): number {
+		const text = this.document_text();
 		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
+		for (const word of text.split(/\s+/u)) {
+			if (word.length > 0) {
 				count += 1;
 			}
 		}
 		return count;
 	}
+
+	/** Responsibilities: _document summary_. **/
+	public summary(): string {
+		const text = this.document_text();
+		const count = this.word_count();
+		return `${count} words: ${text}`;
+	}
+
+	/** Responsibilities: _document report output_. **/
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
+	}
 }
 // File: cli.ts
-import { PriceLabels } from "src/price_labels";
+import { DocumentText } from "src/document_text";
 
-(function () {
-	const labels = new Map<string, string>();
-	labels.set("ready", "Ready");
-	labels.set("blocked", "Blocked");
-	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+(function run(): void {
+	const document = new DocumentText("ready document");
+	document.report();
 })();
 ```

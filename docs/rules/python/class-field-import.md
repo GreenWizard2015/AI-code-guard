@@ -12,9 +12,19 @@ from src.text_functions import normalize_text
 
 class QueryNormalizer:
     normalize = normalize_text
+
+    def report(self) -> None:
+        normalized = QueryNormalizer.normalize("  ready  ")
+        print(f"Query: {normalized}")
 # File: src/text_functions.py
 def normalize_text(value: str) -> str:
     return value.strip()
+# File: cli.py
+from src.query_normalizer import QueryNormalizer
+
+if __name__ == "__main__":
+    normalizer = QueryNormalizer()
+    normalizer.report()
 ```
 
 ## Good
@@ -27,35 +37,33 @@ class TextNormalizer:
 
     def __init__(self, separator: str) -> None:
         """Responsibilities: _normalizer initialization_."""
-        self.separator: str = separator
+        self._separator: str = separator
 
     def normalize_text(self, text: str) -> str:
         """Responsibilities: _text normalization_."""
         normalized = " ".join(text.split())
-        return normalized.replace(" ", self.separator)
+        return normalized.replace(" ", self._separator)
 
-    def display_text(self, text: str) -> str:
+    def display_text(self, label: str) -> str:
         """Responsibilities: _display label composition_."""
-        normalized = self.normalize_text(text)
+        normalized = self.normalize_text(label)
         return f"[{normalized}]"
 
-    def word_count(self, text: str) -> int:
+    def word_count(self, source: str) -> int:
         """Responsibilities: _word count_."""
-        normalized = self.normalize_text(text)
-        return len(normalized.split(self.separator))
+        normalized = self.normalize_text(source)
+        return len(normalized.split(self._separator))
 
-    def uppercase_text(self, text: str) -> str:
-        """Responsibilities: _text capitalization_."""
-        normalized = self.normalize_text(text)
-        return normalized.upper()
+    def report(self) -> None:
+        normalized = self.normalize_text(" fresh query ")
+        display = self.display_text("restricted")
+        count = self.word_count("publish report")
+        print(f"{normalized} {display} {count}")
+
 # File: cli.py
 from src.text_normalizer import TextNormalizer
 
 if __name__ == "__main__":
     normalizer = TextNormalizer(" ")
-    normalized = normalizer.normalize_text("  ready  ")
-    display = normalizer.display_text("blocked")
-    count = normalizer.word_count("ready to publish")
-    uppercase = normalizer.uppercase_text("ready")
-    print(f"{normalized} {display} {count} {uppercase}")
+    normalizer.report()
 ```

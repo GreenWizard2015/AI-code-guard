@@ -2,26 +2,22 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
 import { ViolationCache } from "src/core/cache/violation_cache";
-import type { ReportViolation } from "src/reporting_protocols";
+import type { ReportViolationOptions } from "src/reporting_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
-/** Responsibilities: _malformed cache record_, _cache lookup setup_. **/
-class MalformedCacheFixture {
-	public readonly root = "/virtual/malformed-cache";
-	public readonly cache_file = join(this.root, ".ai-code-guard", "cache", "lint-execution", "lint-result.json");
-	public readonly file_io: InMemoryFileIO;
-
-	/** Responsibilities: _cache record setup_. **/
-	public constructor(record: string) {
-		this.file_io = new InMemoryFileIO();
-		this.file_io.directory_operations.create_directory(join(this.root, ".ai-code-guard", "cache", "lint-execution"));
-		this.file_io.file_content.write_text(this.cache_file, record);
-	}
-}
-
 describe("malformed complete cache records", () => {
+	/** Responsibilities: _malformed cache input setup_. **/
+	const create_malformed_cache_fixture = (record: string): { root: string; file_io: InMemoryFileIO } => {
+		const root = "/virtual/malformed-cache";
+		const cache_file = join(root, ".ai-code-guard", "cache", "lint-execution", "lint-result.json");
+		const file_io = new InMemoryFileIO();
+		file_io.create_directory(join(root, ".ai-code-guard", "cache", "lint-execution"));
+		file_io.file(cache_file).write_text(record);
+		return { root, file_io };
+	};
+
 	test("treats malformed fingerprints as misses without throwing", () => {
-		const fixture = new MalformedCacheFixture(
+		const fixture = create_malformed_cache_fixture(
 			JSON.stringify({
 				cache_version: 1,
 				identity: "identity",
@@ -37,18 +33,44 @@ describe("malformed complete cache records", () => {
 		);
 		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
 
-		expect(lookup.previous_record.available).toBe(false);
+		expect(
+			lookup.reusable_inputs({
+				root: fixture.root,
+				ignored_directories: [],
+				entry_files: [],
+				skip_review: true,
+				force_review: false,
+				review_cleanup: false,
+				review_agent: "none",
+				review_stages: [],
+				batch_size: 10,
+				policy: "all",
+			}).available,
+		).toBe(false);
 	});
 
 	test("treats a null cache record as a miss", () => {
-		const fixture = new MalformedCacheFixture("null");
+		const fixture = create_malformed_cache_fixture("null");
 		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
 
-		expect(lookup.previous_record.available).toBe(false);
+		expect(
+			lookup.reusable_inputs({
+				root: fixture.root,
+				ignored_directories: [],
+				entry_files: [],
+				skip_review: true,
+				force_review: false,
+				review_cleanup: false,
+				review_agent: "none",
+				review_stages: [],
+				batch_size: 10,
+				policy: "all",
+			}).available,
+		).toBe(false);
 	});
 
 	test("treats duplicate cached source paths as a miss", () => {
-		const fixture = new MalformedCacheFixture(
+		const fixture = create_malformed_cache_fixture(
 			JSON.stringify({
 				cache_version: 1,
 				identity: "identity",
@@ -70,13 +92,36 @@ describe("malformed complete cache records", () => {
 		);
 		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
 
-		expect(lookup.previous_record.available).toBe(false);
+		expect(
+			lookup.reusable_inputs({
+				root: fixture.root,
+				ignored_directories: [],
+				entry_files: [],
+				skip_review: true,
+				force_review: false,
+				review_cleanup: false,
+				review_agent: "none",
+				review_stages: [],
+				batch_size: 10,
+				policy: "all",
+			}).available,
+		).toBe(false);
 	});
 
 	test("rejects null diagnostic entries without throwing", () => {
-		const entries: readonly ReportViolation[] = JSON.parse("[null]");
+		const entries: readonly ReportViolationOptions[] = JSON.parse("[null]");
 		const cache = new ViolationCache(entries);
 
+		expect(cache.valid_cache()).toBe(false);
+	});
+
+	test("rejects coercion-shaped diagnostic fields without throwing", () => {
+		const entries = JSON.parse(
+			'[{"file":{"toString":null},"line":1,"message":"message","hint":"hint","rule_id":"rule","priority":1}]',
+		);
+		const cache = new ViolationCache(entries);
+
+		expect(() => cache.valid_cache()).not.toThrow();
 		expect(cache.valid_cache()).toBe(false);
 	});
 });

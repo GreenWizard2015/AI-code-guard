@@ -1,16 +1,108 @@
 from __future__ import annotations
 
 import ast
-from collections.abc import Callable, Mapping
-from typing import Protocol, TypeAlias, TYPE_CHECKING
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Protocol, TypeAlias
 
-from implementation.types import JsonObject, PythonDecoratorAliasGroups
+from implementation.references.alias_types import CallablePythonReferenceOperation
+from implementation.references.reference_alias_protocols import (
+    PythonAssignmentAliasContract,
+    PythonContainerAliasContract,
+    PythonContainerAliasesContract,
+    PythonContainerAliasStateContract,
+    PythonContainerAssemblyContract,
+    PythonContainerItemRequestContract,
+    PythonContainerItemsContract,
+    PythonContainerKeysContract,
+    PythonContainerLookupContract,
+    PythonContainerValuesContract,
+    PythonDynamicTypeReferencesContract,
+    PythonExceptionAliasSnapshotContract,
+    PythonExceptionAliasStateContract,
+    PythonProxyReceiverAliasesContract,
+    PythonProxyScopeAliasIndexContract,
+    PythonReferenceAliasesContract,
+    PythonReferenceAliasStateContract,
+    PythonScopeAliasHistoryContract,
+)
+from implementation.types import JsonObject
+
+__all__ = [
+    "CallablePythonReferenceOperation",
+    "PythonAssignmentAliasContract",
+    "PythonContainerAliasContract",
+    "PythonContainerAliasStateContract",
+    "PythonContainerAliasesContract",
+    "PythonContainerAssemblyContract",
+    "PythonContainerItemRequestContract",
+    "PythonContainerItemsContract",
+    "PythonContainerKeysContract",
+    "PythonContainerLookupContract",
+    "PythonContainerValuesContract",
+    "PythonDynamicTypeReferencesContract",
+    "PythonExceptionAliasSnapshotContract",
+    "PythonExceptionAliasStateContract",
+    "PythonProxyReceiverAliasesContract",
+    "PythonProxyScopeAliasIndexContract",
+    "PythonReferenceAliasStateContract",
+    "PythonReferenceAliasesContract",
+    "PythonScopeAliasHistoryContract",
+    "PythonTestAssertionAliasOptionsContract",
+]
+
 
 if TYPE_CHECKING:
     from implementation.ast.protocols import PythonAstNodeIndexContract
-    from implementation.protocols import PythonExceptionBroadnessContract
 
-PythonReferenceOperation = Callable[[], None]
+
+class PythonSubtestAliasesOptionsContract(Protocol):
+    """Responsibilities: _subtest source state_, _alias resolver dependencies_."""
+
+    @property
+    def tree(self) -> ast.AST: ...
+
+    @property
+    def node_index(self) -> PythonAstNodeIndexContract: ...
+
+    @property
+    def container_aliases(self) -> PythonContainerAliasesContract: ...
+
+    @property
+    def container_keys(self) -> PythonContainerKeysContract: ...
+
+    @property
+    def assignment_aliases(self) -> PythonReferenceAliasesContract: ...
+
+
+class PythonTestAssertionAliasOptionsContract(Protocol):
+    """Responsibilities: _assertion AST_, _assertion alias dependencies_."""
+
+    @property
+    def node(self) -> ast.AST: ...
+
+    @property
+    def node_index(self) -> PythonAstNodeIndexContract: ...
+
+    @property
+    def container_aliases(self) -> PythonContainerAliasesContract: ...
+
+    @property
+    def container_keys(self) -> PythonContainerKeysContract: ...
+
+    @property
+    def container_values(self) -> PythonContainerValuesContract: ...
+
+    @property
+    def assignment_aliases(self) -> PythonReferenceAliasesContract: ...
+
+
+class PythonSubtestAliasAnalysisContract(Protocol):
+    """Responsibilities: _subtest alias results_, _context matching_."""
+
+    @property
+    def aliases(self) -> set[str]: ...
+
+    def matches(self, aliases: set[str]) -> bool: ...
 
 
 class PythonAnnotationResolverContract(Protocol):
@@ -18,57 +110,66 @@ class PythonAnnotationResolverContract(Protocol):
 
     def annotation_name(
         self,
-        annotation: ast.AST,
-        aliases: dict[str, str],
-        generics: frozenset[str],
-    ) -> str:
-        raise NotImplementedError(generics)
+        annotation: ast.expr,
+        aliases: Mapping[str, str],
+        generics: set[str],
+    ) -> str: ...
+
+    def resolve_constructor(
+        self,
+        value: ast.AST,
+        class_names: set[str],
+        constructor_aliases: Mapping[str, str],
+    ) -> str: ...
 
 
 class PythonReferenceContextContract(Protocol):
     """Responsibilities: _reference context state contract_."""
 
-    def reference_ownership(self) -> PythonReferenceOwnershipContract: ...
+    def bindings(self) -> PythonReferenceBindingsContract: ...
+
+    def properties(self) -> PythonReferencePropertiesContract: ...
+
+    def name_resolver(self) -> PythonReferenceNameResolverContract: ...
 
     def attribute_owner(self, value: ast.AST, current_owner: str) -> str: ...
 
     def collection_element_owner(self, value: ast.AST, current_owner: str) -> str: ...
 
 
-class PythonReferenceOwnershipContract(Protocol):
-    """Responsibilities: _reference binding state_, _lexical owner lookup_."""
+class PythonReferenceSourceContract(Protocol):
+    """Responsibilities: _Python reference source data_."""
+
+    def context(
+        self,
+        annotation_resolver: PythonAnnotationResolverContract,
+    ) -> PythonReferenceContextContract: ...
+
+
+class PythonReferenceBindingsContract(Protocol):
+    """Responsibilities: _instance bindings_, _collection bindings_."""
 
     def instance_owner(self, name: str, node: ast.AST) -> str: ...
 
-    def _property_owner(self, owner: str, property_name: str, node: ast.AST) -> str: ...
+    def record_binding(self, name: str, owner: str, collection_owner: str, node: ast.AST) -> None: ...
 
-    def name_resolver(self) -> PythonReferenceNameResolverContract: ...
+    def collection_element_owner(self, name: str, node: ast.AST) -> str: ...
 
-    def _record_property_type(self, name: str, owner: str, node: ast.AST) -> None: ...
+    def instance_binding_present(self, name: str, node: ast.AST) -> bool: ...
 
-    def record_binding(
-        self,
-        name: str,
-        owner: str,
-        collection_owner: str,
-        node: ast.AST,
-    ) -> None: ...
+    def collection_state(self) -> PythonScopedOwnerStateContract: ...
 
-    def _record_annotation(self, name: str, owner: str, node: ast.AST) -> None: ...
 
-    def _record_element_annotation(
-        self, name: str, owner: str, node: ast.AST
-    ) -> None: ...
+class PythonReferencePropertiesContract(Protocol):
+    """Responsibilities: _property type ownership operations_."""
 
-    def _record_property(
-        self, owner: str, property_name: str, value: str, node: ast.AST
-    ) -> None: ...
+    def owner(self, owner: str, property_name: str, node: ast.AST) -> str: ...
 
-    def _collection_element_owner(self, name: str, node: ast.AST) -> str: ...
+    def record(self, owner: str, property_name: str, value: str, node: ast.AST) -> None: ...
 
-    def _children(self, node: ast.AST) -> list[ast.AST]: ...
+    def record_type(self, name: str, owner: str, node: ast.AST) -> None: ...
 
-    def _instance_binding_present(self, name: str, node: ast.AST) -> bool: ...
+    def record_elements(self, name: str, element_type: str, node: ast.AST) -> None: ...
 
 
 class PythonReferenceOwnershipOptionsContract(Protocol):
@@ -89,14 +190,17 @@ class PythonReferenceNameResolverContract(Protocol):
     def annotation_name(
         self,
         resolver: PythonAnnotationResolverContract,
-        annotation: ast.AST,
-        generics: frozenset[str],
+        annotation: ast.expr,
+        generics: set[str],
     ) -> str: ...
 
     def callable_key(self, node: ast.AST) -> str: ...
 
     def call_return_owner(
-        self, function: ast.AST, node: ast.AST, fallback_to_name: bool
+        self,
+        function: ast.AST,
+        node: ast.AST,
+        fallback_to_name: bool,
     ) -> str: ...
 
     def method_return_owner(self, name: str, owner: str) -> str: ...
@@ -145,26 +249,37 @@ class PythonAnnotatedInstanceBindingsContract(Protocol):
     ) -> None: ...
 
 
-class PythonCollectionElementOwnerContract(Protocol):
-    """Responsibilities: _collection element owner contract_."""
+class PythonInstanceBindingsContract(Protocol):
+    """Responsibilities: _instance binding recording_."""
 
-    def owner(self, value: ast.AST, current_owner: str) -> str: ...
+    def record_for_alias(self, current: ast.AST, owner: str) -> None: ...
+
+    def collect(
+        self,
+        current: ast.AST,
+        owner: str,
+        annotation_resolver: PythonAnnotationResolverContract,
+        receiver_owner: str = "",
+    ) -> None: ...
 
 
 class PythonScopedOwnerStateContract(Protocol):
     """Responsibilities: _positioned lexical owner records_."""
 
     def record_at_scope(
-        self, scope: str, name: str, owner: str, node: ast.AST
+        self,
+        scope: str,
+        name: str,
+        owner: str,
+        node: ast.AST,
     ) -> None: ...
 
-    def annotate_at_scope(
-        self, scope: str, name: str, owner: str, node: ast.AST
-    ) -> None: ...
-
-    def owner_at_scopes(self, scopes: list[str], name: str, node: ast.AST) -> str: ...
-
-    def binding_present(self, scopes: list[str], name: str) -> bool: ...
+    def owner_resolution(
+        self,
+        scopes: list[str],
+        name: str,
+        node: ast.AST,
+    ) -> PythonInstanceWriteLookupContract: ...
 
 
 class PythonLexicalScopeContract(Protocol):
@@ -197,6 +312,12 @@ PythonScopedOwnerMap: TypeAlias = dict[str, str]
 class PythonInstanceWriteLookupContract(Protocol):
     """Responsibilities: _owner candidate state_, _source position ordering_."""
 
+    def with_candidate(
+        self,
+        write: PythonPositionedWriteContract,
+        node: ast.AST,
+    ) -> PythonInstanceWriteLookupContract: ...
+
     def present(self) -> bool: ...
 
     def owner_name(self) -> str: ...
@@ -210,14 +331,33 @@ class PythonCallReturnStateContract(Protocol):
     def state_cleanup(self) -> None: ...
 
 
+class PythonCallReferenceOptionsContract(Protocol):
+    """Responsibilities: _call-site reference attribution_."""
+
+    def call_node(self) -> ast.Call: ...
+    def caller_owner(self) -> str: ...
+    def binding(self) -> PythonCallBindingContract: ...
+
+
+class PythonCallBindingContract(Protocol):
+    """Responsibilities: _call result binding_, _deferred call state_."""
+
+    def function_use(self, callee_name: str) -> JsonObject: ...
+    def method_use(
+        self,
+        receiver_name: str,
+        receiver_constructor_name: str,
+    ) -> JsonObject: ...
+
+
 class PythonReferenceBuilderContract(Protocol):
     """Responsibilities: _reference builder operations contract_."""
 
-    def for_call(self, node: ast.Call, owner: str) -> JsonObject: ...
+    def for_call(self, options: PythonCallReferenceOptionsContract) -> JsonObject: ...
 
     def for_value(self, node: ast.AST, owner: str) -> JsonObject: ...
 
-    def for_expression(self, value: ast.AST, line: int, owner: str) -> JsonObject: ...
+    def for_expression(self, value: ast.AST, owner: str) -> JsonObject: ...
 
 
 class PythonCallReturnsContract(Protocol):
@@ -233,219 +373,9 @@ class PythonCallReturnsContract(Protocol):
     ) -> None: ...
 
 
-class PythonContainerAliasStateContract(Protocol):
-    """Responsibilities: _container alias lookup state_."""
-
-    def select_scope_node(self, node: ast.AST) -> None: ...
-
-    def static_alias(self, name: str) -> str: ...
-
-    def container_alias(self, name: str) -> dict[str, ast.AST]: ...
-
-    def container_item(self, name: str, key: str) -> PythonContainerLookupContract: ...
-
-    def builtin_dictionary(self, value: ast.AST) -> bool: ...
-
-
 class PythonScopedTypeAliasesContract(Protocol):
     """Responsibilities: _scoped type aliases_."""
 
     def collect(self) -> None: ...
 
     def resolve(self, name: str, context: ast.AST) -> str: ...
-
-
-class PythonContainerLookupContract(Protocol):
-    """Responsibilities: _container lookup result contract_."""
-
-    def found(self) -> bool: ...
-
-    def expression_node(self) -> ast.AST: ...
-
-
-class PythonContainerAliasesContract(Protocol):
-    """Responsibilities: _container alias operations contract_."""
-
-    def container_values(self) -> PythonContainerValuesContract: ...
-
-    def container_keys(self) -> PythonContainerKeysContract: ...
-
-    def clear(self) -> None: ...
-
-    def assign(self, targets: list[ast.AST], value: ast.AST) -> None: ...
-
-    def observe(self, node: ast.AST) -> None: ...
-
-    def observe_all(self, nodes: list[ast.AST], tree: ast.AST) -> None: ...
-
-    def _configure_scope_tree(self, tree: ast.AST) -> None: ...
-
-    def _select_scope_node(self, node: ast.AST) -> None: ...
-
-    def _container_alias(self, name: str) -> dict[str, ast.AST]: ...
-
-    def _is_builtin_dictionary(self, value: ast.AST) -> bool: ...
-
-    def _static_alias(self, name: str) -> str: ...
-
-
-class PythonContainerAssemblyContract(Protocol):
-    """Responsibilities: _container assembly access_."""
-
-    def container_aliases(self) -> PythonContainerAliasesContract: ...
-
-    def container_values(self) -> PythonContainerValuesContract: ...
-
-    def container_keys(self) -> PythonContainerKeysContract: ...
-
-
-class PythonContainerKeysContract(Protocol):
-    """Responsibilities: _static container key contract_."""
-
-    def static_key(self, value: ast.AST) -> str: ...
-
-    def string_value(self, node: ast.AST) -> str: ...
-
-
-class PythonContainerValuesContract(Protocol):
-    """Responsibilities: _container value lookup contract_."""
-
-    def container_value(
-        self, value: ast.Subscript
-    ) -> PythonContainerLookupContract: ...
-
-    def attribute_value(
-        self, value: ast.Attribute
-    ) -> PythonContainerLookupContract: ...
-
-    def container_values(self, value: ast.AST) -> list[ast.AST]: ...
-
-
-class PythonReferenceAliasesContract(Protocol):
-    """Responsibilities: _reference alias resolution contract_."""
-
-    def collect(self, tree: ast.Module) -> list[JsonObject]: ...
-
-    def resolved_name(self, name: str, names: frozenset[str]) -> str: ...
-
-    def target_is_class(self, name: str) -> bool: ...
-
-    def target_values(
-        self, target: ast.AST, value: ast.AST, references_only: bool = True
-    ) -> dict[str, ast.AST]: ...
-
-
-class PythonScopeAliasHistoryContract(Protocol):
-    """Responsibilities: _scoped alias index contract_."""
-
-    def resolve(self, node: ast.AST, name: str, line: int) -> JsonObject: ...
-
-
-class PythonAssignmentAliasContract(Protocol):
-    """Responsibilities: _assignment alias source contract_."""
-
-    def assignment_aliases(self, node: ast.AST) -> dict[str, str]: ...
-
-
-class PythonProxyTargetContract(Protocol):
-    """Responsibilities: _proxy target contract_."""
-
-    def property_decorated(self, node: ast.AST) -> bool: ...
-
-    def supported_target(self, call: ast.Call) -> bool: ...
-
-
-class PythonProxyReceiverAliasesContract(Protocol):
-    """Responsibilities: _proxy receiver alias contract_."""
-
-    def lambda_receiver(self, node: ast.AST) -> bool: ...
-
-
-class PythonProxyScopeAliasIndexContract(Protocol):
-    """Responsibilities: _proxy scope alias lookup_."""
-
-    def value(self, name: str, line: int) -> str: ...
-
-    def resolve(self, name: str, line: int) -> str: ...
-
-
-class PythonExceptionAliasStateContract(Protocol):
-    """Responsibilities: _exception alias state contract_."""
-
-    def observe(self, node: ast.AST) -> None: ...
-
-    def select(self, node: ast.AST) -> None: ...
-
-    def exception_names(self) -> set[str]: ...
-
-    def configure_imports(self, tree: ast.AST) -> None: ...
-
-
-class PythonExceptionAliasSnapshotContract(Protocol):
-    """Responsibilities: _exception aliases_, _builtin module aliases_."""
-
-    def exception_names(self) -> frozenset[str]: ...
-
-    def module_names(self) -> frozenset[str]: ...
-
-    def restore(
-        self,
-        broadness: PythonExceptionBroadnessContract,
-        multi_exception_names: set[str],
-    ) -> None: ...
-
-
-class PythonDynamicTypeReferencesContract(Protocol):
-    """Responsibilities: _dynamic type reference resolution_."""
-
-    def reference_name(self, value: ast.AST) -> str: ...
-
-    def module_reference(self, value: ast.AST) -> str: ...
-
-    def type_call_present(self, value: ast.AST) -> bool: ...
-
-
-class PythonDecoratorAliasesContract(Protocol):
-    """Responsibilities: _decorator alias state contract_."""
-
-    def aliases(self) -> PythonDecoratorAliasGroups: ...
-
-    def container_values(self) -> PythonContainerValuesContract: ...
-
-
-class PythonAssignedDescriptorIndexContract(Protocol):
-    """Responsibilities: _assigned descriptor lookup contract_."""
-
-    def collect(self, tree: ast.AST) -> None: ...
-
-    def kind(self, node: ast.AST) -> str: ...
-
-
-class PythonDecoratorNameContract(Protocol):
-    """Responsibilities: _decorator naming contract_."""
-
-    def expression_name(self, value: ast.AST) -> str: ...
-
-    def imported_name(self, imported: ast.alias) -> str: ...
-
-
-class PythonPrivateVarsMappingContract(Protocol):
-    """Responsibilities: _private mapping access contract_."""
-
-    def supports(self, node: ast.AST) -> bool: ...
-
-    def access(self, node: ast.AST, members: set[str]) -> bool: ...
-
-
-class PythonDecoratorRulesContract(Protocol):
-    """Responsibilities: _Python decorator rule contract_."""
-
-    def observe(self, node: ast.AST) -> None: ...
-
-    def kinds(self, node: ast.AST) -> set[str]: ...
-
-
-class PythonPropertyDecoratorContract(Protocol):
-    """Responsibilities: _property decorator classification contract_."""
-
-    def property_decorator(self, decorator: ast.AST) -> bool: ...

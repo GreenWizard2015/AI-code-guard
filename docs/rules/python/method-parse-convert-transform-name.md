@@ -9,56 +9,76 @@ or `ParsedJson`, `convertImage()` → `PngImage`.
 
 
 ```python
-class PriceLabels:
-    def parse_document(self) -> str:
-        return 10
+# File: src/document_text.py
+class DocumentText:
+    def __init__(self, raw_document: str) -> None:
+        self._raw_document: str = raw_document
+
+    def parse_document(self) -> str:  # <- error
+        words = self._raw_document.strip().split()
+        normalized = " ".join(words)
+        return normalized
+
+    def word_count(self) -> int:
+        words = self.parse_document().split()
+        return len(words)
+
+    def summary(self) -> str:
+        document = self.parse_document()
+        count = self.word_count()
+        return f"{count} words: {document}"
+
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
+# File: cli.py
+from src.document_text import DocumentText
+
+if __name__ == "__main__":
+    document = DocumentText("ready document")
+    document.report()
 ```
 
 ## Good
 
 
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/document_text.py
+class DocumentText:
+    """Responsibilities: _document text representation_, _word measurement_."""
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def __init__(self, raw_document: str) -> None:
+        """Responsibilities: _document initialization_."""
+        self._raw_document: str = raw_document
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def document_text(self) -> str:
+        """Responsibilities: _document text representation_."""
+        parts = self._raw_document.strip().split()
+        normalized_parts = [part for part in parts if part]
+        return " ".join(normalized_parts)
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
-
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
-
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
+    def word_count(self) -> int:
+        """Responsibilities: _word count_."""
         count = 0
-        for status_name in self.labels:
-            if status_name:
+        for part in self.document_text().split():
+            if part:
                 count += 1
         return count
+
+    def summary(self) -> str:
+        """Responsibilities: _document summary_."""
+        document = self.document_text()
+        count = self.word_count()
+        return f"{count} words: {document}"
+
+    def report(self) -> None:
+        """Responsibilities: _document report output_."""
+        summary = self.summary()
+        print(summary)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.document_text import DocumentText
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    document = DocumentText("ready document")
+    document.report()
 ```

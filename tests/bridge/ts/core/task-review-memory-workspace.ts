@@ -1,16 +1,16 @@
 import { join } from "node:path";
 import { CliApplication } from "src/core/cli_application";
-import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import type { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { CliOptions } from "src/task_types";
-import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import type { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _CLI virtual project state_, _in-memory report access_. **/
 export class TaskReviewMemoryWorkspace {
-	public readonly root: string;
-	public readonly io: InMemoryFileIO;
-	public readonly source_texts: Map<string, string>;
-	public readonly source_io: InMemoryProjectSourceIO;
+	public readonly _root: string;
+	public readonly _io: InMemoryFileIO;
+	public readonly _source_texts: Map<string, string>;
+	public readonly _source_io: InMemoryProjectSourceIO;
 
 	/** Responsibilities: _virtual CLI workspace state_. **/
 	public constructor(
@@ -19,15 +19,15 @@ export class TaskReviewMemoryWorkspace {
 		source_texts: Map<string, string>,
 		source_io: InMemoryProjectSourceIO,
 	) {
-		this.root = root;
-		this.io = io;
-		this.source_texts = source_texts;
-		this.source_io = source_io;
+		this._root = root;
+		this._io = io;
+		this._source_texts = source_texts;
+		this._source_io = source_io;
 	}
 
 	/** Responsibilities: _CLI application access_. **/
 	public cli(): CliApplication {
-		return new CliApplication(this.io, this.source_io);
+		return new CliApplication(this._io, this._source_io);
 	}
 
 	/** Responsibilities: _lint stage timing_. **/
@@ -37,18 +37,12 @@ export class TaskReviewMemoryWorkspace {
 
 	/** Responsibilities: _in-memory report retrieval_. **/
 	public report(): string {
-		return this.io.file_content.file_text(join(this.root, ".ai-code-guard", "report.md"));
+		return this._io.file(join(this._root, ".ai-code-guard", "report.md")).file_text();
 	}
 
-	/** Responsibilities: _CLI argument preservation_. **/
-	public async run_cli(arguments_list: string[]): Promise<void> {
-		const previous_arguments = process.argv;
-		process.argv = ["node", "cli.ts", ...arguments_list];
-		try {
-			await this.cli().run_cli();
-		} finally {
-			process.argv = previous_arguments;
-		}
+	/** Responsibilities: _virtual CLI execution_. **/
+	public run_cli(arguments_list: string[]): ReturnType<CliApplication["run_cli"]> {
+		return this.cli().run_cli(["node", "cli.ts", ...arguments_list]);
 	}
 
 	/** Responsibilities: _CLI option values_. **/
@@ -58,7 +52,7 @@ export class TaskReviewMemoryWorkspace {
 		review_agent: CliOptions["review_agent"],
 	): CliOptions {
 		return {
-			root: this.root,
+			root: this._root,
 			ignored_directories: [],
 			entry_files: [],
 			skip_review,

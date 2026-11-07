@@ -1,16 +1,40 @@
-import "src/rules/typescript/syntax-rules/types/rest_union_contract_rule";
+import "src/rules/typescript/syntax-rules/types/rest_union/rest_union_rule";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import "src/rules/typescript/syntax-rules/runtime/type_script_basic_rules";
 import { describe, expect, test } from "@jest/globals";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint type boundary rules", () => {
+	test("keeps imported TypeScript interfaces out of the concrete project class boundary", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"typescript_runtime_protocols.ts": [
+					"export interface TypeScriptTypeNameLookupContract {",
+					"  contains(name: string): boolean;",
+					"}",
+				].join("\n"),
+				"object_literal_return_rules.ts": [
+					"import type { TypeScriptTypeNameLookupContract } from './typescript_runtime_protocols';",
+					"type ObjectReturnAnalysis = {",
+					"  contract_names: TypeScriptTypeNameLookupContract;",
+					"};",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(violations.filter((item) => item.rule_id() === "project-type-boundary")).toEqual([]);
+	});
+
 	test("requires a class contract for primitive unions at boundaries", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"bridge-result.ts": "type BridgeResult = { stderr: Buffer | string; };",
 			},
@@ -18,18 +42,16 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "composite-state-type",
-				priority: 6,
-			}),
-		);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), priority: item.priority() }))).toContainEqual({
+			rule_id: "composite-state-type",
+			priority: 6,
+		});
 	});
 
 	test("rejects fields typed as nullish values", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nullish-fields.ts": [
 					"type NullishFields = {",
@@ -45,13 +67,13 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "nullable-domain-type")).toHaveLength(5);
+		expect(violations.filter((item) => item.rule_id() === "nullable-domain-type")).toHaveLength(5);
 	});
 
 	test("rejects unbounded TypeScript and Python types everywhere", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"unbounded.ts": [
 					"type Unbounded = { value: unknown; fallback: any; };",
@@ -69,13 +91,13 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unbounded-type")).toHaveLength(7);
+		expect(violations.filter((item) => item.rule_id() === "unbounded-type")).toHaveLength(7);
 	});
 
 	test("rejects TypeScript markdown boundary examples", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"markdown-boundaries.ts": [
 					"type Boundary = { value: unknown; payload: Record<string, object>; };",
@@ -93,15 +115,15 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const unbounded = violations.filter((item) => item.rule_id === "unbounded-type");
+		const unbounded = violations.filter((item) => item.rule_id() === "unbounded-type");
 		expect(unbounded).toHaveLength(6);
-		expect(unbounded.filter((item) => item.line === 6)).toHaveLength(0);
+		expect(unbounded.filter((item) => item.line() === 6)).toHaveLength(0);
 	});
 
 	test("rejects Python markdown boundary examples", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"markdown-boundaries.py": [
 					"from typing import Any",
@@ -118,15 +140,15 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const unbounded = violations.filter((item) => item.rule_id === "unbounded-type");
+		const unbounded = violations.filter((item) => item.rule_id() === "unbounded-type");
 		expect(unbounded).toHaveLength(5);
-		expect(unbounded.filter((item) => item.line === 6)).toHaveLength(0);
+		expect(unbounded.filter((item) => item.line() === 6)).toHaveLength(0);
 	});
 
 	test("rejects undefined checks for required fields", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"required-field-check.ts": [
 					"type Parsed = { attribute_accesses: string[] };",
@@ -139,12 +161,10 @@ describe("coding-lint type boundary rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "unnecessary-undefined-check",
-				priority: 5,
-			}),
-		);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), priority: item.priority() }))).toContainEqual({
+			rule_id: "unnecessary-undefined-check",
+			priority: 5,
+		});
 	});
 
 	test("rejects optional access to required fields", () => {
@@ -158,18 +178,16 @@ describe("coding-lint type boundary rules", () => {
 			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "unnecessary-undefined-check",
-				priority: 5,
-			}),
-		);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), priority: item.priority() }))).toContainEqual({
+			rule_id: "unnecessary-undefined-check",
+			priority: 5,
+		});
 	});
 
 	test("rejects TypeScript is type guards", () => {
@@ -186,19 +204,17 @@ describe("coding-lint type boundary rules", () => {
 			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "typescript-type-guard",
-				priority: 5,
-			}),
-		);
-		expect(violations.filter((item) => item.rule_id === "typescript-instanceof")).toHaveLength(2);
+		expect(violations.map((item) => ({ rule_id: item.rule_id(), priority: item.priority() }))).toContainEqual({
+			rule_id: "typescript-type-guard",
+			priority: 5,
+		});
+		expect(violations.filter((item) => item.rule_id() === "typescript-instanceof")).toHaveLength(2);
 	});
 
 	test("rejects unknown parameter types", () => {
@@ -207,19 +223,19 @@ describe("coding-lint type boundary rules", () => {
 			"unknown-parameter.ts": "function parse_value(value: unknown): string { return String(value); }",
 		};
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations).toContainEqual(
-			expect.objectContaining({
-				rule_id: "typescript-unknown-parameter-type",
-				priority: 5,
-				message: 'parameter "value" must not use unknown',
-			}),
-		);
+		expect(
+			violations.map((item) => ({ rule_id: item.rule_id(), priority: item.priority(), message: item.message() })),
+		).toContainEqual({
+			rule_id: "typescript-unknown-parameter-type",
+			priority: 5,
+			message: 'parameter "value" must not use unknown',
+		});
 	});
 
 	test("rejects aliased unknown parameter and return types", () => {
@@ -231,14 +247,14 @@ describe("coding-lint type boundary rules", () => {
 			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "type-info")).toHaveLength(2);
-		expect(violations.filter((item) => item.rule_id === "typescript-unknown-parameter-type")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "type-info")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "typescript-unknown-parameter-type")).toHaveLength(1);
 	});
 
 	test("rejects aliased unbounded boundary types", () => {
@@ -250,12 +266,12 @@ describe("coding-lint type boundary rules", () => {
 			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unbounded-type")).toHaveLength(3);
+		expect(violations.filter((item) => item.rule_id() === "unbounded-type")).toHaveLength(3);
 	});
 });

@@ -20,8 +20,8 @@ class PriceCatalog:  # <- error
     def _{{segment.name}}_total(self, prices: list[float]) -> float:
         segment_start = {{segment.start}}
         total = 0.0
-        for item_number in range(segment_start, segment_start + 8):
-            extended_price = prices[item_number] * self.multiplier
+        for price in prices[segment_start:segment_start + 8]:
+            extended_price = price * self.multiplier
             discounted_price = extended_price - (extended_price * 0.05)
             price_with_tax = discounted_price + (discounted_price * 0.08)
             total += price_with_tax
@@ -34,7 +34,7 @@ class PriceCatalog:  # <- error
         first_segments = (
             self._north_total(prices) + self._south_total(prices) + self._east_total(prices)
             + self._west_total(prices) + self._central_total(prices) + self._coastal_total(prices)
-            + self.rural_total(prices)
+            + self._rural_total(prices)
         )
         remaining_segments = (
             self._island_total(prices) + self._metro_total(prices) + self._northern_total(prices)
@@ -45,13 +45,17 @@ class PriceCatalog:  # <- error
     def normalized_total(self, prices: list[float]) -> float:
         total = self.total(prices)
         return round(total * 100) / 100
+    def report(self, prices: list[float]) -> None:
+        total = self.total(prices)
+        normalized = self.normalized_total(prices)
+        print(total, normalized)
 # File: cli.py
 from src.price_catalog.price_catalog import PriceCatalog
 
 if __name__ == "__main__":
     catalog = PriceCatalog(1.2)
     prices = [1.0] * 120
-    print(catalog.total(prices), catalog.normalized_total(prices))
+    catalog.report(prices)
 ```
 
 ## Good
@@ -59,14 +63,15 @@ if __name__ == "__main__":
 
 ```python
 # File: src/price_catalog/price_catalog.py
+
 class PriceCatalog:
     """Responsibilities: _price aggregation_."""
 
-    def _segment_total(self, prices: list[float], segment_start: int) -> float:
+    def _segment_total(self, all_prices: list[float], segment_start: int) -> float:
         """Responsibilities: _one segment price calculation_."""
         total = 0.0
-        for item_number in range(segment_start, segment_start + 8):
-            extended_price = prices[item_number] * self.multiplier
+        for price in all_prices[segment_start:segment_start + 8]:
+            extended_price = price * self._multiplier
             discounted_price = extended_price - (extended_price * 0.05)
             price_with_tax = discounted_price + (discounted_price * 0.08)
             total += price_with_tax
@@ -74,7 +79,7 @@ class PriceCatalog:
 
     def __init__(self, multiplier: float) -> None:
         """Responsibilities: _price catalog initialization_."""
-        self.multiplier: float = multiplier
+        self._multiplier: float = multiplier
 
     def total(self, prices: list[float]) -> float:
         """Responsibilities: _price aggregation_."""
@@ -89,15 +94,20 @@ class PriceCatalog:
                 remaining_segments += segment_total
         return first_segments + remaining_segments
 
-    def normalized_total(self, prices: list[float]) -> float:
+    def normalized_total(self, items: list[float]) -> float:
         """Responsibilities: _price normalization_."""
-        total = self.total(prices)
+        total = self.total(items)
         return round(total * 100) / 100
+    def report(self, prices: list[float]) -> None:
+        """Responsibilities: _catalog result reporting_."""
+        total = self.total(prices)
+        normalized = self.normalized_total(prices)
+        print(total, normalized)
 # File: cli.py
 from src.price_catalog.price_catalog import PriceCatalog
 
 if __name__ == "__main__":
     catalog = PriceCatalog(1.2)
     prices = [1.0] * 120
-    print(catalog.total(prices), catalog.normalized_total(prices))
+    catalog.report(prices)
 ```

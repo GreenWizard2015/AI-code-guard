@@ -27,7 +27,7 @@ class ImportRulesFixture:
             module_aliases,
             builtin_module_aliases,
             function_aliases,
-            aliases.container_values,
+            aliases.container_values(),
         )
         return PythonDynamicImportNames(
             PythonDynamicImportNamesOptions(
@@ -36,14 +36,13 @@ class ImportRulesFixture:
                 module_aliases,
                 builtin_module_aliases,
                 function_aliases,
-            )
+            ),
         )
 
     def rules(self, aliases: PythonContainerAliases) -> ImportRules:
         """Responsibilities: _import rules fixture_."""
         node_index = PythonAstNodeIndex()
         return ImportRules(
-            aliases,
             self.dynamic_names(aliases),
             PythonSysPathRules(aliases, node_index),
             node_index,

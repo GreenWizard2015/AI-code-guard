@@ -1,56 +1,51 @@
 import { AstModel } from "src/core/ast_model";
-import { PythonAstData } from "src/core/python_ast_data";
+import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { PythonCacheWorker } from "tests/bridge/ts/core/python-cache-worker";
 
 /** Responsibilities: _cache consumer scenario_, _environment restoration_. **/
 export class PythonAstCacheConsumerFixture {
-	public readonly project: AstDiskCacheFixture;
-	public readonly root: string;
-	public readonly file: string;
-	public readonly text: string;
-	public readonly second_worker: PythonCacheWorker;
-	public readonly ast: ReturnType<AstModel["empty_ast_file"]>;
-	private readonly previous_environment: NodeJS.ProcessEnv;
+	public readonly _project: AstDiskCacheFixture;
+	public readonly _root: string;
+	public readonly _file: string;
+	public readonly _text: string;
+	public readonly _second_worker: PythonCacheWorker;
+	public readonly _ast: ReturnType<AstModel["empty_ast_file"]>;
 
 	/** Responsibilities: _cache consumer initialization_. **/
 	public constructor() {
-		this.previous_environment = { ...process.env };
-		this.project = new AstDiskCacheFixture("python-ast-cache-consumer");
-		this.root = this.project.root;
-		this.file = this.project.path("module.py");
-		this.text = "def broken(:\n    pass\n";
-		this.project.write(this.file, this.text);
-		process.env.NODE_ENV = "production";
-		const ast_model = new AstModel();
-		this.ast = {
-			...ast_model.empty_ast_file("python"),
-			parse_issues: [{ line: 0, message: "syntax error" }],
+		this._project = new AstDiskCacheFixture(new InMemoryFileIO(), "python-ast-cache-consumer");
+		this._root = this._project._root;
+		this._file = this._project.path("module.py");
+		this._text = "def broken(:\n    pass\n";
+		this._project.write(this._file, this._text);
+		const ast_model = new AstModel("python");
+		const empty_ast = ast_model.empty_ast_file();
+		this._ast = {
+			...empty_ast,
+			source: { ...empty_ast.source, parse_issues: [{ line: 0, message: "syntax error" }] },
 		};
-		this.second_worker = new PythonCacheWorker(this.ast);
+		this._second_worker = new PythonCacheWorker(this._ast);
 	}
 
 	/** Responsibilities: _warm-cache population_. **/
 	public warm_cache(): void {
-		const worker = new PythonCacheWorker(this.ast);
+		const worker = new PythonCacheWorker(this._ast);
 		const parser = new PythonAstData({
-			worker,
-			analysis_identity: this.project.identity,
+			worker: worker,
+			analysis_identity: this._project._identity,
 			split_batch_enabled: true,
-			file_io: this.project.file_io,
+			file_io: this._project._file_io,
+			cache_enabled: true,
 		});
 		parser.batch_ast({
-			texts: [this.text],
+			texts: [this._text],
 			stage_timer: new LintStageTimer(),
 			stage_prefix: "python-bridge",
-			files: [this.file],
-			repo_root: this.root,
+			files: [this._file],
+			repo_root: this._root,
 		});
-	}
-
-	/** Responsibilities: _environment restoration_. **/
-	public restore_environment(): void {
-		process.env = this.previous_environment;
 	}
 }

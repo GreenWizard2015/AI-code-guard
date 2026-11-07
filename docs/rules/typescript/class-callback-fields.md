@@ -7,70 +7,59 @@ behavior.
 ## Bad
 
 ```ts
-class MessageDelivery {
-	public on_delivered = (message: string): string => message;
+// File: src/message_delivery.ts
+export class MessageDelivery {
+	public on_delivered = (message: string): string => message.trim().toUpperCase();
+	public report(): void {
+		const delivered_message = this.on_delivered("ready");
+		console.log(delivered_message);
+	}
 }
+// File: cli.ts
+import { MessageDelivery } from "src/message_delivery";
+(function () {
+	const delivery = new MessageDelivery();
+	delivery.report();
+})();
 ```
 
 ## Good
 
 ```ts
-// File: src/status_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+// File: src/protocols.ts
+export interface MessageDeliveryContract {
+	on_delivered(message: string): string;
+}
+// File: src/message_delivery.ts
+import type { MessageDeliveryContract } from "src/protocols";
 
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+/** Responsibilities: _message delivery behavior_. **/
+export class MessageDelivery implements MessageDeliveryContract {
+	private readonly _channel: string;
+	private readonly _maximum_length: number;
+	public constructor(channel: string, maximum_length: number) {
+		this._channel = channel;
+		this._maximum_length = maximum_length;
 	}
-
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
-		}
-		return label;
+	public on_delivered(message: string): string {
+		return `${this._channel}: ${this.delivery_status(message)}`;
 	}
-
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
+	public delivery_status(input_text: string): string {
+		const normalized_message = input_text.trim().toUpperCase();
+		if (normalized_message.length > this._maximum_length) { return "rejected"; }
+		return `accepted ${normalized_message}`;
 	}
-
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
+	public delivery_label(delivery_text: string): string {
+		return `${this._channel} ${this.delivery_status(delivery_text)}`;
 	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	public report(): void {
+		console.log(this.delivery_label("ready"));
 	}
 }
 // File: cli.ts
-import { StatusLabels } from "src/status_labels";
-
+import { MessageDelivery } from "src/message_delivery";
 (function () {
-	const labels = new Map<string, string>();
-	labels.set("ready", "Ready");
-	labels.set("blocked", "Blocked");
-	const status_labels = new StatusLabels(labels, "Unknown");
-	const label = status_labels.label("ready");
-	const detailed = status_labels.label_with_prefix("State", "blocked");
-	const fallback = status_labels.uppercase_fallback();
-	const count = status_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	const delivery = new MessageDelivery("email", 20);
+	delivery.report();
 })();
 ```

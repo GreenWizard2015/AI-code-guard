@@ -1,8 +1,6 @@
 import unittest
-from unittest.mock import patch
 
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
 
 
 class PythonReferenceAliasCacheTest(unittest.TestCase):
@@ -10,21 +8,22 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
 
     """Responsibilities: _Python reference alias cache_."""
 
-    def test_reuses_module_aliases_between_ast_consumers(self) -> None:
-        """Responsibilities: _module alias reuse_."""
+    def test_shares_module_aliases_between_ast_consumers(self) -> None:
+        """Responsibilities: _module alias consistency_."""
         tree = PythonAstTree("import builtins as native\ncallback = native.getattr\n")
-        original = PythonReferenceAliases._collect_assignment_alias
-        with patch.object(
-            PythonReferenceAliases, "_collect_assignment_alias", autospec=True, side_effect=original
-        ) as collection:
-            tree.content_collector.structure()
-            aliases = tree.reference_aliases.collect(tree.tree)
-            visits = collection.call_count
+        ast_data = tree.ast()
+        tree_state = tree.analysis_state()
+        source_tree = tree.tree()
+        node_index = tree_state.core().source_dependencies().node_index()
+        aliases = tree_state.imports().reference_aliases().collect(source_tree, node_index.nodes(source_tree))
 
         self.assertEqual(
-            {"visits": visits, "aliases": aliases},
+            {"reported": ast_data["reference_aliases"], "aliases": aliases},
             {
-                "visits": len(tree.node_index.nodes(tree.tree)),
+                "reported": [
+                    {"name": "native", "target": "builtins"},
+                    {"name": "callback", "target": "native.getattr"},
+                ],
                 "aliases": [
                     {"name": "native", "target": "builtins"},
                     {"name": "callback", "target": "native.getattr"},
@@ -48,11 +47,16 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
         tree = PythonAstTree(
             "from typing import TypeAlias as Alias\n"
             "from collections import UserList\n"
-            "EntryList: Alias = UserList[str]\n"
+            "EntryList: Alias = UserList[str]\n",
         )
         ast_data = tree.ast()
+        match ast_data["reference_aliases"]:
+            case list() as aliases:
+                pass
+            case _:
+                self.fail("expected reference alias records")
 
         self.assertIn(
             {"name": "EntryList", "target": "UserList[str]"},
-            ast_data["reference_aliases"],
+            aliases,
         )

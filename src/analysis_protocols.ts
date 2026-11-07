@@ -1,63 +1,91 @@
+import type { ReadonlyStringSetMap } from "src/analysis_types";
 import type { CallableClassIndex, ParsedFile } from "src/metrics/types";
 import type {
-	AstCallableNodeContract,
-	AstClassNodeContract,
+	AstCallableNode,
+	AstClassNode,
 	AstTypeMemberRecord,
 	DuplicateTypeShape,
 	NamedLine,
 	NamedSymbol,
-	RuleAppender,
-	RuleContextData,
-} from "src/types";
-import type ts from "typescript";
+} from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { ReadonlyStringSetMap } from "src/analysis_types";
+import type { CallableOwnershipRequest, RuleContextContract } from "src/types";
 import type { TypeScriptStaticArrayValuesContract } from "src/typescript_analysis_protocols";
-import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
+import type ts from "typescript";
+
+/** Responsibilities: _temporal field reader ownership_, _reader lookup_. **/
+export interface TemporalFieldReaderIndexContract {
+	add(field: string, callable_index: number): void;
+	different_callable_reads(field: string, callable_index: number): boolean;
+}
 
 /** Responsibilities: _source file discovery_. **/
 export interface LintFileDiscoveryContract {
-	walk_files_raw(repo_root: string, root: string, ignored_directories: ReadonlySet<string>): string[];
+	walk_files_from(paths: readonly string[]): string[];
 }
 
 /** Responsibilities: _process signal handling_. **/
-export interface ProcessSignalContract {
-	pid_exists(pid: number): boolean;
-	group_exists(pid: number): boolean;
-	terminate_group(pid: number): void;
+export type ProcessId = { value: number };
+/** Responsibilities: _process liveness_. **/
+export interface ProcessLivenessContract {
+	pid_exists(process_id: ProcessId): boolean;
+}
+
+/** Responsibilities: _operating-system process signaling_. **/
+export interface ProcessKillContract {
+	kill(pid: number, signal: number): boolean;
+}
+
+/** Responsibilities: _process signal handling_. **/
+export type ProcessGroupReference = { id: number };
+export type OwnedProcessGroup = { id: number; token: string };
+
+/** Responsibilities: _process signal handling_. **/
+export interface ProcessSignalContract extends ProcessLivenessContract {
+	group_exists(group: ProcessGroupReference): boolean;
+	group_contains_token(owner: OwnedProcessGroup): boolean;
+	terminate_owned_group(ownership: OwnedProcessGroup): boolean;
+	terminate_group(target: ProcessGroupReference): boolean;
+}
+
+/** Responsibilities: _boundary failure categories_. **/
+export enum BoundaryFailureCategory {
+	System = "system",
+	Permission = "permission",
+	MissingProcess = "missing-process",
+	CacheRead = "cache-read",
+	JsonParse = "json-parse",
 }
 
 /** Responsibilities: _operating-system failure classification_. **/
 export interface SystemFailureClassificationContract {
-	system_failure_message(message: string): boolean;
-	permission_denied(message: string): boolean;
-	json_parse_failure(message: string): boolean;
+	check(message: string, category: BoundaryFailureCategory): boolean;
 }
 
 /** Responsibilities: _method order validation_. **/
 export interface MethodOrderContract {
-	append_order_violations(violations: ViolationContract[], file: string, node: AstClassNodeContract): void;
+	append_order(violations: ViolationContract[]): void;
 }
 
 /** Responsibilities: _symbol naming validation_. **/
 export interface NamingSupportContract {
-	append_naming_violations(
-		violations: ViolationContract[],
-		file: string,
-		symbols: NamedSymbol[],
-		classes: AstClassNodeContract[],
-		type_declarations: NamedLine[],
-	): void;
+	append_symbol_violations(violations: ViolationContract[]): void;
+	append_type_violations(violations: ViolationContract[]): void;
+	append_numeric_violations(violations: ViolationContract[]): void;
 }
 
 /** Responsibilities: _name validation_. **/
 export interface NamingValidationContract {
-	name_words(name: string): string[];
-	valid_name(name: string, kind: string, is_module_constant: boolean, words: string[], visibility: string): boolean;
-	append_standard_violation(violations: ViolationContract[], file: string, symbol: NamedSymbol): void;
-	numeric_name_violation(file: string, line: number): ViolationContract;
-	naming_violation(file: string, line: number, name: string, kind: string, word_count: number): ViolationContract;
+	append_standard_violation(violations: ViolationContract[], symbol: NamedSymbol): void;
+	append_type_violation(violations: ViolationContract[], declaration: NamedLine): void;
+	numeric_name_violation(line: number): ViolationContract;
 }
+
+/** Responsibilities: _numeric name violation aggregation_. **/
+export type NumericNameReportingContext = {
+	readonly violations: ViolationContract[];
+	readonly reported: Set<string>;
+};
 
 /** Responsibilities: _source-qualified callable identity resolution_. **/
 export interface CallableSourceIdentityGraphContract {
@@ -66,6 +94,16 @@ export interface CallableSourceIdentityGraphContract {
 	concrete_descendants(class_nodes: CallableClassIndex): ReadonlyStringSetMap;
 	visible_type_members(type_name: string, source_file: string): string[];
 	class_identities(name: string, source_file: string): string[];
+}
+
+/** Responsibilities: _concrete descendant relationships lookup_. **/
+export interface CallableConcreteDescendantIndexContract {
+	present(right_ids: readonly string[], left: string, identities: CallableSourceIdentityGraphContract): boolean;
+}
+
+/** Responsibilities: _callable owner matching graph_. **/
+export interface CallableOwnershipMatchGraphContract {
+	match(request: CallableOwnershipRequest): boolean;
 }
 
 /** Responsibilities: _callable import scope resolution_. **/
@@ -82,58 +120,56 @@ export interface StaticArraySourceAppenderContract {
 /** Responsibilities: _recursive static array ownership_, _array source expansion_. **/
 export interface StaticArrayExpressionOwnerContract extends TypeScriptStaticArrayValuesContract {}
 
-/** Responsibilities: _lazy static array values_, _indexed expression access_. **/
+/** Responsibilities: _lazy static array values_. **/
 export interface StaticExpressionArrayContract {
-	readonly size: bigint;
+	size(): bigint;
 	contains(index: bigint): boolean;
 	at(index: bigint): ts.Expression;
 	slice(start: number): StaticExpressionArrayContract;
 	append_to(target: ts.Expression[]): void;
 }
 
+/** Responsibilities: _static array index values_. **/
+export type StaticExpressionArrayIndex = {
+	readonly value: bigint;
+};
+
+/** Responsibilities: _static array source candidate_. **/
+export type StaticArraySourceCandidate = {
+	readonly name: string;
+	readonly current: ts.Expression;
+};
+
+/** Responsibilities: _static array assignment values_. **/
+export type StaticArrayAssignment = {
+	readonly name: string;
+	readonly values: StaticExpressionArrayContract;
+};
+
 /** Responsibilities: _pointless assignment rule collection_. **/
 export interface PointlessAssignmentsContract {
-	append_assignment_violations(violations: ViolationContract[], file: string, source_file: ts.SourceFile): void;
-}
-
-/** Responsibilities: _private member rule collection_. **/
-export interface PrivateMemberAccessContract {
-	append_private_access(
-		violations: ViolationContract[],
-		file: string,
-		source_file: ts.SourceFile,
-		traversal: TypeScriptAstTraversalContract,
-	): void;
+	append_assignment_violations(): void;
 }
 
 /** Responsibilities: _TypeScript callable node construction_. **/
 export interface CallableNodesContract {
-	interface_node(node: ts.InterfaceDeclaration): AstClassNodeContract;
-	class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNodeContract[];
-	variable_callable_nodes(statement: ts.VariableStatement): AstCallableNodeContract[];
-	function_declaration_node(statement: ts.FunctionDeclaration): AstCallableNodeContract;
+	interface_node(node: ts.InterfaceDeclaration): AstClassNode;
+	class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNode[];
+	variable_callable_nodes(statement: ts.VariableStatement): AstCallableNode[];
+	function_declaration_node(statement: ts.FunctionDeclaration): AstCallableNode;
 }
 
 /** Responsibilities: _private member names_. **/
-export interface PrivateMemberDeclarationNamesContract {
-	name(member: ts.ClassElement, source_file: ts.SourceFile): string;
-	names(member: ts.ClassElement, source_file: ts.SourceFile): string[];
-}
-
 /** Responsibilities: _unnecessary undefined-check rule collection_. **/
 export interface UnnecessaryUndefinedCheckContract {
 	append(node: ts.Node): void;
 }
 
 /** Responsibilities: _undefined check candidate classification_. **/
-export interface UndefinedCheckCandidateContract {
-	matches(node: ts.Node): boolean;
-}
-
 /** Responsibilities: _duplicate type-shape collection_. **/
 export interface DuplicateTypeShapesContract {
-	typescript(source_file: ts.SourceFile): DuplicateTypeShape[];
-	python(classes: readonly AstClassNodeContract[]): DuplicateTypeShape[];
+	typescript(source_file: ts.SourceFile): readonly DuplicateTypeShape[];
+	python(classes: readonly AstClassNode[]): readonly DuplicateTypeShape[];
 }
 
 /** Responsibilities: _proxy rule classification_. **/
@@ -144,16 +180,15 @@ export interface ProxyRulesContract {
 
 /** Responsibilities: _value rule classification_. **/
 export interface ValueRulesContract {
-	append_value_rules(node: ts.Node, test_file: boolean, append_rule: RuleAppender): void;
 	repeated_typeof(node: ts.TypeOfExpression): boolean;
 	typed_primitive(expression: ts.Expression, source_file: ts.SourceFile): boolean;
 	dynamic_class(node: ts.Node): boolean;
 }
 
 /** Responsibilities: _rest union rule classification_. **/
-export interface RestUnionContractRuleContract {
+export interface RestUnionRuleContract {
 	rest_parameter(node: ts.Node): boolean;
-	append_rule(node: ts.Node, context: RuleContextData): void;
+	append_rule(node: ts.Node, context: RuleContextContract): void;
 }
 
 /** Responsibilities: _source-qualified callable symbol lookup_. **/

@@ -1,19 +1,15 @@
-import { Syntax } from "src/parser/analysis/syntax";
-import ts from "typescript";
-
-import type { AstClassField, AstTypeKind, AstVisibility } from "src/types";
+import { PROTECTED_VISIBILITY } from "src/constants";
+import type { AstClassField, AstTypeKind, AstVisibility } from "src/model/ast/normalized_ast_types";
 import { TypeScriptTypeNode } from "src/model/type_script_type_node";
+import { Syntax } from "src/parser/analysis/syntax";
 import { TypeScriptCallbackAliases } from "src/parser/analysis/type_script_callback_aliases";
-
 import type { CallbackCounts, CallbackKind, FieldTypeData } from "src/types";
 import type { TypeScriptClassMembersContract } from "src/typescript_analysis_protocols";
-import type { TypeScriptCallbackAliasesContract } from "src/model/protocols";
-import { PROTECTED_VISIBILITY } from "src/constants";
+import ts from "typescript";
 
 /** Responsibilities: _class member extraction_, _interface type member extraction_. **/
 export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
-	private readonly source_file: ts.SourceFile;
-	private readonly callback_aliases: TypeScriptCallbackAliasesContract;
+	private readonly _source_file: ts.SourceFile;
 
 	/** Responsibilities: _callback initializer classification_. **/
 	private callback_initializer_kind(initializer: ts.Expression): CallbackKind {
@@ -21,12 +17,13 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 			return "inline";
 		}
 		if (ts.isIdentifier(initializer)) {
-			return this.callback_aliases.kind(initializer.text);
+			const aliases = new TypeScriptCallbackAliases(this._source_file, initializer.text, new Set<string>());
+			return aliases.kind();
 		}
 		return "none";
 	}
 
-	/** Responsibilities: _classification callback shape class_. **/
+	/** Responsibilities: _class callback member classification_. **/
 	private callback_kind(member: ts.ClassElement): CallbackKind {
 		if (!ts.isPropertyDeclaration(member)) {
 			return "none";
@@ -36,68 +33,15 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 		}
 		if (member.type !== undefined) {
 			const type_node = new TypeScriptTypeNode(member.type);
-			if (type_node.details().is_function) {
+			const details = type_node.details();
+			if (details.is_function) {
 				return "typed";
 			}
 		}
 		return "none";
 	}
 
-	/** Responsibilities: _resolution identifier initializer name_. **/
-	private identifier_initializer_name(member: ts.PropertyDeclaration): string {
-		if (member.initializer !== undefined) {
-			if (ts.isIdentifier(member.initializer)) {
-				return member.initializer.text;
-			}
-		}
-		return "";
-	}
-
-	/** Responsibilities: _resolution field type type-kind_. **/
-	private field_type_data(member: ts.PropertyDeclaration): FieldTypeData {
-		if (member.type === undefined) {
-			return { type: "", type_kind: "basic" };
-		}
-		return {
-			type: member.type.getText(this.source_file),
-			type_kind: this.type_kind(member.type),
-		};
-	}
-
-	/** Responsibilities: _class field visibility resolution_. **/
-	private field_visibility(member: ts.PropertyDeclaration): AstVisibility {
-		let modifiers: readonly ts.ModifierLike[] = [];
-		if (ts.canHaveModifiers(member)) {
-			const provided_modifiers = ts.getModifiers(member);
-			if (provided_modifiers !== undefined) {
-				modifiers = provided_modifiers;
-			}
-		}
-		if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
-			return "private";
-		}
-		if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
-			return PROTECTED_VISIBILITY;
-		}
-		return "public";
-	}
-
-	/** Responsibilities: _readonly property classification_. **/
-	private readonly_member(member: ts.Node): boolean {
-		if (!ts.isPropertyDeclaration(member) && !ts.isPropertySignature(member)) {
-			return false;
-		}
-		if (!ts.canHaveModifiers(member)) {
-			return false;
-		}
-		const modifiers = ts.getModifiers(member);
-		if (modifiers === undefined) {
-			return false;
-		}
-		return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword);
-	}
-
-	/** Responsibilities: _classification TypeScript type node_. **/
+	/** Responsibilities: _TypeScript type kind classification_. **/
 	private type_kind(node: ts.TypeNode): AstTypeKind {
 		const syntax = new Syntax();
 		const type_kind = syntax.type_kind(node);
@@ -107,36 +51,85 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 		return "basic";
 	}
 
+	/** Responsibilities: _property type data_. **/
+	private field_type_data(type_node: ts.TypeNode): FieldTypeData {
+		return {
+			type: type_node.getText(this._source_file),
+			type_kind: this.type_kind(type_node),
+		};
+	}
+
+	/** Responsibilities: _property modifiers_. **/
+	private field_modifiers(modifier_owner: ts.Node): readonly ts.Modifier[] {
+		if (!ts.canHaveModifiers(modifier_owner)) {
+			return [];
+		}
+		return ts.getModifiers(modifier_owner) ?? [];
+	}
+
+	/** Responsibilities: _class property visibility_. **/
+	private field_visibility(modifiers: readonly ts.Modifier[]): AstVisibility {
+		if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+			return "private";
+		}
+		if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+			return PROTECTED_VISIBILITY;
+		}
+		return "public";
+	}
+
+	/** Responsibilities: _property initializer value name_. **/
+	private field_value_name(member: ts.PropertyDeclaration): string {
+		if (member.initializer !== undefined && ts.isIdentifier(member.initializer)) {
+			return member.initializer.text;
+		}
+		return "";
+	}
+
+	/** Responsibilities: _property field normalization_. **/
+	private property_source_details(source_node: ts.Node, property_name: ts.PropertyName): AstClassField {
+		if (!ts.isPropertyDeclaration(source_node) && !ts.isPropertySignature(source_node)) {
+			throw new Error("Expected a TypeScript property member.");
+		}
+		let type_data: FieldTypeData;
+		if (source_node.type === undefined) {
+			type_data = { type: "", type_kind: "basic" };
+		} else {
+			type_data = this.field_type_data(source_node.type);
+		}
+		const modifiers = this.field_modifiers(source_node);
+		return {
+			line: this._source_file.getLineAndCharacterOfPosition(source_node.getStart(this._source_file)).line + 1,
+			name: property_name.getText(this._source_file),
+			type: type_data.type,
+			type_kind: type_data.type_kind,
+			readonly: modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword),
+			value_name: "",
+			class_variable: false,
+			class_scope: false,
+			visibility: "public",
+		};
+	}
+
+	/** Responsibilities: _class property field data_. **/
+	private class_field_data(member: ts.PropertyDeclaration): AstClassField {
+		const property = this.property_source_details(member, member.name);
+		const modifiers = this.field_modifiers(member);
+		return {
+			...property,
+			value_name: this.field_value_name(member),
+			class_variable: modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword),
+			class_scope: false,
+			visibility: this.field_visibility(modifiers),
+		};
+	}
+
 	/** Responsibilities: _normalization class property field_. **/
 	private class_field(member: ts.ClassElement): AstClassField[] {
 		if (!ts.isPropertyDeclaration(member) || !ts.isIdentifier(member.name)) {
 			return [];
 		}
-		const type_data = this.field_type_data(member);
-		return [
-			{
-				line: this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
-				name: member.name.getText(this.source_file),
-				value_name: this.identifier_initializer_name(member),
-				type: type_data.type,
-				type_kind: type_data.type_kind,
-				readonly: this.readonly_member(member),
-				class_variable: false,
-				class_scope: false,
-				visibility: this.field_visibility(member),
-			},
-		];
-	}
-
-	/** Responsibilities: _interface field type data_. **/
-	private interface_field_data(member: ts.PropertySignature): FieldTypeData {
-		if (member.type === undefined) {
-			return { type: "", type_kind: "basic" };
-		}
-		return {
-			type: member.type.getText(this.source_file),
-			type_kind: this.type_kind(member.type),
-		};
+		return [this.class_field_data(member)];
 	}
 
 	/** Responsibilities: _normalization interface property field_. **/
@@ -147,26 +140,12 @@ export class TypeScriptClassMembers implements TypeScriptClassMembersContract {
 		if (member.name === undefined) {
 			return [];
 		}
-		const type_data = this.interface_field_data(member);
-		return [
-			{
-				line: this.source_file.getLineAndCharacterOfPosition(member.getStart(this.source_file)).line + 1,
-				name: member.name.getText(this.source_file),
-				value_name: "",
-				type: type_data.type,
-				type_kind: type_data.type_kind,
-				readonly: this.readonly_member(member),
-				class_variable: false,
-				class_scope: false,
-				visibility: "public",
-			},
-		];
+		return [this.property_source_details(member, member.name)];
 	}
 
 	/** Responsibilities: _initialization source file usage_. **/
 	public constructor(source_file: ts.SourceFile) {
-		this.source_file = source_file;
-		this.callback_aliases = new TypeScriptCallbackAliases(source_file);
+		this._source_file = source_file;
 	}
 
 	/** Responsibilities: _inline callback count_. **/

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
 
 class PythonArrayTypeInspector:
@@ -17,7 +16,7 @@ class PythonArrayTypeInspector:
 
     def __init__(self, array_type_names: frozenset[str]) -> None:
         """Responsibilities: _initialization known array type_."""
-        self.array_type_names: Any = array_type_names
+        self._array_type_names: frozenset[str] = array_type_names
 
     def type_name(self, node: ast.AST) -> str:
         """Responsibilities: _resolution annotation type name_."""
@@ -27,4 +26,4 @@ class PythonArrayTypeInspector:
 
     def array_type(self, node: ast.AST) -> bool:
         """Responsibilities: _reporting annotation array type_."""
-        return self.type_name(node) in self.array_type_names
+        return self.type_name(node) in self._array_type_names

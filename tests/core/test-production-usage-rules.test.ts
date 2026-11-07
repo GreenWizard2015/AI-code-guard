@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("production usage requirements for tests", () => {
 	test("requires direct use of imported production behavior in every test", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"src/message_parser.ts": [
 					"export class MessageParser {",
@@ -89,9 +89,9 @@ describe("production usage requirements for tests", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const usage_violations = violations.filter((item) => item.rule_id === "test-production-usage");
+		const usage_violations = violations.filter((item) => item.rule_id() === "test-production-usage");
 		expect(usage_violations).toHaveLength(6);
-		expect(usage_violations.map((item) => item.file)).toEqual([
+		expect(usage_violations.map((item) => item.file())).toEqual([
 			"tests/src/message_parser.test.ts",
 			"tests/src/message_parser_helper.test.ts",
 			"tests/src/message_parser_setup.test.ts",
@@ -104,7 +104,7 @@ describe("production usage requirements for tests", () => {
 	test("accepts direct behavioral assertions in both supported test languages", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"src/message_parser.ts": [
 					"export class MessageParser {",
@@ -134,13 +134,13 @@ describe("production usage requirements for tests", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "test-production-usage")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "test-production-usage")).toHaveLength(0);
 	});
 
 	test("resolves a production class through a configured nested source alias", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tsconfig.json": JSON.stringify({
 					compilerOptions: {
@@ -165,6 +165,6 @@ describe("production usage requirements for tests", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "test-production-usage")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "test-production-usage")).toEqual([]);
 	});
 });

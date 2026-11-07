@@ -1,58 +1,94 @@
 import "src/core/lint_project_context_creator";
+import { PassThrough } from "node:stream";
 import { describe, expect, test } from "@jest/globals";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { QualityCheckDefinitions } from "test-runner/quality_check_definitions";
 import { QualityCheckProcess } from "test-runner/quality_check_process";
 import { TestExecution } from "test-runner/test_execution";
 import { CommandExecutionTestDouble } from "tests/core/command_execution_test_double";
 import { PROJECT_ROOT } from "tests/core/constants";
 
 describe("quality check execution", () => {
-	test("stops quality checks after a failed command", () => {
+	const project_lint_command = ["pnpm", "--dir", PROJECT_ROOT, "lint"];
+	const quality_check_definitions = new QualityCheckDefinitions(PROJECT_ROOT);
+	const quality_checks_list = quality_check_definitions.all_checks();
+
+	test("skips quality commands for a skipped test-runner request", () => {
+		const runner = new CommandExecutionTestDouble([]);
+		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+			stdout: new PassThrough(),
+			stderr: new PassThrough(),
+		});
+		const status = quality_checks.run_test_request({
+			args: [],
+			help_requested: false,
+			headless: true,
+			skip_quality: true,
+			force_review: false,
+			review_cleanup: false,
+			review_agent: "none",
+		});
+
+		expect({ status, calls: runner.snapshot().calls }).toEqual({ status: 0, calls: [] });
+	});
+
+	test("returns the failed quality command status", () => {
 		const runner = new CommandExecutionTestDouble([3, 0]);
-		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, runner);
-		quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+			stdout: new PassThrough(),
+			stderr: new PassThrough(),
+		});
+		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const snapshot = runner.snapshot();
 
-		expect({ observed_exit_code: runner.exit_status, calls: runner.calls }).toEqual({
-			observed_exit_code: 3,
-			calls: [runner.calls[0]],
+		expect({ status, call_count: snapshot.calls.length }).toEqual({
+			status: 3,
+			call_count: 1,
 		});
 	});
 
-	test.each([
-		[0, "TypeScript formatting"],
-		[1, "TypeScript types and unused declarations"],
-		[2, "Python formatting"],
-		[3, "Ruff Python linting"],
-		[4, "Python unused imports and names"],
-		[5, "Python type checking"],
-		[6, "Python unused functions and classes"],
-		[7, "Coding lint"],
-		[8, "Rule documentation validation"],
-	])("stops at each later quality stage", (failed_index) => {
-		const statuses = Array.from({ length: 9 }, () => 0);
-		statuses[failed_index] = 3;
-		const runner = new CommandExecutionTestDouble(statuses);
-		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, runner);
-		quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+	test.each(quality_checks_list.map((check, failed_index) => ({ failed_index, label: check.label })))(
+		"stops at quality stage $failed_index: $label",
+		({ failed_index }) => {
+			const statuses = Array.from({ length: 10 }, () => 0);
+			statuses[failed_index] = 3;
+			const runner = new CommandExecutionTestDouble(statuses);
+			const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+				stdout: new PassThrough(),
+				stderr: new PassThrough(),
+			});
+			const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
 
-		expect({ observed_exit_code: runner.exit_status, call_count: runner.calls.length }).toEqual({
-			observed_exit_code: 3,
-			call_count: failed_index + 1,
-		});
-	});
+			const expected_checks = quality_checks_list.slice(0, failed_index + 1);
+			const expected_calls = expected_checks.map((check) => [check.command, ...check.args]);
+			expect({ status, calls: runner.snapshot().calls }).toEqual({
+				status: 3,
+				calls: expected_calls,
+			});
+		},
+	);
 
 	test("runs rule documentation validation immediately after coding lint", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
-		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, runner);
-		quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
-		const lint_index = runner.calls.findIndex((call) => call.includes("lint"));
-		const documentation_index = runner.calls.findIndex((call) => call.includes("validate:rule-docs"));
+		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+			stdout: new PassThrough(),
+			stderr: new PassThrough(),
+		});
+		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const snapshot = runner.snapshot();
+		const expected_calls = quality_checks_list.map((check) => [check.command, ...check.args]);
+		const lint_index = snapshot.calls.findIndex(
+			(call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "),
+		);
+		const documentation_index = snapshot.calls.findIndex((call) => call.includes("validate:rule-docs"));
 
 		expect({
+			status,
+			calls: snapshot.calls,
 			documentation_follows_lint: documentation_index === lint_index + 1,
-			documentation_command: runner.calls[documentation_index],
+			documentation_command: snapshot.calls[documentation_index],
 		}).toEqual({
+			status: 0,
+			calls: expected_calls,
 			documentation_follows_lint: true,
 			documentation_command: ["pnpm", "--dir", PROJECT_ROOT, "validate:rule-docs"],
 		});
@@ -60,32 +96,57 @@ describe("quality check execution", () => {
 
 	test("passes review options only when a review agent is selected", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
-		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, runner);
-		quality_checks.run({ force_review: false, review_cleanup: true, review_agent: "codex" });
-		const lint_call = runner.calls.find((call) => call.includes("lint"));
+		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+			stdout: new PassThrough(),
+			stderr: new PassThrough(),
+		});
+		const status = quality_checks.run({ force_review: false, review_cleanup: true, review_agent: "codex" });
+		const lint_call = runner
+			.snapshot()
+			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
 
-		expect(lint_call).toContain("--review-cleanup");
-		expect(lint_call).toEqual(expect.arrayContaining(["--review-agent", "codex"]));
+		let cleanup_requested = false;
+		let selected_agent = "none";
+		if (lint_call !== undefined) {
+			cleanup_requested = lint_call.includes("--review-cleanup");
+			const agent_option_index = lint_call.indexOf("--review-agent");
+			if (agent_option_index >= 0) {
+				const agent_value = lint_call[agent_option_index + 1];
+				if (agent_value !== undefined) {
+					selected_agent = agent_value;
+				}
+			}
+		}
+
+		expect({ status, cleanup_requested, selected_agent }).toEqual({
+			status: 0,
+			cleanup_requested: true,
+			selected_agent: "codex",
+		});
 	});
 
 	test("does not add review flags when no review agent is selected", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
-		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, runner);
-		quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
-		const lint_call = runner.calls.find((call) => call.includes("lint"));
-		const expected_lint_call = ["pnpm", "--dir", PROJECT_ROOT, "lint"];
-		const external_directory = join(PROJECT_ROOT, "external");
-		if (existsSync(external_directory)) {
-			expected_lint_call.push("--ignore-dir", external_directory);
-		}
+		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
+			stdout: new PassThrough(),
+			stderr: new PassThrough(),
+		});
+		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const lint_call = runner
+			.snapshot()
+			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
+		const expected_lint_call = ["pnpm", "--dir", PROJECT_ROOT, "lint", "--", "--ignore-dir", ".codex"];
+		expect(status).toBe(0);
 		expect(lint_call).toEqual(expected_lint_call);
 	});
 
 	test("skips review in headless mode unless a review agent is selected", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
-		const execution = new TestExecution(PROJECT_ROOT, runner);
+		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
 		execution.run_args(["--headless", "--force-review"]);
-		const lint_call = runner.calls.find((call) => call.includes("lint"));
+		const lint_call = runner
+			.snapshot()
+			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
 
 		expect({
 			has_agent: lint_call?.includes("--review-agent") === true,
@@ -96,9 +157,11 @@ describe("quality check execution", () => {
 
 	test("preserves an explicitly selected review provider", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
-		const execution = new TestExecution(PROJECT_ROOT, runner);
+		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
 		execution.run_args(["--headless", "--force-review", "--review-agent", "claude"]);
-		const lint_call = runner.calls.find((call) => call.includes("lint"));
+		const lint_call = runner
+			.snapshot()
+			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
 		let selected_agent: string | undefined;
 		if (lint_call !== undefined) {
 			const agent_index = lint_call.indexOf("--review-agent");

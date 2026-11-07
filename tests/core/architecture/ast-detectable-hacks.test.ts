@@ -1,14 +1,14 @@
-import { TestFixture } from "tests/core/test-fixture";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
-import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("AST-detectable implementation hacks", () => {
 	test("detects callable object literals", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"callable-object.ts": [
 					"interface Base { run(): void; }",
@@ -25,14 +25,14 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(30);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(30);
 	});
 
 	test("detects forwarding functions and methods", () => {
 		const fixture = new TestFixture();
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"forwarding.ts": [
 					"function update(id: string, title: string) {",
@@ -50,7 +50,7 @@ describe("AST-detectable implementation hacks", () => {
 		);
 
 		expect(
-			violations.filter((violation) => violation.message === "avoid proxy methods and forwarding functions"),
+			violations.filter((violation) => violation.message() === "avoid proxy methods and forwarding functions"),
 		).toHaveLength(2);
 	});
 
@@ -58,7 +58,7 @@ describe("AST-detectable implementation hacks", () => {
 		const fixture = new TestFixture();
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"reexport.ts": ["export { Client } from './client';", "export type { ClientOptions } from './client';"].join(
 					"\n",
@@ -68,13 +68,13 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(2);
+		expect(violations.filter((violation) => violation.rule_id() === "reexports")).toHaveLength(2);
 	});
 
 	test("detects local exports of imported TypeScript bindings", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"local-reexport.ts": ["import { WebPageTabState } from './state';", "export { WebPageTabState };"].join("\n"),
 				"state.ts": "export class WebPageTabState {}",
@@ -83,13 +83,13 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "reexports")).toHaveLength(1);
 	});
 
 	test("detects default exports of imported TypeScript bindings", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"default-reexport.ts": ["import { Client } from './client';", "export default Client;"].join("\n"),
 				"client.ts": "export class Client {}",
@@ -98,13 +98,13 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "reexports")).toHaveLength(1);
 	});
 
 	test("detects exports of local aliases of imported TypeScript bindings", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"aliased-reexport.ts": [
 					"import { Client } from './client';",
@@ -117,14 +117,14 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "reexports")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "reexports")).toHaveLength(1);
 	});
 
 	test("detects module-level functions outside the exact root file", () => {
 		const fixture = new TestFixture();
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"client.ts": "export function create_client(): number { return 1; }\n",
 			},
@@ -132,14 +132,14 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "function-placement")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "function-placement")).toHaveLength(1);
 	});
 
 	test("detects module-level class instances", () => {
 		const fixture = new TestFixture();
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"client.ts": ["class Client {}", "const client = new Client();"].join("\n"),
 			},
@@ -147,14 +147,14 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "singleton")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "singleton")).toHaveLength(1);
 	});
 
 	test("rejects object literals returned as project classes or interfaces", () => {
 		const fixture = new TestFixture();
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"contracts.ts": [
 					"export interface User { name(): string; }",
@@ -176,7 +176,9 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-object-literal-return")).toHaveLength(3);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-object-literal-return")).toHaveLength(
+			3,
+		);
 	});
 
 	test("applies class-like count and size limits to Jest suites", () => {
@@ -190,7 +192,7 @@ describe("AST-detectable implementation hacks", () => {
 		const large_test_source = large_test_lines.join("\n");
 
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/jest-small.test.ts": ["describe('small', () => {", "  test('only test', () => {});", "});"].join("\n"),
 				"tests/jest-large.test.ts": large_test_source,
@@ -199,7 +201,7 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.rule_id)).toEqual(
+		expect(violations.map((violation) => violation.rule_id())).toEqual(
 			expect.arrayContaining([
 				"test-min-count",
 				"typescript-jest-max-size",

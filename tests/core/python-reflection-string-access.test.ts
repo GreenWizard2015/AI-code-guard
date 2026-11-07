@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python reflection string access", () => {
 	test("reports static f-string reads that bypass private ownership", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"private-fstring-read.py": [
 					"class Sample:",
@@ -25,7 +25,7 @@ describe("Python reflection string access", () => {
 		);
 		expect(
 			violations.filter(
-				(item) => item.message === "private class members must not be accessed from outside their class",
+				(item) => item.message() === "private class members must not be accessed from outside their class",
 			),
 		).toHaveLength(3);
 	});
@@ -33,7 +33,7 @@ describe("Python reflection string access", () => {
 	test("reports static f-string writes that bypass private ownership", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"private-fstring-write.py": [
 					"class Sample:",
@@ -50,7 +50,7 @@ describe("Python reflection string access", () => {
 		);
 		expect(
 			violations.filter(
-				(item) => item.message === "private class members must not be accessed from outside their class",
+				(item) => item.message() === "private class members must not be accessed from outside their class",
 			),
 		).toHaveLength(3);
 	});

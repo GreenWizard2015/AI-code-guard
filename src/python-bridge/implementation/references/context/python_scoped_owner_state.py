@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.protocols import (
-    PythonInstanceWriteLookupContract,
-    PythonPositionedWriteContract,
-    PythonPositionedWriteMap,
-    PythonScopedOwnerMap,
-)
 from implementation.references.instances.python_instance_write import (
     PythonInstanceWrite,
 )
 from implementation.references.instances.python_instance_write_lookup import (
     PythonInstanceWriteLookup,
+)
+from implementation.references.protocols import (
+    PythonInstanceWriteLookupContract,
+    PythonPositionedWriteContract,
+    PythonPositionedWriteMap,
+    PythonScopedOwnerMap,
 )
 
 
@@ -27,41 +27,50 @@ class PythonScopedOwnerState:
     def _positioned_lookup(
         self,
         writes: list[PythonPositionedWriteContract],
-        node: ast.AST,
+        lookup_position: ast.AST,
     ) -> PythonInstanceWriteLookupContract:
         """Responsibilities: _positioned owner lookup_."""
-        lookup = PythonInstanceWriteLookup(False, "")
+        lookup: PythonInstanceWriteLookupContract = PythonInstanceWriteLookup(is_present=False, owner_name="")
         for write in writes:
-            lookup = lookup.with_candidate(write, node)
+            lookup = lookup.with_candidate(write, lookup_position)
         return lookup
 
     def _configured_owner(
         self,
-        scope: str,
-        name: str,
+        scope_name: str,
+        owner_name: str,
         key: str,
     ) -> PythonInstanceWriteLookupContract:
         """Responsibilities: _unpositioned owner fallback_."""
         if key in self._writes or key in self._annotations:
-            return PythonInstanceWriteLookup(True, "")
+            return PythonInstanceWriteLookup(is_present=True, owner_name="")
         if key in self._owners:
-            return PythonInstanceWriteLookup(True, self._owners[key])
-        if self._include_module_name and scope == "module" and name in self._owners:
-            return PythonInstanceWriteLookup(True, self._owners[name])
-        return PythonInstanceWriteLookup(False, "")
+            return PythonInstanceWriteLookup(is_present=True, owner_name=self._owners[key])
+        if self._include_module_name and scope_name == "module" and owner_name in self._owners:
+            return PythonInstanceWriteLookup(is_present=True, owner_name=self._owners[owner_name])
+        return PythonInstanceWriteLookup(is_present=False, owner_name="")
 
     def _owner_at_scope(
-        self, scope: str, name: str, node: ast.AST
+        self,
+        scope_name: str,
+        owner_name: str,
+        owner_reference: ast.AST,
     ) -> PythonInstanceWriteLookupContract:
         """Responsibilities: _scope owner lookup_."""
-        key = f"{scope}\u0000{name}"
-        runtime_owner = self._positioned_lookup(self._writes.get(key, []), node)
+        key = f"{scope_name}\u0000{owner_name}"
+        runtime_owner = self._positioned_lookup(
+            self._writes.get(key, []),
+            owner_reference,
+        )
         if runtime_owner.present():
             return runtime_owner
-        annotation_owner = self._positioned_lookup(self._annotations.get(key, []), node)
+        annotation_owner = self._positioned_lookup(
+            self._annotations.get(key, []),
+            owner_reference,
+        )
         if annotation_owner.present():
             return annotation_owner
-        return self._configured_owner(scope, name, key)
+        return self._configured_owner(scope_name, owner_name, key)
 
     def __init__(
         self,
@@ -76,39 +85,31 @@ class PythonScopedOwnerState:
         self._owners: PythonScopedOwnerMap = owners
         self._include_module_name: bool = include_module_name
 
-    def record_at_scope(self, scope: str, name: str, owner: str, node: ast.AST) -> None:
-        """Responsibilities: _positioned owner recording_."""
-        key = f"{scope}\u0000{name}"
-        write = PythonInstanceWrite(node.lineno, node.col_offset, owner)
-        self._writes.setdefault(key, []).append(write)
-        self._owners[key] = owner
-
-    def annotate_at_scope(
-        self, scope: str, name: str, owner: str, node: ast.AST
+    def record_at_scope(
+        self,
+        recording_scope: str,
+        binding_name: str,
+        owner: str,
+        binding_site: ast.AST,
     ) -> None:
-        """Responsibilities: _positioned owner annotation_."""
-        key = f"{scope}\u0000{name}"
-        write = PythonInstanceWrite(node.lineno, node.col_offset, owner)
-        self._annotations.setdefault(key, []).append(write)
+        """Responsibilities: _scoped binding indexing_."""
+        key = f"{recording_scope}\u0000{binding_name}"
+        write = PythonInstanceWrite(binding_site.lineno, binding_site.col_offset, owner)
+        if type(binding_site) is ast.AnnAssign:
+            self._annotations.setdefault(key, []).append(write)
+            return
+        self._writes.setdefault(key, []).append(write)
+        self._owners.update({key: owner})
 
-    def owner_at_scopes(self, scopes: list[str], name: str, node: ast.AST) -> str:
-        """Responsibilities: _lexical owner resolution_."""
+    def owner_resolution(
+        self,
+        scopes: list[str],
+        requested_name: str,
+        owner_reference: ast.AST,
+    ) -> PythonInstanceWriteLookupContract:
+        """Responsibilities: _lexical binding resolution_."""
         for scope in scopes:
-            result = self._owner_at_scope(scope, name, node)
+            result = self._owner_at_scope(scope, requested_name, owner_reference)
             if result.present():
-                return result.owner_name()
-        return ""
-
-    def binding_present(self, scopes: list[str], name: str) -> bool:
-        """Responsibilities: _lexical binding presence_."""
-        for scope in scopes:
-            key = f"{scope}\u0000{name}"
-            if self._writes.get(key):
-                return True
-            if self._annotations.get(key):
-                return True
-            if key in self._owners:
-                return True
-            if scope == "module" and name in self._owners:
-                return True
-        return False
+                return result
+        return PythonInstanceWriteLookup(is_present=False, owner_name="")

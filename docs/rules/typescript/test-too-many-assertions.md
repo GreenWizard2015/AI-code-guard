@@ -25,6 +25,14 @@ export class Status {
 		if (normalized_fragment.length === 0) { return false; }
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		const normalized = this.normalized();
+		const ready = this.ready();
+		const label = this.label('State');
+		const contains_fragment = this.contains('ead');
+		const output = [normalized, ready, label, contains_fragment];
+		console.log(output.join(' | '));
+	}
 }
 // File: tests/documentation/status.test.ts
 import { Status } from 'src/documentation/status';
@@ -49,13 +57,12 @@ describe('Status', () => {
 		expect(normalized).toBe('ready');
 	});
 });
-// File: cli.ts
+// File: src/cli.ts
 #!/usr/bin/env node
 import { Status } from 'src/documentation/status';
 (function () {
 	const status = new Status(' READY ');
-	const output = [status.normalized(), status.ready(), status.label('State'), status.contains('ead')];
-	console.log(output);
+	status.report();
 })();
 ```
 
@@ -65,10 +72,20 @@ import { Status } from 'src/documentation/status';
 ```ts
 // File: src/documentation/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _value: string;
+	private readonly _normalized_values: Map<string, string>;
+	public constructor(value: string) {
+		this._value = value;
+		this._normalized_values = new Map();
+	}
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		const cached_value = this._normalized_values.get(this._value);
+		if (cached_value !== undefined) {
+			return cached_value;
+		}
+		const normalized_value = this._value.trim().toLowerCase();
+		this._normalized_values.set(this._value, normalized_value);
+		return normalized_value;
 	}
 	public ready(): boolean {
 		return this.normalized() === 'ready';
@@ -83,6 +100,14 @@ export class Status {
 		if (normalized_fragment.length === 0) { return false; }
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		const normalized = this.normalized();
+		const ready = this.ready();
+		const label = this.label('State');
+		const contains_fragment = this.contains('ead');
+		const output = [normalized, ready, label, contains_fragment];
+		console.log(output.join(' | '));
+	}
 }
 // File: tests/documentation/status.test.ts
 import { Status } from 'src/documentation/status';
@@ -90,13 +115,12 @@ describe('Status', () => {
 	test('normalizes a value', () => { const status = new Status(' READY '); expect(status.normalized()).toBe('ready'); });
 	test('classifies readiness', () => { const status = new Status('ready'); expect(status.ready()).toBe(true); });
 });
-// File: cli.ts
+// File: src/cli.ts
 #!/usr/bin/env node
 import { Status } from 'src/documentation/status';
 (function () {
 	const status = new Status(' READY ');
-	const output = [status.normalized(), status.ready(), status.label('State'), status.contains('ead')];
-	console.log(output);
+	status.report();
 })();
 ```
 

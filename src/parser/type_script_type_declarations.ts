@@ -1,37 +1,20 @@
+import type { AstReferenceAlias, NamedLine } from "src/model/ast/normalized_ast_types";
 import ts from "typescript";
-import type { AstReferenceAlias, NamedLine } from "src/types";
 
 /** Responsibilities: _declaration name extraction_, _imported type alias collection_. **/
 export class TypeScriptTypeDeclarations {
-	private readonly declaration_kinds: Set<ts.SyntaxKind>;
-
-	/** Responsibilities: _resolution named declaration name_. **/
-	private declaration_name(node: ts.Node): string {
-		if (ts.isInterfaceDeclaration(node)) {
-			return node.name.text;
-		}
-		if (ts.isTypeAliasDeclaration(node)) {
-			return node.name.text;
-		}
-		if (ts.isEnumDeclaration(node)) {
-			return node.name.text;
-		}
-		return "";
-	}
+	private readonly _source_file: ts.SourceFile;
 
 	/** Responsibilities: _resolution type alias interface_. **/
 	private type_declaration_name(node: ts.Node): string {
-		if (node.kind === ts.SyntaxKind.ClassDeclaration || node.kind === ts.SyntaxKind.ClassExpression) {
-			if (!ts.isClassLike(node)) {
-				return "";
-			}
+		if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
 			if (node.name === undefined) {
 				return "";
 			}
 			return node.name.text;
 		}
-		if (this.declaration_kinds.has(node.kind)) {
-			return this.declaration_name(node);
+		if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node)) {
+			return node.name.text;
 		}
 		return "";
 	}
@@ -60,16 +43,12 @@ export class TypeScriptTypeDeclarations {
 	}
 
 	/** Responsibilities: _extraction normalization declaration lines_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.declaration_kinds = new Set([
-			ts.SyntaxKind.InterfaceDeclaration,
-			ts.SyntaxKind.TypeAliasDeclaration,
-			ts.SyntaxKind.EnumDeclaration,
-		]);
+	public constructor(source_file: ts.SourceFile) {
+		this._source_file = source_file;
 	}
 	/** Responsibilities: _public operation_. **/
-	public declaration_for(node: ts.Node, source_file: ts.SourceFile): NamedLine[] {
+	public declaration_for(node: ts.Node): NamedLine[] {
+		const declaration_source = this._source_file;
 		const name = this.type_declaration_name(node);
 		if (!name) {
 			return [];
@@ -77,15 +56,16 @@ export class TypeScriptTypeDeclarations {
 		return [
 			{
 				name,
-				line: source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line,
+				line: declaration_source.getLineAndCharacterOfPosition(node.getStart(declaration_source)).line,
 			},
 		];
 	}
 
 	/** Responsibilities: _collection imported reference aliases_. **/
-	public collect_reference_aliases(source_file: ts.SourceFile): AstReferenceAlias[] {
+	public collect_reference_aliases(): AstReferenceAlias[] {
+		const declaration_source = this._source_file;
 		const aliases: AstReferenceAlias[] = [];
-		for (const statement of source_file.statements) {
+		for (const statement of declaration_source.statements) {
 			aliases.push(...this.statement_reference_aliases(statement));
 		}
 		return aliases;

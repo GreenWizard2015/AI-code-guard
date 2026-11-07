@@ -1,12 +1,13 @@
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
+import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import ts from "typescript";
-import { EmptySourceText } from "src/io/empty_source_text";
-import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
 
 /** Responsibilities: _duplicate exports_, _export choice_. **/
 export class DuplicateNamedExportFixture {
 	public readonly barrel_file = "/project/index.ts";
 	public readonly value_file = "/project/value.ts";
-	private readonly resolver: TypeScriptModuleExports;
+	private readonly _resolver: TypeScriptModuleExportsContract;
 
 	/** Responsibilities: _scenario construction_. **/
 	public constructor() {
@@ -27,11 +28,17 @@ export class DuplicateNamedExportFixture {
 				ts.createSourceFile(this.value_file, "export const Value = 2;\n", ts.ScriptTarget.Latest, true),
 			],
 		]);
-		this.resolver = new TypeScriptModuleExports("/project", source_files, false, new EmptySourceText());
+		const resolver_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_files,
+			false,
+			new InMemoryProjectSourceIO(new Map()),
+		);
+		this._resolver = resolver_context.module_exports();
 	}
 
 	/** Responsibilities: _duplicate named export resolution_. **/
 	public result(): { file: string; name: string } {
-		return this.resolver.resolve(this.barrel_file, "Value");
+		return this._resolver.resolve({ file: this.barrel_file, name: "Value" });
 	}
 }

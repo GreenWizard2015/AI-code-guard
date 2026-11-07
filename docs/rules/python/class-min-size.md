@@ -8,29 +8,37 @@ responsibility; do not add padding methods or fields.
 
 
 ```python
+# File: src/status_labels.py
 class StatusLabels:
     def label(self, status: str) -> str:
+        print(f"status: {status}")
         return status
+# File: cli.py
+from src.status_labels import StatusLabels
+
+if __name__ == "__main__":
+    status_labels = StatusLabels()
+    status_labels.label("ready")
 ```
 
 ## Good
 
 
 ```python
-# File: src/status_labels/status_labels.py
+# File: src/status_labels.py
 class StatusLabels:
     """Responsibilities: _status label mapping_."""
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -39,18 +47,22 @@ class StatusLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+
+    def report(self, lines: list[str]) -> None:
+        """Responsibilities: _status report output_."""
+        print(" ".join(lines))
 # File: cli.py
-from status_labels.status_labels import StatusLabels
+from src.status_labels import StatusLabels
 
 if __name__ == "__main__":
     labels = {"ready": "Ready", "blocked": "Blocked"}
@@ -59,5 +71,5 @@ if __name__ == "__main__":
     detailed = status_labels.label_with_prefix("State", "blocked")
     fallback = status_labels.uppercase_fallback()
     count = status_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    status_labels.report([label, detailed, fallback, str(count)])
 ```

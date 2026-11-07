@@ -30,12 +30,19 @@ export class Status {
 		}
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		const normalized_value = this.normalized();
+		const readiness = this.ready();
+		const status_label = this.label('State');
+		const contains_marker = this.contains('ead');
+		console.log(`${normalized_value} ${readiness} ${status_label} ${contains_marker}`);
+	}
 }
 // File: tests/domain/status.test.ts
 import { Status } from "src/domain/status";
 describe("Status", () => {
 	test("does not assert through a console mock", () => { const output = jest.spyOn(console, "log"); // <- error
-		const status = new Status("ready"); expect(status.ready()).toBe(true); expect(output).toHaveBeenCalled(); });
+		const status = new Status("ready"); status.report(); expect(status.ready()).toBe(true); expect(output).toHaveBeenCalled(); });
 	test("normalizes a value", () => { const status = new Status(" QUEUED "); expect(status.normalized()).toBe("queued"); });
 });
 // File: cli.ts
@@ -43,7 +50,7 @@ describe("Status", () => {
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	status.report();
 })();
 ```
 
@@ -52,10 +59,27 @@ import { Status } from 'src/domain/status';
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _status_history: string[];
+	private readonly _current_value: Map<string, string>;
+	private current_value(): string {
+		const value = this._current_value.get("value");
+		if (value === undefined) {
+			return "";
+		}
+		return value;
+	}
+	public constructor(value: string) {
+		this._status_history = [value];
+		this._current_value = new Map([["value", value]]);
+	}
+
+	public change_value(value: string): void {
+		this._status_history.push(value);
+		this._current_value.set("value", value);
+	}
+
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		return this.current_value().trim().toLowerCase();
 	}
 	public ready(): boolean {
 		const normalized_value = this.normalized();
@@ -74,6 +98,13 @@ export class Status {
 			return false;
 		}
 		return status_value.includes(normalized_fragment);
+	}
+	public report(): void {
+		const normalized_value = this.normalized();
+		const readiness = this.ready();
+		const status_label = this.label('State');
+		const contains_marker = this.contains('ead');
+		console.log(`${normalized_value} ${readiness} ${status_label} ${contains_marker}`);
 	}
 }
 // File: tests/domain/status.test.ts
@@ -94,7 +125,8 @@ describe('Status', () => {
 #!/usr/bin/env node
 import { Status } from 'src/domain/status';
 (function () {
-	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	const status = new Status("queued");
+	status.change_value(' READY ');
+	status.report();
 })();
 ```

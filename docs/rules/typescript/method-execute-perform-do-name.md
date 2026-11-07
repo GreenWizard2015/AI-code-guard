@@ -8,9 +8,22 @@ may keep the technical name when it is the actual contract.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public execute_payment(): string { return "value"; }
+// File: src/payment_processor.ts
+export class PaymentProcessor {
+	private readonly payment_reference: string;
+	public constructor(payment_reference: string) { this.payment_reference = payment_reference; }
+	public execute_payment(): string { return `Payment ${this.payment_reference} accepted`; } // <- error
+	public report(): void {
+		const result = this.execute_payment();
+		console.log(result);
+	}
 }
+// File: cli.ts
+import { PaymentProcessor } from "src/payment_processor";
+(function () {
+	const processor = new PaymentProcessor("PAY-42");
+	processor.report();
+})();
 ```
 
 
@@ -20,20 +33,20 @@ class PriceLabels {
 // File: src/price_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
@@ -46,19 +59,26 @@ export class PriceLabels {
 
 	/** Responsibilities: _fallback capitalization_. **/
 	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
+		const normalized = this._fallback.trim();
 		return normalized.toUpperCase();
 	}
 
 	/** Responsibilities: _mapping size reporting_. **/
 	public status_count(): number {
 		let count = 0;
-		for (const status_name of this.labels.keys()) {
+		for (const status_name of this._labels.keys()) {
 			if (status_name.length > 0) {
 				count += 1;
 			}
 		}
 		return count;
+	}
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "blocked");
+		const fallback = this.uppercase_fallback();
+		const count = this.status_count();
+		console.log(`${label} ${detailed} ${fallback} ${count}`);
 	}
 }
 // File: cli.ts
@@ -69,10 +89,6 @@ import { PriceLabels } from "src/price_labels";
 	labels.set("ready", "Ready");
 	labels.set("blocked", "Blocked");
 	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	price_labels.report();
 })();
 ```

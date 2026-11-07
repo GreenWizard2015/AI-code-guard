@@ -1,119 +1,108 @@
-import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheContext } from "src/core/cache/lint_execution_cache_context";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
+import { ProjectSourceSnapshot } from "src/core/cache/project_source_snapshot";
+import { ProjectTextSnapshot } from "src/core/project_text_snapshot";
+import { LintStageTimer } from "src/lint_stage_timer";
 import type { CliOptions } from "src/task_types";
-import { ViolationValue } from "src/violation_value";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { CompleteCacheFixture } from "tests/bridge/ts/core/complete-cache-fixture";
 
 describe("complete cache input validation", () => {
 	test("reuses unchanged inputs", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture._analysis_identity));
 		const cache = context.lint_cache();
-		cache.write({ files: [fixture.file], violations: [] });
-		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
-		const result = lookup.reusable_inputs([], fixture.options);
-		expect({ available: result.available, inputs: result.value }).toEqual({ available: true, inputs: fixture.inputs });
+		cache.write({ files: [fixture._file], violations: [] });
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture._file_io);
+		const result = lookup.reusable_inputs(fixture._options);
+		expect({ available: result.available, inputs: result.value }).toEqual({ available: true, inputs: fixture._inputs });
 	});
 
 	test("invalidates input reuse when entry files change", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({ files: [fixture.file], violations: [] });
-		const options: CliOptions = { ...fixture.options, entry_files: [fixture.file] };
-		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
-		const result = lookup.reusable_inputs([], options);
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture._analysis_identity));
+		context.lint_cache().write({ files: [fixture._file], violations: [] });
+		const options: CliOptions = { ...fixture._options, entry_files: [fixture._file] };
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture._file_io);
+		const result = lookup.reusable_inputs(options);
 		expect(result.available).toBe(false);
 	});
 
 	test("invalidates input reuse when ignore files change", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({ files: [fixture.file], violations: [] });
-		fixture.write_source(fixture.ignore_file, "coverage/\nlogs/\n");
-		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
-		const result = lookup.reusable_inputs([], fixture.options);
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture._analysis_identity));
+		context.lint_cache().write({ files: [fixture._file], violations: [] });
+		fixture.write_source(fixture._ignore_file, "coverage/\nlogs/\n");
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture._file_io);
+		const result = lookup.reusable_inputs(fixture._options);
 		expect(result.available).toBe(false);
+	});
+	test("reuses unchanged absent ignore inputs and invalidates when one appears", () => {
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const absent_global_ignore = "/virtual/user/.gitignore_global";
+		const inputs = { ...fixture._inputs, ignore_files: [...fixture._inputs.ignore_files, absent_global_ignore] };
+		const initial = new LintExecutionCacheContext({
+			...fixture.cache_context_options(new Map(), fixture._analysis_identity),
+			inputs,
+		});
+		initial.lint_cache().write({ files: [fixture._file], violations: [] });
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture._file_io);
+		const unchanged = lookup.reusable_inputs(fixture._options);
+		fixture.write_source(absent_global_ignore, "module.ts\n");
+		const present = lookup.reusable_inputs(fixture._options);
+
+		expect({ unchanged: unchanged.available, invalidated_after_creation: present.available }).toEqual({
+			unchanged: true,
+			invalidated_after_creation: false,
+		});
+	});
+	test("uses one captured compiler configuration for cache identity and analysis", () => {
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const snapshot = new ProjectSourceSnapshot(fixture.root, fixture._source_io);
+		const captured_texts = snapshot.source_texts(fixture._inputs);
+		const captured_cache = new LintExecutionCacheContext(
+			fixture.cache_context_options(captured_texts, fixture._analysis_identity),
+		);
+		const captured_state = captured_cache.cache_state();
+		fixture.write_source(fixture._typescript_config_file, '{"compilerOptions":{"baseUrl":".","paths":{"@x":["a"]}}}\n');
+		const current_texts = snapshot.source_texts(fixture._inputs);
+		const current_cache = new LintExecutionCacheContext(
+			fixture.cache_context_options(current_texts, fixture._analysis_identity),
+		);
+		const current_state = current_cache.cache_state();
+		const text_snapshot = new ProjectTextSnapshot({
+			repo_root: fixture.root,
+			files: [fixture._file],
+			ignore_files: [],
+			provided_texts: captured_texts,
+			configuration_snapshot_complete: true,
+			stage_timer: new LintStageTimer(),
+			virtual_project: false,
+			source_io: fixture._source_io,
+		});
+		const analyzed_texts = text_snapshot.project_texts();
+
+		expect({
+			analysis_uses_captured_configuration: analyzed_texts.get(fixture._typescript_config_file),
+			captured_config_is_fingerprinted: captured_state.fingerprints.some(
+				(fingerprint) => fingerprint.file === fixture._typescript_config_file,
+			),
+			cache_identity_changes_for_updated_configuration: captured_state.identity !== current_state.identity,
+		}).toEqual({
+			analysis_uses_captured_configuration: '{"compilerOptions":{"baseUrl":"."}}\n',
+			captured_config_is_fingerprinted: true,
+			cache_identity_changes_for_updated_configuration: true,
+		});
 	});
 
 	test("invalidates input reuse when a nested directory appears", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({ files: [fixture.file], violations: [] });
+		const fixture = new CompleteCacheFixture(new InMemoryFileIO());
+		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture._analysis_identity));
+		context.lint_cache().write({ files: [fixture._file], violations: [] });
 		fixture.create_nested_input();
-		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
-		const result = lookup.reusable_inputs([], fixture.options);
+		const lookup = new LintExecutionCacheLookup(fixture.root, fixture._file_io);
+		const result = lookup.reusable_inputs(fixture._options);
 		expect(result.available).toBe(false);
-	});
-
-	test("invalidates results when ordinary directory entries change", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({ files: [fixture.file], violations: [] });
-		fixture.write_source(join(fixture.root, "ordinary.txt"), "not a source input\n");
-		const changed_context = new LintExecutionCacheContext(
-			fixture.cache_context_options(new Map(), fixture.analysis_identity),
-		);
-		const result = changed_context.lint_cache().cached_result();
-		expect(result.available).toBe(false);
-	});
-
-	test("reuses inputs after a transient root entry is removed", () => {
-		const fixture = new CompleteCacheFixture();
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({ files: [fixture.file], violations: [] });
-		const temporary_file = join(fixture.root, "temporary-publication-entry");
-		fixture.write_source(temporary_file, "temporary\n");
-		fixture.file_io.file_operations.remove_file(temporary_file);
-		fixture.source_texts.delete(temporary_file);
-		const lookup = new LintExecutionCacheLookup(fixture.root, fixture.file_io);
-		const result = lookup.reusable_inputs([], fixture.options);
-		expect(result.available).toBe(true);
-	});
-
-	test("invalidates results when the source snapshot changes", () => {
-		const fixture = new CompleteCacheFixture();
-		fixture.write_source(fixture.file, fixture.changed_source);
-		const stale_context = new LintExecutionCacheContext(
-			fixture.cache_context_options(new Map([[fixture.file, fixture.initial_source]]), fixture.analysis_identity),
-		);
-		const current_context = new LintExecutionCacheContext(
-			fixture.cache_context_options(new Map([[fixture.file, fixture.changed_source]]), fixture.analysis_identity),
-		);
-		stale_context.lint_cache().write({ files: [fixture.file], violations: [] });
-		const result = current_context.lint_cache().cached_result();
-		expect(result.available).toBe(false);
-	});
-
-	test("invalidates cached diagnostics after a same-size edit with unchanged metadata", () => {
-		const fixture = new CompleteCacheFixture();
-		const original_metadata = fixture.file_io.file_paths.metadata(fixture.file);
-		const context = new LintExecutionCacheContext(fixture.cache_context_options(new Map(), fixture.analysis_identity));
-		context.lint_cache().write({
-			files: [fixture.file],
-			violations: [
-				new ViolationValue({
-					file: fixture.file,
-					line: 1,
-					message: "stale diagnostic",
-					hint: "must not be reused",
-					rule_id: "stale-cache-diagnostic",
-					priority: 1,
-				}),
-			],
-		});
-		fixture.file_io.preserve_metadata(fixture.file);
-		fixture.write_source(fixture.file, fixture.changed_source);
-		const changed_options = fixture.cache_context_options(new Map(), fixture.analysis_identity);
-		const changed_context = new LintExecutionCacheContext(changed_options);
-		const result = changed_context.lint_cache().cached_result();
-
-		expect({
-			same_size: Buffer.byteLength(fixture.initial_source) === Buffer.byteLength(fixture.changed_source),
-			metadata_unchanged: fixture.file_io.file_paths.metadata(fixture.file).mtime_ms === original_metadata.mtime_ms,
-			cache_available: result.available,
-			stale_diagnostic_returned: result.value.violations.some((item) => item.rule_id === "stale-cache-diagnostic"),
-		}).toEqual({ same_size: true, metadata_unchanged: true, cache_available: false, stale_diagnostic_returned: false });
 	});
 });

@@ -1,34 +1,38 @@
+import { ViolationValue } from "src/model/violation_value";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { ReportViolation } from "src/reporting_protocols";
-import { ViolationValue } from "src/violation_value";
+import type { ReportViolationOptions } from "src/reporting_protocols";
 
 /** Responsibilities: _cache integrity validation_, _violation snapshot access_. **/
 export class ViolationCache {
-	private readonly source: readonly ReportViolation[];
+	private readonly _source: readonly ReportViolationOptions[];
 
 	/** Responsibilities: _cache diagnostic validation_. **/
-	private valid(value: ReportViolation): boolean {
+	private valid(value: ReportViolationOptions): boolean {
 		if (value === null || value === undefined || Array.isArray(value)) {
 			return false;
 		}
 		const text_fields_valid = [value.file, value.message, value.hint, value.rule_id].every(
-			(field) => String(field) === field,
+			(field) => typeof field === "string",
 		);
-		const number_fields_valid = Number.isFinite(value.line) && Number.isFinite(value.priority);
+		const number_fields_valid =
+			typeof value.line === "number" &&
+			typeof value.priority === "number" &&
+			Number.isFinite(value.line) &&
+			Number.isFinite(value.priority);
 		return text_fields_valid && number_fields_valid;
 	}
 
 	/** Responsibilities: _cache diagnostic initialization_. **/
-	public constructor(values: readonly ReportViolation[]) {
-		this.source = values;
+	public constructor(values: readonly ReportViolationOptions[]) {
+		this._source = values;
 	}
 
 	/** Responsibilities: _cache diagnostic validity_. **/
 	public valid_cache(): boolean {
-		if (!Array.isArray(this.source)) {
+		if (!Array.isArray(this._source)) {
 			return false;
 		}
-		for (const value of this.source) {
+		for (const value of this._source) {
 			if (!this.valid(value)) {
 				return false;
 			}
@@ -41,6 +45,6 @@ export class ViolationCache {
 		if (!this.valid_cache()) {
 			return [];
 		}
-		return this.source.map((value) => new ViolationValue(value));
+		return this._source.map((value) => new ViolationValue(value));
 	}
 }

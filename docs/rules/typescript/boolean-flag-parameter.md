@@ -10,57 +10,94 @@ the call expresses each mode explicitly.
 ## Bad
 
 ```ts
-function publish(article: Article, notify: boolean, dry_run: boolean): void {
-	// ...
+// File: src/article_publisher.ts
+/** Responsibilities: _article publication_. **/
+export class ArticlePublisher { // <- error
+	private readonly channel: string;
+	/** Responsibilities: _publisher initialization_. **/
+	public constructor(channel: string) {
+		this.channel = channel;
+	}
+	/** Responsibilities: _publication decision_. **/
+	public publish(article: string, notify: boolean, dry_run: boolean): string {
+		if (dry_run) { return `Preview: ${article.trim()}`; }
+		if (notify) { return `${this.channel}: ${article.trim()}`; }
+		return `Stored: ${article.trim()}`;
+	}
+	/** Responsibilities: _publication summary formatting_. **/
+	public summary(): string {
+		return this.publish("Release notes", true, false);
+	}
+	/** Responsibilities: _publication report output_. **/
+	public report(): void {
+		console.log(this.summary());
+	}
 }
+// File: cli.ts
+import { ArticlePublisher } from "src/article_publisher";
 
-publish(article, true, false);
+(() => {
+	const publisher = new ArticlePublisher("Notification");
+	publisher.report();
+})();
 ```
 
 
 ## Good
 
 ```ts
-// File: src/publication_policy.ts
-/** Responsibilities: _publication capability_. **/
-export class PublicationPolicy {
-	private readonly mode: string;
+// File: src/constants.ts
+export const ARTICLE_TEXT = "Release notes";
+export const PREVIEW_PREFIX = "Preview: ";
+export const NOTIFICATION_PREFIX = "Notification: ";
+export const STORAGE_PREFIX = "Stored: ";
+export const PREVIEW_MODE = "Preview mode";
+export const NOTIFICATION_MODE = "Notification mode";
+export const STORAGE_MODE = "Storage mode";
+// File: src/types.ts
+export type PublicationOptions = { notify: boolean; dry_run: boolean };
+// File: src/article_publisher.ts
+import type { PublicationOptions } from "src/types";
+import {
+	ARTICLE_TEXT,
+	NOTIFICATION_MODE,
+	NOTIFICATION_PREFIX,
+	PREVIEW_MODE,
+	PREVIEW_PREFIX,
+	STORAGE_MODE,
+	STORAGE_PREFIX,
+} from "src/constants";
 
-	/** Responsibilities: _publication mode initialization_. **/
-	public constructor(mode: string) {
-		this.mode = mode;
+/** Responsibilities: _article publication_. **/
+export class ArticlePublisher {
+	private readonly _options: PublicationOptions;
+	/** Responsibilities: _publisher initialization_. **/
+	public constructor(options: PublicationOptions) {
+		this._options = options;
 	}
-
-	/** Responsibilities: _publication capability decision_. **/
-	public publishable(): boolean {
-		return this.mode === "notify";
+	/** Responsibilities: _publication decision_. **/
+	public publish(article: string): string {
+		const normalized_article = article.trim();
+		if (this._options.dry_run) { return `${PREVIEW_PREFIX}${normalized_article}`; }
+		if (this._options.notify) { return `${NOTIFICATION_PREFIX}${normalized_article}`; }
+		return `${STORAGE_PREFIX}${normalized_article}`;
 	}
-
-	/** Responsibilities: _delivery mode description_. **/
+	/** Responsibilities: _delivery description_. **/
 	public delivery_description(): string {
-		const normalized_mode = this.mode.trim();
-		return normalized_mode.toUpperCase();
+		if (this._options.dry_run) { return PREVIEW_MODE; }
+		if (this._options.notify) { return NOTIFICATION_MODE; }
+		return STORAGE_MODE;
 	}
-
-	/** Responsibilities: _delivery channel selection_. **/
-	public delivery_channel(): string {
-		if (this.mode === "notify") {
-			return "email";
-		}
-		if (this.mode === "preview") {
-			return "preview";
-		}
-		return "none";
+	/** Responsibilities: _publication report output_. **/
+	public report(): void {
+		console.log(`${this.publish(ARTICLE_TEXT)} | ${this.delivery_description()}`);
 	}
 }
 // File: cli.ts
-import { PublicationPolicy } from "src/publication_policy";
+import { ArticlePublisher } from "src/article_publisher";
 
-(function () {
-	const publication_policy = new PublicationPolicy("preview");
-	const publishable = publication_policy.publishable();
-	const delivery_mode = publication_policy.delivery_description();
-	const channel = publication_policy.delivery_channel();
-	console.log(`${publishable} ${delivery_mode} ${channel}`);
+(() => {
+	const publisher = new ArticlePublisher({ notify: true, dry_run: false });
+	publisher.report();
 })();
 ```

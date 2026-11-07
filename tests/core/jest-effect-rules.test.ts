@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Jest setup and effect rules", () => {
@@ -36,7 +36,7 @@ describe("Jest setup and effect rules", () => {
 			"});",
 		].join("\n");
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/fixture-complexity.test.ts": fixture_source,
 				"tests/async-completion.test.ts": [
@@ -57,15 +57,15 @@ describe("Jest setup and effect rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			fixture_complexity: violations.filter((item) => item.rule_id === "fixture-complexity").length,
-			unasserted_async: violations.filter((item) => item.rule_id === "unasserted-async-completion").length,
+			fixture_complexity: violations.filter((item) => item.rule_id() === "fixture-complexity").length,
+			unasserted_async: violations.filter((item) => item.rule_id() === "unasserted-async-completion").length,
 		}).toEqual({ fixture_complexity: 1, unasserted_async: 1 });
 	});
 
 	test("ignores effects hidden in uncalled helpers and respects shadowed declarations", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/deferred-effects.test.ts": [
 					"async function load_result(): Promise<number> { return 1; }",
@@ -112,16 +112,16 @@ describe("Jest setup and effect rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			async_completion: violations.filter((item) => item.rule_id === "unasserted-async-completion").length,
-			time_dependency: violations.filter((item) => item.rule_id === "test-time-dependency").length,
-			order_dependency: violations.filter((item) => item.rule_id === "test-order-dependency").length,
+			async_completion: violations.filter((item) => item.rule_id() === "unasserted-async-completion").length,
+			time_dependency: violations.filter((item) => item.rule_id() === "test-time-dependency").length,
+			order_dependency: violations.filter((item) => item.rule_id() === "test-order-dependency").length,
 		}).toEqual({ async_completion: 0, time_dependency: 0, order_dependency: 0 });
 	});
 
 	test("reports discarded or conditionally awaited async results", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/discarded-async-results.test.ts": [
 					"async function persist_record(): Promise<string> { return 'saved'; }",
@@ -155,13 +155,13 @@ describe("Jest setup and effect rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "unasserted-async-completion")).toHaveLength(2);
+		expect(violations.filter((item) => item.rule_id() === "unasserted-async-completion")).toHaveLength(2);
 	});
 
 	test("reports order-dependent mutation through a module object property", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/shared-property-state.test.ts": [
 					"const shared_state = { labels: [] as string[] };",
@@ -181,6 +181,6 @@ describe("Jest setup and effect rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "test-order-dependency")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "test-order-dependency")).toHaveLength(1);
 	});
 });

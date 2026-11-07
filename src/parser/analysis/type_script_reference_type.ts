@@ -5,7 +5,7 @@ import type { TypeScriptTypeNodeContract } from "src/typescript_analysis_protoco
 
 /** Responsibilities: _reference owner resolution_, _aliased type name resolution_. **/
 export class TypeScriptReferenceType {
-	private readonly type_node: TypeScriptTypeNodeContract;
+	private readonly _type_node: TypeScriptTypeNodeContract;
 
 	/** Responsibilities: _resolution first owner name_. **/
 	private first_owner(nodes: readonly ts.TypeNode[]): string {
@@ -21,9 +21,13 @@ export class TypeScriptReferenceType {
 
 	/** Responsibilities: _resolution owner name nested_. **/
 	private nested_owner(): string {
-		const details = this.type_node.details();
+		const details = this._type_node.details();
 		if (details.parenthesized_type.length > 0) {
-			const reference = new TypeScriptReferenceType(details.parenthesized_type[0]);
+			const type = details.parenthesized_type.at(0);
+			if (type === undefined) {
+				return "";
+			}
+			const reference = new TypeScriptReferenceType(type);
 			return reference.return_owner();
 		}
 		return this.first_owner(details.union_types);
@@ -31,12 +35,12 @@ export class TypeScriptReferenceType {
 
 	/** Responsibilities: _resolution nested reference name_. **/
 	private nested_name(aliases: ReadonlyMap<string, string>): string {
-		const details = this.type_node.details();
+		const details = this._type_node.details();
+		let nested_types = details.union_types;
 		if (details.parenthesized_type.length > 0) {
-			const reference = new TypeScriptReferenceType(details.parenthesized_type[0]);
-			return reference.resolved_name(aliases);
+			nested_types = details.parenthesized_type;
 		}
-		for (const type of details.union_types) {
+		for (const type of nested_types) {
 			const reference = new TypeScriptReferenceType(type);
 			const name = reference.resolved_name(aliases);
 			if (name) {
@@ -48,7 +52,7 @@ export class TypeScriptReferenceType {
 
 	/** Responsibilities: _initialization wrapped TypeScript reference_. **/
 	public constructor(node: ts.TypeNode) {
-		this.type_node = new TypeScriptTypeNode(node);
+		this._type_node = new TypeScriptTypeNode(node);
 	}
 
 	/** Responsibilities: _resolution owner type represented_. **/
@@ -57,7 +61,7 @@ export class TypeScriptReferenceType {
 		if (nested) {
 			return nested;
 		}
-		const details = this.type_node.details();
+		const details = this._type_node.details();
 		return details.reference_name;
 	}
 
@@ -67,7 +71,7 @@ export class TypeScriptReferenceType {
 		if (nested) {
 			return nested;
 		}
-		const name = this.type_node.details().reference_name;
+		const name = this._type_node.details().reference_name;
 		if (!name) {
 			return "";
 		}

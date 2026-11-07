@@ -1,50 +1,52 @@
 import { dirname, join } from "node:path";
 import type { GlobalAnalysisCacheOptions } from "src/cache_types";
 import type { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import type { LintSourceRecord } from "src/source_types";
-import type { ViolationValue } from "src/violation_value";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { LintSourceRecordData } from "src/source_types";
 import type { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 
 /** Responsibilities: _cache fixture source state_, _cache operation access_. **/
 export class FileAnalysisCacheWorkspace {
-	public readonly root: string;
-	public readonly file: string;
-	public readonly typescript_config_file: string;
-	public readonly text: string;
-	public readonly file_io: AstDiskCacheFixture["file_io"];
-	public readonly source_texts: Map<string, string>;
-	public readonly source_io: InMemoryProjectSourceIO;
-	public readonly analysis_identity: AstDiskCacheFixture["identity"];
-	public readonly record: LintSourceRecord;
-	public readonly violation: ViolationValue;
+	private readonly _temporary_write_paths: Set<string>;
+	public readonly _root: string;
+	public readonly _file: string;
+	public readonly _typescript_config_file: string;
+	public readonly _text: string;
+	public readonly _file_io: AstDiskCacheFixture["_file_io"];
+	public readonly _source_texts: Map<string, string>;
+	public readonly _source_io: InMemoryProjectSourceIO;
+	public readonly _analysis_identity: AstDiskCacheFixture["_identity"];
+	public readonly _record: LintSourceRecordData;
+	public readonly _violation: ViolationContract;
 
 	/** Responsibilities: _cache fixture source ownership_. **/
 	public constructor(
 		root: string,
-		file_io: AstDiskCacheFixture["file_io"],
-		analysis_identity: AstDiskCacheFixture["identity"],
+		file_io: AstDiskCacheFixture["_file_io"],
+		analysis_identity: AstDiskCacheFixture["_identity"],
 		source_texts: Map<string, string>,
 		source_io: InMemoryProjectSourceIO,
-		record: LintSourceRecord,
-		violation: ViolationValue,
+		record: LintSourceRecordData,
+		violation: ViolationContract,
 	) {
-		this.root = root;
-		this.file = join(root, "module.ts");
-		this.typescript_config_file = join(root, "tsconfig.json");
-		this.text = "export const value = 1;\n";
-		this.file_io = file_io;
-		this.source_texts = source_texts;
-		this.source_io = source_io;
-		this.analysis_identity = analysis_identity;
-		this.record = record;
-		this.violation = violation;
+		this._temporary_write_paths = new Set();
+		this._root = root;
+		this._file = join(root, "module.ts");
+		this._typescript_config_file = join(root, "tsconfig.json");
+		this._text = "export const value = 1;\n";
+		this._file_io = file_io;
+		this._source_texts = source_texts;
+		this._source_io = source_io;
+		this._analysis_identity = analysis_identity;
+		this._record = record;
+		this._violation = violation;
 	}
 
 	/** Responsibilities: _virtual source file mutation_. **/
 	public write_source(file: string, text: string): void {
-		this.file_io.directory_operations.create_directory(dirname(file));
-		this.file_io.file_content.write_text(file, text);
-		this.source_texts.set(file, text);
+		this._file_io.create_directory(dirname(file));
+		this._file_io.file(file).write_text(text);
+		this._source_texts.set(file, text);
 	}
 
 	/** Responsibilities: _global cache options_. **/
@@ -54,44 +56,48 @@ export class FileAnalysisCacheWorkspace {
 		entry_files: readonly string[],
 	): GlobalAnalysisCacheOptions {
 		return {
-			repo_root: this.root,
-			records: [this.record],
+			repo_root: this._root,
+			records: [this._record],
 			files,
 			ignored_files,
 			entry_files,
-			identity: this.analysis_identity,
-			file_io: this.file_io,
-			source_io: this.source_io,
+			identity: this._analysis_identity,
+			context_identity: this._analysis_identity.context([this._record]),
+			file_io: this._file_io,
+			source_io: this._source_io,
+			temporary_write_paths: this._temporary_write_paths,
 		};
 	}
 
 	/** Responsibilities: _cached diagnostic corruption_. **/
 	public corrupt_cache(directory_name: string): boolean {
-		const directory = join(this.root, ".ai-code-guard", "cache", directory_name);
-		const [name] = this.file_io.directory_entries.list_files(directory);
-		if (name === undefined) {
-			return false;
+		const directory = join(this._root, ".ai-code-guard", "cache", directory_name);
+		for (const name of this._file_io.list_files(directory)) {
+			const path = join(directory, name);
+			const serialized_record = this._file_io.file(path).file_text();
+			const malformed_record = serialized_record.replace(/,"priority":\d+/u, "");
+			if (malformed_record === serialized_record) {
+				return false;
+			}
+			this._file_io.file(path).write_text(malformed_record);
+			return true;
 		}
-		const path = join(directory, name);
-		const record = JSON.parse(this.file_io.file_content.file_text(path));
-		const first_violation = record.violations[0];
-		const { priority: _priority, ...malformed_violation } = first_violation;
-		record.violations[0] = malformed_violation;
-		this.file_io.file_content.write_text(path, JSON.stringify(record));
-		return true;
+		return false;
 	}
 
 	/** Responsibilities: _cached null diagnostic injection_. **/
 	public corrupt_with_null_diagnostic(directory_name: string): boolean {
-		const directory = join(this.root, ".ai-code-guard", "cache", directory_name);
-		const [name] = this.file_io.directory_entries.list_files(directory);
-		if (name === undefined) {
-			return false;
+		const directory = join(this._root, ".ai-code-guard", "cache", directory_name);
+		for (const name of this._file_io.list_files(directory)) {
+			const path = join(directory, name);
+			const serialized_record = this._file_io.file(path).file_text();
+			const malformed_record = serialized_record.replace('"violations":[', '"violations":[null,');
+			if (malformed_record === serialized_record) {
+				return false;
+			}
+			this._file_io.file(path).write_text(malformed_record);
+			return true;
 		}
-		const path = join(directory, name);
-		const record = JSON.parse(this.file_io.file_content.file_text(path));
-		record.violations[0] = null;
-		this.file_io.file_content.write_text(path, JSON.stringify(record));
-		return true;
+		return false;
 	}
 }

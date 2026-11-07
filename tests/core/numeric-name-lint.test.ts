@@ -1,15 +1,15 @@
-import { TestFixture } from "tests/core/test-fixture";
-import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
-import { NodeFileIO } from "src/io/node_file_io";
 import { describe, expect, test } from "@jest/globals";
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint numeric name rule", () => {
 	test("rejects numbers in TypeScript names including local symbols", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"type Data2 = string;",
@@ -26,10 +26,12 @@ describe("coding-lint numeric name rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const numeric_violations = violations.filter((violation) => violation.rule_id === "numeric-name");
+		const numeric_violations = violations.filter((violation) => violation.rule_id() === "numeric-name");
 		expect({
 			count: numeric_violations.length,
-			messages: numeric_violations.every((violation) => violation.message === "symbol names must not contain numbers"),
+			messages: numeric_violations.every(
+				(violation) => violation.message() === "symbol names must not contain numbers",
+			),
 		}).toEqual({ count: 6, messages: true });
 	});
 
@@ -37,7 +39,7 @@ describe("coding-lint numeric name rule", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"Data2 = dict[str, str]",
@@ -55,10 +57,12 @@ describe("coding-lint numeric name rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const numeric_violations = violations.filter((violation) => violation.rule_id === "numeric-name");
+		const numeric_violations = violations.filter((violation) => violation.rule_id() === "numeric-name");
 		expect({
 			count: numeric_violations.length,
-			messages: numeric_violations.every((violation) => violation.message === "symbol names must not contain numbers"),
+			messages: numeric_violations.every(
+				(violation) => violation.message() === "symbol names must not contain numbers",
+			),
 		}).toEqual({ count: 8, messages: true });
 	});
 });

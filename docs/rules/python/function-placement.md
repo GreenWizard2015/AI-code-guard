@@ -13,6 +13,20 @@ code inline in `cli.{ext}`.
 # File: src/worker.py
 def resolve_status(status: str) -> str:
     return status.upper()
+
+# File: src/status_reporter.py
+class StatusReporter:
+    def report(self, status: str) -> None:
+        print(f"Status: {status}")
+
+# File: cli.py
+from src.status_reporter import StatusReporter
+from src.worker import resolve_status
+
+if __name__ == "__main__":
+    resolved_status = resolve_status("ready")
+    reporter = StatusReporter()
+    reporter.report(resolved_status)
 ```
 
 ## Good
@@ -25,14 +39,14 @@ class StatusLabels:
 
     def __init__(self, labels: dict[str, str], fallback: str) -> None:
         """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+        self._labels: dict[str, str] = labels
+        self._fallback: str = fallback
 
     def label(self, status: str) -> str:
         """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+        if status in self._labels:
+            return self._labels[status]
+        return self._fallback
 
     def label_with_prefix(self, prefix: str, status: str) -> str:
         """Responsibilities: _prefixed label composition_."""
@@ -41,23 +55,30 @@ class StatusLabels:
 
     def uppercase_fallback(self) -> str:
         """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
+        normalized = self._fallback.strip()
         return normalized.upper()
 
     def status_count(self) -> int:
         """Responsibilities: _mapping size reporting_."""
         count = 0
-        for status_name in self.labels:
+        for status_name in self._labels:
             if status_name:
                 count += 1
         return count
+
+    def report(self) -> None:
+        """Responsibilities: _status report output_."""
+        lines = [
+            self.label("ready"),
+            self.label_with_prefix("State", "ready"),
+            self.uppercase_fallback(),
+            str(self.status_count()),
+        ]
+        print(" | ".join(lines))
 # File: cli.py
 from src.status_labels.status_labels import StatusLabels
 
 if __name__ == "__main__":
     owner = StatusLabels({"ready": "Ready"}, "Unknown")
-    print(owner.label("ready"))
-    print(owner.label_with_prefix("State", "ready"))
-    print(owner.uppercase_fallback())
-    print(owner.status_count())
+    owner.report()
 ```

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from implementation.ast.protocols import PythonAstCallableDependenciesContract
 from implementation.ast.protocols import (
+    PythonAstCallableDependenciesContract,
     PythonAstSymbolNodesContract,
+    PythonCallableStatementsContract,
     PythonFunctionNodesContract,
 )
-from implementation.ast.protocols import PythonCallableStatementsContract
 
 
 class PythonAstCallableState:
@@ -21,13 +21,9 @@ class PythonAstCallableState:
         callable_statements: PythonCallableStatementsContract,
     ) -> None:
         """Responsibilities: _callable state initialization_."""
-        self._function_nodes: PythonFunctionNodesContract = (
-            dependencies.function_nodes()
-        )
+        self._function_nodes: PythonFunctionNodesContract = dependencies.function_nodes()
         self._symbols: PythonAstSymbolNodesContract = dependencies.symbols()
-        self._callable_statements: PythonCallableStatementsContract = (
-            callable_statements
-        )
+        self._callable_statements: PythonCallableStatementsContract = callable_statements
 
     def function_nodes(self) -> PythonFunctionNodesContract:
         """Responsibilities: _function node access_."""

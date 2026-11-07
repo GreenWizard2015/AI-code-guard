@@ -14,15 +14,31 @@ for TypeScript and Python callables, including methods.
 
 
 ```python
-def read_ready_value(source: Source) -> str:
-    if source.enabled:
-        for item in source.items:
-            if item.visible:
-                try:
-                    return item.value
-                except ValueError:
-                    continue
-    return ""
+# File: src/content_source.py
+class ContentSource:
+    def __init__(self, enabled: bool, values: list[str], visible: list[bool]) -> None:
+        self._enabled: bool = enabled
+        self._values: list[str] = values
+        self._visible: list[bool] = visible
+
+    def read_ready_value(self) -> str:
+        if self._enabled:
+            for index, value in enumerate(self._values):
+                if self._visible[index]:
+                    try:
+                        return value
+                    except ValueError:
+                        continue
+        return ""
+
+    def report(self) -> None:
+        print(f"Ready value: {self.read_ready_value()}")
+# File: cli.py
+from src.content_source import ContentSource
+
+if __name__ == "__main__":
+    source = ContentSource(True, ["ready"], [True])
+    source.report()
 ```
 
 ## Good
@@ -35,24 +51,24 @@ class ContentSource:
 
     def __init__(self, content: str, path: str) -> None:
         """Responsibilities: _source initialization_."""
-        self.content: str = content
-        self.path: str = path
+        self._content: str = content
+        self._path: str = path
 
     def value_when_ready(self) -> str:
         """Responsibilities: _ready value selection_."""
-        normalized_content = self.content.strip()
+        normalized_content = self._content.strip()
         if len(normalized_content) == 0:
             return ""
         return normalized_content
 
     def file_name(self) -> str:
         """Responsibilities: _file label composition_."""
-        separator = self.path.rfind("/")
-        return self.path[separator + 1:]
+        separator = self._path.rfind("/")
+        return self._path[separator + 1:]
 
     def word_count(self) -> int:
         """Responsibilities: _word count_."""
-        normalized_content = self.content.strip()
+        normalized_content = self._content.strip()
         words = normalized_content.split()
         return len(words)
 
@@ -60,14 +76,14 @@ class ContentSource:
         """Responsibilities: _source summary_."""
         count = self.word_count()
         return f"{self.file_name()} ({count} words)"
+
+    def report(self) -> None:
+        """Responsibilities: _source report output_."""
+        print(f"{self.value_when_ready()} | {self.summary()}")
 # File: cli.py
-from content_source.content_source import ContentSource
+from src.content_source.content_source import ContentSource
 
 if __name__ == "__main__":
     source = ContentSource("  ready value  ", "notes.txt")
-    ready_value = source.value_when_ready()
-    label = source.file_name()
-    count = source.word_count()
-    summary = source.summary()
-    print(f"{ready_value} {label} {count} {summary}")
+    source.report()
 ```

@@ -1,6 +1,7 @@
 // Filesystem and process errors treated as expected boundary failures.
 export const SYSTEM_PERMISSION_DENIED_CODE = "EPERM";
 export const SYSTEM_MISSING_PROCESS_CODE = "ESRCH";
+export const SYNTAX_ERROR_PREFIX = "SyntaxError:";
 export const SYSTEM_FAILURE_CODES: readonly string[] = [
 	"EACCES",
 	"EBUSY",

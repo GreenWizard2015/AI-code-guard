@@ -44,8 +44,8 @@ class PythonReferenceNameIndex:
     def annotation_name(
         self,
         resolver: PythonAnnotationResolverContract,
-        annotation: ast.AST,
-        generics: frozenset[str],
+        annotation: ast.expr,
+        generics: set[str],
     ) -> str:
         """Responsibilities: _annotation alias resolution_."""
         resolved = resolver.annotation_name(annotation, self._aliases, generics)
@@ -55,16 +55,22 @@ class PythonReferenceNameIndex:
 
     def callable_key(self, node: ast.AST) -> str:
         """Responsibilities: _callable scope identity_."""
-        if type(node) not in (ast.FunctionDef, ast.AsyncFunctionDef):
-            return ""
+        match node:
+            case ast.FunctionDef(name=name) | ast.AsyncFunctionDef(name=name):
+                pass
+            case _:
+                return ""
         scopes = self._lexical_scope.scope_chain(node)
         if scopes:
             if scopes[0] == str(id(node)):
                 scopes = scopes[1:]
-        return f"{scopes[0]}\u0000{node.name}"
+        return f"{scopes[0]}\u0000{name}"
 
     def call_return_owner(
-        self, function: ast.AST, node: ast.AST, fallback_to_name: bool
+        self,
+        function: ast.AST,
+        node: ast.AST,
+        fallback_to_name: bool,
     ) -> str:
         """Responsibilities: _positioned callable output ownership_."""
         if type(function) is not ast.Name:

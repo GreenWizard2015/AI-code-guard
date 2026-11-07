@@ -1,7 +1,7 @@
 export const MODULES_RULE_DATA = {
 	"mixed-module": {
-		message: "avoid mixing classes and functions in the same file",
-		hint: "put the class and free functions in separate focused modules. Do not: mix two ownership models in one file.",
+		message: "avoid mixing classes and functions or tests with module-level declarations",
+		hint: "Keep implementation modules focused on class and function ownership. Jest test modules may contain imports and test declarations; move module-level helper classes, functions, values, and types to support files. Do not: mix tests with module-level entities.",
 		priority: 6,
 	},
 	"unused-module-variable": {
@@ -69,36 +69,43 @@ export const MODULES_RULE_DATA = {
 			"{target} ({members}) is imported from {importers}; {placement_message}. Suggested location(s): {suggestions}. {guidance}",
 		hint: "Move {target} with {members} to the listed ownership locations. Importers: {importers}. Keep each listed class, protocol, type, constant, and function together.",
 		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"directory-min-size": {
 		message: "directory contains too few files (found {count})",
 		hint: "move the module to its parent directory or merge it with a focused sibling. Do not: add placeholder files just to satisfy the directory structure.",
 		priority: 7,
+		task_report_scope: "directory",
 	},
 	"ai-code-guard-directory-ignored": {
 		message: ".ai-code-guard directory is not ignored by Git",
 		hint: "Add .ai-code-guard/ to the project-root .gitignore so reports, caches, and review state are not committed.",
 		priority: 7,
+		task_report_scope: "directory",
 	},
 	"directory-max-size": {
 		message: "directory contains too many files (found {count})",
 		hint: "split the directory by domain ownership or move one cohesive group into a child directory. Do not: add placeholder files or hide the size behind wrappers.",
 		priority: 3,
+		task_report_scope: "directory",
 	},
 	"directory-max-source-subdirectories": {
 		message: "directory contains too many source subdirectories (found {count})",
 		hint: "group related source subdirectories under focused intermediate directories. Do not: count empty or test-only directories.",
 		priority: 3,
+		task_report_scope: "directory",
 	},
 	"directory-class-min-size": {
 		message: "directory contains too few classes (found {count})",
 		hint: "move the module to its parent directory or group related classes in one focused sibling. Do not: add placeholder classes or files.",
 		priority: 7,
+		task_report_scope: "directory",
 	},
 	"directory-class-max-size": {
 		message: "directory contains too many classes (found {count})",
 		hint: "hide implementation details one level below or move one cohesive group to a focused parent or child directory. Do not: add placeholder classes or files.",
 		priority: 3,
+		task_report_scope: "directory",
 	},
 	"facade-file-content": {
 		message: "facade file must contain only re-exports",
@@ -119,6 +126,7 @@ export const MODULES_RULE_DATA = {
 		message: "module-level functions must be declared in the project-root functions file",
 		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. A cli.{ext} module may contain one entry-point function; keep all other behavior in domain classes. CLI startup wrappers may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
 		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"cli-file-function-count": {
 		message: "cli file contains more than one free function",

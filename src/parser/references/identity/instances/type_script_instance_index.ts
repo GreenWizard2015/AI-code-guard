@@ -1,17 +1,17 @@
 import ts from "typescript";
 
+import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
 import type { DestructuredAlias } from "src/model/types";
 import type { TypeScriptInstanceLookup } from "src/model/types";
 import type { DestructuredInstanceOptions } from "src/model/types";
-import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
 import { TypeScriptInstanceBindings } from "src/parser/references/identity/instances/type_script_instance_bindings";
 import { TypeScriptLexicalScope } from "src/parser/references/instance/type_script_lexical_scope";
 
 /** Responsibilities: _scoped instance indexing_, _destructured alias storage_. **/
 export class TypeScriptInstanceIndex implements TypeScriptInstanceStoreContract {
-	private readonly scope_resolver: TypeScriptLexicalScope;
-	private readonly instances: TypeScriptInstanceBindings;
-	private readonly imported_instances: Map<string, string>;
+	private readonly _scope_resolver: TypeScriptLexicalScope;
+	private readonly _instances: TypeScriptInstanceBindings;
+	private readonly _imported_instances: Map<string, string>;
 
 	/** Responsibilities: _binding owner before reference_. **/
 	private binding_owner(
@@ -29,24 +29,24 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStoreContract 
 	}
 
 	/** Responsibilities: _initialization source file scope_. **/
-	constructor(source_file: ts.SourceFile) {
-		this.instances = new TypeScriptInstanceBindings();
-		this.imported_instances = new Map<string, string>();
-		this.scope_resolver = new TypeScriptLexicalScope(source_file);
+	public constructor(source_file: ts.SourceFile) {
+		this._instances = new TypeScriptInstanceBindings();
+		this._imported_instances = new Map<string, string>();
+		this._scope_resolver = new TypeScriptLexicalScope(source_file);
 	}
 
 	/** Responsibilities: _instance owner more addition_. **/
 	public add(name: string, owner: string, ...nodes: ts.Node[]): void {
 		const node = nodes[0];
 		if (node) {
-			let scope = this.scope_resolver.declaration_scope(node);
+			let scope = this._scope_resolver.declaration_scope(node);
 			if (ts.isBinaryExpression(node) && ts.isIdentifier(node.left)) {
-				scope = this.scope_resolver.assignment_scope(node);
+				scope = this._scope_resolver.assignment_scope(node);
 			}
-			this.instances.add(scope, name, node, owner);
+			this._instances.add(scope, name, node, owner);
 			return;
 		}
-		this.imported_instances.set(name, owner);
+		this._imported_instances.set(name, owner);
 	}
 
 	/** Responsibilities: _instance owner supplied addition_. **/
@@ -67,13 +67,13 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStoreContract 
 
 	/** Responsibilities: _resolution indexing owner name_. **/
 	public instance_owner(name: string, node: ts.Node): TypeScriptInstanceLookup {
-		for (const scope of this.scope_resolver.scope_chain(node)) {
-			const owner = this.binding_owner(this.instances.bindings(scope, name), node);
+		for (const scope of this._scope_resolver.scope_chain(node)) {
+			const owner = this.binding_owner(this._instances.bindings(scope, name), node);
 			if (owner.bound) {
 				return owner;
 			}
 		}
-		for (const [imported_name, imported_owner] of this.imported_instances) {
+		for (const [imported_name, imported_owner] of this._imported_instances) {
 			if (imported_name === name) {
 				return { bound: true, value: imported_owner };
 			}

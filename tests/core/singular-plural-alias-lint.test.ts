@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("singular plural alias rule", () => {
 	test("reports direct field aliases", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"interface-alias.ts": "type Control = { item?: string; items?: string[]; };",
 			},
@@ -16,14 +16,14 @@ describe("singular plural alias rule", () => {
 		);
 
 		expect(
-			execution.report.violations.filter((item) => item.rule_id === "typescript-singular-plural-alias"),
+			execution.report.violations.filter((item) => item.rule_id() === "typescript-singular-plural-alias"),
 		).toHaveLength(2);
 	});
 
 	test("resolves aliases through direct and multiple interface inheritance", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"direct-inheritance.ts": [
 					"interface SingularPart { item?: string; }",
@@ -41,7 +41,7 @@ describe("singular plural alias rule", () => {
 		);
 
 		expect(
-			execution.report.violations.filter((item) => item.rule_id === "typescript-singular-plural-alias"),
+			execution.report.violations.filter((item) => item.rule_id() === "typescript-singular-plural-alias"),
 		).toHaveLength(2);
 	});
 });

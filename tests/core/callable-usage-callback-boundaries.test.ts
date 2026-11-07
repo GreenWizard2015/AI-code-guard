@@ -1,18 +1,18 @@
-import "src/linting/orchestration/runtime/global-analysis/composition_model";
+import "src/linting/composition/composition_model";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
+import "src/callable_usage";
 import { describe, expect, test } from "@jest/globals";
 import { PYTHON_FRAMEWORK_HOOK_FILES } from "tests/core/constants/alias_analysis/constants";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint callable usage advanced - callback boundaries", () => {
 	test("resolves methods called through local structural method aliases", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export class Resolver {",
@@ -32,14 +32,16 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "Resolver.resolve" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "Resolver.resolve" is used'))).toBe(
+			false,
+		);
 	});
 
 	test("resolves methods called through imported function return properties", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"collector.ts": ["export class Collector {", "  collect() { return []; }", "}"].join("\n"),
 				"context.ts": [
@@ -63,7 +65,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 		);
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Collector.collect" has insufficient production usage (found 0'),
+				violation.message().includes('method "Collector.collect" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
@@ -72,7 +74,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export function registered_handler() { return 1; }",
@@ -96,7 +98,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 
 		expect(
 			violations.some((violation) =>
-				/function "registered_(handler|execute)" has insufficient production usage \(found 0/.test(violation.message),
+				/function "registered_(handler|execute)" has insufficient production usage \(found 0/.test(violation.message()),
 			),
 		).toBe(false);
 	});
@@ -105,7 +107,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": "function wait_for_title() { return Promise.resolve(); }",
 				"one.ts": [
@@ -117,14 +119,16 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('function "wait_for_title" is used'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('function "wait_for_title" is used'))).toBe(
+			false,
+		);
 	});
 
 	test("does not confuse domain bind methods with Function.bind", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"class View {",
@@ -140,7 +144,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "View.bind" has insufficient production usage (found 0'),
+				violation.message().includes('method "View.bind" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});
@@ -149,15 +153,15 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			PYTHON_FRAMEWORK_HOOK_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			property: violations.some((violation) => violation.message.includes('method "Handler.value"')),
-			cached: violations.some((violation) => violation.message.includes('method "Handler.cached"')),
-			hook: violations.some((violation) => violation.message.includes('method "Handler.do_GET"')),
+			property: violations.some((violation) => violation.message().includes('method "Handler.value"')),
+			cached: violations.some((violation) => violation.message().includes('method "Handler.cached"')),
+			hook: violations.some((violation) => violation.message().includes('method "Handler.do_GET"')),
 		}).toEqual({ property: false, cached: false, hook: true });
 	});
 
@@ -165,7 +169,7 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.py": [
 					"class Dispatcher:",
@@ -185,12 +189,14 @@ describe("coding-lint callable usage advanced - callback boundaries", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Dispatcher.handle_register" has insufficient production usage (found 0'),
+				violation.message().includes('method "Dispatcher.handle_register" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('method "Dispatcher.handle_unregister" has insufficient production usage (found 0'),
+				violation
+					.message()
+					.includes('method "Dispatcher.handle_unregister" has insufficient production usage (found 0'),
 			),
 		).toBe(false);
 	});

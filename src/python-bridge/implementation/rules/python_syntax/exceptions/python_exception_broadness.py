@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Sequence
 
 from implementation.references.protocols import (
     PythonContainerKeysContract,
-    PythonExceptionAliasSnapshotContract,
-)
-from implementation.references.protocols import (
     PythonContainerValuesContract,
+    PythonExceptionAliasSnapshotContract,
 )
 from implementation.rules.constants import (
     PYTHON_BASE_EXCEPTION_NAME,
@@ -45,47 +44,24 @@ class PythonExceptionBroadness:
                 local_name = imported.asname
             self._module_names.add(local_name)
 
-    def _tuple_broad(self, value: ast.AST) -> bool:
-        """Responsibilities: _tuple exception classification_."""
-        if type(value) is ast.Call:
-            return self._tuple_constructor_broad(value)
-        if type(value) is ast.List:
-            return self._sequence_broad(value.elts)
-        if type(value) is not ast.Tuple:
-            return False
-        return self._tuple_items_broad(value.elts)
-
     def _tuple_constructor_broad(self, value: ast.Call) -> bool:
         """Responsibilities: _tuple constructor classification_."""
         if type(value.func) is not ast.Name:
             return False
         if value.func.id != "tuple" or len(value.args) != 1:
             return False
-        return self._tuple_broad(value.args[0])
+        return self.broad(value.args[0])
 
-    def _tuple_items_broad(self, values: list[ast.AST]) -> bool:
+    def _tuple_items_broad(self, values: Sequence[ast.AST]) -> bool:
         """Responsibilities: _tuple item classification_."""
         for item in values:
             if type(item) is ast.Starred:
-                if self._exception_value_broad(item.value):
+                if self.broad(item.value):
                     return True
                 continue
-            if self._exception_value_broad(item):
+            if self.broad(item):
                 return True
         return False
-
-    def _sequence_broad(self, values: list[ast.AST]) -> bool:
-        """Responsibilities: _sequence exception classification_."""
-        for value in values:
-            if self._exception_value_broad(value):
-                return True
-        return False
-
-    def _exception_value_broad(self, value: ast.AST) -> bool:
-        """Responsibilities: _nested exception classification_."""
-        if self.broad(value):
-            return True
-        return self._tuple_broad(value)
 
     def _broad_getattr(self, value: ast.Call) -> bool:
         """Responsibilities: _reflected exception classification_."""
@@ -100,7 +76,7 @@ class PythonExceptionBroadness:
             return False
         if target.id not in self._module_names:
             return False
-        name = self.container_keys.static_key(value.args[1])
+        name = self._container_keys.static_key(value.args[1])
         return name in self._broad_exception_names
 
     def _broad_attribute(self, value: ast.Attribute) -> bool:
@@ -114,10 +90,20 @@ class PythonExceptionBroadness:
 
     def _broad_subscript(self, value: ast.Subscript) -> bool:
         """Responsibilities: _subscript exception classification_."""
-        resolved = self.container_values.container_value(value)
+        resolved = self._container_values.container_value(value)
         if not resolved.found():
             return False
         return self.broad(resolved.expression_node())
+
+    def _broad_container(self, value: ast.AST) -> bool:
+        """Responsibilities: _container exception classification_."""
+        if type(value) is ast.Tuple:
+            return self._tuple_items_broad(value.elts)
+        if type(value) is ast.List:
+            return any(self.broad(item) for item in value.elts)
+        if type(value) is ast.Subscript:
+            return self._broad_subscript(value)
+        return False
 
     def __init__(
         self,
@@ -130,8 +116,8 @@ class PythonExceptionBroadness:
             PYTHON_BASE_EXCEPTION_NAME,
         }
         self._module_names: set[str] = {PYTHON_BUILTINS_MODULE}
-        self.container_keys: PythonContainerKeysContract = container_keys
-        self.container_values: PythonContainerValuesContract = container_values
+        self._container_keys: PythonContainerKeysContract = container_keys
+        self._container_values: PythonContainerValuesContract = container_values
 
     def observe(self, node: ast.AST) -> None:
         """Responsibilities: _exception import observation_."""
@@ -158,19 +144,16 @@ class PythonExceptionBroadness:
         if type(value) is ast.Name:
             return value.id in self._broad_exception_names
         if type(value) is ast.Call:
-            if self._tuple_broad(value):
+            if self._tuple_constructor_broad(value):
                 return True
             return self._broad_getattr(value)
         if type(value) is ast.Attribute:
             return self._broad_attribute(value)
-        if type(value) in (ast.Tuple, ast.List):
-            return self._tuple_broad(value)
-        if type(value) is ast.Subscript:
-            return self._broad_subscript(value)
-        return False
+        return self._broad_container(value)
 
     def snapshot(
-        self, multi_names: frozenset[str]
+        self,
+        multi_names: frozenset[str],
     ) -> PythonExceptionAliasSnapshotContract:
         """Responsibilities: _exception alias snapshot_."""
         return PythonExceptionAliasSnapshot(

@@ -1,14 +1,57 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Jest assertion and structure rules", () => {
+	test("reports mixed-module for every module-level declaration kind beside Jest tests", () => {
+		const fixture = new TestFixture();
+		const declarations = [
+			"class FixtureClass {}",
+			"function fixture_function(): void {}",
+			"const fixture_value = true;",
+			"type FixtureType = string;",
+			"interface FixtureContract {}",
+			"enum FixtureState { Ready }",
+			"namespace FixtureNamespace {}",
+		];
+		const mixed_test_files = Object.fromEntries(
+			declarations.map((declaration, index) => [
+				`tests/mixed-entity-${index}.test.ts`,
+				[
+					declaration,
+					"describe('subject', () => {",
+					"  test('works', () => {",
+					"    const local_value = true;",
+					"    expect(local_value).toBe(true);",
+					"  });",
+					"});",
+				].join("\n"),
+			]),
+		);
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				...mixed_test_files,
+				"tests/imports-only.test.ts": [
+					"import { describe, expect, test } from '@jest/globals';",
+					"describe('subject', () => { test('works', () => { expect(true).toBe(true); }); });",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const mixed_module_violations = violations.filter((item) => item.rule_id() === "mixed-module");
+		expect(mixed_module_violations.map((item) => item.file())).toEqual(
+			declarations.map((_, index) => `tests/mixed-entity-${index}.test.ts`),
+		);
+	});
+
 	test("requires direct, final assertions and rejects nested suites", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/nested-expect.test.ts": [
 					"describe('nested expect', () => {",
@@ -73,9 +116,9 @@ describe("Jest assertion and structure rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			missing_direct_expect: violations.filter((item) => item.rule_id === "typescript-jest-test-expect").length,
-			unfinished_assertions: violations.filter((item) => item.rule_id === "typescript-jest-test-ending").length,
-			nested_suites: violations.filter((item) => item.rule_id === "typescript-jest-nested-describe").length,
+			missing_direct_expect: violations.filter((item) => item.rule_id() === "typescript-jest-test-expect").length,
+			unfinished_assertions: violations.filter((item) => item.rule_id() === "typescript-jest-test-ending").length,
+			nested_suites: violations.filter((item) => item.rule_id() === "typescript-jest-nested-describe").length,
 		}).toEqual({ missing_direct_expect: 3, unfinished_assertions: 5, nested_suites: 2 });
 	});
 
@@ -91,7 +134,7 @@ describe("Jest assertion and structure rules", () => {
 		];
 		const modifier_test_source = modifier_test_lines.join("\n");
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"tests/spec-file.spec.ts": [
 					"describe('spec file', () => {",
@@ -112,9 +155,9 @@ describe("Jest assertion and structure rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			minimum: violations.filter((item) => item.rule_id === "test-min-count").length,
-			maximum: violations.filter((item) => item.rule_id === "test-max-count").length,
-			ending: violations.filter((item) => item.rule_id === "typescript-jest-test-ending").length,
+			minimum: violations.filter((item) => item.rule_id() === "test-min-count").length,
+			maximum: violations.filter((item) => item.rule_id() === "test-max-count").length,
+			ending: violations.filter((item) => item.rule_id() === "typescript-jest-test-ending").length,
 		}).toEqual({ minimum: 2, maximum: 1, ending: 1 });
 	});
 });

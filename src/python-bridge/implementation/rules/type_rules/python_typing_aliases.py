@@ -28,88 +28,84 @@ class PythonTypingAliases:
             if imported.asname is not None:
                 local_name = imported.asname
             if imported.name == PYTHON_OPTIONAL_NAME:
-                self.optional_names.add(local_name)
+                self._optional_names.add(local_name)
             if imported.name == PYTHON_UNION_NAME:
-                self.union_names.add(local_name)
+                self._union_names.add(local_name)
 
     def _configure_assignment_targets(
         self,
-        targets: list[ast.AST],
-        value: ast.AST,
-        container_aliases: PythonContainerAliasesContract,
+        targets: list[ast.expr],
+        assigned_value: ast.AST,
     ) -> None:
         """Responsibilities: _configuration assigned typing aliases_."""
         target_values: dict[str, ast.AST] = {}
         for target in targets:
             target_values.update(
-                self.assignment_aliases.target_values(
-                    target, value, references_only=False
-                )
+                self._assignment_aliases.target_values(
+                    target,
+                    assigned_value,
+                    references_only=False,
+                ),
             )
-        for target, source in target_values.items():
-            name = self.expression_name(source, container_aliases)
-            self.optional_names.discard(target)
-            self.union_names.discard(target)
+        for target_name, source in target_values.items():
+            name = self.expression_name(source)
+            self._optional_names.discard(target_name)
+            self._union_names.discard(target_name)
             if name == PYTHON_OPTIONAL_NAME:
-                self.optional_names.add(target)
+                self._optional_names.add(target_name)
             if name == PYTHON_UNION_NAME:
-                self.union_names.add(target)
+                self._union_names.add(target_name)
 
-    def _subscript_expression_name(
-        self, value: ast.Subscript, container_aliases: PythonContainerAliasesContract
-    ) -> str:
+    def _subscript_expression_name(self, subscript: ast.Subscript) -> str:
         """Responsibilities: _typing alias subscript name_."""
-        resolved = container_aliases.container_values.container_value(value)
+        resolved = self._container_aliases.container_values().container_value(subscript)
         if not resolved.found():
             return ""
-        return self.expression_name(resolved.expression_node(), container_aliases)
+        return self.expression_name(resolved.expression_node())
 
-    def _named_expression_name(self, value: ast.AST) -> str:
+    def _named_expression_name(self, name_expression: ast.AST) -> str:
         """Responsibilities: _typing alias named expression_."""
-        if type(value) is ast.Name:
-            if value.id in self.optional_names:
+        if type(name_expression) is ast.Name:
+            if name_expression.id in self._optional_names:
                 return PYTHON_OPTIONAL_NAME
-            if value.id in self.union_names:
+            if name_expression.id in self._union_names:
                 return PYTHON_UNION_NAME
-        if type(value) is ast.Attribute:
-            if value.attr in {PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME}:
-                return value.attr
+        if type(name_expression) is ast.Attribute:
+            if name_expression.attr in {PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME}:
+                return name_expression.attr
         return ""
 
-    def __init__(self, assignment_aliases: PythonReferenceAliasesContract) -> None:
-        """Responsibilities: _configuration typing names_."""
-        self.optional_names: set[str] = {PYTHON_OPTIONAL_NAME}
-        self.union_names: set[str] = {PYTHON_UNION_NAME}
-        self.assignment_aliases: PythonReferenceAliasesContract = assignment_aliases
-
-    def expression_name(
-        self, value: ast.AST, container_aliases: PythonContainerAliasesContract
-    ) -> str:
-        """Responsibilities: _resolution typing alias expression_."""
-        if type(value) is ast.Subscript:
-            return self._subscript_expression_name(value, container_aliases)
-        return self._named_expression_name(value)
-
-    def observe(
-        self, node: ast.AST, container_aliases: PythonContainerAliasesContract
+    def __init__(
+        self,
+        assignment_aliases: PythonReferenceAliasesContract,
+        container_aliases: PythonContainerAliasesContract,
     ) -> None:
+        """Responsibilities: _configuration typing names_."""
+        self._optional_names: set[str] = {PYTHON_OPTIONAL_NAME}
+        self._union_names: set[str] = {PYTHON_UNION_NAME}
+        self._assignment_aliases: PythonReferenceAliasesContract = assignment_aliases
+        self._container_aliases: PythonContainerAliasesContract = container_aliases
+
+    def expression_name(self, expression: ast.AST) -> str:
+        """Responsibilities: _resolution typing alias expression_."""
+        if type(expression) is ast.Subscript:
+            return self._subscript_expression_name(expression)
+        return self._named_expression_name(expression)
+
+    def observe(self, node: ast.AST) -> None:
         """Responsibilities: _observation typing aliases_."""
-        container_aliases.observe(node)
+        self._container_aliases.observe(node)
         self._import_aliases(node)
         if type(node) is ast.Assign:
-            self._configure_assignment_targets(
-                node.targets, node.value, container_aliases
-            )
+            self._configure_assignment_targets(node.targets, node.value)
             return
         if type(node) is ast.AnnAssign and node.value is not None:
-            self._configure_assignment_targets(
-                [node.target], node.value, container_aliases
-            )
+            self._configure_assignment_targets([node.target], node.value)
 
     def matches_optional(self, name: str) -> bool:
         """Responsibilities: _identification optional name_."""
-        return name in self.optional_names
+        return name in self._optional_names
 
     def matches_union(self, name: str) -> bool:
         """Responsibilities: _identification union name_."""
-        return name in self.union_names
+        return name in self._union_names

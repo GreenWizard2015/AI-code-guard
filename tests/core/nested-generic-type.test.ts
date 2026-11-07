@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("nested generic boundaries", () => {
 	test("reports nested generic applications across declarations", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested.ts": ["type Stored = Promise<Array<Result>>;", "type Indexed = Map<string, Promise<Result>>;"].join(
 					"\n",
@@ -29,17 +29,19 @@ describe("nested generic boundaries", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const nested_types = violations.filter((item) => item.rule_id === "nested-generic-type");
+		const nested_types = violations.filter((item) => item.rule_id() === "nested-generic-type");
 		expect(nested_types).toHaveLength(7);
-		expect(nested_types.filter((item) => item.file === "boundaries.ts")).toHaveLength(4);
+		expect(nested_types.filter((item) => item.file() === "boundaries.ts")).toHaveLength(4);
 	});
 
 	test("accepts one generic layer and named inner aliases", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested.ts": [
+					"type ImporterNameBuckets = Map<string, Result[]>;",
+					"type ImporterBuckets = Map<string, ImporterNameBuckets>;",
 					"type ResultBatch = Array<Result>;",
 					"type Stored = Promise<ResultBatch>;",
 					"type Direct = Promise<Result>;",
@@ -55,6 +57,6 @@ describe("nested generic boundaries", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.rule_id === "nested-generic-type")).toHaveLength(0);
+		expect(violations.filter((item) => item.rule_id() === "nested-generic-type")).toHaveLength(0);
 	});
 });

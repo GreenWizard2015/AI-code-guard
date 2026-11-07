@@ -1,11 +1,11 @@
 import { join } from "node:path";
-import ts from "typescript";
 import { describe, expect, test } from "@jest/globals";
-import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
-import { ProjectSourceImports } from "src/core/project-source/project_source_imports";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
+import { ProjectSourceImports } from "src/core/project-source/project_source_imports";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
 import { TestFixture } from "tests/core/test-fixture";
+import ts from "typescript";
 
 describe("TypeScript reference project root", () => {
 	test("resolves imports against the selected project root", () => {
@@ -64,9 +64,9 @@ describe("TypeScript reference project root", () => {
 		const root = "/virtual/typescript-import-language";
 		const entry = join(root, "entry.ts");
 		const helper = join(root, "helper.py");
-		const project_source_imports = new ProjectSourceImports();
+		const project_source_imports = new ProjectSourceImports(root);
 
-		expect(project_source_imports.specifier_path(root, entry, "./helper", new Set([entry, helper]))).toBe("");
+		expect(project_source_imports.specifier_path(entry, "./helper", new Set([entry, helper]))).toBe("");
 	});
 
 	test("resolves compiler path aliases from the project configuration", () => {
@@ -99,12 +99,12 @@ describe("TypeScript reference project root", () => {
 
 	test("resolves compiler path aliases from a shared source context", () => {
 		const fixture = new TestFixture();
-		const result = fixture.project_source.with_in_memory_project(
+		const result = fixture._project_source.with_in_memory_project(
 			{
-				"src/domain/worker.ts": "export const value = 1;\n",
-				"entry.ts": 'import { value } from "@domain/worker";\n',
+				"src/domain/worker.ts": ['export class Worker { public value(): string { return "ok"; } }', ""].join("\n"),
+				"entry.ts": ['import { Worker } from "@domain/worker";', "new Worker();", ""].join("\n"),
 			},
-			(root, context, files, source_texts) => {
+			({ root, context, files, source_texts }) => {
 				const entry = join(root, "entry.ts");
 				const worker = join(root, "src/domain/worker.ts");
 				source_texts.set(
@@ -118,7 +118,7 @@ describe("TypeScript reference project root", () => {
 				);
 				return {
 					files: files.length,
-					actual: project_imports.path(entry, "@domain/worker"),
+					actual: project_imports.resolve(entry, "@domain/worker").path(),
 					expected: worker,
 				};
 			},
@@ -126,5 +126,30 @@ describe("TypeScript reference project root", () => {
 		);
 
 		expect(result).toEqual({ files: 2, actual: result.expected, expected: result.expected });
+	});
+
+	test("resolves imported declarations from the imported module", () => {
+		const fixture = new TestFixture();
+		const result = fixture._project_source.with_in_memory_project(
+			{
+				"src/domain/worker.ts": ['export class Worker { public value(): string { return "ok"; } }', ""].join("\n"),
+				"entry.ts": ['import { Worker } from "@domain/worker";', "new Worker();", ""].join("\n"),
+			},
+			({ root, context, source_texts }) => {
+				source_texts.set(
+					join(root, "tsconfig.json"),
+					JSON.stringify({ compilerOptions: { baseUrl: ".", paths: { "@domain/*": ["src/domain/*"] } } }),
+				);
+				const worker = join(root, "src/domain/worker.ts");
+				const imports = new ProjectSourceContextImports(root, context, new InMemoryProjectSourceIO(source_texts));
+				return {
+					actual: imports.resolve(join(root, "entry.ts"), "@domain/worker").declaration_path("Worker"),
+					expected: worker,
+				};
+			},
+			new Map(),
+		);
+
+		expect(result.actual).toBe(result.expected);
 	});
 });

@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import ast
 from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonCallableConditionContextContract
 from implementation.protocols import PythonCallAliasStateContract
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
+    PythonReferenceAliasState,
 )
-from implementation.references.protocols import (
+from implementation.references.decorator_protocols import (
     PythonAssignedDescriptorIndexContract,
-    PythonDecoratorAliasesContract,
-    PythonDecoratorRulesContract,
 )
 from implementation.rules.call_analysis.call_rules import CallRules, CallRulesOptions
 from implementation.rules.call_analysis.python_call_alias_state import (
@@ -26,6 +24,8 @@ from implementation.rules.call_analysis.python_callable_condition_context import
 from implementation.rules.protocols import (
     PythonCallRulesContract,
     PythonCodingIssueComponentContextContract,
+    PythonDecoratorAliasStateContract,
+    PythonDecoratorRuleContract,
 )
 from implementation.rules.python_syntax.decorators.python_decorator_alias_state import (
     PythonDecoratorAliasState,
@@ -40,8 +40,8 @@ class PythonPrimaryCallBundle:
     """Responsibilities: _invocation policy_, _decorator policy_."""
 
     call_rules: PythonCallRulesContract
-    decorator_rules: PythonDecoratorRulesContract
-    decorator_aliases: PythonDecoratorAliasesContract
+    decorator_rules: PythonDecoratorRuleContract
+    decorator_aliases: PythonDecoratorAliasStateContract
 
 
 class PythonPrimaryCallAssembly:
@@ -57,13 +57,15 @@ class PythonPrimaryCallAssembly:
         """Responsibilities: _invocation classification_, _rule dependency graph_."""
         context = self._context
         classification = PythonCallClassification(
-            context.reference_aliases, aliases, condition_context
+            context.aliases().values.reference_aliases,
+            context.aliases().values.container_values,
+            condition_context,
         )
         options = CallRulesOptions(
-            context.tree,
-            context.node_index,
+            context.tree(),
+            context.node_index(),
             aliases,
-            context.reference_aliases,
+            context.aliases().values.reference_aliases,
             classification,
             condition_context,
         )
@@ -71,13 +73,12 @@ class PythonPrimaryCallAssembly:
 
     def _decorator_rules(
         self,
-        aliases: PythonDecoratorAliasesContract,
+        aliases: PythonDecoratorAliasStateContract,
         assigned_descriptors: PythonAssignedDescriptorIndexContract,
-    ) -> PythonDecoratorRulesContract:
+    ) -> PythonDecoratorRuleContract:
         """Responsibilities: _decorator dependency graph_."""
         return PythonDecoratorRules(
-            self._context.decorator_container_aliases,
-            PythonReferenceAliases(),
+            self._context.aliases().values.container_values,
             aliases,
             assigned_descriptors,
         )
@@ -89,11 +90,9 @@ class PythonPrimaryCallAssembly:
     def condition_context(self) -> PythonCallableConditionContextContract:
         """Responsibilities: _callable scope_, _parent indexing_."""
         context = self._context
-        nodes = context.node_index.nodes(context.tree)
-        scopes = context.node_index.scopes(context.tree)
-        parents = {
-            id(child): node for node in nodes for child in ast.iter_child_nodes(node)
-        }
+        nodes = context.node_index().nodes(context.tree())
+        scopes = context.node_index().scopes(context.tree())
+        parents = {id(child): node for node in nodes for child in context.node_index().children(node)}
         return PythonCallableConditionContext(nodes, scopes, parents)
 
     def call_state(self) -> PythonPrimaryCallBundle:
@@ -101,9 +100,12 @@ class PythonPrimaryCallAssembly:
         aliases = PythonCallAliasState()
         call_rules = self._call_rules(aliases, self.condition_context())
         decorator_aliases = PythonDecoratorAliasState(
-            self._context.decorator_container_aliases, PythonReferenceAliases()
+            self._context.aliases().containers.decorator_container_aliases,
+            PythonReferenceAliases(PythonReferenceAliasState()),
+            self._context.node_index(),
         )
         decorator_rules = self._decorator_rules(
-            decorator_aliases, decorator_aliases.assigned_descriptors
+            decorator_aliases,
+            decorator_aliases.assigned_descriptors(),
         )
         return PythonPrimaryCallBundle(call_rules, decorator_rules, decorator_aliases)

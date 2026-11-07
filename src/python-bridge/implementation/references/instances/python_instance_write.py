@@ -32,14 +32,11 @@ class PythonInstanceWrite(PythonPositionedWriteContract):
 
     def at_or_after(self, line_number: int, column_offset: int) -> bool:
         """Responsibilities: _source position ordering_."""
-        if self._line_number > line_number:
-            return True
-        return self._line_number == line_number and self._column_offset >= column_offset
+        return (self._line_number, self._column_offset) >= (line_number, column_offset)
 
     def visible_at(self, node: ast.AST) -> bool:
         """Responsibilities: _source order visibility_."""
-        if self._line_number < node.lineno:
-            return True
-        return (
-            self._line_number == node.lineno and self._column_offset <= node.col_offset
+        return (self._line_number, self._column_offset) <= (
+            node.lineno,
+            node.col_offset,
         )

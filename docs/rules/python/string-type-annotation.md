@@ -5,58 +5,75 @@ Description: Python type annotations must use direct expressions instead of quot
 ## Bad
 
 ```python
-class Service:
-    model: "Model"
+# File: src/status_catalog.py
+class StatusCatalog:
+    _labels: "dict[str, str]"  # <- error: quoted field annotation
+    _fallback: str
+    _current_status: str
 
-    def load(self, value: "Model") -> "Model":
-        return value
+    def __init__(self, labels: dict[str, str], fallback: str, current_status: str) -> None:
+        self._labels = dict(labels)
+        self._fallback = fallback
+        self._current_status = current_status
+
+    def label(self) -> str:
+        if self._current_status in self._labels:
+            return self._labels[self._current_status]
+        return self._fallback
+
+    def label_with_prefix(self, prefix: str) -> str:
+        return f"{prefix.strip()}: {self.label()}"
+
+    def status_count(self) -> int:
+        return len(self._labels)
+
+    def report(self) -> None:
+        label = self.label_with_prefix("State")
+        count = self.status_count()
+        print(f"{label} | {count} statuses")
+# File: src/cli.py
+from src.status_catalog import StatusCatalog
+
+if __name__ == "__main__":
+    catalog = StatusCatalog({"ready": "Ready", "blocked": "Blocked"}, "Unknown", "ready")
+    catalog.report()
 ```
 
 ## Good
 
 ```python
-# File: src/status_labels/status_labels.py
-class StatusLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/status_catalog.py
+class StatusCatalog:
+    _labels: dict[str, str]
+    _fallback: str
+    _current_status: str
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def __init__(self, labels: dict[str, str], fallback: str, current_status: str) -> None:
+        self._labels = dict(labels)
+        self._fallback = fallback
+        self._current_status = current_status
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def label(self) -> str:
+        if self._current_status in self._labels:
+            return self._labels[self._current_status]
+        return self._fallback
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
-
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
+    def label_with_prefix(self, prefix: str) -> str:
+        return f"{prefix.strip()}: {self.label()}"
 
     def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
-# File: cli.py
-from status_labels.status_labels import StatusLabels
+        return len(self._labels)
+
+    def report(self) -> None:
+        label = self.label_with_prefix("State")
+        count = self.status_count()
+        print(f"{label} | {count} statuses")
+# File: src/cli.py
+from src.status_catalog import StatusCatalog
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    status_labels = StatusLabels(labels, "Unknown")
-    label = status_labels.label("ready")
-    detailed = status_labels.label_with_prefix("State", "blocked")
-    fallback = status_labels.uppercase_fallback()
-    count = status_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    catalog = StatusCatalog({"ready": "Ready", "blocked": "Blocked"}, "Unknown", "ready")
+    catalog.report()
 ```
+
 Use an import or a module layout that makes the type name available directly.

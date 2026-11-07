@@ -82,4 +82,21 @@ describe("TypeScript source-record cache configuration identity", () => {
 
 		expect(after.cache_identity()).not.toBe(before.cache_identity());
 	});
+
+	test("changes identity when a runtime re-export target changes", () => {
+		const root = "/virtual/source-record-cache";
+		const caller_file = `${root}/main.ts`;
+		const runtime_file = `${root}/bridge.mjs`;
+		/** Responsibilities: _source text fixtures_. **/
+		const source_texts = (target: string): Map<string, string> =>
+			new Map([
+				[caller_file, 'import { run } from "./bridge.mjs"; run();'],
+				[runtime_file, `export { run } from "./${target}.js";`],
+			]);
+		const source_io = new InMemoryProjectSourceIO(new Map());
+		const first = new ContextSourceRecordCacheIdentity(root, [caller_file], source_texts("first"), source_io);
+		const changed = new ContextSourceRecordCacheIdentity(root, [caller_file], source_texts("second"), source_io);
+
+		expect(changed.cache_identity()).not.toBe(first.cache_identity());
+	});
 });

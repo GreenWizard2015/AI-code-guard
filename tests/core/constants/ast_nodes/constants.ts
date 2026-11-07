@@ -59,7 +59,7 @@ export const TYPE_NODE_SOURCE =
 	"type Result = (First);\ntype Union = First | Second;\ntype Factory = (value: string) => Result;\ntype Collection = Array<Result>;";
 
 export const AST_SOURCE = [
-	"export class Service {",
+	"export class Service extends Record {",
 	"  constructor(private readonly value: string) {}",
 	"  run(first: string, second: number): void {",
 	"    console.log(first, first, first, first, second);",
@@ -76,7 +76,7 @@ export const AST_SOURCE = [
 	"  name: string,",
 	"  count: number",
 	"): string {",
-	"  return " + String.fromCharCode(96) + "$" + "{name}:$" + "{count}" + String.fromCharCode(96) + ";",
+	`  return \`${"${name}:${count}"}\`;`,
 	"}",
 	"",
 	"export const convert = (value: string): string => {",
@@ -85,29 +85,32 @@ export const AST_SOURCE = [
 ].join("\n");
 
 export const SHORT_FUNCTION_NODE = {
-	name: "shortFunction",
-	start: 4,
-	end: 5,
-	argument_count: 0,
-	characters: 100,
-	control_flow_depth: 0,
-	lines: 2,
-	sloc: 2,
-	exception_only: false,
-	visibility: "public" as const,
+	identity: { name: "shortFunction", owner: "", nested: false, start: 4, end: 5, visibility: "public" as const },
+	metrics: { argument_count: 0, characters: 100, control_flow_depth: 0, lines: 2, sloc: 2 },
+	signature: {
+		statements: [],
+		parameter_types: [],
+		return_type: "",
+		argument_uses: [],
+		typed_arguments: [],
+		untyped_parameters: [],
+	},
+	test_behavior: {
+		exception_only: false,
+		has_unittest_assertion: false,
+		unittest_assertion_alias: false,
+		unittest_exception_only: false,
+		test_exception_bypass: false,
+		unittest_ending_valid: false,
+		unittest_assertion_count: 0,
+	},
+	declaration: { decorators: [], is_accessor: false, has_self: false },
 };
 
 export const ARGUMENT_FUNCTION_NODE = {
-	name: "argumentFunction",
-	start: 4,
-	end: 5,
-	argument_count: 6,
-	characters: 0,
-	control_flow_depth: 0,
-	lines: 2,
-	sloc: 2,
-	exception_only: false,
-	visibility: "public" as const,
+	...SHORT_FUNCTION_NODE,
+	identity: { ...SHORT_FUNCTION_NODE.identity, name: "argumentFunction" },
+	metrics: { ...SHORT_FUNCTION_NODE.metrics, argument_count: 6, characters: 0 },
 };
 
 export const SHORT_METHOD_CLASS = {
@@ -146,7 +149,7 @@ export const ARBITRARY_COMBINATION_FILES = {
 		Array.from(
 			{ length: 4 },
 			(_, index) =>
-				"function run" + index + "(a: ProjectA, id: string, b: ProjectB, scope: string) { return [a, id, b, scope]; }",
+				`function run${index}(a: ProjectA, id: string, b: ProjectB, scope: string) { return [a, id, b, scope]; }`,
 		).join("\n"),
 	].join("\n"),
 };

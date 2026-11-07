@@ -3,26 +3,23 @@ from __future__ import annotations
 import ast
 from functools import cached_property
 
-from implementation.ast.protocols import PythonAstCoreStateContract
 from implementation.ast.imports.python_sys_path_rules import PythonSysPathRules
-from implementation.ast.type_declarations.annotation_names import AnnotationNames
-from protocols import PythonReferenceCollectorContract
 from implementation.ast.protocols import (
+    PythonAstCoreStateContract,
     PythonAstNodeIndexContract,
     PythonStructureIssuesContract,
 )
-from protocols import PythonImportRulesContract
+from implementation.ast.type_declarations.annotation_names import AnnotationNames
+from implementation.references.call_returns import CallReturns
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonReferenceAliasesContract,
 )
-from implementation.references.call_returns import CallReturns
-from implementation.references.python_call_return_state import PythonCallReturnState
 from implementation.references.python_reference_collector import (
     PythonReferenceCollector,
 )
-from implementation.rules.import_rules import ImportRules
 from implementation.rules.constants import PYTHON_DYNAMIC_IMPORT_FUNCTION
+from implementation.rules.import_rules import ImportRules
 from implementation.rules.python_syntax.dynamic_import_names import (
     PythonDynamicImportNames,
     PythonDynamicImportNamesOptions,
@@ -33,6 +30,7 @@ from implementation.rules.python_syntax.protocols import (
 from implementation.rules.python_syntax.python_dynamic_import_references import (
     PythonDynamicImportReferences,
 )
+from protocols import PythonImportRulesContract, PythonReferenceCollectorContract
 
 
 class PythonAstImportState:
@@ -56,7 +54,7 @@ class PythonAstImportState:
             module_aliases,
             builtin_aliases,
             function_aliases,
-            self._container_aliases.container_values,
+            self._container_aliases.container_values(),
         )
         return PythonDynamicImportNames(
             PythonDynamicImportNamesOptions(
@@ -65,7 +63,7 @@ class PythonAstImportState:
                 module_aliases,
                 builtin_aliases,
                 function_aliases,
-            )
+            ),
         )
 
     @cached_property
@@ -74,7 +72,6 @@ class PythonAstImportState:
         path_state = PythonSysPathRules(self._container_aliases, self._node_index)
         dynamic_names = self._dynamic_names()
         return ImportRules(
-            self._container_aliases,
             dynamic_names,
             path_state,
             self._node_index,
@@ -83,12 +80,12 @@ class PythonAstImportState:
     @cached_property
     def _reference_state(self) -> PythonReferenceCollectorContract:
         """Responsibilities: _reference collector state_."""
-        state = PythonCallReturnState()
+        call_returns = CallReturns(AnnotationNames(self._node_index), self._node_index)
         return PythonReferenceCollector(
             self._tree,
-            CallReturns(AnnotationNames(), state),
+            call_returns,
             self._node_index,
-            state,
+            call_returns.return_state(),
         )
 
     def __init__(
@@ -101,9 +98,7 @@ class PythonAstImportState:
         dependencies = core.source_dependencies()
         self._tree: ast.Module = dependencies.syntax_tree()
         self._node_index: PythonAstNodeIndexContract = dependencies.node_index()
-        self._container_aliases: PythonContainerAliasesContract = (
-            core.container_aliases()
-        )
+        self._container_aliases: PythonContainerAliasesContract = core.container_aliases()
         self._structure_issues: PythonStructureIssuesContract = structure_issues
         self._reference_aliases: PythonReferenceAliasesContract = reference_aliases
 

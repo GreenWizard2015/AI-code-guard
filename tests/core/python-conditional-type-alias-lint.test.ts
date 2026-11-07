@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Python conditional type alias rule", () => {
 	test("reports conditional type declarations across branch shapes", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"case-01.py":
 					"if runtime_mode:\n    FirstValue: Alias = Request | Cache\nelse:\n    RuntimeValue: Alias = Request",
@@ -26,8 +26,8 @@ describe("Python conditional type alias rule", () => {
 			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode),
 		);
 		const reported_files = execution.report.violations
-			.filter((violation) => violation.rule_id === "python-conditional-type-alias")
-			.map((violation) => violation.file.split("/").at(-1));
+			.filter((violation) => violation.rule_id() === "python-conditional-type-alias")
+			.map((violation) => violation.file().split("/").at(-1));
 
 		expect(reported_files).toEqual([
 			"case-01.py",
@@ -45,7 +45,7 @@ describe("Python conditional type alias rule", () => {
 	test("allows runtime assignments and annotations without values", () => {
 		const fixture = new TestFixture();
 		const execution = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"ordinary-branch.py": "if runtime_mode:\n    value = load_value()\nelse:\n    value = fallback_value()",
 				"typed-runtime.py": "if enabled:\n    value: FirstType = first_value",
@@ -56,7 +56,7 @@ describe("Python conditional type alias rule", () => {
 		);
 
 		expect(
-			execution.report.violations.filter((violation) => violation.rule_id === "python-conditional-type-alias"),
+			execution.report.violations.filter((violation) => violation.rule_id() === "python-conditional-type-alias"),
 		).toHaveLength(0);
 	});
 });

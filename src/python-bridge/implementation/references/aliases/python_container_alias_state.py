@@ -1,69 +1,80 @@
 from __future__ import annotations
 
 import ast
-from implementation.rules.constants import PYTHON_BUILTINS_MODULE, PYTHON_DICT_ATTRIBUTE
-from implementation.references.protocols import PythonContainerLookupContract
-from implementation.references.aliases.python_container_lookup import (
-    PythonContainerLookup,
+
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.alias_types import (
+    ContainerAliasScopes,
+    ContainerItemMap,
+    StaticContainerAliasScopes,
+)
+from implementation.references.aliases.python_container_alias import (
+    PythonContainerAlias,
+)
+from implementation.references.protocols import (
+    PythonContainerAliasContract,
 )
 
 
 class PythonContainerAliasState:
     """Responsibilities: _lexical scope tracking_, _container alias lookup_."""
 
-    def __init__(self) -> None:
+    def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _container alias state initialization_."""
-        self.aliases: dict[str, dict[str, dict[str, ast.AST]]] = {"module": {}}
-        self.static_aliases: dict[str, dict[str, str]] = {"module": {}}
-        self.node_scopes: dict[ast.AST, str] = {}
-        self.scope: dict[str, str] = {"current": "module"}
-        self.module_names: set[str] = {PYTHON_BUILTINS_MODULE}
-        self.builtin_dictionary_aliases: set[str] = set()
+        self._node_index: PythonAstNodeIndexContract = node_index
+        self._aliases: ContainerAliasScopes = {"module": {}}
+        self._static_aliases: StaticContainerAliasScopes = {"module": {}}
+        self._node_scopes: dict[ast.AST, str] = {}
+        self._current_scope: str = "module"
+
+    def node_index(self) -> PythonAstNodeIndexContract:
+        """Responsibilities: _AST index access_."""
+        return self._node_index
 
     def select_scope_node(self, node: ast.AST) -> None:
         """Responsibilities: _lexical alias scope selection_."""
-        scope = self.node_scopes.get(node)
-        if scope is None:
-            self.scope["current"] = "module"
-            return
-        self.scope["current"] = scope
+        self._current_scope = self._node_scopes.get(node, "module")
 
-    def static_alias(self, name: str) -> str:
-        """Responsibilities: _static alias value resolution_."""
-        current_scope = self.scope["current"]
-        current = self.static_aliases.get(current_scope, {})
-        if current_scope != "module" and name in current:
-            return current[name]
-        return self.static_aliases.get("module", {}).get(name, "")
+    def configure_scope_tree(self, tree: ast.AST) -> None:
+        """Responsibilities: _lexical scope index configuration_."""
+        scopes = self._node_index.scopes(tree)
+        if not scopes:
+            raise ValueError("Python AST scope index cannot be empty.")
+        self._node_scopes = scopes
+        self._current_scope = "module"
 
-    def container_alias(self, name: str) -> dict[str, ast.AST]:
-        """Responsibilities: _container alias value resolution_."""
-        current_scope = self.scope["current"]
-        current = self.aliases.get(current_scope, {})
-        if current_scope != "module" and name in current:
-            return dict(current[name])
-        return dict(self.aliases.get("module", {}).get(name, {}))
+    def record_alias(
+        self,
+        container_alias_name: str,
+        static_value: str,
+        values: ContainerItemMap,
+    ) -> None:
+        """Responsibilities: _scoped container alias recording_."""
+        current_scope = self._current_scope
+        static_aliases = self._static_aliases.setdefault(current_scope, {})
+        static_aliases[container_alias_name] = static_value
+        aliases = self._aliases.setdefault(current_scope, {})
+        aliases[container_alias_name] = dict(values)
 
-    def container_item(self, name: str, key: str) -> PythonContainerLookupContract:
-        """Responsibilities: _single container item resolution_."""
-        current_scope = self.scope["current"]
-        current = self.aliases.get(current_scope, {})
-        if current_scope != "module" and name in current:
-            item = current[name].get(key)
+    def clear(self) -> None:
+        """Responsibilities: _container alias state reset_."""
+        self._aliases.clear()
+        self._aliases.update({"module": {}})
+        self._static_aliases.clear()
+        self._static_aliases.update({"module": {}})
+        self._current_scope = "module"
+
+    def alias(self, lookup_name: str) -> PythonContainerAliasContract:
+        """Responsibilities: _named container alias resolution_."""
+        current_scope = self._current_scope
+        current = self._static_aliases.get(current_scope, {})
+        static_value = current.get(
+            lookup_name,
+            self._static_aliases.get("module", {}).get(lookup_name, ""),
+        )
+        aliases = self._aliases.get(current_scope, {})
+        if current_scope != "module" and lookup_name in aliases:
+            values = aliases[lookup_name]
         else:
-            item = self.aliases.get("module", {}).get(name, {}).get(key)
-        if item is None:
-            return PythonContainerLookup(False, ast.Name(id=key, ctx=ast.Load()))
-        return PythonContainerLookup(True, item)
-
-    def builtin_dictionary(self, value: ast.AST) -> bool:
-        """Responsibilities: _builtins dictionary alias classification_."""
-        if type(value) is ast.Attribute:
-            if value.attr != PYTHON_DICT_ATTRIBUTE:
-                return False
-            if type(value.value) is not ast.Name:
-                return False
-            return value.value.id in self.module_names
-        if type(value) is not ast.Name:
-            return False
-        return value.id in self.builtin_dictionary_aliases
+            values = self._aliases.get("module", {}).get(lookup_name, {})
+        return PythonContainerAlias(static_value, values)

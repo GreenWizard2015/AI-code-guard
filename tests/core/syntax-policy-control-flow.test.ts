@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("cross-language conditional execution policy", () => {
 	test("reports disallowed conditional expressions and assignment forms", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"conditional.ts": [
 					'const label = ready ? "yes" : "no";',
@@ -77,20 +77,42 @@ describe("cross-language conditional execution policy", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		/** Responsibilities: _count violations by message_. **/
-		const message_count = (message: string): number => violations.filter((item) => item.message === message).length;
+		const message_count = (message: string): number => violations.filter((item) => item.message() === message).length;
+		const conditional_findings = violations.filter((item) => item.rule_id() === "conditional-execution");
+		const conditional_locations = conditional_findings.map((item) => `${item.file()}:${item.line()}`).sort();
 		expect({
-			conditional_operators: message_count("avoid conditional execution operators"),
+			conditional_operators: conditional_findings.length,
+			conditional_locations,
 			conditional_control_flow: violations.filter(
 				(item) =>
-					item.rule_id === "conditional-execution" &&
-					(item.file === "control-flow-conditions.ts" || item.file === "conditional-spread.ts"),
+					item.rule_id() === "conditional-execution" &&
+					(item.file() === "control-flow-conditions.ts" || item.file() === "conditional-spread.ts"),
 			).length,
-			boolean_identity: violations.filter((item) => item.rule_id === "pointless-boolean-operation").length,
-			membership: violations.filter((item) => item.rule_id === "typescript-in-operator").length,
+			boolean_identity: violations.filter((item) => item.rule_id() === "pointless-boolean-operation").length,
+			membership: violations.filter((item) => item.rule_id() === "typescript-in-operator").length,
 			logical_assignments: message_count("avoid logical assignment operators"),
 			type_conditional: message_count("avoid ternary expressions"),
 		}).toEqual({
-			conditional_operators: 18,
+			conditional_operators: 17,
+			conditional_locations: [
+				"call-argument.ts:1",
+				"conditional-containers.py:6",
+				"conditional-containers.py:7",
+				"conditional-spread.ts:3",
+				"conditional.py:2",
+				"conditional.py:3",
+				"conditional.py:5",
+				"conditional.ts:2",
+				"conditional.ts:3",
+				"conditional.ts:5",
+				"conditional.ts:6",
+				"conditional.ts:7",
+				"control-flow-conditions.ts:1",
+				"control-flow-conditions.ts:2",
+				"control-flow-conditions.ts:3",
+				"nested-call-argument.ts:1",
+				"returned-object-property.ts:2",
+			],
 			conditional_control_flow: 4,
 			boolean_identity: 2,
 			membership: 2,
@@ -102,7 +124,7 @@ describe("cross-language conditional execution policy", () => {
 	test("allows boolean short-circuit conditions and standalone logical expressions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"standalone.ts": "true && false;\ntrue || false;",
 				"standalone.py": "True and False\nTrue or False",
@@ -122,6 +144,6 @@ describe("cross-language conditional execution policy", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.filter((item) => item.message === "avoid conditional execution operators")).toHaveLength(0);
+		expect(violations.filter((item) => item.message() === "avoid conditional execution operators")).toHaveLength(0);
 	});
 });

@@ -30,6 +30,9 @@ export class Status {
 		}
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		console.log(this.normalized(), this.ready(), this.label('State'), this.contains('ead'));
+	}
 }
 // File: tests/domain/status.test.ts
 import { Status } from "src/domain/status";
@@ -43,7 +46,7 @@ describe("Status", () => {
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	status.report();
 })();
 ```
 
@@ -52,10 +55,27 @@ import { Status } from 'src/domain/status';
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _status_history: string[];
+	private readonly _current_value: Map<string, string>;
+	private current_value(): string {
+		const value = this._current_value.get("value");
+		if (value === undefined) {
+			return "";
+		}
+		return value;
+	}
+	public constructor(value: string) {
+		this._status_history = [value];
+		this._current_value = new Map([["value", value]]);
+	}
+
+	public change_value(value: string): void {
+		this._status_history.push(value);
+		this._current_value.set("value", value);
+	}
+
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		return this.current_value().trim().toLowerCase();
 	}
 	public ready(): boolean {
 		const normalized_value = this.normalized();
@@ -75,6 +95,9 @@ export class Status {
 		}
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		console.log(this.normalized(), this.ready(), this.label('State'), this.contains('ead'));
+	}
 }
 // File: tests/domain/status.test.ts
 import { Status } from "src/domain/status";
@@ -86,7 +109,8 @@ describe("Status", () => {
 #!/usr/bin/env node
 import { Status } from 'src/domain/status';
 (function () {
-	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	const status = new Status("queued");
+	status.change_value(' READY ');
+	status.report();
 })();
 ```

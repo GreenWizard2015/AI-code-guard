@@ -11,7 +11,7 @@ class PythonProxyScopeAliasIndex:
         self._records: PythonProxyAliasRecords = records
 
     def value(self, name: str, line: int) -> str:
-        """Responsibilities: _source-position alias lookup_."""
+        """Responsibilities: _source-visible alias value lookup_."""
         records = self._records.get(name)
         if records is None:
             return ""
@@ -23,12 +23,13 @@ class PythonProxyScopeAliasIndex:
                 lower = middle + 1
             else:
                 upper = middle
-        if lower == 0:
+        record_index = lower - 1
+        if record_index < 0:
             return ""
-        return records[lower - 1][2]
+        return records[record_index][2]
 
     def resolve(self, name: str, line: int) -> str:
-        """Responsibilities: _receiver alias-chain resolution_."""
+        """Responsibilities: _receiver alias chain resolution_."""
         resolved = name
         seen: set[str] = set()
         while resolved not in seen:

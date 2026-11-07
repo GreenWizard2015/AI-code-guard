@@ -1,163 +1,89 @@
-import { MAX_CLASS_INTERFACES, MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
-import { MetricViolations } from "src/metrics/metric_violations";
-import { ProceduralClassName } from "src/metrics/procedural_class_name";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ClassStructureReporterContract } from "src/runtime_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { LintFileNameContract } from "src/source_types";
-import type { AstClassNodeContract } from "src/types";
+import { MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
+import { MethodSpecializationReporter } from "src/core/support/method_specialization_reporter";
+import type { LintFileNameContract } from "src/core/support/protocols";
+import { CallableMetrics } from "src/metrics/callable_metrics";
+import { ClassDesignReporter } from "src/metrics/class_design_reporter";
 import {
 	CONSTRUCTOR_NAME,
-	CONTRACT_SUFFIX,
 	METRIC_KIND_CLASS_METHODS,
 	METRIC_KIND_CLASS_SIZE,
 	METRIC_KIND_SHORT_CLASS,
 	PYTHON_CONSTRUCTOR_NAME,
 } from "src/metrics/constants";
+import { MetricViolations } from "src/metrics/metric_violations";
+import type { ClassStructureReporterOptions } from "src/metrics/types";
+import type {
+	AstClassNode,
+	AstClassNodeClassification,
+	AstClassNodeIdentity,
+	AstClassNodeStructure,
+} from "src/model/ast/normalized_ast_types";
+import type { CallableMetricsContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { ClassStructureReporterContract } from "src/runtime_protocols";
 
 /** Responsibilities: _class design diagnostics_, _class size metric reporting_. **/
 export class ClassStructureReporter implements ClassStructureReporterContract {
-	private readonly violations: ViolationContract[];
-	private readonly file_name: LintFileNameContract;
-	private readonly node: AstClassNodeContract;
-	private readonly suppress_short_class: boolean;
-	private readonly minimum_class_size: number;
-	private readonly procedural_class_name: ProceduralClassName;
+	private readonly _violations: ViolationContract[];
+	private readonly _file_name: LintFileNameContract;
+	private readonly _node: AstClassNode;
+	private readonly _class_identity: AstClassNodeIdentity;
+	private readonly _class_structure: AstClassNodeStructure;
+	private readonly _classification: AstClassNodeClassification;
+	private readonly _design_reporter: ClassDesignReporter;
+	private readonly _suppress_short_class: boolean;
+	private readonly _minimum_class_size: number;
+	private readonly _metric_violations: MetricViolations;
+	private readonly report_as_method = true;
 
-	/** Responsibilities: _analysis class mixin_. **/
-	private is_mixin(): boolean {
-		let base_names: readonly string[] = [];
-		if (this.node.base_class_names !== undefined) {
-			base_names = this.node.base_class_names;
+	/** Responsibilities: _aggregation callable metric results_. **/
+	private append_metrics(metrics: readonly CallableMetricsContract[]): void {
+		for (const item of metrics) {
+			item.append_callable_metrics();
 		}
-		if (this.node.base_class_name) {
-			base_names = [this.node.base_class_name];
-		}
-		return this.node.name.endsWith("Mixin") || base_names.some((name) => name.endsWith("Mixin"));
-	}
-
-	/** Responsibilities: _classification class owns stateful_. **/
-	private has_state(): boolean {
-		const { interfaces, fields, methods } = this.node;
-		if (interfaces?.length || fields?.length) {
-			return true;
-		}
-		return methods.some((method) => method.name === PYTHON_CONSTRUCTOR_NAME || method.name === CONSTRUCTOR_NAME);
-	}
-
-	/** Responsibilities: _resolution primary base class_. **/
-	private base_class_name(): string {
-		if (this.node.base_class_name.length > 0) {
-			return this.node.base_class_name;
-		}
-		if (this.node.base_class_names.length === 0) {
-			return "";
-		}
-		return this.node.base_class_names[0];
-	}
-
-	/** Responsibilities: _aggregation mixin violation class_. **/
-	private append_mixin_violation(): void {
-		if (!this.is_mixin()) {
-			return;
-		}
-		const rule = new DiagnosticRule("mixin");
-		this.violations.push(
-			rule.violation(this.file_name.value, this.node.start + 1, {
-				name: this.node.name,
-			}),
-		);
-	}
-
-	/** Responsibilities: _aggregation stateless-class information applicable_. **/
-	private append_stateless_info(): void {
-		if (this.has_state()) {
-			return;
-		}
-		const rule = new DiagnosticRule("stateless-class");
-		this.violations.push(rule.violation(this.file_name.value, this.node.start + 1));
-	}
-
-	/** Responsibilities: _aggregation local-inheritance diagnostics analysis_. **/
-	private append_local_inheritance(): void {
-		if (this.node.extends_external_class) {
-			return;
-		}
-		const base_name = this.base_class_name();
-		if (!base_name) {
-			return;
-		}
-		const rule = new DiagnosticRule("local-inheritance");
-		this.violations.push(rule.violation(this.file_name.value, this.node.start + 1, { base_name }));
 	}
 
 	/** Responsibilities: _aggregation class size method-count_. **/
 	private append_class_sizes(): void {
-		const metric_violations = new MetricViolations();
-
-		const line = this.node.start;
-		if (this.minimum_class_size > MAX_CLASS_LINES) {
-			this.violations.push(
-				metric_violations.metric_violation(this.file_name.value, line, this.minimum_class_size, METRIC_KIND_CLASS_SIZE),
-			);
+		const line = this._class_identity.start;
+		if (this._minimum_class_size > MAX_CLASS_LINES) {
+			this._metric_violations.metric_violation(line, this._minimum_class_size, METRIC_KIND_CLASS_SIZE);
 		}
-		const methods = this.node.methods.filter(
-			(method) => method.name !== CONSTRUCTOR_NAME && method.name !== PYTHON_CONSTRUCTOR_NAME,
+		const methods = this._class_structure.methods.filter(
+			(method) => method.identity.name !== CONSTRUCTOR_NAME && method.identity.name !== PYTHON_CONSTRUCTOR_NAME,
 		);
-		const has_constructor = this.node.methods.some(
-			(method) => method.name === CONSTRUCTOR_NAME || method.name === PYTHON_CONSTRUCTOR_NAME,
+		const has_constructor = this._class_structure.methods.some(
+			(method) => method.identity.name === CONSTRUCTOR_NAME || method.identity.name === PYTHON_CONSTRUCTOR_NAME,
 		);
 		const method_count = methods.length + (has_constructor ? 1 : 0);
 		if (method_count > MAX_CLASS_METHODS) {
-			this.violations.push(
-				metric_violations.metric_violation(this.file_name.value, line, method_count, METRIC_KIND_CLASS_METHODS),
-			);
+			this._metric_violations.metric_violation(line, method_count, METRIC_KIND_CLASS_METHODS);
 		}
-	}
-
-	/** Responsibilities: _reporting design-shape metrics structural_. **/
-	private design_excluded(): boolean {
-		if (this.file_name.test()) {
-			return true;
-		}
-		if (this.node.type_contract) {
-			return true;
-		}
-		return this.node.protocol;
 	}
 
 	/** Responsibilities: _reporting size metrics exclusion_. **/
 	private sizes_excluded(): boolean {
-		if (this.file_name.test()) {
+		if (this._file_name.test()) {
 			return true;
 		}
-		if (this.node.type_contract) {
+		if (this._classification.type_contract) {
 			return true;
 		}
-		if (this.node.protocol) {
+		if (this._classification.protocol) {
 			return true;
 		}
-			if (this.node.interfaces?.some((name) => name.endsWith(CONTRACT_SUFFIX))) {
-			return true;
-		}
-		return this.node.extends_external_class;
+		return this._classification.extends_external_class;
 	}
 
 	/** Responsibilities: _reporting short class metric_. **/
 	private short_class_excluded(): boolean {
-		if (this.node.methods.some((method) => method.decorators.some((decorator) => decorator.toLowerCase().includes("hook")))) {
+		if (this._classification.is_data_class) {
 			return true;
 		}
-			if (this.node.interfaces?.some((name) => name.endsWith(CONTRACT_SUFFIX))) {
+		if (this._suppress_short_class) {
 			return true;
 		}
-		if (this.node.is_data_class) {
-			return true;
-		}
-		if (this.suppress_short_class) {
-			return true;
-		}
-		return this.minimum_class_size >= MIN_CLASS_LINES;
+		return this._minimum_class_size >= MIN_CLASS_LINES;
 	}
 
 	/** Responsibilities: _reporting short class metric_. **/
@@ -165,58 +91,68 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 		if (this.short_class_excluded()) {
 			return;
 		}
-		const metric_violations = new MetricViolations();
-		this.violations.push(
-			metric_violations.metric_violation(this.file_name.value, this.node.start, this.minimum_class_size, METRIC_KIND_SHORT_CLASS),
+		this._metric_violations.metric_violation(
+			this._class_identity.start,
+			this._minimum_class_size,
+			METRIC_KIND_SHORT_CLASS,
 		);
 	}
 
-	/** Responsibilities: _initialization class metric model_. **/
-	public constructor(
-		violations: ViolationContract[],
-		file_name: LintFileNameContract,
-		node: AstClassNodeContract,
-		suppress_short_class = false,
-	) {
-		this.procedural_class_name = new ProceduralClassName();
-		this.violations = violations;
-		this.file_name = file_name;
-		this.node = node;
-		this.suppress_short_class = suppress_short_class;
-		this.minimum_class_size = (node.lines + node.sloc) / 2;
-	}
-
-	/** Responsibilities: _aggregation interface-count violations_. **/
-	public append_interface_limit(): void {
-		let interfaces: readonly string[] = [];
-		if (this.node.interfaces !== undefined) {
-			interfaces = this.node.interfaces;
-		}
-		if (interfaces.length <= MAX_CLASS_INTERFACES) {
+	/** Responsibilities: _reporting method metrics_. **/
+	private report_method_metrics(): void {
+		if (this._class_structure.methods.length === 0) {
 			return;
 		}
-		const rule = new DiagnosticRule("class-interface-count");
-		this.violations.push(
-			rule.violation(this.file_name.value, this.node.start + 1, { count: String(interfaces.length) }),
+		const metrics = this._class_structure.methods.map(
+			(method) => new CallableMetrics(this._violations, this._file_name.value(), method, this.report_as_method),
 		);
+		this.append_metrics(metrics);
 	}
 
-	/** Responsibilities: _reporting design-shape metrics structural_. **/
+	/** Responsibilities: _class metrics initialization_. **/
+	public constructor(options: ClassStructureReporterOptions) {
+		this._metric_violations = new MetricViolations(options.violations, options.file_name.value());
+		this._violations = options.violations;
+		this._file_name = options.file_name;
+		this._node = options.node;
+		this._class_identity = options.node.identity;
+		this._class_structure = options.node.structure;
+		this._classification = options.node.classification;
+		this._design_reporter = new ClassDesignReporter(options);
+		this._suppress_short_class = options.suppress_short_class;
+		this._minimum_class_size = (this._class_identity.lines + this._class_identity.sloc) / 2;
+	}
+
+	/** Responsibilities: _reporting test method limits_. **/
+	public report_test_limits(): void {
+		this._design_reporter.report_interface_limit();
+		const metrics = this._class_structure.methods.map(
+			(method) => new CallableMetrics(this._violations, this._file_name.value(), method, this.report_as_method),
+		);
+		for (const metric of metrics) {
+			metric.append_nesting_depth();
+		}
+	}
+
+	/** Responsibilities: _reporting class-level methods_. **/
+	public report_class_methods(): void {
+		if (!this._design_reporter.reportable_class()) {
+			return;
+		}
+		const specialization_reporter = new MethodSpecializationReporter(
+			this._violations,
+			this._file_name.value(),
+			this._node,
+		);
+		specialization_reporter.report_api();
+		specialization_reporter.report_implementation();
+		this.report_method_metrics();
+	}
+
+	/** Responsibilities: _class design diagnostics_. **/
 	public report_design(): void {
-		this.append_interface_limit();
-		if (this.design_excluded()) {
-			return;
-		}
-		this.append_mixin_violation();
-		if (this.is_mixin()) {
-			return;
-		}
-		if (this.node.extends_external_class) {
-			return;
-		}
-		this.append_stateless_info();
-		this.procedural_class_name.append_violation(this.violations, this.file_name.value, this.node);
-		this.append_local_inheritance();
+		this._design_reporter.report_interface_limit();
+		this._design_reporter.report_class_design();
 	}
 
 	/** Responsibilities: _reporting class size method-count_. **/
@@ -228,21 +164,14 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 		this.append_class_sizes();
 	}
 
-	/** Responsibilities: _reporting maximum class size_. **/
-	public report_max_sizes(): void {
-		if (this.node.interfaces?.some((name) => name.endsWith(CONTRACT_SUFFIX))) {
+	/** Responsibilities: _class structure reporting_. **/
+	public report_class(test_file: boolean): void {
+		this.report_class_methods();
+		if (test_file) {
+			this.report_test_limits();
 			return;
 		}
-		this.append_interface_limit();
-		if (this.node.type_contract) {
-			return;
-		}
-		if (this.node.protocol) {
-			return;
-		}
-		if (this.node.extends_external_class) {
-			return;
-		}
-		this.append_class_sizes();
+		this.report_design();
+		this.report_sizes();
 	}
 }

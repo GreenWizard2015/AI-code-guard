@@ -19,8 +19,8 @@ export class PriceCatalog { // <- error
 	private {{segment.name}}_total(prices: readonly number[]): number {
 		const segment_start = {{segment.start}};
 		let total = 0;
-		for (let item_number = segment_start; item_number < segment_start + 8; item_number += 1) {
-			const extended_price = prices[item_number] * this.multiplier;
+		for (const price of prices.slice(segment_start, segment_start + 8)) {
+			const extended_price = price * this.multiplier;
 			const discounted_price = extended_price - (extended_price * 0.05);
 			const price_with_tax = discounted_price + (discounted_price * 0.08);
 			total += price_with_tax;
@@ -41,6 +41,11 @@ export class PriceCatalog { // <- error
 		const total = this.total(prices);
 		return Math.round(total * 100) / 100;
 	}
+	public report(prices: readonly number[]): void {
+		const total = this.total(prices);
+		const normalized = this.normalized_total(prices);
+		console.log(total, normalized);
+	}
 }
 // File: cli.ts
 import { PriceCatalog } from "src/price_catalog/price_catalog";
@@ -48,9 +53,7 @@ import { PriceCatalog } from "src/price_catalog/price_catalog";
 	const catalog = new PriceCatalog(1.2);
 	const prices = new Array<number>(120);
 	prices.fill(1);
-	const total = catalog.total(prices);
-	const normalized = catalog.normalized_total(prices);
-	console.log(total, normalized);
+	catalog.report(prices);
 })();
 ```
 
@@ -62,12 +65,13 @@ One segment operation replaces the duplicated methods; aggregate the same 120 pr
 // File: src/price_catalog/price_catalog.ts
 /** Responsibilities: _price aggregation_. **/
 export class PriceCatalog {
-	private readonly multiplier: number;
+	private readonly _multiplier: number;
+	private readonly _prices: readonly number[];
 	/** Responsibilities: _one segment calculation_. **/
-	private segment_total(prices: readonly number[], segment_start: number): number {
+	private segment_total(segment_start: number): number {
 		let total = 0;
-		for (let item_number = segment_start; item_number < segment_start + 8; item_number += 1) {
-			const extended_price = prices[item_number] * this.multiplier;
+		for (const price of this._prices.slice(segment_start, segment_start + 8)) {
+			const extended_price = price * this._multiplier;
 			const discounted_price = extended_price - (extended_price * 0.05);
 			const price_with_tax = discounted_price + (discounted_price * 0.08);
 			total += price_with_tax;
@@ -75,32 +79,39 @@ export class PriceCatalog {
 		return total;
 	}
 	/** Responsibilities: _catalog initialization_. **/
-	public constructor(multiplier: number) { this.multiplier = multiplier; }
+	public constructor(multiplier: number, prices: readonly number[]) {
+		this._multiplier = multiplier;
+		this._prices = prices;
+	}
 	/** Responsibilities: _price aggregation_. **/
-	public total(prices: readonly number[]): number {
+	public total(): number {
 		let first_segments = 0;
 		let remaining_segments = 0;
 		for (let segment = 0; segment < 15; segment += 1) {
-			const total = this.segment_total(prices, segment * 8);
+			const total = this.segment_total(segment * 8);
 			if (segment < 7) { first_segments += total; }
 			else { remaining_segments += total; }
 		}
 		return first_segments + remaining_segments;
 	}
 	/** Responsibilities: _result normalization_. **/
-	public normalized_total(prices: readonly number[]): number {
-		const total = this.total(prices);
+	public normalized_total(): number {
+		const total = this.total();
 		return Math.round(total * 100) / 100;
+	}
+	/** Responsibilities: _catalog result reporting_. **/
+	public report(): void {
+		const total = this.total();
+		const normalized = this.normalized_total();
+		console.log(total, normalized);
 	}
 }
 // File: cli.ts
 import { PriceCatalog } from "src/price_catalog/price_catalog";
 (function () {
-	const catalog = new PriceCatalog(1.2);
 	const prices = new Array<number>(120);
 	prices.fill(1);
-	const total = catalog.total(prices);
-	const normalized = catalog.normalized_total(prices);
-	console.log(total, normalized);
+	const catalog = new PriceCatalog(1.2, prices);
+	catalog.report();
 })();
 ```

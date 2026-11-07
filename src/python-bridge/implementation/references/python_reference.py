@@ -1,92 +1,209 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
-from implementation.references.protocols import PythonReferenceContextContract
-from implementation.types import JsonObject
+from implementation.references.constants import (
+    PYTHON_CALL_USE_KEY,
+    PYTHON_CALLER_OWNER_KEY,
+)
+from implementation.references.protocols import (
+    PythonCallReferenceOptionsContract,
+    PythonReferenceContextContract,
+)
+from implementation.references.python_receiver_expression import (
+    PythonReceiverExpression,
+)
 from implementation.rules.constants import PYTHON_FUNCTION_KIND
+from implementation.types import JsonObject
 
 
 class PythonReference:
     """Responsibilities: _reference identity_, _expression metadata_."""
 
-    def _function_reference(self, function: ast.Name, line: int) -> JsonObject:
+    def _function_reference(
+        self,
+        function: ast.Name,
+        function_site: ast.AST,
+    ) -> JsonObject:
         """Responsibilities: _construction normalization function reference_."""
-        name: Any = function.id
-        name = (
-            self.context.reference_ownership().name_resolver().alias_target(function.id)
-        )
-        return {"name": name, "kind": PYTHON_FUNCTION_KIND, "line": line}
+        name = self._context.name_resolver().alias_target(function.id)
+        return {
+            "name": name,
+            "kind": PYTHON_FUNCTION_KIND,
+            "owner": "",
+            PYTHON_CALLER_OWNER_KEY: "",
+            "target_file": "",
+            "is_call": False,
+            "dynamic": False,
+            "line": function_site.lineno - 1,
+            "call_use": self._call_use(),
+        }
 
     def _method_reference(
         self,
         name: str,
-        line: int,
-        owner: str,
+        method_site: ast.AST,
+        receiver_owner: str,
         caller_owner: str = "",
     ) -> JsonObject:
         """Responsibilities: _construction normalization method reference_."""
-        reference: Any = {"name": name, "kind": "method", "line": line}
-        if owner:
-            reference["owner"] = owner
-        else:
-            reference["dynamic"] = True
-        if caller_owner:
-            reference["caller_owner"] = caller_owner
-        return reference
+        return {
+            "name": name,
+            "kind": "method",
+            "owner": receiver_owner,
+            PYTHON_CALLER_OWNER_KEY: caller_owner,
+            "target_file": "",
+            "is_call": False,
+            "dynamic": not receiver_owner,
+            "line": method_site.lineno - 1,
+            "call_use": self._call_use(),
+        }
+
+    def _call_use(self) -> JsonObject:
+        """Responsibilities: _empty call-site metadata_."""
+        return {
+            "assigned_name": "",
+            "assigned_type_name": "",
+            "callee_name": "",
+            "receiver_name": "",
+            "receiver_constructor_name": "",
+            "deferred": False,
+        }
 
     def _bound_reference(
-        self, value: ast.AST, line: int, current_owner: str
+        self,
+        value: ast.AST,
+        call_node: ast.AST,
+        current_owner: str,
     ) -> JsonObject:
         """Responsibilities: _construction normalization bound callable_."""
-        if type(value) is ast.Name:
-            return self._function_reference(value, line)
-        if type(value) is not ast.Attribute:
-            return {}
-        owner: Any = self.context.attribute_owner(value.value, current_owner)
-        return self._method_reference(value.attr, line, owner, current_owner)
+        match value:
+            case ast.Name():
+                return self._function_reference(value, call_node)
+            case ast.Attribute(value=receiver, attr=name):
+                owner = self._context.attribute_owner(receiver, current_owner)
+                return self._method_reference(name, call_node, owner, current_owner)
+            case _:
+                return {}
+
+    def _expression_reference(
+        self,
+        expression: ast.AST,
+        expression_site: ast.AST,
+        caller_owner: str,
+    ) -> JsonObject:
+        """Responsibilities: _expression callable reference construction_."""
+        match expression:
+            case ast.Name():
+                return self._function_reference(expression, expression_site)
+            case ast.Attribute(value=receiver, attr=name):
+                method_owner = self._context.attribute_owner(receiver, caller_owner)
+                return self._method_reference(
+                    name,
+                    expression_site,
+                    method_owner,
+                    caller_owner,
+                )
+            case _:
+                return {}
 
     def _assignment_value(self, node: ast.AST) -> ast.AST:
         """Responsibilities: _extraction value expression assignment_."""
-        if type(node) in (ast.Assign, ast.AnnAssign, ast.Return, ast.keyword):
-            if node.value is not None:
-                return node.value
-        return ast.Constant(value=None)
+        match node:
+            case ast.Assign(value=value):
+                pass
+            case ast.AnnAssign(value=value):
+                pass
+            case ast.Return(value=value):
+                pass
+            case ast.keyword(value=value):
+                pass
+            case _:
+                return ast.Constant(value=None)
+        if value is None:
+            return ast.Constant(value=None)
+        return value
+
+    def _function_call(
+        self,
+        function_options: PythonCallReferenceOptionsContract,
+    ) -> JsonObject:
+        """Responsibilities: _function reference creation_."""
+        node = function_options.call_node()
+        function = node.func
+        match function:
+            case ast.Name():
+                pass
+            case _:
+                return {}
+        binding = function_options.binding()
+        reference = self._function_reference(function, node)
+        owner = function_options.caller_owner()
+        if owner:
+            reference[PYTHON_CALLER_OWNER_KEY] = owner
+        reference["is_call"] = True
+        reference[PYTHON_CALL_USE_KEY] = binding.function_use(function.id)
+        return reference
+
+    def _method_call(
+        self,
+        method_options: PythonCallReferenceOptionsContract,
+    ) -> JsonObject:
+        """Responsibilities: _method call resolution_."""
+        node = method_options.call_node()
+        match node.func:
+            case ast.Attribute(value=receiver, attr=name):
+                pass
+            case _:
+                return {}
+        if name == "bind":
+            return self._bound_reference(receiver, node, method_options.caller_owner())
+        return self._invoked_method_reference(method_options, receiver, name)
+
+    def _invoked_method_reference(
+        self,
+        options: PythonCallReferenceOptionsContract,
+        receiver: ast.AST,
+        name: str,
+    ) -> JsonObject:
+        """Responsibilities: _invoked method reference metadata_."""
+        node = options.call_node()
+        owner = options.caller_owner()
+        binding = options.binding()
+        method_owner = self._context.attribute_owner(receiver, owner)
+        reference = self._method_reference(name, node, method_owner, owner)
+        reference["is_call"] = True
+        receiver_expression = PythonReceiverExpression(receiver)
+        reference[PYTHON_CALL_USE_KEY] = binding.method_use(
+            receiver_expression.variable_name(),
+            receiver_expression.constructor_name(),
+        )
+        return reference
 
     def __init__(self, context: PythonReferenceContextContract) -> None:
         """Responsibilities: _reference-resolution context initialization_."""
-        self.context: Any = context
+        self._context: PythonReferenceContextContract = context
 
-    def for_call(self, node: ast.Call, owner: str) -> JsonObject:
+    def for_call(self, options: PythonCallReferenceOptionsContract) -> JsonObject:
         """Responsibilities: _construction normalization reference invocation_."""
-        function: Any = node.func
-        line: Any = node.lineno - 1
-        if type(function) is ast.Name:
-            return self._function_reference(function, line)
-        if type(function) is not ast.Attribute:
-            return {}
-        if function.attr == "bind":
-            return self._bound_reference(function.value, line, owner)
-        method_owner: Any = self.context.attribute_owner(function.value, owner)
-        reference: Any = self._method_reference(
-            function.attr, line, method_owner, owner
-        )
-        reference["is_call"] = True
-        return reference
+        node = options.call_node()
+        function = node.func
+        match function:
+            case ast.Name():
+                return self._function_call(options)
+            case ast.Attribute():
+                return self._method_call(options)
+            case _:
+                return {}
 
     def for_value(self, node: ast.AST, owner: str) -> JsonObject:
         """Responsibilities: _construction normalization reference callable_."""
-        value: Any = self._assignment_value(node)
-        if type(value) is ast.Constant and value.value is None:
-            return {}
-        return self.for_expression(value, node.lineno - 1, owner)
+        value = self._assignment_value(node)
+        match value:
+            case ast.Constant(value=None):
+                return {}
+        return self._expression_reference(value, node, owner)
 
-    def for_expression(self, value: ast.AST, line: int, owner: str) -> JsonObject:
+    def for_expression(self, value: ast.AST, owner: str) -> JsonObject:
         """Responsibilities: _construction normalization reference callable_."""
-        if type(value) is ast.Name:
-            return self._function_reference(value, line)
-        if type(value) is ast.Attribute:
-            method_owner: Any = self.context.attribute_owner(value.value, owner)
-            return self._method_reference(value.attr, line, method_owner, owner)
-        return {}
+        return self._expression_reference(value, value, owner)

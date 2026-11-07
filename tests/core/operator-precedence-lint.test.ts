@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint operator precedence rules", () => {
 	test("allows single boolean operators around comparison operands", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"single-boolean.ts": [
 					"const conjunction = enabled && count > 0;",
@@ -20,13 +20,13 @@ describe("coding-lint operator precedence rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "mixed-boolean-precedence")).toEqual([]);
+		expect(violations.filter((item) => item.rule_id() === "mixed-boolean-precedence")).toEqual([]);
 	});
 
 	test("requires grouping for mixed boolean and arithmetic operators", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"operators.ts": [
 					"const mixed_boolean = first && second || third;",
@@ -81,13 +81,13 @@ describe("coding-lint operator precedence rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const boolean_violations = violations.filter((item) => item.rule_id === "mixed-boolean-precedence");
-		const arithmetic_violations = violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence");
+		const boolean_violations = violations.filter((item) => item.rule_id() === "mixed-boolean-precedence");
+		const arithmetic_violations = violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence");
 
 		expect({
 			boolean_count: boolean_violations.length,
-			typescript_boolean_count: boolean_violations.filter((item) => item.file.endsWith("operators.ts")).length,
-			python_boolean_count: boolean_violations.filter((item) => item.file.endsWith("operators.py")).length,
+			typescript_boolean_count: boolean_violations.filter((item) => item.file().endsWith("operators.ts")).length,
+			python_boolean_count: boolean_violations.filter((item) => item.file().endsWith("operators.py")).length,
 			arithmetic_count: arithmetic_violations.length,
 		}).toEqual({
 			boolean_count: 4,
@@ -100,7 +100,7 @@ describe("coding-lint operator precedence rules", () => {
 	test("counts logical parts inside parentheses", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"logical.ts":
 					"function ready(first: boolean, second: boolean, third: boolean, fourth: boolean): boolean { return first || (second && third) || fourth; }",
@@ -110,19 +110,19 @@ describe("coding-lint operator precedence rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const logical = violations.filter((item) => item.rule_id === "logical-chain-size");
+		const logical = violations.filter((item) => item.rule_id() === "logical-chain-size");
 
 		expect({
 			count: logical.length,
-			typescript: logical.some((item) => item.file.endsWith("logical.ts")),
-			python: logical.some((item) => item.file.endsWith("logical.py")),
+			typescript: logical.some((item) => item.file().endsWith("logical.ts")),
+			python: logical.some((item) => item.file().endsWith("logical.py")),
 		}).toEqual({ count: 2, typescript: true, python: true });
 	});
 
 	test("checks mixed operators inside a parenthesized subexpression", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"nested.ts": "const total = base + (first * second + third);",
 				"nested.py": "total = base + (first * second + third)",
@@ -130,19 +130,19 @@ describe("coding-lint operator precedence rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const arithmetic = violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence");
+		const arithmetic = violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence");
 
 		expect({
 			count: arithmetic.length,
-			typescript: arithmetic.some((item) => item.file.endsWith("nested.ts")),
-			python: arithmetic.some((item) => item.file.endsWith("nested.py")),
+			typescript: arithmetic.some((item) => item.file().endsWith("nested.ts")),
+			python: arithmetic.some((item) => item.file().endsWith("nested.py")),
 		}).toEqual({ count: 2, typescript: true, python: true });
 	});
 
 	test("checks modulo, floor division, and exponentiation precedence", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"arithmetic.ts": ["const modulo = first + second % third;", "const exponent = first * second ** third;"].join(
 					"\n",
@@ -152,19 +152,19 @@ describe("coding-lint operator precedence rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const arithmetic = violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence");
+		const arithmetic = violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence");
 
 		expect({
 			count: arithmetic.length,
-			typescript: arithmetic.filter((item) => item.file.endsWith("arithmetic.ts")).length,
-			python: arithmetic.filter((item) => item.file.endsWith("arithmetic.py")).length,
+			typescript: arithmetic.filter((item) => item.file().endsWith("arithmetic.ts")).length,
+			python: arithmetic.filter((item) => item.file().endsWith("arithmetic.py")).length,
 		}).toEqual({ count: 4, typescript: 2, python: 2 });
 	});
 
 	test("requires grouping for negation applied to comparisons", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"negation.ts": [
 					"const first = !value === expected;",
@@ -182,24 +182,24 @@ describe("coding-lint operator precedence rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const boolean = violations.filter((item) => item.rule_id === "mixed-boolean-precedence");
+		const boolean = violations.filter((item) => item.rule_id() === "mixed-boolean-precedence");
 
 		expect({
 			count: boolean.length,
-			typescript: boolean.filter((item) => item.file.endsWith("negation.ts")).length,
-			python: boolean.filter((item) => item.file.endsWith("negation.py")).length,
+			typescript: boolean.filter((item) => item.file().endsWith("negation.ts")).length,
+			python: boolean.filter((item) => item.file().endsWith("negation.py")).length,
 		}).toEqual({ count: 2, typescript: 1, python: 1 });
 	});
 
 	test("handles unicode before Python operator expressions", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{ "unicode.py": "éééééééééé = first + second / third\n" },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id === "mixed-arithmetic-precedence")).toHaveLength(1);
+		expect(violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence")).toHaveLength(1);
 	});
 });

@@ -1,27 +1,26 @@
-import { resolve } from "node:path";
 import { REVIEW_HIDDEN_SEARCH_OPTION, REVIEW_SEARCH_VALUE_OPTIONS } from "src/core/support/task/review-agent/constants";
-import type { ResolvedReviewPathPolicyContract } from "src/core/support/task/review-agent/protocols";
+import type { ReviewPathPolicyContract } from "src/core/support/task/review-agent/protocols";
 
 /** Responsibilities: _recursive search scope_, _review path boundary_. **/
 export class RecursiveReviewSearchPolicy {
-	private readonly resolved_review_paths: ResolvedReviewPathPolicyContract;
+	private readonly _path_policy: ReviewPathPolicyContract;
 
-	/** Responsibilities: _recursive text search classification_. **/
-	private recursive_text_search(command: string, words: readonly string[]): boolean {
-		if (command === "rg") {
-			return words.includes(REVIEW_HIDDEN_SEARCH_OPTION);
+	/** Responsibilities: _recursive text-search classification_. **/
+	private recursive_text_search(command_name: string, command_arguments: readonly string[]): boolean {
+		if (command_name === "rg") {
+			return command_arguments.includes(REVIEW_HIDDEN_SEARCH_OPTION);
 		}
-		if (command !== "grep") {
-			return false;
+		if (command_name === "grep") {
+			return command_arguments.includes("-r") || command_arguments.includes("-R");
 		}
-		return words.includes("-r") || words.includes("-R");
+		return false;
 	}
 
 	/** Responsibilities: _search target count_. **/
-	private positional_count(words: readonly string[]): number {
+	private positional_count(command_arguments: readonly string[]): number {
 		let count = 0;
-		for (let index = 1; index < words.length; index += 1) {
-			const word = words[index];
+		for (let index = 1; index < command_arguments.length; index += 1) {
+			const word = command_arguments[index];
 			if (word === undefined) {
 				continue;
 			}
@@ -29,44 +28,33 @@ export class RecursiveReviewSearchPolicy {
 				index += 1;
 				continue;
 			}
-			if (word.startsWith("-")) {
-				continue;
+			if (!word.startsWith("-")) {
+				count += 1;
 			}
-			count += 1;
 		}
 		return count;
 	}
 
-	/** Responsibilities: _implicit text-search scope_. **/
-	private blocks_text_search(
-		command: string,
-		words: readonly string[],
-		command_cwd: string,
-		root_cwd: string,
-	): boolean {
+	/** Responsibilities: _policy initialization_. **/
+	public constructor(path_policy: ReviewPathPolicyContract) {
+		this._path_policy = path_policy;
+	}
+
+	/** Responsibilities: _implicit search scope classification_. **/
+	public blocks(command: string, words: readonly string[], command_cwd: string): boolean {
+		if (command === "find" && words.length === 1) {
+			return !this._path_policy.allows_recursive_path(".", command_cwd);
+		}
+		if (command === "ls" && words.includes("-R") && words.length === 2) {
+			return !this._path_policy.allows_recursive_path(".", command_cwd);
+		}
 		if (!this.recursive_text_search(command, words)) {
 			return false;
 		}
 		if (this.positional_count(words) > 1) {
 			return false;
 		}
-		return this.resolved_review_paths.blocks(resolve(command_cwd), root_cwd, true);
-	}
-
-	/** Responsibilities: _policy initialization_. **/
-	public constructor(resolved_review_paths: ResolvedReviewPathPolicyContract) {
-		this.resolved_review_paths = resolved_review_paths;
-	}
-
-	/** Responsibilities: _implicit search scope classification_. **/
-	public blocks(command: string, words: readonly string[], command_cwd: string, root_cwd: string): boolean {
-		if (command === "find" && words.length === 1) {
-			return this.resolved_review_paths.blocks(resolve(command_cwd), root_cwd, true);
-		}
-		if (command === "ls" && words.includes("-R") && words.length === 2) {
-			return this.resolved_review_paths.blocks(resolve(command_cwd), root_cwd, true);
-		}
-		return this.blocks_text_search(command, words, command_cwd, root_cwd);
+		return !this._path_policy.allows_recursive_path(".", command_cwd);
 	}
 
 	/** Responsibilities: _recursive command classification_. **/

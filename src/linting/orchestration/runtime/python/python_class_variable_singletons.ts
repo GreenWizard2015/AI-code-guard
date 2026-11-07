@@ -1,17 +1,24 @@
+import { PYTHON_CLASSVAR_NAME } from "src/constants";
+import type {
+	AstClassField,
+	AstReferenceAlias,
+	NormalizedAstFile,
+	NormalizedAstSource,
+} from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { AstClassField, NormalizedAstFileContract } from "src/types";
 import type { PythonClassVariableSingletonsContract } from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import { PYTHON_CLASSVAR_NAME } from "src/constants";
 
 /** Responsibilities: _class variable resolution_, _singleton diagnostics_. **/
 export class PythonClassVariableSingletons implements PythonClassVariableSingletonsContract {
-	private readonly file: string;
-	private readonly normalized_ast: NormalizedAstFileContract;
+	private readonly _file: string;
+	private readonly _declarations: NormalizedAstSource;
+	private readonly _reference_aliases: AstReferenceAlias[];
+	private readonly _alias_names: Set<string>;
 
 	/** Responsibilities: _ClassVar imported alias collection_. **/
-	private imported_aliases(names: Set<string>): void {
-		for (const import_node of this.normalized_ast.python_imports) {
+	private imported_aliases(): void {
+		for (const import_node of this._declarations.python_imports) {
 			if (!["typing", "typing_extensions"].includes(import_node.module)) {
 				continue;
 			}
@@ -23,29 +30,38 @@ export class PythonClassVariableSingletons implements PythonClassVariableSinglet
 				if (imported.alias.length > 0) {
 					name = imported.alias;
 				}
-				names.add(name);
+				this._alias_names.add(name);
 			}
 		}
 	}
 
 	/** Responsibilities: _ClassVar alias propagation_. **/
-	private append_aliases(names: Set<string>): void {
-		const aliases = new Map(this.normalized_ast.reference_aliases.map((alias) => [alias.name, alias.target]));
+	private append_aliases(): void {
+		const aliases = new Map<string, string>();
+		for (const alias of this._reference_aliases) {
+			aliases.set(alias.name, alias.target);
+		}
 		let changed = true;
 		while (changed) {
-			changed = false;
-			for (const [name, target] of aliases) {
-				const resolved = this.class_alias_target(target);
-				if (!names.has(resolved)) {
-					continue;
-				}
-				if (names.has(name)) {
-					continue;
-				}
-				names.add(name);
-				changed = true;
-			}
+			changed = this.append_alias_pass(aliases);
 		}
+	}
+
+	/** Responsibilities: _one-pass ClassVar alias propagation_. **/
+	private append_alias_pass(aliases: ReadonlyMap<string, string>): boolean {
+		let changed = false;
+		for (const [name, target] of aliases) {
+			const resolved = this.class_alias_target(target);
+			if (!this._alias_names.has(resolved)) {
+				continue;
+			}
+			if (this._alias_names.has(name)) {
+				continue;
+			}
+			this._alias_names.add(name);
+			changed = true;
+		}
+		return changed;
 	}
 
 	/** Responsibilities: _ClassVar alias target resolution_. **/
@@ -84,27 +100,32 @@ export class PythonClassVariableSingletons implements PythonClassVariableSinglet
 	}
 
 	/** Responsibilities: _Python class-variable singleton initialization_. **/
-	public constructor(file: string, normalized_ast: NormalizedAstFileContract) {
-		this.file = file;
-		this.normalized_ast = normalized_ast;
+	public constructor(file: string, normalized_ast: NormalizedAstFile) {
+		this._file = file;
+		this._declarations = normalized_ast.source;
+		this._reference_aliases = normalized_ast.references.reference_aliases;
+		this._alias_names = new Set<string>([PYTHON_CLASSVAR_NAME]);
 	}
 
 	/** Responsibilities: _ClassVar annotation aliases_. **/
 	public aliases(): ReadonlySet<string> {
-		const names = new Set<string>([PYTHON_CLASSVAR_NAME]);
-		this.imported_aliases(names);
-		this.append_aliases(names);
-		return names;
+		this.imported_aliases();
+		this.append_aliases();
+		return new Set(this._alias_names);
 	}
 
 	/** Responsibilities: _Python class-variable singleton violations_. **/
 	public violations(): ViolationContract[] {
 		const rule = new DiagnosticRule("singleton");
 		const names = this.aliases();
-		return this.normalized_ast.classes.flatMap((node) =>
-			node.fields
-				.filter((field) => this.is_class_variable(field, names))
-				.map((field) => rule.violation(this.file, field.line + 1)),
-		);
+		const violations: ViolationContract[] = [];
+		for (const node of this._declarations.classes) {
+			for (const field of node.field_analysis.fields) {
+				if (this.is_class_variable(field, names)) {
+					violations.push(rule.violation(this._file, field.line + 1));
+				}
+			}
+		}
+		return violations;
 	}
 }

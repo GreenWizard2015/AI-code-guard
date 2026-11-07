@@ -3,24 +3,29 @@ from __future__ import annotations
 import ast
 from collections.abc import Mapping, MutableMapping
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
 from implementation.rules.call_analysis.testing.python_binding_overlay import (
     PythonBindingOverlay,
 )
-from implementation.rules.types import PythonTestMutationIndex
+from implementation.rules.call_analysis.testing.python_test_callable_definition import (
+    PythonTestCallableDefinition,
+)
 from implementation.rules.call_analysis.testing.python_test_execution_region import (
     PythonTestExecutionRegion,
 )
+from implementation.rules.types import PythonTestMutationIndex
 from implementation.types import JsonObject
 
 
 class PythonTestOrderDependency:
     """Responsibilities: _shared mutable state detection_, _test order issue reporting_."""
 
-    mutation_methods: frozenset[str]
-    tree: ast.Module
+    _mutation_methods: frozenset[str]
+    _tree: ast.Module
+    _node_index: PythonAstNodeIndexContract
 
     def _mutable_value(self, value: ast.AST) -> bool:
         """Responsibilities: _module mutable value classification_."""
@@ -33,7 +38,9 @@ class PythonTestOrderDependency:
         return value.func.id in {"dict", "list", "set"}
 
     def _apply_assignment(
-        self, node: ast.AST, bindings: MutableMapping[str, ast.AST]
+        self,
+        node: ast.AST,
+        bindings: MutableMapping[str, ast.AST],
     ) -> None:
         """Responsibilities: _mutable binding replacement_."""
         effects = PythonAssignmentEffects(node)
@@ -50,26 +57,20 @@ class PythonTestOrderDependency:
                 continue
             bindings.pop(name, None)
 
-    def _test_function(self, node: ast.AST) -> bool:
-        """Responsibilities: _Python test function classification_."""
-        if type(node) not in (ast.FunctionDef, ast.AsyncFunctionDef):
-            return False
-        return node.name.startswith("test_")
-
     def _append_shared_mutation(
         self,
-        node: ast.AST,
+        node: ast.Call,
         bindings: Mapping[str, ast.AST],
         shared_objects: set[ast.AST],
         writes: set[ast.AST],
     ) -> None:
         """Responsibilities: _shared mutation classification_."""
-        if type(node) is not ast.Call or type(node.func) is not ast.Attribute:
+        if type(node.func) is not ast.Attribute:
             return
         owner = node.func.value
         if type(owner) is not ast.Name:
             return
-        if node.func.attr not in self.mutation_methods:
+        if node.func.attr not in self._mutation_methods:
             return
         if owner.id not in bindings:
             return
@@ -80,45 +81,54 @@ class PythonTestOrderDependency:
     def _test_writes(
         self,
         function: ast.AST,
-        module_bindings: dict[str, ast.AST],
+        module_bindings: Mapping[str, ast.AST],
         shared_objects: set[ast.AST],
     ) -> set[ast.AST]:
         """Responsibilities: _shared mutation detection_."""
-        region = PythonTestExecutionRegion(function)
+        definition = PythonTestCallableDefinition(function, self._node_index)
+        callables = definition.nested_callables()
+        region = PythonTestExecutionRegion(function, callables, self._node_index)
         bindings = PythonBindingOverlay(module_bindings)
         for name in region.local_names():
             bindings.pop(name, None)
         writes: set[ast.AST] = set()
-        for node in region.nodes():
+        for node in region.nodes:
             if type(node) in (ast.Assign, ast.AnnAssign, ast.NamedExpr):
                 self._apply_assignment(node, bindings)
-            self._append_shared_mutation(node, bindings, shared_objects, writes)
+            if type(node) is ast.Call:
+                self._append_shared_mutation(node, bindings, shared_objects, writes)
         return writes
 
     def _test_mutations(
-        self, module_bindings: dict[str, ast.AST]
+        self,
+        module_bindings: Mapping[str, ast.AST],
     ) -> PythonTestMutationIndex:
         """Responsibilities: _test mutation counts_."""
         shared_objects = set(module_bindings.values())
         writes: PythonTestMutationIndex = {}
-        for node in ast.walk(self.tree):
-            if not self._test_function(node):
+        for node in self._node_index.nodes(self._tree):
+            if type(node) is ast.FunctionDef or type(node) is ast.AsyncFunctionDef:
+                test_name = node.name
+            else:
+                continue
+            if not test_name.startswith("test_"):
                 continue
             for identity in self._test_writes(node, module_bindings, shared_objects):
                 writes.setdefault(identity, set()).add(node)
         return writes
 
-    def __init__(self, tree: ast.Module) -> None:
+    def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _Python test-order dependency state_."""
-        self.mutation_methods: frozenset[str] = frozenset(
-            {"add", "append", "extend", "set", "update"}
+        self._mutation_methods: frozenset[str] = frozenset(
+            {"add", "append", "extend", "set", "update"},
         )
-        self.tree: ast.Module = tree
+        self._tree: ast.Module = tree
+        self._node_index: PythonAstNodeIndexContract = node_index
 
-    def module_mutable_objects(self) -> dict[str, ast.AST]:
+    def module_mutable_objects(self) -> Mapping[str, ast.AST]:
         """Responsibilities: _module mutable objects_."""
         bindings: dict[str, ast.AST] = {}
-        for statement in self.tree.body:
+        for statement in self._tree.body:
             self._apply_assignment(statement, bindings)
         return bindings
 

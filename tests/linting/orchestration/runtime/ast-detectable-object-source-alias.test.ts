@@ -1,15 +1,31 @@
 import { describe, expect, test } from "@jest/globals";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceText } from "src/source_text";
+import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
+import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
+import type { ViolationContract } from "src/reporting_protocols";
+import type { SourceFileAstContract } from "src/source_protocols";
 import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
+import { EMPTY_PROJECT_NAMES } from "tests/core/constants";
+import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
 
 describe("AST-detectable object source aliases", () => {
 	const source_files = new ParsedSourceFiles();
 
+	/** Responsibilities: _file-scoped TypeScript lint execution_. **/
+	const lint_file_scope = (
+		source_ast: SourceFileAstContract,
+		stage_timer: LintStageTimer,
+		filesystem_fallback: boolean,
+	): ViolationContract[] => {
+		const context = new ASTVerifierTestContext(source_ast.snapshot().source_file);
+		const state = context.state();
+		const rule_scope = state.project.rule_scope;
+		const linter = new CodingRuleLinter(rule_scope, ".", new SourceText(), EMPTY_PROJECT_NAMES, filesystem_fallback);
+		return linter.lint_typescript(source_ast, stage_timer);
+	};
+
 	test("detects destructured Object.assign aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-alias.ts",
 				[
@@ -24,14 +40,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects transitive destructured Object.assign aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-transitive.ts",
 				[
@@ -45,14 +61,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects computed Object.assign calls", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-computed.ts",
 				[
@@ -64,14 +80,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-key-alias.ts",
 				[
@@ -84,14 +100,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects nested array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-nested-array.ts",
 				[
@@ -104,14 +120,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects array-rest computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-rest.ts",
 				[
@@ -125,14 +141,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects array-spread computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-spread.ts",
 				[
@@ -146,14 +162,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects conditional array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-conditional-array.ts",
 				[
@@ -168,14 +184,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects assigned array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-assignment.ts",
 				[
@@ -190,14 +206,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects concatenated array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-concat.ts",
 				[
@@ -211,14 +227,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects aliased concatenated array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-alias-concat.ts",
 				[
@@ -233,14 +249,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects template array computed Object.assign key aliases", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-array-template.ts",
 				[
@@ -255,14 +271,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-spread.ts",
 				[
@@ -274,14 +290,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects aliased spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-spread-alias.ts",
 				[
@@ -294,14 +310,14 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 
 	test("detects indexed spread Object.assign object sources", () => {
-		const coding_rule_linter = new CodingRuleLinter(".", new SourceText());
-		const violations = coding_rule_linter.lint_typescript(
+		const violations = lint_file_scope(
 			source_files.parse_typescript(
 				"callable-object-assign-object-indexed-spread.ts",
 				[
@@ -314,8 +330,9 @@ describe("AST-detectable object source aliases", () => {
 				].join("\n"),
 			),
 			new LintStageTimer(),
+			true,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id === "typescript-fake-object")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "typescript-fake-object")).toHaveLength(1);
 	});
 });

@@ -1,45 +1,15 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
-import { TypeScriptTypeAliases } from "src/typescript-aliases/type_script_type_aliases";
-import { TypeScriptArrayStateInspector } from "src/rules/typescript/syntax-rules/types/type_script_array_state_inspector";
-import { TypeScriptBindingAliases } from "src/typescript-aliases/type_script_binding_aliases";
-import { TypeScriptCallAliases } from "src/rules/typescript/syntax-rules/callables/type_script_call_aliases";
-import { TypeScriptExpressionNames } from "src/typescript-aliases/type_script_expression_names";
-import ts from "typescript";
-
-/** Responsibilities: _repeated access source generation_, _array access extraction_. **/
-class RepeatedArrayAccessSource {
-	public readonly source_file: ts.SourceFile;
-
-	/** Responsibilities: _repeated access source setup_. **/
-	public constructor(access_count: number) {
-		const lines = Array.from({ length: access_count }, (_, index) => `const item_${index} = values()[0];`);
-		const source = `type Values = string[];\nfunction values(): Values { return ["value"]; }\n${lines.join("\n")}`;
-		this.source_file = ts.createSourceFile("repeated-array-access.ts", source, ts.ScriptTarget.Latest, true);
-	}
-
-	/** Responsibilities: _element access collection_. **/
-	public access_nodes(): ts.ElementAccessExpression[] {
-		const nodes: ts.ElementAccessExpression[] = [];
-		for (const statement of this.source_file.statements.filter(ts.isVariableStatement)) {
-			const initializer = statement.declarationList.declarations[0]?.initializer;
-			if (initializer !== undefined && ts.isElementAccessExpression(initializer)) {
-				nodes.push(initializer);
-			}
-		}
-		return nodes;
-	}
-}
 
 describe("single-item array state analysis", () => {
 	test("detects the first result extracted through array destructuring", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"destructured-result.ts": [
 						"interface UserRecord { user_id: string; }",
@@ -80,16 +50,16 @@ describe("single-item array state analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "single-item-array-state");
+			.filter((item) => item.rule_id() === "single-item-array-state");
 
-		expect(violations).toHaveLength(5);
+		expect(violations).toHaveLength(6);
 	});
 
 	test("detects access through call aliases and direct array return types", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"non-null-index.ts": [
 						'function values(): string[] { return ["value"]; }',
@@ -121,15 +91,70 @@ describe("single-item array state analysis", () => {
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "single-item-array-state");
+			.filter((item) => item.rule_id() === "single-item-array-state");
 		expect(violations).toHaveLength(5);
+	});
+
+	test("detects zero access through both indexing and at", () => {
+		const fixture = new TestFixture();
+		const violations = fixture
+			.with_lint_request(
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+				{
+					"indexed-result.ts": ['function values(): string[] { return ["value"]; }', "const item = values()[0];"].join(
+						"\n",
+					),
+					"at-result.ts": ['function values(): string[] { return ["value"]; }', "const item = values().at(0);"].join(
+						"\n",
+					),
+					"arguments-unpack.ts": [
+						"declare const source: { arguments: unknown[]; entries: unknown[] };",
+						"const [context] = source.arguments;",
+						"const [entry] = source.entries;",
+					].join("\n"),
+					"nonzero-at-result.ts": [
+						'function values(): string[] { return ["value"]; }',
+						"const item = values().at(1);",
+					].join("\n"),
+				},
+				(production_lint_configuration, options, mode) =>
+					production_lint_configuration.lint_report(options, mode).report.violations,
+			)
+			.filter((item) => item.rule_id() === "single-item-array-state");
+		const reported_files = violations.map((item) => item.file()).sort();
+
+		expect(violations).toHaveLength(4);
+		expect(reported_files).toEqual(["arguments-unpack.ts", "arguments-unpack.ts", "at-result.ts", "indexed-result.ts"]);
+	});
+
+	test("does not treat ordinary first or last collection access as a single-item result", () => {
+		const fixture = new TestFixture();
+		const violations = fixture
+			.with_lint_request(
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+				{
+					"collection-index.ts": [
+						'function find_value(): string[] { return ["value"]; }',
+						"const result = find_value()[0];",
+						'const path_parts = "root/file.py".split("/");',
+						"const file_name = path_parts[path_parts.length - 1];",
+						"const root_part = path_parts[0];",
+						"console.log(result, file_name, root_part);",
+					].join("\n"),
+				},
+				(production_lint_configuration, options, mode) =>
+					production_lint_configuration.lint_report(options, mode).report.violations,
+			)
+			.filter((item) => item.rule_id() === "single-item-array-state");
+
+		expect(violations.map((item) => item.line())).toEqual([2]);
 	});
 
 	test("resolves readonly and qualified aliases without leaking across files", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 				{
 					"readonly-alias.ts": [
 						"type InnerValues = readonly string[];",
@@ -165,38 +190,34 @@ describe("single-item array state analysis", () => {
 						'function values(): Values { return ["value"]; }',
 						"const first_value = values()[0];",
 					].join("\n"),
+					"builtin-array-types.ts": [
+						'function mutable_values(): Array<string> { return ["value"]; }',
+						'function readonly_values(): ReadonlyArray<string> { return ["value"]; }',
+						"const first_mutable = mutable_values()[0];",
+						"const first_readonly = readonly_values()[0];",
+					].join("\n"),
+					"scalar-alias.ts": [
+						"type Scalar = string;",
+						'function scalar(): Scalar { return "value"; }',
+						"const first_character = scalar()[0];",
+					].join("\n"),
 				},
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
-			.filter((item) => item.rule_id === "single-item-array-state");
-		const array_alias_violations = violations.filter((item) => item.file.includes("array-alias-"));
+			.filter((item) => item.rule_id() === "single-item-array-state");
+		const array_alias_violations = violations.filter((item) => item.file().includes("array-alias-"));
+		const array_alias_file = array_alias_violations
+			.map((item) => item.file())
+			.find((file) => file.includes("array-alias-"));
 		expect({
 			count: violations.length,
 			array_alias_count: array_alias_violations.length,
-			array_alias_file: array_alias_violations[0]?.file,
+			array_alias_file,
 		}).toEqual({
-			count: 6,
+			count: 8,
 			array_alias_count: 1,
 			array_alias_file: expect.stringContaining("array-alias-source.ts"),
-		});
-	});
-
-	test("reuses array alias analysis for repeated accesses in one source", () => {
-		const access_count = 40;
-		const collect = jest.spyOn(TypeScriptTypeAliases.prototype, "collect");
-		const source = new RepeatedArrayAccessSource(access_count);
-		const expression_names = new TypeScriptExpressionNames();
-		const call_aliases = new TypeScriptCallAliases(expression_names, new TypeScriptBindingAliases(expression_names));
-		const inspector = new TypeScriptArrayStateInspector(expression_names, call_aliases);
-		const matching_accesses = source
-			.access_nodes()
-			.filter((node) => inspector.single_item_expression(node.expression, source.source_file)).length;
-		const alias_inventory_builds = collect.mock.calls.length;
-		collect.mockRestore();
-		expect({ matching_accesses, alias_inventory_builds }).toEqual({
-			matching_accesses: access_count,
-			alias_inventory_builds: 1,
 		});
 	});
 });

@@ -1,130 +1,152 @@
+import type { LintFileNameContract } from "src/core/support/protocols";
 import type {
-	AstArgumentUse,
-	AstCallableNodeContract,
+	AstCallableNode,
 	AstCallableReference,
-	AstClassNodeContract,
 	AstClassField,
+	AstClassNode,
 	AstReferenceAlias,
-	AstTypedArgument,
-	AstVisibility,
 	AstTypeMemberRecord,
-	CallableOwnershipResolver,
-	NormalizedAstFileContract,
-} from "src/types";
-import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
+	AstTypedArgument,
+	NormalizedAstFile,
+} from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
+import type { SourceReference } from "src/source_types";
+import type { CallableOwnershipResolver, RuleContextState } from "src/types";
 export type ParsedFile = {
 	file: string;
 	absolute_file: string;
 	imports: ReadonlySet<string>;
-	ast: NormalizedAstFileContract;
+	ast: NormalizedAstFile;
+	reference_aliases: readonly AstReferenceAlias[];
 };
+export type ParsedFilesByName = ReadonlyMap<string, ParsedFile>;
 export type CallableDefinition = {
 	file: string;
 	kind: SharedCallableKind;
-	node: AstCallableNodeContract;
+	node: AstCallableNode;
 };
 
-export type CallableMatcherClassIndexes = {
-	classes: Map<string, AstClassNodeContract>;
-	protocol_names: Set<string>;
-};
-
-export type CallableMatcherOwnerIndexes = {
-	methods_by_owner: CallableMatcherNamesByOwner;
-	method_owner_counts: Map<string, number>;
-};
+export type MethodNameSet = ReadonlySet<string>;
+export type MethodNamesByOwner = ReadonlyMap<string, MethodNameSet>;
+export type MethodOwnerReferences = Map<string, SourceReference[]>;
+export type MethodReferencesByName = Map<string, MethodOwnerReferences>;
+export type MethodReferencesByFile = Map<string, MethodReferencesByName>;
+export type MethodOwnerReferenceView = ReadonlyMap<string, readonly SourceReference[]>;
+export type MethodReferenceIndexView = ReadonlyMap<string, MethodOwnerReferenceView>;
+export type OwnedReferences = AstCallableReference[];
+export type OwnedReferencesByName = Map<string, OwnedReferences>;
+export type OwnedReferencesByKind = Map<SharedCallableKind, OwnedReferencesByName>;
 
 export type CallableMatcherIndexes = {
-	classes: ReadonlyMap<string, AstClassNodeContract>;
+	classes: ReadonlyMap<string, AstClassNode>;
 	protocol_names: ReadonlySet<string>;
-	methods_by_owner: ReadonlyCallableMatcherNamesByOwner;
+	methods_by_owner: MethodNamesByOwner;
 	method_owner_counts: ReadonlyMap<string, number>;
 	files_by_name: ReadonlyMap<string, ParsedFile>;
+	contract_method_files: ReadonlyMap<string, readonly ParsedFile[]>;
+	method_owner_references: MethodReferenceIndexView;
 };
 
-export type CallableProjectIndex = Map<string, AstTypeMemberRecord>;
-export type CallableClassIndex = Map<string, AstClassNodeContract>;
-export type CallableTypeCandidateSet = Set<AstTypeMemberRecord>;
-export type CallableClassCandidateSet = Set<AstClassNodeContract>;
-export type CallableTypeCandidates = Map<string, CallableTypeCandidateSet>;
-export type CallableClassCandidates = Map<string, CallableClassCandidateSet>;
-export type CallableMetricNode = {
-	name: string;
-	start: number;
-	end: number;
-	argument_count: number;
-	lines: number;
-	sloc: number;
-	characters: number;
-	control_flow_depth: number;
-	exception_only: boolean;
-	visibility: AstVisibility;
+export type CallableProjectIndex = ReadonlyMap<string, AstTypeMemberRecord>;
+export type CallableClassIndex = ReadonlyMap<string, AstClassNode>;
+export type CallableMethodCountsByName = Map<string, number>;
+export type ClassStateEvidence = {
+	readonly constructor_injected_state: boolean;
+	readonly inherited_instance_state: boolean;
+	readonly inherited_state_names: ReadonlySet<string>;
 };
-export type SharedParameterNodeInput = {
-	name: string;
-	start: number;
-	end: number;
-	argument_count: number;
-	owner: string;
-	has_self: boolean;
-	argument_uses: AstArgumentUse[];
-	typed_arguments: AstTypedArgument[];
-	visibility: AstVisibility;
+
+/** Responsibilities: _project class name groups_. **/
+export type ClassStructureProjectNames = {
+	project_class_names: ReadonlySet<string>;
+	project_contract_names: ReadonlySet<string>;
+	project_alias_names: ReadonlySet<string>;
+};
+
+export type ClassStructureReporterOptions = {
+	violations: ViolationContract[];
+	file_name: LintFileNameContract;
+	node: AstClassNode;
+	suppress_short_class: boolean;
+	mutated_readonly_fields: ReadonlySet<string>;
+	class_state: ClassStateEvidence;
+	project_class_names: ReadonlySet<string>;
+	project_contract_names: ReadonlySet<string>;
+	project_alias_names: ReadonlySet<string>;
 };
 /** Responsibilities: _callable definition_, _local source record_, _method count_. **/
-export interface CallableDefinitionUsageSubjectContract {
+export type CallableDefinitionUsageSubject = {
 	readonly definition: CallableDefinition;
 	readonly local_file: ParsedFile;
 	readonly method_count: number;
-}
+};
 
 /** Responsibilities: _project source records_, _callable and type indexes_. **/
-export interface CallableDefinitionUsageProjectContract {
+export type CallableDefinitionUsageProject = {
 	readonly production_files: ParsedFile[];
+	readonly production_file_index: ParsedFilesByName;
 	readonly production_file_names: ReadonlySet<string>;
 	readonly test_file_names: ReadonlySet<string>;
 	readonly definitions: CallableDefinition[];
 	readonly type_members: CallableProjectIndex;
 	readonly class_nodes: CallableClassIndex;
 	readonly matcher_indexes: CallableMatcherIndexes;
-}
+};
 
 /** Responsibilities: _callable usage references_. **/
-export interface CallableDefinitionUsageReferencesContract {
+export type CallableDefinitionUsageReferences = {
 	readonly reference_index: SourceReferenceIndexContract<string>;
 	readonly references_by_file: CallableReferencesByFile;
-}
+};
 
-/** Responsibilities: _callable usage analysis inputs_. **/
-export interface CallableDefinitionUsageInputContract
-	extends CallableDefinitionUsageSubjectContract,
-		CallableDefinitionUsageProjectContract,
-		CallableDefinitionUsageReferencesContract {}
+/** Responsibilities: _callable definition usage analysis inputs_. **/
+export type CallableDefinitionUsageInput = {
+	readonly subject: CallableDefinitionUsageSubject;
+	readonly project: CallableDefinitionUsageProject;
+	readonly references: CallableDefinitionUsageReferences;
+};
 
-export type CallableMatcherNames = Set<string>;
-export type CallableMatcherNamesByOwner = Map<string, CallableMatcherNames>;
-export type ReadonlyCallableMatcherNames = ReadonlySet<string>;
-export type ReadonlyCallableMatcherNamesByOwner = ReadonlyMap<string, ReadonlyCallableMatcherNames>;
+/** Responsibilities: _callable matcher definition identity_, _source language_. **/
+export type CallableMatcherDefinitionContext = {
+	readonly definition: CallableDefinition;
+	readonly is_python: boolean;
+};
 
+/** Responsibilities: _callable matcher source files_, _production source lookup_. **/
+export type CallableMatcherSourceContext = {
+	readonly production_file_index: ParsedFilesByName;
+};
+
+/** Responsibilities: _callable matcher project type indexes_. **/
+export type CallableMatcherProjectContext = {
+	readonly definitions: CallableDefinition[];
+	readonly project_types: CallableProjectIndex;
+	readonly class_nodes: CallableClassIndex;
+	readonly matcher_indexes: CallableMatcherIndexes;
+};
+
+/** Responsibilities: _callable matcher reference indexes_, _ownership resolution_. **/
+export type CallableMatcherReferencesContext = {
+	readonly reference_index: SourceReferenceIndexContract<string>;
+	readonly references_by_file: CallableReferencesByFile;
+	readonly ownership: CallableOwnershipResolver;
+};
+
+/** Responsibilities: _callable matcher input groups_. **/
 export type CallableMatcherContext = {
-	definition: CallableDefinition;
-	is_python: boolean;
-	parsed_files: ParsedFile[];
-	definitions: CallableDefinition[];
-	project_types: CallableProjectIndex;
-	class_nodes: CallableClassIndex;
-	reference_index: SourceReferenceIndexContract<string>;
-	references_by_file: CallableReferencesByFile;
-	ownership: CallableOwnershipResolver;
-	matcher_indexes: CallableMatcherIndexes;
+	readonly callable: CallableMatcherDefinitionContext;
+	readonly source: CallableMatcherSourceContext;
+	readonly project: CallableMatcherProjectContext;
+	readonly references: CallableMatcherReferencesContext;
 };
 
 export type SharedCallableKind = "function" | "method";
-export type CallableReferencesByName = ReadonlyMap<string, readonly AstCallableReference[]>;
-export type CallableReferencesByFile = ReadonlyMap<string, CallableReferencesByName>;
-export type MutableCallableReferencesByName = Map<string, AstCallableReference[]>;
-export type MutableCallableReferencesByFile = Map<string, MutableCallableReferencesByName>;
+/** Responsibilities: _named reference access_, _owner reference lookup_. **/
+export interface CallableReferencesByNameContract extends ReadonlyMap<string, readonly AstCallableReference[]> {
+	owned_references(kind: SharedCallableKind, name: string): readonly AstCallableReference[];
+}
+export type CallableReferencesByFile = ReadonlyMap<string, CallableReferencesByNameContract>;
 export type SharedParameterKind = "basic" | "reference";
 export type ParameterKindResult = { supported: boolean; value: SharedParameterKind };
 export type SharedParameterLanguage = "python" | "typescript" | "unknown";
@@ -137,24 +159,60 @@ export interface ProjectTypeNameMembershipContract {
 	count(): number;
 	contains(name: string): boolean;
 }
-export type SharedParameterToolingCategory = "builtin" | "namespace" | "custom";
 export type SharedParameterTypeSource = {
 	readonly file: string;
 	readonly name: string;
 };
-export type SharedParameterPairCountMap = Map<number, number>;
+export type TypeSyntaxSegmentKind = "reference" | "literal" | "separator";
+export type TypeSyntaxSegment = {
+	readonly kind: TypeSyntaxSegmentKind;
+	readonly value: string;
+};
+/** Responsibilities: _canonical type access_, _type reference access_. **/
+export interface SharedParameterTypeIdentityContract {
+	canonical(): string;
+	reference_names(): string[];
+	scoped_key(
+		kind: SharedParameterKind,
+		name: string,
+		file: string,
+		sources: ReadonlyMap<string, SharedParameterTypeSource>,
+	): string;
+}
+/** Responsibilities: _directed pair support accumulation_, _support threshold lookup_. **/
+export class SharedParameterPairCountMap extends Map<number, number> {
+	/** Responsibilities: _support count increment_. **/
+	public add_support(index: number): void {
+		const support = this.get(index);
+		if (support === undefined) {
+			this.set(index, 1);
+			return;
+		}
+		this.set(index, support + 1);
+	}
+
+	/** Responsibilities: _support threshold comparison_. **/
+	public meets_threshold(index: number, threshold: number): boolean {
+		const support = this.get(index);
+		if (support === undefined) {
+			return false;
+		}
+		return support >= threshold;
+	}
+}
+
 export type SharedParameterPairCounts = Map<number, SharedParameterPairCountMap>;
 export type SharedParameterLocationPostings = Map<string, number[]>;
 /** Responsibilities: _shared parameter types_. **/
 export interface SharedParameterTypeContract {
-	canonical(type: string): string;
+	identity(type: string): SharedParameterTypeIdentityContract;
 	project_reference(type: string): boolean;
 	parameter(argument: AstTypedArgument, uses: ReadonlyMap<string, number>): AnalyzedParameter[];
 }
 export type ProjectTypeBoundarySource = {
 	violations: ViolationContract[];
 	file: string;
-	callables: readonly AstCallableNodeContract[];
+	callables: readonly AstCallableNode[];
 	fields: readonly AstClassField[];
 };
 
@@ -168,14 +226,14 @@ export type ProjectTypeBoundaryNames = {
 	language: SharedParameterLanguage;
 };
 
+/** Responsibilities: _project boundary name resolution_. **/
+export interface TypeScriptProjectBoundaryNamesContract {
+	names(project_state: RuleContextState): ProjectTypeBoundaryNames;
+}
+
 export type ProjectTypeBoundaryInput = {
 	source: ProjectTypeBoundarySource;
 	names: ProjectTypeBoundaryNames;
-};
-
-export type ProjectTypeBoundaryState = {
-	allowed_types: StringNameMembershipContract;
-	type_classifier: SharedProjectTypeClassifierContract;
 };
 
 /** Responsibilities: _project type classification_. **/
@@ -189,21 +247,18 @@ export type CallableLocation = {
 	readonly method: string;
 };
 
-/** Responsibilities: _shared parameter location ordering_. **/
-export interface SharedParameterOrderContract {
-	compare_nodes(left: SharedParameterNode, right: SharedParameterNode): number;
-	compare_locations(left: CallableLocation, right: CallableLocation): number;
-	intersect_locations(left: readonly CallableLocation[], right: readonly CallableLocation[]): CallableLocation[];
-}
-
 /** Responsibilities: _shared parameter candidate branches_. **/
 export interface SharedParameterCandidateExplorerContract {
 	append_maximal_candidates(options: SharedParameterCandidateExploration): void;
+	compare_nodes(left: SharedParameterNode, right: SharedParameterNode): number;
+	compare_locations(left: CallableLocation, right: CallableLocation): number;
+	compare_candidates(left: SharedParameterCandidate, right: SharedParameterCandidate): number;
+	intersect_locations(left: readonly CallableLocation[], right: readonly CallableLocation[]): CallableLocation[];
 }
 
 /** Responsibilities: _shared parameter neighbor index_. **/
 export interface SharedParameterNeighborIndexContract {
-	with_nodes(nodes: readonly SharedParameterNode[]): SharedParameterNeighborIndexContract;
+	prepare(nodes: readonly SharedParameterNode[]): void;
 	for_root(root: number): readonly number[];
 }
 
@@ -212,10 +267,17 @@ export interface SharedParameterTypeSourcesContract {
 	collect(): ReadonlyMap<string, SharedParameterTypeSource>;
 }
 
+/** Responsibilities: _shared parameter violation collection_. **/
+export interface SharedParameterAdapterContract {
+	violations(): ViolationContract[];
+}
+
 export type AnalyzedParameter = {
 	readonly key: string;
 	readonly identity: string;
+	readonly type_identity: SharedParameterTypeIdentityContract;
 	readonly kind: SharedParameterKind;
+	readonly primitive: boolean;
 	readonly project_type: boolean;
 	readonly uses: number;
 };
@@ -231,6 +293,7 @@ export type SharedParameterNode = {
 	readonly key: string;
 	readonly identity: string;
 	readonly kind: SharedParameterKind;
+	readonly primitive: boolean;
 	readonly project_type: boolean;
 	readonly locations: readonly CallableLocation[];
 };
@@ -252,7 +315,6 @@ export type CandidateExtension = {
 	readonly branch: SharedParameterCandidateBranch;
 	readonly node: SharedParameterNode;
 	readonly index: number;
-	readonly order: SharedParameterOrderContract;
 	readonly pending: Map<string, SharedParameterCandidateBranch>;
 };
 
@@ -268,7 +330,6 @@ export type SharedParameterCandidateExploration = {
 export type SharedParameterCandidateBranchOptions = {
 	readonly branch: SharedParameterCandidateBranch;
 	readonly nodes: readonly SharedParameterNode[];
-	readonly order: SharedParameterOrderContract;
 	readonly pending: Map<string, SharedParameterCandidateBranch>;
 	readonly candidates: SharedParameterCandidate[];
 	readonly candidate_indexes: readonly number[];
@@ -276,7 +337,7 @@ export type SharedParameterCandidateBranchOptions = {
 export type SharedParameterAnalysisInput = {
 	readonly file: string;
 	readonly kind: SharedCallableKind;
-	readonly nodes: readonly SharedParameterNodeInput[];
+	readonly nodes: readonly AstCallableNode[];
 	readonly type_sources: ReadonlyMap<string, SharedParameterTypeSource>;
 	readonly project_types: ReadonlySet<string>;
 	readonly reference_aliases: readonly AstReferenceAlias[];
@@ -286,6 +347,7 @@ export type MutableParameterNode = {
 	readonly key: string;
 	readonly identity: string;
 	readonly kind: SharedParameterKind;
+	readonly primitive: boolean;
 	readonly project_type: boolean;
 	readonly locations: Map<string, CallableLocation>;
 };

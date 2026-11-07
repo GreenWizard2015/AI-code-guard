@@ -4,12 +4,12 @@ import ast
 
 from implementation.ast.protocols import PythonCallableConditionContextContract
 from implementation.references.protocols import PythonReferenceAliasesContract
-from implementation.types import JsonObject
 from implementation.rules.constants import (
     PYTHON_DATETIME_MODULE,
     PYTHON_NOW_ATTRIBUTE,
     PYTHON_TODAY_ATTRIBUTE,
 )
+from implementation.types import JsonObject, PythonTimeName
 
 
 class PythonTestTimeDependency:
@@ -23,27 +23,28 @@ class PythonTestTimeDependency:
         owner = function.value
         if type(owner) is not ast.Name:
             return False
-        if (owner.id, function.attr) in self.time_names:
+        if PythonTimeName(owner.id, function.attr) in self._time_names:
             return True
-        resolved_owner = self.reference_aliases.resolved_name(
-            owner.id, self.time_modules
+        resolved_owner = self._reference_aliases.resolved_name(
+            owner.id,
+            self._time_modules,
         )
-        return (resolved_owner, function.attr) in self.time_names
+        return PythonTimeName(resolved_owner, function.attr) in self._time_names
 
     def __init__(self, reference_aliases: PythonReferenceAliasesContract) -> None:
         """Responsibilities: _time dependency names_."""
-        self.reference_aliases: PythonReferenceAliasesContract = reference_aliases
-        self.time_names: set[tuple[str, str]] = {
-            ("time", "time"),
-            ("time", "sleep"),
-            ("random", "random"),
-            (PYTHON_DATETIME_MODULE, PYTHON_NOW_ATTRIBUTE),
-            (PYTHON_DATETIME_MODULE, PYTHON_TODAY_ATTRIBUTE),
-            ("date", "today"),
-        }
-        self.time_modules: frozenset[str] = frozenset(
-            name for name, _ in self.time_names
+        self._reference_aliases: PythonReferenceAliasesContract = reference_aliases
+        self._time_names: frozenset[PythonTimeName] = frozenset(
+            {
+                PythonTimeName("time", "time"),
+                PythonTimeName("time", "sleep"),
+                PythonTimeName("random", "random"),
+                PythonTimeName(PYTHON_DATETIME_MODULE, PYTHON_NOW_ATTRIBUTE),
+                PythonTimeName(PYTHON_DATETIME_MODULE, PYTHON_TODAY_ATTRIBUTE),
+                PythonTimeName("date", "today"),
+            },
         )
+        self._time_modules: frozenset[str] = frozenset(time_name.module for time_name in self._time_names)
 
     def matches(self, node: ast.AST) -> bool:
         """Responsibilities: _test time dependency matching_."""
@@ -52,7 +53,9 @@ class PythonTestTimeDependency:
         return self._time_call(node)
 
     def issue(
-        self, node: ast.AST, classification: PythonCallableConditionContextContract
+        self,
+        node: ast.AST,
+        classification: PythonCallableConditionContextContract,
     ) -> list[JsonObject]:
         """Responsibilities: _test time violation creation_."""
         if not classification.test_function(node):

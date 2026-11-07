@@ -1,13 +1,28 @@
+import type { LintFileNameContract } from "src/core/support/protocols";
+import type {
+	AstClassNode,
+	AstLanguage,
+	AstTypeKind,
+	AstVisibility,
+	NormalizedAstFile,
+} from "src/model/ast/normalized_ast_types";
+import type { TypeScriptReferenceQuery, TypeScriptReferenceResolutionContract } from "src/model/protocols";
 import type { ArgumentUse, TypedArgument } from "src/model/types";
-import type ts from "typescript";
-import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
+import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
+import type { ProjectNames, ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import type { AstPropertySourceIndexContract } from "src/source_protocols";
+import type { LintSourceRecordData, SourceFileResolver } from "src/source_types";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import type { TypeScriptNodeRulesContract } from "src/typescript_analysis_protocols";
-import type { FileNameLike, LintFileNameContract } from "src/source_types";
+import type ts from "typescript";
+
+export enum TestPathKind {
+	TestFileName = 0,
+	TestFile = 1,
+	RootTestsFile = 2,
+	TypeScriptTestFile = 3,
+}
 
 export type TaskIssueFileViolationDetails = {
 	messages: ReadonlySet<string>;
@@ -15,73 +30,30 @@ export type TaskIssueFileViolationDetails = {
 	single_violation: boolean;
 };
 
-export type StageOperation<T> = () => T;
-export type ReviewAgentName = "codex" | "claude";
-export type ReviewAgentSelection = ReviewAgentName | "none";
-export type ReviewAgentPhase = "initial" | "cleanup";
-export type ReviewStageDefinition = { id: string; prefix: string; focus: string; document: string };
-export type ReviewAgentHookConfiguration = {
-	hook_file: string;
-	hook_command: string;
-	review_prefix: string;
-	review_phase: ReviewAgentPhase;
-};
-export type ReviewAgentRequest = {
-	root: string;
-	instruction: string;
-	review_root: string;
-	hook: ReviewAgentHookConfiguration;
-	review_stage: string;
-	review_stage_plan: string;
-	open_review_files: readonly string[];
-	prompt: string;
-};
-export type ReviewAgentPromptRequest = { prompt_request: ReviewAgentRequest };
-export type ReviewAgentCleanupRequest = { cleanup_request: ReviewAgentRequest };
-export type ReviewAgentRunRequest = { run_request: ReviewAgentRequest };
-export type ReviewAgentProcessResult = { exit_code: number; stdout: string; stderr: string };
+export type CallableStageOperation<T> = () => T;
+
+/** Responsibilities: _scope capability_, _project analysis access_. **/
+export interface TypeScriptRuleScopeContract {
+	project_scope(): boolean;
+	project_analysis(): ProjectSourceAnalysisOptions;
+	source_files(language: AstLanguage): readonly LintSourceRecordData[];
+}
 
 export type TypeScriptRuleContextOptions = {
 	stage_timer: LintStageTimerContract;
+	normalized_ast: NormalizedAstFile;
+	project_names: ProjectNames;
+	rule_scope: TypeScriptRuleScopeContract;
 	source_resolver: SourceFileResolver;
-	node_rules: TypeScriptNodeRulesContract;
-	module_exports: TypeScriptPropertyModuleResolverContract;
+	module_exports: TypeScriptModuleExportsContract;
 	source_index: AstPropertySourceIndexContract;
 	traversal: TypeScriptAstTraversalContract;
 };
-export type ReviewAgentHookEventName = string;
-/** Responsibilities: _review-agent hook identity_, _review-agent process result_. **/
-type ReviewAgentHookIdentity = {
-	event: ReviewAgentHookEventName;
-	provider: ReviewAgentSelection;
-	root: string;
-	review_root: string;
-	hook_file: string;
-	review_stage: string;
-	review_prefix: string;
-	review_phase: ReviewAgentPhase;
-};
-type ReviewAgentHookProcess = {
-	tool_name: string;
-	tool_input: string;
-	exit_code: number;
-	stdout: string;
-	stderr: string;
-};
-/** Responsibilities: _review-agent hook event transport_. **/
-export interface ReviewAgentHookEventContract extends ReviewAgentHookIdentity, ReviewAgentHookProcess {}
-export type TaskReviewRunResult = { provider: ReviewAgentName | "none"; message: string };
-export type ReviewAgentExecutionResult = {
-	provider: ReviewAgentName | "none";
-	process: ReviewAgentProcessResult;
-	no_issues: boolean;
-	message: string;
-};
-
 export type CallableOwnershipRequest = {
-	class_node: AstClassNodeContract;
+	class_node: AstClassNode;
 	owner: string;
 	method_name: string;
+	definition_file: string;
 	source_file: string;
 };
 export type CallableOwnershipResolver = (request: CallableOwnershipRequest) => boolean;
@@ -91,294 +63,6 @@ type CallableMetricViolationKind = "short_function" | "short_method" | "long_fun
 type LengthMetricViolationKind = "long_method" | "arguments";
 export type MetricViolationKind = ClassMetricViolationKind | CallableMetricViolationKind | LengthMetricViolationKind;
 
-export type AstVisibility = "public" | "protected" | "private";
-export type AstLanguage = "python" | "typescript";
-export type ImportedFunction = { source_file: string; source_name: string };
-export type ClassFieldFiles = { files: string[]; repo_root: string };
-export type JestCallbackKind = "arrow" | "function" | "other";
-export type JestSuite = {
-	node: ts.CallExpression;
-	body: ts.Block[];
-	tests: ts.CallExpression[];
-	nested: boolean;
-};
-export type DuplicateTypeShape = { line: number; names: string[] };
-export type NamedShape = { name: string; line: number; fields: string[]; base_names: string[] };
-type AstImportTiming = "dynamic" | "nested" | "late";
-export type AstImportKind = AstImportTiming | "sys_path_mutation" | "relative";
-type NamedCallableKind = "function" | "method";
-type NamedDataKind = "variable" | "field";
-type NamedDeclarationKind = "constant" | "type_alias";
-export type NamedSymbolKind = NamedCallableKind | NamedDataKind | NamedDeclarationKind;
-type AstReferenceTypeKind = "named" | "generic" | "template";
-export type AstTypeKind = "basic" | AstReferenceTypeKind;
-
-export type AstArgumentUse = { name: string; count: number };
-export type AstTypedArgument = {
-	name: string;
-	type: string;
-	kind: AstTypeKind;
-};
-export type NamedLine = { line: number; name: string };
-export type AstStatementNode = {
-	kind: AstStatementKind;
-	line: number;
-	name: string;
-	value_name: string;
-	simple_alias: boolean;
-	destructured: boolean;
-};
-type AstStatementKind = "assignment" | "return" | "other";
-export type AstClassField = {
-	line: number;
-	name: string;
-	value_name: string;
-	type: string;
-	type_kind: AstTypeKind;
-	readonly: boolean;
-	class_variable: boolean;
-	class_scope: boolean;
-	visibility: AstVisibility;
-};
-export type AstPythonImportName = { name: string; alias: string };
-export type AstPythonImportKind = "import" | "from";
-export type AstPythonImport = {
-	line: number;
-	kind: AstPythonImportKind;
-	module: string;
-	names: AstPythonImportName[];
-};
-export type PythonProjectImportExpansion = {
-	specifiers: string[];
-	module: string;
-	names: AstPythonImportName[];
-	root: string;
-	importer: string;
-	files: ReadonlySet<string>;
-};
-export type TestTargetImport = { specifier: string; names: string[]; usage_count: number };
-type AstCallableIdentity = {
-	name: string;
-	owner: string;
-	nested: boolean;
-	start: number;
-	end: number;
-	argument_count: number;
-};
-type AstCallableMetrics = { lines: number; sloc: number; characters: number; control_flow_depth: number };
-type AstCallableAnalysis = {
-	statements: AstStatementNode[];
-	parameter_types: string[];
-	return_type: string;
-	argument_uses: AstArgumentUse[];
-	typed_arguments: AstTypedArgument[];
-	untyped_parameters: string[];
-};
-type AstCallableTestFlags = {
-	exception_only: boolean;
-	has_unittest_assertion: boolean;
-	unittest_assertion_alias: boolean;
-	unittest_exception_only: boolean;
-	test_exception_bypass: boolean;
-	unittest_ending_valid: boolean;
-	unittest_assertion_count: number;
-};
-type AstCallablePresentationFlags = {
-	decorators: string[];
-	is_accessor: boolean;
-	has_self: boolean;
-	visibility: AstVisibility;
-};
-/** Responsibilities: _callable analysis representation_. **/
-export interface AstCallableNodeContract
-	extends AstCallableIdentity,
-		AstCallableMetrics,
-		AstCallableAnalysis,
-		AstCallableTestFlags,
-		AstCallablePresentationFlags {}
-/** Responsibilities: _AST class model_. **/
-interface AstClassIdentityContract {
-	readonly name: string;
-	readonly start: number;
-	readonly end: number;
-	readonly methods: AstCallableNodeContract[];
-}
-/** Responsibilities: _AST inheritance metadata_. **/
-interface AstClassInheritanceContract {
-	readonly lines: number;
-	readonly sloc: number;
-	readonly interfaces: string[];
-	readonly base_class_name: string;
-	readonly base_class_names: string[];
-	readonly extends_external_class: boolean;
-	readonly is_data_class: boolean;
-	readonly type_contract: boolean;
-	readonly protocol: boolean;
-}
-/** Responsibilities: _AST class members_. **/
-interface AstClassDetailsContract {
-	readonly callback_fields: number;
-	readonly inline_callback_fields: number;
-	readonly fields: AstClassField[];
-	readonly untyped_fields: NamedLine[];
-	readonly dependencies: string[];
-}
-/** Responsibilities: _AST class structure_. **/
-export interface AstClassNodeContract
-	extends AstClassIdentityContract,
-		AstClassInheritanceContract,
-		AstClassDetailsContract {}
-export type AstParseIssue = { line: number; message: string };
-export type AstImportIssue = { line: number; kind: AstImportKind };
-export type AstCodingIssue = { line: number; kind: string; name: string };
-export type LineDepth = { line: number; depth: number };
-export type LineOnly = { line: number };
-export type AstCallableReference = {
-	name: string;
-	kind: CallableReferenceKind;
-	target_file: string;
-	owner: string;
-	caller_owner: string;
-	is_call: boolean;
-	dynamic: boolean;
-	line: number;
-};
-export type CallableReferenceIdentity = { name: string; target_file: string };
-type CallableReferenceKind = "function" | "method";
-export type NamedSymbol = {
-	name: string;
-	line: number;
-	kind: NamedSymbolKind;
-	is_module_constant: boolean;
-	is_module_variable: boolean;
-	visibility: AstVisibility;
-	is_module_function: boolean;
-};
-// Symbol references share the common named-line representation.
-export type AstLiteralReference = { value: string; line: number };
-export type AstLiteralConstant = { value: string; name: string; line: number };
-export type AstReferenceAlias = { name: string; target: string };
-export type AstModuleInstance = { line: number; constructor: string };
-export type AstTypeMemberRecord = Map<string, string>;
-export type AstTypeMembers = Map<string, AstTypeMemberRecord>;
-export type AstTypeMemberSerialized = { name: string; type: string };
-export type AstTypeMemberSerializedGroup = { name: string; members: AstTypeMemberSerialized[] };
-export type AstTypeMembersSerialized = AstTypeMemberSerializedGroup[];
-export type AstSourceSpan = {
-	start_line: number;
-	start_column: number;
-	end_line: number;
-	end_column: number;
-};
-export type PythonAstCacheReadOptions = {
-	texts: readonly string[];
-	files: readonly string[];
-	repo_root: string;
-	results: Map<number, NormalizedAstFileContract>;
-	stage_timer: LintStageTimerContract;
-	stage_prefix: string;
-};
-export type PythonAstCacheWriteOptions = {
-	texts: readonly string[];
-	files: readonly string[];
-	indexes: readonly number[];
-	parsed: readonly NormalizedAstFileContract[];
-	repo_root: string;
-	stage_timer: LintStageTimerContract;
-	stage_prefix: string;
-};
-export type PythonBatchAstOptions = {
-	texts: readonly string[];
-	stage_timer: LintStageTimerContract;
-	stage_prefix: string;
-	files: readonly string[];
-	repo_root: string;
-};
-export type PythonAstCachePreparation = {
-	results: Map<number, NormalizedAstFileContract>;
-	missing_indexes: readonly number[];
-	missing_texts: readonly string[];
-};
-export type PythonAstCacheBatch = {
-	options: PythonBatchAstOptions;
-	cache: PythonAstCachePreparation;
-};
-export type PythonBatchAstPreparation = {
-	options: PythonBatchAstOptions;
-	cache: PythonAstCachePreparation;
-	batch_id: string;
-	started_at: number;
-};
-export type PythonSourceAstBatch = {
-	files: readonly string[];
-	batch_id: string;
-};
-type AstResponsibilityOwnerKind = "class" | "interface" | "record";
-type AstResponsibilityCallableKind = "method" | "function";
-export type AstResponsibilityKind = AstResponsibilityOwnerKind | AstResponsibilityCallableKind;
-export type AstResponsibilityTarget = {
-	kind: AstResponsibilityKind;
-	name: string;
-	line: number;
-	documentation: string;
-};
-/** Responsibilities: _AST file identity_. **/
-interface NormalizedAstIdentityContract {
-	readonly language: AstLanguage;
-	readonly classes: AstClassNodeContract[];
-	readonly functions: AstCallableNodeContract[];
-	readonly parse_issues: AstParseIssue[];
-	readonly import_issues: AstImportIssue[];
-}
-/** Responsibilities: _AST declarations_. **/
-interface NormalizedAstDataContract {
-	readonly attribute_accesses: LineDepth[];
-	readonly named_symbols: NamedSymbol[];
-	readonly type_declarations: NamedLine[];
-	readonly reference_aliases: AstReferenceAlias[];
-}
-/** Responsibilities: _AST references_. **/
-interface NormalizedAstReferenceDataContract {
-	readonly symbol_references: NamedLine[];
-	readonly literal_references: AstLiteralReference[];
-	readonly literal_constants: AstLiteralConstant[];
-	readonly call_references: AstCallableReference[];
-	readonly type_members: AstTypeMembers;
-}
-/** Responsibilities: _AST module metadata_. **/
-interface NormalizedAstModuleDataContract {
-	readonly private_accesses: LineOnly[];
-	readonly repeated_branches: LineOnly[];
-	readonly module_instances: AstModuleInstance[];
-	readonly module_constant_spans: AstSourceSpan[];
-	readonly module_type_spans: AstSourceSpan[];
-	readonly module_protocol_spans: AstSourceSpan[];
-}
-/** Responsibilities: _AST language metadata_. **/
-interface NormalizedAstLanguageDataContract {
-	readonly coding_issues: AstCodingIssue[];
-	readonly python_imports: AstPythonImport[];
-	readonly python_exports: string[];
-}
-/** Responsibilities: _AST metadata composition_. **/
-interface NormalizedAstOptionalDataContract
-	extends NormalizedAstReferenceDataContract,
-		NormalizedAstModuleDataContract,
-		NormalizedAstLanguageDataContract {}
-/** Responsibilities: _AST optional metadata_. **/
-interface NormalizedAstOptionalMetadataContract {
-	readonly python_callable_count: FunctionCount;
-	readonly python_main_guard: boolean;
-	readonly docstring_spans: AstSourceSpan[];
-	readonly responsibility_targets: AstResponsibilityTarget[];
-}
-/** Responsibilities: _AST file model_. **/
-export interface NormalizedAstFileContract
-	extends NormalizedAstIdentityContract,
-		NormalizedAstDataContract,
-		NormalizedAstOptionalDataContract,
-		NormalizedAstOptionalMetadataContract {}
-
 export type Assignment = {
 	line: number;
 	name: string;
@@ -387,29 +71,65 @@ export type Assignment = {
 	destructured: boolean;
 };
 export type NamedDeclaration = { name: string; line: number; has_self: boolean };
-export type CallableShapeCounts = { callables: number; data: number };
-export type RuleAppender = (node: ts.Node, rule_id: string) => void;
-export type ClassFieldRules = {
-	missing_visibility(node: ts.Node, file: string): boolean;
-	mutable_field(node: ts.Node, file: string): boolean;
-};
-export type RuleContextData = {
+export type CallableRuleAppender = (node: ts.Node, rule_id: string) => void;
+/** Responsibilities: _rule source state_. **/
+export type RuleSourceState = {
 	file: string;
 	source_file: ts.SourceFile;
-	source_resolver: SourceFileResolver;
-	module_resolver: TypeScriptPropertyModuleResolverContract;
+	normalized_ast: NormalizedAstFile;
 	test_file: boolean;
-	class_fields: ClassFieldRules;
-	append_rule: RuleAppender;
+	path_kinds: ReadonlySet<TestPathKind>;
 };
+/** Responsibilities: _rule project state_. **/
+export type RuleProjectState = {
+	project_names: ProjectNames;
+	rule_scope: TypeScriptRuleScopeContract;
+};
+/** Responsibilities: _rule analysis services_. **/
+export type RuleAnalysisState = {
+	stage_timer: LintStageTimerContract;
+	traversal: TypeScriptAstTraversalContract;
+	source_resolver: SourceFileResolver;
+	module_resolver: TypeScriptModuleExportsContract;
+	source_index: AstPropertySourceIndexContract;
+};
+/** Responsibilities: _node-scoped rule diagnostics_. **/
+export interface RuleNodeDiagnosticContextContract {
+	append_rule(rule_id: string): void;
+	append_parameterized_rule(rule_id: string, parameters: RuleParameters): void;
+	append_diagnostic_rule(rule: RuleContract): void;
+}
+/** Responsibilities: _rule source state_, _project scope_, _analysis services_. **/
+export type RuleContextState = {
+	source: RuleSourceState;
+	project: RuleProjectState;
+	analysis: RuleAnalysisState;
+};
+/** Responsibilities: _class field rule collection_. **/
+export type ClassFieldRuleState = { requires_explicit_visibility: boolean; mutable: boolean };
+export type TypeShapeCounts = {
+	callables: number;
+	data: number;
+	methods: number;
+};
+/** Responsibilities: _rule context state_, _rule collection_. **/
+export interface RuleContextContract {
+	state(): RuleContextState;
+	for_node(node: ts.Node): RuleNodeDiagnosticContextContract;
+	append_violation(violation: ViolationContract): void;
+}
+/** Responsibilities: _source file rule application_. **/
+export interface TypeScriptSourceRuleContract {
+	append(context: RuleContextContract): void;
+}
 export type PythonLintInput = {
-	file_name: FileNameLike;
+	file_name: LintFileNameContract;
 	source_file: string;
 	text: string;
 	project_class_names: ReadonlySet<string>;
 	project_protocol_names: ReadonlySet<string>;
 	project_type_names: ReadonlySet<string>;
-	normalized_ast: NormalizedAstFileContract;
+	normalized_ast: NormalizedAstFile;
 };
 export type LintRunStatistics = {
 	source_reads: number;
@@ -433,28 +153,16 @@ export type CallableNodeOptions = {
 	end: number;
 };
 
-export type ClassNodeOptions = {
-	node: ts.ClassLikeDeclaration;
-	fallback_name: string;
-	methods: AstCallableNodeContract[];
-	range: SourceRange;
-	interfaces: string[];
-};
-export type ClassNodeData = {
-	name: string;
-	start: number;
-	end: number;
-	lines: number;
-	sloc: number;
-	interfaces: string[];
-	base_class_name: string;
-	methods: AstCallableNodeContract[];
-};
-export type InstanceAliasResolvers = {
-	call_owner(expression: ts.Expression, owner: string): string;
-	property_owner(expression: ts.PropertyAccessExpression, owner: string): string;
-};
+/** Responsibilities: _instance alias reference resolution_. **/
+export interface InstanceAliasResolversContract {
+	resolve_reference(query: TypeScriptReferenceQuery): TypeScriptReferenceResolutionContract;
+}
 export type TypeScriptPropertySide = "instance" | "static";
+export type TypeScriptPropertyAddress = {
+	owner: string;
+	property: string;
+	side: TypeScriptPropertySide;
+};
 
 export type CallableMetricComponents = {
 	lines: number;
@@ -466,23 +174,14 @@ export type CallableMetricComponents = {
 };
 
 export type RuleParameters = Record<string, string>;
-export type FunctionCount = { count: number; first_line: number };
 export type ParseLanguage = "python" | "typescript";
-export type CallTargetKind = "bound" | "call";
 export type CallbackCounts = { readonly total: number; readonly inline: number };
 export type CallbackKind = "none" | "typed" | "inline";
 export type FieldTypeData = { readonly type: string; readonly type_kind: AstTypeKind };
-export type ExpressionUnwrapper = (expression: ts.Expression) => ts.Expression[];
+export type CallableExpressionUnwrapper = (expression: ts.Expression) => ts.Expression[];
 export type PropertyOwner = { property_name: string; owner: string };
-export type MaxMethodMetricInput = {
-	violations: ViolationContract[];
-	file_name: LintFileNameContract;
-	node: AstClassNodeContract;
-};
-export type MixCallableNode = { name: string; start: number; end: number; argument_count: number };
 export type CommentScanResult = { text: string; in_block_comment: boolean };
 export type CommentScanOptions = { in_block_comment: boolean; python: boolean };
-export type TypeScriptAssignmentContext = { test_file: boolean; inside_constructor: boolean };
 export type AstImportIssueFlags = { dynamic: boolean; nested: boolean; relative: boolean };
 export type SourceRange = { start: number; end: number };
 export type CommentSegment = {

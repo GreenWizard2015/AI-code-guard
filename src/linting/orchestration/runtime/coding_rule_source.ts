@@ -1,54 +1,47 @@
-import ts from "typescript";
+import type ts from "typescript";
 
-import type {
-	NormalizedAstFileContract,
-	ParseLanguage,
-} from "src/types";
-import type { CodingRuleSourceOptions, CodingRuleSourceData } from "src/source_types";
-import type { CodingRuleSourceContract } from "src/shared_services_protocols";
-import type { SourceFileResolver } from "src/source_types";
-import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
+import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
+import type { CodingRuleSourceContract } from "src/shared_services_protocols";
+import type { CodingRuleSourceData, CodingRuleSourceOptions } from "src/source_types";
+import type { SourceFileResolver } from "src/source_types";
+import type { ParseLanguage } from "src/types";
+import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _coding-rule source data storage_, _source language exposure parsing_. **/
 export class CodingRuleSource implements CodingRuleSourceContract {
-	public readonly file: string;
-	public readonly text: string;
-	public readonly normalized_ast: NormalizedAstFileContract;
-	public readonly source_file: ts.SourceFile;
-	public readonly source_resolver: SourceFileResolver;
-	public readonly traversal: TypeScriptAstTraversalContract;
+	private readonly _file: string;
+	private readonly _text: string;
+	private readonly _normalized_ast: NormalizedAstFile;
+	private readonly _source_file: ts.SourceFile;
+	private readonly _source_resolver: SourceFileResolver;
+	private readonly _traversal: TypeScriptAstTraversalContract;
 
 	/** Responsibilities: _source text initialization_, _initialization normalization TypeScript ASTs_. **/
 	public constructor(options: CodingRuleSourceOptions, prepared: CodingRuleSourceData) {
-		this.file = options.file;
-		this.text = options.text;
-		this.normalized_ast = prepared.normalized_ast;
-		this.source_file = prepared.source_file;
-		this.source_resolver = prepared.source_resolver;
-		this.traversal = prepared.traversal;
-	}
-
-	/** Responsibilities: _exposure normalization Python AST_. **/
-	public get normalized_python_ast(): NormalizedAstFileContract {
-		return this.normalized_ast;
+		this._file = options.file;
+		this._text = options.text;
+		this._normalized_ast = prepared.normalized_ast;
+		this._source_file = prepared.source_file;
+		this._source_resolver = prepared.source_resolver;
+		this._traversal = prepared.traversal;
 	}
 
 	/** Responsibilities: _source lint data projection_. **/
 	public snapshot(): CodingRuleSourceData {
 		return {
-			file: this.file,
-			text: this.text,
-			normalized_ast: this.normalized_ast,
-			source_file: this.source_file,
-			source_resolver: this.source_resolver,
-			traversal: this.traversal,
+			file: this._file,
+			text: this._text,
+			normalized_ast: this._normalized_ast,
+			source_file: this._source_file,
+			source_resolver: this._source_resolver,
+			traversal: this._traversal,
 		};
 	}
 
 	/** Responsibilities: _source language classification_. **/
 	public language(): ParseLanguage {
-		if (this.file.endsWith(".py")) {
+		if (this._file.endsWith(".py")) {
 			return PYTHON_LANGUAGE;
 		}
 		return TYPESCRIPT_LANGUAGE;

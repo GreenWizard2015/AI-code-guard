@@ -2,6 +2,7 @@ export const PYTHON_COLLECTIONS_ABC_MODULE = "collections.abc";
 export const PYTHON_TYPING_MODULE_NAME = "typing";
 export const PYTHON_BUILTINS_MODULE_NAME = "builtins";
 export const PYTHON_ARRAY_MODULE_NAME = "array";
+export const PYTHON_ASSIGNMENT_KIND = "assignment";
 
 export const PYTHON_COLLECTIONS_MUTABLE_TYPES = [
 	"ChainMap",

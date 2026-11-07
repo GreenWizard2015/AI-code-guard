@@ -1,15 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
+import { PYTHON_PROJECT_CONFIGURATION_FILE, TYPESCRIPT_CONFIG_FILE } from "src/constants";
 import { ProjectSourceSnapshot } from "src/core/cache/project_source_snapshot";
-import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
-import { PythonAstBridge } from "src/core/python_ast_bridge";
-import { PythonAstData } from "src/core/python_ast_data";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
-import { TypeScriptModuleExports } from "src/module-resolution/type_script_module_exports";
-import { LintStageTimer } from "src/lint_stage_timer";
-import { NodeFileIO } from "src/io/node_file_io";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import { TestFixture } from "tests/core/test-fixture";
 
 describe("in-memory project source snapshots", () => {
 	test("collects source and documentation text from the supplied memory snapshot", () => {
@@ -19,7 +11,7 @@ describe("in-memory project source snapshots", () => {
 				["/virtual/project/docs/guide.md", "Project guide"],
 			]),
 		);
-		const snapshot = new ProjectSourceSnapshot(source_io);
+		const snapshot = new ProjectSourceSnapshot("/virtual/project", source_io);
 
 		expect(
 			Object.fromEntries(
@@ -39,6 +31,7 @@ describe("in-memory project source snapshots", () => {
 
 	test("deduplicates paths shared by source and markdown input groups", () => {
 		const snapshot = new ProjectSourceSnapshot(
+			"/virtual/project",
 			new InMemoryProjectSourceIO(new Map([["/virtual/project/src/main.ts", "export class Main {}"]])),
 		);
 
@@ -53,6 +46,27 @@ describe("in-memory project source snapshots", () => {
 		).toEqual(["/virtual/project/src/main.ts"]);
 	});
 
+	test("captures runtime source text once for cache identity and later analysis", () => {
+		const root = "/virtual/runtime-snapshot";
+		const runtime_file = `${root}/worker.mjs`;
+		const source_values = new Map([[runtime_file, 'export { run } from "./first.js";']]);
+		const source_io = new InMemoryProjectSourceIO(source_values);
+		const snapshot = new ProjectSourceSnapshot(root, source_io);
+		const texts = snapshot.source_texts({
+			files: [],
+			project_files: [],
+			ignored_files: [],
+			markdown_files: [],
+			ignore_files: [],
+		});
+		source_values.set(runtime_file, 'export { run } from "./second.js";');
+
+		expect({ captured_path: texts.has(runtime_file), captured_text: texts.get(runtime_file) }).toEqual({
+			captured_path: true,
+			captured_text: 'export { run } from "./first.js";',
+		});
+	});
+
 	test("reports membership separately from the in-memory source value", () => {
 		const source_io = new InMemoryProjectSourceIO(
 			new Map([
@@ -61,7 +75,7 @@ describe("in-memory project source snapshots", () => {
 				["/virtual/other/src/other.ts", "export class Other {}"],
 			]),
 		);
-		const snapshot = new ProjectSourceSnapshot(source_io);
+		const snapshot = new ProjectSourceSnapshot("/virtual/project", source_io);
 
 		expect({
 			present: source_io.source_available("/virtual/project/src/main.ts"),
@@ -91,98 +105,39 @@ describe("in-memory project source snapshots", () => {
 			project_paths: ["/virtual/project/src/main.ts"],
 		});
 	});
-
-	test("builds a project context from the injected IO contract without disk files", () => {
-		const file = "/virtual/project/src/main.ts";
-		const source_io = new InMemoryProjectSourceIO(new Map([[file, "export const value = 1;\n"]]));
-		const bridge = new PythonAstBridge();
-		let source_text = "";
-		try {
-			const context_factory = new LintProjectContextCreator(
-				new PythonAstData(bridge),
-				new ProjectAnalysisIdentity(new NodeFileIO()),
-				source_io,
-				new NodeFileIO(),
-			);
-			const context = context_factory.lint_context("/virtual/project", [file], new LintStageTimer(), new Map(), true);
-			source_text = context.source_record(file).text;
-		} finally {
-			bridge.worker.close();
-		}
-		expect(source_text).toBe("export const value = 1;\n");
-	});
-
-	test("fills missing entries in a partial source overlay from the source provider", () => {
-		const root = "/virtual/partial-source-overlay";
-		const selected_file = `${root}/src/selected.ts`;
-		const missing_file = `${root}/src/missing.ts`;
+	test("captures transitive compiler configuration and Python project metadata", () => {
+		const root = "/virtual/configuration-snapshot";
+		const source_file = `${root}/src/main.ts`;
+		const config_file = `${root}/${TYPESCRIPT_CONFIG_FILE}`;
+		const base_config = `${root}/base.json`;
+		const python_config = `${root}/${PYTHON_PROJECT_CONFIGURATION_FILE}`;
 		const source_io = new InMemoryProjectSourceIO(
 			new Map([
-				[selected_file, "export const selected = 1;\n"],
-				[missing_file, "export const recovered = 2;\n"],
+				[source_file, "export const value = 1;"],
+				[config_file, '{"extends":"./base.json"}'],
+				[base_config, '{"compilerOptions":{"baseUrl":"src"}}'],
+				[python_config, "[tool.pytest.ini_options]"],
 			]),
 		);
-		const bridge = new PythonAstBridge();
-		let recovered_text = "";
-		try {
-			const context_factory = new LintProjectContextCreator(
-				new PythonAstData(bridge),
-				new ProjectAnalysisIdentity(new NodeFileIO()),
-				source_io,
-				new NodeFileIO(),
-			);
-			const context = context_factory.lint_context(
-				root,
-				[selected_file, missing_file],
-				new LintStageTimer(),
-				new Map([[selected_file, "export const selected = 10;\n"]]),
-			);
-			recovered_text = context.source_record(missing_file).text;
-		} finally {
-			bridge.worker.close();
-		}
-		expect(recovered_text).toBe("export const recovered = 2;\n");
-	});
+		const snapshot = new ProjectSourceSnapshot(root, source_io);
+		const texts = snapshot.source_texts({
+			files: [source_file],
+			project_files: [source_file],
+			ignored_files: [],
+			markdown_files: [],
+			ignore_files: [],
+		});
 
-	test("keeps project TypeScript path configuration available to context consumers", () => {
-		let mapped_bases: readonly string[] = [];
-		let expected_base = "";
-		const fixture = new TestFixture();
-		fixture.project_source.with_in_memory_project(
-			{
-				"tsconfig.json": '{"compilerOptions":{"baseUrl":".","paths":{"@domain/*":["src/domain/*"]}}}',
-				"src/caller.ts": 'import { Model } from "@domain/model";',
-				"src/domain/model.ts": "export class Model {}",
-			},
-			(root, context) => {
-				const project_resolution = new TypeScriptProjectResolution(root, context.source_io);
-				const resolution = project_resolution.resolution();
-				mapped_bases = resolution.mapped_bases("@domain/model");
-				expected_base = `${root}/src/domain/model`;
-			},
-			new Map(),
-		);
-		expect(mapped_bases).toContain(expected_base);
-	});
-
-	test("uses a supplied path configuration override in project module resolution", () => {
-		let target_file = "";
-		const fixture = new TestFixture();
-		fixture.project_source.with_in_memory_project(
-			{
-				"tsconfig.json": '{"compilerOptions":{"baseUrl":".","paths":{"@target":["src/first.ts"]}}}',
-				"src/caller.ts": 'import { execute } from "@target"; execute();',
-				"src/first.ts": "export function execute(): void {}",
-				"src/second.ts": "export function execute(): void {}",
-			},
-			(root, context) => {
-				const caller_file = `${root}/src/caller.ts`;
-				const source_files = fixture.project_source.typescript_source_files(context);
-				const module_exports = new TypeScriptModuleExports(root, source_files, false, context.source_io);
-				target_file = module_exports.module_symbol(caller_file, "@target");
-			},
-			new Map([["tsconfig.json", '{"compilerOptions":{"baseUrl":".","paths":{"@target":["src/second.ts"]}}}']]),
-		);
-		expect(target_file).toContain("second.ts");
+		const files = [...texts.keys()];
+		files.sort();
+		expect({
+			files,
+			base_config: texts.get(base_config),
+			python_config: texts.get(python_config),
+		}).toEqual({
+			files: [base_config, config_file, python_config, source_file].sort(),
+			base_config: '{"compilerOptions":{"baseUrl":"src"}}',
+			python_config: "[tool.pytest.ini_options]",
+		});
 	});
 });

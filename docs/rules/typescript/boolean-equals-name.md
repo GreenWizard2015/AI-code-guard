@@ -32,14 +32,16 @@ export class FileEntry {
 		const normalized_content = this.content.trim().replace(/\s+/gu, " ");
 		return normalized_content === other_content;
 	}
+	public report(): void {
+		console.log(`${this.file_name()} ${this.word_count()} ${this.equals("hello world")}`);
+	}
 }
 // File: cli.ts
 import { FileEntry } from "src/file_entry";
-(function () {
+
+(() => {
 	const entry = new FileEntry("notes.txt", "hello");
-	const label = entry.file_name();
-	const words = entry.word_count();
-	console.log(label, words, entry.equals("hello world"));
+	entry.report();
 })();
 ```
 
@@ -49,40 +51,42 @@ import { FileEntry } from "src/file_entry";
 // File: src/file_entry.ts
 /** Responsibilities: _file entry state_. **/
 export class FileEntry {
-	private readonly path: string;
-	private readonly content: string;
+	private readonly _path: string;
+	private readonly _content: string;
 
 	/** Responsibilities: _file entry initialization_. **/
 	public constructor(path: string, content: string) {
-		this.path = path;
-		this.content = content;
+		this._path = path;
+		this._content = content;
 	}
 
 	/** Responsibilities: _file label composition_. **/
 	public file_name(): string {
-		const separator = this.path.lastIndexOf("/");
-		return this.path.slice(separator + 1);
+		const separator = this._path.lastIndexOf("/");
+		return this._path.slice(separator + 1);
 	}
 
 	/** Responsibilities: _word count_. **/
 	public word_count(): number {
-		const trimmed_content = this.content.trim();
+		const trimmed_content = this._content.trim();
 		const words = trimmed_content.split(/\s+/u);
 		return words.length;
 	}
 
 	/** Responsibilities: _content equivalence_. **/
 	public equal_to(other_content: string): boolean {
-		const normalized_content = this.content.trim().replace(/\s+/gu, " ");
-		return normalized_content === other_content;
+		return this._content.trim().replace(/\s+/gu, " ") === other_content;
+	}
+	/** Responsibilities: _file entry report output_. **/
+	public report(): void {
+		console.log(`${this.file_name()} ${this.word_count()} ${this.equal_to("hello world")}`);
 	}
 }
 // File: cli.ts
 import { FileEntry } from "src/file_entry";
-(function () {
+
+(() => {
 	const entry = new FileEntry("notes.txt", "hello");
-	const label = entry.file_name();
-	const words = entry.word_count();
-	console.log(label, words, entry.equal_to("hello world"));
+	entry.report();
 })();
 ```

@@ -40,14 +40,18 @@ export class StatusLabels {
 		const normalized = this.fallback.trim();
 		return normalized.toUpperCase();
 	}
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "blocked");
+		console.log(`${label} ${detailed} ${this.uppercase_fallback()}`);
+	}
 }
 // File: cli.ts
 import { StatusLabels } from "src/status_labels";
-(function () {
+
+(() => {
 	const labels = new StatusLabels(new Map(), "Unknown");
-	const label = labels.label("ready");
-	const detailed = labels.label_with_prefix("State", "blocked");
-	console.log(label, detailed, labels.uppercase_fallback());
+	labels.report();
 })();
 ```
 
@@ -57,20 +61,20 @@ import { StatusLabels } from "src/status_labels";
 // File: src/status_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
+		const label = this._labels.get(status);
 		if (label === undefined) {
-			return this.fallback;
+			return this._fallback;
 		}
 		return label;
 	}
@@ -83,16 +87,21 @@ export class StatusLabels {
 
 	/** Responsibilities: _fallback capitalization_. **/
 	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
+		const normalized = this._fallback.trim();
 		return normalized.toUpperCase();
+	}
+	/** Responsibilities: _status label report output_. **/
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "blocked");
+		console.log(`${label} ${detailed} ${this.uppercase_fallback()}`);
 	}
 }
 // File: cli.ts
 import { StatusLabels } from "src/status_labels";
-(function () {
+
+(() => {
 	const labels = new StatusLabels(new Map(), "Unknown");
-	const label = labels.label("ready");
-	const detailed = labels.label_with_prefix("State", "blocked");
-	console.log(label, detailed, labels.uppercase_fallback());
+	labels.report();
 })();
 ```

@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("cross-language early-return analysis", () => {
 	test("finds terminal alternate branches in TypeScript and Python", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"simple.ts": [
 					"function read(ready: boolean): string {",
@@ -48,15 +48,15 @@ describe("cross-language early-return analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const early_returns = violations.filter(
-			(item) => item.message === "prefer an early return before the alternate branch",
+			(item) => item.message() === "prefer an early return before the alternate branch",
 		);
-		expect(early_returns.map((item) => item.file)).toEqual(["nested.py", "nested.ts", "simple.py", "simple.ts"]);
+		expect(early_returns.map((item) => item.file())).toEqual(["nested.py", "nested.ts", "simple.py", "simple.ts"]);
 	});
 
 	test("recognizes terminal returns wrapped in control-flow constructs", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"alternate.ts": [
 					"function read(ready: boolean): string {",
@@ -114,8 +114,13 @@ describe("cross-language early-return analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const early_returns = violations.filter(
-			(item) => item.message === "prefer an early return before the alternate branch",
+			(item) => item.message() === "prefer an early return before the alternate branch",
 		);
-		expect(early_returns.map((item) => item.file)).toEqual(["loop.ts", "try-finally.py", "try-finally.ts", "with.py"]);
+		expect(early_returns.map((item) => item.file())).toEqual([
+			"loop.ts",
+			"try-finally.py",
+			"try-finally.ts",
+			"with.py",
+		]);
 	});
 });

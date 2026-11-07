@@ -7,11 +7,46 @@ results is allowed.
 ## Bad
 
 ```ts
-return new Reader().read();
-return new Reader().payload;
-return resolve(input)[key];
-void [...rule_ids].sort();
-void ({ ...rule_options }).mode;
+// File: src/rule_summary_types.ts
+export type RuleOptions = Record<string, string>;
+// File: src/rule_summary.ts
+import type { RuleOptions } from "src/rule_summary_types";
+
+export class RuleSummary {
+	private readonly rule_ids: string[];
+	private readonly rule_options: RuleOptions;
+	private report_count_value = 0;
+
+	public constructor(rule_ids: string[], rule_options: RuleOptions) {
+		this.rule_ids = rule_ids;
+		this.rule_options = rule_options;
+	}
+
+	public report(): void {
+		console.log(`${[...this.rule_ids][0]} ${( { ...this.rule_options } ).mode}`);
+		this.report_count_value += 1;
+	}
+
+	public report_count(): number {
+		return this.report_count_value;
+	}
+
+	public clear(): void {
+		this.rule_ids.length = 0;
+		this.rule_options.mode = "";
+		this.report_count_value = 0;
+	}
+}
+// File: cli.ts
+import { RuleSummary } from "src/rule_summary";
+
+(() => {
+	const summary = new RuleSummary(["temporary-result-access"], { mode: "strict" });
+	if (summary.report_count() === 0) {
+		summary.report();
+	}
+	summary.clear();
+})();
 ```
 
 
@@ -22,16 +57,48 @@ permitted.
 ## Good
 
 ```ts
+// File: src/rule_summary_types.ts
+export type RuleIdList = ReadonlyArray<string>;
+export type RuleSummaryOptions = { readonly mode: string };
+// File: src/rule_summary.ts
+import type { RuleIdList, RuleSummaryOptions } from "src/rule_summary_types";
+
+export class RuleSummary {
+	private readonly _rule_ids: RuleIdList;
+	private readonly _rule_options: RuleSummaryOptions;
+
+	public constructor(rule_ids: RuleIdList, rule_options: RuleSummaryOptions) {
+		this._rule_ids = rule_ids;
+		this._rule_options = rule_options;
+	}
+
+	public first_rule_id(): string {
+		const copied_rule_ids = [...this._rule_ids];
+		return String(copied_rule_ids[0]);
+	}
+
+	public mode_value(): string {
+		const option_snapshot = { ...this._rule_options };
+		return option_snapshot.mode;
+	}
+
+	public rule_count(): number {
+		const copied_rule_ids = [...this._rule_ids];
+		return copied_rule_ids.length;
+	}
+
+	public report(): void {
+		console.log(`${this.first_rule_id()} ${this.mode_value()} (${this.rule_count()})`);
+	}
+}
 // File: cli.ts
 #!/usr/bin/env node
-(function () {
-	const response = resolve(input);
-	const payload = response.payload;
-	const rendered = resolve(input).render();
-	const copied_rule_ids = [...rule_ids];
-	copied_rule_ids.sort();
-	const option_snapshot = { ...rule_options };
-	console.log(payload, rendered, copied_rule_ids, option_snapshot.mode);
+import { RuleSummary } from "src/rule_summary";
+
+(() => {
+	const rule_ids = ["temporary-result-access"];
+	const summary = new RuleSummary(rule_ids, { mode: "strict" });
+	summary.report();
 })();
 ```
 

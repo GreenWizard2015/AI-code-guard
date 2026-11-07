@@ -1,27 +1,19 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { LintProjectContextStore } from "src/core/lint_project_context_store";
-import { SourceText } from "src/source_text";
-import type { ProjectSourceOptions } from "src/model/types/types";
-import type { ReviewAgentExecutionResult } from "src/types";
+import type { ProjectNames } from "src/project_analysis_types";
+import type { ReviewAgentExecutionResult } from "src/task_review_types";
 
-export const SOURCE_OPTIONS: ProjectSourceOptions = {
-	get context_state(): ProjectSourceOptions["context_state"] {
-		return {
-			available: false,
-			value: new LintProjectContextStore(
-				[],
-				{
-					source_reads: 0,
-					typescript_parses: 0,
-					python_parses: 0,
-					source_records: 0,
-				},
-				new SourceText(),
-			),
-		};
-	},
-	entry_files: [],
+export const EMPTY_PROJECT_NAMES: ProjectNames = {
+	project_class_names: new Set(),
+	python_class_names: new Set(),
+	typescript_class_names: new Set(),
+	project_protocol_names: new Set(),
+	project_interface_names: new Set(),
+	project_contract_names: new Set(),
+	project_type_names: new Set(),
+	project_alias_names: new Set(),
+	typescript_type_names: new Set(),
+	typescript_alias_names: new Set(),
 };
 
 export const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");

@@ -3,37 +3,29 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass, field
 from time import perf_counter
-from typing import Any
 
-from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.ast.type_declarations.annotation_names import AnnotationNames
+from implementation.references.alias_types import CallablePythonReferenceOperation
+from implementation.references.instances.python_instance_collector import (
+    PythonInstanceCollector,
+)
 from implementation.references.protocols import (
     PythonAnnotationResolverContract,
     PythonCallReturnsContract,
     PythonCallReturnStateContract,
     PythonReferenceBuilderContract,
     PythonReferenceContextContract,
-    PythonReferenceOperation,
+    PythonReferenceSourceContract,
 )
-from implementation.references.python_call_return_state_adapter import (
-    PythonCallReturnStateAdapter,
-)
-from implementation.references.instances.python_instance_collector import (
-    PythonInstanceCollector,
-)
-from implementation.references.instances.python_property_type import PythonPropertyType
-from implementation.references.instances.python_property_type_collector import (
-    PythonPropertyTypeCollector,
+from implementation.references.python_call_assignment import PythonCallAssignment
+from implementation.references.python_call_binding import PythonCallBinding
+from implementation.references.python_call_reference_options import (
+    PythonCallReferenceOptions,
 )
 from implementation.references.python_reference import PythonReference
-from implementation.references.python_reference_context import (
-    PythonReferenceContext,
-)
-from implementation.references.context.python_reference_context_options import (
-    PythonReferenceContextOptions,
-)
-from implementation.references.context.python_reference_symbol_tables import (
-    PythonReferenceSymbolTables,
+from implementation.references.python_reference_source import (
+    PythonReferenceSource,
 )
 from implementation.rules.constants import PYTHON_REFERENCE_COLLECTION_STAGE
 from implementation.types import JsonObject
@@ -46,151 +38,158 @@ class PythonReferenceState:
     context: PythonReferenceContextContract = field(init=False)
     builder: PythonReferenceBuilderContract = field(init=False)
     references: list[JsonObject] = field(default_factory=list)
+    current_owner: str = ""
 
 
 class PythonReferenceCollector:
     """Responsibilities: _reference context construction_, _timed reference collection_."""
 
-    tree: ast.Module
-    call_returns: PythonCallReturnsContract
-    call_return_state: PythonCallReturnStateContract
+    _tree: ast.Module
+    _call_returns: PythonCallReturnsContract
+    _call_return_state: PythonCallReturnStateContract
     _state: PythonReferenceState
-    node_index: PythonAstNodeIndexContract
+    _node_index: PythonAstNodeIndexContract
+    _context_source: PythonReferenceSourceContract
 
-    def _timed(self, name: str, operation: PythonReferenceOperation) -> None:
+    def _timed(self, name: str, operation: CallablePythonReferenceOperation) -> None:
         """Responsibilities: _reference collection timing_."""
         started = perf_counter()
         try:
             operation()
         finally:
-            self.timings[name] = (perf_counter() - started) * 1000
+            self._timings.update({name: (perf_counter() - started) * 1000})
 
-    def _import_aliases(self) -> dict[str, str]:
-        """Responsibilities: _collection import aliases module_."""
-        aliases: dict[str, str] = {}
-        for node in self.tree.body:
-            if type(node) is not ast.ImportFrom:
-                continue
-            for alias in node.names:
-                if alias.name != "*":
-                    aliases[alias.asname or alias.name] = alias.name
-        return aliases
-
-    def _reference_class_names(self, aliases: dict[str, str]) -> set[str]:
-        """Responsibilities: _collection reference class names_."""
-        class_names = {
-            node.name
-            for node in self.node_index.nodes(self.tree)
-            if type(node) is ast.ClassDef
-        }
-        class_names.update(aliases)
-        return class_names
-
-    def _reference_properties(
-        self,
-        aliases: dict[str, str],
-        annotation_resolver: PythonAnnotationResolverContract,
-    ) -> dict[str, str]:
-        """Responsibilities: _collection reference properties_."""
-        type_resolver = PythonPropertyType(
-            aliases, self._reference_class_names(aliases), annotation_resolver
-        )
-        property_collector = PythonPropertyTypeCollector(
-            self.tree, type_resolver, self.node_index
-        )
-        return property_collector.collect_properties()
-
-    def _python_reference_context(
-        self, annotation_resolver: PythonAnnotationResolverContract
-    ) -> PythonReferenceContextContract:
-        """Responsibilities: _creation shared context usage_."""
-        aliases: Any = self._import_aliases()
-        properties: Any = self._reference_properties(aliases, annotation_resolver)
-        return PythonReferenceContext(
-            PythonReferenceContextOptions(
-                PythonReferenceSymbolTables(aliases, {}, properties, {}),
-                PythonCallReturnStateAdapter(self.call_return_state),
-                self.node_index,
-            )
-        )
-
-    def _append_call_args(self, node: ast.AST, owner: str) -> None:
+    def _append_call_args(self, call_expression: ast.AST) -> None:
         """Responsibilities: _collection references invocation arguments_."""
-        if type(node) is not ast.Call:
+        if type(call_expression) is not ast.Call:
             return
-        values: Any = [*node.args, *(item.value for item in node.keywords)]
+        values: list[ast.expr] = [
+            *call_expression.args,
+            *(item.value for item in call_expression.keywords),
+        ]
         for value in values:
-            reference: Any = self.python_reference().for_expression(
-                value, value.lineno - 1, owner
+            reference = self.python_reference().for_expression(
+                value,
+                self._state.current_owner,
             )
             if reference:
                 self._state.references.append(reference)
 
-    def _container_values(self, node: ast.AST) -> list[ast.expr]:
+    def _container_values(self, container_expression: ast.AST) -> list[ast.expr]:
         """Responsibilities: _extraction values supported container_."""
-        if type(node) is ast.Dict:
-            return [value for value in node.values if value is not None]
-        if type(node) in (ast.List, ast.Set, ast.Tuple):
-            return node.elts
+        if type(container_expression) is ast.Dict:
+            return [value for value in container_expression.values if value is not None]
+        if type(container_expression) is ast.List:
+            return container_expression.elts
+        if type(container_expression) is ast.Set:
+            return container_expression.elts
+        if type(container_expression) is ast.Tuple:
+            return container_expression.elts
         return []
 
-    def _append_container(self, node: ast.AST, owner: str) -> None:
+    def _append_container(self, container_expression: ast.AST) -> None:
         """Responsibilities: _collection references nested container_."""
-        values: Any = self._container_values(node)
+        values = self._container_values(container_expression)
         if not values:
             return
         for value in values:
-            reference: Any = self.python_reference().for_expression(
-                value, node.lineno - 1, owner
+            reference = self.python_reference().for_expression(
+                value,
+                self._state.current_owner,
             )
             if reference:
                 self._state.references.append(reference)
 
-    def _append_node(self, node: ast.AST, owner: str) -> None:
-        """Responsibilities: _AST node invocation dispatch_."""
-        if type(node) is ast.Call:
-            reference: Any = self.python_reference().for_call(node, owner)
-            if reference:
-                self._state.references.append(reference)
-            self._append_call_args(node, owner)
-            return
-        if type(node) in (ast.Assign, ast.AnnAssign, ast.Return, ast.keyword):
-            value_reference: Any = self.python_reference().for_value(node, owner)
-            if value_reference:
-                self._state.references.append(value_reference)
-            return
-        if type(node) in (ast.Dict, ast.List, ast.Set, ast.Tuple):
-            self._append_container(node, owner)
+    def _append_call(self, call_expression: ast.Call) -> None:
+        """Responsibilities: _call reference collection_."""
+        assignment = PythonCallAssignment(call_expression, self._node_index)
+        binding = PythonCallBinding(
+            assignment.target_name(),
+            assignment.annotation_name(),
+            self._deferred_callable(call_expression),
+        )
+        options = PythonCallReferenceOptions(
+            call_expression,
+            self._state.current_owner,
+            binding,
+        )
+        reference = self.python_reference().for_call(options)
+        if reference:
+            self._state.references.append(reference)
+        self._append_call_args(call_expression)
 
-    def _class_owner(self, node: ast.AST, owner: str) -> str:
-        """Responsibilities: _owner entering Python update_."""
-        if type(node) is ast.ClassDef:
-            return node.name
-        return owner
+    def _append_value_reference(self, value_statement: ast.AST) -> None:
+        """Responsibilities: _assigned value reference collection_."""
+        reference = self.python_reference().for_value(
+            value_statement,
+            self._state.current_owner,
+        )
+        if reference:
+            self._state.references.append(reference)
 
-    def _collect_references(self, node: ast.AST, owner: str = "") -> None:
-        """Responsibilities: _recursively collection references preservation_."""
-        current_owner: Any = self._class_owner(node, owner)
-        self._append_node(node, current_owner)
-        for child in self.node_index.children(node):
-            self._collect_references(child, current_owner)
+    def _append_node(self, ast_node: ast.AST) -> None:
+        """Responsibilities: _AST reference dispatch_."""
+        if type(ast_node) is ast.Call:
+            self._append_call(ast_node)
+            return
+        if type(ast_node) in (ast.Assign, ast.AnnAssign, ast.Return, ast.keyword):
+            self._append_value_reference(ast_node)
+            return
+        if type(ast_node) in (ast.Dict, ast.List, ast.Set, ast.Tuple):
+            self._append_container(ast_node)
+
+    def _deferred_callable(self, call_site: ast.AST) -> bool:
+        """Responsibilities: _deferred call scope detection_."""
+        callable_count = 0
+        current = call_site
+        while True:
+            parents = self._node_index.parents(current)
+            if not parents:
+                return False
+            current = parents[-1]
+            if type(current) is ast.Lambda:
+                return True
+            if type(current) in (ast.FunctionDef, ast.AsyncFunctionDef):
+                callable_count += 1
+                if callable_count > 1:
+                    return True
+
+    def _collect_references(self, source_node: ast.AST) -> None:
+        """Responsibilities: _ordered reference traversal_, _class owner restoration_."""
+        original_owner = self._state.current_owner
+        pending = [(source_node, original_owner)]
+        try:
+            while pending:
+                current, owner = pending.pop()
+                if type(current) is ast.ClassDef:
+                    self._state.current_owner = current.name
+                else:
+                    self._state.current_owner = owner
+                self._append_node(current)
+                pending.extend(
+                    (child, self._state.current_owner) for child in reversed(self._node_index.children(current))
+                )
+        finally:
+            self._state.current_owner = original_owner
 
     def _collect_reference_data(
-        self, annotation_resolver: PythonAnnotationResolverContract
+        self,
+        annotation_resolver: PythonAnnotationResolverContract,
     ) -> None:
         """Responsibilities: _reference data collection_."""
-        instances = PythonInstanceCollector(self.tree, self.context(), self.node_index)
+        instances = PythonInstanceCollector(self._tree, self.context(), self._node_index)
         self._timed(
             "call-returns",
-            lambda: self.call_returns.collect_call_returns(self.tree, self.context()),
+            lambda: self._call_returns.collect_call_returns(self._tree, self.context()),
         )
         self._timed(
-            "instances", lambda: instances.collect_instances(annotation_resolver)
+            "instances",
+            lambda: instances.collect_instances(annotation_resolver),
         )
         self._timed("instance-aliases", instances.collect_for_aliases)
         self._timed(
             PYTHON_REFERENCE_COLLECTION_STAGE,
-            lambda: self._collect_references(self.tree),
+            lambda: self._collect_references(self._tree),
         )
 
     def __init__(
@@ -198,24 +197,24 @@ class PythonReferenceCollector:
         tree: ast.Module,
         call_returns: PythonCallReturnsContract,
         node_index: PythonAstNodeIndexContract,
-        *provided_states: PythonCallReturnStateContract,
+        call_return_state: PythonCallReturnStateContract,
     ) -> None:
         """Responsibilities: _initialization reference collection dependencies_."""
-        self.tree: ast.Module = tree
-        self.call_returns: PythonCallReturnsContract = call_returns
-        self.call_return_state: PythonCallReturnStateContract = next(
-            iter(provided_states), call_returns.return_state()
-        )
+        self._tree: ast.Module = tree
+        self._call_returns: PythonCallReturnsContract = call_returns
+        self._call_return_state: PythonCallReturnStateContract = call_return_state
         self._state: PythonReferenceState = PythonReferenceState()
-        self.node_index: PythonAstNodeIndexContract = node_index
-        self.timings: dict[str, float] = {}
+        self._node_index: PythonAstNodeIndexContract = node_index
+        self._context_source = PythonReferenceSource(
+            tree,
+            node_index,
+            self._call_return_state,
+        )
+        self._timings: dict[str, float] = {}
 
     def timings_data(self) -> dict[str, float]:
         """Responsibilities: _reference timing output_."""
-        return {
-            f"call-references.{name}": duration
-            for name, duration in self.timings.items()
-        }
+        return {f"call-references.{name}": duration for name, duration in self._timings.items()}
 
     def context(self) -> PythonReferenceContextContract:
         """Responsibilities: _output initialization reference-resolution context_."""
@@ -227,11 +226,11 @@ class PythonReferenceCollector:
 
     def collect_references(self) -> list[JsonObject]:
         """Responsibilities: _collection output normalization callable_."""
-        annotation_resolver = AnnotationNames()
-        self._state.context = self._python_reference_context(annotation_resolver)
+        annotation_resolver = AnnotationNames(self._node_index)
+        self._state.context = self._context_source.context(annotation_resolver)
         self._state.builder = PythonReference(self.context())
         self._state.references.clear()
-        self.call_return_state.state_cleanup()
-        self.timings.clear()
+        self._call_return_state.state_cleanup()
+        self._timings.clear()
         self._collect_reference_data(annotation_resolver)
         return self._state.references

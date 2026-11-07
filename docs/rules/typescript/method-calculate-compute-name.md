@@ -7,71 +7,74 @@ Description: Review public non-boolean result methods beginning with `calculate*
 ## Bad
 
 ```ts
-class PriceLabels {
-	public calculate_price(): number { return 10; }
+// File: src/invoice_total.ts
+export class InvoiceTotal {
+	private readonly unit_price: number;
+	private readonly quantity: number;
+	private readonly tax_rate: number;
+	public constructor(unit_price: number, quantity: number, tax_rate: number) {
+		this.unit_price = unit_price;
+		this.quantity = quantity;
+		this.tax_rate = tax_rate;
+	}
+	public subtotal(): number { return this.unit_price * this.quantity; }
+	public tax_amount(): number { return this.subtotal() * this.tax_rate; }
+	public calculate_total(): number { // <- error
+		const base_amount = this.subtotal();
+		const tax_amount = this.tax_amount();
+		return base_amount + tax_amount;
+	}
+	public summary(): string {
+		return `Subtotal ${this.subtotal().toFixed(2)}, total ${this.calculate_total().toFixed(2)}`;
+	}
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
+	}
 }
+// File: cli.ts
+import { InvoiceTotal } from "src/invoice_total";
+(function () {
+	const invoice = new InvoiceTotal(18.5, 2, 0.08);
+	invoice.report();
+})();
 ```
-
 
 ## Good
 
 ```ts
-// File: src/price_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
-
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+// File: src/invoice_total.ts
+export class InvoiceTotal {
+	private readonly _unit_price: number;
+	private readonly _quantity: number;
+	private readonly _tax_rate: number;
+	public constructor(unit_price: number, quantity: number, tax_rate: number) {
+		this._unit_price = unit_price;
+		this._quantity = quantity;
+		this._tax_rate = tax_rate;
 	}
-
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
-		}
-		return label;
+	public subtotal(): number {
+		if (this._quantity < 0) { return 0; }
+		return this._unit_price * this._quantity;
 	}
-
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
+	public tax_amount(): number { return this.subtotal() * this._tax_rate; }
+	public total(): number {
+		const base_amount = this.subtotal();
+		const tax_amount = this.tax_amount();
+		return base_amount + tax_amount;
 	}
-
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
+	public summary(): string {
+		return `Subtotal ${this.subtotal().toFixed(2)}, total ${this.total().toFixed(2)}`;
 	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
 	}
 }
 // File: cli.ts
-import { PriceLabels } from "src/price_labels";
-
+import { InvoiceTotal } from "src/invoice_total";
 (function () {
-	const labels = new Map<string, string>();
-	labels.set("ready", "Ready");
-	labels.set("blocked", "Blocked");
-	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	const invoice = new InvoiceTotal(18.5, 2, 0.08);
+	invoice.report();
 })();
 ```

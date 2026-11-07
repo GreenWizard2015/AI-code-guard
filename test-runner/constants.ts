@@ -1,15 +1,22 @@
-export const TEST_RUNNER_ENTRY = "test-runner/cli.ts";
 export const TESTS_DIRECTORY = "tests";
 export const PYTHON_BRIDGE_DIRECTORY = "src/python-bridge";
 export const PYTHON_TEST_DIRECTORY = "tests/python-bridge";
+export const MYPYPATH_VARIABLE = "MYPYPATH";
 export const PERFORMANCE_TEST_DIRECTORY = "tests/performance";
 export const PACKAGE_MANAGER = "pnpm";
 export const PYTHON_EXECUTABLE = "python3";
 export const PYTEST_MODULE = "pytest";
 export const JEST_EXECUTABLE = "jest";
-export const JEST_WORKER_ARGUMENT = "--maxWorkers=4";
 export const NODE_VM_MODULES_ARGUMENT = "--experimental-vm-modules";
 export const MIN_CONFIDENCE_ARGUMENT = "--min-confidence";
+export const RUFF_ISOLATED_ARGUMENT = "--isolated";
+export const RUFF_SELECT_ARGUMENT = "--select";
+export const RUFF_IGNORE_ARGUMENT = "--ignore";
+export const RUFF_PER_FILE_IGNORE_ARGUMENT = "--per-file-ignores";
+export const RUFF_TEST_PRIVATE_MEMBER_ACCESS_IGNORES = "tests/**/*.py:SLF001";
+export const RUFF_LINE_LENGTH_CONFIGURATION = "line-length=120";
+export const RUFF_CONFLICTING_RULES =
+	"CPY001,D100,D101,D102,D103,D105,D106,D107,D203,D213,EM101,EM102,FBT001,FBT002,INP001,N803,PLR0911,PLR0913,PLR0917,PLR2004,PLR5501,PT009,SIM102,SIM108,TC001,TC002,TC003,TC006,TRY003";
 export const HEADLESS_ARGUMENT = "--headless";
 export const FORCE_REVIEW_ARGUMENT = "--force-review";
 export const REVIEW_CLEANUP_ARGUMENT = "--review-cleanup";

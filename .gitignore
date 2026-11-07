@@ -4,4 +4,5 @@ node_modules
 coverage
 htmlcov
 __pycache__
+.mypy_cache
 task.md

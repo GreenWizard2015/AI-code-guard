@@ -6,58 +6,70 @@ Description: Review public non-boolean result methods beginning with `calculate*
 
 ## Bad
 
-
 ```python
-class PriceLabels:
-    def calculate_price(self) -> int:
-        return 10
+# File: src/invoice_total.py
+class InvoiceTotal:
+    def __init__(self, unit_price: float, quantity: int, tax_rate: float) -> None:
+        self._unit_price: float = unit_price
+        self._quantity: int = quantity
+        self._tax_rate: float = tax_rate
+
+    def subtotal(self) -> float:
+        return self._unit_price * self._quantity
+
+    def tax_amount(self) -> float:
+        return self.subtotal() * self._tax_rate
+
+    def calculate_total(self) -> float:  # <- error
+        base_amount = self.subtotal()
+        tax_amount = self.tax_amount()
+        return base_amount + tax_amount
+
+    def summary(self) -> str:
+        return f"Subtotal {self.subtotal():.2f}, total {self.calculate_total():.2f}"
+
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
+# File: cli.py
+from src.invoice_total import InvoiceTotal
+
+if __name__ == "__main__":
+    invoice = InvoiceTotal(18.5, 2, 0.08)
+    invoice.report()
 ```
 
 ## Good
 
-
 ```python
-# File: src/price_labels/price_labels.py
-class PriceLabels:
-    """Responsibilities: _status label mapping_."""
+# File: src/invoice_total.py
+class InvoiceTotal:
+    def __init__(self, unit_price: float, quantity: int, tax_rate: float) -> None:
+        self._unit_price: float = unit_price
+        self._quantity: int = quantity
+        self._tax_rate: float = tax_rate
 
-    def __init__(self, labels: dict[str, str], fallback: str) -> None:
-        """Responsibilities: _mapping initialization_."""
-        self.labels: dict[str, str] = labels
-        self.fallback: str = fallback
+    def subtotal(self) -> float:
+        return self._unit_price * self._quantity
 
-    def label(self, status: str) -> str:
-        """Responsibilities: _status label selection_."""
-        if status in self.labels:
-            return self.labels[status]
-        return self.fallback
+    def tax_amount(self) -> float:
+        return self.subtotal() * self._tax_rate
 
-    def label_with_prefix(self, prefix: str, status: str) -> str:
-        """Responsibilities: _prefixed label composition_."""
-        label = self.label(status)
-        return f"{prefix}: {label}"
+    def total(self) -> float:
+        base_amount = self.subtotal()
+        tax_amount = self.tax_amount()
+        return base_amount + tax_amount
 
-    def uppercase_fallback(self) -> str:
-        """Responsibilities: _fallback capitalization_."""
-        normalized = self.fallback.strip()
-        return normalized.upper()
+    def summary(self) -> str:
+        return f"Subtotal {self.subtotal():.2f}, total {self.total():.2f}"
 
-    def status_count(self) -> int:
-        """Responsibilities: _mapping size reporting_."""
-        count = 0
-        for status_name in self.labels:
-            if status_name:
-                count += 1
-        return count
+    def report(self) -> None:
+        summary = self.summary()
+        print(summary)
 # File: cli.py
-from price_labels.price_labels import PriceLabels
+from src.invoice_total import InvoiceTotal
 
 if __name__ == "__main__":
-    labels = {"ready": "Ready", "blocked": "Blocked"}
-    price_labels = PriceLabels(labels, "Unknown")
-    label = price_labels.label("ready")
-    detailed = price_labels.label_with_prefix("State", "blocked")
-    fallback = price_labels.uppercase_fallback()
-    count = price_labels.status_count()
-    print(f"{label} {detailed} {fallback} {count}")
+    invoice = InvoiceTotal(18.5, 2, 0.08)
+    invoice.report()
 ```

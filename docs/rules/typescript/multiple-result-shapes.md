@@ -2,82 +2,99 @@
 
 Description: Business logic should not know every upstream response representation.
 
-```ts
-if (response.content !== undefined) {
-  return response.content;
-}
-if (response.result !== undefined) {
-  if (response.result.content !== undefined) {
-    return response.result.content;
-  }
-}
-return response;
-```
-
-Python response branching is covered too:
-
+Python response branching is covered too.
 
 Fix: Normalize the upstream response once at the transport boundary.
 
 ## Bad
 
 ```ts
-// File: src/protocols.ts
-export interface ToolResponseContract {
-	content_text(): string;
-	summary(): string;
-	content_size(): number;
-}
-
 // File: src/tool_response.ts
-#!/usr/bin/env node
-import { ToolResponseContract } from "src/protocols";
-export class ToolResponse implements ToolResponseContract {
-	private readonly response_data: Record<string, string>;
-	public constructor(response_data: Record<string, string>) { this.response_data = response_data; }
-	public content_text(): string {
-		const content = this.response_data["structuredContent"]; // <- error
-		const normalized = content.trim();
-		return normalized.toUpperCase();
+export class ToolResponse {
+	private readonly structuredContent: string;
+	private readonly unwrap_tool_result: string;
+
+	private parse_upstream_response(): string {
+		if (this.structuredContent.length > 0) {
+			return this.structuredContent;
+		}
+		return this.unwrap_tool_result;
 	}
-	public summary(): string { const content = this.content_text(); const label = content.length === 0 ? "empty" : "content"; return `${label}: ${content}`; }
-	public content_size(): number { let size = 0; for (const character of this.content_text()) { if (character.trim().length > 0) { size += 1; } } return size; }
+	public constructor() {
+		this.structuredContent = "ready";
+		this.unwrap_tool_result = "fallback";
+	}
+	public content_text(): string {
+		return this.parse_upstream_response();
+	}
+	public content_size(): number {
+		const content = this.content_text();
+		return content.length;
+	}
+	public summary(): string {
+		return `Response (${this.content_size()}): ${this.content_text()}`;
+	}
+	public report(): void {
+		console.log(this.summary());
+	}
 }
 // File: cli.ts
-#!/usr/bin/env node
-import { ToolResponse } from "src/tool-response";
-(function () { const response = new ToolResponse({ structuredContent: " ready " }); console.log(response.content_text(), response.summary(), response.content_size()); })();
+import { ToolResponse } from "src/tool_response";
+(function () {
+	const response = new ToolResponse();
+	response.report();
+})();
 ```
-
 
 ## Good
 
 ```ts
-// File: src/protocols.ts
-export interface ToolResponseContract {
-	content_text(): string;
-	summary(): string;
-	content_size(): number;
-}
-
 // File: src/tool_response.ts
-#!/usr/bin/env node
-import { ToolResponseContract } from "src/protocols";
-/** Responsibilities: _tool response content access_. **/
-export class ToolResponse implements ToolResponseContract {
-	private readonly content: string;
-	/** Responsibilities: _response initialization_. **/
-	public constructor(content: string) { this.content = content; }
-	/** Responsibilities: _response content normalization_. **/
-	public content_text(): string { const normalized = this.content.trim(); if (normalized.length === 0) { return "empty"; } return normalized.toUpperCase(); }
-	/** Responsibilities: _response summary composition_. **/
-	public summary(): string { const content = this.content_text(); const label = content.length === 0 ? "empty" : "content"; return `${label}: ${content}`; }
-	/** Responsibilities: _response content size calculation_. **/
-	public content_size(): number { let size = 0; for (const character of this.content_text()) { if (character.trim().length > 0) { size += 1; } } return size; }
+/** Responsibilities: _normalized response content access_. **/
+export class ToolResponse {
+	private readonly _content: string;
+	public constructor(content: string) {
+		this._content = content;
+	}
+	public content_text(): string {
+		if (this._content.trim().length === 0) {
+			return "";
+		}
+		const words = this._content.trim().split(/\s+/u);
+		const normalized_words: string[] = [];
+		for (const word of words) {
+			const normalized_word = word.trim().toUpperCase();
+			if (normalized_word.length > 0) {
+				normalized_words.push(normalized_word);
+			}
+		}
+		return normalized_words.join(" ");
+	}
+	public summary(): string {
+		const details = [
+			"Normalized response",
+			this.content_text(),
+			`${this.content_size()} characters`,
+		];
+		return details.join(" | ");
+	}
+	public content_size(): number {
+		let visible_count = 0;
+		for (const character of this.content_text()) {
+			if (character.trim().length > 0) {
+				visible_count += 1;
+			}
+		}
+		return visible_count;
+	}
+	public report(): void {
+		console.log(this.summary());
+	}
 }
 // File: cli.ts
-#!/usr/bin/env node
-import { ToolResponse } from "src/tool-response";
-(function () { const response = new ToolResponse("ready"); console.log(response.content_text(), response.summary(), response.content_size()); })();
+import { ToolResponse } from "src/tool_response";
+(function () {
+	const response = new ToolResponse("ready");
+	response.report();
+})();
 ```
-

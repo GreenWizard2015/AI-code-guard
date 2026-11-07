@@ -1,122 +1,82 @@
 import type { MethodOrderContract } from "src/analysis_protocols";
-import type { ViolationContract } from "src/reporting_protocols";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { RuleParameters } from "src/types";
-import type { AstCallableNodeContract, AstClassNodeContract } from "src/types";
+import { PRIVATE_VISIBILITY, PROTECTED_VISIBILITY } from "src/constants";
+import { RULE_IDS } from "src/linting/constants";
 import { CONSTRUCTOR_NAME, PYTHON_CONSTRUCTOR_NAME } from "src/metrics/constants";
-import { PRIVATE_VISIBILITY, PROTECTED_VISIBILITY, RULE_IDS } from "src/constants";
+import type { AstCallableNode, AstClassNode } from "src/model/ast/normalized_ast_types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { RuleContract } from "src/reporting_protocols";
+import type { ViolationContract } from "src/reporting_protocols";
 
-/** Responsibilities: _constructor ordering checks_, _public method ordering checks_. **/
+/** Responsibilities: _order public methods_, _place constructors_. **/
 export class MethodOrder implements MethodOrderContract {
-	private readonly constructor_names: Set<string>;
-	private readonly hidden_visibilities: Set<string>;
+	private readonly _file: string;
+	private readonly _methods: readonly AstCallableNode[];
+	private readonly _constructor_names: ReadonlySet<string>;
+	private readonly _hidden_visibilities: ReadonlySet<string>;
+	private readonly _order_rule: RuleContract;
 
-	/** Responsibilities: _identification public methods placed_. **/
-	private public_order_violations(
-		file: string,
-		methods: AstCallableNodeContract[],
-		last_non_public: number,
-	): ViolationContract[] {
-		const violations: ViolationContract[] = [];
+	/** Responsibilities: _final non-public method index_. **/
+	private last_hidden_method(methods: readonly AstCallableNode[]): number {
+		let last = -1;
 		methods.forEach((method, index) => {
-			if (index < last_non_public) {
-				if (this.is_public(method)) {
-					violations.push(
-						this.order_violation(file, method.start, RULE_IDS.method_order_public, {
-							name: method.name,
-						}),
-					);
-				}
+			if (this._hidden_visibilities.has(method.identity.visibility)) {
+				last = index;
 			}
 		});
-		return violations;
+		return last;
 	}
 
-	/** Responsibilities: _last non-public method lookup_. **/
-	private last_hidden_index(methods: AstCallableNodeContract[]): number {
-		let last_index = -1;
-		methods.forEach((method, index) => {
-			if (!this.is_public(method)) {
-				last_index = index;
+	/** Responsibilities: _constructor position validation_. **/
+	private constructor_misplaced(before: readonly AstCallableNode[], after: readonly AstCallableNode[]): boolean {
+		const public_before = before.some(
+			(item) =>
+				!this._constructor_names.has(item.identity.name) && !this._hidden_visibilities.has(item.identity.visibility),
+		);
+		const hidden_after = after.some(
+			(item) =>
+				!this._constructor_names.has(item.identity.name) && this._hidden_visibilities.has(item.identity.visibility),
+		);
+		return public_before || hidden_after;
+	}
+
+	/** Responsibilities: _implementation-order violation reporting_. **/
+	private append_implementation_violation(violations: ViolationContract[]): boolean {
+		const implementation_methods = this._methods.filter((method) => !this._constructor_names.has(method.identity.name));
+		const last_hidden = this.last_hidden_method(implementation_methods);
+		for (const [index, method] of implementation_methods.entries()) {
+			if (index < last_hidden && !this._hidden_visibilities.has(method.identity.visibility)) {
+				violations.push(this._order_rule.violation(this._file, method.identity.start + 1, {}));
+				return true;
 			}
-		});
-		return last_index;
+		}
+		return false;
 	}
 
-	/** Responsibilities: _aggregation constructor-order violations class_. **/
-	private append_constructor_violations(
-		violations: ViolationContract[],
-		file: string,
-		methods: AstCallableNodeContract[],
-	): void {
+	/** Responsibilities: _method ordering state_. **/
+	public constructor(file: string, class_node: AstClassNode) {
+		this._file = file;
+		this._methods = class_node.structure.methods;
+		this._constructor_names = new Set([CONSTRUCTOR_NAME, PYTHON_CONSTRUCTOR_NAME]);
+		this._hidden_visibilities = new Set([PRIVATE_VISIBILITY, PROTECTED_VISIBILITY]);
+		this._order_rule = new DiagnosticRule(RULE_IDS.method_order);
+	}
+
+	/** Responsibilities: _class method ordering validation_. **/
+	public append_order(violations: ViolationContract[]): void {
+		if (this.append_implementation_violation(violations)) {
+			return;
+		}
+		const methods = this._methods;
 		for (const [index, method] of methods.entries()) {
-			if (!this.constructor_names.has(method.name)) {
+			if (!this._constructor_names.has(method.identity.name)) {
 				continue;
 			}
-			violations.push(...this.constructor_order_violations(file, method, methods, index));
+			const before = methods.slice(0, index);
+			const after = methods.slice(index + 1);
+			if (this.constructor_misplaced(before, after)) {
+				violations.push(this._order_rule.violation(this._file, method.identity.start + 1, {}));
+				return;
+			}
 		}
-	}
-
-	/** Responsibilities: _placement violations calculation _. **/
-	private constructor_order_violations(
-		file: string,
-		method: AstCallableNodeContract,
-		methods: AstCallableNodeContract[],
-		index: number,
-	): ViolationContract[] {
-		const violations: ViolationContract[] = [];
-		const methods_after = methods.slice(index + 1);
-		if (methods_after.some((item) => !this.constructor_names.has(item.name) && !this.is_public(item))) {
-			violations.push(this.order_violation(file, method.start, RULE_IDS.method_order_constructor_after));
-		}
-		const methods_before = methods.slice(0, index);
-		if (methods_before.some((item) => !this.constructor_names.has(item.name) && this.is_public(item))) {
-			violations.push(this.order_violation(file, method.start, RULE_IDS.method_order_constructor_before));
-		}
-		return violations;
-	}
-
-	/** Responsibilities: _public method classification_. **/
-	private is_public(method: AstCallableNodeContract): boolean {
-		if (this.hidden_visibilities.has(method.visibility)) {
-			return false;
-		}
-		return true;
-	}
-
-	/** Responsibilities: _method-order diagnostic creation_. **/
-	private order_violation(
-		file: string,
-		line: number,
-		rule_id: string,
-		...parameter_values: RuleParameters[]
-	): ViolationContract {
-		const reported_line = line + 1;
-		const rule = new DiagnosticRule(rule_id);
-		let parameters: RuleParameters = {};
-		if (parameter_values[0] !== undefined) {
-			parameters = parameter_values[0];
-		}
-		return rule.violation(file, reported_line, parameters);
-	}
-
-	/** Responsibilities: _implementation method-order violations addition_. **/
-	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.constructor_names = new Set([CONSTRUCTOR_NAME, PYTHON_CONSTRUCTOR_NAME]);
-		this.hidden_visibilities = new Set([PRIVATE_VISIBILITY, PROTECTED_VISIBILITY]);
-	}
-	/** Responsibilities: _public operation_. **/
-	public append_impl_order(violations: ViolationContract[], file: string, methods: AstCallableNodeContract[]): void {
-		const implementation_methods = methods.filter((method) => !this.constructor_names.has(method.name));
-		const last_non_public = this.last_hidden_index(implementation_methods);
-		violations.push(...this.public_order_violations(file, implementation_methods, last_non_public));
-	}
-
-	/** Responsibilities: _aggregation constructor visibility ordering_. **/
-	public append_order_violations(violations: ViolationContract[], file: string, node: AstClassNodeContract): void {
-		const methods = node.methods;
-		this.append_impl_order(violations, file, methods);
-		this.append_constructor_violations(violations, file, methods);
 	}
 }

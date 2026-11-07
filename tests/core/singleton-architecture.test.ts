@@ -1,15 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
 import { SINGLETON_FILES } from "tests/core/constants/architecture/constants";
+import { TestFixture } from "tests/core/test-fixture";
 
 describe("project singleton analysis", () => {
 	test("reports singleton-like instances and Python class variables", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				...SINGLETON_FILES,
 				"registry.py": [
@@ -26,17 +26,17 @@ describe("project singleton analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const singleton_violations = violations.filter((item) => item.rule_id === "singleton");
-		expect(singleton_violations.filter((item) => !item.file.endsWith("registry.py"))).toHaveLength(15);
-		expect(singleton_violations.filter((item) => item.file.endsWith("registry.py")).map((item) => item.line)).toEqual([
-			4, 5, 6, 7,
-		]);
+		const singleton_violations = violations.filter((item) => item.rule_id() === "singleton");
+		expect(singleton_violations.filter((item) => !item.file().endsWith("registry.py"))).toHaveLength(15);
+		expect(
+			singleton_violations.filter((item) => item.file().endsWith("registry.py")).map((item) => item.line()),
+		).toEqual([4, 5, 6, 7]);
 	});
 
 	test("distinguishes escaped instances from locally owned composition roots", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"assigned-singleton.ts": [
 					"class Service {}",
@@ -53,7 +53,7 @@ describe("project singleton analysis", () => {
 				].join("\n"),
 				"conditional-singleton.ts": [
 					"class Service { public run(): void {} }",
-					'if (process.env.NODE_ENV === "production") {',
+					'if (process.env["NODE_ENV"] === "production") {',
 					"\tconst service = new Service();",
 					"}",
 				].join("\n"),
@@ -104,7 +104,7 @@ describe("project singleton analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const by_file = new Map(
-			violations.filter((item) => item.rule_id === "singleton").map((item) => [item.file, item.line]),
+			violations.filter((item) => item.rule_id() === "singleton").map((item) => [item.file(), item.line()]),
 		);
 		expect(by_file).toEqual(
 			new Map([

@@ -5,7 +5,36 @@ Description: Remove an unused source file or add a real production or test impor
 ## Bad
 
 ```ts
-function read_value(): string { return "ok"; }
+// File: src/unused_notes.ts
+export interface UnusedNote {
+	label: string;
+}
+// File: src/status.ts
+export class Status {
+	private readonly status: string;
+
+	public constructor(status: string) {
+		this.status = status;
+	}
+
+	public normalized_status(): string {
+		return this.status.trim().toLowerCase();
+	}
+
+	public status_label(): string {
+		return `Status: ${this.normalized_status()}`;
+	}
+
+	public report(): void {
+		console.log(this.status_label());
+	}
+}
+// File: cli.ts
+import { Status } from "src/status";
+(function () {
+	const status = new Status(" READY ");
+	status.report();
+})();
 ```
 
 
@@ -14,15 +43,14 @@ function read_value(): string { return "ok"; }
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _value: string;
+	public constructor(value: string) { this._value = value; }
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		return this._value.trim().toLowerCase();
 	}
 	public ready(): boolean {
-		const normalized_value = this.normalized();
 		const expected_value = 'ready';
-		return normalized_value === expected_value;
+		return this._value.trim().toLowerCase() === expected_value;
 	}
 	public label(prefix: string): string {
 		const clean_prefix = prefix.trim();
@@ -37,13 +65,16 @@ export class Status {
 		}
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		console.log(`${this.label("State")} | ${this.ready()} | ${this.contains("ead")}`);
+	}
 }
 // File: cli.ts
 #!/usr/bin/env node
-import { Status } from 'src/domain/status';
+import { Status } from "src/domain/status";
 (function () {
 	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	status.report();
 })();
 ```
 

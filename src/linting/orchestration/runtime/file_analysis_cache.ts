@@ -1,152 +1,112 @@
 import { join, resolve } from "node:path";
+import type { SystemFailureClassificationContract } from "src/analysis_protocols";
+import { BoundaryFailureCategory } from "src/analysis_protocols";
 import type { FileAnalysisCacheContract } from "src/cache_protocols";
+import type { FileAnalysisCacheOptions } from "src/cache_types";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import { ViolationCache } from "src/core/cache/violation_cache";
-import { FILE_ANALYSIS_CACHE_VERSION } from "src/core/constants";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
+import { SYSTEM_FAILURE_CODES } from "src/io/constants";
 import type { IOContract } from "src/io/protocols";
-import { TypeScriptProjectResolution } from "src/module-resolution/type_script_project_resolution";
+import { FileAnalysisCacheEntry } from "src/linting/orchestration/runtime/file_analysis_cache_entry";
+import { TypeScriptProjectResolution } from "src/module-resolution/project-resolution/type_script_project_resolution";
 import type { CacheState, FileAnalysisCacheRecord } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
-import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { LintSourceRecord } from "src/source_types";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _persistent file-analysis cache_, _project-context invalidation_. **/
 export class FileAnalysisCache implements FileAnalysisCacheContract {
-	private readonly cache_directory: string;
-	private readonly context_hash: string;
-	private readonly analysis_identity: ProjectAnalysisIdentityContract;
-	private readonly resolution_identity: string;
-	private readonly file_io: IOContract;
-	private readonly boundary_failures: BoundaryFailureClassifier;
+	private readonly _cache_directory: string;
+	private readonly _context_hash: string;
+	private readonly _analysis_identity: ProjectAnalysisIdentityContract;
+	private readonly _resolution_identity: string;
+	private readonly _file_io: IOContract;
+	private readonly _boundary_failures: SystemFailureClassificationContract;
 
-	/** Responsibilities: _cache filename construction_. **/
-	private cache_path(file: string, source_hash: string, ignored: boolean): string {
-		const key = this.analysis_identity.content(
-			`${FILE_ANALYSIS_CACHE_VERSION}\u0000${this.context_hash}\u0000${resolve(file)}\u0000${source_hash}\u0000${ignored}`,
-		);
-		return join(this.cache_directory, `${key}.json`);
+	/** Responsibilities: _atomic cache persistence_. **/
+	private persist(target_file: string, payload: FileAnalysisCacheRecord): void {
+		const temporary = `${target_file}.${process.pid}.tmp`;
+		this._file_io.file(temporary).write_text(JSON.stringify(payload));
+		this._file_io.file(temporary).move_to(this._file_io.file(target_file));
 	}
 
-	/** Responsibilities: _file cache record fields_. **/
-	private record_fields_valid(record: FileAnalysisCacheRecord): boolean {
+	/** Responsibilities: _cache candidate metadata validation_. **/
+	private candidate_valid(record: FileAnalysisCacheRecord): boolean {
 		if (record === null || typeof record !== "object" || Array.isArray(record)) {
 			return false;
 		}
-		const valid_identity_fields =
-			Number.isFinite(record.cache_version) &&
-			String(record.context_hash) === record.context_hash &&
-			String(record.source_file) === record.source_file &&
-			String(record.source_hash) === record.source_hash;
-		const valid_ignored_flag = record.ignored === true || record.ignored === false;
-		return valid_identity_fields && valid_ignored_flag && Array.isArray(record.violations);
+		if (String(record.source_file) !== record.source_file) {
+			return false;
+		}
+		return record.ignored === true || record.ignored === false;
 	}
 
-	/** Responsibilities: _cache record validation_. **/
-	private valid_record(
+	/** Responsibilities: _cache candidate validation_. **/
+	private stale_candidate(
+		cache_file: string,
 		record: FileAnalysisCacheRecord,
-		file: string,
-		text: string,
-		ignored: boolean,
-		path: string,
+		current: ReadonlyMap<string, string>,
 	): boolean {
-		if (!this.record_fields_valid(record)) {
-			return false;
+		if (!this.candidate_valid(record)) {
+			return true;
 		}
-		if (record.cache_version !== FILE_ANALYSIS_CACHE_VERSION) {
-			return false;
+		const source_file = resolve(record.source_file);
+		const text = current.get(source_file);
+		if (text === undefined) {
+			return true;
 		}
-		if (record.context_hash !== this.context_hash || record.source_file !== resolve(file)) {
-			return false;
-		}
-		if (record.source_hash !== this.analysis_identity.content(text) || record.ignored !== ignored) {
-			return false;
-		}
-		return resolve(path) === resolve(this.cache_path(file, record.source_hash, ignored));
+		const entry = new FileAnalysisCacheEntry({
+			cache_directory: this._cache_directory,
+			context_hash: this._context_hash,
+			file: source_file,
+			source_hash: this._analysis_identity.content(text),
+			ignored: record.ignored,
+			analysis_identity: this._analysis_identity,
+		});
+		return !entry.cached_violations(record, cache_file).available;
 	}
 
-	/** Responsibilities: _cached file violation validation_. **/
-	private record_violations(
-		record: FileAnalysisCacheRecord,
-		file: string,
-		text: string,
-		ignored: boolean,
-		path: string,
-	): CacheState<ViolationContract[]> {
-		if (!this.valid_record(record, file, text, ignored, path)) {
-			return { available: false, value: [] };
-		}
-		const cache = new ViolationCache(record.violations);
-		if (!cache.valid_cache()) {
-			return { available: false, value: [] };
-		}
-		return { available: true, value: [...cache.values()] };
-	}
-
-	/** Responsibilities: _atomic cache persistence_. **/
-	private persist(path: string, record: FileAnalysisCacheRecord): void {
-		const temporary = `${path}.${process.pid}.tmp`;
-		this.file_io.file_content.write_text(temporary, JSON.stringify(record));
-		this.file_io.file_operations.move_file(temporary, path);
-	}
-
-	/** Responsibilities: _stale file-analysis record detection_. **/
-	private stale_record(path: string, current: ReadonlyMap<string, string>): boolean {
+	/** Responsibilities: _stale cache record detection_. **/
+	private stale_record(cache_file: string, current: ReadonlyMap<string, string>): boolean {
 		try {
-			const record: FileAnalysisCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
-			if (!this.record_fields_valid(record)) {
-				return true;
-			}
-			const source_file = resolve(record.source_file);
-			const text = current.get(source_file);
-			if (text === undefined) {
-				return true;
-			}
-			return !this.valid_record(record, source_file, text, record.ignored, path);
+			const record: FileAnalysisCacheRecord = JSON.parse(this._file_io.file(cache_file).file_text());
+			return this.stale_candidate(cache_file, record, current);
 		} catch (error) {
-			if (!this.boundary_failures.cache_read_failure(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.CacheRead)) {
 				throw error;
 			}
 			return true;
 		}
 	}
 
-	/** Responsibilities: _stale file-analysis record deletion_. **/
-	private remove_unused_record(path: string, current: ReadonlyMap<string, string>): void {
-		if (this.stale_record(path, current)) {
-			this.file_io.file_operations.remove_file(path);
-		}
-	}
-
 	/** Responsibilities: _cache initialization_, _project identity_. **/
-	public constructor(
-		repo_root: string,
-		records: readonly LintSourceRecord[],
-		analysis_identity: ProjectAnalysisIdentityContract,
-		file_io: IOContract,
-		source_io: ProjectSourceIOContract,
-	) {
-		this.analysis_identity = analysis_identity;
-		this.file_io = file_io;
-		this.boundary_failures = new BoundaryFailureClassifier();
-		const project_resolution = new TypeScriptProjectResolution(resolve(repo_root), source_io);
-		this.resolution_identity = project_resolution.configuration_identity();
-		this.cache_directory = join(resolve(repo_root), AI_CODE_GUARD_DIRECTORY, "cache", "file");
-		this.context_hash = this.analysis_identity.content(
-			`${this.analysis_identity.context(records)}\u0000${this.analysis_identity.directory_context(repo_root)}\u0000${this.resolution_identity}`,
+	public constructor(options: FileAnalysisCacheOptions) {
+		this._analysis_identity = options.analysis_identity;
+		this._file_io = options.file_io;
+		this._boundary_failures = new BoundaryFailureClassifier(SYSTEM_FAILURE_CODES);
+		const project_resolution = new TypeScriptProjectResolution(resolve(options.repo_root), options.source_io);
+		this._resolution_identity = project_resolution.configuration_identity();
+		this._cache_directory = join(resolve(options.repo_root), AI_CODE_GUARD_DIRECTORY, "cache", "file");
+		this._context_hash = this._analysis_identity.content(
+			`${options.context_identity}\u0000${this._analysis_identity.directory_context(options.repo_root)}\u0000${this._resolution_identity}`,
 		);
 	}
 
 	/** Responsibilities: _cached file violations retrieval_. **/
 	public cached_violations(file: string, text: string, ignored: boolean): CacheState<ViolationContract[]> {
-		const source_hash = this.analysis_identity.content(text);
-		const path = this.cache_path(file, source_hash, ignored);
+		const entry = new FileAnalysisCacheEntry({
+			cache_directory: this._cache_directory,
+			context_hash: this._context_hash,
+			file,
+			source_hash: this._analysis_identity.content(text),
+			ignored,
+			analysis_identity: this._analysis_identity,
+		});
 		try {
-			const record: FileAnalysisCacheRecord = JSON.parse(this.file_io.file_content.file_text(path));
-			return this.record_violations(record, file, text, ignored, path);
+			const record: FileAnalysisCacheRecord = JSON.parse(this._file_io.file(entry.path()).file_text());
+			return entry.cached_violations(record, entry.path());
 		} catch (error) {
-			if (!this.boundary_failures.cache_read_failure(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.CacheRead)) {
 				throw error;
 			}
 			return { available: false, value: [] };
@@ -155,38 +115,40 @@ export class FileAnalysisCache implements FileAnalysisCacheContract {
 
 	/** Responsibilities: _file violations persistence_. **/
 	public write(file: string, text: string, ignored: boolean, violations: readonly ViolationContract[]): void {
-		const source_hash = this.analysis_identity.content(text);
-		const path = this.cache_path(file, source_hash, ignored);
-		const record: FileAnalysisCacheRecord = {
-			cache_version: FILE_ANALYSIS_CACHE_VERSION,
-			context_hash: this.context_hash,
-			source_file: resolve(file),
-			source_hash,
+		const entry = new FileAnalysisCacheEntry({
+			cache_directory: this._cache_directory,
+			context_hash: this._context_hash,
+			file,
+			source_hash: this._analysis_identity.content(text),
 			ignored,
-			violations: violations.map((violation) => violation.details()),
-		};
+			analysis_identity: this._analysis_identity,
+		});
+		const record = entry.record(violations);
 		try {
-			this.file_io.directory_operations.create_directory(this.cache_directory);
-			this.persist(path, record);
+			this._file_io.create_directory(this._cache_directory);
+			this.persist(entry.path(), record);
 		} catch (error) {
-			if (!this.boundary_failures.system_failure_message(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;
 			}
 		}
 	}
 
 	/** Responsibilities: _stale file-analysis cache removal_. **/
-	public clean_unused_records(records: readonly LintSourceRecord[]): void {
+	public clean_unused_records(records: readonly LintSourceRecordData[]): void {
 		const current = new Map(records.map((record) => [resolve(record.absolute_path), record.text]));
 		try {
-			for (const entry of this.file_io.directory_entries.list_entries(this.cache_directory)) {
+			for (const entry of this._file_io.list_entries(this._cache_directory)) {
 				if (!entry.is_file || !entry.name.endsWith(".json")) {
 					continue;
 				}
-				this.remove_unused_record(join(this.cache_directory, entry.name), current);
+				const cache_file = join(this._cache_directory, entry.name);
+				if (this.stale_record(cache_file, current)) {
+					this._file_io.file(cache_file).remove_file();
+				}
 			}
 		} catch (error) {
-			if (!this.boundary_failures.system_failure_message(String(error))) {
+			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;
 			}
 		}

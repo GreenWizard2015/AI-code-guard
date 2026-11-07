@@ -1,24 +1,24 @@
-import "src/linting/orchestration/runtime/global-analysis/composition_model";
+import "src/linting/composition/composition_model";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
-import "src/linting/orchestration/runtime/global-analysis/callable-usage/callable_usage";
-import { TestFixture } from "tests/core/test-fixture";
+import { SourceText } from "src/io/source_text";
+import "src/callable_usage";
 import { describe, expect, test } from "@jest/globals";
+import { TestFixture } from "tests/core/test-fixture";
 
 import {
+	FORWARD_ANNOTATION_FILES,
 	LOCAL_CALLABLE_FILES,
 	LOCAL_PYTHON_CALLABLE_FILES,
 	PROTOCOL_CONTAINER_FILES,
 	TYPE_CHECKING_PROPERTY_FILES,
-	FORWARD_ANNOTATION_FILES,
 } from "tests/core/constants/callable_usage/constants";
 
 describe("coding-lint callable usage rule", () => {
 	const test_fixture = new TestFixture();
 	test("does not report a callable used only in its defining file", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": ["function localOnly() { return 1; }", "function caller() { return localOnly(); }"].join("\n"),
 			},
@@ -26,13 +26,13 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.message)).not.toContain(
+		expect(violations.map((violation) => violation.message())).not.toContain(
 			'function "localOnly" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);
 	});
 	test("resolves Python function imports to their defining file", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"functions.py": "def perform() -> int:\n    return 1\n",
 				"consumer.py": "from functions import perform\n\nperform()\n",
@@ -43,41 +43,41 @@ describe("coding-lint callable usage rule", () => {
 
 		expect(
 			violations.some((violation) =>
-				violation.message.includes('function "perform" has insufficient production usage'),
+				violation.message().includes('function "perform" has insufficient production usage'),
 			),
 		).toBe(false);
 	});
 	test("does not report callables used only inside their defining file", () => {
 		const typescriptViolations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			LOCAL_CALLABLE_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const pythonViolations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			LOCAL_PYTHON_CALLABLE_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
 			ts_helper: typescriptViolations.some((violation) =>
-				violation.message.includes(
-					'method "Service.helper" has insufficient production usage (found 0 other production files',
-				),
+				violation
+					.message()
+					.includes('method "Service.helper" has insufficient production usage (found 0 other production files'),
 			),
-			ts_hidden: typescriptViolations.some((violation) => violation.message.includes("Service.hidden")),
+			ts_hidden: typescriptViolations.some((violation) => violation.message().includes("Service.hidden")),
 			python_helper: pythonViolations.some((violation) =>
-				violation.message.includes(
-					'method "Service.helper" has insufficient production usage (found 0 other production files',
-				),
+				violation
+					.message()
+					.includes('method "Service.helper" has insufficient production usage (found 0 other production files'),
 			),
-			python_hidden: pythonViolations.some((violation) => violation.message.includes("Service._hidden")),
+			python_hidden: pythonViolations.some((violation) => violation.message().includes("Service._hidden")),
 		}).toEqual({ ts_helper: false, ts_hidden: false, python_helper: false, python_hidden: false });
 	});
 	test("does not report interface method signatures as callable usage", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"interface ServicePort {",
@@ -94,17 +94,17 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes("ServicePort.execute"))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes("ServicePort.execute"))).toBe(false);
 	});
 	test("resolves concrete methods behind typed Python protocol containers", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			PROTOCOL_CONTAINER_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		expect({
 			matches_used: messages.includes(
 				'method "ConcreteHandler.matches" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
@@ -122,13 +122,13 @@ describe("coding-lint callable usage rule", () => {
 	});
 	test("resolves Python properties declared under TYPE_CHECKING", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			TYPE_CHECKING_PROPERTY_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		expect(messages).not.toContain(
 			'method "BrowserBridgeDirectory.has_tool" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
 		);
@@ -138,7 +138,7 @@ describe("coding-lint callable usage rule", () => {
 	});
 	test("resolves methods on objects returned by local method calls", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": ["export class Observer {", "  observe() {}", "}"].join("\n"),
 				"caller.ts": [
@@ -157,7 +157,7 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		expect(messages).not.toContain(
 			'method "Observer.observe" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
 		);
@@ -167,7 +167,7 @@ describe("coding-lint callable usage rule", () => {
 	});
 	test("resolves methods through nullable typed parameters", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"source.ts": [
 					"export class InputElement {",
@@ -184,11 +184,11 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.some((violation) => violation.message.includes('method "InputElement.raw"'))).toBe(false);
+		expect(violations.some((violation) => violation.message().includes('method "InputElement.raw"'))).toBe(false);
 	});
 	test("resolves methods on class properties initialized by typed factories", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"cron.ts": [
 					"export class Cron {",
@@ -208,19 +208,19 @@ describe("coding-lint callable usage rule", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.map((violation) => violation.message)).not.toContain(
+		expect(violations.map((violation) => violation.message())).not.toContain(
 			'method "Cron.stop" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);
 	});
 	test("resolves Python methods through forward annotations and local factory returns", () => {
 		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			FORWARD_ANNOTATION_FILES,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const messages = violations.map((violation) => violation.message);
+		const messages = violations.map((violation) => violation.message());
 		expect(messages).not.toContain(
 			'method "BrowserBridgeTransport.poll" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 		);

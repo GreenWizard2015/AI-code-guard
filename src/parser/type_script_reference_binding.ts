@@ -1,10 +1,13 @@
-import ts from "typescript";
-import { TypeScriptReferenceType } from "src/parser/analysis/type_script_reference_type";
 import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
+import { TypeScriptReferenceType } from "src/parser/analysis/type_script_reference_type";
+import type { TypeScriptReferenceBindingContract } from "src/typescript_analysis_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _TypeScript reference resolution_, _instance owner resolution_. **/
-export class TypeScriptReferenceBinding {
-	private readonly reference_type = TypeScriptReferenceType;
+export class TypeScriptReferenceBinding implements TypeScriptReferenceBindingContract {
+	private readonly _reference_type: typeof TypeScriptReferenceType;
+	private readonly _aliases: Map<string, string>;
+	private readonly _instances: TypeScriptInstanceStoreContract;
 
 	/** Responsibilities: _resolution class name construction_. **/
 	private new_expression_name(expression: ts.NewExpression): string {
@@ -23,19 +26,26 @@ export class TypeScriptReferenceBinding {
 		return alias;
 	}
 
+	/** Responsibilities: _reference aliases_, _instance ownership_. **/
+	public constructor(aliases: Map<string, string>, instances: TypeScriptInstanceStoreContract) {
+		this._reference_type = TypeScriptReferenceType;
+		this._aliases = aliases;
+		this._instances = instances;
+	}
+
 	/** Responsibilities: _constructor owner identity_. **/
-	public new_expression_owner(expression: ts.NewExpression, aliases: Map<string, string>): string {
+	public new_expression_owner(expression: ts.NewExpression): string {
 		const name = this.new_expression_name(expression);
 		if (name.length === 0) {
 			return "";
 		}
-		return this.aliased_name(name, aliases);
+		return this.aliased_name(name, this._aliases);
 	}
 
 	/** Responsibilities: _resolution referenced expression name_. **/
-	public resolved_reference_name(type: ts.TypeNode, aliases: Map<string, string>): string {
-		const reference = new this.reference_type(type);
-		const name = reference.resolved_name(aliases);
+	public resolved_reference_name(type: ts.TypeNode): string {
+		const reference = new this._reference_type(type);
+		const name = reference.resolved_name(this._aliases);
 		if (name) {
 			return name;
 		}
@@ -43,34 +53,27 @@ export class TypeScriptReferenceBinding {
 	}
 
 	/** Responsibilities: _resolution parameter's declared owner_. **/
-	public parameter_owner(node: ts.ParameterDeclaration, aliases: Map<string, string>): string {
+	public parameter_owner(node: ts.ParameterDeclaration): string {
 		const initializer = node.initializer;
-		if (initializer !== undefined) {
-			if (ts.isNewExpression(initializer)) {
-				return this.new_expression_owner(initializer, aliases);
-			}
+		if (initializer !== undefined && ts.isNewExpression(initializer)) {
+			return this.new_expression_owner(initializer);
 		}
 		if (node.type === undefined) {
 			return "";
 		}
-		return this.resolved_reference_name(node.type, aliases);
+		return this.resolved_reference_name(node.type);
 	}
 
 	/** Responsibilities: _resolution instance owner represented_. **/
-	public new_instance(
-		node: ts.VariableDeclaration,
-		aliases: Map<string, string>,
-		instances: TypeScriptInstanceStoreContract,
-		initializer: ts.Expression,
-	): boolean {
+	public new_instance(node: ts.VariableDeclaration, initializer: ts.Expression): boolean {
 		if (!ts.isNewExpression(initializer)) {
 			return false;
 		}
-		const owner = this.new_expression_owner(initializer, aliases);
+		const owner = this.new_expression_owner(initializer);
 		if (!owner) {
 			return false;
 		}
-		instances.add(node.name.getText(node.getSourceFile()), owner, node);
+		this._instances.add(node.name.getText(node.getSourceFile()), owner, node);
 		return true;
 	}
 }

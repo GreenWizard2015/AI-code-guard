@@ -8,71 +8,64 @@ that implementation choice.
 ## Bad
 
 ```ts
-class PriceLabels {
-	public load_content(): string { return "value"; }
+// File: src/document_content.ts
+export class DocumentContent {
+	private readonly title_text: string;
+	private readonly body_text: string;
+	public constructor(title_text: string, body_text: string) {
+		this.title_text = title_text;
+		this.body_text = body_text;
+	}
+	public load_content(): string { return this.body_text; } // <- error
+	public word_count(): number { return this.body_text.trim().split(/\s+/).length; }
+	public summary(): string {
+		const content = this.load_content();
+		const words = this.word_count();
+		return `${this.title_text}: ${words} words; ${content}`;
+	}
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
+	}
 }
+// File: cli.ts
+import { DocumentContent } from "src/document_content";
+(function () {
+	const document = new DocumentContent("Welcome", "A short guide to the library.");
+	document.report();
+})();
 ```
-
 
 ## Good
 
 ```ts
-// File: src/price_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class PriceLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
-
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+// File: src/document_content.ts
+export class DocumentContent {
+	private readonly _title_text: string;
+	private readonly _body_text: string;
+	public constructor(title_text: string, body_text: string) {
+		this._title_text = title_text;
+		this._body_text = body_text;
 	}
-
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
-		}
-		return label;
+	public content(): string { return this._body_text; }
+	public word_count(): number {
+		if (this._body_text.trim().length === 0) { return 0; }
+		return this._body_text.trim().split(/\s+/).length;
 	}
-
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
+	public summary(): string {
+		const content = this.content();
+		const words = this.word_count();
+		return `${this._title_text}: ${words} words; ${content}`;
 	}
-
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
-	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	public report(): void {
+		const summary = this.summary();
+		console.log(summary);
 	}
 }
 // File: cli.ts
-import { PriceLabels } from "src/price_labels";
-
+import { DocumentContent } from "src/document_content";
 (function () {
-	const labels = new Map<string, string>();
-	labels.set("ready", "Ready");
-	labels.set("blocked", "Blocked");
-	const price_labels = new PriceLabels(labels, "Unknown");
-	const label = price_labels.label("ready");
-	const detailed = price_labels.label_with_prefix("State", "blocked");
-	const fallback = price_labels.uppercase_fallback();
-	const count = price_labels.status_count();
-	console.log(`${label} ${detailed} ${fallback} ${count}`);
+	const document = new DocumentContent("Welcome", "A short guide to the library.");
+	document.report();
 })();
 ```

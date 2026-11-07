@@ -1,141 +1,123 @@
-import ts from "typescript";
-
-import type { AstCallableNodeContract, AstClassNodeContract, AstVisibility } from "src/types";
-import type { TypeScriptCallableDataContract } from "src/model/protocols";
-import type { CallableDataOptions } from "src/model/types";
-
 import type { CallableNodesContract } from "src/analysis_protocols";
-import { CONSTRUCTOR_NAME } from "src/metrics/constants";
 import { PROTECTED_VISIBILITY } from "src/constants";
+import { CONSTRUCTOR_NAME } from "src/metrics/constants";
+import type { AstCallableNode, AstClassNode, AstVisibility } from "src/model/ast/normalized_ast_types";
+import type { ClassCallableNodeCollection, TypeScriptCallableDataContract } from "src/model/protocols";
+import type { CallableDataOptions, ClassCallableNodeOptions } from "src/model/types";
+import ts from "typescript";
 
 /** Responsibilities: _callable AST extraction_, _callable metadata classification_. **/
 export class CallableNodes implements CallableNodesContract {
-	private readonly callable_data: TypeScriptCallableDataContract;
-	private readonly source_file: ts.SourceFile;
-	/** Responsibilities: _callable initializers identification_. **/
-	private is_callable_initializer(node: ts.Expression): boolean {
-		if (ts.isArrowFunction(node)) {
-			return true;
-		}
-		return ts.isFunctionExpression(node);
+	private readonly _callable_data: TypeScriptCallableDataContract;
+	private readonly _source_file: ts.SourceFile;
+
+	/** Responsibilities: _callable declaration metadata_. **/
+	private callable_declaration(node: AstCallableNode, accessor: boolean): AstCallableNode {
+		return {
+			...node,
+			declaration: {
+				...node.declaration,
+				is_accessor: accessor,
+			},
+		};
 	}
 
-	/** Responsibilities: _callable class members identification_. **/
-	private is_callable_member(member: ts.ClassElement): boolean {
-		if (ts.isMethodDeclaration(member)) {
-			return true;
-		}
+	/** Responsibilities: _callable class member collection_. **/
+	private append_callable_member(member: ts.ClassElement, collection: ClassCallableNodeCollection): void {
 		if (ts.isConstructorDeclaration(member)) {
-			return true;
+			collection.callables.push(
+				this.callable_node({ member, callable: member, name: CONSTRUCTOR_NAME, owner: collection.owner }),
+			);
+			return;
 		}
-		if (ts.isGetAccessorDeclaration(member)) {
-			return true;
+		if (this.append_named_callable(member, collection)) {
+			return;
 		}
-		if (ts.isSetAccessorDeclaration(member)) {
-			return true;
-		}
-		if (!ts.isPropertyDeclaration(member) || !member.initializer) {
-			return false;
-		}
-		return this.is_callable_initializer(member.initializer);
-	}
-
-	/** Responsibilities: _callable member names identification_. **/
-	private callable_name(member: ts.ClassElement, source_file: ts.SourceFile): string {
-		if (ts.isConstructorDeclaration(member)) {
-			return CONSTRUCTOR_NAME;
-		}
-		if (member.name === undefined) {
-			return "";
-		}
-		return member.name.getText(source_file);
-	}
-
-	/** Responsibilities: _resolution callable class member_. **/
-	private callable_declaration(member: ts.ClassElement): ts.FunctionLikeDeclaration {
 		if (ts.isPropertyDeclaration(member)) {
-			const initializer = member.initializer;
-			if (initializer !== undefined && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))) {
-				return initializer;
-			}
+			this.append_callable_property(member, collection.owner, collection.callables);
 		}
-		if (ts.isMethodDeclaration(member) || ts.isConstructorDeclaration(member)) {
-			return member;
-		}
-		if (ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member)) {
-			return member;
-		}
-		throw new Error("Callable class member has no callable declaration.");
 	}
 
-	/** Responsibilities: _accessor members identification_. **/
-	private is_accessor(member: ts.ClassElement): boolean {
-		if (ts.isGetAccessorDeclaration(member)) {
+	/** Responsibilities: _method and accessor collection_. **/
+	private append_named_callable(candidate: ts.Node, collection: ClassCallableNodeCollection): boolean {
+		if (ts.isMethodDeclaration(candidate)) {
+			const name = candidate.name.getText(this._source_file);
+			collection.callables.push(
+				this.callable_node({ member: candidate, callable: candidate, name, owner: collection.owner }),
+			);
 			return true;
 		}
-		return ts.isSetAccessorDeclaration(member);
+		if (ts.isGetAccessorDeclaration(candidate) || ts.isSetAccessorDeclaration(candidate)) {
+			const name = candidate.name.getText(this._source_file);
+			collection.callables.push(
+				this.callable_node({ member: candidate, callable: candidate, name, owner: collection.owner }),
+			);
+			return true;
+		}
+		return false;
 	}
 
-	/** Responsibilities: _member visibility classification_. **/
+	/** Responsibilities: _callable property collection_. **/
+	private append_callable_property(
+		property: ts.PropertyDeclaration,
+		owner: string,
+		callables: AstCallableNode[],
+	): void {
+		const initializer = property.initializer;
+		if (initializer === undefined) {
+			return;
+		}
+		if (ts.isArrowFunction(initializer)) {
+			const name = property.name.getText(this._source_file);
+			callables.push(this.callable_node({ member: property, callable: initializer, name, owner }));
+			return;
+		}
+		if (!ts.isFunctionExpression(initializer)) {
+			return;
+		}
+		const name = property.name.getText(this._source_file);
+		callables.push(this.callable_node({ member: property, callable: initializer, name, owner }));
+	}
+
+	/** Responsibilities: _class member visibility_. **/
 	private member_visibility(member: ts.ClassElement): AstVisibility {
 		if (member.name && ts.isPrivateIdentifier(member.name)) {
 			return "private";
 		}
-		if (this.has_modifier(member, ts.SyntaxKind.PrivateKeyword)) {
-			return "private";
-		}
-		if (this.has_modifier(member, ts.SyntaxKind.ProtectedKeyword)) {
-			return PROTECTED_VISIBILITY;
+		if (ts.canHaveModifiers(member)) {
+			const modifiers = ts.getModifiers(member);
+			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+				return "private";
+			}
+			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+				return PROTECTED_VISIBILITY;
+			}
 		}
 		return "public";
 	}
 
-	/** Responsibilities: _member modifier identification_. **/
-	private has_modifier(member: ts.ClassElement, kind: ts.SyntaxKind): boolean {
-		if (!ts.canHaveModifiers(member)) {
-			return false;
-		}
-		const modifiers = ts.getModifiers(member);
-		if (modifiers === undefined) {
-			return false;
-		}
-		return modifiers.some((modifier) => modifier.kind === kind);
-	}
-
-	/** Responsibilities: _construction callable AST node_. **/
-	private callable_node(
-		callable_data: TypeScriptCallableDataContract,
-		source_file: ts.SourceFile,
-		member: ts.ClassElement,
-		owner: string,
-	): AstCallableNodeContract {
-		const name = this.callable_name(member, source_file);
-		const node = this.callable_declaration(member);
-		const options = {
+	/** Responsibilities: _callable AST node construction_. **/
+	private callable_node(options: ClassCallableNodeOptions): AstCallableNode {
+		const { member, callable, name, owner } = options;
+		const callable_options = {
 			name,
-			node,
+			node: callable,
 			visibility: this.member_visibility(member),
 			owner,
 		} satisfies CallableDataOptions;
-		return {
-			...callable_data.callable_node(options),
-			is_accessor: this.is_accessor(member),
-		};
+		const is_accessor = ts.isGetAccessorDeclaration(member) || ts.isSetAccessorDeclaration(member);
+		return this.callable_declaration(this._callable_data.callable_node(callable_options), is_accessor);
 	}
 
 	/** Responsibilities: _construction interface method AST_. **/
-	private interface_method_nodes(
-		callable_data: TypeScriptCallableDataContract,
-		source_file: ts.SourceFile,
-		node: ts.InterfaceDeclaration,
-	): AstCallableNodeContract[] {
+	private interface_method_nodes(node: ts.InterfaceDeclaration): AstCallableNode[] {
 		return node.members.flatMap((member) => {
 			if (!ts.isMethodSignature(member) || !member.name) {
 				return [];
 			}
 			return [
-				callable_data.callable_node({
-					name: member.name.getText(source_file),
+				this._callable_data.callable_node({
+					name: member.name.getText(this._source_file),
 					node: member,
 					visibility: "public",
 					owner: "",
@@ -146,57 +128,61 @@ export class CallableNodes implements CallableNodesContract {
 
 	/** Responsibilities: _callable node construction initialization_. **/
 	public constructor(callable_data: TypeScriptCallableDataContract, source_file: ts.SourceFile) {
-		this.callable_data = callable_data;
-		this.source_file = source_file;
+		this._callable_data = callable_data;
+		this._source_file = source_file;
 	}
 
 	/** Responsibilities: _construction interface AST class_. **/
-	public interface_node(node: ts.InterfaceDeclaration): AstClassNodeContract {
-		const source_file = this.source_file;
+	public interface_node(node: ts.InterfaceDeclaration): AstClassNode {
+		const source_file = this._source_file;
+		const base_class_names = (node.heritageClauses ?? []).flatMap((clause) => {
+			if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+				return [];
+			}
+			return clause.types.map((type) => type.expression.getText(source_file));
+		});
 		return {
-			name: node.name.text,
-			start: source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line,
-			end: source_file.getLineAndCharacterOfPosition(node.end - 1).line,
-			lines: 0,
-			sloc: 1,
-			interfaces: [],
-			base_class_name: "",
-			base_class_names: [],
-			extends_external_class: false,
-			type_contract: true,
-			is_data_class: false,
-			protocol: false,
-			methods: this.interface_method_nodes(this.callable_data, source_file, node),
-			fields: [],
-			callback_fields: 0,
-			inline_callback_fields: 0,
-			dependencies: [],
-			untyped_fields: [],
+			identity: {
+				name: node.name.text,
+				start: source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line,
+				end: source_file.getLineAndCharacterOfPosition(node.end - 1).line,
+				lines: 0,
+				sloc: 1,
+			},
+			structure: {
+				interfaces: [],
+				base_class_names,
+				methods: this.interface_method_nodes(node),
+				dependencies: [],
+			},
+			classification: { extends_external_class: false, type_contract: true, is_data_class: false, protocol: false },
+			field_analysis: { fields: [], callback_fields: 0, inline_callback_fields: 0, untyped_fields: [] },
 		};
 	}
 
 	/** Responsibilities: _construction class method AST_. **/
-	public class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNodeContract[] {
-		const source_file = this.source_file;
+	public class_method_nodes(node: ts.ClassLikeDeclaration, fallback_name: string): AstCallableNode[] {
 		let owner = fallback_name;
 		if (node.name !== undefined) {
 			owner = node.name.text;
 		}
-		return node.members
-			.filter((member) => this.is_callable_member(member))
-			.map((member) => this.callable_node(this.callable_data, source_file, member, owner));
+		const collection = { owner, callables: [] } satisfies ClassCallableNodeCollection;
+		for (const member of node.members) {
+			this.append_callable_member(member, collection);
+		}
+		return collection.callables;
 	}
 
 	/** Responsibilities: _construction variable callable AST_. **/
-	public variable_callable_nodes(statement: ts.VariableStatement): AstCallableNodeContract[] {
-		const source_file = this.source_file;
+	public variable_callable_nodes(statement: ts.VariableStatement): AstCallableNode[] {
+		const source_file = this._source_file;
 		return statement.declarationList.declarations.flatMap((declaration) => {
 			const initializer = declaration.initializer;
 			if (initializer === undefined || (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer))) {
 				return [];
 			}
 			return [
-				this.callable_data.callable_node({
+				this._callable_data.callable_node({
 					name: declaration.name.getText(source_file),
 					node: initializer,
 					visibility: "public",
@@ -207,7 +193,7 @@ export class CallableNodes implements CallableNodesContract {
 	}
 
 	/** Responsibilities: _construction function declaration AST_. **/
-	public function_declaration_node(statement: ts.FunctionDeclaration): AstCallableNodeContract {
+	public function_declaration_node(statement: ts.FunctionDeclaration): AstCallableNode {
 		let name = "";
 		if (statement.name !== undefined) {
 			name = statement.name.text;
@@ -218,6 +204,6 @@ export class CallableNodes implements CallableNodesContract {
 			visibility: "public",
 			owner: "",
 		} satisfies CallableDataOptions;
-		return this.callable_data.callable_node(options);
+		return this._callable_data.callable_node(options);
 	}
 }

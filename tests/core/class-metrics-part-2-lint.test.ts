@@ -1,14 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { SourceText } from "src/source_text";
 import { NodeFileIO } from "src/io/node_file_io";
+import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("additional class metrics rules", () => {
 	test("detects TypeScript dictionary returns, nested classes, and procedural names", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"dictionary.ts": [
 					"type ProfileData = { name: string; serialize(): string; };",
@@ -33,12 +33,13 @@ describe("additional class metrics rules", () => {
 		);
 
 		expect({
-			dictionary_returns: violations.filter((item) => item.rule_id === "typescript-dictionary-return").length,
-			nested_classes: violations.filter((item) => item.rule_id === "nested-class").length,
+			dictionary_returns: violations.filter((item) => item.rule_id() === "typescript-dictionary-return").length,
+			nested_classes: violations.filter((item) => item.rule_id() === "nested-class").length,
 			procedural_names: violations
-				.filter((item) => item.rule_id === "procedural-class-name")
-				.map((item) => item.message),
-			json_document: violations.filter((item) => item.message === 'class name describes a job: "JsonDocument"').length,
+				.filter((item) => item.rule_id() === "procedural-class-name")
+				.map((item) => item.message()),
+			json_document: violations.filter((item) => item.message() === 'class name describes a job: "JsonDocument"')
+				.length,
 		}).toEqual({
 			dictionary_returns: 6,
 			nested_classes: 1,
@@ -54,7 +55,7 @@ describe("additional class metrics rules", () => {
 	test("applies procedural class-name metrics consistently to Python", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO()),
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"names.py": [
 					"class JsonParser:",
@@ -76,9 +77,10 @@ describe("additional class metrics rules", () => {
 
 		expect({
 			procedural_names: violations
-				.filter((item) => item.rule_id === "procedural-class-name")
-				.map((item) => item.message),
-			json_document: violations.filter((item) => item.message === 'class name describes a job: "JsonDocument"').length,
+				.filter((item) => item.rule_id() === "procedural-class-name")
+				.map((item) => item.message()),
+			json_document: violations.filter((item) => item.message() === 'class name describes a job: "JsonDocument"')
+				.length,
 		}).toEqual({
 			procedural_names: expect.arrayContaining([
 				'class name describes a job: "JsonParser"',

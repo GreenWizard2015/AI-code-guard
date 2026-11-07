@@ -1,20 +1,26 @@
-import ts from "typescript";
+import type { TypeScriptStoredBindAliasContract } from "src/parser/analysis/protocols";
+import { TypeScriptStoredAliasDeclarationIndex } from "src/parser/analysis/type_script_stored_alias_declaration_index";
+import { TypeScriptStoredBindAlias } from "src/parser/analysis/type_script_stored_bind_alias";
+import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
+import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
+import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 import type { TypeScriptCallExpressionInspectorContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
-import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
-import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
-import { TypeScriptStaticExpressionOperations } from "src/typescript-aliases/callables/type_script_static_expression_operations";
-import { TypeScriptStaticExpressionValues } from "src/typescript-aliases/callables/type_script_static_expression_values";
-import { TypeScriptStoredBindAlias } from "src/parser/analysis/type_script_stored_bind_alias";
+import type {
+	TypeScriptExpressionAliasesContract,
+	TypeScriptObjectAliasDeclarationIndexContract,
+} from "src/typescript_runtime_protocols";
+import ts from "typescript";
 
 /** Responsibilities: _expression shapes_, _invocation targets_. **/
 export class TypeScriptCallExpressionInspector implements TypeScriptCallExpressionInspectorContract {
-	private readonly expression_aliases: TypeScriptExpressionAliasesContract;
-	private readonly stored_bind_aliases: TypeScriptStoredBindAlias;
-	private readonly static_expression_values: TypeScriptStaticExpressionValues;
-	private readonly member_aliases: TypeScriptMemberAliasesContract;
-	private readonly empty_expressions: readonly ts.Expression[] = [];
+	private readonly _expression_aliases: TypeScriptExpressionAliasesContract;
+	private readonly _stored_bind_aliases: TypeScriptStoredBindAliasContract;
+	private readonly _static_expression_values: StaticExpressionValuesContract;
+	private readonly _member_aliases: TypeScriptMemberAliasesContract;
+	private readonly _empty_expressions: readonly ts.Expression[];
 
 	/** Responsibilities: _bind context unwrapping_. **/
 	private unwrap_context(expression: ts.Expression): ts.Expression {
@@ -26,8 +32,8 @@ export class TypeScriptCallExpressionInspector implements TypeScriptCallExpressi
 	}
 
 	/** Responsibilities: _bind source resolution_. **/
-	private bind_source(expression: ts.Expression): ts.Node[] {
-		const current = this.expression_aliases.unwrapped(expression);
+	private bind_source(expression: ts.Expression): ts.Expression[] {
+		const current = this._expression_aliases.unwrapped(expression);
 		if (ts.isIdentifier(current) || ts.isPropertyAccessExpression(current)) {
 			return [current];
 		}
@@ -46,19 +52,20 @@ export class TypeScriptCallExpressionInspector implements TypeScriptCallExpressi
 		if (node.arguments.length === 0) {
 			return false;
 		}
-		const context = this.unwrap_context(node.arguments[0]);
+		const argument = node.arguments.at(0);
+		if (argument === undefined) {
+			return false;
+		}
+		const context = this.unwrap_context(argument);
 		return !ts.isObjectLiteralExpression(context) && !ts.isArrayLiteralExpression(context);
 	}
 
 	/** Responsibilities: _resolution direct values declared_. **/
-	private declaration_value(node: ts.Node): readonly ts.Expression[] {
-		if (!ts.isVariableDeclaration(node) && !ts.isParameter(node)) {
-			return this.empty_expressions;
+	private declaration_value(declaration: ts.VariableDeclaration): readonly ts.Expression[] {
+		if (declaration.initializer !== undefined) {
+			return [declaration.initializer];
 		}
-		if (node.initializer !== undefined) {
-			return [node.initializer];
-		}
-		return this.empty_expressions;
+		return this._empty_expressions;
 	}
 
 	/** Responsibilities: _resolution expressions output output_. **/
@@ -66,51 +73,60 @@ export class TypeScriptCallExpressionInspector implements TypeScriptCallExpressi
 		if (node.expression !== undefined) {
 			return [node.expression];
 		}
-		return this.empty_expressions;
+		return this._empty_expressions;
 	}
 
 	/** Responsibilities: _field initialization_. **/
-	constructor() {
-		this.expression_aliases = new TypeScriptExpressionAliases("");
-		this.stored_bind_aliases = new TypeScriptStoredBindAlias();
-		this.static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
-		this.member_aliases = new TypeScriptMemberAliases("*", (expression, node) =>
-			this.static_expression_values.value(expression, node),
+	public constructor(declaration_index: TypeScriptObjectAliasDeclarationIndexContract) {
+		this._empty_expressions = [];
+		this._expression_aliases = new TypeScriptExpressionAliases("", declaration_index);
+		this._stored_bind_aliases = new TypeScriptStoredBindAlias(new TypeScriptStoredAliasDeclarationIndex());
+		this._static_expression_values = new TypeScriptStaticExpressionValues(new TypeScriptStaticExpressionOperations());
+		this._member_aliases = new TypeScriptMemberAliases(
+			"*",
+			(expression, node) => this._static_expression_values.value(expression, node),
+			declaration_index,
 		);
 	}
 
 	/** Responsibilities: _collection direct value expressions_. **/
-	public direct_value_expression(node: ts.Node): readonly ts.Expression[] {
-		if (ts.isPropertyAssignment(node)) {
-			return [node.initializer];
+	public direct_value_expression(value_site: ts.Node): readonly ts.Expression[] {
+		if (ts.isPropertyAssignment(value_site)) {
+			return [value_site.initializer];
 		}
-		if (ts.isVariableDeclaration(node) || ts.isParameter(node)) {
-			return this.declaration_value(node);
+		if (ts.isVariableDeclaration(value_site)) {
+			return this.declaration_value(value_site);
 		}
-		if (ts.isReturnStatement(node)) {
-			return this.return_value(node);
+		if (ts.isParameter(value_site) && value_site.initializer !== undefined) {
+			return [value_site.initializer];
 		}
-		if (ts.isBinaryExpression(node)) {
-			return [node.right];
+		if (ts.isReturnStatement(value_site)) {
+			return this.return_value(value_site);
 		}
-		return this.empty_expressions;
+		if (ts.isBinaryExpression(value_site)) {
+			return [value_site.right];
+		}
+		return this._empty_expressions;
 	}
 
 	/** Responsibilities: _bind usage classification_. **/
-	public bind_call(node: ts.Node): boolean {
-		if (!ts.isCallExpression(node)) {
+	public bind_call(call_candidate: ts.Node): boolean {
+		if (!ts.isCallExpression(call_candidate)) {
 			return false;
 		}
-		const expression = this.expression_aliases.unwrapped(node.expression);
-		return this.stored_bind_aliases.matches(node, expression, this.member_aliases, (expression_value, source_node) =>
-			this.static_expression_values.value(expression_value, source_node),
+		const expression = this._expression_aliases.unwrapped(call_candidate.expression);
+		return this._stored_bind_aliases.matches(
+			call_candidate,
+			expression,
+			this._member_aliases,
+			(expression_value, source_node) => this._static_expression_values.value(expression_value, source_node),
 		);
 	}
 
 	/** Responsibilities: _resolution target callable expression_. **/
-	public bind_target(node: ts.CallExpression): ts.Node[] {
+	public bind_target(node: ts.CallExpression): ts.Expression[] {
 		const expression = node.expression;
-		if (!this.stored_bind_aliases.target_member(expression, node)) {
+		if (!this._stored_bind_aliases.target_member(expression, node)) {
 			return [];
 		}
 		if (!ts.isPropertyAccessExpression(expression)) {

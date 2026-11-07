@@ -1,4 +1,3 @@
-import type { AbsoluteImportCandidate } from "src/source_types";
 import type ts from "typescript";
 
 export type StringSet = Set<string>;
@@ -19,31 +18,20 @@ export type ReadonlyStringMap = ReadonlyMap<string, string>;
 
 export type StringStringMap = Map<string, string>;
 
-export type StringArrayMap = Map<string, string[]>;
-
 export type StringBooleanMap = Map<string, boolean>;
 
 export type StringReadonlyMap = Map<string, ReadonlyStringMap>;
 
 export type NodeReadonlyStringSetMap = Map<ts.Node, ReadonlyStringSet>;
 
-export type StringAbsoluteImportMap = Map<string, AbsoluteImportCandidate>;
+export type CallableReferenceKindTag = "function" | "method";
 
-export type AbsoluteImportRootIndex = Map<string, StringAbsoluteImportMap>;
+export type CallableObjectSourceVisitor = (source: ts.ObjectLiteralExpression) => void;
 
-/** Responsibilities: _array element resolution_. **/
-export type ArrayElementsResolverContract = (initializer: ts.ArrayLiteralExpression) => readonly ts.Expression[];
-
-export type CallableReferenceKindContract = "function" | "method";
-
-export type NestedFactoryExpressionsResolver = (
+export type CallableArraySourceResolver = (
 	binding: ts.ArrayBindingPattern,
-	initializer: ts.Expression,
+	value: ts.Expression,
 	name: string,
-) => ReadonlyMap<string, ts.FunctionLikeDeclarationBase>;
+) => string;
 
-export type ObjectSourceVisitor = (source: ts.ObjectLiteralExpression) => void;
-
-export type ArraySourceResolver = (binding: ts.ArrayBindingPattern, value: ts.Expression, name: string) => string;
-
-export type ExpressionVisitor = (value: ts.Expression) => void;
+export type CallableExpressionVisitor = (value: ts.Expression) => void;

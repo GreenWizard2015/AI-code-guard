@@ -1,6 +1,18 @@
+import ast
 import unittest
 
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
+from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
+from implementation.references.aliases.python_reference_aliases import (
+    PythonReferenceAliases,
+    PythonReferenceAliasState,
+)
+from implementation.references.test_assertions.assertion_aliases import (
+    PythonTestAssertionAliases,
+    PythonTestAssertionAliasOptions,
+)
+
 from tests.python.constants import (
     ANNOTATED_CLASS_ALIAS_SOURCE,
     LOCAL_CLASS_ALIAS_SOURCE,
@@ -84,6 +96,12 @@ def invoke_after_reset(client: ClientContract) -> None:
     if supports_run:
         client.run()
 
+def invoke_after_destructuring(client: ClientContract) -> None:
+    supports_run = callable(client.run)
+    supports_run, unused = False, True
+    if supports_run:
+        client.run()
+
 def observe_capability(client: ClientContract) -> None:
     supports_run = callable(client.run)
     print(supports_run)
@@ -103,3 +121,47 @@ def observe_capability(client: ClientContract) -> None:
         second = parser.coding_issues()
 
         self.assertEqual(second, first)
+
+    def test_resolves_assertion_through_local_container_alias(self) -> None:
+        """Responsibilities: _assertion alias result_."""
+        tree = ast.parse(
+            """\
+def exercise(self):
+    methods = {"assert": self.assertEqual}
+    methods["assert"](1, 1)
+""",
+        )
+        node_index = PythonAstNodeIndex()
+        nodes = node_index.nodes(tree)
+        container_assembly = PythonContainerAssembly(node_index)
+        container_aliases = container_assembly.container_aliases()
+        container_aliases.state().configure_scope_tree(tree)
+        function_node = tree.body[0]
+        if type(function_node) is not ast.FunctionDef:
+            self.fail("expected a function declaration")
+        assertion_call = next(
+            node
+            for node in nodes
+            if type(node) is ast.Call and type(node.func) is ast.Subscript and node.func.lineno == 3
+        )
+        aliases = PythonTestAssertionAliases(
+            PythonTestAssertionAliasOptions(
+                function_node,
+                node_index,
+                container_aliases,
+                container_aliases.container_keys(),
+                container_aliases.container_values(),
+                PythonReferenceAliases(PythonReferenceAliasState()),
+            ),
+        )
+
+        self.assertEqual(
+            {
+                "state_access_is_stable": container_aliases.state() is container_aliases.state(),
+                "assertion_is_resolved": aliases.assertion_call(assertion_call),
+            },
+            {
+                "state_access_is_stable": True,
+                "assertion_is_resolved": True,
+            },
+        )

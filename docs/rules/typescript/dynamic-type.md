@@ -6,11 +6,37 @@ normal domain classes with explicit state and operations instead.
 ## Bad
 
 ```ts
-// File: cli.ts
-(function () {
-	const class_factory = type;
-	const runtime_model = class_factory("RuntimeModel", {}, {});
-	console.log(runtime_model);
+// File: src/model_reporter.ts
+export class ModelReporter {
+	private readonly section: string;
+	private readonly subject: string;
+
+	public constructor(section: string, subject: string) {
+		this.section = section;
+		this.subject = subject;
+	}
+
+	public report_model(model: { name: string; label: string }): void {
+		const section_label = this.section.toUpperCase();
+		const subject_label = this.subject.toLowerCase();
+		const model_label = model.label.trim();
+		console.log(`${section_label}: ${subject_label} ${model.name} (${model_label})`);
+	}
+}
+// File: src/cli.ts
+import { ModelReporter } from "src/model_reporter";
+
+(() => {
+	const type = (model_name: string, label: string) => {
+		return class RuntimeModel {
+			public readonly name = model_name;
+			public readonly label = label;
+		};
+	};
+	const RuntimeModel = type("RuntimeModel", "ready");
+	const runtime_model = new RuntimeModel();
+	const reporter = new ModelReporter("runtime", "model");
+	reporter.report_model(runtime_model);
 })();
 ```
 
@@ -18,59 +44,52 @@ normal domain classes with explicit state and operations instead.
 ## Good
 
 ```ts
-// File: src/status_labels.ts
-/** Responsibilities: _status label mapping_. **/
-export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+// File: src/status_model.ts
+/** Responsibilities: _status model and report_. **/
+export class StatusModel {
+	private readonly _status: string;
+	private readonly _detail: string;
 
-	/** Responsibilities: _mapping initialization_. **/
-	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+	/** Responsibilities: _status model initialization_. **/
+	public constructor(status: string, detail: string) {
+		this._status = status;
+		this._detail = detail;
 	}
 
-	/** Responsibilities: _status label selection_. **/
-	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) {
-			return this.fallback;
+	/** Responsibilities: _status normalization_. **/
+	public normalized_status(): string {
+		return this._status.trim().toLowerCase();
+	}
+
+	/** Responsibilities: _model summary composition_. **/
+	public summary(): string {
+		if (this._status.trim().length === 0) {
+			return "";
 		}
-		return label;
+		const status_label = this.normalized_status().toUpperCase();
+		const detail_label = this._detail.trim();
+		return `${status_label}: ${detail_label}`;
 	}
 
-	/** Responsibilities: _prefixed label composition_. **/
-	public label_with_prefix(prefix: string, status: string): string {
-		const label = this.label(status);
-		return `${prefix}: ${label}`;
+	/** Responsibilities: _detail size reporting_. **/
+	public detail_length(): number {
+		const normalized_detail = this._detail.trim();
+		return normalized_detail.length;
 	}
 
-	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string {
-		const normalized = this.fallback.trim();
-		return normalized.toUpperCase();
-	}
-
-	/** Responsibilities: _mapping size reporting_. **/
-	public status_count(): number {
-		let count = 0;
-		for (const status_name of this.labels.keys()) {
-			if (status_name.length > 0) {
-				count += 1;
-			}
-		}
-		return count;
+	/** Responsibilities: _status report output_. **/
+	public report(): void {
+		const summary = this.summary();
+		const normalized_status = this.normalized_status();
+		const size = this.detail_length();
+		console.log(`${summary} (${normalized_status}, ${size} characters)`);
 	}
 }
-// File: cli.ts
-import { StatusLabels } from "src/status_labels";
+// File: src/cli.ts
+import { StatusModel } from "src/status_model";
 
-(function () {
-	const labels = new Map<string, string>([["ready", "Ready"]]);
-	const owner = new StatusLabels(labels, "Unknown");
-	console.log(owner.label("ready"));
-	console.log(owner.label_with_prefix("State", "ready"));
-	console.log(owner.uppercase_fallback());
-	console.log(owner.status_count());
+(() => {
+	const model = new StatusModel("ready", "request accepted");
+	model.report();
 })();
 ```

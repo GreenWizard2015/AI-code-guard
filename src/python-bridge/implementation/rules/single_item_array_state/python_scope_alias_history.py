@@ -1,15 +1,14 @@
 import ast
 from bisect import bisect_right
-from typing import Any
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonAssignmentAliasContract
-from implementation.types import JsonObject
 from implementation.rules.types import (
     PythonScopeAliasHistories,
     PythonScopeAliasHistoryData,
     PythonScopeTypes,
 )
+from implementation.types import JsonObject, PythonAstNodeListIndex
 
 
 class PythonScopeAliasHistory:
@@ -18,45 +17,48 @@ class PythonScopeAliasHistory:
     def _scope_chain(self, node: ast.AST) -> list[ast.AST]:
         """Responsibilities: _enclosing scope collection_."""
         scopes: list[ast.AST] = []
-        current: Any = node
+        current: ast.AST = node
         while True:
-            parents: Any = self.node_index.parents(current)
+            parents = self._node_index.parents(current)
             if not parents:
                 return scopes
-            parent: Any = parents[0]
-            if type(parent) in self.scope_types:
+            parent = parents[0]
+            if type(parent) in self._scope_types:
                 scopes.append(parent)
             current = parent
 
-    def _ordered_assignments(self, scope: ast.AST) -> list[ast.AST]:
-        """Responsibilities: _scoped assignment collection_."""
-        if scope in self._assignment_cache:
-            return self._assignment_cache[scope]
-        assignments = []
-        for item in self.node_index.nodes(scope):
+    def _lookup(
+        self,
+        history: PythonScopeAliasHistoryData,
+        alias_name: str,
+        use_line: int,
+    ) -> JsonObject:
+        """Responsibilities: _alias timeline lookup_."""
+        timeline = history.get(alias_name)
+        if timeline is None:
+            return {"found": False, "target": alias_name}
+        lines: list[int] = []
+        valid_entries: list[JsonObject] = []
+        for entry in timeline:
+            line = entry["line"]
+            if type(line) is int:
+                lines.append(line)
+                valid_entries.append(entry)
+        index = bisect_right(lines, use_line) - 1
+        if index < 0:
+            return {"found": False, "target": alias_name}
+        return {"found": True, "target": valid_entries[index]["target"]}
+
+    def _owner_assignments(self, owner_scope: ast.AST) -> list[ast.AST]:
+        """Responsibilities: _scope-owned assignment selection_."""
+        assignments: list[ast.AST] = []
+        for item in self._node_index.nodes(owner_scope):
             if type(item) not in (ast.Assign, ast.AnnAssign):
                 continue
             item_scopes = self._scope_chain(item)
-            if not item_scopes:
-                continue
-            if item_scopes[0] is scope:
+            if item_scopes and item_scopes[0] is owner_scope:
                 assignments.append(item)
-        ordered = sorted(assignments, key=lambda item: (item.lineno, item.col_offset))
-        self._assignment_cache[scope] = ordered
-        return ordered
-
-    def _lookup(
-        self, history: PythonScopeAliasHistoryData, name: str, line: int
-    ) -> JsonObject:
-        """Responsibilities: _alias timeline lookup_."""
-        timeline = history.get(name)
-        if timeline is None:
-            return {"found": False, "target": name}
-        lines = [int(entry["line"]) for entry in timeline]
-        index = bisect_right(lines, line) - 1
-        if index < 0:
-            return {"found": False, "target": name}
-        return {"found": True, "target": timeline[index]["target"]}
+        return sorted(assignments, key=lambda item: (item.lineno, item.col_offset))
 
     def _scope_history(self, scope: ast.AST) -> PythonScopeAliasHistoryData:
         """Responsibilities: _scoped alias history construction_."""
@@ -64,12 +66,15 @@ class PythonScopeAliasHistory:
         if cached is not None:
             return cached
         history: PythonScopeAliasHistoryData = {}
-        for item in self._ordered_assignments(scope):
-            for name, target in self.alias_source.assignment_aliases(item).items():
+        if scope not in self._assignment_cache:
+            self._assignment_cache.update({scope: self._owner_assignments(scope)})
+        for assignment in self._assignment_cache[scope]:
+            aliases = self._alias_source.assignment_aliases(assignment)
+            for name, target in aliases.items():
                 history.setdefault(name, []).append(
-                    {"line": item.lineno, "target": target}
+                    {"line": assignment.lineno, "target": target},
                 )
-        self._history_cache[scope] = history
+        self._history_cache.update({scope: history})
         return history
 
     def __init__(
@@ -79,10 +84,10 @@ class PythonScopeAliasHistory:
         alias_source: PythonAssignmentAliasContract,
     ) -> None:
         """Responsibilities: _alias index initialization_."""
-        self.node_index: PythonAstNodeIndexContract = node_index
-        self.scope_types: PythonScopeTypes = scope_types
-        self.alias_source: PythonAssignmentAliasContract = alias_source
-        self._assignment_cache: dict[ast.AST, list[ast.AST]] = {}
+        self._node_index: PythonAstNodeIndexContract = node_index
+        self._scope_types: PythonScopeTypes = scope_types
+        self._alias_source: PythonAssignmentAliasContract = alias_source
+        self._assignment_cache: PythonAstNodeListIndex = {}
         self._history_cache: PythonScopeAliasHistories = {}
 
     def resolve_scope(self, scope: ast.AST, name: str, line: int) -> JsonObject:

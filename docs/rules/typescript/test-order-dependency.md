@@ -34,6 +34,15 @@ export class Status {
 		}
 		return status_value.includes(normalized_fragment);
 	}
+	public report(): void {
+		const values = [
+			this.normalized(),
+			String(this.ready()),
+			this.label("State"),
+			String(this.contains("ead")),
+		];
+		console.log(values.join(" | "));
+	}
 }
 // File: tests/domain/status.test.ts
 import { Status } from "src/domain/status";
@@ -48,6 +57,12 @@ describe("Status", () => {
 		const status = new Status("queued"); expect(status.ready()).toBe(false);
     });
 });
+// File: cli.ts
+import { Status } from "src/domain/status";
+(function () {
+	const status = new Status(" READY ");
+	status.report();
+})();
 ```
 
 
@@ -56,10 +71,20 @@ describe("Status", () => {
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _value: string;
+	private readonly _normalized_values: Map<string, string>;
+	public constructor(value: string) {
+		this._value = value;
+		this._normalized_values = new Map();
+	}
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		const cached_value = this._normalized_values.get(this._value);
+		if (cached_value !== undefined) {
+			return cached_value;
+		}
+		const normalized_value = this._value.trim().toLowerCase();
+		this._normalized_values.set(this._value, normalized_value);
+		return normalized_value;
 	}
 	public ready(): boolean {
 		return this.normalized() === 'ready';
@@ -76,6 +101,15 @@ export class Status {
 			return false;
 		}
 		return status_value.includes(normalized_fragment);
+	}
+	public report(): void {
+		const values = [
+			this.normalized(),
+			String(this.ready()),
+			this.label("State"),
+			String(this.contains("ead")),
+		];
+		console.log(values.join(" | "));
 	}
 }
 // File: tests/domain/status.test.ts
@@ -97,7 +131,7 @@ describe('Status', () => {
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+	status.report();
 })();
 ```
 

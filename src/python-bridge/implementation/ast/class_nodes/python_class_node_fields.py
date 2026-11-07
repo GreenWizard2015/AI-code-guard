@@ -2,175 +2,55 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.constants import CLASS_BUILTIN_TYPES
+from implementation.ast.class_nodes.python_class_field_record import (
+    PythonClassFieldRecord,
+)
 from implementation.ast.class_nodes.python_instance_field_names import (
     PythonInstanceFieldNames,
 )
+from implementation.ast.class_nodes.python_instance_field_records import (
+    PythonInstanceFieldRecords,
+)
 from implementation.ast.class_nodes.python_slot_fields import PythonSlotFields
-from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.references.protocols import PythonContainerAliasesContract
+from implementation.ast.class_nodes.python_slot_statement import PythonSlotStatement
+from implementation.ast.class_nodes.python_untyped_class_fields import (
+    PythonUntypedClassFields,
+)
+from implementation.ast.protocols import (
+    PythonClassFieldRecordContract,
+    PythonClassNodeOptionsContract,
+    PythonInstanceFieldRecordsContract,
+    PythonSlotFieldsContract,
+    PythonUntypedClassFieldsContract,
+)
 from implementation.types import JsonObject
-from implementation.rules.constants import PYTHON_CLASSVAR_NAME
 
 NodeData = JsonObject
 
 
 class PythonClassNodeFields:
-    """Responsibilities: _field visibility analysis_, _field type normalization_."""
+    """Responsibilities: _class field collection_, _instance field collection_."""
 
-    def _visibility(self, name: str) -> str:
-        """Responsibilities: _classification field visibility_."""
-        if not name.startswith("_"):
-            return "public"
-        if name.startswith("__"):
-            if name.endswith("__"):
-                return "public"
-        return "private"
-
-    def _value_name(self, value: ast.expr) -> str:
-        """Responsibilities: _resolution source name represented_."""
-        if type(value) is ast.Name:
-            return value.id
-        return ""
-
-    def _annotation_root(self, annotation: ast.AST) -> ast.AST:
-        """Responsibilities: _annotation root resolution_."""
-        current = annotation
-        while type(current) is ast.Subscript:
-            resolved = self.container_aliases.container_values.container_value(current)
-            if resolved.found():
-                current = resolved.expression_node()
-                continue
-            current = current.value
-        return current
-
-    def _is_class_variable(self, annotation: ast.AST) -> bool:
-        """Responsibilities: _ClassVar annotation classification_."""
-        root = self._annotation_root(annotation)
-        if type(root) is ast.Name:
-            return root.id == PYTHON_CLASSVAR_NAME
-        if type(root) is not ast.Attribute:
-            return False
-        return root.attr == PYTHON_CLASSVAR_NAME
-
-    def _annotated_field(
-        self, item: ast.AnnAssign, class_scope: bool = True
-    ) -> NodeData:
-        """Responsibilities: _normalization annotated class field_."""
-        annotation = item.annotation
-        type_kind = "named"
-        if type(annotation) is ast.Subscript:
-            type_kind = "generic"
-        is_builtin_name = type(annotation) is ast.Name
-        if is_builtin_name:
-            if annotation.id in CLASS_BUILTIN_TYPES:
-                type_kind = "basic"
-        return {
-            "line": item.lineno - 1,
-            "name": item.target.id,
-            "value_name": self._value_name(item.value),
-            "type": ast.unparse(annotation),
-            "type_kind": type_kind,
-            "readonly": False,
-            "class_variable": self._is_class_variable(annotation),
-            "class_scope": class_scope,
-            "visibility": self._visibility(item.target.id),
-        }
-
-    def _assigned_fields(self, item: ast.Assign) -> list[NodeData]:
-        """Responsibilities: _normalization fields declared assignment_."""
-        fields: list[NodeData] = []
-        for target in item.targets:
-            if type(target) is ast.Name:
-                fields.append(
-                    {
-                        "line": item.lineno - 1,
-                        "name": target.id,
-                        "value_name": self._value_name(item.value),
-                        "type": "",
-                        "type_kind": "basic",
-                        "readonly": False,
-                        "class_variable": False,
-                        "class_scope": True,
-                        "visibility": self._visibility(target.id),
-                    }
-                )
-        return fields
-
-    def _class_fields(self, item: ast.stmt) -> list[NodeData]:
-        """Responsibilities: _collection typed class fields_."""
-        if self.slot_fields.metadata_statement(item):
-            return []
-        is_named_annotation = type(item) is ast.AnnAssign
-        if is_named_annotation:
-            if type(item.target) is ast.Name:
-                is_slot = item.target.id in self.slot_fields.fields()
-                return [self._annotated_field(item, not is_slot)]
-        if type(item) is ast.Assign:
-            return self._assigned_fields(item)
-        return []
-
-    def _untyped_class_fields(self, item: ast.stmt) -> list[NodeData]:
-        """Responsibilities: _collection untyped class fields_."""
-        if type(item) is not ast.Assign:
-            return []
-        if self.slot_fields.metadata_statement(item):
-            return []
-        fields: list[NodeData] = []
-        for target in item.targets:
-            if type(target) is ast.Name:
-                fields.append({"line": item.lineno - 1, "name": target.id})
-        return fields
-
-    def _untyped_item_fields(
-        self, item: ast.stmt, typed_names: set[str]
-    ) -> list[NodeData]:
-        """Responsibilities: _untyped field candidates_."""
-        fields = self._untyped_class_fields(item)
-        if type(item) in (ast.FunctionDef, ast.AsyncFunctionDef):
-            fields.extend(
-                field
-                for field in self._untyped_instance_fields(item)
-                if field["name"] not in typed_names
-            )
-        return fields
-
-    def _untyped_instance_fields(self, item: ast.AST) -> list[NodeData]:
-        """Responsibilities: _collection untyped instance fields_."""
-        fields: list[NodeData] = []
-        for nested in self.node_index.nodes(item):
-            if type(nested) is ast.Assign:
-                fields.extend(
-                    {"line": nested.lineno - 1, "name": target.attr}
-                    for target in nested.targets
-                    if self.instance_field_names.instance_target(target)
-                )
-        return fields
-
-    def __init__(
+    def _append_method_fields(
         self,
-        node: ast.ClassDef,
-        container_aliases: PythonContainerAliasesContract,
-        node_index: PythonAstNodeIndexContract,
-        module_body: list[ast.stmt],
+        fields: list[NodeData],
+        known_instance_names: set[str],
     ) -> None:
-        """Responsibilities: _initialization class node usage_."""
-        self.node: ast.ClassDef = node
-        self.container_aliases: PythonContainerAliasesContract = container_aliases
-        self.node_index: PythonAstNodeIndexContract = node_index
-        self.instance_field_names: PythonInstanceFieldNames = PythonInstanceFieldNames(
-            node, node_index
-        )
-        self.slot_fields: PythonSlotFields = PythonSlotFields(node, module_body)
+        """Responsibilities: _instance field deduplication_."""
+        for field in self._instance_field_records.for_class(self._node.body):
+            name = self._field_records.field_name(field)
+            if name not in known_instance_names:
+                fields.append(field)
+                known_instance_names.add(name)
 
-    def fields(self) -> list[NodeData]:
-        """Responsibilities: _collection typed class instance_."""
-        fields: list[NodeData] = []
-        for item in self.node.body:
-            fields.extend(self._class_fields(item))
-        known_names = {field["name"] for field in fields}
-        for name, line in self.slot_fields.fields().items():
-            if name not in known_names:
+    def _append_slot_fields(
+        self,
+        fields: list[NodeData],
+        known_instance_names: set[str],
+    ) -> None:
+        """Responsibilities: _slot field completion_."""
+        for name, line in self._slot_fields.fields().items():
+            if name not in known_instance_names:
                 fields.append(
                     {
                         "line": line,
@@ -181,21 +61,73 @@ class PythonClassNodeFields:
                         "readonly": False,
                         "class_variable": False,
                         "class_scope": False,
-                        "visibility": self._visibility(name),
-                    }
+                        "visibility": self._field_records.visibility(name),
+                    },
                 )
+                known_instance_names.add(name)
+
+    def _class_fields(self, class_member: ast.stmt) -> list[NodeData]:
+        """Responsibilities: _collection typed class fields_."""
+        statement = PythonSlotStatement(class_member)
+        if statement.metadata():
+            return []
+        if type(class_member) is ast.AnnAssign:
+            if type(class_member.target) is ast.Name:
+                is_slot = class_member.target.id in self._slot_fields.fields()
+                return [
+                    self._field_records.annotated_field(
+                        class_member,
+                        class_member.target.id,
+                        not is_slot,
+                    ),
+                ]
+        if type(class_member) is ast.Assign:
+            return self._field_records.assigned_fields(class_member)
+        return []
+
+    def __init__(self, options: PythonClassNodeOptionsContract) -> None:
+        """Responsibilities: _class field collection dependencies_."""
+        self._node: ast.ClassDef = options.node
+        instance_field_names = PythonInstanceFieldNames(
+            options.node,
+            options.node_index,
+        )
+        self._slot_fields: PythonSlotFieldsContract = PythonSlotFields(
+            options.node,
+            options.module_body,
+        )
+        self._field_records: PythonClassFieldRecordContract = PythonClassFieldRecord(
+            options.container_aliases,
+        )
+        self._instance_field_records: PythonInstanceFieldRecordsContract = PythonInstanceFieldRecords(
+            options.node_index,
+            instance_field_names,
+            self._field_records,
+        )
+        self._untyped_field_records: PythonUntypedClassFieldsContract = PythonUntypedClassFields(
+            options.node,
+            options.node_index,
+            instance_field_names,
+            self._slot_fields,
+        )
+
+    def fields(self) -> list[NodeData]:
+        """Responsibilities: _collection typed class instance_."""
+        fields = self.declared_fields()
+        known_instance_names = {
+            self._field_records.field_name(field) for field in fields if field["class_scope"] is False
+        }
+        self._append_method_fields(fields, known_instance_names)
+        self._append_slot_fields(fields, known_instance_names)
         return fields
 
-    def untyped_fields(self) -> list[NodeData]:
-        """Responsibilities: _collection untyped class instance_."""
-        typed_names = {field["name"] for field in self.fields() if field["type"]}
-        typed_names.update(self.instance_field_names.names())
-        fields = self.slot_fields.untyped_fields(typed_names)
-        known_names = {field["name"] for field in fields}
-        for item in self.node.body:
-            for field in self._untyped_item_fields(item, typed_names):
-                if field["name"] in known_names:
-                    continue
-                known_names.add(field["name"])
-                fields.append(field)
+    def untyped_field_records(self) -> PythonUntypedClassFieldsContract:
+        """Responsibilities: _untyped field classification access_."""
+        return self._untyped_field_records
+
+    def declared_fields(self) -> list[NodeData]:
+        """Responsibilities: _class-level field declarations_."""
+        fields: list[NodeData] = []
+        for item in self._node.body:
+            fields.extend(self._class_fields(item))
         return fields

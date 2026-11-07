@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import ast
 import unittest
-from collections.abc import Iterable, Iterator, Mapping
+from collections import Counter
+from collections.abc import Iterator, Mapping
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.call_analysis.testing.python_async_module_name_state import (
+    PythonAsyncModuleNameState,
+)
+from implementation.rules.call_analysis.testing.python_test_callable_definition import (
+    PythonTestCallableDefinition,
+)
 from implementation.rules.call_analysis.testing.python_test_execution_region import (
     PythonTestExecutionRegion,
 )
@@ -22,40 +29,25 @@ class CountedBindings(Mapping[str, ast.AST]):
 
     def __init__(self, bindings: dict[str, ast.AST]) -> None:
         """Responsibilities: _binding fixture initialization_."""
-        self.bindings: Mapping[str, ast.AST] = bindings
+        self._bindings: Mapping[str, ast.AST] = bindings
         self._metrics: dict[str, int] = {"iterated_entries": 0}
 
     def __getitem__(self, name: str) -> ast.AST:
         """Responsibilities: _binding lookup_."""
-        return self.bindings[name]
+        return self._bindings[name]
 
     def __iter__(self) -> Iterator[str]:
         """Responsibilities: _binding iteration count_."""
-        self._metrics["iterated_entries"] += len(self.bindings)
-        return iter(self.bindings)
+        self._metrics.update({"iterated_entries": self._metrics["iterated_entries"] + len(self._bindings)})
+        return iter(self._bindings)
 
     def __len__(self) -> int:
         """Responsibilities: _binding count lookup_."""
-        return len(self.bindings)
+        return len(self._bindings)
 
     def iteration_count(self) -> int:
         """Responsibilities: _binding iteration measurement_."""
         return self._metrics["iterated_entries"]
-
-
-class CountingExecutionRegion(PythonTestExecutionRegion):
-    """Responsibilities: _callable scope metrics_, _analysis operation metrics_."""
-
-    def __init__(self, function: ast.AST, bindings: CountedBindings) -> None:
-        """Responsibilities: _scope instrumentation initialization_."""
-        super().__init__(function)
-        self.bindings: CountedBindings = bindings
-
-    def _nested_callables(self, function: ast.AST) -> Mapping[str, ast.AST]:
-        """Responsibilities: _instrumented root callable scope_."""
-        if type(function) is ast.FunctionDef and function.name == "test_scenario":
-            return self.bindings
-        return {}
 
 
 class CountingTestOrderDependency(PythonTestOrderDependency):
@@ -63,85 +55,120 @@ class CountingTestOrderDependency(PythonTestOrderDependency):
 
     def __init__(self, tree: ast.Module, bindings: CountedBindings) -> None:
         """Responsibilities: _module binding fixture initialization_."""
-        super().__init__(tree)
-        self.bindings: CountedBindings = bindings
+        super().__init__(tree, PythonAstNodeIndex())
+        self._bindings: CountedBindings = bindings
 
     def module_mutable_objects(self) -> Mapping[str, ast.AST]:
         """Responsibilities: _instrumented module bindings_."""
-        return self.bindings
+        return self._bindings
 
 
-class CountedAsyncNames(set[str]):
-    """Responsibilities: _async name membership_, _difference cost measurement_."""
+class CountedAsyncModuleNameState(PythonAsyncModuleNameState):
+    """Responsibilities: _module snapshot count_, _async name state_."""
 
-    def __init__(self, names: set[str]) -> None:
-        """Responsibilities: _async name instrumentation initialization_."""
-        super().__init__(names)
-        self._metrics: dict[str, int] = {"difference_calls": 0}
+    def __init__(self, snapshots: Counter[str]) -> None:
+        """Responsibilities: _snapshot instrumentation setup_."""
+        super().__init__()
+        self._snapshots: Counter[str] = snapshots
 
-    def difference(self, *others: Iterable[str]) -> set[str]:
-        """Responsibilities: _difference cost tracking_."""
-        self._metrics["difference_calls"] += 1
-        return super().difference(*others)
-
-    def difference_count(self) -> int:
-        """Responsibilities: _difference operation measurement_."""
-        return self._metrics["difference_calls"]
+    def snapshot(self) -> set[str]:
+        """Responsibilities: _snapshot count tracking_."""
+        self._snapshots.update(count=1)
+        return super().snapshot()
 
 
 class CountingAsyncCompletion(PythonUnassertedAsyncCompletion):
     """Responsibilities: _async name instrumentation_, _completion result comparison_."""
 
-    def __init__(self, node_index: PythonAstNodeIndexContract) -> None:
+    def __init__(
+        self,
+        node_index: PythonAstNodeIndexContract,
+        snapshots: Counter[str],
+    ) -> None:
         """Responsibilities: _async analysis instrumentation initialization_."""
         super().__init__(node_index)
-        self.counted_names: CountedAsyncNames = CountedAsyncNames(set())
-
-    def module_async_names(self, tree: ast.Module) -> CountedAsyncNames:
-        """Responsibilities: _instrumented async module names_."""
-        self.counted_names.update(super().module_async_names(tree))
-        return self.counted_names
+        self._counted_names: CountedAsyncModuleNameState = CountedAsyncModuleNameState(
+            snapshots,
+        )
+        self._module_names: PythonAsyncModuleNameState = self._counted_names
 
 
 class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
     """Responsibilities: _scope-copy regression checks_, _binding snapshot regression checks_."""
 
-    def test_invoked_leaf_helpers_reuse_sibling_callable_scope(self) -> None:
-        """Responsibilities: _linear helper scope construction_."""
+    def _helper_scope_scenario(self) -> ast.FunctionDef:
+        """Responsibilities: _sibling helper AST fixture_."""
         helper_count = 80
-        definitions = [
-            f"    def action_{index}():\n        pass" for index in range(helper_count)
-        ]
+        definitions = [f"    def action_{index}():\n        pass" for index in range(helper_count)]
         calls = [f"    action_{index}()" for index in range(helper_count)]
         tree = ast.parse("def test_scenario():\n" + "\n".join([*definitions, *calls]))
         test_function = tree.body[0]
-        bindings = {
-            node.name: node
-            for node in test_function.body
-            if type(node) is ast.FunctionDef
-        }
+        if type(test_function) is not ast.FunctionDef:
+            self.fail("expected the test scenario function")
+        return test_function
+
+    def test_invoked_leaf_helpers_are_included_in_execution_region(self) -> None:
+        """Responsibilities: _invoked helper execution result_."""
+        test_function = self._helper_scope_scenario()
+        helper_definitions = [node for node in test_function.body if type(node) is ast.FunctionDef]
+        bindings: dict[str, ast.AST] = {node.name: node for node in helper_definitions}
         counted_bindings = CountedBindings(bindings)
-        execution_region = CountingExecutionRegion(test_function, counted_bindings)
-        executed_nodes = execution_region.nodes()
-        production_region = PythonTestExecutionRegion(test_function)
-        production_nodes = production_region.nodes()
-        cached_production_nodes = production_region.nodes()
-        helper_bodies = [node.body[0] for node in bindings.values()]
+        helper_bodies = [node.body[0] for node in helper_definitions]
+        node_index = PythonAstNodeIndex()
+        node_index.nodes(test_function)
+        definition = PythonTestCallableDefinition(test_function, node_index)
+        production_callables = definition.nested_callables()
+        production_region = PythonTestExecutionRegion(test_function, production_callables, node_index)
+        production_nodes = production_region.nodes
+        execution_region = PythonTestExecutionRegion(test_function, counted_bindings, node_index)
+        instrumented_nodes = execution_region.nodes
 
         self.assertEqual(
             {
                 "inherited_entries_iterated": counted_bindings.iteration_count(),
-                "all_helper_bodies_executed": all(
-                    body in executed_nodes for body in helper_bodies
-                ),
-                "production_region_cache_reused": production_nodes
-                is cached_production_nodes,
+                "production_helpers_executed": all(body in production_nodes for body in helper_bodies),
+                "instrumented_helpers_executed": all(body in instrumented_nodes for body in helper_bodies),
             },
             {
                 "inherited_entries_iterated": 0,
-                "all_helper_bodies_executed": True,
-                "production_region_cache_reused": True,
+                "production_helpers_executed": True,
+                "instrumented_helpers_executed": True,
             },
+        )
+
+    def test_execution_region_reuses_its_cached_nodes(self) -> None:
+        """Responsibilities: _execution region cache reuse_."""
+        test_function = self._helper_scope_scenario()
+        node_index = PythonAstNodeIndex()
+        node_index.nodes(test_function)
+        definition = PythonTestCallableDefinition(test_function, node_index)
+        callables = definition.nested_callables()
+        production_region = PythonTestExecutionRegion(test_function, callables, node_index)
+        production_nodes = production_region.nodes
+        cached_production_nodes = production_region.nodes
+        self.assertIs(production_nodes, cached_production_nodes)
+
+    def test_execution_regions_reuse_indexed_ast_children(self) -> None:
+        """Responsibilities: _cached child traversal_, _execution result preservation_."""
+        tree = ast.parse(
+            "def test_flow():\n    def helper():\n        return 1\n    value = helper()\n",
+        )
+        test_function = tree.body[0]
+        node_index = PythonAstNodeIndex()
+        indexed_nodes = node_index.nodes(tree)
+        definition = PythonTestCallableDefinition(test_function, node_index)
+
+        callables = definition.nested_callables()
+        region = PythonTestExecutionRegion(test_function, callables, node_index)
+        nodes = region.nodes
+
+        self.assertEqual(
+            {
+                "helper_found": "helper" in callables,
+                "execution_nodes_match_index": all(node in indexed_nodes for node in nodes),
+                "helper_call_included": any(type(node) is ast.Call for node in nodes),
+            },
+            {"helper_found": True, "execution_nodes_match_index": True, "helper_call_included": True},
         )
 
     def test_order_analysis_reuses_module_bindings_across_tests(self) -> None:
@@ -149,19 +176,14 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
         binding_count = 60
         test_count = 60
         assignments = [f"state_{index} = []" for index in range(binding_count)]
-        test_functions = [
-            f"def test_{index}():\n    pass" for index in range(test_count)
-        ]
+        test_functions = [f"def test_{index}():\n    pass" for index in range(test_count)]
         tree = ast.parse("\n\n".join([*assignments, *test_functions]))
         module_bindings = CountedBindings(
-            {
-                f"state_{index}": ast.List(elts=[], ctx=ast.Load())
-                for index in range(binding_count)
-            }
+            {f"state_{index}": ast.List(elts=[], ctx=ast.Load()) for index in range(binding_count)},
         )
         counting_order = CountingTestOrderDependency(tree, module_bindings)
         order_issues = counting_order.issues()
-        production_order = PythonTestOrderDependency(tree)
+        production_order = PythonTestOrderDependency(tree, PythonAstNodeIndex())
         production_issues = production_order.issues()
 
         self.assertEqual(
@@ -177,35 +199,51 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
             },
         )
 
+    def test_order_analysis_reports_shared_mutable_test_state(self) -> None:
+        """Responsibilities: _shared test state_."""
+        tree = ast.parse(
+            "state = []\ndef test_first():\n    state.append(1)\ndef test_second():\n    state.append(2)\n",
+        )
+        node_index = PythonAstNodeIndex()
+        node_index.nodes(tree)
+        analysis = PythonTestOrderDependency(tree, node_index)
+        issues = analysis.issues()
+        first_issue = {}
+        if issues:
+            first_issue = issues[0]
+
+        self.assertEqual(
+            {
+                "issue_count": len(issues),
+                "issue_name": first_issue.get("name", ""),
+            },
+            {"issue_count": 1, "issue_name": "state"},
+        )
+
     def test_async_analysis_reuses_names_across_test_functions(self) -> None:
         """Responsibilities: _shared async name reuse_."""
         binding_count = 60
         test_count = 60
-        async_functions = [
-            f"async def operation_{index}():\n    pass"
-            for index in range(binding_count)
-        ]
-        test_functions = [
-            f"def test_{index}():\n    pass" for index in range(test_count)
-        ]
+        async_functions = [f"async def operation_{index}():\n    pass" for index in range(binding_count)]
+        test_functions = [f"def test_{index}():\n    pass" for index in range(test_count)]
         tree = ast.parse("\n\n".join([*async_functions, *test_functions]))
         async_node_index = PythonAstNodeIndex()
-        async_rule = CountingAsyncCompletion(async_node_index)
+        snapshots: Counter[str] = Counter()
+        async_rule = CountingAsyncCompletion(async_node_index, snapshots)
         async_issues = async_rule.issues(tree)
         production_node_index = PythonAstNodeIndex()
         production_rule = PythonUnassertedAsyncCompletion(production_node_index)
         production_async_issues = production_rule.issues(tree)
-        async_names = async_rule.counted_names
-        async_difference_calls = async_names.difference_count()
+        async_snapshot_count = snapshots["count"]
 
         self.assertEqual(
             {
-                "async_name_difference_calls": async_difference_calls,
+                "async_module_snapshots": async_snapshot_count,
                 "async_issues": async_issues,
                 "production_result_matches": async_issues == production_async_issues,
             },
             {
-                "async_name_difference_calls": 0,
+                "async_module_snapshots": 1,
                 "async_issues": [],
                 "production_result_matches": True,
             },

@@ -8,7 +8,7 @@ Several unrelated operations have accumulated in one class.
 
 ```ts
 // File: src/status_labels.ts
-class StatusLabels {
+export class StatusLabels {
 	private readonly labels: ReadonlyMap<string, string>;
 	private readonly fallback: string;
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
@@ -38,6 +38,10 @@ class StatusLabels {
 		return this.fallback;
 	}
 	public status_from_row(row: string): string { return row.split(",")[0]; }
+	public report(): void {
+		const labels = [this.label("ready"), this.label_with_prefix("State", "ready"), this.uppercase_fallback(), String(this.status_count()), String(this.contains_status("ready")), this.first_status(), this.status_from_row("ready,Ready")];
+		console.log(labels.join(" "));
+	}
 }
 // File: cli.ts
 import { StatusLabels } from "src/status_labels";
@@ -45,8 +49,7 @@ import { StatusLabels } from "src/status_labels";
 	const labels = new Map<string, string>();
 	labels.set("ready", "Ready");
 	const value = new StatusLabels(labels, "Unknown");
-	console.log(value.label("ready"), value.label_with_prefix("State", "ready"), value.uppercase_fallback(),
-		value.status_count(), value.contains_status("ready"), value.first_status(), value.status_from_row("ready,Ready"));
+	value.report();
 })();
 ```
 
@@ -58,28 +61,36 @@ Keep the cohesive label API; move row parsing to its owning component.
 // File: src/status_labels.ts
 /** Responsibilities: _status label mapping_. **/
 export class StatusLabels {
-	private readonly labels: ReadonlyMap<string, string>;
-	private readonly fallback: string;
+	private readonly _labels: ReadonlyMap<string, string>;
+	private readonly _fallback: string;
 	/** Responsibilities: _mapping initialization_. **/
 	public constructor(labels: ReadonlyMap<string, string>, fallback: string) {
-		this.labels = labels;
-		this.fallback = fallback;
+		this._labels = labels;
+		this._fallback = fallback;
 	}
 	/** Responsibilities: _status label selection_. **/
 	public label(status: string): string {
-		const label = this.labels.get(status);
-		if (label === undefined) { return this.fallback; }
+		const label = this._labels.get(status);
+		if (label === undefined) { return this._fallback; }
 		return label;
 	}
 	/** Responsibilities: _prefixed label composition_. **/
 	public label_with_prefix(prefix: string, status: string): string { return `${prefix}: ${this.label(status)}`; }
 	/** Responsibilities: _fallback capitalization_. **/
-	public uppercase_fallback(): string { return this.fallback.trim().toUpperCase(); }
+	public uppercase_fallback(): string { return this._fallback.trim().toUpperCase(); }
 	/** Responsibilities: _mapping size reporting_. **/
 	public status_count(): number {
 		let count = 0;
-		for (const name of this.labels.keys()) { if (name.length > 0) { count += 1; } }
+		for (const name of this._labels.keys()) { if (name.length > 0) { count += 1; } }
 		return count;
+	}
+	/** Responsibilities: _status label report_. **/
+	public report(): void {
+		const label = this.label("ready");
+		const detailed = this.label_with_prefix("State", "ready");
+		const fallback = this.uppercase_fallback();
+		const count = this.status_count();
+		console.log(`${label} ${detailed} ${fallback} ${count}`);
 	}
 }
 // File: cli.ts
@@ -88,7 +99,6 @@ import { StatusLabels } from "src/status_labels";
 	const labels = new Map<string, string>();
 	labels.set("ready", "Ready");
 	const value = new StatusLabels(labels, "Unknown");
-	console.log(value.label("ready"), value.label_with_prefix("State", "ready"), value.uppercase_fallback(),
-		value.status_count());
+	value.report();
 })();
 ```

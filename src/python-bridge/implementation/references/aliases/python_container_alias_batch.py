@@ -8,14 +8,6 @@ from implementation.references.protocols import PythonContainerAliasesContract
 class PythonContainerAliasBatch:
     """Responsibilities: _alias scope setup_, _alias event traversal_."""
 
-    def _is_alias_event(self, node: ast.AST) -> bool:
-        """Responsibilities: _alias event classification_."""
-        if type(node) is ast.Import or type(node) is ast.Assign:
-            return True
-        if type(node) is ast.AnnAssign:
-            return node.value is not None
-        return False
-
     def __init__(self, aliases: list[PythonContainerAliasesContract]) -> None:
         """Responsibilities: _container alias ownership_."""
         self._aliases: list[PythonContainerAliasesContract] = aliases
@@ -24,17 +16,20 @@ class PythonContainerAliasBatch:
         """Responsibilities: _container alias scope setup_."""
         for alias_index in self._aliases:
             alias_index.clear()
-            alias_index._configure_scope_tree(tree)
+            alias_index.state().configure_scope_tree(tree)
 
     def observe_all(self, nodes: list[ast.AST], tree: ast.AST) -> None:
         """Responsibilities: _container alias event traversal_."""
         self.configure(tree)
-        for node in nodes:
-            if self._is_alias_event(node):
-                for alias_index in self._aliases:
-                    alias_index.observe(node)
+        if not self._aliases:
+            return
+        node_index = self._aliases[0].state().node_index()
+        alias_nodes = node_index.alias_event_nodes(tree, nodes)
+        for node in alias_nodes:
+            for alias_index in self._aliases:
+                alias_index.observe(node)
         if nodes:
             final_node = nodes[-1]
-            if not self._is_alias_event(final_node):
+            if not alias_nodes or alias_nodes[-1] is not final_node:
                 for alias_index in self._aliases:
-                    alias_index.observe(final_node)
+                    alias_index.state().select_scope_node(final_node)

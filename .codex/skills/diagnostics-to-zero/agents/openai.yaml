@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnostics to Zero"
+  short_description: "Resolve lint findings to zero"
+  default_prompt: "Use $diagnostics-to-zero to triage findings, coordinate dependency-aware bounded repairs, reuse a complete same-snapshot report, and update .ai-code-guard/work-status.md plus the before/after diagnostic table at integration checkpoints."

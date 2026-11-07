@@ -1,4 +1,5 @@
 import { join, relative } from "node:path";
+import { describe, expect, test } from "@jest/globals";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 

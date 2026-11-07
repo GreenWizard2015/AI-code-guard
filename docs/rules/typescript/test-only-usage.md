@@ -17,20 +17,23 @@ export class Status {
 		return this.value.trim().toLowerCase();
 	}
 	public ready(): boolean {
-		return this.normalized() === 'ready';
+		return this.value.trim().toLowerCase() === 'ready';
 	}
 	public label(prefix: string): string {
 		const clean_prefix = prefix.trim();
-		const status_value = this.normalized();
+		const status_value = this.value.trim().toLowerCase();
 		return `${clean_prefix}: ${status_value}`;
 	}
 	public contains(fragment: string): boolean {
 		const normalized_fragment = fragment.trim().toLowerCase();
-		const status_value = this.normalized();
+		const status_value = this.value.trim().toLowerCase();
 		if (normalized_fragment.length === 0) {
 			return false;
 		}
 		return status_value.includes(normalized_fragment);
+	}
+	public display(): void {
+		console.log(`${this.ready()} ${this.label('State')} ${this.contains('ead')}`);
 	}
 }
 // File: tests/domain/status.test.ts
@@ -47,6 +50,13 @@ describe('Status', () => {
 		expect(value).toBe(true);
 	});
 });
+// File: cli.ts
+import { Status } from 'src/domain/status';
+
+(() => {
+	const status = new Status(' READY ');
+	status.display();
+})();
 ```
 
 
@@ -55,10 +65,20 @@ describe('Status', () => {
 ```ts
 // File: src/domain/status.ts
 export class Status {
-	private readonly value: string;
-	public constructor(value: string) { this.value = value; }
+	private readonly _value: string;
+	private readonly _normalized_values: Map<string, string>;
+	public constructor(value: string) {
+		this._value = value;
+		this._normalized_values = new Map();
+	}
 	public normalized(): string {
-		return this.value.trim().toLowerCase();
+		const cached_value = this._normalized_values.get(this._value);
+		if (cached_value !== undefined) {
+			return cached_value;
+		}
+		const normalized_value = this._value.trim().toLowerCase();
+		this._normalized_values.set(this._value, normalized_value);
+		return normalized_value;
 	}
 	public ready(): boolean {
 		return this.normalized() === 'ready';
@@ -75,6 +95,9 @@ export class Status {
 			return false;
 		}
 		return status_value.includes(normalized_fragment);
+	}
+	public display(): void {
+		console.log(`${this.ready()} ${this.label('State')} ${this.contains('ead')}`);
 	}
 }
 // File: tests/domain/status.test.ts
@@ -96,7 +119,7 @@ describe('Status', () => {
 import { Status } from 'src/domain/status';
 (function () {
 	const status = new Status(' READY ');
-	console.log(status.normalized(), status.ready(), status.label('State'), status.contains('ead'));
+status.display();
 })();
 ```
 

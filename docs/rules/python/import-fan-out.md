@@ -13,44 +13,76 @@ The rule counts unique module specifiers, not imported names. For example,
 
 
 ```python
+{% const module_names = ["module_01", "module_02", "module_03", "module_04", "module_05", "module_06", "module_07", "module_08", "module_09", "module_10", "module_11", "module_12", "module_13", "module_14", "module_15", "module_16", "module_17", "module_18", "module_19", "module_20", "module_21"] %}
+{% for module_name in module_names %}
+# File: src/domain/{{module_name}}.py
+class ModuleFeature:
+    def __init__(self, code: str) -> None:
+        self._code: str = code
+
+    def normalized_code(self) -> str:
+        return self._code.strip().lower()
+
+    def status_label(self) -> str:
+        return f"Loaded {self.normalized_code()}"
+
+    def report(self) -> None:
+        print(self.status_label())
+{% endfor %}
 # File: cli.py
-if __name__ == '__main__':
-    import account  # <- error
-    import billing  # <- error
-    import cache  # <- error
-    import database  # <- error
-    import email_service  # <- error
-    import metrics  # <- error
-    import queue_service  # <- error
-    import search  # <- error
-    import transport  # <- error
-    import module_10  # <- error
-    import module_11  # <- error
-    import module_12  # <- error
-    import module_13  # <- error
-    import module_14  # <- error
-    import module_15  # <- error
-    import module_16  # <- error
-    import module_17  # <- error
-    import module_18  # <- error
-    import module_19  # <- error
-    import module_20  # <- error
-    import module_21  # <- error
-    account.start()
-    billing.start()
-    cache.start()
-    database.start()
-    email_service.start()
-    metrics.start()
-    queue_service.start()
-    search.start()
-    transport.start()
+{% for module_name in module_names %}
+import src.domain.{{module_name}}  # <- error
+{% endfor %}
+
+if __name__ == "__main__":
+{% for module_name in module_names %}
+    feature_{{module_name}} = src.domain.{{module_name}}.ModuleFeature("{{module_name}}")
+    feature_{{module_name}}.report()
+{% endfor %}
 ```
 
 ## Good
 
 
 ```python
-import account_workflow
-account_workflow.start()
+# File: src/account_workflow.py
+class AccountWorkflow:
+    def __init__(self, account_name: str) -> None:
+        self._account_name: str = account_name
+
+    def normalized_account(self) -> str:
+        parts = self._account_name.strip().split()
+        normalized_parts: list[str] = []
+        for part in parts:
+            normalized_parts.append(part.lower())
+        return " ".join(normalized_parts)
+
+    def account_state(self) -> str:
+        account = self.normalized_account()
+        if len(account) == 0:
+            return "pending"
+        return "ready"
+
+    def account_heading(self) -> str:
+        account = self.normalized_account()
+        heading = account.title()
+        return f"Account {heading}"
+
+    def status_label(self) -> str:
+        account_state = self.account_state()
+        account_heading = self.account_heading()
+        if account_state == "ready":
+            return f"Ready: {account_heading}"
+        return "Account pending"
+
+    def report(self) -> None:
+        status = self.status_label()
+        state = self.account_state()
+        print(f"{status} | {state}")
+# File: cli.py
+from src.account_workflow import AccountWorkflow
+
+if __name__ == "__main__":
+    workflow = AccountWorkflow("primary")
+    workflow.report()
 ```

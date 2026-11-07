@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from protocols import PythonAstTimedResultContract
 from implementation.types import (
     JsonObject,
     JsonValue,
 )
+from protocols import PythonAstTimedResultContract
 
 
 class PythonBatchResult:
@@ -15,7 +15,7 @@ class PythonBatchResult:
         ast_parse_ms = 0.0
         ast_build_ms = 0.0
         ast_stages: dict[str, float] = {}
-        for timed_result in self.results.values():
+        for timed_result in self._results.values():
             ast_parse_ms += timed_result.syntax_duration()
             ast_build_ms += timed_result.normalization_duration()
             for stage_name, stage_ms in timed_result.stage_times().items():
@@ -23,28 +23,23 @@ class PythonBatchResult:
         return {
             "ast_parse_ms": ast_parse_ms,
             "ast_build_ms": ast_build_ms,
-            "ast_stages": [
-                {"name": name, "duration_ms": duration}
-                for name, duration in ast_stages.items()
-            ],
+            "ast_stages": [{"name": name, "duration_ms": duration} for name, duration in ast_stages.items()],
         }
 
     def __init__(self, batch_id: str) -> None:
         """Responsibilities: _initialization batch response_."""
-        self.batch_id: str = batch_id
-        self.results: dict[str, PythonAstTimedResultContract] = {}
+        self._batch_id: str = batch_id
+        self._results: dict[str, PythonAstTimedResultContract] = {}
 
     def add(self, name: str, timed_result: PythonAstTimedResultContract) -> None:
         """Responsibilities: _batch AST timing entry_."""
-        self.results[name] = timed_result
+        self._results.update({name: timed_result})
 
     def result(self) -> JsonObject:
         """Responsibilities: _batch response serialization_."""
-        asts: dict[str, JsonValue] = {
-            name: timed_result.ast_data() for name, timed_result in self.results.items()
-        }
+        asts: dict[str, JsonValue] = {name: timed_result.ast_data() for name, timed_result in self._results.items()}
         return {
-            "batchId": self.batch_id,
+            "batch_id": self._batch_id,
             "asts": asts,
             "timings": self._timing_payload(),
         }

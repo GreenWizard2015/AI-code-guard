@@ -1,6 +1,7 @@
-import type { AstVisibility } from "src/types";
+import type { AstVisibility } from "src/model/ast/normalized_ast_types";
+import type ts from "typescript";
 
-export type LineOf = (position: number) => number;
+export type CallableLineOf = (position: number) => number;
 
 export type CallReferenceOptions = {
 	readonly current_owner: string;
@@ -18,3 +19,5 @@ export type ModuleSymbolFlags = {
 	is_module_variable: boolean;
 };
 export type TypeMember = { name: string; type: string };
+export type SourceAliasNameSet = Set<string>;
+export type SourceAliasLookupCache = WeakMap<ts.SourceFile, SourceAliasNameSet>;

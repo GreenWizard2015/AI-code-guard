@@ -1,89 +1,75 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
 
 from implementation.references.constants import UNKNOWN_OWNER_TYPES
-from implementation.references.instances.python_collection_element_owner import (
-    PythonCollectionElementOwner,
+from implementation.references.context.python_lexical_scope import PythonLexicalScope
+from implementation.references.context.python_owner_resolution import (
+    PythonOwnerResolution,
 )
+from implementation.references.context.python_reference_bindings import PythonReferenceBindings
+from implementation.references.context.python_reference_name_index import PythonReferenceNameIndex
+from implementation.references.context.python_reference_properties import PythonReferenceProperties
 from implementation.references.protocols import (
-    PythonCollectionElementOwnerContract,
-    PythonReferenceOwnershipContract,
-)
-from implementation.references.protocols import PythonReferenceOwnershipOptionsContract
-from implementation.references.context.python_reference_ownership import (
-    PythonReferenceOwnership,
+    PythonReferenceBindingsContract,
+    PythonReferenceNameResolverContract,
+    PythonReferenceOwnershipOptionsContract,
+    PythonReferencePropertiesContract,
 )
 
 
 class PythonReferenceContext:
     """Responsibilities: _attribute type inference_, _callable output inference_."""
 
-    _ownership: PythonReferenceOwnershipContract
-    collection_owner: PythonCollectionElementOwnerContract
-
-    def _call_owner(self, value: ast.Call, current_owner: str) -> str:
-        """Responsibilities: _resolution owner output invocation_."""
-        if type(value.func) is ast.Name:
-            return self._ownership.name_resolver().call_return_owner(
-                value.func, value, fallback_to_name=True
-            )
-        return self._method_return_owner(value.func, current_owner)
-
-    def _nested_attribute_owner(self, value: ast.Attribute, current_owner: str) -> str:
-        """Responsibilities: _resolution owners through nested_."""
-        base_owner: Any = self.attribute_owner(value.value, current_owner)
-        if not base_owner:
-            return ""
-        return self._ownership._property_owner(base_owner, value.attr, value)
-
-    def _method_return_owner(self, function: ast.AST, current_owner: str) -> str:
-        """Responsibilities: _resolution owner type output_."""
-        if type(function) is not ast.Attribute:
-            return ""
-        owner: Any = self.attribute_owner(function.value, current_owner)
-        return self._ownership.name_resolver().method_return_owner(function.attr, owner)
-
-    def _name_attribute_owner(self, value: ast.Name, current_owner: str) -> str:
-        """Responsibilities: _named attribute owner lookup_."""
-        instance_owner: Any = self._ownership.instance_owner(value.id, value)
-        if instance_owner in UNKNOWN_OWNER_TYPES:
-            return ""
-        if instance_owner:
-            return instance_owner
-        if self._ownership._instance_binding_present(value.id, value):
-            return ""
-        if value.id in {"self", "cls"}:
-            return current_owner
-        return instance_owner
+    _bindings: PythonReferenceBindingsContract
+    _properties: PythonReferencePropertiesContract
+    _name_resolver: PythonReferenceNameResolverContract
 
     def __init__(self, options: PythonReferenceOwnershipOptionsContract) -> None:
         """Responsibilities: _initialization aliases instances properties_."""
-        self._ownership: PythonReferenceOwnershipContract = PythonReferenceOwnership(
-            options
+        symbols = options.symbol_tables()
+        instances = dict(symbols.instance_types())
+        properties = dict(symbols.property_types())
+        collection_elements = dict(symbols.collection_types())
+        lexical_scope = PythonLexicalScope(options.ast_index())
+        name_resolver = PythonReferenceNameIndex(
+            dict(symbols.alias_table()),
+            options.call_return_values(),
+            lexical_scope,
         )
-        self.collection_owner: PythonCollectionElementOwnerContract = (
-            PythonCollectionElementOwner(self)
-        )
+        bindings = PythonReferenceBindings(lexical_scope, instances, collection_elements)
+        property_state = PythonReferenceProperties(properties, bindings.collection_state())
+        self._bindings = bindings
+        self._properties = property_state
+        self._name_resolver = name_resolver
+
+    def bindings(self) -> PythonReferenceBindingsContract:
+        """Responsibilities: _reference binding lookup_."""
+        return self._bindings
+
+    def properties(self) -> PythonReferencePropertiesContract:
+        """Responsibilities: _reference property lookup_."""
+        return self._properties
+
+    def name_resolver(self) -> PythonReferenceNameResolverContract:
+        """Responsibilities: _reference name resolution_."""
+        return self._name_resolver
 
     def attribute_owner(self, value: ast.AST, current_owner: str) -> str:
         """Responsibilities: _resolution owner represented attribute_."""
-        if type(value) is ast.Name:
-            return self._name_attribute_owner(value, current_owner)
-        if type(value) is ast.Attribute:
-            return self._nested_attribute_owner(value, current_owner)
-        if type(value) is ast.Call:
-            return self._call_owner(value, current_owner)
-        return ""
-
-    def reference_ownership(self) -> PythonReferenceOwnershipContract:
-        """Responsibilities: _reference owner operations_."""
-        return self._ownership
+        resolution = PythonOwnerResolution(self, current_owner)
+        return resolution.attribute_owner(value)
 
     def collection_element_owner(self, value: ast.AST, current_owner: str) -> str:
         """Responsibilities: _collection element owner resolution_."""
-        owner = self.collection_owner.owner(value, current_owner)
+        if type(value) is ast.Name:
+            owner = self._bindings.collection_element_owner(value.id, value)
+        else:
+            if type(value) is ast.Attribute:
+                resolution = PythonOwnerResolution(self, current_owner)
+                owner = resolution.collection_element_owner(value)
+            else:
+                owner = ""
         if owner in UNKNOWN_OWNER_TYPES:
             return ""
         return owner

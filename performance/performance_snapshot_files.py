@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -20,8 +21,8 @@ from performance.performance_snapshot import PerformanceSnapshot
 from performance.performance_snapshots import PerformanceSnapshots
 from performance.protocols import (
     PerformanceSnapshotContract,
-    PerformanceSnapshotsContract,
     PerformanceSnapshotIOContract,
+    PerformanceSnapshotsContract,
 )
 
 
@@ -31,13 +32,13 @@ class PerformanceSnapshotFiles:
     def _snapshot(self, path: Path) -> PerformanceSnapshotContract:
         """Responsibilities: _single snapshot parsing_."""
         values: dict[str, str] = {}
-        for line in self.file_io.snapshot_text(path).splitlines():
+        for line in self._file_io.snapshot_text(path).splitlines():
             self._append_file_value(values, line)
             self._append_stage_value(values, line)
         name_parts = path.name.split("_", 1)
         mode = name_parts[0]
-        if mode != COLD_MODE:
-            mode = WARM_MODE
+        if len(name_parts) != 2 or mode not in {COLD_MODE, WARM_MODE}:
+            raise ValueError(f"Invalid performance snapshot mode prefix in {path}.")
         return PerformanceSnapshot(values, mode, str(path))
 
     def _append_file_value(self, values: dict[str, str], line: str) -> None:
@@ -60,12 +61,19 @@ class PerformanceSnapshotFiles:
 
     def __init__(self, paths: list[Path], file_io: PerformanceSnapshotIOContract) -> None:
         """Responsibilities: _performance snapshot file-source initialization_."""
-        self.paths: list[Path] = paths
-        self.file_io: PerformanceSnapshotIOContract = file_io
+        self._paths: list[Path] = list(paths)
+        self._file_io: PerformanceSnapshotIOContract = file_io
 
     def snapshot_collection(self) -> PerformanceSnapshotsContract:
         """Responsibilities: _snapshot collection creation_."""
-        snapshots = [self._snapshot(path) for path in self.paths]
+        snapshots: list[PerformanceSnapshotContract] = []
+        identities: set[str] = set()
+        for path in self._paths:
+            identity = os.path.normcase(str(path.resolve(strict=False)))
+            if identity in identities:
+                continue
+            identities.add(identity)
+            snapshots.append(self._snapshot(path))
         return PerformanceSnapshots(snapshots)
 
     def collection(self) -> PerformanceSnapshotsContract:
@@ -74,4 +82,4 @@ class PerformanceSnapshotFiles:
 
     def source_available(self) -> bool:
         """Responsibilities: _performance snapshot source availability_."""
-        return len(self.paths) > 0
+        return len(self._paths) > 0

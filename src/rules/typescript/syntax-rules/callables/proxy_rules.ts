@@ -1,155 +1,153 @@
-import { ProxyArgumentMatcher } from "src/rules/typescript/syntax-rules/callables/proxy_argument_matcher";
-import type { ProxyCallContract } from "src/runtime_protocols";
-import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import type { ProxyRulesContract } from "src/analysis_protocols";
-import { TypeScriptExpressionAliases } from "src/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptMemberAliases } from "src/typescript-aliases/type_script_member_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
+import { ModuleNamespaceImports } from "src/rules/typescript/syntax-rules/callables/module_namespace_imports";
+import { PlatformApiDetector } from "src/rules/typescript/syntax-rules/callables/platform_api_detector";
+import { ProxyArgumentMapper } from "src/rules/typescript/syntax-rules/callables/proxy_argument_mapper";
+import { ProxyFieldAccessorCandidate } from "src/rules/typescript/syntax-rules/callables/proxy_field_accessor_candidate";
+import type { ProxyCallContract } from "src/runtime_protocols";
+import type { PlatformApiDetectionContract } from "src/typescript_analysis_protocols";
+import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
-import type { SourceFileStringSetCache } from "src/source_types";
 
 /** Responsibilities: _proxy callable classification_, _proxy lambda detection_. **/
 export class ProxyRules implements ProxyRulesContract {
-	private readonly proxy_call: ProxyCallContract;
-	private readonly argument_matcher: ProxyArgumentMatcher;
-	private readonly expression_aliases: TypeScriptExpressionAliases;
-	private readonly this_aliases: TypeScriptMemberAliasesContract;
-	private readonly platform_imports: SourceFileStringSetCache;
-
-	/** Responsibilities: _parameter name collection_. **/
-	private parameter_names(node: ts.Node): readonly string[] {
-		if (!ts.isFunctionLike(node)) {
-			return [];
-		}
-		const identifiers = node.parameters.map((parameter) => parameter.name).filter(ts.isIdentifier);
-		if (identifiers.length !== node.parameters.length) {
-			return [];
-		}
-		return identifiers.map((identifier) => identifier.text);
-	}
+	private readonly _proxy_call: ProxyCallContract;
+	private readonly _expression_aliases: TypeScriptExpressionAliasesContract;
+	private readonly _this_aliases: TypeScriptMemberAliasesContract;
+	private readonly _platform_api: PlatformApiDetectionContract;
 
 	/** Responsibilities: _callable target expression_. **/
-	private target_expression(call: ts.Node): ts.Expression {
-		if (ts.isCallExpression(call)) {
-			return call.expression;
+	private target_expression(proxy_target: ts.Node): ts.Expression {
+		if (ts.isCallExpression(proxy_target)) {
+			return proxy_target.expression;
 		}
-		if (ts.isNewExpression(call)) {
-			return call.expression;
+		if (ts.isNewExpression(proxy_target)) {
+			return proxy_target.expression;
 		}
-		if (ts.isPropertyAccessExpression(call)) {
-			return call;
+		if (ts.isPropertyAccessExpression(proxy_target)) {
+			return proxy_target;
 		}
 		throw new Error("Unsupported proxy call expression.");
 	}
 
-	/** Responsibilities: _platform import catalog_. **/
-	private platform_names(source_file: ts.SourceFile): ReadonlySet<string> {
-		const names = new Set<string>();
-		for (const statement of source_file.statements) {
-			if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-				continue;
-			}
-			if (!statement.moduleSpecifier.text.startsWith("node:")) {
-				continue;
-			}
-			const bindings = statement.importClause?.namedBindings;
-			if (bindings === undefined || !ts.isNamedImports(bindings)) {
-				continue;
-			}
-			for (const element of bindings.elements) {
-				names.add(element.name.text);
-			}
-		}
-		return names;
-	}
-
-	/** Responsibilities: _cached source platform imports_. **/
-	private platform_import_names(source_file: ts.SourceFile): ReadonlySet<string> {
-		const cached = this.platform_imports.get(source_file);
-		if (cached !== undefined) {
-			return cached;
-		}
-		const names = this.platform_names(source_file);
-		this.platform_imports.set(source_file, names);
-		return names;
-	}
-
-	/** Responsibilities: _platform API detection_. **/
-	private platform_call(call: ts.Node): boolean {
-		if (!ts.isCallExpression(call)) {
-			return false;
-		}
-		if (!ts.isIdentifier(call.expression)) {
-			return false;
-		}
-		return this.platform_import_names(call.getSourceFile()).has(call.expression.text);
-	}
-
 	/** Responsibilities: _this-target classification_. **/
-	private this_call(call: ts.Node): boolean {
-		if (!ts.isCallExpression(call)) {
+	private this_call(this_invocation: ts.Node): boolean {
+		if (!ts.isCallExpression(this_invocation)) {
 			return false;
 		}
-		const expression = this.expression_aliases.unwrapped(call.expression);
+		const expression = this._expression_aliases.unwrapped(this_invocation.expression);
 		if (ts.isPropertyAccessExpression(expression)) {
 			return expression.expression.kind === ts.SyntaxKind.ThisKeyword;
 		}
 		if (!ts.isIdentifier(expression)) {
 			return false;
 		}
-		return this.this_aliases.member(expression, call);
+		return this._this_aliases.member({ expression, node: this_invocation });
 	}
 
 	/** Responsibilities: _proxy lambda target_. **/
-	private proxy_lambda_target(node: ts.Node): boolean {
-		const parent = node.parent;
+	private proxy_lambda_target(lambda_expression: ts.Node): boolean {
+		const parent = lambda_expression.parent;
 		if (!ts.isPropertyAssignment(parent)) {
 			return false;
 		}
-		if (parent.initializer !== node) {
+		if (parent.initializer !== lambda_expression) {
 			return false;
 		}
-		const calls: readonly ts.Node[] = this.proxy_call.proxy_call(node);
-		if (calls.length === 0) {
+		const calls = this._proxy_call.proxy_call(lambda_expression);
+		for (const call of calls) {
+			if (this.this_call(call)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Responsibilities: _proxy target eligibility_. **/
+	private supported_proxy_target(proxy_target: ts.Node): boolean {
+		if (this._platform_api.platform_call(proxy_target)) {
 			return false;
 		}
-		return this.this_call(calls[0]);
+		if (this._platform_api.platform_adapter_call(proxy_target)) {
+			return false;
+		}
+		return this._proxy_call.supports_target_expression(this.target_expression(proxy_target));
+	}
+
+	/** Responsibilities: _owned collection mutation classification_. **/
+	private owned_collection_mutation(collection_call: ts.Node): boolean {
+		if (!ts.isCallExpression(collection_call) || !ts.isPropertyAccessExpression(collection_call.expression)) {
+			return false;
+		}
+		const collection = collection_call.expression.expression;
+		if (!ts.isPropertyAccessExpression(collection) || collection.expression.kind !== ts.SyntaxKind.ThisKeyword) {
+			return false;
+		}
+		return [
+			"add",
+			"clear",
+			"delete",
+			"fill",
+			"pop",
+			"push",
+			"reverse",
+			"set",
+			"shift",
+			"sort",
+			"splice",
+			"unshift",
+		].includes(collection_call.expression.name.text);
+	}
+
+	/** Responsibilities: _proxy call classification_. **/
+	private proxy_call_candidate(callable_declaration: ts.Node, call: ts.Node): boolean {
+		const accessor = new ProxyFieldAccessorCandidate(callable_declaration, call);
+		if (accessor.implements_contract()) {
+			if (accessor.returns_this_property()) {
+				return true;
+			}
+		}
+		if (this.owned_collection_mutation(call)) {
+			return false;
+		}
+		if (!this.supported_proxy_target(call)) {
+			return false;
+		}
+		const argument_mapping = new ProxyArgumentMapper(callable_declaration, call);
+		const parameters = argument_mapping.parameter_names();
+		return argument_mapping.matching_arguments(parameters);
 	}
 
 	/** Responsibilities: _proxy rule dependency initialization_. **/
-	public constructor(proxy_call: ProxyCallContract) {
-		this.argument_matcher = new ProxyArgumentMatcher();
-		this.expression_aliases = new TypeScriptExpressionAliases("");
-		this.this_aliases = new TypeScriptMemberAliases("this", () => "");
-		this.platform_imports = new WeakMap<ts.SourceFile, ReadonlySet<string>>();
-		this.proxy_call = proxy_call;
+	public constructor(proxy_call: ProxyCallContract, declaration_index: TypeScriptObjectAliasDeclarationIndexContract) {
+		this._expression_aliases = new TypeScriptExpressionAliases("", declaration_index);
+		this._this_aliases = new TypeScriptMemberAliases("this", () => "", declaration_index);
+		this._platform_api = new PlatformApiDetector({
+			module_namespace_imports: new ModuleNamespaceImports(),
+		});
+		this._proxy_call = proxy_call;
 	}
 
 	/** Responsibilities: _callable declaration forwarding_. **/
-	public proxy_callable(node: ts.Node): boolean {
-		const calls: readonly ts.Node[] = this.proxy_call.proxy_call(node);
-		if (calls.length === 0) {
-			return false;
+	public proxy_callable(callable_declaration: ts.Node): boolean {
+		const calls = this._proxy_call.proxy_call(callable_declaration);
+		for (const call of calls) {
+			return this.proxy_call_candidate(callable_declaration, call);
 		}
-		const call = calls[0];
-		if (this.platform_call(call)) {
-			return false;
-		}
-		const target_expression = this.target_expression(call);
-		if (!this.proxy_call.supports_target_expression(target_expression)) {
-			return false;
-		}
-		const parameters = this.parameter_names(node);
-		return this.argument_matcher.matches(call, parameters);
+		return false;
 	}
 
 	/** Responsibilities: _proxy lambda forwarding_. **/
-	public proxy_lambda(node: ts.Node): boolean {
-		if (!ts.isArrowFunction(node) && !ts.isFunctionExpression(node)) {
+	public proxy_lambda(lambda_declaration: ts.Node): boolean {
+		if (!ts.isArrowFunction(lambda_declaration) && !ts.isFunctionExpression(lambda_declaration)) {
 			return false;
 		}
-		if (!this.proxy_lambda_target(node)) {
+		if (!this.proxy_lambda_target(lambda_declaration)) {
 			return false;
 		}
-		return this.proxy_callable(node);
+		return this.proxy_callable(lambda_declaration);
 	}
 }

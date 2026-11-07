@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { REPORTING_PROJECT_ROOT, REVIEW_STAGES } from "src/constants";
 import {
 	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
@@ -16,26 +17,27 @@ import type {
 	ReviewAgentCatalogContract,
 	ReviewAgentContract,
 } from "src/core/support/task/review-agent/protocols";
-import { REPORTING_PROJECT_ROOT, REVIEW_STAGES } from "src/constants";
+import type { IOContract } from "src/io/protocols";
 import type {
 	ReviewAgentCleanupRequest,
 	ReviewAgentExecutionResult,
 	ReviewAgentPromptRequest,
+	ReviewAgentPromptValues,
+	ReviewAgentRequest,
 	ReviewAgentRunRequest,
 	ReviewAgentSelection,
-} from "src/types";
-import type { IOContract } from "src/io/protocols";
+} from "src/task_review_types";
 
 /** Responsibilities: _review-agent provider catalog_, _review-agent selection_. **/
 export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
-	private readonly agents: readonly ReviewAgentContract[];
-	private readonly io: IOContract;
-	private readonly allowed_operations: string;
-	private readonly cleanup_allowed_operations: string;
-	private readonly finding_rules: string;
-	private readonly review_preamble: string;
-	private readonly common_template: MarkdownTemplate;
-	private readonly finding_template: MarkdownTemplate;
+	private readonly _agents: readonly ReviewAgentContract[];
+	private readonly _io: IOContract;
+	private readonly _allowed_operations: string;
+	private readonly _cleanup_allowed_operations: string;
+	private readonly _finding_rules: string;
+	private readonly _review_preamble: string;
+	private readonly _common_template: MarkdownTemplate;
+	private readonly _finding_template: MarkdownTemplate;
 
 	/** Responsibilities: _multi-stage instruction assembly_. **/
 	private review_instructions(templates: readonly MarkdownTemplateContract[]): string {
@@ -63,52 +65,63 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 
 	/** Responsibilities: _review prompt value collection_. **/
 	private prompt_values(
-		request: ReviewAgentPromptRequest,
+		request_values: ReviewAgentPromptValues,
 		open_reviews: string,
 		review_instructions: string,
 	): ReadonlyMap<string, string> {
-		const prompt = request.prompt_request;
 		return new Map([
-			[REVIEW_PREAMBLE_PLACEHOLDER, this.review_preamble],
-			["{{ROOT}}", prompt.root],
-			["{{INSTRUCTION}}", prompt.instruction],
-			["{{REVIEW_PREFIX}}", prompt.hook.review_prefix],
+			[REVIEW_PREAMBLE_PLACEHOLDER, this._review_preamble],
+			["{{ROOT}}", request_values.root],
+			["{{INSTRUCTION}}", request_values.instruction],
+			["{{REVIEW_PREFIX}}", request_values.review_prefix],
 			["{{REVIEW_STAGE}}", ""],
 			["{{REVIEW_STAGE_PLAN}}", ""],
-			[ALLOWED_OPERATIONS_PLACEHOLDER, this.allowed_operations],
-			["{{CLEANUP_ALLOWED_OPERATIONS}}", this.cleanup_allowed_operations],
-			["{{REVIEW_FINDING_RULES}}", this.finding_rules],
+			[ALLOWED_OPERATIONS_PLACEHOLDER, this._allowed_operations],
+			["{{CLEANUP_ALLOWED_OPERATIONS}}", this._cleanup_allowed_operations],
+			["{{REVIEW_FINDING_RULES}}", this._finding_rules],
 			["{{REVIEW_INSTRUCTIONS}}", review_instructions],
 			["{{OPEN_REVIEWS}}", open_reviews],
-			[REVIEW_PATH_PLACEHOLDER, prompt.review_root],
-			["{{REVIEW_ROOT}}", prompt.review_root],
+			[REVIEW_PATH_PLACEHOLDER, request_values.review_root],
+			["{{REVIEW_ROOT}}", request_values.review_root],
 		]);
 	}
 
 	/** Responsibilities: _review prompt template reading_, _prompt value substitution_. **/
 	private prompt_from_documents(request: ReviewAgentPromptRequest, documents: readonly string[]): string {
 		const templates = documents.map(
-			(document) => new MarkdownTemplate(join(REPORTING_PROJECT_ROOT, "docs", "agent", document), this.io),
+			(document) => new MarkdownTemplate(join(REPORTING_PROJECT_ROOT, "docs", "agent", document), this._io),
 		);
 		const template_texts = templates.map((template) => template.render_all(new Map()));
 		const template = template_texts.join("\n\n");
 		const review_instructions = this.review_instructions(templates);
 		const open_reviews = this.file_paths(request.prompt_request.open_review_files);
-		return this.common_template
-			.render_text(template, this.prompt_values(request, open_reviews, review_instructions))
+		return this._common_template
+			.render_text(
+				template,
+				this.prompt_values(
+					{
+						root: request.prompt_request.root,
+						instruction: request.prompt_request.instruction,
+						review_prefix: request.prompt_request.hook.review_prefix,
+						review_root: request.prompt_request.review_root,
+					},
+					open_reviews,
+					review_instructions,
+				),
+			)
 			.trim();
 	}
 
 	/** Responsibilities: _parallel review-agent result_. **/
 	private async agent_result_async(
 		agent: ReviewAgentContract,
-		request: ReviewAgentRunRequest,
+		request: ReviewAgentRequest,
 	): Promise<ReviewAgentExecutionResult> {
-		let prompt = request.run_request.prompt;
+		let prompt = request.prompt;
 		if (prompt.length === 0) {
-			prompt = this.prompt({ prompt_request: request.run_request });
+			prompt = this.prompt({ prompt_request: request });
 		}
-		const process = await agent.run_async({ ...request.run_request, prompt });
+		const process = await agent.run_async({ ...request, prompt });
 		if (process.exit_code !== 0) {
 			return {
 				provider: "none",
@@ -126,56 +139,56 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 	}
 
 	/** Responsibilities: _review-agent selection_. **/
-	private async selected_agent(
+	private selected_agent(
 		selection: ReviewAgentSelection,
-		request: ReviewAgentRunRequest,
+		request: ReviewAgentRequest,
 	): Promise<ReviewAgentExecutionResult> {
-		for (const agent of this.agents) {
+		for (const agent of this._agents) {
 			if (agent.agent_name() !== selection) {
 				continue;
 			}
 			if (!agent.available()) {
-				return {
+				return Promise.resolve({
 					provider: "none",
 					process: { exit_code: 1, stdout: "", stderr: `${selection} is unavailable` },
 					no_issues: false,
 					message: `${selection} is unavailable. Rerun with \`ai-code-guard --review-agent ${selection}\`; optionally choose the model or reasoning effort before rerunning.`,
-				};
+				});
 			}
 			return this.agent_result_async(agent, request);
 		}
-		return {
+		return Promise.resolve({
 			provider: "none",
 			process: { exit_code: 1, stdout: "", stderr: `${selection} is not configured` },
 			no_issues: false,
 			message: `${selection} is not configured`,
-		};
+		});
 	}
 
 	/** Responsibilities: _review-agent provider initialization_. **/
-	constructor(agents: readonly ReviewAgentContract[], io: IOContract) {
-		this.agents = agents;
-		this.io = io;
-		this.common_template = new MarkdownTemplate(
+	public constructor(agents: readonly ReviewAgentContract[], io: IOContract) {
+		this._agents = agents;
+		this._io = io;
+		this._common_template = new MarkdownTemplate(
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_COMMON_DOCUMENT),
-			this.io,
+			this._io,
 		);
 		const cleanup_common_template = new MarkdownTemplate(
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT),
-			this.io,
+			this._io,
 		);
-		this.finding_template = new MarkdownTemplate(
+		this._finding_template = new MarkdownTemplate(
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_FINDING_DOCUMENT),
-			this.io,
+			this._io,
 		);
 		const preamble_template = new MarkdownTemplate(
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_PREAMBLE_DOCUMENT),
-			this.io,
+			this._io,
 		);
-		this.allowed_operations = this.common_template.render_all(new Map());
-		this.cleanup_allowed_operations = cleanup_common_template.render_all(new Map());
-		this.finding_rules = this.finding_template.render_all(new Map());
-		this.review_preamble = preamble_template.render_all(new Map());
+		this._allowed_operations = this._common_template.render_all(new Map());
+		this._cleanup_allowed_operations = cleanup_common_template.render_all(new Map());
+		this._finding_rules = this._finding_template.render_all(new Map());
+		this._review_preamble = preamble_template.render_all(new Map());
 	}
 
 	/** Responsibilities: _review-agent prompt construction_. **/
@@ -211,9 +224,10 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 				provider: "none",
 				process: { exit_code: 1, stdout: "", stderr: "" },
 				no_issues: false,
-				message: "No review agent was selected. Architecture review is skipped unless --review-agent codex|claude is provided.",
+				message:
+					"No review agent was selected. Architecture review is skipped unless --review-agent codex|claude is provided.",
 			});
 		}
-		return this.selected_agent(selection, request);
+		return this.selected_agent(selection, request.run_request);
 	}
 }
