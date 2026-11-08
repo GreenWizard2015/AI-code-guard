@@ -1,33 +1,36 @@
 import { PUBLIC_FIELD_KIND } from "src/constants";
-import type { UnusedSymbolReferenceIndexContract } from "src/contracts/protocols/global_analysis_protocols";
+import type {
+	UnusedSymbolImportIndexContract,
+	UnusedSymbolParameterShadowContract,
+	UnusedSymbolPropertyOwnershipContract,
+	UnusedSymbolPropertyUsageIndexContract,
+	UnusedSymbolReferenceIndexContract,
+} from "src/contracts/protocols/global_analysis_protocols";
 import { SourceReferenceIndex } from "src/core/source_reference_index";
 import type { UnusedSourceImportCache, UnusedSymbolDefinition } from "src/core/types";
 import { UnusedSymbolImportIndex } from "src/linting/orchestration/runtime/global-analysis/unused-symbol-ownership/unused_symbol_import_index";
 import { UnusedSymbolOwnership } from "src/linting/orchestration/runtime/global-analysis/unused-symbol-ownership/unused_symbol_ownership";
 import { UnusedSymbolPropertyUsageIndex } from "src/linting/orchestration/runtime/global-analysis/unused-symbol-ownership/unused_symbol_property_usage_index";
-import { UnusedSymbolAliasIndex } from "src/linting/orchestration/runtime/global-analysis/unused_symbol_alias_index";
+import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
 import type { ProjectSourceScanContract } from "src/source_protocols";
-import type { PendingUnusedSymbolReference } from "src/source_types";
-import type { LintSourceRecordData } from "src/source_types";
+import type { LintSourceRecordData, PendingUnusedSymbolReference } from "src/source_types";
 
-/** Responsibilities: _unused symbol usage binding_, _import ownership resolution_. **/
+/** Responsibilities: _source reference collection_, _symbol ownership resolution_, _usage presence lookup_. **/
 export class UnusedSymbolReferenceIndex implements UnusedSymbolReferenceIndexContract {
-	private readonly _references: SourceReferenceIndex<string>;
-	private readonly _import_index: UnusedSymbolImportIndex;
-	private readonly _alias_index: UnusedSymbolAliasIndex;
-	private readonly _ownership: UnusedSymbolOwnership;
-	private readonly _property_usage_index: UnusedSymbolPropertyUsageIndex;
+	private readonly _references: SourceReferenceIndexContract<string>;
+	private readonly _import_index: UnusedSymbolImportIndexContract;
+	private readonly _ownership: UnusedSymbolPropertyOwnershipContract;
+	private readonly _parameter_shadow: UnusedSymbolParameterShadowContract;
+	private readonly _property_usage_index: UnusedSymbolPropertyUsageIndexContract;
 	private readonly _pending_references: PendingUnusedSymbolReference[];
 
 	/** Responsibilities: _source usage indexing_. **/
-	private add_source_reference(source: LintSourceRecordData, name: string, line: number): void {
-		if (this._ownership.parameter_shadow(source, name, line)) {
+	private add_source_reference(reference: PendingUnusedSymbolReference): void {
+		const { source, name, line } = reference;
+		if (this._parameter_shadow.parameter_shadow(source, name, line)) {
 			return;
 		}
-		for (const reference_name of this._alias_index.names(source, name)) {
-			this._references.add_usage_once(`${source.relative_path}\u0000${reference_name}`, source.relative_path, line);
-		}
-		for (const definition of this._import_index.imported_definitions(source.absolute_path, name)) {
+		for (const definition of this._import_index.imported_definitions(reference)) {
 			this._references.add_usage_once(`${definition.file}\u0000${definition.name}`, source.relative_path, line);
 		}
 	}
@@ -36,7 +39,7 @@ export class UnusedSymbolReferenceIndex implements UnusedSymbolReferenceIndexCon
 	private finalize_references(): void {
 		const pending = this._pending_references.splice(0);
 		for (const reference of pending) {
-			this.add_source_reference(reference.source, reference.name, reference.line);
+			this.add_source_reference(reference);
 		}
 	}
 
@@ -47,16 +50,11 @@ export class UnusedSymbolReferenceIndex implements UnusedSymbolReferenceIndexCon
 		definitions_by_file: ReadonlyMap<string, readonly UnusedSymbolDefinition[]>,
 	) {
 		const import_cache: UnusedSourceImportCache = new Map<string, ReadonlySet<string>>();
-		this._alias_index = new UnusedSymbolAliasIndex();
 		this._references = new SourceReferenceIndex<string>();
-		this._import_index = new UnusedSymbolImportIndex(
-			scanner,
-			available_files,
-			definitions_by_file,
-			import_cache,
-			this._alias_index,
-		);
-		this._ownership = new UnusedSymbolOwnership(scanner, available_files, definitions_by_file, import_cache);
+		this._import_index = new UnusedSymbolImportIndex(scanner, available_files, definitions_by_file, import_cache);
+		const ownership = new UnusedSymbolOwnership(scanner, available_files, definitions_by_file, import_cache);
+		this._ownership = ownership;
+		this._parameter_shadow = ownership;
 		this._property_usage_index = new UnusedSymbolPropertyUsageIndex(this._references, this._ownership);
 		this._pending_references = [];
 	}
@@ -80,7 +78,6 @@ export class UnusedSymbolReferenceIndex implements UnusedSymbolReferenceIndexCon
 
 	/** Responsibilities: _source usage collection_. **/
 	public add_source(source: LintSourceRecordData): void {
-		this._alias_index.add_source(source);
 		this._import_index.add_source(source);
 		const references = source.normalized_ast.references.symbol_references;
 		if (Array.isArray(references)) {

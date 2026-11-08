@@ -13,7 +13,7 @@ export type PythonAstWorkerLeaseFixtureState = {
 	readonly options: SpawnOptions;
 	readonly key: string;
 	readonly worker: PythonCacheWorker;
-	readonly registry_entries: ReadonlyMap<string, PythonAstWorkerRegistryEntry>;
+	readonly registry_entries: Map<string, PythonAstWorkerRegistryEntry>;
 };
 
 export type CallableFileIOFactory<FileIO extends IOContract = InMemoryFileIO> = (
@@ -25,6 +25,11 @@ export type TaskDocuments = {
 	output: string;
 	issues: string;
 	report: string;
+};
+export type TaskReviewIgnoredSourceResult = {
+	review_failed: boolean;
+	ignored_source_reported: boolean;
+	report_written: boolean;
 };
 export type ShortReviewResult = {
 	output: string;

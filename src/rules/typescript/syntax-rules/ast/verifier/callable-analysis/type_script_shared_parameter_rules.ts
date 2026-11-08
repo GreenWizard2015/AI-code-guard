@@ -54,7 +54,11 @@ export class TypeScriptSharedParameterRules implements ASTSourceRuleContract {
 	/** Responsibilities: _class declaration name lookup_. **/
 	private class_declaration_name(declaration: ts.Node): string {
 		if (ts.isClassLike(declaration)) {
-			return declaration.name?.text ?? "";
+			const name = declaration.name;
+			if (name === undefined) {
+				return "";
+			}
+			return name.text;
 		}
 		if (ts.isInterfaceDeclaration(declaration)) {
 			return declaration.name.text;

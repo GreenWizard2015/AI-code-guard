@@ -27,6 +27,7 @@ export class TaskReviewCacheScenario {
 				source_texts: fixture._source_texts,
 				configuration_snapshot_complete: false,
 				entry_files: [],
+				project_analysis_enabled: false,
 			})
 			.report.violations.filter((item) => item.rule_id() === "unused-class")
 			.map((item) =>

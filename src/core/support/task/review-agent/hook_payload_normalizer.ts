@@ -1,10 +1,9 @@
-import type { RawHookPayload, RawHookToolInput, ReviewHookPhase } from "src/core/support/task/review-agent/types";
+import type { RawHookPayload, RawHookToolInput } from "src/core/support/task/review-agent/types";
 import type { HookPayload } from "src/model_types";
 
 /** Responsibilities: _provider hook payload normalization_, _Codex tool compatibility_. **/
 export class HookPayloadNormalizer {
 	private readonly _review_prefix: string;
-	private readonly _trusted_review_phase: ReviewHookPhase;
 	private readonly _review_start_ms: number;
 
 	/** Responsibilities: _provider tool input boundary_. **/
@@ -33,9 +32,8 @@ export class HookPayloadNormalizer {
 	}
 
 	/** Responsibilities: _normalizer configuration_. **/
-	public constructor(review_prefix: string, review_phase: string, review_start_ms: number) {
+	public constructor(review_prefix: string, review_start_ms: number) {
 		this._review_prefix = review_prefix;
-		this._trusted_review_phase = review_phase === "cleanup" ? "cleanup" : "initial";
 		this._review_start_ms = review_start_ms;
 		if (this._review_prefix.length > 0 && this._review_prefix.trim().length === 0) {
 			throw new Error("Review hook prefix must not be empty.");
@@ -71,7 +69,6 @@ export class HookPayloadNormalizer {
 			cwd: this.text(raw.cwd),
 			review_stage: this.text(raw.review_stage),
 			review_prefix: this._review_prefix,
-			review_phase: this._trusted_review_phase,
 			review_start_ms: this._review_start_ms,
 		};
 	}

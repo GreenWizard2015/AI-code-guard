@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonSubtestAliasesContract
 from implementation.references.decorator_protocols import (
@@ -8,7 +9,7 @@ from implementation.references.decorator_protocols import (
 )
 from implementation.references.protocols import PythonContainerKeysContract
 from implementation.rules.constants import SPECIAL_NAMES
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonCodingIssueStages:
@@ -106,7 +107,12 @@ class PythonCodingIssueStages:
         name = self._shape_name(shape_expression)
         if name not in SPECIAL_NAMES:
             return []
-        return [{"line": shape_expression.lineno - 1, "kind": "multiple-result-shapes"}]
+        return [
+            {
+                "line": cast(PythonASTLocatedNode, shape_expression).lineno - 1,
+                "kind": "multiple-result-shapes",
+            },
+        ]
 
     def property_issues(self, property_declaration: ast.AST) -> list[JsonObject]:
         """Responsibilities: _property issue collection_."""
@@ -138,4 +144,9 @@ class PythonCodingIssueStages:
         aliases = self._subtest_aliases.aliases_for(subtest_candidate)
         if not self._subtest_aliases.matches(subtest_candidate, aliases):
             return []
-        return [{"line": subtest_candidate.lineno - 1, "kind": "python-test-subtest"}]
+        return [
+            {
+                "line": cast(PythonASTLocatedNode, subtest_candidate).lineno - 1,
+                "kind": "python-test-subtest",
+            },
+        ]

@@ -5,9 +5,9 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("tuple type rules", () => {
-	test("reports positional tuple contracts and aliases in both languages", () => {
+	test("reports positional tuple contracts across languages and aliases", () => {
 		const fixture = new TestFixture();
-		const execution = fixture.with_lint_request(
+		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"readonly.ts": "export type Result = readonly [file: string, name: string];",
@@ -26,22 +26,38 @@ describe("tuple type rules", () => {
 					"    return value",
 				].join("\n"),
 			},
-			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode).report,
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-
-		expect(execution.violations.filter((item) => item.rule_id() === "tuple-type")).toHaveLength(9);
+		const tuple_locations = violations
+			.filter((item) => item.rule_id() === "tuple-type")
+			.map((item) => `${item.file()}:${item.line()}`)
+			.sort();
+		expect(tuple_locations).toEqual([
+			"positional.ts:1",
+			"python-alias.py:3",
+			"python-alias.py:3",
+			"python-alias.py:6",
+			"python-alias.py:6",
+			"python-alias.py:9",
+			"python-alias.py:9",
+			"python-tuple.py:1",
+			"readonly.ts:1",
+		]);
 	});
 
-	test("allows named result contracts", () => {
+	test("accepts named result contracts", () => {
 		const fixture = new TestFixture();
-		const execution = fixture.with_lint_request(
+		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"result.ts": "export interface Result { file: string; name: string; }",
-			},
-			(production_lint_configuration, options, mode) => production_lint_configuration.lint_report(options, mode).report,
+			{ "named-result.ts": "export interface NamedResult { file: string; name: string; }" },
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
+		const named_result_locations = violations
+			.filter((item) => item.file() === "named-result.ts" && item.rule_id() === "tuple-type")
+			.map((item) => `${item.file()}:${item.line()}`);
 
-		expect(execution.violations.filter((item) => item.rule_id() === "tuple-type")).toHaveLength(0);
+		expect(named_result_locations).toEqual([]);
 	});
 });

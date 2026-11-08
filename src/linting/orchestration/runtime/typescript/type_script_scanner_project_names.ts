@@ -42,7 +42,11 @@ export class TypeScriptScannerProjectNames implements ProjectNameMembershipContr
 		const collector = new TypeScriptImportBindingCollector(statement, this._options, module_path);
 		collector.collect();
 		collector.append_to(additions, exclusions);
-		const namespace = statement.importClause?.namedBindings;
+		const import_clause = statement.importClause;
+		if (import_clause === undefined) {
+			return;
+		}
+		const namespace = import_clause.namedBindings;
 		if (namespace === undefined || !ts.isNamespaceImport(namespace)) {
 			return;
 		}

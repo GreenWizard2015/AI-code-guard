@@ -1,4 +1,4 @@
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
 	RULE_DATA_BY_ID,
 	TASK_REPORT_DIRECTORY_SCOPE,
@@ -26,20 +26,13 @@ export class TaskViolationGroups {
 	}
 
 	/** Responsibilities: _scope-specific path collection_. **/
-	private normalized_path(file: string): string {
-		if (isAbsolute(file)) {
-			return file;
-		}
-		return resolve(this._root, file);
-	}
-
-	/** Responsibilities: _scope-specific path collection_. **/
 	private scoped_paths(scope: TaskReportDiagnosticScope): TaskScopedViolationPath[] {
 		const paths: TaskScopedViolationPath[] = [];
 		for (const violation of this._violations) {
 			if (this.report_scope(violation.rule_id()) === scope) {
 				const file = violation.file();
-				paths.push({ path: new TaskViolationPath(this._root, file), absolute_path: this.normalized_path(file) });
+				const path = new TaskViolationPath(this._root, file);
+				paths.push({ path, absolute_path: resolve(this._root, file) });
 			}
 		}
 		return paths;
@@ -117,7 +110,7 @@ export class TaskViolationGroups {
 	public path_priorities(): Map<string, number> {
 		const priorities = new Map<string, number>();
 		for (const violation of this._violations) {
-			const path = this.normalized_path(violation.file());
+			const path = resolve(this._root, violation.file());
 			const current_priority = priorities.get(path);
 			if (current_priority === undefined || violation.priority() > current_priority) {
 				priorities.set(path, violation.priority());
@@ -130,7 +123,7 @@ export class TaskViolationGroups {
 	public violations_by_path(): Map<string, ViolationContract[]> {
 		const groups = new Map<string, ViolationContract[]>();
 		for (const violation of this._violations) {
-			const path = this.normalized_path(violation.file());
+			const path = resolve(this._root, violation.file());
 			let group = groups.get(path);
 			if (group === undefined) {
 				group = [];
@@ -147,7 +140,7 @@ export class TaskViolationGroups {
 	): Map<string, TaskViolationSuppression[]> {
 		const groups = new Map<string, TaskViolationSuppression[]>();
 		for (const suppression of suppressions) {
-			const path = this.normalized_path(suppression.violation.file());
+			const path = resolve(this._root, suppression.violation.file());
 			let group = groups.get(path);
 			if (group === undefined) {
 				group = [];

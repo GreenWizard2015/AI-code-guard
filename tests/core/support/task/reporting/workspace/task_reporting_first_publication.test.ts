@@ -1,5 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { REPORTING_PROJECT_ROOT } from "src/constants";
 import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
 import { ViolationValue } from "src/model/violation_value";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -15,6 +16,20 @@ describe("task reporting first publication", () => {
 		hint: "parse-error hint",
 		rule_id: "parse-error",
 		priority: 3,
+	});
+
+	test("publishes lint-only reports without review-agent templates", () => {
+		const fixture_factory = new TaskReportingMemoryFixture();
+		const fixture = fixture_factory.create(files);
+		fixture._file_io.remove_path(join(REPORTING_PROJECT_ROOT, "docs", "agent"));
+		const reporting = new TaskReporting(fixture._root, {
+			file_io: fixture._file_io,
+			documentation: fixture._documentation,
+		});
+
+		const output = reporting.format([], { batch_size: 10, policy: "all", skip_review: false });
+
+		expect(output).toContain("Report in file");
 	});
 
 	test("removes a first batch completely when report publication fails", () => {

@@ -23,15 +23,32 @@ export class FileLintAnalysis {
 		return new FileViolationCollector(test_violations, file_io, source_io);
 	}
 
+	/** Responsibilities: _ignore-file identity content_. **/
+	private ignore_file_content(): string[] {
+		const { state } = this._options;
+		const source_io = state.context.source_io();
+		const content: string[] = [];
+		for (const path of state.ignore_files) {
+			let identity = JSON.stringify([path, false, ""]);
+			if (source_io.source_available(path)) {
+				identity = JSON.stringify([path, true, source_io.source_text(path)]);
+			}
+			content.push(identity);
+		}
+		content.sort();
+		return content;
+	}
+
 	/** Responsibilities: _file analysis identity_. **/
 	private context_identity(): string {
 		const { state, analysis_identity } = this._options;
-		const sorted_files = [...state.inventory.files];
-		sorted_files.sort();
-		const sorted_entry_files = [...state.inventory.entry_files];
-		sorted_entry_files.sort();
-		const sorted_ignored_files = [...state.inventory.ignored_files];
-		sorted_ignored_files.sort();
+		const files = [...state.inventory.files];
+		files.sort();
+		const entry_files = [...state.inventory.entry_files];
+		entry_files.sort();
+		const ignored_files = [...state.inventory.ignored_files];
+		ignored_files.sort();
+		const ignore_content = this.ignore_file_content();
 		const has_typescript = state.inventory.files.some(
 			(file) => state.context.source_record(file).language === TYPESCRIPT_LANGUAGE,
 		);
@@ -39,7 +56,7 @@ export class FileLintAnalysis {
 			return this._options.context_identity;
 		}
 		return analysis_identity.content(
-			JSON.stringify([this._options.context_identity, sorted_files, sorted_entry_files, sorted_ignored_files]),
+			JSON.stringify([this._options.context_identity, files, entry_files, ignored_files, ignore_content]),
 		);
 	}
 

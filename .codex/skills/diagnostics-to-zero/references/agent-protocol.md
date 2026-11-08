@@ -1,40 +1,19 @@
 # Agent protocol
 
-Delegate substantial diagnostic implementation under `../SKILL.md`; the coordinator may directly handle recorded small independent batches. The coordinator owns the inventory, architecture, integration, checks, and final outcome; assigned agents implement their bounded batches directly without recursively delegating.
+Check the latest complete inventory before delegating: if affected files < 10 OR remaining diagnostics <= 30, the coordinator closes all remaining work directly with no new agent assignments. Count deferred findings too. On crossing the threshold, collect active work or obtain stop/handoff before taking ownership. Above both thresholds, delegate substantial repairs; the coordinator may own small independent fixes. One owner per coherent scope. Agents implement directly without recursive delegation. Agents may read project files and edit only assigned write paths. If direct file tools are unavailable, allow shell for reading files (`rg`, `sed`, `cat`) and applying scoped patches (`apply_patch`); related in-root files may be read for context. Agents must not run Git, tests, scripts, syntax/type/lint checks, formatters, builds, project CLIs, package installation, network operations or background jobs. The coordinator runs checks and owns validation.
 
 ## Assignment
 
-Use a current complete snapshot. Assign a coherent repair including affected callers, imports, obsolete contracts, and relevant tests; disjoint ownership is required for parallel edits. Keep shared rule registration, dispatch, AST/context, configuration, and cross-cutting infrastructure with one assigned owner. If a required file is outside scope, the agent reports the dependency before editing it.
+Send a filtered inventory with snapshot, finding IDs/count, root cause/evidence, owned/prohibited paths, real dependencies, intended owner/API, adjacent-rule constraints, preserved invariants, coordinator-run checks and expected deliverables. Include callers/imports/obsolete types/fixtures needed to finish the change. Keep shared infrastructure under one owner or sequence it. Do not send the entire skill or full project report when a scoped assignment suffices.
 
-Send a filtered inventory, not the whole report, using this template:
+Require changed paths, handled/unresolved findings, tests added, unexpected expansion and check requests. Agent-estimated resolution is provisional until measured. Report overlap/ambiguity immediately; send a useful progress update for work exceeding fifteen minutes. Do not send routine heartbeats. Keep agents open unless the user requests otherwise.
 
-> **Goal/evidence:** root cause, snapshot ID, exact findings/fingerprints and count.
-> **Own / do not edit:** bounded paths and shared dependencies.
-> **Design:** intended owner/lifetime, accepted nearby pattern, adjacent rule constraints, expected resolved findings and possible exposed descendants. Prefer existing owners; avoid new thin wrappers, factories, or request objects that merely move violations.
-> **Preserve:** behavior, rule coverage/thresholds, and applicable lifecycle, concurrency, traversal, cache or performance invariants.
-> **Commands:** agents may use read-only shell commands (`cat`, `sed`, `rg`, `ls`) to inspect their assigned files and use patch/file-editing tools for their owned paths. Do not run project code, tests, syntax/type checks, lint, formatters, Git commands, scripts, or background jobs. Request a necessary check from the coordinator with the exact command, purpose, inputs and expected outputs; only the coordinator runs checks.
-> **Return:** changed paths, assigned findings handled/unresolved, regressions suspected, tests added, checks actually run, dependencies, and next step. Do not claim verified resolution without a current analyzer result.
+## Rolling integration
 
-Confirm scope before edits. Report overlap, ambiguity, unexpected architecture expansion, or inability to preserve behavior immediately. For work exceeding fifteen minutes, send a useful midpoint update: handled, remaining, blocked, new risks, and next action. Do not spend the interval building an unrequested framework.
+Keep assignments and the coordinator's own next task in the existing shared status file. Review finished batches promptly and refill independent capacity. New snapshots do not invalidate unchanged independent assignments. Do not wait for all agents to inspect a ready stable area; do not check dependencies still being edited.
 
-## Coordination
+Before a global check arrange a short no-write checkpoint. The coordinator checks changed-file syntax and test-path existence before expensive checks, reuses passing checks on unchanged dependencies, and compares a complete fresh inventory at each integration wave. Save verbose logs outside model output and send only concise results/failing excerpts. Agents correct failures within their scope.
 
-Maintain one coordinator-owned ledger: snapshot, finding/group, owner, paths, status (`queued`, `active`, `ready`, `integrated`, `verified`, `blocked`), remaining findings, and next action. Each batch has one recorded owner. Agent batches require a successful real assignment; small independent batches may be coordinator-owned with exact findings and write paths. Reuse agents and assign precise follow-up work. Do not take over an active agent's edits without an explicit handoff.
+Use event-driven or 30–60-second agent waits instead of repeated polling. Before transferring active work, obtain stop/handoff and reconcile the partial diff. Never edit another owner's scope concurrently. If a structural approach creates new violations twice, revisit the whole owner/API boundary using `repair-design.md` rather than stacking repairs. Preserve unrelated changes.
 
-A refreshed snapshot does not automatically invalidate independent work. Recheck queued findings and dependencies; cancel or amend only assignments actually affected by intervening changes. An agent finding someone else's issue reports evidence rather than editing that scope.
-
-Record a concrete coordinator task alongside active agent tasks. Follow the work queue in `SKILL.md`: review/check ready work, close small coordinator-owned files/findings, reproduce unclear findings, prepare and dispatch independent next batches, then resolve upcoming constraints and dependencies. Attach the useful result to the ledger or assignment. Do not mark the coordinator busy merely because it is waiting on a process.
-
-The coordinator runs all checks and project commands. Agents may use read-only inspection commands under their assigned scope and request useful checks with exact commands, scope and expected outputs, then continue independent inspection/editing. The coordinator returns command, exit code, scope/snapshot and output location; agents correct failures within their assigned scope. Avoid rerunning passing checks on unchanged inputs/dependencies, but still verify integrated behavior. Never bypass the check restriction through another tool or agent.
-
-Review finished work without waiting for every peer. Refill available agent capacity with independent prepared work; do not start a full scan merely because one trivial batch returned. For shared-tree global checks, request a brief no-write checkpoint after coherent edits; for scoped checks, verify actual dependency and output independence. Default to one heavy project job, allowing cheap independent checks. A long batch must not block review and scoped validation of unrelated finished work.
-
-Ask for a status update only when a useful agreed checkpoint is missed or a dependency needs clarification; avoid repeated polling. Before transferring an active batch, obtain the old owner's stop/handoff and reconcile its partial diff, so two agents never edit the same scope. Keep agents open unless the user requests otherwise.
-
-## Integration waves
-
-Collect ready batches into a stable checkpoint; a wave need not include every active agent. Review diffs and run checks at the cost appropriate to the change, as described in `SKILL.md`. Use one full analyzer comparison per coherent wave; do not repeat it per trivial return. Shared infrastructure changes require early semantic regression checks and a full inventory refresh before dependent assignments.
-
-Reconcile every assigned fingerprint against the fresh full report before marking verified. Separate introduced regressions from exposed descendants and scope changes. Send regressions back to the same owner as part of the repair. If the design creates fresh structural violations twice, pause layering and assign a simpler alternative or a selective reversion of only that batch's edits. Never overwrite unrelated user changes.
-
-Report starting/current totals, resolved/introduced/exposed/unknown counts, remaining groups, checks, and next step. Distinguish estimates from measured results. Completion reports, partial scans, and passing types alone do not prove a batch is fixed.
+Report measured deltas and new causes, not repeated unchanged totals. Mark verified only after complete inventory reconciliation; types, targeted scans and agent reports alone are insufficient.

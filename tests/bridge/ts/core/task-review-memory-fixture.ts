@@ -3,7 +3,6 @@ import { join } from "node:path";
 import { REPORTING_PROJECT_ROOT } from "src/constants";
 import { RULE_DATA, RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import {
-	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
 	REVIEW_DOCUMENT_NAMES,
 	REVIEW_FINDING_DOCUMENT,
@@ -47,7 +46,6 @@ export class TaskReviewMemoryFixture {
 		}
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_PREAMBLE_DOCUMENT), "Review preamble.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_COMMON_DOCUMENT), "Allowed operations.\n");
-		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT), "Cleanup operations.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_FINDING_DOCUMENT), "Finding requirements.\n");
 		const io = new InMemoryFileIO();
 		io.seed_files(files);

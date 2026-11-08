@@ -3,10 +3,12 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 from functools import cached_property
+from typing import cast
 
 from implementation.references.protocols import (
     PythonSubtestAliasesOptionsContract,
 )
+from implementation.types import PythonASTLocatedNode
 
 
 @dataclass
@@ -41,12 +43,12 @@ class PythonSubtestAliasAnalysis:
         """Responsibilities: _prior assignment selection_."""
         prior_assignments: list[ast.AST] = []
         for assignment in self._state.assignments:
-            if assignment.lineno < node.lineno:
+            if cast(PythonASTLocatedNode, assignment).lineno < cast(PythonASTLocatedNode, node).lineno:
                 prior_assignments.append(assignment)
                 continue
-            if assignment.lineno > node.lineno:
+            if cast(PythonASTLocatedNode, assignment).lineno > cast(PythonASTLocatedNode, node).lineno:
                 continue
-            if assignment.col_offset < node.col_offset:
+            if cast(PythonASTLocatedNode, assignment).col_offset < cast(PythonASTLocatedNode, node).col_offset:
                 prior_assignments.append(assignment)
         return prior_assignments
 

@@ -29,7 +29,11 @@ export class TypeScriptImportedInstanceAliases {
 		if (!ts.isImportDeclaration(import_statement)) {
 			return [];
 		}
-		const bindings = import_statement.importClause?.namedBindings;
+		const import_clause = import_statement.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (!bindings || !ts.isNamedImports(bindings)) {
 			return [];
 		}

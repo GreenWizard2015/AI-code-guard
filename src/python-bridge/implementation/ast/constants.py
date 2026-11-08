@@ -63,7 +63,9 @@ CALLABLE_TEST_BEHAVIOR_FIELDS = frozenset(
         "unittest_assertion_count",
     },
 )
-CALLABLE_DECLARATION_FIELDS = frozenset({"decorators", "is_accessor", "has_self"})
+CALLABLE_DECLARATION_FIELDS = frozenset(
+    {"decorators", "parameterized_case_count", "is_accessor", "has_self"},
+)
 CALLABLE_GROUPED_FIELDS = CALLABLE_IDENTITY_FIELDS.union(
     CALLABLE_METRIC_FIELDS,
     CALLABLE_SIGNATURE_FIELDS,

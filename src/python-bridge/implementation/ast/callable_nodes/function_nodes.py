@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import cast
 
-from implementation.ast.callable_nodes.python_function_node_context import PythonFunctionNodeContext
+from implementation.ast.callable_nodes.python_function_node_context import (
+    PythonFunctionNodeContext,
+)
 from implementation.ast.callable_nodes.python_function_node_record import (
     PythonFunctionNodeRecord,
 )
@@ -20,7 +23,7 @@ from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonScopedTypeAliasesContract,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 @dataclass(frozen=True)
@@ -93,5 +96,5 @@ class PythonFunctionNodes:
             return {"count": 0, "first_line": 0}
         return {
             "count": len(nodes),
-            "first_line": min(node.lineno for node in nodes) - 1,
+            "first_line": min(cast(PythonASTLocatedNode, node).lineno for node in nodes) - 1,
         }

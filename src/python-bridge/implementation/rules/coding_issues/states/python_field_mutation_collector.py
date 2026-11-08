@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonFieldMutationCollector:
@@ -68,4 +69,9 @@ class PythonFieldMutationCollector:
         invalid_targets = [target for target in targets if self._invalid_store_target(target)]
         if not invalid_targets:
             return []
-        return [{"line": invalid_targets[0].lineno - 1, "kind": "object-field-write"}]
+        return [
+            {
+                "line": cast(PythonASTLocatedNode, invalid_targets[0]).lineno - 1,
+                "kind": "object-field-write",
+            },
+        ]

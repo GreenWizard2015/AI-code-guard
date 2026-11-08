@@ -12,7 +12,7 @@ import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-re
 import { TaskReviewFailingSourceIO } from "tests/bridge/ts/core/task-review-failing-source-io";
 import { TaskReviewMemoryFixture } from "tests/bridge/ts/core/task-review-memory-fixture";
 
-describe("coding-lint process status reporting", () => {
+describe("CLI task and review process status", () => {
 	const fixture_factory = new TaskReviewMemoryFixture();
 
 	test("returns a failing status for a blocking lint report", async () => {
@@ -23,6 +23,19 @@ describe("coding-lint process status reporting", () => {
 		expect(status).toEqual({ lint_failed: true, review_failed: false });
 	});
 
+	test("preserves the project error from in-memory source discovery", async () => {
+		const fixture = fixture_factory.create("const value = 1;\n");
+		const project_error = new Error("project source failure");
+		const cli = new CliApplication(fixture._io, new TaskReviewFailingSourceIO(project_error));
+		const result = await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer()).then(
+			() => undefined,
+			(error) => error,
+		);
+
+		expect(result).toBe(project_error);
+	});
+
+	// Review status backed by task reporting.
 	test("does not start a forced review without a selected agent", async () => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const fixture = fixture_factory.create();
@@ -36,30 +49,6 @@ describe("coding-lint process status reporting", () => {
 		const status = await review.status(options, []);
 
 		expect(status).toEqual({ required: false, active: false, completed: false, failed: false });
-	});
-
-	test("uses review state after the injected agent run", async () => {
-		let completed = false;
-		const requests: { provider: string; forced: boolean }[] = [];
-		const reporting: TaskReportingContract = {
-			format: () => "",
-			review_status: () => ({ required: false, active: false, completed, failed: false }),
-			run_review_agent: (provider, options) => {
-				requests.push({ provider, forced: options.force_review });
-				completed = true;
-				return Promise.resolve({ provider, message: "review completed" });
-			},
-		};
-		const review = new CliArchitectureReview(reporting, new LintStageTimer());
-		const command_line = new CommandLineOptions(["node", "cli.ts", "--force-review", "--review-agent", "codex"]);
-		const options = command_line.value();
-		const status = await review.status(options, []);
-
-		expect({ status, must_fail: review.must_fail(status), requests }).toEqual({
-			status: { required: true, active: false, completed: true, failed: false },
-			must_fail: false,
-			requests: [{ provider: "codex", forced: true }],
-		});
 	});
 
 	test("requests review for clean code when architecture findings remain", async () => {
@@ -104,15 +93,28 @@ describe("coding-lint process status reporting", () => {
 		expect(status).toEqual({ required: false, active: false, completed: false, failed: false });
 	});
 
-	test("preserves the project error from in-memory source discovery", async () => {
-		const fixture = fixture_factory.create("const value = 1;\n");
-		const project_error = new Error("project source failure");
-		const cli = new CliApplication(fixture._io, new TaskReviewFailingSourceIO(project_error));
-		const result = await cli.run_project(fixture.cli_options(true, false, "none"), fixture.stage_timer()).then(
-			() => undefined,
-			(error) => error,
-		);
+	// Review status after an injected agent run.
+	test("uses review state after the injected agent run", async () => {
+		let completed = false;
+		const requests: { provider: string; forced: boolean }[] = [];
+		const reporting: TaskReportingContract = {
+			format: () => "",
+			review_status: () => ({ required: false, active: false, completed, failed: false }),
+			run_review_agent: (provider, options) => {
+				requests.push({ provider, forced: options.force_review });
+				completed = true;
+				return Promise.resolve({ provider, message: "review completed" });
+			},
+		};
+		const review = new CliArchitectureReview(reporting, new LintStageTimer());
+		const command_line = new CommandLineOptions(["node", "cli.ts", "--force-review", "--review-agent", "codex"]);
+		const options = command_line.value();
+		const status = await review.status(options, []);
 
-		expect(result).toBe(project_error);
+		expect({ status, must_fail: review.must_fail(status), requests }).toEqual({
+			status: { required: true, active: false, completed: true, failed: false },
+			must_fail: false,
+			requests: [{ provider: "codex", forced: true }],
+		});
 	});
 });

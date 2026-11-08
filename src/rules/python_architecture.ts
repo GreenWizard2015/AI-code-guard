@@ -157,8 +157,11 @@ export class PythonArchitecture implements PythonArchitectureContract {
 		if (protocol_candidate.structure.methods.length > 0) {
 			return false;
 		}
-		const field_count = protocol_candidate.field_analysis.fields?.length;
-		return field_count !== undefined && field_count === 0;
+		const fields = protocol_candidate.field_analysis.fields;
+		if (fields === undefined) {
+			return false;
+		}
+		return fields.length === 0;
 	}
 
 	/** Responsibilities: _aggregation architecture violations Python_. **/

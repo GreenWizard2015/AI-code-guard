@@ -42,9 +42,13 @@ describe("test execution commands", () => {
 		const exit_code = execution.run_tests([], { ...process.env, CI: "true" });
 		const snapshot = runner.snapshot();
 		const python_environment = snapshot.environments[0];
+		let python_path: string | undefined;
+		if (python_environment !== undefined) {
+			python_path = python_environment[python_path_key];
+		}
 		expect({
 			exit_code,
-			python_path: python_environment?.[python_path_key],
+			python_path,
 			working_directories: snapshot.working_directories,
 		}).toEqual({
 			exit_code: 0,
@@ -92,13 +96,18 @@ describe("test execution commands", () => {
 			NODE_OPTIONS: inherited_node_option,
 		});
 		const snapshot = runner.snapshot();
+		const commands_and_node_options = snapshot.calls.map((call, index) => {
+			const environment = snapshot.environments[index];
+			let node_options: string | undefined;
+			if (environment !== undefined) {
+				node_options = environment[node_options_key];
+			}
+			return [call[0], node_options];
+		});
 
 		expect({
 			exit_code,
-			commands_and_node_options: snapshot.calls.map((call, index) => [
-				call[0],
-				snapshot.environments[index]?.[node_options_key],
-			]),
+			commands_and_node_options,
 		}).toEqual({
 			exit_code: 0,
 			commands_and_node_options: [

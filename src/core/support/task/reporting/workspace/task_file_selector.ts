@@ -1,4 +1,4 @@
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 import { TaskViolationGroups } from "src/core/support/task/reporting/workspace/task_violation_groups";
 import type { TaskFileSelection, TaskViolationVisibility } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -7,14 +7,6 @@ import type { TaskFileSelectorContract } from "src/task_protocols";
 /** Responsibilities: _priority category selection_, _impact-ordered file batching_. **/
 export class TaskFileSelector implements TaskFileSelectorContract {
 	private readonly _root: string;
-
-	/** Responsibilities: _resolution reporting file path_. **/
-	private absolute_file(file: string): string {
-		if (isAbsolute(file)) {
-			return file;
-		}
-		return resolve(this._root, file);
-	}
 
 	/** Responsibilities: _selection largest grouped rule_. **/
 	private largest_rule_group(groups: ReadonlyMap<string, ViolationContract[]>): ViolationContract[] {
@@ -44,7 +36,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 	private file_counts(category_violations: readonly ViolationContract[]): Map<string, number> {
 		const counts = new Map<string, number>();
 		for (const violation of category_violations) {
-			const file = this.absolute_file(violation.file());
+			const file = resolve(this._root, violation.file());
 			const count = counts.get(file);
 			if (count === undefined) {
 				counts.set(file, 1);
@@ -72,7 +64,10 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 
 	/** Responsibilities: _violation file ordering_. **/
 	private sorted_files(category: readonly ViolationContract[], counts: ReadonlyMap<string, number>): string[] {
-		const files = new Set(category.map((violation) => this.absolute_file(violation.file())));
+		const files = new Set<string>();
+		for (const violation of category) {
+			files.add(resolve(this._root, violation.file()));
+		}
 		const ordered_files = [...files];
 		ordered_files.sort((left, right) => {
 			const left_count = counts.get(left);
@@ -124,7 +119,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 	): ViolationContract[] {
 		const selected_files = new Set(files);
 		return visible_violations.filter((violation) => {
-			const file = this.absolute_file(violation.file());
+			const file = resolve(this._root, violation.file());
 			return selected_files.has(file) && priorities.get(file) === violation.priority();
 		});
 	}
@@ -136,9 +131,9 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		visibility: TaskViolationVisibility,
 	): TaskFileSelection {
 		const selected_files = new Set(files);
-		const selected_violations = visible_violations.filter((violation) =>
-			selected_files.has(this.absolute_file(violation.file())),
-		);
+		const selected_violations = visible_violations.filter((violation) => {
+			return selected_files.has(resolve(this._root, violation.file()));
+		});
 		return { files, violations: selected_violations, visibility };
 	}
 

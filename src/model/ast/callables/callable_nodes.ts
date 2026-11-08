@@ -86,11 +86,13 @@ export class CallableNodes implements CallableNodesContract {
 		}
 		if (ts.canHaveModifiers(member)) {
 			const modifiers = ts.getModifiers(member);
-			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
-				return "private";
-			}
-			if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
-				return PROTECTED_VISIBILITY;
+			if (modifiers !== undefined) {
+				if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+					return "private";
+				}
+				if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+					return PROTECTED_VISIBILITY;
+				}
 			}
 		}
 		return "public";

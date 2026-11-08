@@ -56,6 +56,15 @@ describe("type boundary policies", () => {
 				"mutable-fields.ts": ["class Service {", "  public value = 0;", "  public readonly stable = 1;", "}"].join(
 					"\n",
 				),
+				"tests/inline-generic-type.test.ts": [
+					"test.each<{",
+					"  name: string;",
+					"  files: Record<string, string>;",
+					"  expected_count: number;",
+					"  included: string[];",
+					"  excluded: string[];",
+					'}>([])("case", () => {});',
+				].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
@@ -64,16 +73,18 @@ describe("type boundary policies", () => {
 			inline_generic_files: violations
 				.filter((violation) => violation.message() === "avoid inline object types in generic arguments")
 				.map((violation) => violation.file()),
-			nested_return: violations.some(
-				(violation) => violation.file() === "nested-return.py" && violation.rule_id() === "inline-generic-type",
-			),
+			nested_return_locations: violations
+				.filter((violation) => violation.file() === "nested-return.py" && violation.rule_id() === "inline-generic-type")
+				.map((violation) => `${violation.file()}:${violation.line()}`),
 			mutation_files: violations
 				.filter((violation) => violation.rule_id() === "object-field-write")
 				.map((violation) => violation.file()),
-			literal_field_access: violations.filter(
-				(violation) =>
-					violation.rule_id() === "typescript-literal-object-access" && violation.file() === "mutable-computed.ts",
-			).length,
+			literal_field_access_locations: violations
+				.filter(
+					(violation) =>
+						violation.rule_id() === "typescript-literal-object-access" && violation.file() === "mutable-computed.ts",
+				)
+				.map((violation) => `${violation.file()}:${violation.line()}`),
 			visibility_files: violations
 				.filter((violation) => violation.message() === "class members must declare visibility explicitly")
 				.map((violation) => violation.file()),
@@ -83,6 +94,12 @@ describe("type boundary policies", () => {
 			contract_boundary_files: violations
 				.filter((violation) => violation.message() === 'class "ServicePort" has implementation type at boundary')
 				.map((violation) => violation.file()),
+			test_inline_generic_locations: violations
+				.filter(
+					(violation) =>
+						violation.rule_id() === "inline-generic-type" && violation.file() === "tests/inline-generic-type.test.ts",
+				)
+				.map((violation) => `${violation.file()}:${violation.line()}`),
 			test_visibility_reported: violations.some(
 				(violation) =>
 					violation.message() === "class members must declare visibility explicitly" &&
@@ -92,9 +109,9 @@ describe("type boundary policies", () => {
 
 		expect(diagnostics).toEqual({
 			inline_generic_files: expect.arrayContaining(["inline-generics.ts", "inline-generics.py"]),
-			nested_return: true,
+			nested_return_locations: ["nested-return.py:1"],
 			mutation_files: expect.arrayContaining(["mutable.ts"]),
-			literal_field_access: 1,
+			literal_field_access_locations: ["mutable-computed.ts:4"],
 			visibility_files: expect.arrayContaining(["visibility.ts", "accessors.ts"]),
 			readonly_files: expect.arrayContaining([
 				"mutable.ts",
@@ -103,6 +120,7 @@ describe("type boundary policies", () => {
 				"mutable-fields.ts",
 			]),
 			contract_boundary_files: [],
+			test_inline_generic_locations: ["tests/inline-generic-type.test.ts:1"],
 			test_visibility_reported: false,
 		});
 	});

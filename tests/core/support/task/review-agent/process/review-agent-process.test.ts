@@ -92,7 +92,6 @@ describe("review agent hook forwarding", () => {
 				hook_file: "agent-hooks.ts",
 				review_stage: "tests",
 				review_prefix: "review-tests-",
-				review_phase: "initial",
 				review_start_ms: 0,
 			},
 			tool: { name: "Read", input: "{}" },
@@ -105,13 +104,7 @@ describe("review agent hook forwarding", () => {
 			cwd: "/project",
 			input: expect.stringContaining('"review_prefix":"review-tests-"'),
 		});
-		expect(arguments_list).toEqual([
-			"/project/hook.ts",
-			"--review-prefix",
-			"review-tests-",
-			"--review-phase",
-			"initial",
-		]);
+		expect(arguments_list).toEqual(["/project/hook.ts", "--review-prefix", "review-tests-"]);
 	});
 
 	test("reports a cleanup failure from the registry", () => {

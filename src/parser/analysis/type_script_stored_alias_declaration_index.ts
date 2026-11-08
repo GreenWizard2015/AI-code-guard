@@ -93,12 +93,16 @@ export class TypeScriptStoredAliasDeclarationIndex implements StoredAliasDeclara
 	public source_has_alias(source_file: ts.SourceFile, expression_name: string, property_name: string): boolean {
 		const key = JSON.stringify([expression_name, property_name]);
 		const present = this._present_aliases.get(source_file);
-		if (present?.has(key)) {
-			return true;
+		if (present !== undefined) {
+			if (present.has(key)) {
+				return true;
+			}
 		}
 		const absent = this._absent_aliases.get(source_file);
-		if (absent?.has(key)) {
-			return false;
+		if (absent !== undefined) {
+			if (absent.has(key)) {
+				return false;
+			}
 		}
 		const result = this.alias_declaration(source_file, { expression_name, property_name });
 		this.cache_alias(source_file, key, result);

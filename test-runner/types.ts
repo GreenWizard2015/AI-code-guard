@@ -21,7 +21,6 @@ export type TestRunnerRequest = {
 	readonly headless: boolean;
 	readonly skip_quality: boolean;
 	readonly force_review: boolean;
-	readonly review_cleanup: boolean;
 	readonly review_agent: ReviewAgentSelection;
 };
 
@@ -41,7 +40,6 @@ export type PythonUnusedChecks = {
 
 export type QualityCheckRunOptions = {
 	readonly force_review: boolean;
-	readonly review_cleanup: boolean;
 	readonly review_agent: ReviewAgentSelection;
 };
 

@@ -1,3 +1,4 @@
+import { REVIEW_PATCH_DENIAL_REASON } from "src/core/support/task/review-agent/constants";
 import { ReviewPatchMutation } from "src/core/support/task/review-agent/policy/review_patch_mutation";
 import type {
 	ReviewDeletionPolicyContract,
@@ -12,14 +13,6 @@ import type { HookDecision } from "src/model_types";
 export class ReviewMutationPolicy implements ReviewMutationPolicyContract {
 	private readonly _paths: ReviewPathPolicyContract;
 	private readonly _deletion_policy: ReviewDeletionPolicyContract;
-
-	/** Responsibilities: _mutation denial wording_. **/
-	private mutation_denial_reason(cleanup: boolean): string {
-		if (cleanup) {
-			return "Cleanup patches may delete only existing open Markdown findings in .ai-code-guard/review/.";
-		}
-		return "Patches may change only open Markdown findings in .ai-code-guard/review/. Split oversized findings before removing the original.";
-	}
 
 	/** Responsibilities: _policy initialization_. **/
 	public constructor(paths: ReviewPathPolicyContract, deletion_policy: ReviewDeletionPolicyContract) {
@@ -50,7 +43,7 @@ export class ReviewMutationPolicy implements ReviewMutationPolicyContract {
 		}
 		return {
 			allowed: false,
-			reason: this.mutation_denial_reason(request.cleanup),
+			reason: REVIEW_PATCH_DENIAL_REASON,
 		};
 	}
 }

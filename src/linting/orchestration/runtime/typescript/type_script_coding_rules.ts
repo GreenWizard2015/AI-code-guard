@@ -17,12 +17,13 @@ import type { LintSourceRecordData } from "src/source_types";
 import type { RuleContextContract } from "src/types";
 import type { TypeScriptSourceVerificationRequest } from "src/typescript_analysis_types";
 
-/** Responsibilities: _recover TypeScript rule source_, _recovered violations collection_. **/
+/** Responsibilities: _recovered source preparation_, _AST rule verification_, _diagnostic line mapping_. **/
 export class TypeScriptCodingRules {
 	private readonly _syntax: SyntaxContract;
 	private readonly _project_names: ProjectNames;
 	private readonly recovered_prefix = "function recovered() { ";
 	private readonly recovered_suffix = " }";
+	private readonly recovered_catch_keyword = "catch";
 	private readonly recovered_catch = "try {} catch {}";
 
 	/** Responsibilities: _recovered source analysis_. **/
@@ -81,13 +82,38 @@ export class TypeScriptCodingRules {
 		});
 	}
 
-	/** Responsibilities: _aggregation recovered rules source_. **/
+	/** Responsibilities: _recovered source violation insertion_. **/
+	private append_source_violations(
+		collected: ViolationContract[],
+		found: readonly ViolationContract[],
+		line: number,
+	): void {
+		for (const violation of found) {
+			if (violation.rule_id() !== "parse-error") {
+				collected.push(this.recovered_line_violation(violation, line));
+			}
+		}
+	}
+
+	/** Responsibilities: _recovered rule analysis configuration_. **/
 	public constructor(syntax: SyntaxContract, project_names: ProjectNames) {
 		this._syntax = syntax;
 		this._project_names = project_names;
 	}
 
-	/** Responsibilities: _aggregation recovered rules source_. **/
+	/** Responsibilities: _source line rule wrapping_. **/
+	public recover_rule_source(source: string): string {
+		const trimmed = source.trim();
+		if (!trimmed) {
+			return "";
+		}
+		if (trimmed.includes(this.recovered_catch_keyword)) {
+			return this.recovered_catch;
+		}
+		return `${this.recovered_prefix}${trimmed}${this.recovered_suffix}`;
+	}
+
+	/** Responsibilities: _recovered rule violation collection_. **/
 	public append_recovered_rules(violations: ViolationContract[], file: string, text: string): void {
 		for (const [line, source] of this._syntax.split_lines(text).entries()) {
 			const recovered = this.recover_rule_source(source);
@@ -101,21 +127,8 @@ export class TypeScriptCodingRules {
 				ast_file,
 				traversal: new TypeScriptAstTraversal(ast_file.source_file_node()),
 			};
-			for (const violation of this.analyze_recovered_source(input, recovered)) {
-				violations.push(this.recovered_line_violation(violation, line + 1));
-			}
+			const found = this.analyze_recovered_source(input, recovered);
+			this.append_source_violations(violations, found, line + 1);
 		}
-	}
-
-	/** Responsibilities: _source line rule wrapping_. **/
-	public recover_rule_source(source: string): string {
-		const trimmed = source.trim();
-		if (!trimmed) {
-			return "";
-		}
-		if (trimmed.includes("catch")) {
-			return this.recovered_catch;
-		}
-		return `${this.recovered_prefix}${trimmed}${this.recovered_suffix}`;
 	}
 }

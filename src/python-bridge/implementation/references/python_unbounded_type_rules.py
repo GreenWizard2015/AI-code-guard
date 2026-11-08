@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import UNBOUNDED_TYPE_NAMES
 from implementation.references.protocols import PythonScopedTypeAliasesContract
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonUnboundedTypeRules:
@@ -44,15 +45,12 @@ class PythonUnboundedTypeRules:
     def _signature_annotations(self, callable_node: ast.AST) -> list[ast.expr]:
         """Responsibilities: _callable signature annotation collection_."""
         match callable_node:
-            case ast.FunctionDef(args=parameters, returns=return_annotation) if type(
-                callable_node,
-            ) is ast.FunctionDef:
-                pass
-            case ast.AsyncFunctionDef(
-                args=parameters,
-                returns=return_annotation,
-            ) if type(callable_node) is ast.AsyncFunctionDef:
-                pass
+            case ast.FunctionDef() if type(callable_node) is ast.FunctionDef:
+                parameters = callable_node.args
+                return_annotation = callable_node.returns
+            case ast.AsyncFunctionDef() if type(callable_node) is ast.AsyncFunctionDef:
+                parameters = callable_node.args
+                return_annotation = callable_node.returns
             case _:
                 return []
         arguments = self._callable_arguments(parameters)
@@ -126,7 +124,7 @@ class PythonUnboundedTypeRules:
     def annotation_issues(self, annotation: ast.AST) -> list[JsonObject]:
         """Responsibilities: _reporting unbounded nodes contained_."""
         return [
-            {"line": node.lineno - 1, "kind": "unbounded-type"}
+            {"line": cast(PythonASTLocatedNode, node).lineno - 1, "kind": "unbounded-type"}
             for node in self._node_index.nodes(annotation)
             if self._is_unbounded_node(node, annotation)
         ]

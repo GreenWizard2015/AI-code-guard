@@ -5,11 +5,12 @@ import type {
 	ReviewAgentProcessRequest,
 } from "src/core/support/task/review-agent/protocols";
 import { ReviewAgentHookCommand } from "src/core/support/task/review-agent/review_agent_hook_command";
-import type { ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
+import type { CodexReviewAgentName, ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
 
 /** Responsibilities: _Codex review invocation_, _Codex hook settings assembly_. **/
 export class CodexReviewAgent implements ReviewAgentContract {
 	private readonly _process: ReviewAgentProcessContract;
+	private readonly _agent_name: CodexReviewAgentName;
 
 	/** Responsibilities: _Codex hook configuration_. **/
 	private hooks_config(request: ReviewAgentRequest): string {
@@ -17,7 +18,6 @@ export class CodexReviewAgent implements ReviewAgentContract {
 			request.hook.hook_command,
 			request.hook.hook_file,
 			request.hook.review_prefix,
-			request.hook.review_phase,
 			request.hook.review_start_ms,
 		);
 		const handler = `{type="command",command=${JSON.stringify(hook_command.command())}}`;
@@ -25,13 +25,23 @@ export class CodexReviewAgent implements ReviewAgentContract {
 	}
 
 	/** Responsibilities: _Codex process dependency initialization_. **/
-	public constructor(process: ReviewAgentProcessContract) {
+	public constructor(process: ReviewAgentProcessContract, agent_name: CodexReviewAgentName = "codex") {
 		this._process = process;
+		this._agent_name = agent_name;
 	}
 
 	/** Responsibilities: _Codex provider identity_. **/
-	public agent_name(): "codex" {
-		return "codex";
+	public agent_name(): CodexReviewAgentName {
+		switch (this._agent_name) {
+			case "codex":
+				return "codex";
+			case "cx":
+				return "cx";
+			case "cxa":
+				return "cxa";
+			default:
+				throw new Error(`Unsupported Codex review agent: ${String(this._agent_name)}`);
+		}
 	}
 
 	/** Responsibilities: _Codex CLI availability_. **/

@@ -1,10 +1,6 @@
 import { Module } from "node:module";
 import { type Context, runInContext } from "node:vm";
-import {
-	DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
-	TYPESCRIPT_CONTEXT_MODULE_KEY,
-	TYPESCRIPT_CONTEXT_REQUIRE_KEY,
-} from "documentation_validation/constants";
+import { TYPESCRIPT_CONTEXT_MODULE_KEY, TYPESCRIPT_CONTEXT_REQUIRE_KEY } from "documentation_validation/constants";
 import type {
 	TypeScriptExampleModuleCatalogContract,
 	TypeScriptExampleModuleRuntimeContract,
@@ -18,6 +14,7 @@ export class TypeScriptExampleModuleRuntime implements TypeScriptExampleModuleRu
 	private readonly _source_files: ReadonlyMap<string, string>;
 	private readonly _module_catalog: TypeScriptExampleModuleCatalogContract;
 	private readonly _context: Context;
+	private readonly _execution_timeout_ms: number;
 	private readonly _modules_by_file: Map<string, Module>;
 	private readonly _execution_errors: Map<string, string>;
 	private readonly _compiler: TypeScriptExampleModuleCompiler;
@@ -29,7 +26,7 @@ export class TypeScriptExampleModuleRuntime implements TypeScriptExampleModuleRu
 			const execution = `(() => { let executionError = ""; try { (function(exports, module) { ${output}\n })(module.exports, module); } catch (error) { executionError = error instanceof Error ? error.name + ": " + error.message : String(error); } return executionError; })()`;
 			result = runInContext(execution, this._context, {
 				filename: module.id,
-				timeout: DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
+				timeout: this._execution_timeout_ms,
 			});
 		} catch (error) {
 			const error_message = String(error);
@@ -85,10 +82,12 @@ export class TypeScriptExampleModuleRuntime implements TypeScriptExampleModuleRu
 		source_files: ReadonlyMap<string, string>,
 		module_catalog: TypeScriptExampleModuleCatalogContract,
 		context: Context,
+		execution_timeout_ms: number,
 	) {
 		this._source_files = source_files;
 		this._module_catalog = module_catalog;
 		this._context = context;
+		this._execution_timeout_ms = execution_timeout_ms;
 		this._context[TYPESCRIPT_CONTEXT_REQUIRE_KEY] = this;
 		this._modules_by_file = new Map<string, Module>();
 		this._execution_errors = new Map<string, string>();

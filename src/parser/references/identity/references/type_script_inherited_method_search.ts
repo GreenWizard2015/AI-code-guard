@@ -98,15 +98,14 @@ export class TypeScriptInheritedMethodSearch implements TypeScriptInheritedMetho
 			return { file: "", name: "" };
 		}
 		for (const statement of source_file.statements) {
-			if (ts.isClassLike(statement) && statement.name?.text === exported_base_name) {
+			if (ts.isClassLike(statement) && statement.name !== undefined && statement.name.text === exported_base_name) {
 				return { file: this._file_name, name: exported_base_name };
 			}
-			if (!ts.isImportDeclaration(statement)) {
-				continue;
-			}
-			const imported = this.imported_base_export(statement, exported_base_name);
-			if (imported.file.length > 0) {
-				return imported;
+			if (ts.isImportDeclaration(statement)) {
+				const imported = this.imported_base_export(statement, exported_base_name);
+				if (imported.file.length > 0) {
+					return imported;
+				}
 			}
 		}
 		return this._module_exports.resolve({ file: this._file_name, name: exported_base_name });
@@ -138,7 +137,11 @@ export class TypeScriptInheritedMethodSearch implements TypeScriptInheritedMetho
 	/** Responsibilities: _inherited method search_. **/
 	private file_in_source(source_file: ts.SourceFile): string {
 		for (const declaration of source_file.statements) {
-			if (!ts.isClassLike(declaration) || declaration.name?.text !== this._class_name) {
+			if (!ts.isClassLike(declaration)) {
+				continue;
+			}
+			const name = declaration.name;
+			if (name === undefined || name.text !== this._class_name) {
 				continue;
 			}
 			if (this.declares_method(declaration)) {

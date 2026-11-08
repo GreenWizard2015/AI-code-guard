@@ -39,7 +39,11 @@ export class TypeScriptReferenceImportState {
 		if (!ts.isImportDeclaration(import_declaration)) {
 			return [];
 		}
-		const bindings = import_declaration.importClause?.namedBindings;
+		const import_clause = import_declaration.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (bindings === undefined) {
 			return [];
 		}

@@ -28,7 +28,7 @@ export class ReviewAgentProcessTerminator implements ReviewAgentProcessTerminato
 		try {
 			if (this._platform !== "win32") {
 				if (child.identified()) {
-					this.terminate_group(child, signal);
+					this._process_signal.group_signal(child.identifier(), signal);
 					return;
 				}
 			}
@@ -40,8 +40,18 @@ export class ReviewAgentProcessTerminator implements ReviewAgentProcessTerminato
 		}
 	}
 
-	/** Responsibilities: _process group signal delivery_. **/
-	public terminate_group(child: ReviewAgentChildProcessContract, signal: NodeJS.Signals): void {
-		this._process_signal.group_signal(child.identifier(), signal);
+	/** Responsibilities: _owned process-group cleanup_. **/
+	public cleanup_owned_group(child: ReviewAgentChildProcessContract, ownership_token: string): boolean {
+		if (this._platform === "win32" || !child.identified()) {
+			return true;
+		}
+		const ownership = { id: child.identifier(), token: ownership_token };
+		if (!this._process_signal.group_exists({ id: ownership.id })) {
+			return true;
+		}
+		if (!this._process_signal.group_contains_token(ownership)) {
+			return false;
+		}
+		return this._process_signal.terminate_owned_group(ownership);
 	}
 }

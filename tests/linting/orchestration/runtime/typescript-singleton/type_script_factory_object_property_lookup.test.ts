@@ -42,7 +42,7 @@ describe("factory object property lookup", () => {
 			new Map(),
 		);
 		const expressions = lookup.expressions();
-
-		expect(expressions.get("create")?.kind).toBe(ts.SyntaxKind.ArrowFunction);
+		const expression_list = Array.from(expressions.values());
+		expect(expression_list.map((expression) => expression.kind)).toEqual([ts.SyntaxKind.ArrowFunction]);
 	});
 });

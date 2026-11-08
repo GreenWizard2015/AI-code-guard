@@ -118,6 +118,7 @@ export class FixtureAstMapper {
 			},
 			declaration: {
 				decorators: lists._decorators,
+				parameterized_case_count: this.number_value(node.parameterized_case_count, 0),
 				is_accessor: this.flag_value(node.is_accessor),
 				has_self: this.flag_value(node.has_self),
 			},

@@ -1,10 +1,13 @@
-import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
-import "src/core/lint_project_context_creator";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import "src/core/lint_project_context_creator";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import { CommandLineOptions } from "src/core/support/command_line_options";
+import { TaskReviewMemoryFixture } from "tests/bridge/ts/core/task-review-memory-fixture";
+import { OUTSIDE_PROJECT_MODULE_NAME, TSX_IMPORT_API_SPECIFIER } from "tests/core/constants";
+import { OutsideRootModuleImportScenario } from "tests/core/support/outside_root_module_import_scenario";
 
 describe("command line options", () => {
 	test("skips architecture review when no review agent is selected", () => {
@@ -17,12 +20,6 @@ describe("command line options", () => {
 		});
 	});
 
-	test("enables review cleanup explicitly", () => {
-		const command_line_options = new CommandLineOptions(["node", "cli", "--review-cleanup"]);
-		const options = command_line_options.value();
-		expect(options.review_cleanup).toBe(true);
-	});
-
 	test("enables forced architecture review explicitly", () => {
 		const command_line_options = new CommandLineOptions(["node", "cli", "--force-review"]);
 		const options = command_line_options.value();
@@ -32,74 +29,50 @@ describe("command line options", () => {
 		});
 	});
 
-	test("keeps review cleanup disabled by default", () => {
-		const command_line_options = new CommandLineOptions(["node", "cli"]);
-		const options = command_line_options.value();
-
-		expect({
-			skip_review: options.skip_review,
-			force_review: options.force_review,
-			review_cleanup: options.review_cleanup,
-			review_agent: options.review_agent,
-		}).toEqual({
-			skip_review: true,
-			force_review: false,
-			review_cleanup: false,
-			review_agent: "none",
-		});
-	});
-
-	test("enables review when a provider is explicitly selected", () => {
-		const command_line_options = new CommandLineOptions(["node", "cli", "--review-agent", "codex"]);
+	test.each(["codex", "cx", "cxa", "claude"] as const)("enables review with provider %s", (agent) => {
+		const command_line_options = new CommandLineOptions(["node", "cli", "--review-agent", agent]);
 		const options = command_line_options.value();
 
 		expect({ review_agent: options.review_agent, skip_review: options.skip_review }).toEqual({
-			review_agent: "codex",
+			review_agent: agent,
 			skip_review: false,
 		});
 	});
 
-	test("runs the CLI outside the project with ignored source context and no review agent", () => {
-		const project_root = fileURLToPath(new URL("../../..", import.meta.url));
-		const cli_path = `${project_root}/src/core/cli.ts`;
-		const tsx_path = createRequire(import.meta.url).resolve("tsx/cli");
-		const ignored_source_directory = `${project_root}/src/core`;
-		const command_line_options = new CommandLineOptions([
+	test("runs the CLI in memory with an ignored source directory and no review agent", async () => {
+		const fixture_factory = new TaskReviewMemoryFixture();
+		const fixture = fixture_factory.create("export const INCLUDED_VALUE = true;\n");
+		const ignored_directory = join(fixture._root, "src/core");
+		const ignored_source = join(ignored_directory, "ignored.ts");
+		const options_parser = new CommandLineOptions([
 			"node",
-			cli_path,
+			"cli",
 			"--root",
-			project_root,
+			fixture._root,
 			"--ignore-dir",
-			ignored_source_directory,
+			ignored_directory,
 		]);
-		const options = command_line_options.value();
-		const result = spawnSync(
-			process.execPath,
-			[tsx_path, cli_path, "--root", options.root, "--ignore-dir", ignored_source_directory],
-			{
-				cwd: tmpdir(),
-				encoding: "utf8",
-				timeout: 120_000,
-			},
+		const options = options_parser.value();
+		const observed = await fixture.run_cli_ignoring_source(
+			options,
+			ignored_source,
+			"export const INVALID_SOURCE = ;\n",
 		);
-		const output = `${result.stdout}\n${result.stderr}`;
-		let spawn_error: string | undefined;
-		if (result.error !== undefined) {
-			spawn_error = result.error.message;
-		} else if (!output.includes("Total issues:")) {
-			spawn_error = `status=${result.status}; signal=${result.signal}; output=${output}`;
-		}
-
-		expect({
-			spawn_error,
-			review_agent: options.review_agent,
-			lint_completed: output.includes("Total issues:"),
-			context_count_mismatch: output.includes("different file counts"),
-		}).toEqual({
-			spawn_error: undefined,
-			review_agent: "none",
-			lint_completed: true,
-			context_count_mismatch: false,
+		expect(observed).toEqual({
+			review_failed: false,
+			ignored_source_reported: false,
+			report_written: true,
 		});
+	});
+
+	test("loads lint configuration outside the repository without a child process", async () => {
+		const project_root = fileURLToPath(new URL("../../..", import.meta.url));
+		const configuration_path = join(project_root, "src/core/lint_run_configuration.ts");
+		const options_parser = new CommandLineOptions(["node", "cli", "--root", tmpdir()]);
+		const options = options_parser.value();
+		const tsx_api_path = createRequire(import.meta.url).resolve(TSX_IMPORT_API_SPECIFIER);
+		const scenario = new OutsideRootModuleImportScenario(configuration_path, tsx_api_path);
+		const load_result = await scenario.load(options.root, OUTSIDE_PROJECT_MODULE_NAME);
+		expect(load_result).toBe("loaded");
 	});
 });

@@ -52,7 +52,12 @@ export class TaskReviewAgentRuntime implements ReviewAgentProcessSpawnerContract
 	/** Responsibilities: _review provider selection_. **/
 	public catalog(): ReviewAgentCatalogContract {
 		return new ReviewAgentCatalog(
-			[new CodexReviewAgent(this._process), new ClaudeReviewAgent(this._process)],
+			[
+				new CodexReviewAgent(this._process),
+				new CodexReviewAgent(this._process, "cx"),
+				new CodexReviewAgent(this._process, "cxa"),
+				new ClaudeReviewAgent(this._process),
+			],
 			this._file_io,
 		);
 	}

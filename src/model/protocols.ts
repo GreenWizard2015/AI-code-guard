@@ -16,6 +16,12 @@ import type { CallbackKind } from "src/types";
 import type { RuleParameters } from "src/types";
 import type ts from "typescript";
 
+/** Responsibilities: _source file import context_. **/
+export type ImportedFunctionSource = {
+	readonly source_file: ts.SourceFile;
+	readonly statement: ts.ImportDeclaration;
+};
+
 /** Responsibilities: _diagnostic rule behavior_. **/
 export interface DiagnosticRuleContract extends RuleContract {
 	violation(file: string, line: number, parameters: RuleParameters): ViolationContract;

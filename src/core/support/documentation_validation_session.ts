@@ -4,7 +4,6 @@ import type {
 	DocumentationExampleSourceFiles,
 } from "documentation_validation/types";
 import { RULE_DATA } from "src/constants";
-import { UnusedCode } from "src/core/project-source/unused_code";
 import { DocumentationExampleRun } from "src/core/support/documentation_example_run";
 import type {
 	DocumentationExampleLintConfigurationContract,
@@ -17,7 +16,6 @@ import type { WorkerSessionProviderContract } from "src/runtime_protocols";
 export class DocumentationValidationSession implements DocumentationExampleLintContract {
 	private readonly _configuration: DocumentationExampleLintConfigurationContract;
 	private readonly _worker_sessions: WorkerSessionProviderContract;
-	private readonly _unused_code: UnusedCode;
 
 	/** Responsibilities: _lint configuration ownership_. **/
 	public constructor(
@@ -26,7 +24,6 @@ export class DocumentationValidationSession implements DocumentationExampleLintC
 	) {
 		this._configuration = configuration;
 		this._worker_sessions = worker_sessions;
-		this._unused_code = new UnusedCode();
 	}
 
 	/** Responsibilities: _documentation example diagnostics_. **/
@@ -42,7 +39,6 @@ export class DocumentationValidationSession implements DocumentationExampleLintC
 			rule_id,
 			source_files,
 			configuration: this._configuration,
-			unused_code: this._unused_code,
 		};
 		const run = new DocumentationExampleRun(options);
 		run.validate_paths();

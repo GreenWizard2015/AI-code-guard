@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import cast
 
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
@@ -15,7 +16,7 @@ from implementation.rules.constants import PYTHON_BUILTINS_MODULE
 from implementation.rules.python_syntax.python_dynamic_type_statement_values import (
     PythonDynamicTypeStatementValues,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 @dataclass
@@ -118,7 +119,7 @@ class PythonDynamicTypeRules:
         self._observe(statement)
         statement_values = PythonDynamicTypeStatementValues(statement)
         return [
-            {"line": statement.lineno - 1, "kind": "dynamic-type"}
+            {"line": cast(PythonASTLocatedNode, statement).lineno - 1, "kind": "dynamic-type"}
             for value in statement_values.issue_values()
             if self._options.references.type_call_present(value)
         ]

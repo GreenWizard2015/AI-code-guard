@@ -1,16 +1,16 @@
 import type { ReviewAgentContract } from "src/core/support/task/review-agent/protocols";
-import type { ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
+import type { ReviewAgentName, ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
 
 /** Responsibilities: _review-agent availability fixture_, _review-agent output fixture_. **/
 export class StubReviewAgent implements ReviewAgentContract {
-	private readonly _provider_name: "codex" | "claude";
+	private readonly _provider_name: ReviewAgentName;
 	private readonly _available_result: boolean;
 	private readonly _exit_code: number;
 	private readonly _output: string;
 	private _request_was_received = false;
 
 	/** Responsibilities: _stub review-agent initialization_. **/
-	public constructor(name: "codex" | "claude", available_result: boolean, exit_code: number, output: string) {
+	public constructor(name: ReviewAgentName, available_result: boolean, exit_code: number, output: string) {
 		this._provider_name = name;
 		this._available_result = available_result;
 		this._exit_code = exit_code;
@@ -18,7 +18,7 @@ export class StubReviewAgent implements ReviewAgentContract {
 	}
 
 	/** Responsibilities: _stub provider identity_. **/
-	public agent_name(): "codex" | "claude" {
+	public agent_name(): ReviewAgentName {
 		return this._provider_name;
 	}
 

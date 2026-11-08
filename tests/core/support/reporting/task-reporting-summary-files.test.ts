@@ -81,7 +81,6 @@ describe("coding-lint task reporting summaries", () => {
 			entry_files: [],
 			skip_review: false,
 			force_review: false,
-			review_cleanup: false,
 			review_agent: "none" as const,
 			review_stages: [],
 			batch_size: 10,

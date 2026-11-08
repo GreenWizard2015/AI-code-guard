@@ -78,7 +78,6 @@ describe("shared rule documentation", () => {
 		);
 
 		const conflicts = group.conflicts();
-		const conflict = conflicts[0];
-		expect(conflict?.passed).toBe(false);
+		expect(conflicts.map((conflict) => conflict.passed)).toEqual([false]);
 	});
 });

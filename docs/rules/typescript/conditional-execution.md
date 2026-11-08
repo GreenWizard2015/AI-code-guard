@@ -1,9 +1,8 @@
 # `conditional-execution`
 
-Description: Avoid hiding conditional non-boolean calls inside logical
-operators or optional chains. `?.` skips a call when its receiver is absent;
-make that execution branch explicit. Boolean calls and optional data reads
-remain valid.
+Description: Do not use optional chaining (`?.`) for calls, property reads, or
+element reads. Use an explicit branch to handle a missing receiver. Also avoid
+hiding conditional non-boolean calls inside logical operators.
 
 ## Bad
 

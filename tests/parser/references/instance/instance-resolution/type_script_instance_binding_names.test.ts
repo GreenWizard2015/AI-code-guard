@@ -26,11 +26,15 @@ describe("TypeScript instance binding names", () => {
 
 	test("reuses binding-name results for the same parsed node", () => {
 		const source = ts.createSourceFile("scope.ts", "const item = new Service();", ts.ScriptTarget.Latest, true);
-		const statement = source.statements.find(ts.isVariableStatement);
+		const declarations = source.statements.flatMap((statement) => {
+			if (!ts.isVariableStatement(statement)) {
+				return [];
+			}
+			return statement.declarationList.declarations;
+		});
 		const resolver = new TypeScriptInstanceBindingNames();
-		const declaration_names = statement?.declarationList.declarations ?? [];
-		const first_results = declaration_names.map((declaration) => resolver.names(declaration));
-		const second_results = declaration_names.map((declaration) => resolver.names(declaration));
+		const first_results = declarations.map((declaration) => resolver.names(declaration));
+		const second_results = declarations.map((declaration) => resolver.names(declaration));
 		expect({
 			names: first_results.flat(),
 			cached: first_results.every((first_result) => second_results.includes(first_result)),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import (
@@ -11,7 +12,7 @@ from implementation.references.protocols import (
 from implementation.references.test_assertions.python_subtest_alias_analysis import (
     PythonSubtestAliasAnalysis,
 )
-from implementation.types import PythonAstNodeListIndex
+from implementation.types import PythonASTLocatedNode, PythonAstNodeListIndex
 
 
 class PythonSubtestAliases:
@@ -40,7 +41,11 @@ class PythonSubtestAliases:
                 continue
             if self._scope(item) is scope:
                 assignments.append(item)
-        result = sorted(assignments, key=lambda item: (item.lineno, item.col_offset))
+        located_assignments = cast(list[PythonASTLocatedNode], assignments)
+        result = cast(
+            list[ast.AST],
+            sorted(located_assignments, key=lambda item: (item.lineno, item.col_offset)),
+        )
         self._assignment_index.update({scope: result})
         return result
 

@@ -28,7 +28,6 @@ export class RecordingProcess implements ReviewAgentProcessContract {
 				hook_file: "",
 				review_stage: "",
 				review_prefix: "",
-				review_phase: "initial",
 				review_start_ms: 0,
 			},
 			tool: { name: "", input: "" },

@@ -209,6 +209,30 @@ describe("project-wide repeated literal analysis", () => {
 		});
 	});
 
+	test("does not suggest an object constant for one of its nested string values", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"rule-data.ts": [
+					"export const QUALITY_RULE_DATA = {",
+					'\tmessage: "parse-error",',
+					"} as const;",
+					"export function is_parse_error(rule_id: string): boolean {",
+					'\treturn rule_id !== "parse-error";',
+					"}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const literal_diagnostics = violations.filter(
+			(item) => item.rule_id() === "literal-constant-reuse" || item.rule_id() === "repeated-literal",
+		);
+
+		expect(literal_diagnostics).toEqual([]);
+	});
+
 	test("keeps nested production repetition while excluding test values from reuse", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

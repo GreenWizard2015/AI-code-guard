@@ -12,7 +12,6 @@ import type {
 	ReviewAgentHookEvent,
 	ReviewAgentHookEventName,
 	ReviewAgentName,
-	ReviewAgentPhase,
 	ReviewAgentProcessResult,
 } from "src/task_review_types";
 
@@ -41,11 +40,7 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 	}
 
 	/** Responsibilities: _review-agent lifecycle event construction_. **/
-	private event(
-		name: ReviewAgentHookEventName,
-		process: ReviewAgentProcessResult,
-		phase: ReviewAgentPhase,
-	): ReviewAgentHookEvent {
+	private event(name: ReviewAgentHookEventName, process: ReviewAgentProcessResult): ReviewAgentHookEvent {
 		return {
 			context: {
 				event: name,
@@ -55,7 +50,6 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 				hook_file: this._hook_file,
 				review_stage: this._review_stage,
 				review_prefix: this._review_prefix,
-				review_phase: phase,
 				review_start_ms: this._review_start_ms,
 			},
 			tool: { name: "", input: "" },
@@ -80,13 +74,13 @@ export class ReviewAgentExecution implements ReviewAgentExecutionContract {
 	/** Responsibilities: _asynchronous review-agent dialogue_. **/
 	public async run_dialogue_async(execution: ReviewAgentDialogueExecution): Promise<ReviewAgentExecutionResult> {
 		const empty_process = { exit_code: 0, stdout: "", stderr: "" };
-		const start_decision = this._hooks.run(this.event(HOOK_AGENT_START, empty_process, execution.phase));
+		const start_decision = this._hooks.run(this.event(HOOK_AGENT_START, empty_process));
 		if (!start_decision.allowed) {
 			return this.denied_execution(start_decision.reason, empty_process);
 		}
 		const result = await this._agent_catalog.run_async(this._selection, { run_request: execution.request });
 		this._debug_log.append(execution.dialogue, execution.request, result);
-		const output_decision = this._hooks.run(this.event(HOOK_AGENT_OUTPUT, result.process, execution.phase));
+		const output_decision = this._hooks.run(this.event(HOOK_AGENT_OUTPUT, result.process));
 		if (!output_decision.allowed) {
 			return this.denied_execution(output_decision.reason, result.process);
 		}

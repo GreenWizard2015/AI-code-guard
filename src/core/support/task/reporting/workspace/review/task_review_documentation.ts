@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import {
-	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
 	REVIEW_DOCUMENT_NAMES,
 	REVIEW_PATH_PLACEHOLDER,
@@ -17,7 +16,6 @@ import type { TaskReviewDocumentationContract } from "src/task_protocols";
 export class TaskReviewDocumentation implements TaskReviewDocumentationContract {
 	private readonly _primary_prompt_file: string;
 	private readonly _common_prompt_file: string;
-	private readonly _cleanup_prompt_file: string;
 	private readonly _preamble_prompt_file: string;
 	private readonly _review_prompt_files: readonly string[];
 	private readonly _preamble_template: MarkdownTemplate;
@@ -58,7 +56,6 @@ export class TaskReviewDocumentation implements TaskReviewDocumentationContract 
 		this._io = io;
 		this._primary_prompt_file = join(documentation_root, "docs", "agent", REVIEW_PRIMARY_DOCUMENT);
 		this._common_prompt_file = join(documentation_root, "docs", "agent", REVIEW_COMMON_DOCUMENT);
-		this._cleanup_prompt_file = join(documentation_root, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT);
 		this._preamble_prompt_file = join(documentation_root, "docs", "agent", REVIEW_PREAMBLE_DOCUMENT);
 		this._preamble_template = new MarkdownTemplate(this._preamble_prompt_file, io);
 		this._review_prompt_files = REVIEW_DOCUMENT_NAMES.map((file) => join(documentation_root, "docs", "agent", file));
@@ -68,9 +65,6 @@ export class TaskReviewDocumentation implements TaskReviewDocumentationContract 
 	public validate_review_documents(): void {
 		if (!this._io.file(this._common_prompt_file).path_exists()) {
 			throw new Error(`Architecture review prompt is missing: ${this._common_prompt_file}`);
-		}
-		if (!this._io.file(this._cleanup_prompt_file).path_exists()) {
-			throw new Error(`Architecture review prompt is missing: ${this._cleanup_prompt_file}`);
 		}
 		if (!this._io.file(this._preamble_prompt_file).path_exists()) {
 			throw new Error(`Architecture review prompt is missing: ${this._preamble_prompt_file}`);

@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
@@ -43,7 +44,11 @@ describe("TypeScript expression aliases", () => {
 			true,
 		);
 		const aliases = new TypeScriptExpressionAliases("this", new TypeScriptObjectAliasDeclarationIndex());
-		const access = source_file.statements.find(ts.isExpressionStatement)?.expression;
+		const statement = source_file.statements.find(ts.isExpressionStatement);
+		let access: ts.Expression | undefined;
+		if (statement !== undefined) {
+			access = statement.expression;
+		}
 		let resolution = "missing-expression";
 		if (access !== undefined) {
 			if (aliases.receiver({ expression: access, node: source_file })) {
@@ -64,7 +69,11 @@ describe("TypeScript expression aliases", () => {
 			true,
 		);
 		const aliases = new TypeScriptExpressionAliases("this", new TypeScriptObjectAliasDeclarationIndex());
-		const access = source_file.statements.find(ts.isExpressionStatement)?.expression;
+		const statement = source_file.statements.find(ts.isExpressionStatement);
+		let access: ts.Expression | undefined;
+		if (statement !== undefined) {
+			access = statement.expression;
+		}
 		let resolution = "missing-expression";
 		if (access !== undefined) {
 			if (aliases.receiver({ expression: access, node: source_file })) {
@@ -128,27 +137,34 @@ describe("TypeScript expression aliases", () => {
 		});
 	});
 
-	test("caches each normalized expression and removes nested wrappers", () => {
+	test("returns the cached normalized expression on repeated access", () => {
 		const source_file = ts.createSourceFile(
 			"expression-aliases.ts",
 			"((target as object)!);",
 			ts.ScriptTarget.Latest,
 			true,
 		);
-		const expression = source_file.statements.find(ts.isExpressionStatement)?.expression;
+		const statement = source_file.statements.find(ts.isExpressionStatement);
+		assert.ok(statement);
 		const aliases = new TypeScriptExpressionAliases("target", new TypeScriptObjectAliasDeclarationIndex());
-		let normalized_name = "";
-		let same_expression = false;
-		if (expression !== undefined) {
-			const first = aliases.unwrapped(expression);
-			const second = aliases.unwrapped(expression);
-			same_expression = first === second;
-			if (ts.isIdentifier(first)) {
-				normalized_name = first.text;
-			}
-		}
+		const first = aliases.unwrapped(statement.expression);
+		const second = aliases.unwrapped(statement.expression);
 
-		expect({ normalized_name, same_expression }).toEqual({ normalized_name: "target", same_expression: true });
+		expect(first).toBe(second);
+	});
+
+	test("removes nested transparent wrappers", () => {
+		const source_file = ts.createSourceFile(
+			"expression-aliases.ts",
+			"((target as object)!);",
+			ts.ScriptTarget.Latest,
+			true,
+		);
+		const statement = source_file.statements.find(ts.isExpressionStatement);
+		assert.ok(statement);
+		const aliases = new TypeScriptExpressionAliases("target", new TypeScriptObjectAliasDeclarationIndex());
+
+		expect(aliases.unwrapped(statement.expression).getText(source_file)).toBe("target");
 	});
 
 	test("unwraps every transparent expression form and nested wrappers", () => {
@@ -172,10 +188,11 @@ describe("TypeScript expression aliases", () => {
 			if (!ts.isVariableStatement(statement)) {
 				continue;
 			}
-			const expression = statement.declarationList.declarations[0]?.initializer;
-			if (expression !== undefined) {
-				actual.push(names.unwrap_transparent_expression(expression).getText(source_file));
-			}
+			const declaration = statement.declarationList.declarations[0];
+			assert.ok(declaration);
+			const expression = declaration.initializer;
+			assert.ok(expression);
+			actual.push(names.unwrap_transparent_expression(expression).getText(source_file));
 		}
 
 		expect(actual).toEqual(Array.from({ length: 7 }, () => "target"));

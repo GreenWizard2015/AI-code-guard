@@ -1,5 +1,6 @@
 import { createContext } from "node:vm";
 import { describe, expect, test } from "@jest/globals";
+import { DOCUMENTATION_EXAMPLE_TIMEOUT_MS } from "documentation_validation/constants";
 import { TypeScriptExampleModuleCatalog } from "documentation_validation/sandbox/typescript/type_script_example_module_catalog";
 import { TypeScriptExampleModuleRuntime } from "documentation_validation/sandbox/typescript/type_script_example_module_runtime";
 
@@ -13,7 +14,12 @@ describe("TypeScript example module runtime", () => {
 			[`${root}/healthy.ts`, "export {};"],
 		]);
 		const catalog = new TypeScriptExampleModuleCatalog(sources);
-		const runtime = new TypeScriptExampleModuleRuntime(sources, catalog, createContext({ console }));
+		const runtime = new TypeScriptExampleModuleRuntime(
+			sources,
+			catalog,
+			createContext({ console }),
+			DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
+		);
 		runtime.entry_module(entry);
 
 		expect(runtime.execution_error(entry)).toContain("broken");
@@ -27,7 +33,12 @@ describe("TypeScript example module runtime", () => {
 			[`${root}/healthy.ts`, "export const ready = true;"],
 		]);
 		const catalog = new TypeScriptExampleModuleCatalog(sources);
-		const runtime = new TypeScriptExampleModuleRuntime(sources, catalog, createContext({ console }));
+		const runtime = new TypeScriptExampleModuleRuntime(
+			sources,
+			catalog,
+			createContext({ console }),
+			DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
+		);
 		runtime.entry_module(entry);
 
 		expect(runtime.execution_error(entry)).toBe("");
@@ -41,7 +52,12 @@ describe("TypeScript example module runtime", () => {
 			[`${root}/dependency.ts`, "globalThis.ready = true; export {};"],
 		]);
 		const catalog = new TypeScriptExampleModuleCatalog(sources);
-		const runtime = new TypeScriptExampleModuleRuntime(sources, catalog, createContext({ console }));
+		const runtime = new TypeScriptExampleModuleRuntime(
+			sources,
+			catalog,
+			createContext({ console }),
+			DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
+		);
 		runtime.entry_module(entry);
 
 		expect(runtime.execution_error(entry)).toBe("");
@@ -52,7 +68,7 @@ describe("TypeScript example module runtime", () => {
 		const entry = `${root}/stalled.ts`;
 		const sources = new Map([[entry, "while (true) {} export {};"]]);
 		const catalog = new TypeScriptExampleModuleCatalog(sources);
-		const runtime = new TypeScriptExampleModuleRuntime(sources, catalog, createContext({ console }));
+		const runtime = new TypeScriptExampleModuleRuntime(sources, catalog, createContext({ console }), 50);
 		runtime.entry_module(entry);
 
 		expect(runtime.execution_error(entry)).toContain("Script execution timed out");

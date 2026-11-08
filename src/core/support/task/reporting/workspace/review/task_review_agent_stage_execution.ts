@@ -13,7 +13,6 @@ import type {
 import type {
 	ReviewAgentExecutionResult,
 	ReviewAgentHookEvent,
-	ReviewAgentPhase,
 	ReviewAgentProcessResult,
 	ReviewAgentRequest,
 	ReviewAgentSelection,
@@ -30,10 +29,8 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 	private readonly _hook_command: string;
 	private readonly _stage: ReviewStageDefinition;
 	private readonly _review_start_ms: number;
-	private readonly _review_cleanup: boolean;
 	private readonly _boundary_failures: SystemFailureClassificationContract;
 	private readonly _review_documents: ReviewAgentFilesContract;
-	private readonly _stage_documents: ReviewAgentFilesContract;
 	private readonly _hooks: ReviewAgentHooksContract;
 	private readonly _dialogue: ReviewAgentDialogueContract;
 
@@ -48,7 +45,6 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 				hook_file: this._hook_file,
 				review_stage: this._stage.id,
 				review_prefix: this._stage.prefix,
-				review_phase: "cleanup",
 				review_start_ms: this._review_start_ms,
 			},
 			tool: { name: "", input: "" },
@@ -75,34 +71,13 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 		return { provider: result.provider, message: result.message };
 	}
 
-	/** Responsibilities: _review cleanup dialogue_. **/
-	private async cleanup(): Promise<TaskReviewRunResult> {
-		const result = await this._dialogue.cleanup_dialogue_async(
-			this.request(this._stage_documents.current_review_notes(), "cleanup", ""),
-		);
-		if (result.process.exit_code !== 0) {
-			this._review_documents.write_failure(result.message);
-			return { provider: "none", message: result.message };
-		}
-		return this.stop_agent(result);
-	}
-
 	/** Responsibilities: _review execution result finalization_. **/
-	private async finish(execution: ReviewAgentExecutionResult): Promise<TaskReviewRunResult> {
+	private finish(execution: ReviewAgentExecutionResult): TaskReviewRunResult {
 		if (execution.provider === "none") {
 			this._review_documents.write_failure(execution.message);
 			return { provider: "none", message: execution.message };
 		}
-		if (execution.no_issues) {
-			return this.stop_agent(execution);
-		}
-		if (this._stage_documents.current_review_notes().length === 0) {
-			return this.stop_agent(execution);
-		}
-		if (!this._review_cleanup) {
-			return this.stop_agent(execution);
-		}
-		return await this.cleanup();
+		return this.stop_agent(execution);
 	}
 
 	/** Responsibilities: _stage review failure handling_. **/
@@ -129,20 +104,14 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 		this._hook_command = context.hook_command;
 		this._stage = context.stage;
 		this._review_start_ms = context.review_start_ms;
-		this._review_cleanup = options.review_cleanup;
 		this._boundary_failures = collaborators.boundary_failures;
 		this._review_documents = collaborators.review_documents;
-		this._stage_documents = collaborators.stage_documents;
 		this._hooks = collaborators.hooks;
 		this._dialogue = collaborators.dialogue;
 	}
 
 	/** Responsibilities: _stage agent request construction_. **/
-	public request(
-		open_review_files: readonly string[],
-		review_phase: ReviewAgentPhase,
-		prompt: string,
-	): ReviewAgentRequest {
+	public request(open_review_files: readonly string[], prompt: string): ReviewAgentRequest {
 		return {
 			root: this._root,
 			instruction: this._instruction,
@@ -151,7 +120,6 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 				hook_file: this._hook_file,
 				hook_command: this._hook_command,
 				review_prefix: this._stage.prefix,
-				review_phase,
 				review_start_ms: this._review_start_ms,
 			},
 			review_stage: this._stage.id,
@@ -173,7 +141,7 @@ export class TaskReviewAgentStageExecution implements TaskReviewAgentStageExecut
 				this._review_documents.write_failure(execution.message);
 				return { provider: "none", message: execution.message };
 			}
-			return await this.finish(execution);
+			return this.finish(execution);
 		} catch (error) {
 			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
 				throw error;

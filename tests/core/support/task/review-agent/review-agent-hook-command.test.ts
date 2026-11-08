@@ -2,12 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import { ReviewAgentHookCommand } from "src/core/support/task/review-agent/review_agent_hook_command";
 
 describe("review hook argument serialization", () => {
-	test("serializes the initial phase and infinite start-time cutoff", () => {
+	test("serializes the review prefix and infinite start-time cutoff", () => {
 		const command = new ReviewAgentHookCommand(
 			"/tools/tsx",
 			"/project/agent-hooks.ts",
 			"review-boundaries-",
-			"initial",
 			Number.POSITIVE_INFINITY,
 		);
 
@@ -16,8 +15,6 @@ describe("review hook argument serialization", () => {
 			"/project/agent-hooks.ts",
 			"--review-prefix",
 			"review-boundaries-",
-			"--review-phase",
-			"initial",
 			"--review-started-at",
 			"Infinity",
 		]);
@@ -28,7 +25,6 @@ describe("review hook argument serialization", () => {
 			"/tools/tsx",
 			"/project/path with $HOME/agent's-hooks.ts",
 			"review-$(touch injected)-",
-			"cleanup",
 			1700000000000,
 		);
 
@@ -38,13 +34,11 @@ describe("review hook argument serialization", () => {
 				"/project/path with $HOME/agent's-hooks.ts",
 				"--review-prefix",
 				"review-$(touch injected)-",
-				"--review-phase",
-				"cleanup",
 				"--review-started-at",
 				"1700000000000",
 			],
 			command:
-				"'/tools/tsx' '/project/path with $HOME/agent'\"'\"'s-hooks.ts' '--review-prefix' 'review-$(touch injected)-' '--review-phase' 'cleanup' '--review-started-at' '1700000000000'",
+				"'/tools/tsx' '/project/path with $HOME/agent'\"'\"'s-hooks.ts' '--review-prefix' 'review-$(touch injected)-' '--review-started-at' '1700000000000'",
 		});
 	});
 });

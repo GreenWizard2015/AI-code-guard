@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.types import PythonASTLocatedNode
 
 CollectionOwnerLines = dict[str, set[int]]
 
@@ -84,5 +86,5 @@ class PythonCollectionMutationAnalysis:
         owners: CollectionOwnerLines = {name: set() for name in self._collections}
         for callable_node in callables:
             for name in self.mutations(callable_node):
-                owners[name].add(callable_node.lineno)
+                owners[name].add(cast(PythonASTLocatedNode, callable_node).lineno)
         return owners

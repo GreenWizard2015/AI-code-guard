@@ -2,7 +2,6 @@ import type { DocumentationExampleSourceFiles } from "documentation_validation/t
 import type { LintReportMode, LintReportOptions } from "src/core/types";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import type { LintExecutionReport } from "src/runtime_types";
-import type { UnusedCodeContract } from "src/source_protocols";
 
 /** Responsibilities: _file path identity_, _file role classification_. **/
 export interface LintFileNameContract {
@@ -33,5 +32,4 @@ export type DocumentationExampleRunOptions = {
 	readonly rule_id: string;
 	readonly source_files: DocumentationExampleSourceFiles;
 	readonly configuration: DocumentationExampleLintConfigurationContract;
-	readonly unused_code: UnusedCodeContract;
 };

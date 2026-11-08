@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.coding_issues.python_patch_alias_index import (
     PythonPatchAliasIndex,
 )
 from implementation.rules.constants import PYTHON_INIT_METHOD, PYTHON_LINE_KEY
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonRuntimePatching:
@@ -119,5 +120,10 @@ class PythonRuntimePatching:
             replacement = self.callable_replacement(node)
             dynamic_replacement = self._aliases.dynamic_replacement(node)
             if patch_call or replacement or dynamic_replacement:
-                issues.append({PYTHON_LINE_KEY: node.lineno - 1, "kind": "runtime-patching"})
+                issues.append(
+                    {
+                        PYTHON_LINE_KEY: cast(PythonASTLocatedNode, node).lineno - 1,
+                        "kind": "runtime-patching",
+                    },
+                )
         return sorted(issues, key=self._issue_line)

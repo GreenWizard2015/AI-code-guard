@@ -62,8 +62,8 @@ describe("Python AST worker", () => {
 		const registry = new PythonAstWorkerRegistry(process);
 		const session = registry.worker_session([...bridge.worker_arguments(), randomUUID()], bridge.worker_options());
 		const worker = session.worker();
-		const first_source = `first_value = '${"a".repeat(512 * 1024)}'\n`;
-		const second_source = `second_value = '${"b".repeat(512 * 1024)}'\n`;
+		const first_source = `first_value = '${"a".repeat(80 * 1024)}'\n`;
+		const second_source = `second_value = '${"b".repeat(80 * 1024)}'\n`;
 		const first_batch = worker.batch("large-first", new Map([["first.py", first_source]]));
 		const second_batch = worker.batch("large-second", new Map([["second.py", second_source]]));
 		let observed: {
@@ -71,11 +71,13 @@ describe("Python AST worker", () => {
 			first_files: string[];
 			second_batch_id: string;
 			second_files: string[];
+			both_sources_exceed_64_kib: boolean;
 		} = {
 			first_batch_id: "",
 			first_files: [],
 			second_batch_id: "",
 			second_files: [],
+			both_sources_exceed_64_kib: false,
 		};
 
 		try {
@@ -88,6 +90,9 @@ describe("Python AST worker", () => {
 				first_files: [...first_result.asts.keys()],
 				second_batch_id: second_result.batch_id,
 				second_files: [...second_result.asts.keys()],
+				both_sources_exceed_64_kib: [first_source, second_source].every(
+					(source) => Buffer.byteLength(source) > 64 * 1024,
+				),
 			};
 		} finally {
 			await session.close();
@@ -97,6 +102,7 @@ describe("Python AST worker", () => {
 			first_files: ["first.py"],
 			second_batch_id: "large-second",
 			second_files: ["second.py"],
+			both_sources_exceed_64_kib: true,
 		});
 	}, 30000);
 
@@ -160,12 +166,14 @@ describe("Python AST worker", () => {
 		worker.close();
 		const ast = result.asts.get("owners.py");
 
-		expect(
-			ast?.source.functions.map((callable: { identity: { name: string; owner: string } }) => [
+		let actual_functions: string[][] = [];
+		if (ast !== undefined) {
+			actual_functions = ast.source.functions.map((callable: { identity: { name: string; owner: string } }) => [
 				callable.identity.name,
 				callable.identity.owner,
-			]),
-		).toEqual([
+			]);
+		}
+		expect(actual_functions).toEqual([
 			["outer", ""],
 			["inner", "outer"],
 			["local", "run"],

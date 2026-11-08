@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { TASK_PUBLICATION_LOCK_DIRECTORY } from "src/core/support/task/constants";
 import { TaskPublicationOwner } from "src/core/support/task/publication/task_publication_owner";
 import { TaskPublicationRecoveryClaim } from "src/core/support/task/publication/task_publication_recovery_claim";
 import { TaskPublicationTransaction } from "src/core/support/task/publication/task_publication_transaction";
+import { TaskPublicationTransactionPath } from "src/core/support/task/publication/task_publication_transaction_path";
 import { NodeProcessSignal } from "src/core/support/task/review-agent/process/node_process_signal";
 import { ReviewAgentIdentity } from "src/core/support/task/review_agent_identity";
 import type {
@@ -150,12 +151,12 @@ export class TaskPublicationLock implements TaskPublicationLockContract {
 
 	/** Responsibilities: _publication transaction ownership_. **/
 	public transaction(path: string): TaskPublicationTransactionContract {
+		const transaction_path = new TaskPublicationTransactionPath(path, dirname(this._workspace_root), this._file_io);
 		return new TaskPublicationTransaction({
-			workspace_root: this._workspace_root,
 			lock_path: this._lock_path,
 			owner_token: this._owner_token,
 			process_identity: this._process_identity,
-			path,
+			path: transaction_path,
 			file_io: this._file_io,
 		});
 	}

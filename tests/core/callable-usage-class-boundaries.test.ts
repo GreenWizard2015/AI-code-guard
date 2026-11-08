@@ -138,30 +138,26 @@ describe("coding-lint callable usage resolution - class boundaries", () => {
 		);
 	});
 	test("does not use exports as callable usage exemptions", () => {
-		const typescriptViolations = test_fixture.with_lint_request(
+		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			EXPORT_USAGE_FILES.typescript,
+			{ ...EXPORT_USAGE_FILES.typescript, ...EXPORT_USAGE_FILES.python },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const pythonViolations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			EXPORT_USAGE_FILES.python,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect(typescriptViolations.map((violation) => violation.message())).toEqual(
-			expect.arrayContaining([
-				'function "public_function" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
-				'method "PublicService.run" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
-			]),
-		);
-		expect(pythonViolations.map((violation) => violation.message())).toEqual(
-			expect.arrayContaining([
-				'function "public_function" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
-				'method "PublicService.run" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
-			]),
-		);
+		const typescriptViolations = violations.filter((violation) => violation.file() === "source.ts");
+		const pythonViolations = violations.filter((violation) => violation.file() === "source.py");
+		const expected_usage_messages = [
+			'function "public_function" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
+			'method "PublicService.run" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
+		];
+
+		expect({
+			typescript: typescriptViolations.map((violation) => violation.message()),
+			python: pythonViolations.map((violation) => violation.message()),
+		}).toEqual({
+			typescript: expect.arrayContaining(expected_usage_messages),
+			python: expect.arrayContaining(expected_usage_messages),
+		});
 	});
 	test("resolves awaited imported return types without mixing same-named methods", () => {
 		const violations = test_fixture.with_lint_request(

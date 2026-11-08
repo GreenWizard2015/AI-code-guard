@@ -20,12 +20,24 @@ export class NodeProcessSignal implements ProcessSignalContract, ReviewAgentProc
 	private readonly _file_io: IOContract;
 	private readonly _platform: NodeJS.Platform;
 
+	/** Responsibilities: _process error code lookup_. **/
+	private error_code(descriptor: PropertyDescriptor): string {
+		if (typeof descriptor.value !== "string") {
+			return "";
+		}
+		return descriptor.value;
+	}
+
 	/** Responsibilities: _best-effort proc record retrieval_. **/
 	private process_text(path: string): string {
 		try {
 			return this._file_io.file(path).file_text();
 		} catch (error) {
-			const code = Object.getOwnPropertyDescriptor(new Object(error), "code")?.value;
+			const descriptor = Object.getOwnPropertyDescriptor(new Object(error), "code");
+			let code = "";
+			if (descriptor !== undefined) {
+				code = this.error_code(descriptor);
+			}
 			if (typeof code === "string" && SYSTEM_FAILURE_CODES.includes(code)) {
 				return "";
 			}
@@ -69,9 +81,33 @@ export class NodeProcessSignal implements ProcessSignalContract, ReviewAgentProc
 		try {
 			return this._file_io.list_entries("/proc");
 		} catch (error) {
-			const code = Object.getOwnPropertyDescriptor(new Object(error), "code")?.value;
+			const descriptor = Object.getOwnPropertyDescriptor(new Object(error), "code");
+			let code = "";
+			if (descriptor !== undefined) {
+				code = this.error_code(descriptor);
+			}
 			if (typeof code === "string" && SYSTEM_FAILURE_CODES.includes(code)) {
 				return [];
+			}
+			throw error;
+		}
+	}
+
+	/** Responsibilities: _process existence signal handling_. **/
+	private process_exists(process_id: number): boolean {
+		try {
+			return this._process_api.kill(process_id, 0);
+		} catch (error) {
+			const descriptor = Object.getOwnPropertyDescriptor(new Object(error), "code");
+			if (descriptor === undefined) {
+				throw error;
+			}
+			const code = this.error_code(descriptor);
+			if (code === "EPERM") {
+				return true;
+			}
+			if (code === "ESRCH") {
+				return false;
 			}
 			throw error;
 		}
@@ -111,7 +147,11 @@ export class NodeProcessSignal implements ProcessSignalContract, ReviewAgentProc
 		try {
 			return this._process_api.kill(process_id.value, 0);
 		} catch (error) {
-			const code = Object.getOwnPropertyDescriptor(new Object(error), "code")?.value;
+			const descriptor = Object.getOwnPropertyDescriptor(new Object(error), "code");
+			let code = "";
+			if (descriptor !== undefined) {
+				code = this.error_code(descriptor);
+			}
 			if (code === "EPERM") {
 				return true;
 			}
@@ -127,18 +167,7 @@ export class NodeProcessSignal implements ProcessSignalContract, ReviewAgentProc
 		if (this._platform === "win32") {
 			return false;
 		}
-		try {
-			return this._process_api.kill(-group.id, 0);
-		} catch (error) {
-			const code = Object.getOwnPropertyDescriptor(new Object(error), "code")?.value;
-			if (code === "EPERM") {
-				return true;
-			}
-			if (code === "ESRCH") {
-				return false;
-			}
-			throw error;
-		}
+		return this.process_exists(-group.id);
 	}
 
 	/** Responsibilities: _process-group ownership verification_. **/
@@ -170,7 +199,8 @@ export class NodeProcessSignal implements ProcessSignalContract, ReviewAgentProc
 			}
 			return !this.group_exists(target);
 		} catch (error) {
-			const code = Object.getOwnPropertyDescriptor(new Object(error), "code")?.value;
+			const descriptor = Object.getOwnPropertyDescriptor(new Object(error), "code") ?? {};
+			const code = this.error_code(descriptor);
 			if (code === "ESRCH") {
 				return true;
 			}

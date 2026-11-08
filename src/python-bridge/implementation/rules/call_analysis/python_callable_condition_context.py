@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.rules.call_analysis.python_name_access import PythonNameAccess
+from implementation.types import PythonASTLocatedNode
 
 
 class PythonCallableConditionContext:
@@ -19,11 +21,11 @@ class PythonCallableConditionContext:
 
     def _assignment_precedes(self, first: ast.AST, second: ast.AST) -> bool:
         """Responsibilities: _same-scope statement order_."""
-        if first.lineno < second.lineno:
+        if cast(PythonASTLocatedNode, first).lineno < cast(PythonASTLocatedNode, second).lineno:
             return True
-        if first.lineno > second.lineno:
+        if cast(PythonASTLocatedNode, first).lineno > cast(PythonASTLocatedNode, second).lineno:
             return False
-        return first.col_offset < second.col_offset
+        return cast(PythonASTLocatedNode, first).col_offset < cast(PythonASTLocatedNode, second).col_offset
 
     def _assignment_targets(self, candidate: ast.AST) -> list[ast.expr]:
         """Responsibilities: _assignment target extraction_."""

@@ -33,27 +33,20 @@ describe("conditional execution and forwarding analysis", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const messages = violations.map((item) => item.message());
+		expect(
+			violations.some(
+				(item) =>
+					item.message() === "TypeScript if and else branches must use braces" &&
+					item.file() === "else-without-braces.ts" &&
+					item.line() === 1,
+			),
+		).toBe(true);
 		expect({
 			conditional_execution: violations.filter((item) => item.rule_id() === "conditional-execution").length,
 			typescript_braces: messages.filter((message) => message === "TypeScript if and else branches must use braces")
 				.length,
 			python_elif: messages.filter((message) => message === "avoid Python elif branches").length,
 		}).toEqual({ conditional_execution: 0, typescript_braces: 3, python_elif: 1 });
-	});
-
-	test("accepts explicit if branches without conditional expression diagnostics", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				...CONDITIONAL_BLOCK_FILES,
-				"else-without-braces.ts": "if (ready) { submit(); } else recover();",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((item) => item.rule_id() === "conditional-execution")).toEqual([]);
 	});
 
 	test("detects forwarding callables through direct, wrapped, awaited, and spread calls", () => {
@@ -94,8 +87,27 @@ describe("conditional execution and forwarding analysis", () => {
 		);
 		const proxy_violations = violations.filter((item) => item.rule_id() === "proxy-callable");
 		expect({
-			count: proxy_violations.length,
+			locations: proxy_violations.map((item) => `${item.file()}:${item.line()}`).sort(),
 			property_accessors: proxy_violations.some((item) => item.file() === "polling-state.ts"),
-		}).toEqual({ count: 15, property_accessors: false });
+		}).toEqual({
+			locations: [
+				"awaited-proxy.ts:1",
+				"parenthesized-proxy.ts:2",
+				"parenthesized-proxy.ts:5",
+				"proxy.py:11",
+				"proxy.py:2",
+				"proxy.py:5",
+				"proxy.py:8",
+				"proxy.ts:12",
+				"proxy.ts:16",
+				"proxy.ts:19",
+				"proxy.ts:22",
+				"proxy.ts:25",
+				"proxy.ts:6",
+				"proxy.ts:9",
+				"spread-proxy.ts:2",
+			],
+			property_accessors: false,
+		});
 	});
 });

@@ -1,5 +1,6 @@
 import ast
 from bisect import bisect_right
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonAssignmentAliasContract
@@ -8,7 +9,7 @@ from implementation.rules.types import (
     PythonScopeAliasHistoryData,
     PythonScopeTypes,
 )
-from implementation.types import JsonObject, PythonAstNodeListIndex
+from implementation.types import JsonObject, PythonASTLocatedNode, PythonAstNodeListIndex
 
 
 class PythonScopeAliasHistory:
@@ -58,7 +59,13 @@ class PythonScopeAliasHistory:
             item_scopes = self._scope_chain(item)
             if item_scopes and item_scopes[0] is owner_scope:
                 assignments.append(item)
-        return sorted(assignments, key=lambda item: (item.lineno, item.col_offset))
+        return sorted(
+            assignments,
+            key=lambda item: (
+                cast(PythonASTLocatedNode, item).lineno,
+                cast(PythonASTLocatedNode, item).col_offset,
+            ),
+        )
 
     def _scope_history(self, scope: ast.AST) -> PythonScopeAliasHistoryData:
         """Responsibilities: _scoped alias history construction_."""
@@ -72,7 +79,7 @@ class PythonScopeAliasHistory:
             aliases = self._alias_source.assignment_aliases(assignment)
             for name, target in aliases.items():
                 history.setdefault(name, []).append(
-                    {"line": assignment.lineno, "target": target},
+                    {"line": cast(PythonASTLocatedNode, assignment).lineno, "target": target},
                 )
         self._history_cache.update({scope: history})
         return history

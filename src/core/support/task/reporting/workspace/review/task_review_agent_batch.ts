@@ -52,7 +52,7 @@ export class TaskReviewAgentBatch {
 
 	/** Responsibilities: _stage execution state_. **/
 	private stage_execution(request: ReviewAgentStageRunRequest): TaskReviewAgentStageExecutionContract {
-		const { selection, stage, review_cleanup, review_start_ms } = request;
+		const { selection, stage, review_start_ms } = request;
 		const { execution, collaborators } = this._options;
 		const stage_documents = new ReviewAgentFiles(
 			execution.review_root,
@@ -63,8 +63,7 @@ export class TaskReviewAgentBatch {
 		const dialogue = this.stage_dialogue(selection, stage, stage_documents, review_start_ms);
 		return new TaskReviewAgentStageExecution({
 			request_context: { ...execution, stage, selection, review_start_ms },
-			review_cleanup,
-			collaborators: { ...collaborators, stage_documents, dialogue },
+			collaborators: { ...collaborators, dialogue },
 		});
 	}
 
@@ -116,18 +115,17 @@ export class TaskReviewAgentBatch {
 				this.run_stage({
 					selection: request.selection,
 					stage,
-					review_cleanup: request.review_cleanup,
 					review_start_ms: request.review_start_ms,
 				}),
 			),
 		);
 		const results: TaskReviewRunResult[] = [];
 		for (const result of settled) {
-			if (result.status === "rejected") {
-				results.push(this.stage_failure(String(result.reason)));
+			if (result.status === "fulfilled") {
+				results.push(result.value);
 				continue;
 			}
-			results.push(result.value);
+			results.push(this.stage_failure(String(result.reason)));
 		}
 		return results;
 	}

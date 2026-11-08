@@ -38,7 +38,8 @@ export class TypeScriptPropertyInstanceFileEntry implements TypeScriptPropertyIn
 		if (!ts.isPropertyDeclaration(this._node)) {
 			return INSTANCE_PROPERTY_SIDE;
 		}
-		if (this._node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword)) {
+		const modifiers = this._node.modifiers;
+		if (modifiers !== undefined && modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword)) {
 			return STATIC_PROPERTY_SIDE;
 		}
 		return INSTANCE_PROPERTY_SIDE;

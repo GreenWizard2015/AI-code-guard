@@ -11,7 +11,7 @@ import type {
 	NamedLine,
 } from "src/model/ast/normalized_ast_types";
 import type { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
-import type { PythonAstWorkerContract } from "src/python_protocols";
+import type { PythonAstWorkerCapabilityContract, PythonAstWorkerContract } from "src/python_protocols";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 import type { TaskReportingMemoryWorkspace } from "tests/bridge/ts/core/support/task-reporting-memory-workspace";
@@ -35,11 +35,13 @@ export type CallableProjectSourceAction<Result> = (fixture: ProjectSourceFixture
 export type CallableTaskReviewAgentFactory = () => TaskReviewAgent;
 export type CallableInterleaving = () => void;
 export type CallableTaskReportingAction<Result> = (fixture: TaskReportingMemoryWorkspace) => Result;
+export type TaskDocuments = { output: string; issues: string; report: string };
 export type CallableNodeVisitor = (node: ts.Node) => void;
 export type CallablePythonAstWorkerFactory = (
 	arguments_list: string[],
 	options: SpawnOptions,
 ) => PythonAstWorkerContract;
+export type CallablePythonAstWorkerProvider = () => PythonAstWorkerCapabilityContract;
 
 export type PreparedPythonLintInput = {
 	readonly source_record: LintSourceRecordData;
@@ -71,6 +73,7 @@ type FixtureCallableShape = {
 	argument_uses: readonly AstArgumentUse[];
 	typed_arguments: readonly AstTypedArgument[];
 	decorators: readonly string[];
+	parameterized_case_count: number;
 	is_accessor: boolean;
 	exception_only: boolean;
 	has_self: boolean;

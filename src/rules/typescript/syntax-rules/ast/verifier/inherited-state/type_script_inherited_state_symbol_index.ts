@@ -34,7 +34,11 @@ export class TypeScriptInheritedStateSymbolIndex {
 			return;
 		}
 		for (const element of named_bindings.elements) {
-			const exported_name = element.propertyName?.text ?? element.name.text;
+			const property_name = element.propertyName;
+			let exported_name = element.name.text;
+			if (property_name !== undefined) {
+				exported_name = property_name.text;
+			}
 			const symbol = this.resolved_binding({ file: import_scope.module_file, name: exported_name }, false);
 			import_scope.module.imports.set(element.name.text, symbol);
 		}

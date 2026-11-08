@@ -1,4 +1,5 @@
 import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
+import { TypeScriptCollaboratorImports } from "src/rules/typescript/syntax-rules/types/type_script_collaborator_imports";
 import type {
 	TypeScriptCollaboratorTypeIndexContract,
 	TypeScriptImportedImplementationIndex,
@@ -10,57 +11,20 @@ import ts from "typescript";
 /** Responsibilities: _imported class resolution_, _contract membership indexing_. **/
 export class TypeScriptCollaboratorTypeIndex implements TypeScriptCollaboratorTypeIndexContract {
 	private readonly _implementations: TypeScriptImportedImplementationIndex;
-	private readonly _source_file: ts.SourceFile;
 	private readonly _context: RuleContextContract;
+	private readonly _imports: TypeScriptCollaboratorImports;
 
 	/** Responsibilities: _local class declaration lookup_. **/
 	private declaration(class_source: ts.SourceFile, class_name: string): ts.Node {
 		for (const statement of class_source.statements) {
-			if (ts.isClassDeclaration(statement) && statement.name?.text === class_name) {
-				return statement;
+			if (ts.isClassDeclaration(statement)) {
+				const name = statement.name;
+				if (name !== undefined && name.text === class_name) {
+					return statement;
+				}
 			}
 		}
 		return class_source;
-	}
-
-	/** Responsibilities: _imported contract identity resolution_. **/
-	private imported_symbol(contract_alias: string): TypeScriptModuleSymbolReference {
-		for (const declaration of this._source_file.statements) {
-			if (!ts.isImportDeclaration(declaration) || !ts.isStringLiteral(declaration.moduleSpecifier)) {
-				continue;
-			}
-			const bindings = declaration.importClause?.namedBindings;
-			if (bindings === undefined || !ts.isNamedImports(bindings)) {
-				continue;
-			}
-			const imported = this.named_import(bindings, declaration, contract_alias);
-			if (imported.file.length > 0) {
-				return imported;
-			}
-		}
-		return { file: "", name: "" };
-	}
-
-	/** Responsibilities: _named import identity resolution_. **/
-	private named_import(
-		bindings: ts.NamedImports,
-		declaration: ts.ImportDeclaration,
-		requested_binding: string,
-	): TypeScriptModuleSymbolReference {
-		if (!ts.isStringLiteral(declaration.moduleSpecifier)) {
-			return { file: "", name: "" };
-		}
-		for (const element of bindings.elements) {
-			if (element.name.text !== requested_binding) {
-				continue;
-			}
-			const imported_name = this.imported_name(element);
-			const module_file = this._context
-				.state()
-				.analysis.module_resolver.module_symbol(this._source_file.fileName, declaration.moduleSpecifier.text);
-			return this._context.state().analysis.module_resolver.resolve({ file: module_file, name: imported_name });
-		}
-		return { file: "", name: "" };
 	}
 
 	/** Responsibilities: _interface method membership_. **/
@@ -103,7 +67,7 @@ export class TypeScriptCollaboratorTypeIndex implements TypeScriptCollaboratorTy
 		if (!ts.isIdentifier(heritage.expression)) {
 			return;
 		}
-		const contract = this.imported_symbol(heritage.expression.text);
+		const contract = this._imports.symbol(heritage.expression.text);
 		if (contract.file.length === 0) {
 			return;
 		}
@@ -138,27 +102,6 @@ export class TypeScriptCollaboratorTypeIndex implements TypeScriptCollaboratorTy
 		return contracts;
 	}
 
-	/** Responsibilities: _imported implementation association_. **/
-	private append_import(declaration: ts.ImportDeclaration, element: ts.ImportSpecifier): void {
-		if (!ts.isStringLiteral(declaration.moduleSpecifier)) {
-			return;
-		}
-		const imported_name = this.imported_name(element);
-		const module_file = this._context
-			.state()
-			.analysis.module_resolver.module_symbol(this._source_file.fileName, declaration.moduleSpecifier.text);
-		const resolved = this._context.state().analysis.module_resolver.resolve({ file: module_file, name: imported_name });
-		this.append_resolved_class(element.name.text, resolved);
-	}
-
-	/** Responsibilities: _imported name resolution_. **/
-	private imported_name(element: ts.ImportSpecifier): string {
-		if (element.propertyName !== undefined) {
-			return element.propertyName.text;
-		}
-		return element.name.text;
-	}
-
 	/** Responsibilities: _class contract registration_. **/
 	private append_resolved_class(local_class_alias: string, resolved: TypeScriptModuleSymbolReference): void {
 		const imported_file = this._context.state().analysis.source_resolver.get(resolved.file);
@@ -175,34 +118,19 @@ export class TypeScriptCollaboratorTypeIndex implements TypeScriptCollaboratorTy
 		}
 	}
 
-	/** Responsibilities: _named implementation imports_. **/
-	private append_named_imports(import_declaration: ts.ImportDeclaration): void {
-		const clause = import_declaration.importClause;
-		if (clause === undefined || clause.namedBindings === undefined) {
-			return;
-		}
-		if (!ts.isNamedImports(clause.namedBindings)) {
-			return;
-		}
-		for (const element of clause.namedBindings.elements) {
-			this.append_import(import_declaration, element);
-		}
-	}
-
 	/** Responsibilities: _collaborator contract index initialization_. **/
 	public constructor(source_file: ts.SourceFile, context: RuleContextContract) {
 		this._implementations = new Map();
-		this._source_file = source_file;
 		this._context = context;
+		this._imports = new TypeScriptCollaboratorImports(source_file, context);
 	}
 
 	/** Responsibilities: _imported contract index preparation_. **/
 	public prepare(): void {
 		this._implementations.clear();
-		for (const statement of this._source_file.statements) {
-			if (ts.isImportDeclaration(statement)) {
-				this.append_named_imports(statement);
-			}
+		this._imports.prepare();
+		for (const [local_name, symbol] of this._imports.named_symbols()) {
+			this.append_resolved_class(local_name, symbol);
 		}
 	}
 

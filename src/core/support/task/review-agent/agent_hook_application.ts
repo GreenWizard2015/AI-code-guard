@@ -198,7 +198,6 @@ export class AgentHookApplication {
 		return this.event_decision({
 			event,
 			cwd: payload.cwd,
-			phase: payload.review_phase,
 			review_prefix: payload.review_prefix,
 			review_start_ms: payload.review_start_ms,
 			stop_hook_active: payload.stop_hook_active,

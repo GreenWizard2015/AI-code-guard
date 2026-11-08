@@ -59,6 +59,12 @@ export type PythonAstWorkerSessionOptions = {
 	lease_owner: PythonAstWorkerLeaseOwnerContract;
 };
 
+/** Responsibilities: _worker session close lifecycle_. **/
+export type PythonAstWorkerCloseState = {
+	started: boolean;
+	completion: Promise<void>;
+};
+
 /** Responsibilities: _pending Python batch state_, _worker batch ownership_. **/
 export type PythonBatchAstPreparation = {
 	options: PythonBatchAstOptions;

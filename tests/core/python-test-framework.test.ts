@@ -121,4 +121,51 @@ describe("Python test framework and structure", () => {
 			parameterized_hint: subtest_violations.every((item) => item.hint().includes("parameterized.expand")),
 		}).toEqual({ count: 3, lines: [4, 9, 13], parameterized_hint: true });
 	});
+
+	test("counts parameterized.expand rows as unittest test cases", () => {
+		const fixture = new TestFixture();
+		const rows = Array.from({ length: 16 }, (_, index) => `        (${index},),`).join("\n");
+		const small_rows = ["        (1,),", "        (2,),"];
+		const minimum_suite_lines = [
+			"import unittest",
+			"from parameterized import parameterized",
+			"class TestValues(unittest.TestCase):",
+			"    @parameterized.expand([",
+			...small_rows,
+			"    ])",
+			"    def test_value(self, value):",
+			"        self.assertEqual(value, value)",
+		];
+		const minimum_suite = minimum_suite_lines.join("\n");
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"tests/test_parameterized.py": [
+					"import unittest",
+					"from parameterized import parameterized",
+					"class TestValues(unittest.TestCase):",
+					"    @parameterized.expand([",
+					rows,
+					"    ])",
+					"    def test_value(self, value):",
+					"        self.assertEqual(value, value)",
+				].join("\n"),
+				"tests/test_parameterized_minimum.py": minimum_suite,
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const count_violation = violations.find((item) => item.rule_id() === "test-max-count");
+		let maximum_message = "";
+		if (count_violation !== undefined) {
+			maximum_message = count_violation.message();
+		}
+
+		expect({
+			maximum: maximum_message,
+			small_suite_minimum: violations.some(
+				(item) => item.rule_id() === "test-min-count" && item.file() === "tests/test_parameterized_minimum.py",
+			),
+		}).toEqual({ maximum: expect.stringContaining("found 16"), small_suite_minimum: false });
+	});
 });

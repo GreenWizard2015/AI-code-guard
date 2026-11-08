@@ -30,6 +30,8 @@ next: <single concrete action>
 
 Report `diagnostics_source=unavailable` when only an issue count or timing summary exists. A report is reusable only when its target, source snapshot, exact command/configuration, scope, and report contents still match. If any differ, capture a fresh complete report and update this file. Do not make another full lint pass solely to recreate a summary already available for the exact integrated snapshot.
 
-At each user-facing diagnostic checkpoint, render the rule/group counts as a compact table with before/current, resolved, introduced/exposed, and remaining values. The status file is the source of truth for the current phase; preserve original-baseline progress in the detailed append-only task log.
+At each measured user-facing diagnostic checkpoint, render the rule/group counts as a compact table with before/current, resolved, introduced/exposed, and remaining values. The status file is the source of truth for the current phase; preserve original-baseline progress in the detailed append-only task log.
 
 For parallel batches, list only real coupling that affects acceptance: shared files, APIs/callers, rules/resolvers, registries, tests, or generated state. Keep coupled batches under one owner or sequence them. After integration, record accepted, conflicted, and regression-producing proposals; use those observations to choose the next batch boundaries. Do not run extra checks solely to calculate a parallelism metric.
+
+Keep a compact check ledger in this same file: command/check ID, relevant input and dependency fingerprint, covered scope, status, and next invalidating change. Store verbose output in existing check artifacts, not here. Use it to rerun only affected checks; retain final mandatory gates. Update counts exclusively from the canonical complete report. Selected and deferred counts are separate metadata, never competing totals. Do not rewrite status or repeat a full table when nothing changed.

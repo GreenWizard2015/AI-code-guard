@@ -17,12 +17,12 @@ import {
 } from "src/rules/constants";
 import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_rule";
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
+import { FileNameRules } from "src/rules/support/file_name_rules";
 import { ModuleDeclarationsRule } from "src/rules/support/module_declarations_rule";
-import { SingleClassFileNameRule } from "src/rules/support/single_class_file_name_rule";
 import type {
 	DirectoryRulesContract,
+	FileNameRulesContract,
 	ModuleDeclarationsRuleContract,
-	SingleClassFileNameRuleContract,
 } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
@@ -35,7 +35,7 @@ export class DirectoryRules implements DirectoryRulesContract {
 	private readonly _max_file_lines: number;
 	private readonly _min_file_lines: number;
 	private readonly _module_declarations_rule: ModuleDeclarationsRuleContract;
-	private readonly _file_name_rule: SingleClassFileNameRuleContract;
+	private readonly _file_name_rule: FileNameRulesContract;
 	private readonly _ignore_rule: AiCodeGuardIgnoreRule;
 	private readonly _file_io: IOContract;
 
@@ -74,7 +74,7 @@ export class DirectoryRules implements DirectoryRulesContract {
 		this._file_size_rule = new DiagnosticRule("file-min-size");
 		this._file_max_rule = new DiagnosticRule("file-max-size");
 		this._directory_comment_segments = new DirectoryCommentSegments("/*", "*/", "#", "//");
-		this._file_name_rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		this._file_name_rule = new FileNameRules(new TestPathSyntax(TEST_PATH_SUFFIXES));
 		this._module_declarations_rule = new ModuleDeclarationsRule(
 			MODULE_DECLARATION_FILES,
 			MODULE_CONSTANT_FILES,
@@ -88,6 +88,7 @@ export class DirectoryRules implements DirectoryRulesContract {
 	public append_file_violation(options: DirectoryFileViolationOptions): void {
 		const { violations, file, text, normalized_ast } = options;
 		this.append_file_max(violations, file, text);
+		this._file_name_rule.append_numeric(violations, file);
 		this._file_name_rule.append(violations, file, normalized_ast.source.classes);
 		this._module_declarations_rule.append(violations, file, normalized_ast);
 		this.append_file_size(options);

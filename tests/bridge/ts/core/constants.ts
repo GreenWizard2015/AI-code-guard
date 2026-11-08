@@ -24,12 +24,6 @@ export const INVALID_POLICY_SOURCES = {
 		"def build(reader: Reader = Reader(), values: list[str] = [], options: dict = {}):",
 		"    return reader, values, flag",
 	].join("\n"),
-	"primitive-defaults.ts": [
-		'enum ReportMode { PROJECT = "project" }',
-		'function build(name = "", count = 0, enabled = false, value = null, values = [], options = {}, mode = ReportMode.PROJECT) {}',
-	].join("\n"),
-	"primitive-defaults.py":
-		'def build(name = "", count = 0, enabled = False, value = None, values = [], options = {}):\n    pass',
 	"overloads.ts": [
 		"function load(value: string): string;",
 		"function load(value: number): string;",
@@ -52,7 +46,6 @@ export const INVALID_POLICY_SOURCES = {
 	].join("\n"),
 	"empty-contracts.ts": "interface Empty {}",
 	"empty-contracts.py": ["from typing import Protocol", "class Empty(Protocol):", "    pass"].join("\n"),
-	"structural-type.ts": "type RuntimeShape = { value: string };",
 	"bare-aliases.ts": [
 		"type Existing = string;",
 		"export type Renamed = Existing;",
@@ -122,7 +115,6 @@ export const METACHARACTER_REQUEST: ReviewAgentRequest = {
 		hook_file: "/project/path with $HOME/agent's-hooks.ts",
 		hook_command: "/tools/tsx",
 		review_prefix: "review-$(touch injected)-",
-		review_phase: "cleanup",
 		review_start_ms: 0,
 	},
 	review_stage: "boundaries",

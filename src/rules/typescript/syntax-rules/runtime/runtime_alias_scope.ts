@@ -83,7 +83,8 @@ export class RuntimeAliasScope implements RuntimeAliasScopeContract {
 			return this.binding_contains_name(declaration_candidate.name, declared_name);
 		}
 		if (ts.isFunctionDeclaration(declaration_candidate) || ts.isClassDeclaration(declaration_candidate)) {
-			return declaration_candidate.name?.text === declared_name;
+			const name = declaration_candidate.name;
+			return name !== undefined && name.text === declared_name;
 		}
 		return false;
 	}

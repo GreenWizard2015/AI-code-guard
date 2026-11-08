@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
     PYTHON_INIT_METHOD,
     PYTHON_TEMPORAL_COUPLING_RULE_ID,
 )
-from implementation.rules.control_flow.python_temporal_access import PythonTemporalAccess
+from implementation.rules.control_flow.python_temporal_access import (
+    PythonTemporalAccess,
+)
 from implementation.rules.protocols import PythonMethodRecordContract
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 FieldReaderIndex = dict[str, set[ast.AST]]
 ClassMethodRecords = tuple[list[PythonMethodRecordContract], set[str]]
@@ -79,7 +82,7 @@ class PythonTemporalCoupling:
                 continue
             issues.append(
                 {
-                    "line": method.syntax_node().lineno - 1,
+                    "line": cast(PythonASTLocatedNode, method.syntax_node()).lineno - 1,
                     "kind": PYTHON_TEMPORAL_COUPLING_RULE_ID,
                     "name": field,
                 },

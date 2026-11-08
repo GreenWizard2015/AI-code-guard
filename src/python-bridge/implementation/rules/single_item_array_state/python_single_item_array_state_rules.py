@@ -1,15 +1,30 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE
 from implementation.rules.protocols import PythonArrayCallAnalyzerContract
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonSingleItemArrayStateRules:
     """Responsibilities: _identification single-item array invocation_, _array violations collection_."""
+
+    def _single_item_target(self, targets: list[ast.expr]) -> bool:
+        """Responsibilities: _single-item destructuring detection_."""
+        for target in targets:
+            if type(target) is ast.Tuple:
+                elements = target.elts
+            else:
+                if type(target) is ast.List:
+                    elements = target.elts
+                else:
+                    continue
+            if len(elements) == 1:
+                return True
+        return False
 
     def __init__(
         self,
@@ -30,10 +45,9 @@ class PythonSingleItemArrayStateRules:
         else:
             if type(node) is ast.AnnAssign:
                 targets = [node.target]
-        for target in targets:
-            if type(target) is ast.Tuple or type(target) is ast.List:
-                if len(target.elts) == 1:
-                    return [{"line": node.lineno - 1, "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE}]
+        if self._single_item_target(targets):
+            position = cast(PythonASTLocatedNode, node)
+            return [{"line": position.lineno - 1, "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE}]
         if type(node) is not ast.Subscript:
             return []
         return self.collect_indexed_result(node)
@@ -42,4 +56,9 @@ class PythonSingleItemArrayStateRules:
         """Responsibilities: _single-item indexed result diagnostics_."""
         if not self._call_analyzer.array_call(indexed_expression):
             return []
-        return [{"line": indexed_expression.lineno - 1, "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE}]
+        return [
+            {
+                "line": indexed_expression.lineno - 1,
+                "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE,
+            },
+        ]

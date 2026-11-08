@@ -5,7 +5,7 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("single-item array state analysis", () => {
-	test("detects the first result extracted through array destructuring", () => {
+	test("detects single-item array results and ordinary path indexing", () => {
 		const fixture = new TestFixture();
 		const violations = fixture
 			.with_lint_request(
@@ -46,13 +46,29 @@ describe("single-item array state analysis", () => {
 						'const [user] = find_users("owner-17");',
 						'const indexed_user = find_users("owner-18")[0];',
 					].join("\n"),
+					"collection-index.ts": [
+						'function find_value(): string[] { return ["value"]; }',
+						"const result = find_value()[0];",
+						'const path_parts = "root/file.py".split("/");',
+						"const file_name = path_parts[path_parts.length - 1];",
+						"const root_part = path_parts[0];",
+						"console.log(result, file_name, root_part);",
+					].join("\n"),
 				},
 				(production_lint_configuration, options, mode) =>
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
 			.filter((item) => item.rule_id() === "single-item-array-state");
 
-		expect(violations).toHaveLength(6);
+		expect(violations.map((item) => `${item.file()}:${item.line()}`).sort()).toEqual([
+			"collection-index.ts:2",
+			"destructured-call-alias.ts:9",
+			"destructured-conditional.ts:5",
+			"destructured-conditional.ts:6",
+			"destructured-result.ts:14",
+			"destructured-result.ts:8",
+			"destructured-result.ts:9",
+		]);
 	});
 
 	test("detects access through call aliases and direct array return types", () => {
@@ -87,20 +103,6 @@ describe("single-item array state analysis", () => {
 						"}",
 						"const first_item = get_items()[0];",
 					].join("\n"),
-				},
-				(production_lint_configuration, options, mode) =>
-					production_lint_configuration.lint_report(options, mode).report.violations,
-			)
-			.filter((item) => item.rule_id() === "single-item-array-state");
-		expect(violations).toHaveLength(5);
-	});
-
-	test("detects zero access through both indexing and at", () => {
-		const fixture = new TestFixture();
-		const violations = fixture
-			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-				{
 					"indexed-result.ts": ['function values(): string[] { return ["value"]; }', "const item = values()[0];"].join(
 						"\n",
 					),
@@ -121,33 +123,17 @@ describe("single-item array state analysis", () => {
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
 			.filter((item) => item.rule_id() === "single-item-array-state");
-		const reported_files = violations.map((item) => item.file()).sort();
-
-		expect(violations).toHaveLength(4);
-		expect(reported_files).toEqual(["arguments-unpack.ts", "arguments-unpack.ts", "at-result.ts", "indexed-result.ts"]);
-	});
-
-	test("does not treat ordinary first or last collection access as a single-item result", () => {
-		const fixture = new TestFixture();
-		const violations = fixture
-			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-				{
-					"collection-index.ts": [
-						'function find_value(): string[] { return ["value"]; }',
-						"const result = find_value()[0];",
-						'const path_parts = "root/file.py".split("/");',
-						"const file_name = path_parts[path_parts.length - 1];",
-						"const root_part = path_parts[0];",
-						"console.log(result, file_name, root_part);",
-					].join("\n"),
-				},
-				(production_lint_configuration, options, mode) =>
-					production_lint_configuration.lint_report(options, mode).report.violations,
-			)
-			.filter((item) => item.rule_id() === "single-item-array-state");
-
-		expect(violations.map((item) => item.line())).toEqual([2]);
+		expect(violations.map((item) => `${item.file()}:${item.line()}`).sort()).toEqual([
+			"arguments-unpack.ts:2",
+			"arguments-unpack.ts:3",
+			"at-result.ts:2",
+			"indexed-result.ts:2",
+			"non-null-at.ts:3",
+			"non-null-index.ts:3",
+			"parenthesized.ts:3",
+			"readonly.ts:4",
+			"type-alias.ts:3",
+		]);
 	});
 
 	test("resolves readonly and qualified aliases without leaking across files", () => {
@@ -206,18 +192,25 @@ describe("single-item array state analysis", () => {
 					production_lint_configuration.lint_report(options, mode).report.violations,
 			)
 			.filter((item) => item.rule_id() === "single-item-array-state");
-		const array_alias_violations = violations.filter((item) => item.file().includes("array-alias-"));
-		const array_alias_file = array_alias_violations
-			.map((item) => item.file())
-			.find((file) => file.includes("array-alias-"));
+		const locations = violations.map((item) => `${item.file()}:${item.line()}`).sort();
+		const consumer_locations = violations
+			.filter((item) => item.file() === "array-alias-consumer.ts")
+			.map((item) => `${item.file()}:${item.line()}`);
 		expect({
-			count: violations.length,
-			array_alias_count: array_alias_violations.length,
-			array_alias_file,
+			locations,
+			consumer_locations,
 		}).toEqual({
-			count: 8,
-			array_alias_count: 1,
-			array_alias_file: expect.stringContaining("array-alias-source.ts"),
+			locations: [
+				"array-alias-source.ts:3",
+				"builtin-array-types.ts:3",
+				"builtin-array-types.ts:4",
+				"generic-alias.ts:3",
+				"nested-readonly-alias.ts:4",
+				"qualified-alias.ts:3",
+				"readonly-alias.ts:6",
+				"readonly-alias.ts:7",
+			],
+			consumer_locations: [],
 		});
 	});
 });

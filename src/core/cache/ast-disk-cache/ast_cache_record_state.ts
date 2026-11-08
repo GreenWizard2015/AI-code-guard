@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { AstCacheHit } from "src/core/cache/ast-disk-cache/ast_cache_hit";
 import { AstCacheMemberShape } from "src/core/cache/ast-disk-cache/ast_cache_member_shape";
 import { AstCacheMiss } from "src/core/cache/ast-disk-cache/ast_cache_miss";
+import type { AstCacheSourceIdentity } from "src/core/cache/ast-disk-cache/types";
 import { AST_ANALYSIS_CACHE_VERSION } from "src/core/constants";
 import type { IOContract } from "src/io/protocols";
 import type { AstTypeMembers } from "src/model/ast/normalized_ast_types";
@@ -48,8 +49,8 @@ export class AstCacheRecordState {
 		return member_shape.record_valid();
 	}
 
-	/** Responsibilities: _cache content hydration_. **/
-	private cached_ast(): AstCacheEntryContract {
+	/** Responsibilities: _cached AST hydration_. **/
+	private cached_ast(source_file: string): AstCacheEntryContract {
 		const ast = this._record.ast;
 		const type_members: AstTypeMembers = new Map(
 			ast.references.type_members.map((group) => [
@@ -57,12 +58,16 @@ export class AstCacheRecordState {
 				new Map(group.members.map((member) => [member.name, member.type])),
 			]),
 		);
-		return new AstCacheHit({
+		const cached = new AstCacheHit({
 			source: ast.source,
 			references: { ...ast.references, type_members },
 			control_flow: ast.control_flow,
 			module_declarations: ast.module_declarations,
 		});
+		if (!cached.complete()) {
+			return new AstCacheMiss(source_file, "invalid normalized AST");
+		}
+		return cached;
 	}
 
 	/** Responsibilities: _cache identity validation_. **/
@@ -85,17 +90,30 @@ export class AstCacheRecordState {
 	}
 
 	/** Responsibilities: _source cache freshness_. **/
-	private current(source_hash: string, requested_source_file: string): boolean {
+	private current(identity: AstCacheSourceIdentity): boolean {
 		if (!this.identity_valid()) {
 			return false;
 		}
-		if (resolve(this._record.source_file) !== resolve(requested_source_file)) {
+		if (resolve(this._record.source_file) !== resolve(identity.source_file)) {
 			return false;
 		}
-		if (this._record.source_hash !== source_hash) {
+		if (this._record.source_hash !== identity.source_hash) {
 			return false;
 		}
 		return resolve(this._cache_file) === resolve(this.expected_file());
+	}
+
+	/** Responsibilities: _source cache entry validation_. **/
+	private source_entry(file_io: IOContract, record_source_file: string): AstCacheEntryContract {
+		const source = file_io.file(record_source_file);
+		if (!source.path_exists()) {
+			return new AstCacheMiss(record_source_file, "source file is missing");
+		}
+		const source_hash = createHash("sha256").update(source.file_text()).digest("hex");
+		if (!this.current({ source_file: record_source_file, source_hash })) {
+			return new AstCacheMiss(record_source_file, "cache identity changed");
+		}
+		return this.cached_ast(record_source_file);
 	}
 
 	/** Responsibilities: _record state initialization_. **/
@@ -107,32 +125,19 @@ export class AstCacheRecordState {
 	}
 
 	/** Responsibilities: _cached AST entry_. **/
-	public entry(source_file: string, source_hash: string): AstCacheEntryContract {
-		if (!this.current(source_hash, source_file)) {
-			return new AstCacheMiss(source_file, "analysis cache identity changed");
+	public entry(identity: AstCacheSourceIdentity): AstCacheEntryContract {
+		if (!this.current(identity)) {
+			return new AstCacheMiss(identity.source_file, "analysis cache identity changed");
 		}
-		const cached = this.cached_ast();
-		if (!cached.complete()) {
-			return new AstCacheMiss(source_file, "invalid normalized AST");
-		}
-		return cached;
+		return this.cached_ast(identity.source_file);
 	}
 
-	/** Responsibilities: _source cache staleness_. **/
-	public stale(file_io: IOContract): boolean {
+	/** Responsibilities: _cache entry validation_. **/
+	public validated_entry(file_io: IOContract): AstCacheEntryContract {
 		if (!this.shape_valid()) {
-			return true;
+			return new AstCacheMiss(this._cache_file, "invalid cache record");
 		}
 		const source_file = this._record.source_file;
-		if (!file_io.file(source_file).path_exists()) {
-			return true;
-		}
-		const source_text = file_io.file(source_file).file_text();
-		const source_hash = createHash("sha256").update(source_text).digest("hex");
-		if (!this.current(source_hash, source_file)) {
-			return true;
-		}
-		const cached = this.cached_ast();
-		return !cached.complete();
+		return this.source_entry(file_io, source_file);
 	}
 }

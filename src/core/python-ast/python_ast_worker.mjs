@@ -9,6 +9,7 @@ import { PythonAstWorkerTransport } from "../python-ast-worker-transport.mjs";
  * @typedef {import("src/core/python-ast/types").PythonAstWorkerOptions} PythonAstWorkerOptions
  * @typedef {import("src/core/python-ast/types").PythonAstWorkerResponse} PythonAstWorkerResponse
  * @typedef {import("src/python_protocols").PythonAstWorkerContract} PythonAstWorkerContract
+ * @typedef {import("src/python_protocols").PythonAstWorkerLeaseResourceContract} PythonAstWorkerLeaseResourceContract
  */
 /** Responsibilities: _Python source batch processing_, _worker process lifetime_. **/
 /** @implements {PythonAstWorkerContract} */
@@ -41,6 +42,8 @@ export class PythonAstWorker {
 		this.pending_batch_ids = [];
 		/** @type {Map<string, PythonAstWorkerResponse>} */
 		this.completed_batches = new Map();
+		/** @type {Set<PythonAstWorkerLeaseResourceContract>} */
+		this.lease_resources = new Set();
 		if (!persistent) {
 			return;
 		}
@@ -88,9 +91,22 @@ export class PythonAstWorker {
 	has_exited() {
 		return this.exit_observed;
 	}
+	/** @param {PythonAstWorkerLeaseResourceContract} resource @returns {void} */
+	register_release_resource(resource) {
+		this.lease_resources.add(resource);
+	}
+	/** @param {PythonAstWorkerLeaseResourceContract} resource @returns {void} */
+	unregister_release_resource(resource) {
+		this.lease_resources.delete(resource);
+	}
 	/** @param {string} message @returns {Error} */
 	worker_error(message) {
-		const stderr = this.stderr_path === null ? "" : readFileSync(this.stderr_path, "utf8").slice(-8192).trim();
+		let stderr_content = "";
+		if (this.stderr_path !== null) {
+			stderr_content = readFileSync(this.stderr_path, "utf8");
+		}
+		const stderr_suffix = stderr_content.slice(-8192);
+		const stderr = stderr_suffix.trim();
 		if (stderr.length === 0) {
 			return new Error(message);
 		}
@@ -209,11 +225,14 @@ export class PythonAstWorker {
 			timeout: this.io_timeout_ms,
 			killSignal: "SIGKILL",
 		});
-		const stderr = Buffer.isBuffer(result.stderr)
-			? result.stderr.toString("utf8").slice(-8192).trim()
-			: String(result.stderr ?? "")
-					.slice(-8192)
-					.trim();
+		let stderr_content = "";
+		if (Buffer.isBuffer(result.stderr)) {
+			stderr_content = result.stderr.toString("utf8");
+		} else {
+			stderr_content = String(result.stderr ?? "");
+		}
+		const stderr_suffix = stderr_content.slice(-8192);
+		const stderr = stderr_suffix.trim();
 		const details = [`exit status ${String(result.status)}`];
 		if (result.signal !== null) {
 			details.push(`signal ${result.signal}`);
@@ -235,6 +254,10 @@ export class PythonAstWorker {
 		const child = this.child;
 		this.pending_batch_ids = [];
 		this.completed_batches.clear();
+		for (const resource of this.lease_resources) {
+			resource.release_lease_resource();
+		}
+		this.lease_resources.clear();
 		this.transport.close();
 		if (child !== null) {
 			this.cleanup_child(child);
@@ -245,6 +268,7 @@ export class PythonAstWorker {
 	}
 	/** @param {import("node:child_process").ChildProcess} child @returns {void} */
 	cleanup_child(child) {
+		child.ref();
 		try {
 			if (child.stdin !== null) {
 				child.stdin.destroy();
@@ -302,17 +326,21 @@ export class PythonAstWorker {
 	}
 	/** @returns {void} */
 	close() {
+		const child = this.child;
+		if (child === null) {
+			return;
+		}
+		// Keep the awaited exit event observable after transport.attach() unreferences the child.
+		child.ref();
 		try {
-			if (this.child === null) {
-				return;
-			}
 			this.write_frame(JSON.stringify({ command: "exit" }));
 			const response = JSON.parse(this.read_response());
 			if (response.status !== "exited") {
 				throw new Error("Python AST worker did not acknowledge exit.");
 			}
 		} catch (error) {
-			if (!String(error).includes("EPIPE")) {
+			const error_message = String(error);
+			if (!error_message.includes("EPIPE")) {
 				throw error;
 			}
 		} finally {

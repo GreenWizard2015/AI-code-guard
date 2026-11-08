@@ -36,7 +36,11 @@ export class Declarations {
 	private declarations_for_import(import_node: AstPythonImport): NamedDeclaration[] {
 		const declarations: NamedDeclaration[] = [];
 		for (const imported_name of import_node.names) {
-			if (!imported_name.name.startsWith("_") && !imported_name.alias?.startsWith("_")) {
+			let private_alias = false;
+			if (imported_name.alias !== undefined) {
+				private_alias = imported_name.alias.startsWith("_");
+			}
+			if (!imported_name.name.startsWith("_") && !private_alias) {
 				continue;
 			}
 			let name = imported_name.name;

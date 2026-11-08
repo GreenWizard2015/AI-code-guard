@@ -32,3 +32,15 @@ export const COMPLETED_REVIEW_RESULT: ReviewAgentExecutionResult = {
 	no_issues: true,
 	message: "review completed",
 };
+
+export const TSX_IMPORT_API_SPECIFIER = "tsx/esm/api";
+export const OUTSIDE_PROJECT_MODULE_NAME = "outside-project.mjs";
+export const TSX_IMPORT_WORKER_SOURCE = `
+	const { parentPort, workerData } = require("node:worker_threads");
+	import(workerData.tsx_api_path).then(({ tsImport }) =>
+		tsImport(workerData.module_path, { parentURL: workerData.parent_url }),
+	).then(
+		() => parentPort.postMessage("loaded"),
+		(error) => parentPort.postMessage(String(error)),
+	);
+`;

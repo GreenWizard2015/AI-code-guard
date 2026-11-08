@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonSourceSegmentsContract
+from implementation.types import PythonASTLocatedNode
 
 
 class PythonExpressionBoundary:
@@ -10,8 +12,11 @@ class PythonExpressionBoundary:
 
     def _previous_character(self, expression_start: ast.AST) -> str:
         """Responsibilities: _character before expression access_."""
-        line = self._source_segments.line(expression_start.lineno)
-        index = self._source_segments.character_column(line, expression_start.col_offset)
+        line = self._source_segments.line(cast(PythonASTLocatedNode, expression_start).lineno)
+        index = self._source_segments.character_column(
+            line,
+            cast(PythonASTLocatedNode, expression_start).col_offset,
+        )
         while index > 0:
             index -= 1
             if not line[index].isspace():
@@ -20,9 +25,10 @@ class PythonExpressionBoundary:
 
     def _end_line(self, source_expression: ast.AST) -> int:
         """Responsibilities: _identification expression end line_."""
-        if source_expression.end_lineno is not None:
-            return source_expression.end_lineno
-        return source_expression.lineno
+        end_line = cast(PythonASTLocatedNode, source_expression).end_lineno
+        if end_line is not None:
+            return end_line
+        return cast(PythonASTLocatedNode, source_expression).lineno
 
     def _next_character(self, expression_end: ast.AST) -> str:
         """Responsibilities: _character after expression access_."""
@@ -39,8 +45,9 @@ class PythonExpressionBoundary:
 
     def _end_column(self, source_expression: ast.AST) -> int:
         """Responsibilities: _identification expression end column_."""
-        if source_expression.end_col_offset is not None:
-            return source_expression.end_col_offset
+        end_column = cast(PythonASTLocatedNode, source_expression).end_col_offset
+        if end_column is not None:
+            return end_column
         return 0
 
     def _simple_boolean_wrapper(self, wrapper: ast.AST) -> bool:

@@ -14,12 +14,15 @@ export class ViolationCache {
 		const text_fields_valid = [value.file, value.message, value.hint, value.rule_id].every(
 			(field) => typeof field === "string",
 		);
-		const number_fields_valid =
-			typeof value.line === "number" &&
-			typeof value.priority === "number" &&
-			Number.isFinite(value.line) &&
-			Number.isFinite(value.priority);
-		return text_fields_valid && number_fields_valid;
+		const line_valid = typeof value.line === "number" && Number.isInteger(value.line) && value.line >= 0;
+		const number_fields_valid = line_valid && typeof value.priority === "number" && Number.isFinite(value.priority);
+		if (!text_fields_valid) {
+			return false;
+		}
+		if (!number_fields_valid) {
+			return false;
+		}
+		return true;
 	}
 
 	/** Responsibilities: _cache diagnostic initialization_. **/

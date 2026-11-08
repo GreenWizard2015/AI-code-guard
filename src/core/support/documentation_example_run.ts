@@ -1,4 +1,4 @@
-import { relative, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { DocumentationExampleSourceFiles } from "documentation_validation/types";
 import type { DocumentationExampleLintConfigurationContract } from "src/core/support/protocols";
 import type { DocumentationExampleRunOptions } from "src/core/support/protocols";
@@ -7,7 +7,6 @@ import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
 import { PROJECT_ANALYSIS_RULE_IDS } from "src/rules/catalog/modules/constants";
 import type { LintExecutionReport } from "src/runtime_types";
-import type { UnusedCodeContract } from "src/source_protocols";
 
 /** Responsibilities: _documentation example inputs_, _virtual project diagnostics_. **/
 export class DocumentationExampleRun {
@@ -17,7 +16,6 @@ export class DocumentationExampleRun {
 	private readonly _source_files: DocumentationExampleSourceFiles;
 	private readonly _absolute_files: readonly string[];
 	private readonly _configuration: DocumentationExampleLintConfigurationContract;
-	private readonly _unused_code: UnusedCodeContract;
 
 	/** Responsibilities: _example source text mapping_. **/
 	private source_texts(): Map<string, string> {
@@ -30,19 +28,6 @@ export class DocumentationExampleRun {
 			texts.set(path, source_file.text);
 		}
 		return texts;
-	}
-
-	/** Responsibilities: _example project diagnostics_. **/
-	private project_violations(execution: LintExecutionReport): ViolationContract[] {
-		const target_files = new Set(execution.report.files.map((file) => relative(this._repo_root, file)));
-		const project_violations = this._unused_code.unused_python_violations({
-			root: this._repo_root,
-			source: {
-				context_state: { available: true, value: execution.context },
-				entry_files: [],
-			},
-		});
-		return project_violations.filter((violation) => target_files.has(violation.file()));
 	}
 
 	/** Responsibilities: _virtual project execution_. **/
@@ -63,17 +48,10 @@ export class DocumentationExampleRun {
 				source_texts,
 				configuration_snapshot_complete: true,
 				entry_files: [],
+				project_analysis_enabled: PROJECT_ANALYSIS_RULE_IDS.has(this._rule_id),
 			},
 			LintReportMode.IN_MEMORY_PROJECT,
 		);
-	}
-
-	/** Responsibilities: _rule-specific project diagnostics_. **/
-	private example_violations(execution: LintExecutionReport): ViolationContract[] {
-		if (!PROJECT_ANALYSIS_RULE_IDS.has(this._rule_id)) {
-			return execution.report.violations;
-		}
-		return [...execution.report.violations, ...this.project_violations(execution)];
 	}
 
 	/** Responsibilities: _example source ownership_. **/
@@ -84,7 +62,6 @@ export class DocumentationExampleRun {
 		this._source_files = options.source_files;
 		this._absolute_files = options.source_files.map((source_file) => resolve(options.repo_root, source_file.path));
 		this._configuration = options.configuration;
-		this._unused_code = options.unused_code;
 	}
 
 	/** Responsibilities: _example source path validation_. **/
@@ -103,6 +80,6 @@ export class DocumentationExampleRun {
 	public violations(): readonly ViolationContract[] {
 		const source_texts = this.source_texts();
 		const execution = this.execute_example(source_texts);
-		return this.example_violations(execution);
+		return execution.report.violations;
 	}
 }

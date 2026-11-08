@@ -30,8 +30,11 @@ export class LexicalBindingScope implements LexicalBindingScopeContract {
 
 	/** Responsibilities: _import clause name lookup_. **/
 	private import_clause_name(clause: ts.ImportClause, clause_name: string): boolean {
-		if (clause.name?.text === clause_name) {
-			return true;
+		const default_name = clause.name;
+		if (default_name !== undefined) {
+			if (default_name.text === clause_name) {
+				return true;
+			}
 		}
 		const bindings = clause.namedBindings;
 		if (bindings === undefined) {
@@ -152,13 +155,24 @@ export class LexicalBindingScope implements LexicalBindingScopeContract {
 		if (ts.isVariableDeclaration(value_declaration) || ts.isParameter(value_declaration)) {
 			return this.binding_contains_name(value_declaration.name, value_name);
 		}
-		return ts.isFunctionDeclaration(value_declaration) && value_declaration.name?.text === value_name;
+		if (!ts.isFunctionDeclaration(value_declaration)) {
+			return false;
+		}
+		const name = value_declaration.name;
+		if (name === undefined) {
+			return false;
+		}
+		return name.text === value_name;
 	}
 
 	/** Responsibilities: _shared declaration name matching_. **/
 	private shared_declaration_name(node: ts.Node, declaration_name: string): boolean {
 		if (ts.isClassDeclaration(node)) {
-			return node.name?.text === declaration_name;
+			const name = node.name;
+			if (name === undefined) {
+				return false;
+			}
+			return name.text === declaration_name;
 		}
 		if (ts.isEnumDeclaration(node)) {
 			return node.name.text === declaration_name;

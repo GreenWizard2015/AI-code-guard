@@ -76,7 +76,6 @@ export class AgentHookToolPolicy implements AgentHookToolPolicyContract {
 			return this._mutation_policy.patch_decision({
 				input: this._tool_input,
 				cwd: this._payload.cwd,
-				cleanup: this._payload.review_phase === "cleanup",
 			});
 		}
 		if (this._payload.tool_name === WRITE_TOOL_NAME) {

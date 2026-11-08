@@ -59,8 +59,7 @@ Options:
   --headless         Run tests in headless CI mode
   --skip-quality     Skip formatters and quality checks
 	  --force-review    Force a review only when a review agent is selected
-	  --review-cleanup   Run cleanup dialogue after architecture review findings
-	--review-agent     Select the architecture review agent (codex or claude). No selection means no review.
+	--review-agent     Select codex, cx, cxa, or claude. No selection means no review.
   --help             Show this help message
 
 Examples:
@@ -68,7 +67,6 @@ Examples:
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --runInBand
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --headless
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --headless --force-review
-  pnpm exec tsx ${this._project_root}/test-runner/cli.ts --review-cleanup
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --skip-quality
 `;
 	}

@@ -48,9 +48,10 @@ export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwner
 
 	/** Responsibilities: _resolution owners named bindings_. **/
 	private imported_binding_owner(binding_module: string, binding: ts.ImportSpecifier): string {
-		let exported_name = binding.propertyName?.text;
-		if (exported_name === undefined) {
-			exported_name = binding.name.text;
+		const property_name = binding.propertyName;
+		let exported_name = binding.name.text;
+		if (property_name !== undefined) {
+			exported_name = property_name.text;
 		}
 		return this.imported_call_owner(binding_module, exported_name);
 	}

@@ -53,10 +53,7 @@ export class ReviewFilePolicy implements ReviewFilePolicyContract {
 	}
 
 	/** Responsibilities: _review artifact deletion authorization_. **/
-	public allows_patch_deletion(cleanup: boolean): boolean {
-		if (cleanup) {
-			return this.open_for_mutation();
-		}
+	public allows_patch_deletion(): boolean {
 		if (!this.existing_review()) {
 			return false;
 		}

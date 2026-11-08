@@ -11,6 +11,25 @@ export const DOCUMENTATION_EXECUTION_TEST_MARKDOWN = [
 	"```",
 ].join("\n");
 
+export const TYPESCRIPT_TEMPLATE_RUN_MARKDOWN = [
+	"# template-run",
+	"## Good",
+	"```ts",
+	"// File: domain/output.ts",
+	"export class Output {",
+	"  public report(): void {",
+	'{% const names = ["first", "second"] %}',
+	"{% for name in names %}",
+	'    console.log("{{name}}");',
+	"{% endfor %}",
+	"  }",
+	"}",
+	"// File: cli.ts",
+	'import { Output } from "./domain/output";',
+	"(function () { new Output().report(); })();",
+	"```",
+].join("\n");
+
 export const DOCUMENTATION_EXAMPLE_FALLBACK: DocumentationExample = {
 	rule_id: "example-rule",
 	language: DocumentationLanguage.TYPESCRIPT,

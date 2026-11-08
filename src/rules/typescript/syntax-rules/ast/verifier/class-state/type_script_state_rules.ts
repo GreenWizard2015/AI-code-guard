@@ -28,12 +28,16 @@ export class TypeScriptStateRules implements ASTSourceRuleContract {
 	/** Responsibilities: _public parameter property classification_. **/
 	private public_parameter(node: ts.ParameterDeclaration): boolean {
 		const modifiers = ts.getModifiers(node);
-		const exposed = modifiers?.some(
-			(item) => item.kind === ts.SyntaxKind.PublicKeyword || item.kind === ts.SyntaxKind.ReadonlyKeyword,
-		);
-		const hidden = modifiers?.some(
-			(item) => item.kind === ts.SyntaxKind.PrivateKeyword || item.kind === ts.SyntaxKind.ProtectedKeyword,
-		);
+		let exposed = false;
+		let hidden = false;
+		if (modifiers !== undefined) {
+			exposed = modifiers.some(
+				(item) => item.kind === ts.SyntaxKind.PublicKeyword || item.kind === ts.SyntaxKind.ReadonlyKeyword,
+			);
+			hidden = modifiers.some(
+				(item) => item.kind === ts.SyntaxKind.PrivateKeyword || item.kind === ts.SyntaxKind.ProtectedKeyword,
+			);
+		}
 		return Boolean(exposed && !hidden);
 	}
 
@@ -82,8 +86,11 @@ export class TypeScriptStateRules implements ASTSourceRuleContract {
 
 	/** Responsibilities: _implemented class field selection_. **/
 	private implemented_class_fields(node: ts.ClassDeclaration): ts.Node[] {
-		const implements_contract =
-			node.heritageClauses?.some((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword) ?? false;
+		let implements_contract = false;
+		const heritage_clauses = node.heritageClauses;
+		if (heritage_clauses !== undefined) {
+			implements_contract = heritage_clauses.some((clause) => clause.token === ts.SyntaxKind.ImplementsKeyword);
+		}
 		if (!implements_contract) {
 			return [];
 		}

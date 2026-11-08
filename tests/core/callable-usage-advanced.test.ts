@@ -357,24 +357,23 @@ describe("coding-lint callable usage rule", () => {
 				"}",
 			].join("\n"),
 		};
-		const references = test_fixture._project_source.with_in_memory_project(
-			files,
-			({ root, context }) => {
-				const consumer_references = context.source_record(join(root, "consumer.ts")).normalized_ast.references;
-				return consumer_references.call_references.filter((reference) => reference.name === "match_candidate");
-			},
-			new Map(),
-		);
-		const violations = test_fixture.with_lint_request(
+		const analysis = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
+			(production_lint_configuration, options, mode) => {
+				const lint_execution = production_lint_configuration.lint_report(options, mode);
+				const consumer_references = lint_execution.context.source_record(join(options.repo_root, "consumer.ts"))
+					.normalized_ast.references;
+				const references = consumer_references.call_references.filter(
+					(reference) => reference.name === "match_candidate",
+				);
+				return { references, violations: lint_execution.report.violations };
+			},
 		);
 
 		expect({
-			references: references.map((reference) => reference.name),
-			method_violations: violations.filter(
+			references: analysis.references.map((reference) => reference.name),
+			method_violations: analysis.violations.filter(
 				(violation) =>
 					(violation.rule_id() === "test-only-usage" || violation.rule_id() === "unused-callable") &&
 					violation.message().includes("Matcher.match_candidate"),

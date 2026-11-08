@@ -20,7 +20,7 @@ export class GitIgnoredPaths {
 	private directory_patterns(directories: readonly string[]): GitIgnorePattern[] {
 		const global_files = [join(homedir(), ".gitignore_global"), join(homedir(), ".config", "git", "ignore")];
 		const exclude_file = join(this._repo_root, ".git", "info", "exclude");
-		const sources: GitIgnoreSourceFile[] = global_files.map((file) => ({ file, base_directory: homedir() }));
+		const sources: GitIgnoreSourceFile[] = global_files.map((file) => ({ file, base_directory: this._repo_root }));
 		sources.push({ file: exclude_file, base_directory: this._repo_root });
 		sources.push(
 			...directories.map((directory) => ({

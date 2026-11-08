@@ -40,6 +40,9 @@ export class ReviewAgentProcessLifecycle implements ReviewAgentProcessLifecycleC
 	/** Responsibilities: _cleanup response generation_. **/
 	private cleanup_result(request: ReviewAgentProcessCleanupRequest): ReviewAgentProcessResult {
 		try {
+			if (!this._terminator.cleanup_owned_group(request.execution.child, request.execution.ownership_token)) {
+				return this.cleanup_failure(request.result, "owned process group is still active or could not be verified");
+			}
 			const cleanup_error = this._cleanup.unregister_agent(request.execution);
 			if (cleanup_error.length === 0) {
 				return request.result;

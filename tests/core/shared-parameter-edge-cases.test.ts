@@ -5,67 +5,30 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("shared parameter lint integration", () => {
-	test.each([
-		[
-			"TypeScript",
+	test("includes already named parameter contract types in both languages", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"named-contract.ts": [
-					"interface ContextContract { readonly name: string; }",
-					"class Service {",
-					"  first(context: ContextContract) { return context.name; }",
-					"  second(context: ContextContract) { return context.name; }",
-					"  third(context: ContextContract) { return context.name; }",
+					"interface TypeScriptContextContract { readonly name: string; }",
+					"class TypeScriptService {",
+					"  first(ts_context: TypeScriptContextContract) { return ts_context.name; }",
+					"  second(ts_context: TypeScriptContextContract) { return ts_context.name; }",
+					"  third(ts_context: TypeScriptContextContract) { return ts_context.name; }",
 					"}",
 				].join("\n"),
-			},
-		],
-		[
-			"Python",
-			{
 				"named_contract.py": [
 					"from typing import Protocol",
-					"class ContextContract(Protocol):",
+					"class PythonContextContract(Protocol):",
 					"    name: str",
-					"class Service:",
-					"    def first(self, context: ContextContract) -> str:",
-					"        return context.name",
-					"    def second(self, context: ContextContract) -> str:",
-					"        return context.name",
-					"    def third(self, context: ContextContract) -> str:",
-					"        return context.name",
-				].join("\n"),
-			},
-		],
-	])("includes already named %s parameter contract types", (_language, files) => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const shared = test_fixture.shared_violations(violations);
-		expect(shared).toHaveLength(1);
-		expect(shared.map((violation) => violation.message())).toEqual([
-			expect.stringContaining("context:ContextContract"),
-		]);
-	});
-
-	test("includes Python AST collection annotations in shared parameter analysis", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"ast_collection.py": [
-					"import ast",
-					"class AstOperations:",
-					"    def collect(self, arguments: list[ast.arg]) -> int:",
-					"        return len(arguments)",
-					"    def filter(self, arguments: list[ast.arg]) -> int:",
-					"        return len(arguments)",
-					"    def count(self, arguments: list[ast.arg]) -> int:",
-					"        return len(arguments)",
+					"class PythonService:",
+					"    def first(self, python_context: PythonContextContract) -> str:",
+					"        return python_context.name",
+					"    def second(self, python_context: PythonContextContract) -> str:",
+					"        return python_context.name",
+					"    def third(self, python_context: PythonContextContract) -> str:",
+					"        return python_context.name",
 				].join("\n"),
 			},
 			(production_lint_configuration, options, mode) =>
@@ -73,10 +36,17 @@ describe("shared parameter lint integration", () => {
 		);
 
 		const shared = test_fixture.shared_violations(violations);
-		expect(shared).toHaveLength(1);
-		expect(shared.map((violation) => violation.message())).toEqual([
-			expect.stringContaining("arguments:list[ast.arg]"),
-		]);
+		const typescript_shared = shared.filter((violation) => violation.file() === "named-contract.ts");
+		const python_shared = shared.filter((violation) => violation.file() === "named_contract.py");
+		expect({
+			typescript: typescript_shared.map((violation) => `${violation.file()}: ${violation.message()}`),
+			python: python_shared.map((violation) => `${violation.file()}: ${violation.message()}`),
+		}).toEqual({
+			typescript: [
+				expect.stringContaining('multiple methods share parameter set "ts_context:TypeScriptContextContract"'),
+			],
+			python: [expect.stringContaining('multiple methods share parameter set "python_context:PythonContextContract"')],
+		});
 	});
 
 	test("includes unconstrained TypeScript template parameters", () => {
@@ -99,13 +69,12 @@ describe("shared parameter lint integration", () => {
 		);
 
 		const shared = test_fixture.shared_violations(violations);
-		expect(shared).toHaveLength(1);
-		expect(shared.map((violation) => violation.message())).toEqual([
-			expect.stringContaining('parameter set "value:T"'),
+		expect(shared.map((violation) => `${violation.file()}: ${violation.message()}`)).toEqual([
+			expect.stringContaining('template.ts: multiple methods share parameter set "value:T"'),
 		]);
 	});
 
-	test("supports Python generic reference annotations", () => {
+	test("supports Python AST collections and generic reference annotations", () => {
 		const test_fixture = new TestFixture();
 
 		const methods = Array.from(
@@ -115,85 +84,17 @@ describe("shared parameter lint integration", () => {
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
+				"ast_collection.py": [
+					"import ast",
+					"class AstOperations:",
+					"    def collect(self, arguments: list[ast.arg]) -> int:",
+					"        return len(arguments)",
+					"    def filter(self, arguments: list[ast.arg]) -> int:",
+					"        return len(arguments)",
+					"    def count(self, arguments: list[ast.arg]) -> int:",
+					"        return len(arguments)",
+				].join("\n"),
 				"generic.py": ["class Result:", "    pass", "", "class Service:", methods.join("\n")].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const shared = test_fixture.shared_violations(violations);
-		expect(shared).toHaveLength(1);
-		expect(shared.map((violation) => violation.message())).toEqual([
-			expect.stringContaining('parameter set "values:list[Result]"'),
-		]);
-	});
-
-	test("includes Python special methods in shared parameter analysis", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"special_method.py": [
-					"class SharedInput:",
-					"    pass",
-					"",
-					"class Service:",
-					"    def __eq__(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"    def accepts(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"    def stores(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"    def forwards(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const shared = test_fixture.shared_violations(violations);
-
-		expect(shared.some((violation) => violation.message().includes("Service.__eq__"))).toBe(true);
-	});
-
-	test("includes groups made only of Python special methods", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"special_methods.py": [
-					"class SharedInput:",
-					"    pass",
-					"",
-					"class Service:",
-					"    def __eq__(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"    def __ne__(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-					"    def __lt__(self, value: SharedInput) -> bool:",
-					"        return bool(value)",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const shared = test_fixture.shared_violations(violations);
-		const messages = shared.map((violation) => violation.message()).join("\n");
-		expect({
-			count: shared.length,
-			equality: messages.includes("Service.__eq__"),
-			inequality: messages.includes("Service.__ne__"),
-			ordering: messages.includes("Service.__lt__"),
-		}).toEqual({ count: 1, equality: true, inequality: true, ordering: true });
-	});
-
-	test("does not report parameters fixed by an external mapping contract", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"mapping_protocol.py": [
 					"from collections.abc import MutableMapping",
 					"import ast",
@@ -215,135 +116,208 @@ describe("shared parameter lint integration", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(test_fixture.shared_violations(violations)).toEqual([]);
+		const shared = test_fixture.shared_violations(violations);
+		const ast_collection_shared = shared.filter((violation) => violation.file() === "ast_collection.py");
+		const generic_shared = shared.filter((violation) => violation.file() === "generic.py");
+		const mapping_shared = shared.filter((violation) => violation.file() === "mapping_protocol.py");
+		expect({
+			ast_collection: ast_collection_shared.map((violation) => `${violation.file()}: ${violation.message()}`),
+			generic: generic_shared.map((violation) => `${violation.file()}: ${violation.message()}`),
+			mapping_protocol: mapping_shared.map((violation) => `${violation.file()}: ${violation.message()}`),
+		}).toEqual({
+			ast_collection: [
+				expect.stringContaining('ast_collection.py: multiple methods share parameter set "arguments:list[ast.arg]"'),
+			],
+			generic: [expect.stringContaining('generic.py: multiple methods share parameter set "values:list[Result]"')],
+			mapping_protocol: [],
+		});
 	});
 
-	test.each([
-		[
-			"TypeScript",
+	test("includes special methods in mixed and special-only shared groups", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"special_method.py": [
+					"class MixedInput:",
+					"    pass",
+					"",
+					"class MixedService:",
+					"    def __eq__(self, value: MixedInput) -> bool:",
+					"        return bool(value)",
+					"    def accepts(self, value: MixedInput) -> bool:",
+					"        return bool(value)",
+					"    def stores(self, value: MixedInput) -> bool:",
+					"        return bool(value)",
+					"    def forwards(self, value: MixedInput) -> bool:",
+					"        return bool(value)",
+					"",
+				].join("\n"),
+				"special_methods.py": [
+					"class SpecialOnlyInput:",
+					"    pass",
+					"",
+					"class SpecialOnlyService:",
+					"    def __eq__(self, value: SpecialOnlyInput) -> bool:",
+					"        return bool(value)",
+					"    def __ne__(self, value: SpecialOnlyInput) -> bool:",
+					"        return bool(value)",
+					"    def __lt__(self, value: SpecialOnlyInput) -> bool:",
+					"        return bool(value)",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const shared = test_fixture.shared_violations(violations);
+		const mixed_special_methods = shared.filter((violation) => violation.file() === "special_method.py");
+		const special_only_methods = shared.filter((violation) => violation.file() === "special_methods.py");
+		const special_only_messages = special_only_methods.map((violation) => violation.message()).join("\n");
+		expect({
+			mixed_method_messages: mixed_special_methods.map((violation) => violation.message()),
+			special_only: {
+				messages: special_only_methods.map((violation) => violation.message()),
+				equality: special_only_messages.includes("SpecialOnlyService.__eq__"),
+				inequality: special_only_messages.includes("SpecialOnlyService.__ne__"),
+				ordering: special_only_messages.includes("SpecialOnlyService.__lt__"),
+			},
+		}).toEqual({
+			mixed_method_messages: [expect.stringContaining("MixedService.__eq__")],
+			special_only: {
+				messages: [expect.stringContaining("SpecialOnlyService.__eq__")],
+				equality: true,
+				inequality: true,
+				ordering: true,
+			},
+		});
+	});
+
+	test("reports independent shared parameter groups in both languages", () => {
+		const test_fixture = new TestFixture();
+
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
 				"two-groups.ts": [
-					"class SharedInput {}",
-					"class FirstService {",
-					"  one(value: SharedInput) { return value; }",
-					"  two(value: SharedInput) { return value; }",
-					"  three(value: SharedInput) { return value; }",
-					"  four(value: SharedInput) { return value; }",
+					"class TypeScriptSharedInput {}",
+					"class FirstTypeScriptService {",
+					"  one(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  two(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  three(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  four(ts_value: TypeScriptSharedInput) { return ts_value; }",
 					"}",
-					"class SecondService {",
-					"  one(value: SharedInput) { return value; }",
-					"  two(value: SharedInput) { return value; }",
-					"  three(value: SharedInput) { return value; }",
-					"  four(value: SharedInput) { return value; }",
+					"class SecondTypeScriptService {",
+					"  one(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  two(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  three(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  four(ts_value: TypeScriptSharedInput) { return ts_value; }",
 					"}",
 				].join("\n"),
-			},
-		],
-		[
-			"Python",
-			{
 				"two_groups.py": [
-					"class SharedInput:",
+					"class PythonSharedInput:",
 					"    pass",
 					"",
-					"class FirstService:",
-					"    def one(self, value: SharedInput):",
-					"        return value",
-					"    def two(self, value: SharedInput):",
-					"        return value",
-					"    def three(self, value: SharedInput):",
-					"        return value",
-					"    def four(self, value: SharedInput):",
-					"        return value",
+					"class FirstPythonService:",
+					"    def one(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def two(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def three(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def four(self, python_value: PythonSharedInput):",
+					"        return python_value",
 					"",
-					"class SecondService:",
-					"    def one(self, value: SharedInput):",
-					"        return value",
-					"    def two(self, value: SharedInput):",
-					"        return value",
-					"    def three(self, value: SharedInput):",
-					"        return value",
-					"    def four(self, value: SharedInput):",
-					"        return value",
+					"class SecondPythonService:",
+					"    def one(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def two(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def three(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def four(self, python_value: PythonSharedInput):",
+					"        return python_value",
 				].join("\n"),
 			},
-		],
-	])("reports two independent %s class groups", (_language, files) => {
-		const test_fixture = new TestFixture();
-
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const shared = test_fixture.shared_violations(violations);
-		const messages = shared.map((violation) => violation.message());
-		const distinct_messages = new Set(messages);
+		const typescript_shared = shared.filter((violation) => violation.file() === "two-groups.ts");
+		const python_shared = shared.filter((violation) => violation.file() === "two_groups.py");
 
 		expect({
-			count: shared.length,
-			different: distinct_messages.size === 2,
-			first: messages.join("\n").includes("FirstService.one"),
-			second: messages.join("\n").includes("SecondService.one"),
-		}).toEqual({ count: 2, different: true, first: true, second: true });
+			typescript: typescript_shared.map((violation) => violation.message()).sort(),
+			python: python_shared.map((violation) => violation.message()).sort(),
+		}).toEqual({
+			typescript: [
+				expect.stringContaining("FirstTypeScriptService.one"),
+				expect.stringContaining("SecondTypeScriptService.one"),
+			],
+			python: [expect.stringContaining("FirstPythonService.one"), expect.stringContaining("SecondPythonService.one")],
+		});
 	});
 
-	test.each([
-		[
-			"TypeScript",
-			{
-				"constructor.ts": [
-					"class SharedInput {}",
-					"class Service {",
-					"  constructor(value: SharedInput) { void value; }",
-					"  first(value: SharedInput) { return value; }",
-					"  second(value: SharedInput) { return value; }",
-					"  third(value: SharedInput) { return value; }",
-					"}",
-				].join("\n"),
-			},
-		],
-		[
-			"Python",
-			{
-				"constructor.py": [
-					"class SharedInput:",
-					"    pass",
-					"",
-					"class Service:",
-					"    def __init__(self, value: SharedInput):",
-					"        print(value)",
-					"    def first(self, value: SharedInput):",
-					"        return value",
-					"    def second(self, value: SharedInput):",
-					"        return value",
-					"    def third(self, value: SharedInput):",
-					"        return value",
-				].join("\n"),
-			},
-		],
-	])("keeps the %s constructor in its class method scope", (_language, files) => {
+	test("keeps constructors in their language-specific class method scopes", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
+			{
+				"constructor.ts": [
+					"class TypeScriptSharedInput {}",
+					"class TypeScriptService {",
+					"  constructor(ts_value: TypeScriptSharedInput) { void ts_value; }",
+					"  first(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  second(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"  third(ts_value: TypeScriptSharedInput) { return ts_value; }",
+					"}",
+				].join("\n"),
+				"constructor.py": [
+					"class PythonSharedInput:",
+					"    pass",
+					"",
+					"class PythonService:",
+					"    def __init__(self, python_value: PythonSharedInput):",
+					"        print(python_value)",
+					"    def first(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def second(self, python_value: PythonSharedInput):",
+					"        return python_value",
+					"    def third(self, python_value: PythonSharedInput):",
+					"        return python_value",
+				].join("\n"),
+			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const shared = test_fixture.shared_violations(violations);
+		const typescript_shared = shared.filter((violation) => violation.file() === "constructor.ts");
+		const python_shared = shared.filter((violation) => violation.file() === "constructor.py");
+		const typescript_message = typescript_shared.map((violation) => violation.message()).join("\n");
+		const python_message = python_shared.map((violation) => violation.message()).join("\n");
 
 		expect({
-			count: shared.length,
-			service: shared
-				.map((violation) => violation.message())
-				.join("\n")
-				.includes("Service."),
-			candidates: shared
-				.map((violation) => violation.message())
-				.join("\n")
-				.includes("Candidates:"),
-		}).toEqual({ count: 1, service: true, candidates: true });
+			typescript: {
+				messages: typescript_shared.map((violation) => violation.message()),
+				service_present: typescript_message.includes("TypeScriptService."),
+				candidates_present: typescript_message.includes("Candidates:"),
+			},
+			python: {
+				messages: python_shared.map((violation) => violation.message()),
+				service_present: python_message.includes("PythonService."),
+				candidates_present: python_message.includes("Candidates:"),
+			},
+		}).toEqual({
+			typescript: {
+				messages: [expect.stringContaining("TypeScriptService.")],
+				service_present: true,
+				candidates_present: true,
+			},
+			python: {
+				messages: [expect.stringContaining("PythonService.")],
+				service_present: true,
+				candidates_present: true,
+			},
+		});
 	});
 });

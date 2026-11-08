@@ -118,4 +118,34 @@ describe("transformation diagnostic suppression", () => {
 			"file-max-size",
 		]);
 	});
+
+	test("canonicalizes absolute dot segments for grouping and placement suppression", () => {
+		const root = "/project";
+		const placement_rule = new DiagnosticRule("module-placement");
+		const size_rule = new DiagnosticRule("file-max-size");
+		const selector = new TaskFileSelector(root);
+		const placement = placement_rule.violation("/project/src/../src/module.ts", 1, {
+			target: "Module",
+			members: "Module",
+			importers: "src/consumer.ts",
+			placement_message: "misplaced",
+			suggestions: "src/module/module.ts",
+			guidance: "move it",
+		});
+		const size = size_rule.violation("/project/src/module.ts", 2, { count: "501" });
+		const groups = new TaskViolationGroups(root, [placement, size]);
+		const selected = selector.select_all([placement, size], 10);
+
+		expect({
+			visible: groups.analyze_visibility().visible.map((violation) => violation.rule_id()),
+			group_count: groups.violations_by_path().size,
+			files: selected.files,
+			selected_rules: selected.violations.map((violation) => violation.rule_id()),
+		}).toEqual({
+			visible: ["module-placement"],
+			group_count: 1,
+			files: ["/project/src/module.ts"],
+			selected_rules: ["module-placement"],
+		});
+	});
 });

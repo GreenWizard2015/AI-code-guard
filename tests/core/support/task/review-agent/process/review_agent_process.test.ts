@@ -49,16 +49,46 @@ describe("review agent process lifecycle", () => {
 		});
 		jest.advanceTimersByTime(10 * 60 * 1000);
 		child.emit("close", { received: true, code: 0 });
+		const state_before_escalation = {
+			result: result.exit_code,
+			cleanup_events: lifecycle_fixture.cleanup_events(),
+		};
 		jest.advanceTimersByTime(1_000);
 
 		expect({
 			exit_code: result.exit_code,
 			timeout_message: result.stderr,
 			signals: lifecycle_fixture.termination_signals(),
+			state_before_escalation,
+			cleanup_events: lifecycle_fixture.cleanup_events(),
 		}).toEqual({
 			exit_code: 1,
 			timeout_message: expect.stringContaining("timed out"),
 			signals: ["SIGTERM", "SIGKILL"],
+			state_before_escalation: { result: 0, cleanup_events: [] },
+			cleanup_events: ["group-cleanup", "unregister"],
+		});
+	});
+
+	test("retains the process identity when owned descendants cannot be cleaned", () => {
+		const lifecycle_fixture = new ReviewAgentProcessLifecycleFixture("", "", false);
+		const child = new ReviewAgentChildProcess(4242, Readable.from([]), Readable.from([]));
+		const execution = { root: "/project", child, ownership_token: "review-token" };
+		const lifecycle = new ReviewAgentProcessLifecycle(lifecycle_fixture.context());
+		let result: ReviewAgentProcessResult = { exit_code: 0, stdout: "", stderr: "" };
+		lifecycle.attach(execution, (completed) => {
+			result = completed;
+		});
+		child.emit("close", { received: true, code: 0 });
+
+		expect({
+			result: result.exit_code,
+			failure: result.stderr,
+			cleanup_events: lifecycle_fixture.cleanup_events(),
+		}).toEqual({
+			result: 1,
+			failure: expect.stringContaining("owned process group"),
+			cleanup_events: ["group-cleanup"],
 		});
 	});
 

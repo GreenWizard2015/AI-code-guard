@@ -1,6 +1,6 @@
 # `test-min-count`
 
-Description: Each Jest `describe` suite must contain at least two test methods. Count direct `test`/`it` declarations in the suite.
+Description: Each Jest `describe` suite must contain at least two test cases. Count each row in a static `test.each([...])` table as a separate case.
 
 
 Fix: Add a second focused test or remove the unnecessary suite wrapper. Do not create a

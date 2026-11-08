@@ -7,12 +7,12 @@ import type {
 	ReviewAgentDialogueContract,
 	ReviewAgentFilesContract,
 } from "src/core/support/task/review-agent/protocols";
-import type { ReviewAgentDialogueOptions } from "src/core/support/task/review-agent/types";
+import type { ReviewAgentDialogueOptions, ReviewSizeCorrectionResult } from "src/core/support/task/review-agent/types";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import { SYSTEM_FAILURE_CODES } from "src/io/constants";
-import type { ReviewAgentExecutionResult, ReviewAgentRequest } from "src/task_review_types";
+import type { ReviewAgentExecutionResult } from "src/task_review_types";
 
-/** Responsibilities: _initial review dialogue_, _review cleanup dialogue_. **/
+/** Responsibilities: _review dialogue_, _finding-size correction_. **/
 export class ReviewAgentDialogue implements ReviewAgentDialogueContract {
 	private readonly _boundary_failures: SystemFailureClassificationContract;
 	private readonly _review_documents: ReviewAgentFilesContract;
@@ -22,18 +22,33 @@ export class ReviewAgentDialogue implements ReviewAgentDialogueContract {
 
 	/** Responsibilities: _review note sizes_. **/
 	private async review_sizes_async(execution: ReviewAgentExecutionResult): Promise<ReviewAgentExecutionResult> {
+		const correction = await this.correct_sizes_async(execution);
+		if (correction.complete) {
+			return correction.execution;
+		}
+		const remaining_feedback = this._review_documents.size_feedback();
+		if (remaining_feedback.length === 0) {
+			return correction.execution;
+		}
+		const message = `Review findings still violate the size contract after correction attempts: ${remaining_feedback.join(" ")}`;
+		this._review_documents.write_failure(message);
+		return this._execution.system_failure(message);
+	}
+
+	/** Responsibilities: _finding-size correction attempts_. **/
+	private async correct_sizes_async(execution: ReviewAgentExecutionResult): Promise<ReviewSizeCorrectionResult> {
 		let current = execution;
 		for (let attempt = 0; attempt < 2; attempt += 1) {
 			const feedback = this._review_documents.size_feedback();
 			if (feedback.length === 0) {
-				return current;
+				return { execution: current, complete: true };
 			}
 			current = await this.initial_dialogue_async(this._request_plan.size_feedback(feedback), false);
 			if (current.provider === "none" || current.process.exit_code !== 0) {
-				return current;
+				return { execution: current, complete: true };
 			}
 		}
-		return current;
+		return { execution: current, complete: false };
 	}
 
 	/** Responsibilities: _parallel initial review dialogue_. **/
@@ -46,7 +61,6 @@ export class ReviewAgentDialogue implements ReviewAgentDialogueContract {
 			return await this._execution.run_dialogue_async({
 				request: this._request_plan.initial_request(prompt),
 				dialogue,
-				phase: "initial",
 			});
 		} catch (error) {
 			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
@@ -85,24 +99,5 @@ export class ReviewAgentDialogue implements ReviewAgentDialogueContract {
 			return execution;
 		}
 		return this.review_sizes_async(execution);
-	}
-
-	/** Responsibilities: _parallel review cleanup dialogue_. **/
-	public async cleanup_dialogue_async(request: ReviewAgentRequest): Promise<ReviewAgentExecutionResult> {
-		try {
-			const prompt = this._agent_catalog.cleanup_prompt({ cleanup_request: request });
-			return await this._execution.run_dialogue_async({
-				request: { ...request, prompt },
-				dialogue: "cleanup",
-				phase: "cleanup",
-			});
-		} catch (error) {
-			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {
-				throw error;
-			}
-			const message = String(error);
-			this._review_documents.write_failure(message);
-			return this._execution.system_failure(message);
-		}
 	}
 }

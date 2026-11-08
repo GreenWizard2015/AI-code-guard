@@ -6,6 +6,7 @@ import {
 	REPORT_DOCUMENT_NAME,
 } from "src/core/support/task/constants";
 import type { TaskPublicationRollbackContract } from "src/core/support/task/types";
+import type { TaskPublicationTransactionPathContract } from "src/core/support/task/types";
 import type { IOContract } from "src/io/protocols";
 import type { TaskWorkspaceDocumentsContract } from "src/task_protocols";
 import type { TaskWorkspaceDocument } from "src/task_types";
@@ -14,12 +15,12 @@ import type { TaskWorkspaceDocument } from "src/task_types";
 export class TaskPublicationRollback implements TaskPublicationRollbackContract {
 	private readonly _documents: TaskWorkspaceDocumentsContract;
 	private readonly _rules_root: string;
-	private readonly _transaction: string;
+	private readonly _transaction: TaskPublicationTransactionPathContract;
 	private readonly _file_io: IOContract;
 
 	/** Responsibilities: _task rules restoration_. **/
 	private restore_rules(rules_existed: boolean): void {
-		const backup_rules = join(this._transaction, "rules");
+		const backup_rules = join(this._transaction.value(), "rules");
 		if (this._file_io.file(backup_rules).path_exists()) {
 			this._file_io.remove_path(this._rules_root);
 			this._file_io.move_path(backup_rules, this._rules_root);
@@ -45,7 +46,7 @@ export class TaskPublicationRollback implements TaskPublicationRollbackContract 
 	public constructor(
 		documents: TaskWorkspaceDocumentsContract,
 		rules_root: string,
-		transaction: string,
+		transaction: TaskPublicationTransactionPathContract,
 		file_io: IOContract,
 	) {
 		this._documents = documents;
@@ -56,17 +57,19 @@ export class TaskPublicationRollback implements TaskPublicationRollbackContract 
 
 	/** Responsibilities: _transaction backup document paths_. **/
 	public backup_documents(): Map<TaskWorkspaceDocument, string> {
+		this._transaction.validate();
 		return new Map<TaskWorkspaceDocument, string>([
-			["issues", join(this._transaction, ISSUES_DOCUMENT_NAME)],
-			["report", join(this._transaction, REPORT_DOCUMENT_NAME)],
-			[LINT_OUTPUT_DOCUMENT, join(this._transaction, LINT_OUTPUT_DOCUMENT_NAME)],
+			["issues", join(this._transaction.value(), ISSUES_DOCUMENT_NAME)],
+			["report", join(this._transaction.value(), REPORT_DOCUMENT_NAME)],
+			[LINT_OUTPUT_DOCUMENT, join(this._transaction.value(), LINT_OUTPUT_DOCUMENT_NAME)],
 		]);
 	}
 
 	/** Responsibilities: _task state restoration_. **/
 	public restore(rules_existed: boolean, existing_documents: ReadonlySet<TaskWorkspaceDocument>): void {
+		this._transaction.validate();
 		this.restore_rules(rules_existed);
 		this.restore_documents(existing_documents);
-		this._file_io.remove_path(this._transaction);
+		this._file_io.remove_path(this._transaction.value());
 	}
 }

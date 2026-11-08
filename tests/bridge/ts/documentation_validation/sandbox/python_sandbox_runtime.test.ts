@@ -110,4 +110,20 @@ describe("Python documentation sandbox interpreter boundary", () => {
 
 		expect(result).toEqual({ stdout: "reachable-ready\n", exit_code: 0, error: "" });
 	});
+
+	test("reports the exception type and message raised by the isolated Python interpreter", () => {
+		const example_builder = new PythonSandboxRuntimeExampleBuilder();
+		example_builder.add_source_file({
+			path: "cli.py",
+			text: 'raise ValueError("python runtime exception sentinel")',
+		});
+		const sandbox = new DocumentationExampleSandbox(spawnSync);
+		const example = example_builder.build();
+		const result = sandbox.capture_output(example);
+
+		expect(result).toEqual({
+			stdout: "ValueError: python runtime exception sentinel",
+			exit_code: 1,
+		});
+	});
 });

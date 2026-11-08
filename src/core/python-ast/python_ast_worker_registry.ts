@@ -1,6 +1,10 @@
 import type { SpawnOptions } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { PYTHON_AST_WORKER_IO_TIMEOUT_MS, PYTHON_AST_WORKER_REGISTRIES } from "src/core/python-ast/constants";
+import {
+	PYTHON_AST_PROMISE_REJECTED_STATUS,
+	PYTHON_AST_WORKER_IO_TIMEOUT_MS,
+	PYTHON_AST_WORKER_REGISTRIES,
+} from "src/core/python-ast/constants";
 import { PythonAstWorker } from "src/core/python-ast/python_ast_worker.mjs";
 import { PythonAstWorkerSession } from "src/core/python-ast/python_ast_worker_session";
 import type { PythonAstWorkerRegistryEntry } from "src/core/python-ast/types";
@@ -11,7 +15,7 @@ import type {
 	PythonAstWorkerSessionContract,
 } from "src/python_protocols";
 
-/** Responsibilities: _worker session registration_, _process worker cleanup_. **/
+/** Responsibilities: _worker lease registration_, _process worker shutdown_. **/
 export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract, PythonAstWorkerLeaseOwnerContract {
 	private readonly _process_instance: NodeJS.Process;
 
@@ -21,19 +25,23 @@ export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract,
 		if (workers === undefined) {
 			workers = new Map<string, PythonAstWorkerRegistryEntry>();
 			PYTHON_AST_WORKER_REGISTRIES.set(this._process_instance, workers);
-			this._process_instance.once("exit", () => this.close());
+			this._process_instance.once("exit", () => {
+				this.close().then(undefined, (error) => {
+					this._process_instance.stderr.write(`Python AST worker shutdown failed: ${String(error)}\n`);
+				});
+			});
 		}
 		return workers;
 	}
 
 	/** Responsibilities: _worker resource acquisition_. **/
 	private acquire_worker(
-		workers: Map<string, PythonAstWorkerRegistryEntry>,
 		key: string,
 		lease_id: string,
 		worker_arguments: string[],
 		worker_options: SpawnOptions,
 	): PythonAstWorkerContract {
+		const workers = this.registry_for();
 		let entry = workers.get(key);
 		if (entry === undefined) {
 			entry = {
@@ -51,6 +59,58 @@ export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract,
 		return entry.worker;
 	}
 
+	/** Responsibilities: _worker process lifecycle_. **/
+	private async close_worker(worker: PythonAstWorkerContract): Promise<void> {
+		const close_completion = Promise.resolve().then(() => worker.close());
+		const exit_completion = close_completion.then(
+			() => Promise.resolve().then(() => worker.wait_for_exit()),
+			() => Promise.resolve().then(() => worker.wait_for_exit()),
+		);
+		const results = await Promise.allSettled([close_completion, exit_completion]);
+		const errors: string[] = [];
+		for (const result of results) {
+			if (result.status === PYTHON_AST_PROMISE_REJECTED_STATUS) {
+				errors.push(String(result.reason));
+			}
+		}
+		if (errors.length > 0) {
+			throw new AggregateError(errors, "Python AST worker failed to close.");
+		}
+	}
+
+	/** Responsibilities: _worker shutdown result processing_. **/
+	private async shutdown_results(
+		workers: Map<string, PythonAstWorkerRegistryEntry>,
+		shutdowns: Promise<string>[],
+	): Promise<string[]> {
+		const results = await Promise.allSettled(shutdowns);
+		const errors: string[] = [];
+		for (const result of results) {
+			if (result.status === PYTHON_AST_PROMISE_REJECTED_STATUS) {
+				errors.push(String(result.reason));
+				continue;
+			}
+			workers.delete(result.value);
+		}
+		return errors;
+	}
+
+	/** Responsibilities: _worker shutdown_, _registry retention_. **/
+	private async close_entries(
+		workers: Map<string, PythonAstWorkerRegistryEntry>,
+		entries: ReadonlyMap<string, PythonAstWorkerRegistryEntry>,
+	): Promise<string[]> {
+		const shutdowns: Promise<string>[] = [];
+		for (const [key, entry] of entries) {
+			entry.leases.clear();
+			const shutdown = Promise.resolve()
+				.then(() => this.close_worker(entry.worker))
+				.then(() => key);
+			shutdowns.push(shutdown);
+		}
+		return this.shutdown_results(workers, shutdowns);
+	}
+
 	/** Responsibilities: _worker registry initialization_. **/
 	public constructor(process_instance: NodeJS.Process) {
 		this._process_instance = process_instance;
@@ -61,7 +121,7 @@ export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract,
 		const workers = this.registry_for();
 		const key = JSON.stringify([worker_arguments, worker_options]);
 		const lease_id = randomUUID();
-		const worker_instance = this.acquire_worker(workers, key, lease_id, worker_arguments, worker_options);
+		const worker_instance = this.acquire_worker(key, lease_id, worker_arguments, worker_options);
 		return new PythonAstWorkerSession({
 			workers,
 			key,
@@ -72,7 +132,7 @@ export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract,
 	}
 
 	/** Responsibilities: _worker lease reclamation_. **/
-	public release_lease(key: string, lease_id: string): void {
+	public async release_lease(key: string, lease_id: string): Promise<void> {
 		const workers = PYTHON_AST_WORKER_REGISTRIES.get(this._process_instance);
 		if (workers === undefined) {
 			return;
@@ -81,26 +141,24 @@ export class PythonAstWorkerRegistry implements PythonAstWorkerRegistryContract,
 		if (entry === undefined) {
 			return;
 		}
-		if (!entry.leases.delete(lease_id)) {
+		const lease_removed = entry.leases.delete(lease_id);
+		if (!lease_removed || entry.leases.size > 0) {
 			return;
 		}
-		if (entry.leases.size > 0) {
-			return;
-		}
+		await this.close_worker(entry.worker);
 		workers.delete(key);
-		entry.worker.close();
 	}
 
 	/** Responsibilities: _process worker shutdown_. **/
-	public close(): void {
+	public async close(): Promise<void> {
 		const workers = PYTHON_AST_WORKER_REGISTRIES.get(this._process_instance);
 		if (workers === undefined) {
 			return;
 		}
-		PYTHON_AST_WORKER_REGISTRIES.delete(this._process_instance);
-		for (const entry of workers.values()) {
-			entry.worker.close();
+		const entries = new Map(workers);
+		const errors = await this.close_entries(workers, entries);
+		if (errors.length > 0) {
+			throw new AggregateError(errors, "One or more Python AST workers failed to close.");
 		}
-		workers.clear();
 	}
 }

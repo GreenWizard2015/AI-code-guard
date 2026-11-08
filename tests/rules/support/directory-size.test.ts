@@ -107,36 +107,6 @@ describe("directory size lint rules", () => {
 		]);
 	});
 
-	test("reports directories with more than 40 code files", () => {
-		const files = Object.fromEntries(
-			Array.from({ length: 41 }, (_, index) => [`source/file-${index}.ts`, "export const value = 1;\n"]),
-		);
-		const paths = Object.keys(files).map((file) => join(root, file));
-		const directory_rules = new DirectoryStructureRules(
-			{ virtual_project: true, files: paths },
-			new InMemoryFileIO(),
-			new ModuleDeclarationsRule(
-				MODULE_DECLARATION_FILES,
-				MODULE_CONSTANT_FILES,
-				MODULE_TYPE_FILES,
-				MODULE_PROTOCOL_FILES,
-			),
-		);
-		const violations = directory_rules.directory_violation(join(root, "source"), root);
-		expect(
-			violations.map((violation) => ({
-				file: violation.file(),
-				message: violation.message(),
-				rule_id: violation.rule_id(),
-			})),
-		).toContainEqual(
-			expect.objectContaining({
-				message: "directory contains too many files (found 41)",
-				rule_id: "directory-max-size",
-			}),
-		);
-	});
-
 	test("allows ten source subdirectories and reports an eleventh at their parent", () => {
 		const source_paths = Array.from({ length: 10 }, (_, index) => join(root, `source/feature-${index}/module.ts`));
 		const allowed_rules = new DirectoryStructureRules(
@@ -204,58 +174,6 @@ describe("directory size lint rules", () => {
 		directory_rules.append_directory_violations(violations, source_paths, root, new Map(), new Map());
 
 		expect(violations.filter((item) => item.rule_id() === "directory-max-source-subdirectories")).toEqual([]);
-	});
-
-	test("does not hide directory size behind empty child directories", () => {
-		const files = Object.fromEntries(
-			Array.from({ length: 41 }, (_, index) => [`source/file-${index}.ts`, "export const value = 1;\n"]),
-		);
-		const paths = Object.keys(files).map((file) => join(root, file));
-		const directory_rules = new DirectoryStructureRules(
-			{ virtual_project: true, files: paths },
-			new InMemoryFileIO(),
-			new ModuleDeclarationsRule(
-				MODULE_DECLARATION_FILES,
-				MODULE_CONSTANT_FILES,
-				MODULE_TYPE_FILES,
-				MODULE_PROTOCOL_FILES,
-			),
-		);
-		const violations = directory_rules.directory_violation(join(root, "source"), root);
-		expect(
-			violations.map((violation) => ({
-				file: violation.file(),
-				message: violation.message(),
-				rule_id: violation.rule_id(),
-			})),
-		).toContainEqual(
-			expect.objectContaining({
-				message: "directory contains too many files (found 41)",
-				rule_id: "directory-max-size",
-			}),
-		);
-	});
-
-	test("does not exempt a nested functions directory from directory size rules", () => {
-		const files = {
-			"functions/worker/functions.ts": "export const value = 1;\n",
-			"functions/worker/helper.ts": "export const value = 1;\n",
-		};
-		const paths = Object.keys(files).map((file) => join(root, file));
-		const directory_rules = new DirectoryStructureRules(
-			{ virtual_project: true, files: paths },
-			new InMemoryFileIO(),
-			new ModuleDeclarationsRule(
-				MODULE_DECLARATION_FILES,
-				MODULE_CONSTANT_FILES,
-				MODULE_TYPE_FILES,
-				MODULE_PROTOCOL_FILES,
-			),
-		);
-		const violations = directory_rules.directory_violation(join(root, "functions/worker"), root);
-		expect(violations.map((violation) => ({ message: violation.message(), rule_id: violation.rule_id() }))).toEqual([
-			{ message: "directory contains too few files (found 2)", rule_id: "directory-min-size" },
-		]);
 	});
 
 	test("allows only re-exports in facade-only directories", () => {

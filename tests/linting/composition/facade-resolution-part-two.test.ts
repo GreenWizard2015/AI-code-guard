@@ -144,8 +144,14 @@ describe("coding-lint facade resolution part two", () => {
 				);
 				const graph = composition_parser.class_graph(context.files());
 				const consumer = graph.classes.get(`${join(root, "pkg/consumer.py")}:Consumer`);
+				if (consumer === undefined) {
+					return {
+						dependencies: undefined,
+						expected_dependency: `${join(root, "pkg/service.py")}:Service`,
+					};
+				}
 				return {
-					dependencies: consumer?.dependencies,
+					dependencies: consumer.dependencies,
 					expected_dependency: `${join(root, "pkg/service.py")}:Service`,
 				};
 			},
@@ -174,7 +180,10 @@ describe("coding-lint facade resolution part two", () => {
 				);
 				const graph = composition_model.class_graph(context.files());
 				const consumer = graph.classes.get(`${join(root, "pkg/consumer.py")}:Consumer`);
-				return { dependencies: consumer?.dependencies, expected: `${join(root, "pkg/service.py")}:Service` };
+				if (consumer === undefined) {
+					return { dependencies: undefined, expected: `${join(root, "pkg/service.py")}:Service` };
+				}
+				return { dependencies: consumer.dependencies, expected: `${join(root, "pkg/service.py")}:Service` };
 			},
 			new Map(),
 		);
@@ -198,8 +207,14 @@ describe("coding-lint facade resolution part two", () => {
 				);
 				const graph = composition_model.class_graph(context.files());
 				const consumer = graph.classes.get(`${join(root, "pkg/consumer.py")}:Consumer`);
+				if (consumer === undefined) {
+					return {
+						dependencies: undefined,
+						expected_dependency: `${join(root, "pkg/service.py")}:Service`,
+					};
+				}
 				return {
-					dependencies: consumer?.dependencies,
+					dependencies: consumer.dependencies,
 					expected_dependency: `${join(root, "pkg/service.py")}:Service`,
 				};
 			},

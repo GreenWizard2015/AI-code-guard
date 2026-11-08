@@ -107,6 +107,7 @@ export class LintRunStateContext {
 		});
 		return {
 			repo_root: report.repo_root,
+			ignore_files: [...report.inputs.ignore_files],
 			inventory,
 			names: project_names,
 			context,
@@ -114,6 +115,7 @@ export class LintRunStateContext {
 			source_texts: report.source_texts,
 			cache: {
 				global_enabled: this._options.mode === LintReportMode.PROJECT,
+				project_analysis_rules: report.project_analysis_enabled,
 				virtual_project: this._options.mode === LintReportMode.IN_MEMORY_PROJECT,
 			},
 		};

@@ -1,4 +1,5 @@
 import type { ImportedFunction } from "src/model/ast/normalized_ast_types";
+import type { ImportedFunctionSource } from "src/model/protocols";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
@@ -10,47 +11,51 @@ export class TypeScriptImportedFunctionAliases implements TypeScriptImportedFunc
 	private readonly _export_resolver: TypeScriptModuleResolverContract;
 
 	/** Responsibilities: _aggregation imported function aliases_. **/
-	private append_imported_functions(
-		source_file: ts.SourceFile,
-		statement: ts.ImportDeclaration,
-		imports: Map<string, ImportedFunction>,
-	): void {
-		const module_specifier = statement.moduleSpecifier;
-		if (!ts.isStringLiteral(module_specifier)) {
-			return;
+	private append_imported_functions(import_source: ImportedFunctionSource): Map<string, ImportedFunction> {
+		const clause = import_source.statement.importClause;
+		if (clause === undefined || clause.namedBindings === undefined) {
+			return new Map();
 		}
-		const named = statement.importClause?.namedBindings;
-		if (named === undefined) {
-			return;
+		const bindings = clause.namedBindings;
+		if (!ts.isNamedImports(bindings)) {
+			return new Map();
 		}
-		if (!ts.isNamedImports(named)) {
-			return;
-		}
-		const source_path = this._export_resolver.module_symbol(source_file.fileName, module_specifier.text);
-		if (source_path) {
-			this.add_imported_functions(named, source_path, imports);
-		}
+		const source_path = this.import_source(import_source);
+		return this.resolved_imports(bindings, source_path);
 	}
 
-	/** Responsibilities: _resolution storage imported function_. **/
-	private add_imported_functions(
-		named: ts.NamedImports,
-		source_path: string,
-		imports: Map<string, ImportedFunction>,
-	): void {
-		for (const element of named.elements) {
-			let source_name = element.name.text;
-			if (element.propertyName !== undefined) {
-				source_name = element.propertyName.text;
-			}
-			const resolved = this._export_resolver.resolve({ file: source_path, name: source_name });
-			let declaration_file = source_path;
-			if (resolved.file.length > 0) {
-				declaration_file = resolved.file;
-				source_name = resolved.name;
-			}
-			imports.set(element.name.text, { source_file: declaration_file, source_name });
+	/** Responsibilities: _import module resolution_. **/
+	private import_source(import_source: ImportedFunctionSource): string {
+		const module_specifier = import_source.statement.moduleSpecifier;
+		if (!ts.isStringLiteral(module_specifier)) {
+			return "";
 		}
+		return this._export_resolver.module_symbol(import_source.source_file.fileName, module_specifier.text);
+	}
+
+	/** Responsibilities: _import alias mapping_. **/
+	private resolved_imports(named: ts.NamedImports, source_path: string): Map<string, ImportedFunction> {
+		const imports = new Map<string, ImportedFunction>();
+		if (source_path.length === 0) {
+			return imports;
+		}
+		for (const element of named.elements) {
+			imports.set(element.name.text, this.resolved_import(element, source_path));
+		}
+		return imports;
+	}
+
+	/** Responsibilities: _imported function identity resolution_. **/
+	private resolved_import(element: ts.ImportSpecifier, source_path: string): ImportedFunction {
+		let source_name = element.name.text;
+		if (element.propertyName !== undefined) {
+			source_name = element.propertyName.text;
+		}
+		const resolved = this._export_resolver.resolve({ file: source_path, name: source_name });
+		if (resolved.file.length === 0) {
+			return { source_file: source_path, source_name };
+		}
+		return { source_file: resolved.file, source_name: resolved.name };
 	}
 
 	/** Responsibilities: _initialization project module resolver_. **/
@@ -74,7 +79,10 @@ export class TypeScriptImportedFunctionAliases implements TypeScriptImportedFunc
 		const imports = new Map<string, ImportedFunction>();
 		for (const statement of source_file.statements) {
 			if (ts.isImportDeclaration(statement)) {
-				this.append_imported_functions(source_file, statement, imports);
+				const import_source = { source_file, statement };
+				for (const [name, imported] of this.append_imported_functions(import_source)) {
+					imports.set(name, imported);
+				}
 			}
 		}
 		return imports;

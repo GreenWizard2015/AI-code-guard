@@ -82,13 +82,7 @@ describe("test runner quality checks", () => {
 		const runner = new CommandExecutionTestDouble([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
-		const exit_code = execution.run_args([
-			"--headless",
-			"--force-review",
-			"--review-cleanup",
-			"--review-agent",
-			"codex",
-		]);
+		const exit_code = execution.run_args(["--headless", "--force-review", "--review-agent", "codex"]);
 		const snapshot = runner.snapshot();
 		const calls = [...snapshot.calls];
 		const all_arguments = calls.flat();
@@ -108,7 +102,7 @@ describe("test runner quality checks", () => {
 			test_commands: calls.slice(0, 2),
 			quality_commands,
 			review_options: all_arguments.filter((argument) =>
-				["--force-review", "--review-cleanup", "--review-agent", "codex"].includes(argument),
+				["--force-review", "--review-agent", "codex"].includes(argument),
 			),
 		}).toEqual({
 			exit_code: 0,
@@ -130,7 +124,7 @@ describe("test runner quality checks", () => {
 				"lint --",
 				"validate:rule-docs",
 			],
-			review_options: ["--force-review", "--review-cleanup", "--review-agent", "codex"],
+			review_options: ["--force-review", "--review-agent", "codex"],
 		});
 	});
 });

@@ -69,8 +69,10 @@ export class CallableSourceAnalysis {
 					}
 					for (const file_name of source_import_scope.scope_files(this._file)) {
 						const names = classes_by_file.get(file_name);
-						if (names?.has(resolved_name)) {
-							return false;
+						if (names !== undefined) {
+							if (names.has(resolved_name)) {
+								return false;
+							}
 						}
 					}
 					return true;

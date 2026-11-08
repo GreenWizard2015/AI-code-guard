@@ -88,15 +88,11 @@ export class TypeScriptReferenceOwnership implements TypeScriptReferenceOwnershi
 	public function_reference(expression: ts.Identifier): CallableReferenceIdentity {
 		this._initializer.initialize();
 		const imported_identity = this._function_identities.get(expression.text);
-		const imported_name = imported_identity?.name;
 		let name = expression.text;
-		if (imported_name !== undefined && imported_name !== null) {
-			name = imported_name;
-		}
-		const imported_file = imported_identity?.target_file;
 		let target_file = this._source_file.fileName;
-		if (imported_file !== undefined && imported_file !== null) {
-			target_file = imported_file;
+		if (imported_identity !== undefined) {
+			name = imported_identity.name;
+			target_file = imported_identity.target_file;
 		}
 		return {
 			name,

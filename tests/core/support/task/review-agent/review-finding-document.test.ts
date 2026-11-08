@@ -1,5 +1,4 @@
 import { describe, expect, test } from "@jest/globals";
-import { REVIEW_FIELD_STATUS, REVIEW_SEVERITY_REQUIREMENT } from "src/core/support/task/review-agent/constants";
 import { ReviewFindingDocument } from "src/core/support/task/review-agent/review_finding_document";
 
 describe("review finding document format", () => {
@@ -64,48 +63,6 @@ describe("review finding document format", () => {
 		expect(document.missing_fields()).toContain(missing);
 	});
 
-	test.each(["High", "Major", "Medium"])("accepts the severity value %s", (severity) => {
-		const text = [
-			"# Finding",
-			`Severity: ${severity}`,
-			"Status: Open",
-			"Task: Preserve the invariant.",
-			"Affected paths:",
-			"- `src/source.ts`",
-			"Invariant: Keep source identity.",
-			"Evidence:",
-			"- The selected source is replaced.",
-			"Reproduction: Resolve two same-named declarations.",
-			"Impact: Usage is attributed incorrectly.",
-			"Required correction:",
-			"- Preserve the source identity.",
-		].join("\n");
-		const document = new ReviewFindingDocument(text);
-
-		expect(document.missing_fields()).toEqual([]);
-	});
-
-	test.each(["", "Critical", "major", "Major (urgent)"])("rejects the severity value %s", (severity) => {
-		const text = [
-			"# Finding",
-			`Severity: ${severity}`,
-			"Status: Open",
-			"Task: Preserve the invariant.",
-			"Affected paths:",
-			"- `src/source.ts`",
-			"Invariant: Keep source identity.",
-			"Evidence:",
-			"- The selected source is replaced.",
-			"Reproduction: Resolve two same-named declarations.",
-			"Impact: Usage is attributed incorrectly.",
-			"Required correction:",
-			"- Preserve the source identity.",
-		].join("\n");
-		const document = new ReviewFindingDocument(text);
-
-		expect(document.missing_fields()).toContain(REVIEW_SEVERITY_REQUIREMENT);
-	});
-
 	test("does not accept required labels found only in code fences", () => {
 		const document = new ReviewFindingDocument(
 			[
@@ -134,21 +91,5 @@ describe("review finding document format", () => {
 		const document = new ReviewFindingDocument("# Closed finding\n## Status\nStatus: Resolved\n");
 
 		expect(document.status()).toBe("Status: Resolved");
-	});
-
-	test.each([
-		["repeated open markers", "Status: Open\nStatus: Open\n"],
-		["conflicting markers", "Status: Open\nStatus: Resolved\n"],
-		["repeated resolved markers", "Status: Resolved\nStatus: Resolved\n"],
-		["unknown status", "Status: Maybe\n"],
-	])("rejects %s as a valid document status", (_description, status) => {
-		const document = new ReviewFindingDocument(`# Finding\nSeverity: Major\n${status}Task: Keep the invariant.\n`);
-
-		expect({ status: document.status(), missing_status: document.missing_fields() }).toEqual({
-			status: "",
-			missing_status: expect.arrayContaining([
-				`${REVIEW_FIELD_STATUS} (use Status: Open or Status: Resolved exactly once)`,
-			]),
-		});
 	});
 });

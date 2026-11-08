@@ -5,34 +5,6 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("concrete collaborator creation", () => {
-	test("reports a TypeScript contract implementation constructed and used inside an operation", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.collect_fixture_violations_with(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"store-contract.ts": "export interface StoreContract { load(key: string): string; }",
-				"sql-store.ts": [
-					'import { StoreContract } from "./store-contract";',
-					"export class SqlStore implements StoreContract { public load(key: string): string { return key; } }",
-				].join("\n"),
-				"functions.ts": [
-					'import type { StoreContract } from "./store-contract";',
-					'import { SqlStore } from "./sql-store";',
-					"class Loader {",
-					"  public load(key: string): string {",
-					"    const store: StoreContract = new SqlStore();",
-					"    return store.load(key);",
-					"  }",
-					"}",
-				].join("\n"),
-			},
-		);
-
-		expect(violations.filter((item) => item.rule_id() === "concrete-collaborator-created-per-operation")).toHaveLength(
-			1,
-		);
-	});
-
 	test("accepts TypeScript collaborator injection through its project contract", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.collect_fixture_violations_with(
@@ -221,9 +193,11 @@ describe("concrete collaborator creation", () => {
 			},
 		);
 
-		expect(violations.filter((item) => item.rule_id() === "concrete-collaborator-created-per-operation")).toHaveLength(
-			1,
-		);
+		expect(
+			violations
+				.filter((item) => item.rule_id() === "concrete-collaborator-created-per-operation")
+				.map((item) => `${item.file()}:${item.line()}`),
+		).toEqual(["functions.ts:5"]);
 	});
 
 	test("reports a Python protocol implementation constructed and used inside an operation", () => {

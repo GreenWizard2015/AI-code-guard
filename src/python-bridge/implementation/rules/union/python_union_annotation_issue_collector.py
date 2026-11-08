@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ast
-from typing import Any
+from typing import Any, cast
 
 from implementation.rules.constants import (
     PYTHON_COMPOSITE_STATE_RULE,
@@ -12,7 +12,7 @@ from implementation.rules.constants import (
 from implementation.rules.union.protocols import (
     PythonUnionAnnotationClassifierContract,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonUnionAnnotationIssueCollector:
@@ -29,12 +29,15 @@ class PythonUnionAnnotationIssueCollector:
         if not any(type(item) is ast.Constant and item.value is None for item in optional_union_members):
             return []
         issues: list[JsonObject] = [
-            {"line": optional_union_node.lineno - 1, "kind": PYTHON_OPTIONAL_UNION_RULE},
+            {
+                "line": cast(PythonASTLocatedNode, optional_union_node).lineno - 1,
+                "kind": PYTHON_OPTIONAL_UNION_RULE,
+            },
         ]
         if any(not (type(item) is ast.Constant and item.value is None) for item in optional_union_members):
             issues.append(
                 {
-                    "line": optional_union_node.lineno - 1,
+                    "line": cast(PythonASTLocatedNode, optional_union_node).lineno - 1,
                     "kind": PYTHON_NULLABLE_DOMAIN_RULE,
                 },
             )
@@ -49,14 +52,20 @@ class PythonUnionAnnotationIssueCollector:
         issues: list[JsonObject] = []
         if len(union_members) > self._max_union_items:
             issues.append(
-                {"line": union_node.lineno - 1, "kind": PYTHON_LARGE_UNION_RULE},
+                {
+                    "line": cast(PythonASTLocatedNode, union_node).lineno - 1,
+                    "kind": PYTHON_LARGE_UNION_RULE,
+                },
             )
         issues.extend(self._optional_union_issues(union_node, union_members))
         if len(union_members) > 1:
             has_nullish_type = any(self._classifier.nullish_type(value) for value in union_members)
             if not has_nullish_type:
                 issues.append(
-                    {"line": union_node.lineno - 1, "kind": PYTHON_COMPOSITE_STATE_RULE},
+                    {
+                        "line": cast(PythonASTLocatedNode, union_node).lineno - 1,
+                        "kind": PYTHON_COMPOSITE_STATE_RULE,
+                    },
                 )
         return issues
 
@@ -71,7 +80,10 @@ class PythonUnionAnnotationIssueCollector:
         if any(self._classifier.nullish_type(value) for value in intersection_members):
             return []
         return [
-            {"line": intersection_node.lineno - 1, "kind": PYTHON_COMPOSITE_STATE_RULE},
+            {
+                "line": cast(PythonASTLocatedNode, intersection_node).lineno - 1,
+                "kind": PYTHON_COMPOSITE_STATE_RULE,
+            },
         ]
 
     def __init__(

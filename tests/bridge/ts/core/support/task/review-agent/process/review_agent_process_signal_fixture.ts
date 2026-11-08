@@ -1,3 +1,4 @@
+import type { OwnedProcessGroup, ProcessGroupReference } from "src/analysis_protocols";
 import type {
 	ReviewAgentChildProcessContract,
 	ReviewAgentProcessSignalContract,
@@ -24,6 +25,21 @@ export class ReviewAgentProcessSignalFixture implements ReviewAgentProcessSignal
 	/** Responsibilities: _process-group signal recording_. **/
 	public group_signal(process_id: number, signal: NodeJS.Signals): void {
 		this._requests.push({ target: "group", process_id, signal });
+	}
+
+	/** Responsibilities: _process-group liveness_. **/
+	public group_exists(_group: ProcessGroupReference): boolean {
+		return false;
+	}
+
+	/** Responsibilities: _process-group ownership_. **/
+	public group_contains_token(_owner: OwnedProcessGroup): boolean {
+		return false;
+	}
+
+	/** Responsibilities: _owned group termination_. **/
+	public terminate_owned_group(_ownership: OwnedProcessGroup): boolean {
+		return false;
 	}
 
 	/** Responsibilities: _signal request snapshot_. **/

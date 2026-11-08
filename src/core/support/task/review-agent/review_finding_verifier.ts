@@ -1,5 +1,5 @@
 import { basename, join, resolve } from "node:path";
-import { MAX_REVIEW_LINES } from "src/constants";
+import { MAX_REVIEW_LINES, MIN_REVIEW_LINES } from "src/constants";
 import {
 	AI_CODE_GUARD_DIRECTORY,
 	APPLY_PATCH_TOOL_NAME,
@@ -22,7 +22,6 @@ import type {
 } from "src/core/support/task/review-agent/types";
 import type { IOContract } from "src/io/protocols";
 import type { FileEntry } from "src/io/protocols";
-import type { ReviewAgentPhase } from "src/task_review_types";
 
 /** Responsibilities: _Markdown document_, _document status_. **/
 export class ReviewFindingVerifier {
@@ -32,6 +31,9 @@ export class ReviewFindingVerifier {
 	private size_feedback(text: string): string {
 		const document = new ReviewFindingDocument(text);
 		const lines = document.line_count();
+		if (lines < MIN_REVIEW_LINES) {
+			return `The review file has ${lines} lines and is below the ${MIN_REVIEW_LINES}-line minimum. Expand it with concrete evidence, impact, and a correction.`;
+		}
 		if (lines <= MAX_REVIEW_LINES) {
 			return "";
 		}
@@ -68,6 +70,10 @@ export class ReviewFindingVerifier {
 			const missing = document.missing_fields();
 			if (missing.length > 0) {
 				problems.push(`${file}: missing ${missing.join(", ")}.`);
+			}
+			const size = this.size_feedback(text);
+			if (size.length > 0) {
+				problems.push(`${file}: ${size}`);
 			}
 		}
 		return problems;
@@ -131,16 +137,12 @@ export class ReviewFindingVerifier {
 	}
 
 	/** Responsibilities: _continuation and finding-format feedback_. **/
-	private stop_feedback(
-		sequence: ReviewStopSequenceContract,
-		phase: ReviewAgentPhase,
-		scope: HookReviewProgressContext,
-	): string {
+	private stop_feedback(sequence: ReviewStopSequenceContract, scope: HookReviewProgressContext): string {
 		const continuation = sequence.feedback();
 		if (continuation.length > 0) {
 			return continuation;
 		}
-		if (phase !== "initial" || scope.review_prefix.length === 0) {
+		if (scope.review_prefix.length === 0) {
 			return "";
 		}
 		const files = this.paths(scope.cwd, scope.review_prefix, scope.review_start_ms);
@@ -163,7 +165,7 @@ export class ReviewFindingVerifier {
 			return "";
 		}
 		const stop_sequence = new ReviewStopSequence(this._io, context);
-		return this.stop_feedback(stop_sequence, context.phase, {
+		return this.stop_feedback(stop_sequence, {
 			cwd: context.cwd,
 			review_prefix: context.review_prefix,
 			review_start_ms: context.review_start_ms,

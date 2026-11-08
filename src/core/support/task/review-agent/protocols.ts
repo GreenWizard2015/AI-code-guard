@@ -1,16 +1,11 @@
 import type { SpawnOptions, SpawnSyncOptionsWithStringEncoding, SpawnSyncReturns } from "node:child_process";
 import type { Readable } from "node:stream";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
+import type { OwnedProcessGroup, ProcessGroupReference } from "src/analysis_protocols";
 import type { IOContract } from "src/io/protocols";
 import type { HookDecision, HookPayload, HookToolInput } from "src/model_types";
+import type { ReviewAgentDialogueExecution, ReviewStageDefinition, TaskReviewRunResult } from "src/task_review_types";
 import type {
-	ReviewAgentDialogueExecution,
-	ReviewAgentPhase,
-	ReviewStageDefinition,
-	TaskReviewRunResult,
-} from "src/task_review_types";
-import type {
-	ReviewAgentCleanupRequest,
 	ReviewAgentExecutionResult,
 	ReviewAgentHookEvent,
 	ReviewAgentName,
@@ -120,12 +115,16 @@ export interface ReviewAgentChildProcessContract {
 /** Responsibilities: _review-agent process termination_. **/
 export interface ReviewAgentProcessTerminatorContract {
 	terminate(child: ReviewAgentChildProcessContract, signal: NodeJS.Signals): void;
+	cleanup_owned_group(child: ReviewAgentChildProcessContract, ownership_token: string): boolean;
 }
 
 /** Responsibilities: _review child signaling_, _review process-group signaling_. **/
 export interface ReviewAgentProcessSignalContract {
 	child_signal(child: ReviewAgentChildProcessContract, signal: NodeJS.Signals): void;
 	group_signal(process_id: number, signal: NodeJS.Signals): void;
+	group_exists(group: ProcessGroupReference): boolean;
+	group_contains_token(owner: OwnedProcessGroup): boolean;
+	terminate_owned_group(ownership: OwnedProcessGroup): boolean;
 }
 
 /** Responsibilities: _review process registration removal_. **/
@@ -202,7 +201,6 @@ export interface ReviewAgentContract {
 /** Responsibilities: _review-agent selection_. **/
 export interface ReviewAgentCatalogContract {
 	prompt(request: ReviewAgentPromptRequest): string;
-	cleanup_prompt(request: ReviewAgentCleanupRequest): string;
 	run_async(selection: ReviewAgentSelection, request: ReviewAgentRunRequest): Promise<ReviewAgentExecutionResult>;
 }
 
@@ -233,7 +231,6 @@ export type ReviewAgentStageRequestContext = {
 export type ReviewAgentStageCollaborators = {
 	readonly boundary_failures: SystemFailureClassificationContract;
 	readonly review_documents: ReviewAgentFilesContract;
-	readonly stage_documents: ReviewAgentFilesContract;
 	readonly debug_log: ReviewAgentDebugLogContract;
 	readonly agent_catalog: ReviewAgentCatalogContract;
 	readonly hooks: ReviewAgentHooksContract;
@@ -244,13 +241,12 @@ export type ReviewAgentStageCollaborators = {
 /** Responsibilities: _parallel review stage execution_. **/
 export type TaskReviewAgentStageExecutionOptions = {
 	readonly request_context: ReviewAgentStageRequestContext;
-	readonly review_cleanup: boolean;
 	readonly collaborators: ReviewAgentStageCollaborators;
 };
 
 /** Responsibilities: _parallel review-stage actions_. **/
 export interface TaskReviewAgentStageExecutionContract {
-	request(open_review_files: readonly string[], review_phase: ReviewAgentPhase, prompt: string): ReviewAgentRequest;
+	request(open_review_files: readonly string[], prompt: string): ReviewAgentRequest;
 	run(): Promise<TaskReviewRunResult>;
 }
 
@@ -313,7 +309,6 @@ export type ReviewWriteRequest = {
 export type ReviewPatchRequest = {
 	readonly input: HookToolInput;
 	readonly cwd: string;
-	readonly cleanup: boolean;
 };
 
 /** Responsibilities: _review file policy_, _patch policy_. **/
@@ -332,7 +327,7 @@ export interface ReviewDeletionPolicyContract {
 export interface ReviewFilePolicyContract {
 	allows_write(): boolean;
 	open_for_mutation(): boolean;
-	allows_patch_deletion(cleanup: boolean): boolean;
+	allows_patch_deletion(): boolean;
 }
 
 /** Responsibilities: _review access policy_. **/
@@ -360,7 +355,6 @@ export interface CommandOptionPolicyContract {
 /** Responsibilities: _review dialogue execution_. **/
 export interface ReviewAgentDialogueContract {
 	initial_async(): Promise<ReviewAgentExecutionResult>;
-	cleanup_dialogue_async(request: ReviewAgentRequest): Promise<ReviewAgentExecutionResult>;
 }
 
 /** Responsibilities: _review source identity value_, _review source identity comparison_. **/

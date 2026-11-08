@@ -1,11 +1,6 @@
 import { REMOVED_SKIP_REVIEW_MESSAGE } from "src/constants";
 import type { ReviewAgentSelection } from "src/task_review_types";
-import {
-	FORCE_REVIEW_ARGUMENT,
-	HEADLESS_ARGUMENT,
-	REVIEW_AGENT_OPTION,
-	REVIEW_CLEANUP_ARGUMENT,
-} from "test-runner/constants";
+import { FORCE_REVIEW_ARGUMENT, HEADLESS_ARGUMENT, REVIEW_AGENT_OPTION } from "test-runner/constants";
 import type { TestRunnerRequest } from "test-runner/types";
 
 /** Responsibilities: _test runner command arguments_, _request option interpretation_. **/
@@ -15,10 +10,15 @@ export class TestRunnerArguments {
 	/** Responsibilities: _review agent option validation_. **/
 	private review_agent_value(index: number): ReviewAgentSelection {
 		const value = this._arguments_list[index + 1];
-		if (value !== "codex" && value !== "claude") {
-			throw new Error("Invalid --review-agent value");
+		switch (value) {
+			case "codex":
+			case "cx":
+			case "cxa":
+			case "claude":
+				return value;
+			default:
+				throw new Error("Invalid --review-agent value");
 		}
-		return value;
 	}
 
 	/** Responsibilities: _request default state_. **/
@@ -29,7 +29,6 @@ export class TestRunnerArguments {
 			headless: false,
 			skip_quality: false,
 			force_review: false,
-			review_cleanup: false,
 			review_agent: "none",
 		};
 	}
@@ -50,8 +49,6 @@ export class TestRunnerArguments {
 				return { ...request, force_review: true };
 			case "--skip-quality":
 				return { ...request, skip_quality: true };
-			case REVIEW_CLEANUP_ARGUMENT:
-				return { ...request, review_cleanup: true };
 			default:
 				return { ...request, args: [...request.args, argument] };
 		}

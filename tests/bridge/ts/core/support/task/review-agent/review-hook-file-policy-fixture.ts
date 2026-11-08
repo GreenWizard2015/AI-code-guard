@@ -66,7 +66,6 @@ export class ReviewHookFilePolicyFixture {
 			cwd,
 			review_stage: "boundaries",
 			review_prefix: "review-boundaries-",
-			review_phase: "initial",
 			review_start_ms: 0,
 		};
 	}

@@ -17,7 +17,11 @@ export class TypeScriptDeclarationMatcher {
 	/** Responsibilities: _single declaration matching_. **/
 	public matches_declaration(node: ts.Node): boolean {
 		if (ts.isClassDeclaration(node) || ts.isFunctionDeclaration(node)) {
-			return node.name?.text === this._declaration_name;
+			const declaration_name = node.name;
+			if (declaration_name === undefined) {
+				return false;
+			}
+			return declaration_name.text === this._declaration_name;
 		}
 		if (!ts.isVariableStatement(node)) {
 			return false;

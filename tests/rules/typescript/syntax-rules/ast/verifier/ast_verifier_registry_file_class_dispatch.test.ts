@@ -173,10 +173,9 @@ describe("ast verifier registry file class dispatch", () => {
 		const state = scenario.state();
 		const model = new TypeScriptCompositionModel(source_file.fileName, source_file, state.analysis.module_resolver);
 		const classes = model.classes();
-		const owner = classes.find((item) => item.name === "Owner");
 
 		expect({
-			dependencies: owner?.dependencies,
+			dependencies: classes.filter((item) => item.name === "Owner").flatMap((item) => item.dependencies),
 			diagnostic: scenario.rule_ids().includes("constructor-dependency-count"),
 		}).toEqual({ dependencies: Array.from({ length: 6 }, (_, index) => `Dependency${index}`), diagnostic: true });
 	});

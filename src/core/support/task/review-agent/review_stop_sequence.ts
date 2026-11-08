@@ -75,7 +75,7 @@ export class ReviewStopSequence implements ReviewStopSequenceContract {
 		this._io = io;
 		this._context = context;
 		this._log_file = join(context.cwd, AI_CODE_GUARD_DIRECTORY, REVIEW_STOP_LOG_FILE_NAME);
-		const identity = createHash("sha256").update(`${context.phase}\n${context.review_prefix}`).digest("hex");
+		const identity = createHash("sha256").update(context.review_prefix).digest("hex");
 		this._attempt_marker = `[review-stop-attempt] ${identity}=`;
 		let fallback_attempt_count = 0;
 		if (context.stop_hook_active) {
@@ -92,9 +92,6 @@ export class ReviewStopSequence implements ReviewStopSequenceContract {
 	/** Responsibilities: _review stage guidance_. **/
 	public feedback(): string {
 		if (this._context.event !== HOOK_STOP) {
-			return "";
-		}
-		if (this._context.phase !== "initial") {
 			return "";
 		}
 		if (this._context.review_prefix.length === 0) {

@@ -1,3 +1,4 @@
+import { TypeScriptExpressionOperatorContainment } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_operator_containment";
 import type { TypeScriptExpressionContainersContract } from "src/typescript_analysis_protocols";
 import ts from "typescript";
 
@@ -5,167 +6,51 @@ import ts from "typescript";
 export class TypeScriptExpressionContainers implements TypeScriptExpressionContainersContract {
 	private readonly _container_kinds: Set<ts.SyntaxKind>;
 	private readonly _nested_cache: WeakMap<ts.Node, boolean>;
+	private readonly _operator_containment: TypeScriptExpressionOperatorContainment;
 
-	/** Responsibilities: _binary expression containment_. **/
-	private binary(binary_parent: ts.Node, binary_child: ts.Node): boolean {
-		if (!ts.isBinaryExpression(binary_parent)) {
-			return false;
+	/** Responsibilities: _collection member membership_. **/
+	private collection_literal(collection: ts.Node, collection_member: ts.Node): boolean {
+		if (ts.isObjectLiteralExpression(collection)) {
+			return collection.properties.some((property) => property === collection_member);
 		}
-		if (binary_parent.left === binary_child) {
-			return true;
+		if (ts.isArrayLiteralExpression(collection)) {
+			return collection.elements.some((element) => element === collection_member);
 		}
-		return binary_parent.right === binary_child;
-	}
-
-	/** Responsibilities: _argument containment_. **/
-	private argument_list(call_expression: ts.CallExpression, argument_candidate: ts.Node): boolean {
-		if (call_expression.expression === argument_candidate) {
-			return true;
-		}
-		return call_expression.arguments.some((argument) => argument === argument_candidate);
-	}
-
-	/** Responsibilities: _access expression containment_. **/
-	private access(access_expression: ts.Node, accessed_child: ts.Node): boolean {
-		if (ts.isPropertyAccessExpression(access_expression)) {
-			return access_expression.expression === accessed_child;
-		}
-		if (ts.isElementAccessExpression(access_expression)) {
-			if (access_expression.expression === accessed_child) {
-				return true;
-			}
-			return access_expression.argumentExpression === accessed_child;
+		if (ts.isSpreadElement(collection) || ts.isSpreadAssignment(collection)) {
+			return collection.expression === collection_member;
 		}
 		return false;
 	}
 
-	/** Responsibilities: _conditional expression containment_. **/
-	private conditional(conditional_expression: ts.ConditionalExpression, branch_expression: ts.Node): boolean {
-		if (conditional_expression.condition === branch_expression) {
-			return true;
+	/** Responsibilities: _literal member containment_. **/
+	private literal(literal_node: ts.Node, literal_value: ts.Node): boolean {
+		if (ts.isPropertyAssignment(literal_node)) {
+			return literal_node.initializer === literal_value;
 		}
-		if (conditional_expression.whenTrue === branch_expression) {
-			return true;
+		if (ts.isShorthandPropertyAssignment(literal_node)) {
+			return literal_node.name === literal_value;
 		}
-		return conditional_expression.whenFalse === branch_expression;
-	}
-
-	/** Responsibilities: _simple unary containment_. **/
-	private simple_unary(unary_expression: ts.Node, unary_operand: ts.Node): boolean {
-		if (ts.isAwaitExpression(unary_expression)) {
-			return unary_expression.expression === unary_operand;
-		}
-		if (ts.isVoidExpression(unary_expression)) {
-			return unary_expression.expression === unary_operand;
-		}
-		if (ts.isNonNullExpression(unary_expression)) {
-			return unary_expression.expression === unary_operand;
-		}
-		if (ts.isPrefixUnaryExpression(unary_expression)) {
-			return unary_expression.operand === unary_operand;
-		}
-		return false;
-	}
-
-	/** Responsibilities: _assertion containment_. **/
-	private assertion_expression(assertion: ts.Node, asserted_expression: ts.Node): boolean {
-		if (ts.isAsExpression(assertion)) {
-			return assertion.expression === asserted_expression;
-		}
-		if (ts.isTypeAssertionExpression(assertion)) {
-			return assertion.expression === asserted_expression;
-		}
-		if (ts.isSatisfiesExpression(assertion)) {
-			return assertion.expression === asserted_expression;
-		}
-		return false;
-	}
-
-	/** Responsibilities: _unary containment_. **/
-	private unary_expression(unary_container: ts.Node, nested_expression: ts.Node): boolean {
-		if (this.simple_unary(unary_container, nested_expression)) {
-			return true;
-		}
-		return this.assertion_expression(unary_container, nested_expression);
-	}
-
-	/** Responsibilities: _literal containment_. **/
-	private literal(literal_container: ts.Node, literal_child: ts.Node): boolean {
-		if (ts.isPropertyAssignment(literal_container)) {
-			return literal_container.initializer === literal_child;
-		}
-		if (ts.isShorthandPropertyAssignment(literal_container)) {
-			return literal_container.name === literal_child;
-		}
-		return this.collection_literal(literal_container, literal_child);
-	}
-
-	/** Responsibilities: _collection literal containment_. **/
-	private collection_literal(literal: ts.Node, literal_child: ts.Node): boolean {
-		if (ts.isObjectLiteralExpression(literal)) {
-			return literal.properties.some((property) => property === literal_child);
-		}
-		if (ts.isArrayLiteralExpression(literal)) {
-			return literal.elements.some((element) => element === literal_child);
-		}
-		if (ts.isSpreadElement(literal)) {
-			return literal.expression === literal_child;
-		}
-		if (ts.isSpreadAssignment(literal)) {
-			return literal.expression === literal_child;
-		}
-		return false;
+		return this.collection_literal(literal_node, literal_value);
 	}
 
 	/** Responsibilities: _template expression containment_. **/
-	private template(template_container: ts.Node, template_child: ts.Node): boolean {
-		if (ts.isTemplateSpan(template_container)) {
-			return template_container.expression === template_child;
+	private template(template_node: ts.Node, embedded_expression: ts.Node): boolean {
+		if (ts.isTemplateSpan(template_node)) {
+			return template_node.expression === embedded_expression;
 		}
-		if (ts.isTemplateExpression(template_container)) {
-			return template_container.templateSpans.some((span) => span === template_child);
+		if (ts.isTemplateExpression(template_node)) {
+			return template_node.templateSpans.some((span) => span === embedded_expression);
 		}
-		if (ts.isTaggedTemplateExpression(template_container)) {
-			if (template_container.tag === template_child) {
-				return true;
-			}
-			return template_container.template === template_child;
+		if (ts.isTaggedTemplateExpression(template_node)) {
+			return template_node.tag === embedded_expression || template_node.template === embedded_expression;
 		}
 		return false;
 	}
 
-	/** Responsibilities: _expression containment_. **/
-	private expression(expression_container: ts.Node, child_expression: ts.Node): boolean {
-		if (this.template(expression_container, child_expression)) {
-			return true;
-		}
-		if (ts.isCallExpression(expression_container)) {
-			return this.argument_list(expression_container, child_expression);
-		}
-		if (ts.isNewExpression(expression_container)) {
-			return this.new_expression(expression_container, child_expression);
-		}
-		if (this.access(expression_container, child_expression)) {
-			return true;
-		}
-		if (ts.isConditionalExpression(expression_container)) {
-			return this.conditional(expression_container, child_expression);
-		}
-		return this.unary_expression(expression_container, child_expression);
-	}
-
-	/** Responsibilities: _constructor expression containment_. **/
-	private new_expression(construction: ts.NewExpression, construction_child: ts.Node): boolean {
-		if (construction.expression === construction_child) {
-			return true;
-		}
-		return construction.arguments?.some((argument) => argument === construction_child) === true;
-	}
-
-	/** Responsibilities: _nested container_. **/
-	/** Responsibilities: _field initialization_. **/
+	/** Responsibilities: _expression container initialization_. **/
 	public constructor() {
 		this._nested_cache = new WeakMap<ts.Node, boolean>();
+		this._operator_containment = new TypeScriptExpressionOperatorContainment();
 		this._container_kinds = new Set([
 			ts.SyntaxKind.ParenthesizedExpression,
 			ts.SyntaxKind.BinaryExpression,
@@ -192,7 +77,8 @@ export class TypeScriptExpressionContainers implements TypeScriptExpressionConta
 			ts.SyntaxKind.NewExpression,
 		]);
 	}
-	/** Responsibilities: _public operation_. **/
+
+	/** Responsibilities: _nested container_. **/
 	public nested(candidate: ts.Node): boolean {
 		const cached = this._nested_cache.get(candidate);
 		if (cached !== undefined) {
@@ -211,12 +97,12 @@ export class TypeScriptExpressionContainers implements TypeScriptExpressionConta
 		if (ts.isParenthesizedExpression(parent_container)) {
 			return true;
 		}
-		if (this.binary(parent_container, nested_node)) {
-			return true;
+		if (this._operator_containment.handles(parent_container)) {
+			return this._operator_containment.contains(parent_container, nested_node);
 		}
 		if (this.literal(parent_container, nested_node)) {
 			return true;
 		}
-		return this.expression(parent_container, nested_node);
+		return this.template(parent_container, nested_node);
 	}
 }

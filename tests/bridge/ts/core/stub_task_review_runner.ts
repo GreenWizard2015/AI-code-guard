@@ -2,7 +2,6 @@ import { join } from "node:path";
 import type { ReviewAgentCatalogContract } from "src/core/support/task/review-agent/protocols";
 import type { IOContract } from "src/io/protocols";
 import type {
-	ReviewAgentCleanupRequest,
 	ReviewAgentExecutionResult,
 	ReviewAgentPromptRequest,
 	ReviewAgentRunRequest,
@@ -25,12 +24,10 @@ export class StubTaskReviewRunner implements ReviewAgentCatalogContract {
 		if (this._mutate_source) {
 			this._io.file(join(input.root, "source.ts")).write_text("export const changed = true;\n");
 		}
-		if (input.prompt !== "cleanup") {
-			this._initial_run_count += 1;
-			this._initial_prefixes.push(input.hook.review_prefix);
-			if (this._finding.length > 0) {
-				this._io.file(join(input.review_root, `${input.hook.review_prefix}finding.md`)).write_text(this._finding);
-			}
+		this._initial_run_count += 1;
+		this._initial_prefixes.push(input.hook.review_prefix);
+		if (this._finding.length > 0) {
+			this._io.file(join(input.review_root, `${input.hook.review_prefix}finding.md`)).write_text(this._finding);
 		}
 		return this._result;
 	}
@@ -48,11 +45,6 @@ export class StubTaskReviewRunner implements ReviewAgentCatalogContract {
 	/** Responsibilities: _initial prompt extraction_. **/
 	public prompt(request: ReviewAgentPromptRequest): string {
 		return request.prompt_request.prompt;
-	}
-
-	/** Responsibilities: _cleanup prompt extraction_. **/
-	public cleanup_prompt(_request: ReviewAgentCleanupRequest): string {
-		return "cleanup";
 	}
 
 	/** Responsibilities: _synchronous mock compatibility_. **/

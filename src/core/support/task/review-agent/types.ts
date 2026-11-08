@@ -15,8 +15,20 @@ import type {
 import type { ReviewAgentProcessExecution } from "src/core/support/task/review-agent/protocols";
 import type { IOContract } from "src/io/protocols";
 import type { HookDecision, HookPayload } from "src/model_types";
-import type { ReviewAgentName, ReviewAgentPhase } from "src/task_review_types";
+import type { ReviewAgentName } from "src/task_review_types";
 import type { ReviewAgentProcessResult } from "src/task_review_types";
+import type { ReviewAgentExecutionResult } from "src/task_review_types";
+
+export type ReviewSizeCorrectionResult = {
+	execution: ReviewAgentExecutionResult;
+	complete: boolean;
+};
+
+export type ReviewFenceState = {
+	readonly character: string;
+	readonly length: number;
+	readonly is_open: boolean;
+};
 
 /** Responsibilities: _agent cleanup request data_, _completed process result_. **/
 export type ReviewAgentProcessCleanupRequest = {
@@ -86,7 +98,6 @@ export type HookReviewProgressContext = {
 export type ReviewStopContext = {
 	event: string;
 	cwd: string;
-	phase: ReviewAgentPhase;
 	review_prefix: string;
 	review_start_ms: number;
 	stop_hook_active: boolean;
@@ -144,7 +155,6 @@ export interface ReviewAgentIdentityContract {
 	matches(other: ReviewAgentIdentityContract): boolean;
 	persist(root: string, ownership_token: string): string;
 }
-export type ReviewHookPhase = "cleanup" | "initial";
 export type RawHookToolInput = {
 	command: string;
 	cmd: string;
@@ -164,7 +174,6 @@ export type RawHookPayload = {
 	cwd: string;
 	review_stage: string;
 	review_prefix: string;
-	review_phase: string;
 };
 export type ReviewAgentDialogueExecutionOptions = {
 	root: string;

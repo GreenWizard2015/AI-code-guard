@@ -46,7 +46,11 @@ export class TypeScriptAssignmentValuePredicates implements TypeScriptAssignment
 			if (!ts.isImportDeclaration(statement)) {
 				return false;
 			}
-			const bindings = statement.importClause?.namedBindings;
+			const import_clause = statement.importClause;
+			if (import_clause === undefined) {
+				return false;
+			}
+			const bindings = import_clause.namedBindings;
 			if (bindings === undefined || !ts.isNamespaceImport(bindings)) {
 				return false;
 			}

@@ -3,14 +3,18 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { LintReportMode } from "src/core/types";
 import { NodeFileIO } from "src/io/node_file_io";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { InMemoryLintProject } from "tests/core/lint-run-configuration-project";
 
 describe("in-memory lint run configuration", () => {
 	test("excludes ignored files from selected lint targets", () => {
-		const project = new InMemoryLintProject({
-			"kept.ts": "export const kept = 1;\n",
-			"ignored/ignored.ts": "export const ignored = 1;\n",
-		});
+		const project = new InMemoryLintProject(
+			{
+				"kept.ts": "export const kept = 1;\n",
+				"ignored/ignored.ts": "export const ignored = 1;\n",
+			},
+			new InMemoryFileIO(),
+		);
 		const configuration = new LintRunConfiguration(project._source_io, new NodeFileIO(process.cwd()));
 		const files = configuration.input_files(project.root, ["ignored"]).files;
 		configuration.close_worker_session();
@@ -19,10 +23,13 @@ describe("in-memory lint run configuration", () => {
 	});
 
 	test("keeps ignored production files in project context", () => {
-		const project = new InMemoryLintProject({
-			"kept.ts": "export const kept = 1;\n",
-			"ignored/ignored.ts": "export const ignored = 1;\n",
-		});
+		const project = new InMemoryLintProject(
+			{
+				"kept.ts": "export const kept = 1;\n",
+				"ignored/ignored.ts": "export const ignored = 1;\n",
+			},
+			new InMemoryFileIO(),
+		);
 		const configuration = new LintRunConfiguration(project._source_io, new NodeFileIO(process.cwd()));
 		const execution = configuration.lint_report(
 			project.options(configuration, ["ignored"]),
@@ -34,16 +41,19 @@ describe("in-memory lint run configuration", () => {
 	});
 
 	test("classifies ignored imports as production targets for tests", () => {
-		const project = new InMemoryLintProject({
-			"external/service.ts": "export class Service {}\n",
-			"tests/external/service.test.ts": [
-				'import { Service } from "external/service";',
-				"test('uses the service', () => {",
-				"  const service = new Service();",
-				"  expect(service).toBeInstanceOf(Service);",
-				"});",
-			].join("\n"),
-		});
+		const project = new InMemoryLintProject(
+			{
+				"external/service.ts": "export class Service {}\n",
+				"tests/external/service.test.ts": [
+					'import { Service } from "external/service";',
+					"test('uses the service', () => {",
+					"  const service = new Service();",
+					"  expect(service).toBeInstanceOf(Service);",
+					"});",
+				].join("\n"),
+			},
+			new InMemoryFileIO(),
+		);
 		const configuration = new LintRunConfiguration(project._source_io, new NodeFileIO(process.cwd()));
 		const options = project.options(configuration, ["external"]);
 		const execution = configuration.lint_report(options, LintReportMode.IN_MEMORY_PROJECT);
@@ -71,7 +81,7 @@ describe("in-memory lint run configuration", () => {
 	});
 
 	test("repeats in-memory analysis with stable file diagnostics", () => {
-		const project = new InMemoryLintProject({ "functions.ts": "type Value = string;\n" });
+		const project = new InMemoryLintProject({ "functions.ts": "type Value = string;\n" }, new InMemoryFileIO());
 		const configuration = new LintRunConfiguration(project._source_io, new NodeFileIO(process.cwd()));
 		const first = configuration
 			.lint_report(project.options(configuration), LintReportMode.IN_MEMORY_PROJECT)

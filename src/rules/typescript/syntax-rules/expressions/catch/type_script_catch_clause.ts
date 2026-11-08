@@ -1,9 +1,11 @@
+import { TypeScriptCatchErrorAliases } from "src/rules/typescript/syntax-rules/expressions/catch/type_script_catch_error_aliases";
 import ts from "typescript";
 
 /** Responsibilities: _caught error binding_, _broad catch classification_. **/
 export class TypeScriptCatchClause {
 	private readonly _clause: ts.CatchClause;
 	private readonly _statements: ts.NodeArray<ts.Statement>;
+	private readonly _error_aliases: TypeScriptCatchErrorAliases;
 
 	/** Responsibilities: _caught error identifier_. **/
 	private caught_error_name(): string {
@@ -99,7 +101,7 @@ export class TypeScriptCatchClause {
 		guard_call: ts.CallExpression,
 		preserve_when_true: boolean,
 	): boolean {
-		const references_error = guard_call.arguments.some((argument) => this.references_error(argument));
+		const references_error = guard_call.arguments.some((argument) => this._error_aliases.references(argument));
 		if (!references_error) {
 			return false;
 		}
@@ -113,21 +115,6 @@ export class TypeScriptCatchClause {
 		return this.preserves_error(unmatched_branch);
 	}
 
-	/** Responsibilities: _caught error reference matching_. **/
-	private references_error(reference: ts.Expression): boolean {
-		if (ts.isIdentifier(reference)) {
-			return reference.text === this.caught_error_name();
-		}
-		if (!ts.isCallExpression(reference) || !ts.isIdentifier(reference.expression)) {
-			return false;
-		}
-		const string_conversion = reference.expression.text === "String";
-		const references_caught_error = reference.arguments.some(
-			(argument) => ts.isIdentifier(argument) && argument.text === this.caught_error_name(),
-		);
-		return string_conversion && references_caught_error;
-	}
-
 	/** Responsibilities: _recovery delegation_. **/
 	private delegates_recovery(recovery_statement: ts.ExpressionStatement): boolean {
 		if (!ts.isCallExpression(recovery_statement.expression)) {
@@ -137,7 +124,7 @@ export class TypeScriptCatchClause {
 		if (!ts.isPropertyAccessExpression(expression) || expression.name.text !== "restore_failure") {
 			return false;
 		}
-		return recovery_statement.expression.arguments.some((argument) => this.references_error(argument));
+		return recovery_statement.expression.arguments.some((argument) => this._error_aliases.references(argument));
 	}
 
 	/** Responsibilities: _catch recovery classification_. **/
@@ -178,6 +165,7 @@ export class TypeScriptCatchClause {
 	public constructor(clause: ts.CatchClause) {
 		this._clause = clause;
 		this._statements = clause.block.statements;
+		this._error_aliases = new TypeScriptCatchErrorAliases(clause);
 	}
 
 	/** Responsibilities: _named error binding_. **/

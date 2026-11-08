@@ -1,11 +1,14 @@
 import type { ReportViolationOptions, ViolationContract } from "src/reporting_protocols";
 
-/** Responsibilities: _diagnostic violation data storage_, _adjusted violation copies creation_. **/
+/** Responsibilities: _diagnostic value construction_, _diagnostic field access_, _line invariant validation_. **/
 export class ViolationValue implements ViolationContract {
 	private readonly _options: ReportViolationOptions;
 
 	/** Responsibilities: _diagnostic violation initialization_. **/
 	public constructor(options: ReportViolationOptions) {
+		if (!Number.isInteger(options.line) || options.line < 0) {
+			throw new Error(`Invalid diagnostic line ${options.line}.`);
+		}
 		this._options = Object.freeze({ ...options });
 	}
 

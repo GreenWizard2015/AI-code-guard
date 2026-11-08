@@ -147,8 +147,9 @@ export class TaskBatchReplacement implements TaskBatchReplacementContract {
 		const transaction = this.create_transaction_directory();
 		const publication = this._publication_lock.transaction(transaction);
 		try {
+			const snapshot = this.capture_transaction_snapshot(transaction, publication);
 			publication.begin();
-			return this.capture_transaction_snapshot(transaction, publication);
+			return snapshot;
 		} catch (error) {
 			const cleanup_failure = this.cleanup_failed_transaction(transaction);
 			if (cleanup_failure.length > 0) {

@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
@@ -13,6 +14,17 @@ describe("gitignore parser", () => {
 		const result = visible_files.map((file) => relative(root, file));
 
 		expect(result).toEqual(["important.log", "src/main.ts"]);
+	});
+
+	test("evaluates global ignore patterns relative to a repository outside the home directory", () => {
+		const root = "/virtual/external-repository";
+		const global_ignore = join(homedir(), ".config", "git", "ignore");
+		const io = new InMemoryProjectSourceIO(new Map([[global_ignore, "*.ts\n/generated/\n"]]));
+		const files = ["service.ts", "generated/build.js", "src/generated/keep.js"].map((file) => join(root, file));
+		const ignored_paths = new GitIgnoredPaths(root, io);
+		const visible_files = ignored_paths.filter(files);
+
+		expect(visible_files.map((file) => relative(root, file))).toEqual(["src/generated/keep.js"]);
 	});
 
 	test("applies nested ignore files to their descendants", () => {

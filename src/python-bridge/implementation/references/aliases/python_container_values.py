@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.references.alias_types import (
     ExpandedContainerValues,
@@ -117,7 +118,7 @@ class PythonContainerValues:
         if nested.found():
             return nested
         expression = ast.Attribute(
-            value=resolved.expression_node(),
+            value=cast(ast.expr, resolved.expression_node()),
             attr=value.attr,
             ctx=ast.Load(),
         )

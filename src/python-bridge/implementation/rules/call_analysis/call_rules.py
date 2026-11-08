@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import cast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
@@ -45,7 +46,7 @@ from implementation.rules.constants import (
 from implementation.rules.protocols import (
     PythonDowncastAnalysisContract,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 @dataclass
@@ -100,7 +101,7 @@ class CallRules:
         """Responsibilities: _Python call-specific diagnostics_."""
         kind = self._call_kind(source_node)
         if kind:
-            return [{"line": source_node.lineno - 1, "kind": kind}]
+            return [{"line": cast(PythonASTLocatedNode, source_node).lineno - 1, "kind": kind}]
         time_issues = self._test_time_dependency.issue(
             source_node,
             self._callable_condition_context,
@@ -169,7 +170,10 @@ class CallRules:
         issues.extend(self._call_method_issues(source_node))
         if self._temporary_result_access.violates(source_node):
             issues.append(
-                {"line": source_node.lineno - 1, "kind": PYTHON_TEMPORARY_RESULT_RULE},
+                {
+                    "line": cast(PythonASTLocatedNode, source_node).lineno - 1,
+                    "kind": PYTHON_TEMPORARY_RESULT_RULE,
+                },
             )
         if type(source_node) is ast.Call:
             issues.extend(self._call_issues(source_node))

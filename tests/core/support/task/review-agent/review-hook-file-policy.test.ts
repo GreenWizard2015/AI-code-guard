@@ -16,7 +16,6 @@ describe("review finding stop validation", () => {
 		const context: ReviewStopContext = {
 			event: HOOK_AGENT_START,
 			cwd: fixture._root,
-			phase: "initial",
 			review_prefix: "review-boundaries-",
 			review_start_ms: 0,
 			stop_hook_active: false,
@@ -31,22 +30,6 @@ describe("review finding stop validation", () => {
 			start_feedback: "",
 			first_stop_requests_review: true,
 		});
-	});
-
-	test("does not validate finding files during the cleanup phase", () => {
-		const fixture = new ReviewHookFilePolicyFixture("review-hook-cleanup-stop");
-		fixture.initialize(new Map([["review-boundaries-finding.md", "# Incomplete finding\n"]]));
-		const verifier = new ReviewFindingVerifier(fixture._io);
-		const context: ReviewStopContext = {
-			event: HOOK_STOP,
-			cwd: fixture._root,
-			phase: "cleanup",
-			review_prefix: "review-boundaries-",
-			review_start_ms: 0,
-			stop_hook_active: false,
-		};
-
-		expect(verifier.review_feedback(context)).toBe("");
 	});
 
 	test("blocks the first stop and requests a deeper review", () => {
@@ -192,6 +175,46 @@ describe("review finding stop validation", () => {
 		expect({ allowed: decision.allowed, missing_evidence: decision.reason.includes("Evidence") }).toEqual({
 			allowed: false,
 			missing_evidence: true,
+		});
+	});
+
+	test("blocks a structurally valid finding below the minimum line count", () => {
+		const fixture = new ReviewHookFilePolicyFixture("review-hook-stop-short-finding");
+		const finding = [
+			"# Finding",
+			"Severity: Major",
+			"Status: Open",
+			"Task: Keep source identity.",
+			"Affected paths:",
+			"- src/source.ts",
+			"Invariant: Source identity stays stable.",
+			"Evidence:",
+			"- A caller can resolve the wrong source.",
+			"Reproduction: Resolve two same-named declarations.",
+			"Impact: Usage is misattributed.",
+			"Required correction:",
+			"- Preserve source identity.",
+		].join("\n");
+		fixture.initialize(new Map([["review-boundaries-short.md", finding]]));
+		const application = new AgentHookApplication(fixture._io, fixture._root);
+		const payload = {
+			...fixture.payload(fixture._root, "", {
+				...HOOK_TOOL_CONTEXT,
+				command: "",
+				file_path: "",
+				path: "",
+				patch: "",
+			}),
+			event: "Stop",
+			hook_event_name: "Stop",
+		};
+		application.decision(payload);
+		application.decision({ ...payload, stop_hook_active: true });
+		const decision = application.decision({ ...payload, stop_hook_active: true });
+
+		expect({ allowed: decision.allowed, minimum_reported: decision.reason.includes("minimum") }).toEqual({
+			allowed: false,
+			minimum_reported: true,
 		});
 	});
 

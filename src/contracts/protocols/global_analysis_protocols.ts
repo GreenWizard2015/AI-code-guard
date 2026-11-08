@@ -7,7 +7,7 @@ import type { UnusedFieldOwner } from "src/core/types";
 import type { UnusedSourceImportCache } from "src/core/types";
 import type { AstPythonImportName } from "src/model/ast/normalized_ast_types";
 import type { ProjectSourceScanContract } from "src/source_protocols";
-import type { LintSourceRecordData } from "src/source_types";
+import type { LintSourceRecordData, PendingUnusedSymbolReference } from "src/source_types";
 import type ts from "typescript";
 
 /** Responsibilities: _source ownership analysis options_. **/
@@ -37,6 +37,11 @@ export interface UnusedSymbolPropertyOwnershipContract {
 	contract_fields(definition: UnusedSymbolDefinition): readonly UnusedFieldOwner[];
 }
 
+/** Responsibilities: _parameter shadow lookup_. **/
+export interface UnusedSymbolParameterShadowContract {
+	parameter_shadow(source: LintSourceRecordData, name: string, source_line: number): boolean;
+}
+
 export type UnusedSymbolPropertyAccess = {
 	source: LintSourceRecordData;
 	access: ts.PropertyAccessExpression;
@@ -55,6 +60,18 @@ export interface UnusedSymbolDefinitionCollectorContract {
 export interface UnusedSymbolAliasIndexContract {
 	add_source(source: LintSourceRecordData): void;
 	names(source: LintSourceRecordData, name: string): string[];
+}
+
+/** Responsibilities: _symbol import resolution_. **/
+export interface UnusedSymbolImportIndexContract {
+	add_source(source: LintSourceRecordData): void;
+	imported_definitions(reference: PendingUnusedSymbolReference): UnusedDefinitionMatches;
+}
+
+/** Responsibilities: _unused property usage lookup_. **/
+export interface UnusedSymbolPropertyUsageIndexContract {
+	add_source(source: LintSourceRecordData): void;
+	usage_present(definition: UnusedSymbolDefinition): boolean;
 }
 
 /** Responsibilities: _Python imported-symbol path traversal_. **/
@@ -94,6 +111,23 @@ export interface PythonReexportGraphContract {
 	resolve(traversal: PythonReexportTraversalContract): UnusedDefinitionMatches;
 }
 
+/** Responsibilities: _TypeScript re-export resolution_. **/
+export interface TypeScriptReexportGraphContract {
+	invalidate(): void;
+	resolve_import(importer_path: string, binding_name: string): UnusedSymbolDefinition[];
+}
+
+/** Responsibilities: _TypeScript import binding lookup_. **/
+export interface TypeScriptImportBindingIndexContract {
+	invalidate(): void;
+	targets(importer_path: string, binding_name: string): readonly TypeScriptReexportTarget[];
+}
+
+/** Responsibilities: _TypeScript re-export traversal_. **/
+export interface TypeScriptReexportWalkerContract {
+	resolve(query: TypeScriptReexportTarget): UnusedSymbolDefinition[];
+}
+
 export type PythonExportNames = ReadonlySet<string>;
 
 export type PythonExportNamesByFile = Map<string, PythonExportNames>;
@@ -105,11 +139,21 @@ export type PythonReexportEdge = {
 	traversal: PythonReexportTraversalContract;
 };
 
+export type PythonResolvedImportBinding = {
+	target: LintSourceRecordData;
+	imported: AstPythonImportName;
+};
+
 /** Responsibilities: _TypeScript re-export target identity_. **/
 export type TypeScriptReexportTarget = {
 	readonly source: LintSourceRecordData;
 	readonly name: string;
 };
+
+export type TypeScriptReexportImportTargets = ReadonlyMap<string, readonly TypeScriptReexportTarget[]>;
+export type TypeScriptReexportImportCache = Map<ts.SourceFile, TypeScriptReexportImportTargets>;
+export type TypeScriptReexportDefinitionNameCache = Map<string, UnusedSymbolDefinition[]>;
+export type TypeScriptReexportDefinitionCache = Map<string, TypeScriptReexportDefinitionNameCache>;
 
 /** Responsibilities: _TypeScript re-export traversal state_. **/
 export type TypeScriptReexportTraversal = {

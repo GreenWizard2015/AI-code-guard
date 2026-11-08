@@ -28,31 +28,7 @@ describe("parallel task review agent", () => {
 			initial_prefixes: REVIEW_STAGES.map((stage) => stage.prefix).sort(),
 			max_parallel_active: 5,
 			parallel_file: false,
-			cleanup_open_files: {
-				"review-boundaries-": ["review-boundaries-finding.md"],
-				"review-data-lifecycle-": ["review-data-lifecycle-finding.md"],
-				"review-algorithms-": ["review-algorithms-finding.md"],
-				"review-tests-": ["review-tests-finding.md"],
-				"review-abstractions-": ["review-abstractions-finding.md"],
-			},
 		});
-	});
-
-	test("does not run cleanup by default", async () => {
-		const fixture_factory = new TaskReportingMemoryFixture();
-		const fixture = fixture_factory.create();
-		const { _root, _file_io: io } = fixture;
-		const runner = new ParallelReviewRunner(io);
-		const agent = new TaskReviewAgent({
-			root: _root,
-			agent_catalog: runner,
-			hooks: new StubReviewHooks(),
-			hook_command: "/tools/tsx",
-			hook_file: "/tools/agent-hooks.ts",
-			file_io: io,
-		});
-		await agent.run_parallel("codex", { review_cleanup: false, force_review: false, review_stages: [] });
-		expect(runner.cleanup_count()).toBe(0);
 	});
 
 	test("force review starts when open findings already exist", async () => {
@@ -70,7 +46,7 @@ describe("parallel task review agent", () => {
 			hook_file: "/tools/agent-hooks.ts",
 			file_io: io,
 		});
-		await agent.run_parallel("codex", { review_cleanup: false, force_review: true, review_stages: [] });
+		await agent.run_parallel("codex", { force_review: true, review_stages: [] });
 		expect(runner.initial_review_count()).toBe(5);
 	});
 
@@ -88,7 +64,6 @@ describe("parallel task review agent", () => {
 			file_io: io,
 		});
 		const result = await agent.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: false,
 			review_stages: [],
 		});
@@ -111,7 +86,6 @@ describe("parallel task review agent", () => {
 		});
 
 		const result = await agent.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: false,
 			review_stages: [],
 		});
@@ -128,7 +102,6 @@ describe("parallel task review agent", () => {
 			file_io: io,
 		});
 		const retry = await retry_agent.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: true,
 			review_stages: [],
 		});
@@ -163,12 +136,10 @@ describe("parallel task review agent", () => {
 			file_io: io,
 		});
 		const first_run = agent.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: false,
 			review_stages: [],
 		});
 		const second_result = await agent.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: false,
 			review_stages: [],
 		});

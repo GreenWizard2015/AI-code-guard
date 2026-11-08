@@ -74,11 +74,16 @@ export interface TaskPublicationTransactionContract {
 	commit(): void;
 }
 
+/** Responsibilities: _transaction path access_, _path ownership validation_. **/
+export interface TaskPublicationTransactionPathContract {
+	value(): string;
+	validate(): void;
+}
+
 export type TaskPublicationTransactionOptions = {
-	workspace_root: string;
 	lock_path: string;
 	owner_token: string;
 	process_identity: string;
-	path: string;
+	path: TaskPublicationTransactionPathContract;
 	file_io: IOContract;
 };

@@ -4,7 +4,7 @@ import type { LintReportOptions } from "src/core/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import type { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _virtual lint source inventory_, _in-memory report options_. **/
 export class InMemoryLintProject {
@@ -14,11 +14,11 @@ export class InMemoryLintProject {
 	public readonly _file_io: InMemoryFileIO;
 
 	/** Responsibilities: _virtual source snapshot construction_. **/
-	public constructor(files: Record<string, string>) {
+	public constructor(files: Record<string, string>, file_io: InMemoryFileIO) {
 		const absolute_sources = new Map(Object.entries(files).map(([file, text]) => [resolve(this.root, file), text]));
 		this._source_texts = absolute_sources;
 		this._source_io = new InMemoryProjectSourceIO(absolute_sources);
-		this._file_io = new InMemoryFileIO();
+		this._file_io = file_io;
 		this._file_io.seed_files(absolute_sources);
 	}
 
@@ -37,6 +37,7 @@ export class InMemoryLintProject {
 			source_texts: this._source_texts,
 			configuration_snapshot_complete: false,
 			entry_files,
+			project_analysis_enabled: false,
 		};
 	}
 }

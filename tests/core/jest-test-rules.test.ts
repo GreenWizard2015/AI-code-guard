@@ -160,4 +160,44 @@ describe("Jest assertion and structure rules", () => {
 			ending: violations.filter((item) => item.rule_id() === "typescript-jest-test-ending").length,
 		}).toEqual({ minimum: 2, maximum: 1, ending: 1 });
 	});
+
+	test("counts every static test.each row as a test case", () => {
+		const fixture = new TestFixture();
+		const rows = Array.from({ length: 16 }, (_, index) => `    { value: ${index} },`).join("\n");
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"tests/parameterized.test.ts": [
+					"describe('parameterized', () => {",
+					"  type ParameterizedCase = { value: number };",
+					"  test.each<ParameterizedCase>([",
+					rows,
+					"  ])('case $value', ({ value }) => { expect(value).toBeDefined(); });",
+					"});",
+				].join("\n"),
+				"tests/parameterized-minimum.test.ts": [
+					"describe('parameterized minimum', () => {",
+					"  type ParameterizedCase = { value: number };",
+					"  test.each<ParameterizedCase>([{ value: 1 }, { value: 2 }])('case $value', ({ value }) => {",
+					"    expect(value).toBeDefined();",
+					"  });",
+					"});",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const count_violation = violations.find((item) => item.rule_id() === "test-max-count");
+		let maximum_message = "";
+		if (count_violation !== undefined) {
+			maximum_message = count_violation.message();
+		}
+
+		expect(maximum_message).toContain("found 16");
+		expect(
+			violations.some(
+				(item) => item.rule_id() === "test-min-count" && item.file() === "tests/parameterized-minimum.test.ts",
+			),
+		).toBe(false);
+	});
 });

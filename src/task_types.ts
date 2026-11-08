@@ -21,7 +21,6 @@ export type CliOptions = {
 	root: string;
 	skip_review: boolean;
 	force_review: boolean;
-	review_cleanup: boolean;
 	review_agent: ReviewAgentSelection;
 	review_stages: string[];
 	batch_size: number;
@@ -37,7 +36,6 @@ export type LintExitStatus = { lint_failed: boolean; review_failed: boolean };
 export type LintTaskPolicy = "top-category" | "all";
 export type TaskReportingOptions = { batch_size: number; policy: LintTaskPolicy; skip_review: boolean };
 export type ReviewAgentRunOptions = {
-	review_cleanup: boolean;
 	force_review: boolean;
 	review_stages: readonly string[];
 };

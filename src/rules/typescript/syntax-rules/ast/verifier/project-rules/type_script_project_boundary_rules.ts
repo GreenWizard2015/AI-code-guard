@@ -21,7 +21,10 @@ export class TypeScriptProjectBoundaryRules implements ASTSourceRuleContract {
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
 		let name = "";
 		if (ts.isClassLike(node)) {
-			name = node.name?.text ?? "";
+			const declaration_name = node.name;
+			if (declaration_name !== undefined) {
+				name = declaration_name.text;
+			}
 		} else if (ts.isInterfaceDeclaration(node)) {
 			name = node.name.text;
 		}
@@ -54,18 +57,27 @@ export class TypeScriptProjectBoundaryRules implements ASTSourceRuleContract {
 			source: { source_file, normalized_ast },
 		} = context.state();
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
-		let name = "";
-		if (ts.isFunctionDeclaration(node)) {
-			name = node.name?.text ?? "";
-		} else if (ts.isVariableDeclaration(node)) {
-			name = node.name.getText(source_file);
-		}
+		const name = this.function_name(node, source_file);
 		const callable = normalized_ast.source.functions.find(
 			(candidate) => candidate.identity.start === line && candidate.identity.name === name,
 		);
 		if (callable !== undefined) {
 			this._reporter.append(context, [callable], []);
 		}
+	}
+
+	/** Responsibilities: _function boundary name_. **/
+	private function_name(node: ts.Node, source_file: ts.SourceFile): string {
+		if (ts.isFunctionDeclaration(node)) {
+			const name = node.name;
+			if (name !== undefined) {
+				return name.text;
+			}
+		}
+		if (ts.isVariableDeclaration(node)) {
+			return node.name.getText(source_file);
+		}
+		return "";
 	}
 
 	/** Responsibilities: _type alias field checks_. **/

@@ -24,7 +24,6 @@ import type { LintStageDuration } from "src/runtime_types";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import type { LintSourceRecordData } from "src/source_types";
-import type { ReviewAgentPhase } from "src/task_review_types";
 import type { RuleParameters } from "src/types";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
@@ -255,7 +254,6 @@ export type HookPayload = {
 	cwd: string;
 	review_stage: string;
 	review_prefix: string;
-	review_phase: ReviewAgentPhase;
 	review_start_ms: number;
 };
 

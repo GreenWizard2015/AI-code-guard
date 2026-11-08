@@ -53,6 +53,11 @@ export interface JestTestSizeContract {
 	suite(suite: JestSuite): number;
 }
 
+/** Responsibilities: _Jest case counter contract_. **/
+export interface JestTestCaseCounterContract {
+	test_count(tests: ts.CallExpression[]): number;
+}
+
 /** Responsibilities: _Jest test-shape rule contract_. **/
 export interface JestTestShapeRuleContract {
 	non_arrow_lines(tests: ts.CallExpression[]): number[];

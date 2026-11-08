@@ -184,7 +184,7 @@ export class ObjectLiteralReturns implements ObjectLiteralReturnsContract {
 		}
 		const callables = this.containing_function(node);
 		const callable = callables[0];
-		if (callable?.type === undefined) {
+		if (callable === undefined || callable.type === undefined) {
 			return false;
 		}
 		const checker = new ObjectLiteralTypeReferenceChecker(contract_names);

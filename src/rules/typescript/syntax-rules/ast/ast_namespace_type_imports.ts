@@ -7,6 +7,22 @@ export class AstNamespaceTypeImports implements AstNamespaceTypeImportsContract 
 	private readonly _source: ts.SourceFile;
 	private readonly _module_paths: TypeScriptPropertyModuleResolverContract;
 
+	/** Responsibilities: _namespace import module resolution_. **/
+	private imported_module(statement: ts.Statement, namespace: string): string {
+		if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
+			return "";
+		}
+		const import_clause = statement.importClause;
+		if (import_clause === undefined || import_clause.namedBindings === undefined) {
+			return "";
+		}
+		const bindings = import_clause.namedBindings;
+		if (!ts.isNamespaceImport(bindings) || bindings.name.text !== namespace) {
+			return "";
+		}
+		return this._module_paths.module_symbol(this._source.fileName, statement.moduleSpecifier.text);
+	}
+
 	/** Responsibilities: _initialization namespace type imports_. **/
 	public constructor(source: ts.SourceFile, module_paths: TypeScriptPropertyModuleResolverContract) {
 		this._source = source;
@@ -16,18 +32,9 @@ export class AstNamespaceTypeImports implements AstNamespaceTypeImportsContract 
 	/** Responsibilities: _namespace module lookup_. **/
 	public module(namespace: string): string {
 		for (const statement of this._source.statements) {
-			if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
-				continue;
-			}
-			const bindings = statement.importClause?.namedBindings;
-			if (bindings === undefined) {
-				continue;
-			}
-			if (!ts.isNamespaceImport(bindings)) {
-				continue;
-			}
-			if (bindings.name.text === namespace) {
-				return this._module_paths.module_symbol(this._source.fileName, statement.moduleSpecifier.text);
+			const module_file = this.imported_module(statement, namespace);
+			if (module_file.length > 0) {
+				return module_file;
 			}
 		}
 		return "";

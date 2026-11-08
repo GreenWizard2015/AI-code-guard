@@ -7,11 +7,7 @@ export class TaskViolationPath implements TaskViolationPathContract {
 
 	/** Responsibilities: _task report path normalization_. **/
 	public constructor(root: string, file: string) {
-		if (isAbsolute(file)) {
-			this._absolute_path = file;
-		} else {
-			this._absolute_path = resolve(root, file);
-		}
+		this._absolute_path = resolve(root, file);
 	}
 
 	/** Responsibilities: _same-file path comparison_. **/

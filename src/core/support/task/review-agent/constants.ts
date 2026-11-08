@@ -77,12 +77,15 @@ export const REVIEW_SEARCH_VALUE_OPTIONS: readonly string[] = [
 ];
 export const REVIEW_STAGE_MUTATION_REASON =
 	"Review mutations must stay within the active stage and cannot modify findings from before this review started.";
+export const REVIEW_DELETION_DENIAL_REASON =
+	"Only an oversized open review file may be removed after its findings are split.";
+export const REVIEW_PATCH_DENIAL_REASON =
+	"Patches may change only open Markdown findings in .ai-code-guard/review/. Split oversized findings before removing the original.";
 export const REVIEW_COMPLETION_TEXT = "Architecture review completed. No confirmed major architectural defects remain.";
 export const REVIEW_SOURCE_IDENTITY_PREFIX = "Source identity: ";
 export const REVIEW_NO_AGENT_MESSAGE = "No review agent was selected.";
 export const REVIEW_PREFIX_ARGUMENT = "--review-prefix";
 export const REVIEW_STARTED_AT_ARGUMENT = "--review-started-at";
-export const REVIEW_PHASE_ARGUMENT = "--review-phase";
 export const REVIEW_ADD_DIRECTORY_ARGUMENT = "--add-dir";
 export const REVIEW_AGENT_TIMEOUT_MESSAGE = "Review agent process timed out.";
 export const REVIEW_AGENT_PROCESS_TIMEOUT_MS = 10 * 60 * 1000;

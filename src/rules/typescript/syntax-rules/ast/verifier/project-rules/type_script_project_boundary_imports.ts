@@ -9,19 +9,42 @@ export class TypeScriptProjectBoundaryImports {
 	/** Responsibilities: _import binding selection_. **/
 	private import_candidates(import_clause: ts.ImportClause): { local_name: string; exported_name: string }[] {
 		const candidates: { local_name: string; exported_name: string }[] = [];
-		if (import_clause.name !== undefined) {
-			candidates.push({ local_name: import_clause.name.text, exported_name: "default" });
-		}
+		this.append_default_candidate(import_clause, candidates);
 		const bindings = import_clause.namedBindings;
 		if (bindings !== undefined && ts.isNamedImports(bindings)) {
-			for (const element of bindings.elements) {
-				candidates.push({
-					local_name: element.name.text,
-					exported_name: element.propertyName?.text ?? element.name.text,
-				});
-			}
+			this.append_named_candidates(bindings, candidates);
 		}
 		return candidates;
+	}
+
+	/** Responsibilities: _default contract binding_. **/
+	private append_default_candidate(
+		import_clause: ts.ImportClause,
+		candidates: { local_name: string; exported_name: string }[],
+	): void {
+		const name = import_clause.name;
+		if (name !== undefined) {
+			candidates.push({ local_name: name.text, exported_name: "default" });
+		}
+	}
+
+	/** Responsibilities: _named contract binding collection_. **/
+	private append_named_candidates(
+		bindings: ts.NamedImports,
+		candidates: { local_name: string; exported_name: string }[],
+	): void {
+		for (const element of bindings.elements) {
+			candidates.push({ local_name: element.name.text, exported_name: this.exported_name(element) });
+		}
+	}
+
+	/** Responsibilities: _imported contract symbol name_. **/
+	private exported_name(element: ts.ImportSpecifier): string {
+		const property_name = element.propertyName;
+		if (property_name !== undefined) {
+			return property_name.text;
+		}
+		return element.name.text;
 	}
 
 	/** Responsibilities: _import statement classification_. **/

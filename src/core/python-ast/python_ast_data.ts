@@ -162,6 +162,12 @@ export class PythonAstData implements PythonAstDataContract {
 		this._pending_batches = new Map<string, PythonBatchAstPreparation>();
 		this._split_batch_enabled = options.split_batch_enabled;
 		this._worker = options.worker;
+		this._worker.register_release_resource(this);
+	}
+
+	/** Responsibilities: _lease-owned pending batch reclamation_. **/
+	public release_lease_resource(): void {
+		this._pending_batches.clear();
 	}
 
 	/** Responsibilities: _Python AST batch request_. **/

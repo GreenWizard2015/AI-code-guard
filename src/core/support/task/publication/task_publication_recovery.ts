@@ -1,18 +1,16 @@
-import { dirname, join, resolve } from "node:path";
-import {
-	LINT_OUTPUT_DOCUMENT,
-	TASK_PUBLICATION_LOCK_DIRECTORY,
-	TASK_PUBLICATION_TRANSACTION_PREFIX,
-} from "src/core/support/task/constants";
+import { dirname, join } from "node:path";
+import { LINT_OUTPUT_DOCUMENT, TASK_PUBLICATION_LOCK_DIRECTORY } from "src/core/support/task/constants";
 import { TaskPublicationJournal } from "src/core/support/task/publication/task_publication_journal";
 import { TaskPublicationJournalFile } from "src/core/support/task/publication/task_publication_journal_file";
 import { TaskPublicationOwner } from "src/core/support/task/publication/task_publication_owner";
 import { TaskPublicationRollback } from "src/core/support/task/publication/task_publication_rollback";
+import { TaskPublicationTransactionPath } from "src/core/support/task/publication/task_publication_transaction_path";
 import type {
 	TaskPublicationJournalContract,
 	TaskPublicationOwnerContract,
 	TaskPublicationRecoveryContract,
 	TaskPublicationRollbackContract,
+	TaskPublicationTransactionPathContract,
 } from "src/core/support/task/types";
 import type { IOContract } from "src/io/protocols";
 import type { TaskWorkspaceDocumentsContract } from "src/task_protocols";
@@ -45,18 +43,22 @@ export class TaskPublicationRecovery implements TaskPublicationRecoveryContract 
 	}
 
 	/** Responsibilities: _journal-directed transaction recovery_. **/
-	private recover_journal(owner: TaskPublicationOwnerContract, journal: TaskPublicationJournalContract): void {
-		const transaction = owner.abandoned_transaction();
+	private recover_journal(
+		owner: TaskPublicationOwnerContract,
+		journal: TaskPublicationJournalContract,
+		transaction: TaskPublicationTransactionPathContract,
+	): void {
+		transaction.validate();
 		if (!journal.valid()) {
-			throw new Error(`Task publication transaction journal is unavailable: ${transaction}`);
+			throw new Error(`Task publication transaction journal is unavailable: ${transaction.value()}`);
 		}
 		const owner_path = join(dirname(this._rules_root), TASK_PUBLICATION_LOCK_DIRECTORY, "owner");
 		this.verify_lock_owner(owner_path, owner);
 		if (journal.committed()) {
-			this._file_io.remove_path(transaction);
+			this._file_io.remove_path(transaction.value());
 			return;
 		}
-		this.for_transaction(transaction).restore(journal.rules_to_restore(), new Set(journal.prior_documents()));
+		this.for_transaction(transaction.value()).restore(journal.rules_to_restore(), new Set(journal.prior_documents()));
 	}
 
 	/** Responsibilities: _task rollback dependencies_. **/
@@ -68,7 +70,9 @@ export class TaskPublicationRecovery implements TaskPublicationRecoveryContract 
 
 	/** Responsibilities: _transaction rollback scope_. **/
 	public for_transaction(transaction: string): TaskPublicationRollbackContract {
-		return new TaskPublicationRollback(this._documents, this._rules_root, transaction, this._file_io);
+		const path = new TaskPublicationTransactionPath(transaction, dirname(dirname(this._rules_root)), this._file_io);
+		path.validate();
+		return new TaskPublicationRollback(this._documents, this._rules_root, path, this._file_io);
 	}
 
 	/** Responsibilities: _existing task documents_. **/
@@ -88,17 +92,18 @@ export class TaskPublicationRecovery implements TaskPublicationRecoveryContract 
 		if (transaction.length === 0) {
 			return;
 		}
-		const transaction_root = resolve(dirname(dirname(this._rules_root)));
-		const expected_prefix = join(transaction_root, TASK_PUBLICATION_TRANSACTION_PREFIX);
-		if (!resolve(transaction).startsWith(expected_prefix)) {
-			throw new Error(`Task publication transaction is outside the workspace: ${transaction}`);
-		}
-		if (!this._file_io.file(transaction).path_exists()) {
+		const transaction_path = new TaskPublicationTransactionPath(
+			transaction,
+			dirname(dirname(this._rules_root)),
+			this._file_io,
+		);
+		transaction_path.validate();
+		if (!this._file_io.file(transaction_path.value()).path_exists()) {
 			return;
 		}
-		const journal_path = join(transaction, "journal");
+		const journal_path = join(transaction_path.value(), "journal");
 		const journal_file = new TaskPublicationJournalFile(journal_path, this._file_io);
 		const journal = new TaskPublicationJournal(journal_file.state());
-		this.recover_journal(owner, journal);
+		this.recover_journal(owner, journal, transaction_path);
 	}
 }

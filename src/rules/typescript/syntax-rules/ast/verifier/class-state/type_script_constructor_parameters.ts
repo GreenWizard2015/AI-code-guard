@@ -128,7 +128,10 @@ export class TypeScriptConstructorParameters implements TypeScriptConstructorPar
 			return false;
 		}
 		const modifiers = ts.getModifiers(parameter);
-		return modifiers?.some((modifier) => this.parameter_modifier_kind(modifier.kind)) ?? false;
+		if (modifiers === undefined) {
+			return false;
+		}
+		return modifiers.some((modifier) => this.parameter_modifier_kind(modifier.kind));
 	}
 
 	/** Responsibilities: _constructor input reference detection_. **/

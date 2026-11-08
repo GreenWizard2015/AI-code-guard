@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonAstContentTreeViewContract
 from implementation.rules.constants import (
@@ -8,7 +9,7 @@ from implementation.rules.constants import (
     PYTHON_MAIN_VALUE,
     PYTHON_TYPE_ALIAS_NAME,
 )
-from implementation.types import JsonObject, LiteralMetadata
+from implementation.types import JsonObject, LiteralMetadata, PythonASTLocatedNode
 
 
 class PythonLiteralMetadata:
@@ -125,7 +126,7 @@ class PythonLiteralMetadata:
             return
         recorded_constant_names[id(value)] = target.id
         constants.append(
-            {"value": literal, "name": target.id, "line": value.lineno - 1},
+            {"value": literal, "name": target.id, "line": cast(PythonASTLocatedNode, value).lineno - 1},
         )
 
     def _append_statement_constants(
@@ -177,7 +178,7 @@ class PythonLiteralMetadata:
                 continue
             if id(node) in known_constants:
                 continue
-            references.append({"value": value, "line": node.lineno - 1})
+            references.append({"value": value, "line": cast(PythonASTLocatedNode, node).lineno - 1})
         return references
 
     def __init__(self, tree: PythonAstContentTreeViewContract) -> None:

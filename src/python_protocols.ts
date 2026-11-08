@@ -105,6 +105,21 @@ export interface PythonAstWorkerBatchContract {
 export interface PythonAstWorkerCapabilityContract {
 	/** Responsibilities: _batch capability creation_. **/
 	batch(batch_id: string, sources: Map<string, string>): PythonAstWorkerBatchContract;
+	/** Responsibilities: _lease-owned resource reclamation_. **/
+	register_release_resource(resource: PythonAstWorkerLeaseResourceContract): void;
+	unregister_release_resource(resource: PythonAstWorkerLeaseResourceContract): void;
+}
+
+/** Responsibilities: _lease-bound resource reclamation_. **/
+export interface PythonAstWorkerLeaseResourceContract {
+	release_lease_resource(): void;
+}
+
+/** Responsibilities: _batch operation ownership_, _batch lifecycle tracking_. **/
+export interface PythonAstWorkerBatchOwnerContract {
+	assert_active(): void;
+	batch_started(batch: PythonAstWorkerBatchContract): void;
+	batch_finished(batch: PythonAstWorkerBatchContract): void;
 }
 
 /** Responsibilities: _Python source batch execution_. **/
@@ -118,8 +133,6 @@ export interface PythonAstWorkerBatchOperationsContract {
 	/** Responsibilities: _concurrent batch cancellation_. **/
 	cancel_batch(batch_id: string): void;
 }
-
-export type CallablePythonAstWorkerBatchOperations = () => PythonAstWorkerBatchOperationsContract;
 
 /** Responsibilities: _Python source execution_, _worker shutdown authority_. **/
 export interface PythonAstWorkerContract
@@ -142,11 +155,11 @@ export interface PythonAstWorkerSessionContract {
 
 /** Responsibilities: _worker lease ownership_. **/
 export interface PythonAstWorkerLeaseOwnerContract {
-	release_lease(key: string, lease_id: string): void;
+	release_lease(key: string, lease_id: string): Promise<void>;
 }
 
 /** Responsibilities: _worker session registration_, _process worker shutdown_. **/
 export interface PythonAstWorkerRegistryContract {
 	worker_session(worker_arguments: string[], worker_options: SpawnOptions): PythonAstWorkerSessionContract;
-	close(): void;
+	close(): Promise<void>;
 }

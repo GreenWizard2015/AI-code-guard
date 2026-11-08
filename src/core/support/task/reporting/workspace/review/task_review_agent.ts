@@ -75,7 +75,6 @@ export class TaskReviewAgent implements TaskReviewAgentContract {
 		const results = await this._stage_batch.run_stages_parallel({
 			selection,
 			stages: prepared.stages,
-			review_cleanup: options.review_cleanup,
 			review_start_ms: prepared.review_start_ms,
 		});
 		const failed = results.find((result) => result.provider === "none");

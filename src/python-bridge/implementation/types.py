@@ -26,6 +26,9 @@ PythonCallableOwners: TypeAlias = dict[ast.AST, ast.AST]
 PythonBindingScopesByNode: TypeAlias = dict[ast.AST, str]
 PythonLexicalScopeChain: TypeAlias = tuple[str, ...]
 PythonAstNodeTypeSet: TypeAlias = set[type[ast.AST]]
+PythonASTLocatedNode: TypeAlias = (
+    ast.expr | ast.stmt | ast.arg | ast.keyword | ast.alias | ast.excepthandler | ast.pattern
+)
 PythonGenericNames: TypeAlias = frozenset[str]
 PythonCallableAstNode: TypeAlias = ast.FunctionDef | ast.AsyncFunctionDef
 LiteralMetadata: TypeAlias = dict[str, list[JsonObject]]

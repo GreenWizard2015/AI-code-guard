@@ -88,7 +88,7 @@ export class TaskReview implements TaskReviewContract {
 		}
 		return [
 			REVIEW_NO_AGENT_MESSAGE,
-			"Run `ai-code-guard --review-agent codex` or `ai-code-guard --review-agent claude`; optionally choose the provider model or reasoning effort.",
+			"Run `ai-code-guard --review-agent codex`, `cx`, `cxa`, or `claude`; optionally choose the provider model or reasoning effort.",
 			"Architecture review instructions are sent directly to the selected review agent.",
 			`Write review files to \`${this._review_root}/*.md\`.`,
 			"At the end, a new review dialogue marks minor or speculative findings as Status: Resolved; resolved files are retained and ignored.",

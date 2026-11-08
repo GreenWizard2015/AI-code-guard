@@ -39,7 +39,7 @@ describe("review hook file operations", () => {
 		});
 	});
 
-	test("allows cleanup of an open finding but protects resolved findings", () => {
+	test("denies deleting regular and resolved findings", () => {
 		const fixture = new ReviewHookFilePolicyFixture("review-hook-deletion");
 		fixture.initialize(
 			new Map([
@@ -52,21 +52,19 @@ describe("review hook file operations", () => {
 		const directory = fixture.review_root();
 		const finding = join(directory, "review-boundaries-open.md");
 		const resolved = join(directory, "review-boundaries-resolved.md");
-		const cleanup_input = { ...HOOK_TOOL_CONTEXT, command: `/bin/rm ${finding}`, file_path: "", path: "", patch: "" };
-		const open_cleanup = application.decision({
-			...fixture.payload(_root, "Bash", cleanup_input),
-			review_phase: "cleanup",
+		const deletion_input = { ...HOOK_TOOL_CONTEXT, command: `/bin/rm ${finding}`, file_path: "", path: "", patch: "" };
+		const regular_finding = application.decision({
+			...fixture.payload(_root, "Bash", deletion_input),
 		}).allowed;
-		const resolved_cleanup = application.decision({
-			...fixture.payload(_root, "Bash", { ...cleanup_input, command: `/bin/rm ${resolved}` }),
-			review_phase: "cleanup",
+		const resolved_finding = application.decision({
+			...fixture.payload(_root, "Bash", { ...deletion_input, command: `/bin/rm ${resolved}` }),
 		}).allowed;
 
-		expect({ open_cleanup, resolved_cleanup }).toEqual({ open_cleanup: true, resolved_cleanup: false });
+		expect({ regular_finding, resolved_finding }).toEqual({ regular_finding: false, resolved_finding: false });
 	});
 
-	test("does not apply cleanup-only size limits during the initial review", () => {
-		const fixture = new ReviewHookFilePolicyFixture("review-hook-oversized-cleanup");
+	test("allows removing an oversized finding after splitting", () => {
+		const fixture = new ReviewHookFilePolicyFixture("review-hook-oversized-split");
 		fixture.initialize(
 			new Map([["review-boundaries-large.md", Array.from({ length: 31 }, () => "finding").join("\n")]]),
 		);
@@ -81,13 +79,12 @@ describe("review hook file operations", () => {
 				path: "",
 				patch: "",
 			}),
-			review_phase: "initial",
 		}).allowed;
 
 		expect(allowed).toBe(true);
 	});
 
-	test("rejects project-local shell executables during cleanup", () => {
+	test("rejects project-local shell executables for review operations", () => {
 		const fixture = new ReviewHookFilePolicyFixture("review-hook-local-rm");
 		fixture.initialize(new Map());
 		const { _root, _io } = fixture;

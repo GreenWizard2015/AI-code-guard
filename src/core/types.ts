@@ -46,7 +46,7 @@ import type {
 	LintStageTimerContract,
 } from "src/shared_services_protocols";
 import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
-import type { UnusedCodeContract } from "src/source_protocols";
+import type { TaskReportingContract } from "src/task_protocols";
 import type { CliOptions } from "src/task_types";
 import type ts from "typescript";
 
@@ -79,13 +79,6 @@ export type GlobalAnalysisRunOptions = {
 	file_io: IOContract;
 };
 
-export type ProjectLintSessionDependencies = {
-	lint_run_factory: LintRunConfigurationContract;
-	file_io: IOContract;
-	source_io: ProjectSourceIOContract;
-	analysis_identity: ProjectAnalysisIdentityContract;
-};
-
 /** Responsibilities: _project lint execution inputs_. **/
 
 export type ProjectLintExecutionOptions = {
@@ -95,13 +88,24 @@ export type ProjectLintExecutionOptions = {
 	readonly analysis_identity: ProjectAnalysisIdentityContract;
 	readonly options: CliOptions;
 	readonly stage_timer: LintStageTimerContract;
-	readonly unused_code: UnusedCodeContract;
 };
 
 /** Responsibilities: _project execution contract_. **/
 export interface ProjectLintExecutionContract {
 	run(): LintRunResult;
 }
+
+export type CliProjectRunContext = {
+	options: CliOptions;
+	stage_timer: LintStageTimerContract;
+};
+
+export type CliProjectReportContext = {
+	options: CliOptions;
+	report: LintRunResult;
+	stage_timer: LintStageTimerContract;
+	task_reporting: TaskReportingContract;
+};
 
 export const UNUSED_SYMBOL_KIND = {
 	Class: MODULE_CLASS_KIND,
@@ -229,6 +233,7 @@ export type LintReportOptions = {
 	source_texts: ReadonlyMap<string, string>;
 	configuration_snapshot_complete: boolean;
 	entry_files: readonly string[];
+	project_analysis_enabled: boolean;
 };
 
 export type LintRunStateContextOptions = {

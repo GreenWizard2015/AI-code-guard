@@ -119,7 +119,12 @@ export class DocumentationExampleSandbox implements DocumentationExampleExecutor
 			},
 		);
 		this._test_runtime.install(context);
-		const module_runtime = new TypeScriptExampleModuleRuntime(this._source_files, this._module_catalog, context);
+		const module_runtime = new TypeScriptExampleModuleRuntime(
+			this._source_files,
+			this._module_catalog,
+			context,
+			DOCUMENTATION_EXAMPLE_TIMEOUT_MS,
+		);
 		const safety_issues = this._typescript_policy.issues();
 		if (safety_issues.length > 0) {
 			return { stdout: safety_issues.join("\n"), exit_code: 1 };

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import cast
 
 from implementation.ast.callables.python_scoped_type_alias_node import (
     PythonScopedTypeAliasNode,
@@ -15,6 +16,7 @@ from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliasState,
 )
 from implementation.references.protocols import PythonReferenceAliasesContract
+from implementation.types import PythonASTLocatedNode
 
 
 @dataclass(frozen=True)
@@ -82,7 +84,7 @@ class PythonScopedTypeAliases(PythonScopedTypeAliasIndexContract):
             visited.add(current)
             target = ""
             for scope in alias_node.scope_chain():
-                target = self._scope_target(current, scope, context.lineno)
+                target = self._scope_target(current, scope, cast(PythonASTLocatedNode, context).lineno)
                 if target != "":
                     break
             if target == "":

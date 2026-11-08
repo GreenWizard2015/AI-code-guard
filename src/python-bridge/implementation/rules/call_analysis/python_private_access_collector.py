@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.rules.call_analysis.private_access_protocols import (
     PythonPrivateAccessOptionsContract,
@@ -12,7 +13,7 @@ from implementation.rules.constants import (
     PYTHON_CLASS_NAME,
     PYTHON_SELF_NAME,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonPrivateAccessCollector:
@@ -83,7 +84,7 @@ class PythonPrivateAccessCollector:
             if type(node) is ast.Attribute:
                 continue
             if classifier.private_access(node):
-                lines.add(node.lineno - 1)
+                lines.add(cast(PythonASTLocatedNode, node).lineno - 1)
         return lines
 
     def __init__(self, options: PythonPrivateAccessOptionsContract) -> None:

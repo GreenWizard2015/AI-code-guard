@@ -26,10 +26,17 @@ export class ExternalReviewProgressScenario {
 				"Invariant: Source identity remains attached to its defining file.",
 				"Evidence:",
 				"- Two declarations can share a name.",
+				"- The declarations can originate in different source files.",
+				"- Name-only lookup cannot distinguish these declarations.",
+				"- Import resolution already knows the defining source path.",
+				"- Dropping that path merges distinct symbol identities.",
 				"Reproduction: Resolve a reference between same-named declarations.",
+				"- Export the same name from two modules.",
+				"- Import each export through a different path.",
 				"Impact: Usage can be attributed to the wrong declaration.",
 				"Required correction:",
 				"- Preserve the defining-file identity.",
+				"- Carry that identity through every lookup and cache key.",
 			].join("\n"),
 		);
 	}
@@ -51,7 +58,6 @@ export class ExternalReviewProgressScenario {
 			cwd: root,
 			review_stage: "boundaries",
 			review_prefix: "review-boundaries-",
-			review_phase: "initial",
 			review_start_ms: 0,
 		} as const;
 	}

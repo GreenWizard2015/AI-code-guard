@@ -1,5 +1,5 @@
 import type { QualityCheckCatalogContract, QualityCheckRunnerContract } from "src/task_types";
-import { FORCE_REVIEW_ARGUMENT, REVIEW_AGENT_OPTION, REVIEW_CLEANUP_ARGUMENT } from "test-runner/constants";
+import { FORCE_REVIEW_ARGUMENT, REVIEW_AGENT_OPTION } from "test-runner/constants";
 import { QualityCheckDefinitions } from "test-runner/quality_check_definitions";
 import type {
 	CommandResult,
@@ -26,7 +26,6 @@ export class QualityCheckProcess implements QualityCheckRunnerContract {
 		if (options.review_agent !== "none") {
 			const review_arguments: readonly QualityCheckArgument[] = [
 				{ enabled: options.force_review, argument: FORCE_REVIEW_ARGUMENT },
-				{ enabled: options.review_cleanup, argument: REVIEW_CLEANUP_ARGUMENT },
 			];
 			for (const option of review_arguments) {
 				if (option.enabled && check.supports_review_options === true) {
@@ -77,7 +76,6 @@ export class QualityCheckProcess implements QualityCheckRunnerContract {
 		}
 		return this.run({
 			force_review: request.force_review,
-			review_cleanup: request.review_cleanup,
 			review_agent: request.review_agent,
 		});
 	}

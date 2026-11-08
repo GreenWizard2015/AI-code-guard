@@ -109,6 +109,29 @@ export class FakeObject implements FakeObjectContract {
 		return this.assigned_contract_property(owner, parent.left.name.text);
 	}
 
+	/** Responsibilities: _constructor argument classification_. **/
+	private constructor_argument(argument: ts.ObjectLiteralExpression, parent: ts.Node): boolean {
+		if (!ts.isNewExpression(parent)) {
+			return false;
+		}
+		const arguments_list = parent.arguments;
+		if (arguments_list === undefined) {
+			return false;
+		}
+		return arguments_list.includes(argument);
+	}
+
+	/** Responsibilities: _external contract initializer classification_. **/
+	private external_contract_initializer(parent: ts.Node): boolean {
+		if (ts.isVariableDeclaration(parent)) {
+			return this.variable_contract_initializer(parent);
+		}
+		if (ts.isPropertyDeclaration(parent)) {
+			return this.property_contract_initializer(parent);
+		}
+		return false;
+	}
+
 	/** Responsibilities: _fake object dependency initialization_. **/
 	public constructor(external_contract_types: ExternalImportedTypesContract) {
 		this._callable_aliases = new TypeScriptCallableAliases();
@@ -154,13 +177,7 @@ export class FakeObject implements FakeObjectContract {
 			return false;
 		}
 		const parent = node.parent;
-		if (ts.isNewExpression(parent) && parent.arguments?.includes(node)) {
-			return false;
-		}
-		if (ts.isVariableDeclaration(parent) && this.variable_contract_initializer(parent)) {
-			return false;
-		}
-		if (ts.isPropertyDeclaration(parent) && this.property_contract_initializer(parent)) {
+		if (this.constructor_argument(node, parent) || this.external_contract_initializer(parent)) {
 			return false;
 		}
 		if (this.external_contract_assignment(node)) {

@@ -115,6 +115,7 @@ export type AstCallableTestBehavior = {
 /** Responsibilities: _callable declaration metadata_. **/
 export type AstCallableDeclaration = {
 	decorators: string[];
+	parameterized_case_count: number;
 	is_accessor: boolean;
 	has_self: boolean;
 };

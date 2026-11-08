@@ -15,7 +15,6 @@ export class CommandLineOptions implements CommandLineOptionsContract {
 			root: process.cwd(),
 			skip_review: true,
 			force_review: false,
-			review_cleanup: false,
 			review_agent: "none",
 			review_stages: [],
 			batch_size: 10,

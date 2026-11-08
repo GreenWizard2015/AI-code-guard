@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
 import type {
@@ -9,7 +9,16 @@ import { PYTHON_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants
 import { DocumentationProjectFixture } from "tests/documentation_validation/documentation_project_fixture";
 
 describe("Python example import policy", () => {
-	test("passes expanded Python source to the interpreter payload", () => {
+	let fixture = new DocumentationProjectFixture("/virtual/template-python", {});
+	let python_runner = jest.fn<CallableDocumentationPythonProcessRunner>();
+	let sandbox = new DocumentationExampleSandbox(python_runner);
+	let linted_source_texts: string[] = [];
+	let lint_runner: DocumentationExampleLintContract = {
+		lint: () => [],
+		with_worker: async (operation) => await operation(),
+	};
+
+	beforeEach(() => {
 		const markdown = [
 			"# empty-error-handler",
 			"## Good",
@@ -28,10 +37,10 @@ describe("Python example import policy", () => {
 			"output.report()",
 			"```",
 		].join("\n");
-		const fixture = new DocumentationProjectFixture("/virtual/template-python", {
+		fixture = new DocumentationProjectFixture("/virtual/template-python", {
 			"docs/rules/python/empty-error-handler.md": markdown,
 		});
-		const python_runner = jest.fn<CallableDocumentationPythonProcessRunner>(() => ({
+		python_runner = jest.fn<CallableDocumentationPythonProcessRunner>(() => ({
 			pid: 1,
 			output: [],
 			stdout: JSON.stringify({ stdout: "first\nsecond\n", exit_code: 0 }),
@@ -39,48 +48,66 @@ describe("Python example import policy", () => {
 			status: 0,
 			signal: null,
 		}));
-		const sandbox = new DocumentationExampleSandbox(python_runner);
-		const linted_source_texts: string[] = [];
-		const lint_runner: DocumentationExampleLintContract = {
+		sandbox = new DocumentationExampleSandbox(python_runner);
+		linted_source_texts = [];
+		lint_runner = {
 			lint: (_root, _source, _rule, source_files) => {
 				linted_source_texts.push(...source_files.map((source_file) => source_file.text));
 				return [];
 			},
 			with_worker: async (operation) => await operation(),
 		};
-		const validation = new CliDocumentationValidation(
+	});
+
+	test("validates the expanded Python documentation example", () => {
+		const validation_runner = new CliDocumentationValidation(
 			fixture._root,
 			["empty-error-handler"],
 			lint_runner,
 			sandbox,
 			fixture._source_io,
 		);
-		const result = validation.validate([]).results.find(({ example }) => example.kind === "Good");
-		let captured_input = "";
-		for (const invocation of python_runner.mock.calls) {
-			captured_input = String(invocation[2].input);
-		}
+		const validation = validation_runner.validate([]);
+		const good_results = validation.results.filter(({ example }) => example.kind === "Good");
+
+		expect(
+			good_results.map(({ example, passed, structural_errors }) => ({
+				kind: example.kind,
+				passed,
+				structural_errors,
+			})),
+		).toEqual([{ kind: "Good", passed: true, structural_errors: [] }]);
+	});
+
+	test("sends expanded Python source to linting and execution", () => {
+		const validation_runner = new CliDocumentationValidation(
+			fixture._root,
+			["empty-error-handler"],
+			lint_runner,
+			sandbox,
+			fixture._source_io,
+		);
+		const validation = validation_runner.validate([]);
+		const good_results = validation.results.filter(({ example }) => example.kind === "Good");
+		const captured_input = python_runner.mock.calls.map((invocation) => String(invocation[2].input)).join("\n");
+		const linted_source = linted_source_texts.join("\n");
 
 		expect({
-			passed: result?.passed,
-			structural_errors: result?.structural_errors,
+			good_result_count: good_results.length,
 			python_invocations: python_runner.mock.calls.length,
-			expanded_first: captured_input.includes('print(\\"first\\")'),
-			expanded_second: captured_input.includes('print(\\"second\\")'),
-			unexpanded_template: captured_input.includes("{{label}}"),
-			linted_first: linted_source_texts.some((text) => text.includes('print("first")')),
-			linted_second: linted_source_texts.some((text) => text.includes('print("second")')),
-			linted_template: linted_source_texts.some((text) => text.includes("{{label}}")),
+			expanded_source: captured_input.includes('print(\\"first\\")') && captured_input.includes('print(\\"second\\")'),
+			no_template_in_payload: !captured_input.includes("{{label}}"),
+			first_linted: linted_source.includes('print("first")'),
+			second_linted: linted_source.includes('print("second")'),
+			no_template_in_lint: !linted_source.includes("{{label}}"),
 		}).toEqual({
-			passed: true,
-			structural_errors: [],
+			good_result_count: 1,
 			python_invocations: 1,
-			expanded_first: true,
-			expanded_second: true,
-			unexpanded_template: false,
-			linted_first: true,
-			linted_second: true,
-			linted_template: false,
+			expanded_source: true,
+			no_template_in_payload: true,
+			first_linted: true,
+			second_linted: true,
+			no_template_in_lint: true,
 		});
 	});
 

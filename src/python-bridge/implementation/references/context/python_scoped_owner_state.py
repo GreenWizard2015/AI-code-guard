@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.references.instances.python_instance_write import (
     PythonInstanceWrite,
@@ -14,6 +15,7 @@ from implementation.references.protocols import (
     PythonPositionedWriteMap,
     PythonScopedOwnerMap,
 )
+from implementation.types import PythonASTLocatedNode
 
 
 class PythonScopedOwnerState:
@@ -94,7 +96,11 @@ class PythonScopedOwnerState:
     ) -> None:
         """Responsibilities: _scoped binding indexing_."""
         key = f"{recording_scope}\u0000{binding_name}"
-        write = PythonInstanceWrite(binding_site.lineno, binding_site.col_offset, owner)
+        write = PythonInstanceWrite(
+            cast(PythonASTLocatedNode, binding_site).lineno,
+            cast(PythonASTLocatedNode, binding_site).col_offset,
+            owner,
+        )
         if type(binding_site) is ast.AnnAssign:
             self._annotations.setdefault(key, []).append(write)
             return

@@ -122,9 +122,10 @@ export interface PlacementAnalysisContract {
 	parameters(members: string): RuleParameters;
 }
 
-/** Responsibilities: _single-class file naming_. **/
-export interface SingleClassFileNameRuleContract {
+/** Responsibilities: _source file naming_. **/
+export interface FileNameRulesContract {
 	append(violations: ViolationContract[], file: string, classes: readonly AstClassNode[]): void;
+	append_numeric(violations: ViolationContract[], file: string): void;
 	expected_file_name(class_name: string, file: string): string;
 }
 

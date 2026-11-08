@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.protocols import (
     PythonTupleTypeNamesContract,
@@ -21,7 +22,7 @@ from implementation.rules.type_rules.python_declared_annotation_issues import (
 from implementation.rules.type_rules.python_type_factory_issues import (
     PythonTypeFactoryIssues,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class TypeRules:
@@ -59,7 +60,8 @@ class TypeRules:
         factory_issues = self._type_factory_issues.issues(syntax_node)
         annotation_issues = self._declared_annotation_issues.issues(syntax_node)
         issues: list[JsonObject] = [
-            {"line": syntax_node.lineno - 1, "kind": kind} for kind in self._decorator_rules.kinds(syntax_node)
+            {"line": cast(PythonASTLocatedNode, syntax_node).lineno - 1, "kind": kind}
+            for kind in self._decorator_rules.kinds(syntax_node)
         ]
         issues.extend(factory_issues)
         issues.extend(annotation_issues)

@@ -1,9 +1,16 @@
 import { PYTHON_AST_WORKER_IO_TIMEOUT_MS } from "src/core/python-ast/constants";
 import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
 import { PythonAstWorker } from "src/core/python-ast/python_ast_worker.mjs";
+import { PythonWorkerEventLoopScenario } from "tests/bridge/ts/core/python-ast/python_worker_event_loop_scenario";
 
 describe("Python AST worker transport", () => {
-	test("returns despite warning output larger than the stderr pipe", () => {
+	test("keeps the Node event loop alive until the worker exit is observed", async () => {
+		const bridge = new PythonAstBridge();
+		const scenario = new PythonWorkerEventLoopScenario(bridge, process.cwd());
+		await expect(scenario.result()).resolves.toBe("worker exit observed");
+	});
+
+	test("returns despite warning output larger than the stderr pipe", async () => {
 		const bridge = new PythonAstBridge();
 		const worker_options = bridge.worker_options();
 		const worker = new PythonAstWorker({
@@ -23,11 +30,12 @@ describe("Python AST worker transport", () => {
 			ast_names = [...result.asts.keys()];
 		} finally {
 			worker.close();
+			await worker.wait_for_exit();
 		}
 		expect(ast_names).toEqual(["warnings.py"]);
 	});
 
-	test("drains a large response before writing the next large batch and routes both batch ids", () => {
+	test("drains a large response before writing the next large batch and routes both batch ids", async () => {
 		const bridge = new PythonAstBridge();
 		const io_timeout_ms = 4_000;
 		const worker = new PythonAstWorker({
@@ -36,7 +44,7 @@ describe("Python AST worker transport", () => {
 			persistent: true,
 			io_timeout_ms,
 		});
-		const payload_size = 2 * 1024 * 1024;
+		const payload_size = 256 * 1024;
 		const large_response_source = `payload = "${"x".repeat(payload_size)}"\n`;
 		const large_request_source = `# ${"r".repeat(payload_size)}\nrequest_value = 2\n`;
 		let observed: {
@@ -65,6 +73,7 @@ describe("Python AST worker transport", () => {
 			};
 		} finally {
 			worker.close();
+			await worker.wait_for_exit();
 		}
 		expect(observed).toEqual({
 			first_batch_id: "large-response-batch",
@@ -75,7 +84,7 @@ describe("Python AST worker transport", () => {
 		expect(observed.first_ast_size).toBeGreaterThan(payload_size);
 	}, 15_000);
 
-	test("keeps valid unicode Python expressions in the batch", () => {
+	test("keeps valid unicode Python expressions in the batch", async () => {
 		const bridge = new PythonAstBridge();
 		const worker = new PythonAstWorker({
 			arguments_list: bridge.worker_arguments(),
@@ -84,10 +93,16 @@ describe("Python AST worker transport", () => {
 			io_timeout_ms: PYTHON_AST_WORKER_IO_TIMEOUT_MS,
 		});
 		const sources = new Map(Object.entries({ "unicode.py": "éééééééééé = first + second / third\n" }));
-		const result = worker.batch_result("unicode-batch", sources);
-		worker.close();
+		let ast_names: string[] = [];
+		try {
+			const result = worker.batch_result("unicode-batch", sources);
+			ast_names = [...result.asts.keys()];
+		} finally {
+			worker.close();
+			await worker.wait_for_exit();
+		}
 
-		expect([...result.asts.keys()]).toEqual(["unicode.py"]);
+		expect(ast_names).toEqual(["unicode.py"]);
 	});
 
 	test("bounds a stalled batch and observes worker process exit", async () => {
@@ -106,10 +121,20 @@ describe("Python AST worker transport", () => {
 				() => "",
 				(reason: unknown) => String(reason),
 			);
-		const exit_observed = await Promise.race([
-			worker.wait_for_exit().then(() => true),
-			new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
-		]);
+		let exit_timeout: NodeJS.Timeout | undefined;
+		let exit_observed = false;
+		try {
+			exit_observed = await Promise.race([
+				worker.wait_for_exit().then(() => true),
+				new Promise<boolean>((resolve) => {
+					exit_timeout = setTimeout(() => resolve(false), 1000);
+				}),
+			]);
+		} finally {
+			if (exit_timeout !== undefined) {
+				clearTimeout(exit_timeout);
+			}
+		}
 		expect({
 			failure_message,
 			exit_observed,
@@ -140,10 +165,20 @@ describe("Python AST worker transport", () => {
 				() => "",
 				(reason: unknown) => String(reason),
 			);
-		const exit_observed = await Promise.race([
-			worker.wait_for_exit().then(() => true),
-			new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
-		]);
+		let exit_timeout: NodeJS.Timeout | undefined;
+		let exit_observed = false;
+		try {
+			exit_observed = await Promise.race([
+				worker.wait_for_exit().then(() => true),
+				new Promise<boolean>((resolve) => {
+					exit_timeout = setTimeout(() => resolve(false), 1000);
+				}),
+			]);
+		} finally {
+			if (exit_timeout !== undefined) {
+				clearTimeout(exit_timeout);
+			}
+		}
 		expect({
 			failure_message,
 			exit_observed,
@@ -157,7 +192,7 @@ describe("Python AST worker transport", () => {
 		});
 	});
 
-	test("preserves Python worker stderr in a failed batch", () => {
+	test("preserves Python worker stderr in a failed batch", async () => {
 		const bridge = new PythonAstBridge();
 		const diagnostic = "sentinel Python parser failure";
 		const script = `import sys\nsys.stderr.write(${JSON.stringify(diagnostic)})\nsys.stderr.flush()\n`;
@@ -169,7 +204,15 @@ describe("Python AST worker transport", () => {
 		});
 
 		const sources = new Map(Object.entries({ "failure.py": "value = 1\n" }));
-		expect(() => worker.batch_result("stderr-failure", sources)).toThrow(diagnostic);
+		const failure_message = Promise.resolve()
+			.then(() => worker.batch_result("stderr-failure", sources))
+			.then(
+				() => "",
+				(error: unknown) => String(error),
+			);
+		const observed_failure = await failure_message;
+		await worker.wait_for_exit();
+		expect(observed_failure).toContain(diagnostic);
 		expect(worker.worker_id()).toBe(-1);
 	});
 

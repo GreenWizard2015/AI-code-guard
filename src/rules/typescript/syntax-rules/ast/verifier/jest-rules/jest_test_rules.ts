@@ -211,7 +211,7 @@ export class JestTestRules implements JestTestRulesContract {
 		this._test_ending_diagnostic = new DiagnosticRule("typescript-jest-test-ending");
 		this._describe_count_rule = new DiagnosticRule("typescript-jest-describe-count");
 		this._nested_describe_rule = new DiagnosticRule("typescript-jest-nested-describe");
-		this._test_size = new JestTestSize(source_file, this._suite_collector);
+		this._test_size = new JestTestSize(source_file, this._suite_collector, this._test_ending_rule);
 		this._async_completion = new JestAsyncCompletionRules(this._suite_collector, bindings);
 		this._setup_rules = new JestSetupRules(this._suite_collector, this._test_size, this._file, this._source_file);
 		this._execution_dependency_rules = new JestExecutionDependencyRules(

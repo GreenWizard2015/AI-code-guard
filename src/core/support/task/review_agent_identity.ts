@@ -42,7 +42,7 @@ export class ReviewAgentIdentity implements ReviewAgentIdentityContract, ReviewA
 			return this.unavailable_identity(candidate);
 		}
 		const fields = stat.slice(command_end + 2).split(" ");
-		const start_time = fields.slice(19, 20).join("");
+		const start_time = fields.slice(19, 20).join("").trim();
 		const boot_id = this._file_io.file("/proc/sys/kernel/random/boot_id").file_text().trim();
 		const available = start_time.length > 0 && boot_id.length > 0;
 		if (!available) {

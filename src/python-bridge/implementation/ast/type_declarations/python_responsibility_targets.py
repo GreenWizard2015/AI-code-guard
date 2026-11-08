@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Iterable
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_FUNCTION_KIND, PYTHON_PROTOCOL_NAME
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonResponsibilityTargets:
@@ -55,7 +56,7 @@ class PythonResponsibilityTargets:
         return {
             "kind": kind,
             "name": name,
-            "line": responsibility_node.lineno - 1,
+            "line": cast(PythonASTLocatedNode, responsibility_node).lineno - 1,
             "documentation": documentation,
         }
 

@@ -239,6 +239,11 @@ export const QUALITY_RULE_DATA = {
 		hint: "replace numeric suffixes and embedded numbers with descriptive words. Do not: keep distinctions such as item1, item2, or version2 in symbol names.",
 		priority: 2,
 	},
+	"numeric-file-name": {
+		message: "file names must not contain numbers",
+		hint: "replace numbers in file names with descriptive words. Powers of two from 16 onward are allowed. Do not: use other numeric suffixes or embedded numbers.",
+		priority: 2,
+	},
 	"exception-grouping": {
 		message: "exception class should be colocated with its caller",
 		hint: "Move a one-use Error class into the caller module, or group related exception classes in one focused module. Do not: keep a one-use exception in an isolated file.",

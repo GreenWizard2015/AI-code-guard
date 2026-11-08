@@ -1,8 +1,9 @@
+import type { JestTestCaseCounterContract } from "src/testing_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _direct assertion recognition_, _callback ending validation_. **/
-export class JestTestEndingRule {
+export class JestTestEndingRule implements JestTestCaseCounterContract {
 	private readonly _expect_aliases: TypeScriptExpressionAliasesContract;
 
 	/** Responsibilities: _classification expression directly invokes_. **/
@@ -95,6 +96,23 @@ export class JestTestEndingRule {
 		return this.has_valid_ending(candidate) === false;
 	}
 
+	/** Responsibilities: _test case count_. **/
+	private test_case_count(test: ts.CallExpression): number {
+		const invocation = this._expect_aliases.unwrapped(test.expression);
+		if (!ts.isCallExpression(invocation)) {
+			return 1;
+		}
+		const factory = this._expect_aliases.unwrapped(invocation.expression);
+		if (!ts.isPropertyAccessExpression(factory) || factory.name.text !== "each") {
+			return 1;
+		}
+		const cases = invocation.arguments.at(0);
+		if (cases !== undefined && ts.isArrayLiteralExpression(cases)) {
+			return cases.elements.length;
+		}
+		return 1;
+	}
+
 	/** Responsibilities: _collection lines Jest tests_. **/
 	/** Responsibilities: _field initialization_. **/
 	public constructor(expect_aliases: TypeScriptExpressionAliasesContract) {
@@ -111,8 +129,8 @@ export class JestTestEndingRule {
 		return lines;
 	}
 
-	/** Responsibilities: _Jest test invocation count_. **/
+	/** Responsibilities: _test case count_. **/
 	public test_count(tests: ts.CallExpression[]): number {
-		return tests.length;
+		return tests.reduce((count, test) => count + this.test_case_count(test), 0);
 	}
 }

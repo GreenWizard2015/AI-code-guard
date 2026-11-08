@@ -6,7 +6,7 @@ import { DETERMINISTIC_FUNCTION_FILES } from "tests/core/constants/ast_nodes/con
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("shared parameter function diagnostics", () => {
-	test("does not combine Python production and test functions", () => {
+	test("excludes test callables and ignores incomplete TypeScript metadata", () => {
 		const test_fixture = new TestFixture();
 
 		const violations = test_fixture.with_lint_request(
@@ -29,19 +29,6 @@ describe("shared parameter function diagnostics", () => {
 					"def fifth(value: SharedInput):",
 					"    return value",
 				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(test_fixture.shared_violations(violations)).toEqual([]);
-	});
-
-	test("ignores callables with missing typed-argument or usage metadata", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"missing.ts": [
 					"function first(value) { return value; }",
 					"function second(value: SharedInput) { return value; }",
@@ -54,7 +41,7 @@ describe("shared parameter function diagnostics", () => {
 		expect(test_fixture.shared_violations(violations)).toEqual([]);
 	});
 
-	test("keeps function diagnostics deterministic", () => {
+	test("keeps function diagnostics deterministic and anchored to the first location", () => {
 		const test_fixture = new TestFixture();
 
 		const reversed = Object.fromEntries(Object.entries(DETERMINISTIC_FUNCTION_FILES).reverse());
@@ -72,47 +59,24 @@ describe("shared parameter function diagnostics", () => {
 		);
 		const first = test_fixture.shared_violations(first_violations);
 		const second = test_fixture.shared_violations(second_violations);
-		const first_prefixes = first.map((violation) => violation.file().slice(0, -"a.ts".length));
-		const second_prefixes = second.map((violation) => violation.file().slice(0, -"a.ts".length));
-		const first_message = first.map((violation) => violation.message()).join("\n");
-		const second_message = second.map((violation) => violation.message()).join("\n");
-		const normalized_first = first_prefixes.reduce((message, prefix) => message.split(prefix).join(""), first_message);
-		const normalized_second = second_prefixes.reduce(
-			(message, prefix) => message.split(prefix).join(""),
-			second_message,
-		);
+		const first_messages = first.map((violation) => violation.message().replaceAll(/(?:a|b)\.ts:/g, ""));
+		const second_messages = second.map((violation) => violation.message().replaceAll(/(?:a|b)\.ts:/g, ""));
+		const first_locations = first.map((violation) => ({
+			rule_id: violation.rule_id(),
+			line: violation.line(),
+			file_is_first_source: violation.file().endsWith("a.ts"),
+			hint_mentions_first_candidate: violation.hint().includes("a.ts:2 first"),
+		}));
+		const expected_messages = [
+			'multiple functions share parameter set "value:SharedInput" (4). Candidates: 2 first; 3 second; 1 third; 2 fourth.',
+		];
 
-		expect({
-			first_count: first.length,
-			second_count: second.length,
-			deterministic: normalized_second === normalized_first,
-		}).toEqual({
-			first_count: 1,
-			second_count: 1,
-			deterministic: true,
-		});
-	});
-
-	test("anchors function diagnostics to the first location", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			DETERMINISTIC_FUNCTION_FILES,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const first = test_fixture.shared_violations(violations);
-
-		expect({
-			line: first.map((violation) => violation.line()),
-			file: first.map((violation) => violation.file().endsWith("a.ts")),
-			candidate: first.map((violation) => violation.message().includes("a.ts:2 first")),
-			hint: first.map((violation) => violation.hint().includes("a.ts:2 first")),
-		}).toEqual({
-			line: [2],
-			file: [true],
-			candidate: [true],
-			hint: [false],
+		expect({ first_messages, second_messages, first_locations }).toEqual({
+			first_messages: expected_messages,
+			second_messages: expected_messages,
+			first_locations: [
+				{ rule_id: "shared-parameter", line: 2, file_is_first_source: true, hint_mentions_first_candidate: false },
+			],
 		});
 	});
 

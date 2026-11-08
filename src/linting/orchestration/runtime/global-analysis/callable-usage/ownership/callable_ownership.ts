@@ -81,8 +81,10 @@ export class CallableOwnership {
 	/** Responsibilities: _protocol declaration lookup_. **/
 	private declares_protocol(ast: NormalizedAstFile, interface_name: string): boolean {
 		const members = ast.references.type_members;
-		if (members?.has(interface_name)) {
-			return true;
+		if (members !== undefined) {
+			if (members.has(interface_name)) {
+				return true;
+			}
 		}
 		return ast.source.classes.some((item) => {
 			if (!item.classification.protocol) {

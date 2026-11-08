@@ -26,7 +26,10 @@ export class TypeScriptCallableRules implements ASTSourceRuleContract {
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
 		let name = "";
 		if (ts.isClassLike(node)) {
-			name = node.name?.text ?? "";
+			const declaration_name = node.name;
+			if (declaration_name !== undefined) {
+				name = declaration_name.text;
+			}
 		} else if (ts.isInterfaceDeclaration(node)) {
 			name = node.name.text;
 		}
@@ -61,7 +64,10 @@ export class TypeScriptCallableRules implements ASTSourceRuleContract {
 		const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line;
 		let name = "";
 		if (ts.isFunctionDeclaration(node)) {
-			name = node.name?.text ?? "";
+			const declaration_name = node.name;
+			if (declaration_name !== undefined) {
+				name = declaration_name.text;
+			}
 		}
 		if (ts.isVariableDeclaration(node)) {
 			name = node.name.getText(source_file);

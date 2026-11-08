@@ -9,7 +9,6 @@ export const REVIEW_REQUEST: ReviewAgentRequest = {
 		hook_file: "/project/.ai-code-guard/agent-hooks.ts",
 		hook_command: "/tools/tsx",
 		review_prefix: "review-boundaries-",
-		review_phase: "initial",
 		review_start_ms: 0,
 	},
 	review_stage: "boundaries",
@@ -19,7 +18,3 @@ export const REVIEW_REQUEST: ReviewAgentRequest = {
 };
 
 export const CATALOG_REVIEW_REQUEST: ReviewAgentRequest = { ...REVIEW_REQUEST, prompt: "" };
-export const CLEANUP_REVIEW_REQUEST: ReviewAgentRequest = {
-	...CATALOG_REVIEW_REQUEST,
-	open_review_files: ["/project/.ai-code-guard/review/first.md", "/project/.ai-code-guard/review/second.md"],
-};

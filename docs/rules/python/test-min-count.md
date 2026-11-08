@@ -1,6 +1,6 @@
 # `test-min-count`
 
-Description: Each Python `unittest.TestCase` suite with tests must contain at least two test methods. Count only `test_*` methods; setup, teardown, and fixture methods do not count.
+Description: Each Python `unittest.TestCase` suite with tests must contain at least two test cases. Count `test_*` methods and rows in a static `@parameterized.expand([...])` table; setup, teardown, and fixture methods do not count.
 
 ## Bad
 

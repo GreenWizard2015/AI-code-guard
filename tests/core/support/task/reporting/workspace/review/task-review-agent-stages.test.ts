@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { REVIEW_STAGES } from "src/constants";
 import "src/core/lint_project_context_creator";
@@ -23,7 +24,6 @@ describe("task review agent stage selection", () => {
 			file_io: _io,
 		});
 		await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -52,7 +52,6 @@ describe("task review agent stage selection", () => {
 			file_io: _io,
 		});
 		const result = await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: ["boundaries"],
 		});
@@ -78,7 +77,6 @@ describe("task review agent stage selection", () => {
 			file_io: _io,
 		});
 		const result = await review.run_parallel("codex", {
-			review_cleanup: false,
 			force_review: false,
 			review_stages: ["boundaries", "tests"],
 		});
@@ -103,7 +101,6 @@ describe("task review agent stage selection", () => {
 			file_io: _io,
 		});
 		await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -124,10 +121,54 @@ describe("task review agent stage selection", () => {
 			file_io: _io,
 		});
 		await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
 		expect(runner.initial_review_snapshot().run_count).toBe(REVIEW_STAGES.length);
+	});
+
+	test("fails the stage when its finding remains below the minimum size after corrections", async () => {
+		const fixture = new TaskReviewAgentStageFixture();
+		fixture.initialize();
+		const { root, _io } = fixture;
+		const short_finding = [
+			"# Finding",
+			"Severity: Major",
+			"Status: Open",
+			"Task: Keep source identity.",
+			"Affected paths:",
+			"- src/source.ts",
+			"Invariant: Source identity stays stable.",
+			"Evidence:",
+			"- A caller can resolve the wrong source.",
+			"Reproduction: Resolve two same-named declarations.",
+			"Impact: Usage is misattributed.",
+			"Required correction:",
+			"- Preserve source identity.",
+		].join("\n");
+		const runner = new StubTaskReviewRunner(
+			{ ...COMPLETED_REVIEW_RESULT, no_issues: false },
+			short_finding,
+			false,
+			_io,
+		);
+		const review = new TaskReviewAgent({
+			root,
+			agent_catalog: runner,
+			hooks: new StubReviewHooks(),
+			hook_command: "/tools/tsx",
+			hook_file: "/tools/agent-hooks.ts",
+			file_io: _io,
+		});
+		const result = await review.run_parallel("codex", {
+			force_review: false,
+			review_stages: ["boundaries"],
+		});
+
+		expect({
+			provider: result.provider,
+			failure_written: _io.file(join(root, ".ai-code-guard", "review", "agent-start-failed.md")).path_exists(),
+			runs: runner.initial_review_snapshot().run_count,
+		}).toEqual({ provider: "none", failure_written: true, runs: 3 });
 	});
 });

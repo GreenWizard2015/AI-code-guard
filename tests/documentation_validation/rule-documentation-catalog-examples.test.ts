@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { MarkdownLoopExpander } from "documentation_validation/markdown_loop_expander";
 import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
@@ -46,14 +47,18 @@ describe("Markdown documentation example extraction and indexing", () => {
 		if (bad === undefined) {
 			bad = [];
 		}
-		const source_file = bad[0]?.source_files[0];
-		const test_file = bad[0]?.source_files[1];
+		const bad_rule = bad[0];
+		assert.ok(bad_rule);
+		const source_file = bad_rule.source_files[0];
+		assert.ok(source_file);
+		const test_file = bad_rule.source_files[1];
+		assert.ok(test_file);
 
 		expect({
 			count: bad.length,
-			paths: bad[0]?.source_files.map(({ path }) => path),
-			source: source_file?.text,
-			test: test_file?.text,
+			paths: bad_rule.source_files.map(({ path }) => path),
+			source: source_file.text,
+			test: test_file.text,
 		}).toEqual({
 			count: 1,
 			paths: ["src/entry.ts", "tests/entry.test.ts"],
@@ -90,10 +95,20 @@ describe("Markdown documentation example extraction and indexing", () => {
 		const document = catalog.describe_rule("example-order");
 		const bad_examples = document.examples.get(ExampleKind.BAD) ?? [];
 		const good_examples = document.examples.get(ExampleKind.GOOD) ?? [];
+		const bad_paths = bad_examples.map(({ language, index, source_files }) => {
+			const first_source_file = source_files[0];
+			assert.ok(first_source_file);
+			return [language, index, first_source_file.path];
+		});
+		const good_paths = good_examples.map(({ language, index, source_files }) => {
+			const first_source_file = source_files[0];
+			assert.ok(first_source_file);
+			return [language, index, first_source_file.path];
+		});
 
 		expect({
-			bad: bad_examples.map(({ language, index, source_files }) => [language, index, source_files[0]?.path]),
-			good: good_examples.map(({ language, index, source_files }) => [language, index, source_files[0]?.path]),
+			bad: bad_paths,
+			good: good_paths,
 		}).toEqual({
 			bad: [
 				[DocumentationLanguage.TYPESCRIPT, 0, "src/first.ts"],
@@ -135,11 +150,15 @@ describe("Markdown documentation example extraction and indexing", () => {
 		if (good === undefined) {
 			good = [];
 		}
+		const bad_example = bad[0];
+		assert.ok(bad_example);
+		const good_example = good[0];
+		assert.ok(good_example);
 
 		expect({
-			bad_paths: bad[0]?.source_files.map((file) => file.path),
-			bad_source: bad[0]?.source_files.map((file) => file.text.trim()),
-			good_text: good[0]?.text.trim(),
+			bad_paths: bad_example.source_files.map((file) => file.path),
+			bad_source: bad_example.source_files.map((file) => file.text.trim()),
+			good_text: good_example.text.trim(),
 		}).toEqual({
 			bad_paths: ["src/first.ts", "src/second.ts"],
 			bad_source: ["export class ExampleFirst {}", "export class ExampleSecond {}"],

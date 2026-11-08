@@ -31,7 +31,11 @@ describe("coding-lint facade resolution", () => {
 					return { resolved_file: undefined, expected_file: join(root, "pkg/run.ts") };
 				}
 				const aliases = function_aliases.imported_function_aliases(source.typescript_ast.source_file_node());
-				return { resolved_file: aliases.get("run")?.source_file, expected_file: join(root, "pkg/run.ts") };
+				const run_alias = aliases.get("run");
+				if (run_alias === undefined) {
+					return { resolved_file: undefined, expected_file: join(root, "pkg/run.ts") };
+				}
+				return { resolved_file: run_alias.source_file, expected_file: join(root, "pkg/run.ts") };
 			},
 			new Map(),
 		);
@@ -81,8 +85,14 @@ describe("coding-lint facade resolution", () => {
 				);
 				const graph = composition_parser.class_graph(context.files());
 				const consumer = graph.classes.get(`${consumer_file}:Consumer`);
+				if (consumer === undefined) {
+					return {
+						dependencies: undefined,
+						expected_dependency: `${join(root, "pkg/service.ts")}:Service`,
+					};
+				}
 				return {
-					dependencies: consumer?.dependencies,
+					dependencies: consumer.dependencies,
 					expected_dependency: `${join(root, "pkg/service.ts")}:Service`,
 				};
 			},
@@ -113,15 +123,26 @@ describe("coding-lint facade resolution", () => {
 				const b_key = `${join(root, "b.ts")}:B`;
 				const c_key = `${join(root, "c.ts")}:C`;
 				const d_key = `${join(root, "d.ts")}:D`;
+				const class_a = graph.classes.get(a_key);
+				const class_b = graph.classes.get(b_key);
+				const class_c = graph.classes.get(c_key);
+				let dependencies_a: string[] | undefined;
+				if (class_a !== undefined) {
+					dependencies_a = class_a.dependencies;
+				}
+				let dependencies_b: string[] | undefined;
+				if (class_b !== undefined) {
+					dependencies_b = class_b.dependencies;
+				}
+				let dependencies_c: string[] | undefined;
+				if (class_c !== undefined) {
+					dependencies_c = class_c.dependencies;
+				}
 				const analyzer = new CompositionAnalyzer(graph, root);
 				const violations = analyzer.violations();
 				const depth_rules = violations.filter((violation) => violation.rule_id() === "composition-depth");
 				return {
-					edges: [
-						graph.classes.get(a_key)?.dependencies,
-						graph.classes.get(b_key)?.dependencies,
-						graph.classes.get(c_key)?.dependencies,
-					],
+					edges: [dependencies_a, dependencies_b, dependencies_c],
 					expected_edges: [[b_key], [c_key], [d_key]],
 					depth_rules: depth_rules.map((violation) => violation.rule_id()),
 				};
@@ -155,8 +176,12 @@ describe("coding-lint facade resolution", () => {
 					context.source_io(),
 				);
 				const graph = composition_model.class_graph(context.files());
+				const class_a = graph.classes.get(`${path}:A`);
+				if (class_a === undefined) {
+					return { dependencies: undefined, expected: `${path}:B` };
+				}
 				return {
-					dependencies: graph.classes.get(`${path}:A`)?.dependencies,
+					dependencies: class_a.dependencies,
 					expected: `${path}:B`,
 				};
 			},
@@ -218,8 +243,14 @@ describe("coding-lint facade resolution", () => {
 		);
 		const model = new TypeScriptCompositionModel("composition.ts", source_file, resolver_context.module_exports());
 		const owner = model.classes().find((item) => item.name === "Owner");
+		let dependencies: string[] | undefined;
+		let language: string | undefined;
+		if (owner !== undefined) {
+			dependencies = owner.dependencies;
+			language = owner.language;
+		}
 
-		expect({ dependencies: owner?.dependencies, language: owner?.language }).toEqual({
+		expect({ dependencies, language }).toEqual({
 			dependencies: ["Dependency"],
 			language: "typescript",
 		});
@@ -247,8 +278,12 @@ describe("coding-lint facade resolution", () => {
 					context.source_io(),
 				);
 				const graph = composition_model.class_graph(context.files());
+				const class_a = graph.classes.get(`${join(root, "a.ts")}:A`);
+				if (class_a === undefined) {
+					return { dependencies: undefined, expected: `${join(root, "b.ts")}:B` };
+				}
 				return {
-					dependencies: graph.classes.get(`${join(root, "a.ts")}:A`)?.dependencies,
+					dependencies: class_a.dependencies,
 					expected: `${join(root, "b.ts")}:B`,
 				};
 			},
@@ -280,8 +315,12 @@ describe("coding-lint facade resolution", () => {
 					context.source_io(),
 				);
 				const graph = composition_parser.class_graph(context.files());
+				const class_a = graph.classes.get(`${join(root, "a.ts")}:A`);
+				if (class_a === undefined) {
+					return { dependencies: undefined, expected: `${join(root, "b.ts")}:B` };
+				}
 				return {
-					dependencies: graph.classes.get(`${join(root, "a.ts")}:A`)?.dependencies,
+					dependencies: class_a.dependencies,
 					expected: `${join(root, "b.ts")}:B`,
 				};
 			},
@@ -314,7 +353,13 @@ describe("coding-lint facade resolution", () => {
 				);
 				const graph = composition_parser.class_graph(context.files());
 				const consumer = graph.classes.get(`${join(root, "consumer.ts")}:Consumer`);
-				return { dependencies: consumer?.dependencies, expected_dependency: `${join(root, "pkg/service.ts")}:Service` };
+				if (consumer === undefined) {
+					return {
+						dependencies: undefined,
+						expected_dependency: `${join(root, "pkg/service.ts")}:Service`,
+					};
+				}
+				return { dependencies: consumer.dependencies, expected_dependency: `${join(root, "pkg/service.ts")}:Service` };
 			},
 			new Map(),
 		);
@@ -353,8 +398,18 @@ describe("coding-lint facade resolution", () => {
 			new Map(),
 		);
 
-		expect(result.first?.file).toBe(result.expected_file);
-		expect(result.second?.file).toBe(result.expected_file);
+		let first_file: string | undefined;
+		if (result.first !== undefined) {
+			first_file = result.first.file;
+		}
+		let second_file: string | undefined;
+		if (result.second !== undefined) {
+			second_file = result.second.file;
+		}
+		expect({ first_file, second_file }).toEqual({
+			first_file: result.expected_file,
+			second_file: result.expected_file,
+		});
 	});
 
 	test("tracks Python construction calls without method-local call edges", () => {
@@ -384,8 +439,11 @@ describe("coding-lint facade resolution", () => {
 				);
 				const graph = composition_model.class_graph(context.files());
 				const consumer = graph.classes.get(`${join(root, "consumer.py")}:Consumer`);
+				if (consumer === undefined) {
+					return { dependencies: undefined, expected: `${join(root, "dependency.py")}:Dependency` };
+				}
 				return {
-					dependencies: consumer?.dependencies,
+					dependencies: consumer.dependencies,
 					expected: `${join(root, "dependency.py")}:Dependency`,
 				};
 			},

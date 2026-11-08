@@ -54,14 +54,6 @@ export class RestUnionSourceAliases {
 		return element.name.text;
 	}
 
-	/** Responsibilities: _import module resolution_. **/
-	private imported_file(statement: ts.ImportDeclaration): string {
-		if (!ts.isStringLiteral(statement.moduleSpecifier)) {
-			return "";
-		}
-		return this._module_path.module_symbol(this._source_file.fileName, statement.moduleSpecifier.text);
-	}
-
 	/** Responsibilities: _named imported alias indexing_. **/
 	private aliases_from_source(bindings: ts.NamedImports, imported_source: ts.SourceFile): RestUnionAliasDeclarations {
 		const imported_aliases = this.declarations(imported_source);
@@ -76,12 +68,7 @@ export class RestUnionSourceAliases {
 	}
 
 	/** Responsibilities: _one import's alias resolution_. **/
-	private aliases_from_import(statement: ts.ImportDeclaration): RestUnionAliasDeclarations {
-		const bindings = statement.importClause?.namedBindings;
-		if (bindings === undefined || !ts.isNamedImports(bindings)) {
-			return new Map<string, ts.TypeAliasDeclaration>();
-		}
-		const file = this.imported_file(statement);
+	private aliases_from_bindings(bindings: ts.NamedImports, file: string): RestUnionAliasDeclarations {
 		if (file.length === 0) {
 			return new Map<string, ts.TypeAliasDeclaration>();
 		}
@@ -90,6 +77,24 @@ export class RestUnionSourceAliases {
 			return new Map<string, ts.TypeAliasDeclaration>();
 		}
 		return this.aliases_from_source(bindings, source);
+	}
+
+	/** Responsibilities: _one import's alias resolution_. **/
+	private aliases_from_import(statement: ts.ImportDeclaration): RestUnionAliasDeclarations {
+		const import_clause = statement.importClause;
+		if (import_clause === undefined) {
+			return new Map<string, ts.TypeAliasDeclaration>();
+		}
+		const bindings = import_clause.namedBindings;
+		if (bindings === undefined || !ts.isNamedImports(bindings)) {
+			return new Map<string, ts.TypeAliasDeclaration>();
+		}
+		const module_specifier = statement.moduleSpecifier;
+		if (!ts.isStringLiteral(module_specifier)) {
+			return new Map<string, ts.TypeAliasDeclaration>();
+		}
+		const file = this._module_path.module_symbol(this._source_file.fileName, module_specifier.text);
+		return this.aliases_from_bindings(bindings, file);
 	}
 
 	/** Responsibilities: _source alias resolver setup_. **/

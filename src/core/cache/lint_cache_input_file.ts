@@ -69,7 +69,7 @@ export class LintCacheInputFile {
 		try {
 			const metadata = this._file_io.file(this._path).metadata();
 			const text = this._file_io.file(this._path).file_text();
-			const content_hash = createHash("sha256").update(text).digest("hex");
+			const content_hash = createHash("sha256").update(text.replace(/\r\n?/gu, "\n")).digest("hex");
 			return { available: true, value: { file: this._path, ...metadata, content_hash } };
 		} catch (error) {
 			if (!this._boundary_failures.check(String(error), BoundaryFailureCategory.System)) {

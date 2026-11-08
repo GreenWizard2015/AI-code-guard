@@ -29,8 +29,11 @@ export class TypeScriptFactoryInstances {
 	private function_declarations(declaration_name: string): ts.FunctionDeclaration[] {
 		const declarations: ts.FunctionDeclaration[] = [];
 		const visit = (node: ts.Node): void => {
-			if (ts.isFunctionDeclaration(node) && node.name?.text === declaration_name) {
-				declarations.push(node);
+			if (ts.isFunctionDeclaration(node)) {
+				const name = node.name;
+				if (name !== undefined && name.text === declaration_name) {
+					declarations.push(node);
+				}
 			}
 			ts.forEachChild(node, visit);
 		};

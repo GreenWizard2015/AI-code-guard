@@ -14,7 +14,11 @@ export class ProxyCall implements ProxyCallContract {
 		if (!ts.isMethodDeclaration(node)) {
 			return false;
 		}
-		return !node.modifiers?.some((modifier) => this._hidden_visibility_kinds.has(modifier.kind));
+		const modifiers = node.modifiers;
+		if (modifiers === undefined) {
+			return true;
+		}
+		return !modifiers.some((modifier) => this._hidden_visibility_kinds.has(modifier.kind));
 	}
 
 	/** Responsibilities: _collection proxy invocation statement_. **/

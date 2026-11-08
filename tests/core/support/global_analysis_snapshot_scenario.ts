@@ -86,6 +86,7 @@ export class GlobalAnalysisSnapshotScenario {
 			source_texts,
 			configuration_snapshot_complete: false,
 			entry_files: [],
+			project_analysis_enabled: false,
 		};
 	}
 }

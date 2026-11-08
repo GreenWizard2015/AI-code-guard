@@ -53,18 +53,29 @@ export class InlineTypes implements ASTSourceRuleContract {
 	}
 
 	/** Responsibilities: _inline generic classification_. **/
+	private generic_type_arguments(parent: ts.Node): readonly ts.TypeNode[] {
+		if (ts.isTypeReferenceNode(parent) || ts.isExpressionWithTypeArguments(parent)) {
+			const arguments_list = parent.typeArguments;
+			if (arguments_list !== undefined) {
+				return arguments_list;
+			}
+		}
+		if (ts.isCallExpression(parent) || ts.isNewExpression(parent)) {
+			const arguments_list = parent.typeArguments;
+			if (arguments_list !== undefined) {
+				return arguments_list;
+			}
+		}
+		return [];
+	}
+
+	/** Responsibilities: _inline generic classification_. **/
 	private generic_type_node(type_literal: ts.TypeLiteralNode): boolean {
 		let parent = type_literal.parent;
 		while (ts.isParenthesizedTypeNode(parent)) {
 			parent = parent.parent;
 		}
-		if (!ts.isTypeReferenceNode(parent)) {
-			return false;
-		}
-		if (!parent.typeArguments) {
-			return false;
-		}
-		return parent.typeArguments.some((argument) => this.unwrapped_type(argument) === type_literal);
+		return this.generic_type_arguments(parent).some((argument) => this.unwrapped_type(argument) === type_literal);
 	}
 
 	/** Responsibilities: _inline union classification_. **/
@@ -172,8 +183,13 @@ export class InlineTypes implements ASTSourceRuleContract {
 
 	/** Responsibilities: _inline type node dispatch_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
-		if (!request.context.state().source.path_kinds.has(TestPathKind.TypeScriptTestFile)) {
-			this.append_node(request.node, request.context);
+		const flags = this.violation_flags(request.node);
+		if (request.context.state().source.path_kinds.has(TestPathKind.TypeScriptTestFile)) {
+			if (flags.generic) {
+				request.context.for_node(request.node).append_rule(this._generic_rule_id);
+			}
+			return;
 		}
+		this.append_flagged_violations(request.node, request.context, flags);
 	}
 }

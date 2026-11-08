@@ -13,7 +13,18 @@ describe("coding-lint callable usage rule", () => {
 	test("reports TypeScript functions and methods with no external production callers", () => {
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			TYPESCRIPT_USAGE_FILES,
+			{
+				...TYPESCRIPT_USAGE_FILES,
+				"isolated-source.ts": [
+					"export function read_value(): number { return 1; }",
+					"export class Service { read() { return 1; } other() { return 2; } }",
+				].join("\n"),
+				"tests/isolated-usage.test.ts": [
+					"import { read_value, Service } from '../isolated-source';",
+					"const service = new Service();",
+					"read_value(); service.read();",
+				].join("\n"),
+			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
@@ -21,55 +32,53 @@ describe("coding-lint callable usage rule", () => {
 			(violation) => !violation.rule_id().startsWith("responsibilities"),
 		);
 		const messages = existing_rule_violations.map((violation) => violation.message());
+		const test_only_findings = violations
+			.filter((violation) => violation.rule_id() === "test-only-usage")
+			.map((violation) => `${violation.file()}:${violation.line()}: ${violation.message()}`)
+			.sort();
+		const isolated_unused_messages = violations
+			.filter((violation) => violation.rule_id() === "unused-callable" && violation.file() === "isolated-source.ts")
+			.map((violation) => violation.message());
+
 		expect({
-			once: messages.includes(
-				'function "once" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
-			),
-			test_only: messages.includes('function "testOnly" is referenced only from tests'),
-			service_once: messages.includes(
-				'method "Service.once" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
-			),
-			private_function: messages.some((message) => message.includes('function "_privateFunction" is used')),
-			private_method: messages.some((message) => message.includes('method "Service.privateOnce" is used')),
-			twice: messages.some((message) => message.includes('function "twice" is used')),
-			service_twice: messages.some((message) => message.includes('method "Service.twice" is used')),
-			info_only: existing_rule_violations.some((violation) => {
-				if (!violation.message().includes('function "once"')) {
-					return false;
-				}
-				return violation.priority() !== 1;
-			}),
-		}).toEqual({
-			once: false,
-			test_only: true,
-			service_once: false,
-			private_function: false,
-			private_method: false,
-			twice: false,
-			service_twice: false,
-			info_only: false,
-		});
-	});
-	test("reports TypeScript functions and methods referenced only from tests", () => {
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"source.ts":
-					"export function read_value(): number { return 1; } export class Service { read() { return 1; } other() { return 2; } }",
-				"tests/usage.test.ts":
-					"import { read_value, Service } from '../source'; const service = new Service(); read_value(); service.read();",
+			usage_classification: {
+				once: messages.includes(
+					'function "once" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
+				),
+				test_only: messages.includes('function "testOnly" is referenced only from tests'),
+				service_once: messages.includes(
+					'method "Service.once" has insufficient production usage (found 1 other production file; candidate for removal/refactor)',
+				),
+				private_function: messages.some((message) => message.includes('function "_privateFunction" is used')),
+				private_method: messages.some((message) => message.includes('method "Service.privateOnce" is used')),
+				twice: messages.some((message) => message.includes('function "twice" is used')),
+				service_twice: messages.some((message) => message.includes('method "Service.twice" is used')),
+				info_only: existing_rule_violations.some((violation) => {
+					if (!violation.message().includes('function "once"')) {
+						return false;
+					}
+					return violation.priority() !== 1;
+				}),
 			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect({
-			test_only_count: violations.filter((violation) => violation.rule_id() === "test-only-usage").length,
-			unused_callable_messages: violations
-				.filter((violation) => violation.rule_id() === "unused-callable")
-				.map((violation) => violation.message()),
+			test_only_findings,
+			isolated_unused_messages,
 		}).toEqual({
-			test_only_count: 2,
-			unused_callable_messages: [
+			usage_classification: {
+				once: false,
+				test_only: true,
+				service_once: false,
+				private_function: false,
+				private_method: false,
+				twice: false,
+				service_twice: false,
+				info_only: false,
+			},
+			test_only_findings: [
+				'isolated-source.ts:1: function "read_value" is referenced only from tests',
+				'isolated-source.ts:2: method "Service.read" is referenced only from tests',
+				'source.ts:3: function "testOnly" is referenced only from tests',
+			],
+			isolated_unused_messages: [
 				'method "Service.other" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 			],
 		});

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from functools import cached_property
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.aliases.python_reference_aliases import (
@@ -19,7 +20,7 @@ from implementation.rules.constants import (
     PYTHON_TYPING_EXTENSIONS_MODULE,
     PYTHON_TYPING_MODULE,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonModuleConstantSpans:
@@ -135,15 +136,18 @@ class PythonModuleConstantSpans:
 
     def _span(self, node: ast.AST) -> JsonObject:
         """Responsibilities: _source span record creation_."""
-        end_line = node.lineno
-        if node.end_lineno is not None:
-            end_line = node.end_lineno
-        end_column = node.col_offset
-        if node.end_col_offset is not None:
-            end_column = node.end_col_offset
+        position = cast(PythonASTLocatedNode, node)
+        end_line = position.lineno
+        source_end_line = position.end_lineno
+        if source_end_line is not None:
+            end_line = source_end_line
+        end_column = position.col_offset
+        source_end_column = position.end_col_offset
+        if source_end_column is not None:
+            end_column = source_end_column
         return {
-            "start_line": node.lineno - 1,
-            "start_column": node.col_offset,
+            "start_line": position.lineno - 1,
+            "start_column": position.col_offset,
             "end_line": end_line - 1,
             "end_column": end_column,
         }

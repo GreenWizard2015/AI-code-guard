@@ -71,7 +71,7 @@ export class LintExecutionCacheContext {
 		fingerprints: readonly LintFileFingerprint[],
 		directories: readonly LintDirectoryFingerprint[],
 	): string {
-		const identity_header = `${LINT_EXECUTION_CACHE_VERSION}\u0000${this._analysis_identity.analyzer()}\u0000${this._resolution_identity}\u0000${resolve(this._root)}\u0000${this._options.batch_size}\u0000${this._options.policy}\u0000${this._options.skip_review}\u0000${this._options.review_cleanup}\u0000`;
+		const identity_header = `${LINT_EXECUTION_CACHE_VERSION}\u0000${this._analysis_identity.analyzer()}\u0000${this._resolution_identity}\u0000${resolve(this._root)}\u0000${this._options.batch_size}\u0000${this._options.policy}\u0000${this._options.skip_review}\u0000`;
 		const identity = new LintExecutionCacheIdentity(identity_header);
 		identity.append_selection(this._inputs.files);
 		identity.append_selection(this._inputs.project_files);

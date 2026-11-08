@@ -24,7 +24,6 @@ describe("quality check execution", () => {
 			headless: true,
 			skip_quality: true,
 			force_review: false,
-			review_cleanup: false,
 			review_agent: "none",
 		});
 
@@ -37,7 +36,7 @@ describe("quality check execution", () => {
 			stdout: new PassThrough(),
 			stderr: new PassThrough(),
 		});
-		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const status = quality_checks.run({ force_review: false, review_agent: "none" });
 		const snapshot = runner.snapshot();
 
 		expect({ status, call_count: snapshot.calls.length }).toEqual({
@@ -56,7 +55,7 @@ describe("quality check execution", () => {
 				stdout: new PassThrough(),
 				stderr: new PassThrough(),
 			});
-			const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+			const status = quality_checks.run({ force_review: false, review_agent: "none" });
 
 			const expected_checks = quality_checks_list.slice(0, failed_index + 1);
 			const expected_calls = expected_checks.map((check) => [check.command, ...check.args]);
@@ -73,7 +72,7 @@ describe("quality check execution", () => {
 			stdout: new PassThrough(),
 			stderr: new PassThrough(),
 		});
-		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const status = quality_checks.run({ force_review: false, review_agent: "none" });
 		const snapshot = runner.snapshot();
 		const expected_calls = quality_checks_list.map((check) => [check.command, ...check.args]);
 		const lint_index = snapshot.calls.findIndex(
@@ -94,21 +93,21 @@ describe("quality check execution", () => {
 		});
 	});
 
-	test("passes review options only when a review agent is selected", () => {
+	test("passes force-review and agent options only when a review agent is selected", () => {
 		const runner = new CommandExecutionTestDouble(Array.from({ length: 20 }, () => 0));
 		const quality_checks = new QualityCheckProcess(PROJECT_ROOT, runner, {
 			stdout: new PassThrough(),
 			stderr: new PassThrough(),
 		});
-		const status = quality_checks.run({ force_review: false, review_cleanup: true, review_agent: "codex" });
+		const status = quality_checks.run({ force_review: true, review_agent: "codex" });
 		const lint_call = runner
 			.snapshot()
 			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
 
-		let cleanup_requested = false;
+		let force_requested = false;
 		let selected_agent = "none";
 		if (lint_call !== undefined) {
-			cleanup_requested = lint_call.includes("--review-cleanup");
+			force_requested = lint_call.includes("--force-review");
 			const agent_option_index = lint_call.indexOf("--review-agent");
 			if (agent_option_index >= 0) {
 				const agent_value = lint_call[agent_option_index + 1];
@@ -118,9 +117,9 @@ describe("quality check execution", () => {
 			}
 		}
 
-		expect({ status, cleanup_requested, selected_agent }).toEqual({
+		expect({ status, force_requested, selected_agent }).toEqual({
 			status: 0,
-			cleanup_requested: true,
+			force_requested: true,
 			selected_agent: "codex",
 		});
 	});
@@ -131,7 +130,7 @@ describe("quality check execution", () => {
 			stdout: new PassThrough(),
 			stderr: new PassThrough(),
 		});
-		const status = quality_checks.run({ force_review: false, review_cleanup: false, review_agent: "none" });
+		const status = quality_checks.run({ force_review: false, review_agent: "none" });
 		const lint_call = runner
 			.snapshot()
 			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
@@ -147,11 +146,19 @@ describe("quality check execution", () => {
 		const lint_call = runner
 			.snapshot()
 			.calls.find((call) => call.slice(0, project_lint_command.length).join(" ") === project_lint_command.join(" "));
+		let has_agent = false;
+		let has_force = false;
+		let has_skip = false;
+		if (lint_call !== undefined) {
+			has_agent = lint_call.includes("--review-agent");
+			has_force = lint_call.includes("--force-review");
+			has_skip = lint_call.includes("--skip-review");
+		}
 
 		expect({
-			has_agent: lint_call?.includes("--review-agent") === true,
-			has_force: lint_call?.includes("--force-review") === true,
-			has_skip: lint_call?.includes("--skip-review") === true,
+			has_agent,
+			has_force,
+			has_skip,
 		}).toEqual({ has_agent: false, has_force: false, has_skip: false });
 	});
 

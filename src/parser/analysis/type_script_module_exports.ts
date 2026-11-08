@@ -136,7 +136,11 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportLookupCont
 		if (!ts.isImportDeclaration(import_statement)) {
 			return [];
 		}
-		const bindings = import_statement.importClause?.namedBindings;
+		const import_clause = import_statement.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (bindings === undefined) {
 			return [];
 		}
@@ -160,8 +164,11 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportLookupCont
 
 	/** Responsibilities: _resolution named exported declaration_. **/
 	public exported_declaration(export_statement: ts.Statement, declaration_name: string): ts.Node[] {
-		if (ts.isFunctionDeclaration(export_statement) && export_statement.name?.text === declaration_name) {
-			return [export_statement];
+		if (ts.isFunctionDeclaration(export_statement)) {
+			const name = export_statement.name;
+			if (name !== undefined && name.text === declaration_name) {
+				return [export_statement];
+			}
 		}
 		if (!ts.isVariableStatement(export_statement)) {
 			return [];

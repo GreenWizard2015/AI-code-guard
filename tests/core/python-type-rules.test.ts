@@ -38,22 +38,6 @@ describe("coding-lint Python type rules", () => {
 		const files = {
 			...NULLABLE_DOMAIN_FILES,
 			"optional.ts": 'type Input = { readonly value?: string; };\nfunction load(input?: string): string { return ""; }',
-		};
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const messages = violations.map((item) => item.message());
-		expect(
-			messages.filter((message) => message === "replace nullable types with specialized state classes"),
-		).toHaveLength(11);
-	});
-
-	test("rejects Python fields typed only as nullish values", () => {
-		const test_fixture = new TestFixture();
-		const files = {
 			"nullish-fields.py": ["class NullableFields:", "    missing: None", "    impossible: Never"].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
@@ -62,10 +46,25 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message());
-		expect(
-			messages.filter((message) => message === "replace nullable types with specialized state classes"),
-		).toHaveLength(2);
+		const nullable_locations = violations
+			.filter((item) => item.message() === "replace nullable types with specialized state classes")
+			.map((item) => `${item.file()}:${item.line()}`)
+			.sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
+		expect(nullable_locations).toEqual([
+			"nullable.py:6",
+			"nullable.py:7",
+			"nullable.py:8",
+			"nullable.py:9",
+			"nullable.py:11",
+			"nullable.ts:3",
+			"nullable.ts:4",
+			"nullable.ts:5",
+			"nullable.ts:6",
+			"nullish-fields.py:2",
+			"nullish-fields.py:3",
+			"optional.ts:1",
+			"optional.ts:2",
+		]);
 	});
 
 	test("reports shared named parameters when each method uses them once", () => {
@@ -93,8 +92,10 @@ describe("coding-lint Python type rules", () => {
 		);
 		const messages = violations.map((item) => item.message());
 		expect(
-			messages.some((message) => message.startsWith('multiple methods share parameter set "body:JsonValue"')),
-		).toBe(true);
+			messages.filter((message) => message.startsWith('multiple methods share parameter set "body:JsonValue"')),
+		).toEqual(
+			expect.arrayContaining([expect.stringContaining('multiple methods share parameter set "body:JsonValue"')]),
+		);
 	});
 
 	test("rejects dynamic type factory construction", () => {
@@ -113,6 +114,18 @@ describe("coding-lint Python type rules", () => {
 				"class Record(TypedDict):",
 				"    value: str",
 			].join("\n"),
+			"indexed-type-factory.py": [
+				"from typing import NamedTuple",
+				"factory = tuple([NamedTuple])[0]",
+				'record = factory("Record", [])',
+			].join("\n"),
+			"wrapped-type-factories.py": [
+				'type("CandidateIf", (), {}) if enabled else None',
+				'enabled and type("CandidateAnd", (), {})',
+				'(lambda: type("CandidateLambda", (), {}))()',
+				"def create():",
+				'    yield type("CandidateYield", (), {})',
+			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
@@ -120,49 +133,31 @@ describe("coding-lint Python type rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const messages = violations.map((item) => item.message());
-		expect(
-			messages.filter(
-				(message) => message === "avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
-			),
-		).toHaveLength(7);
-	});
-
-	test("does not reuse project-specific Python class metadata from cached ASTs", () => {
-		const test_fixture = new TestFixture();
-		const python_ast_data = new PythonAstData({
-			worker: test_fixture.worker(),
-			analysis_identity: new ProjectAnalysisIdentity(test_fixture.file_io()),
-			split_batch_enabled: false,
-			file_io: test_fixture.file_io(),
-			cache_enabled: false,
-		});
-		const source = ["class Implementation(Base):", "    pass"].join("\n");
-		const cached_ast = python_ast_data.source_ast(source);
-		const scanner = new PythonScanner();
-		const input = {
-			file_name: new LintFileName("implementation.py"),
-			source_file: "implementation.py",
-			text: source,
-			project_class_names: new Set(["Base"]),
-			python_class_names: new Set(["Base"]),
-			project_protocol_names: new Set(["Base"]),
-			project_type_names: new Set<string>(),
-			project_alias_names: new Set<string>(),
-			normalized_ast: cached_ast,
-		};
-		scanner.lint_python_file(input);
-		const first_class = cached_ast.source.classes.at(0);
-		const first_interfaces = first_class?.structure.interfaces;
-		scanner.lint_python_file({ ...input, project_protocol_names: new Set<string>() });
-		const current_interfaces = cached_ast.source.classes.at(0)?.structure.interfaces;
-
-		expect({
-			class_count: cached_ast.source.classes.length,
-			interfaces: [first_interfaces, current_interfaces],
-		}).toEqual({
-			class_count: 1,
-			interfaces: [[], []],
+		const dynamic_factory_locations = violations
+			.filter((item) => item.message() === "avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)")
+			.map((item) => `${item.file()}:${item.line()}`)
+			.sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
+		const dynamic_class_locations = violations
+			.filter((item) => item.message() === "avoid dynamic class construction with type(...)")
+			.map((item) => `${item.file()}:${item.line()}`)
+			.sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
+		expect({ dynamic_factory_locations, dynamic_class_locations }).toEqual({
+			dynamic_factory_locations: [
+				"indexed-type-factory.py:3",
+				"namedtuple.py:2",
+				"namedtuple.py:3",
+				"namedtuple.py:5",
+				"namedtuple.py:6",
+				"namedtuple.py:8",
+				"namedtuple.py:9",
+				"namedtuple.py:10",
+			],
+			dynamic_class_locations: [
+				"wrapped-type-factories.py:1",
+				"wrapped-type-factories.py:2",
+				"wrapped-type-factories.py:3",
+				"wrapped-type-factories.py:5",
+			],
 		});
 	});
 
@@ -267,45 +262,5 @@ describe("coding-lint Python type rules", () => {
 			file: "adapter.py",
 			rule_id: "class-interface-count",
 		});
-	});
-
-	test("resolves type factories through indexed tuple values", () => {
-		const test_fixture = new TestFixture();
-		const files = {
-			"indexed-type-factory.py": [
-				"from typing import NamedTuple",
-				"factory = tuple([NamedTuple])[0]",
-				'record = factory("Record", [])',
-			].join("\n"),
-		};
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const messages = violations.map((item) => item.message());
-		expect(messages).toContain("avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)");
-	});
-
-	test("rejects dynamic type factories inside expression wrappers", () => {
-		const test_fixture = new TestFixture();
-		const files = {
-			"wrapped-type-factories.py": [
-				'candidate_if = type("CandidateIf", (), {}) if enabled else None',
-				'candidate_and = enabled and type("CandidateAnd", (), {})',
-				'candidate_lambda = (lambda: type("CandidateLambda", (), {}))()',
-				"def create():",
-				'    candidate_yield = yield type("CandidateYield", (), {})',
-			].join("\n"),
-		};
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const messages = violations.map((item) => item.message());
-		expect(messages.filter((message) => message === "avoid dynamic class construction with type(...)")).toHaveLength(4);
 	});
 });

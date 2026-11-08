@@ -166,7 +166,7 @@ export class TypeScriptCallableData implements TypeScriptCallableDataContract {
 			metrics: this.node_metric_values(metrics),
 			signature: this.node_signature(metrics),
 			test_behavior: this.node_test_behavior(node),
-			declaration: { decorators: [], is_accessor: false, has_self: false },
+			declaration: { decorators: [], parameterized_case_count: 0, is_accessor: false, has_self: false },
 		};
 	}
 

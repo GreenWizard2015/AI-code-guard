@@ -117,9 +117,9 @@ export class TypeScriptInstanceFiles implements TypeScriptInstanceFilesContract 
 		let current_owner = tree_owner;
 		if (ts.isClassLike(tree_node)) {
 			current_owner = this.declaration_owner(tree_node);
-			const class_name = tree_node.name?.text;
-			if (class_name !== undefined) {
-				local_class_names.add(class_name);
+			const name = tree_node.name;
+			if (name !== undefined) {
+				local_class_names.add(name.text);
 			}
 		} else if (ts.isInterfaceDeclaration(tree_node)) {
 			current_owner = this.declaration_owner(tree_node);

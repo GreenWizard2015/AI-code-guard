@@ -62,12 +62,6 @@ describe("coding-lint architecture and metrics rules", () => {
 			"b.py": "from model import RequestData\ndef second(value: RequestData):\n    return value + value + value",
 			"c.py": "from model import RequestData\ndef third(value: RequestData):\n    return value + value + value",
 		};
-		const baseline = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
 		const with_unrelated_type = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
@@ -77,14 +71,22 @@ describe("coding-lint architecture and metrics rules", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		/** Responsibilities: _shared parameter values_. **/
+		/** Responsibilities: _shared-parameter violation selection_. **/
 		const shared = (violations: readonly ViolationContract[]): ViolationContract[] =>
 			violations.filter((item) =>
 				item.message().includes('multiple functions share parameter set "value:RequestData"'),
 			);
 
-		expect(shared(with_unrelated_type)).toHaveLength(shared(baseline).length);
-		expect(shared(with_unrelated_type)).not.toHaveLength(0);
+		expect(
+			shared(with_unrelated_type).map((item) => ({ file: item.file(), line: item.line(), message: item.message() })),
+		).toEqual([
+			{
+				file: "a.py",
+				line: 2,
+				message:
+					'multiple functions share parameter set "value:RequestData" (3). Candidates: a.py:2 first; b.py:2 second; c.py:2 third.',
+			},
+		]);
 	});
 
 	test("omits file names from method candidates", () => {

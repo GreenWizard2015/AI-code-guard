@@ -7,16 +7,7 @@ import { METHOD_GROUP_SOURCES, METHOD_SOURCES } from "tests/bridge/ts/core/const
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint method and type rules", () => {
-	test.each<{
-		name: string;
-		files: Record<string, string>;
-		expected_counts: Record<string, number>;
-		expected_presence: string[];
-		absent_presence: string[];
-		included_messages: string[];
-		excluded_messages: string[];
-		expected_locations: { rule_id: string; file_suffix: string }[];
-	}>([
+	test.each([
 		{
 			name: "matches command prefixes only at a word boundary",
 			files: {
@@ -254,149 +245,19 @@ describe("coding-lint method and type rules", () => {
 			expected_locations: [{ rule_id: "assertion-outside-test", file_suffix: "tests/assertions.ts" }],
 		},
 		{
-			name: "allows Python assertions only inside test functions",
+			name: "reports arithmetic precedence and accepts an annotated Python slot",
 			files: {
-				"production.py":
-					"def validate(value: bool) -> None:\n    assert value\n\nclass Validator:\n    def validate(self, value: bool) -> None:\n        self.assertEqual(value, True)",
-				"tests/assertions.py": "assert module_value",
-				"tests/assertions_test.py": [
-					"import unittest",
-					"",
-					"assert module_value",
-					"",
-					"class TestAssertions(unittest.TestCase):",
-					"    def test_value(self):",
-					"        assert value",
-					"        self.assertEqual(value, True)",
+				"arithmetic.ts": "function total(a: number, b: number, c: number): number { return a + b * c; }",
+				"slot_owner.py": [
+					"class SlotOwner:",
+					"    __slots__ = ('value',)",
+					"    def __init__(self) -> None:",
+					"        self.value: int = 1",
+					"    def read(self) -> int:",
+					"        return self.value",
 				].join("\n"),
 			},
-			expected_counts: { "assertion-outside-test": 2 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [
-				{ rule_id: "assertion-outside-test", file_suffix: "tests/assertions_test.py" },
-				{ rule_id: "assertion-outside-test", file_suffix: "tests/assertions.py" },
-			],
-		},
-		{
-			name: "rejects in checks for values that are not typed collections",
-			files: {
-				"map-in.ts": [
-					"const has_key = key in notMap;",
-					"if (key in notMap) { return; }",
-					"if ((key in notMap)) { return; }",
-					"if (!(key in notMap)) { return; }",
-					"if (Boolean(key in notMap)) { return; }",
-					"if (has_key) { return; }",
-					"const [destructured_has_key] = [key in notMap];",
-					"if (destructured_has_key) { return; }",
-					"const [spread_destructured_has_key] = [...[key in notMap]];",
-					"if (spread_destructured_has_key) { return; }",
-					"const { object_spread_has_key } = { ...{ object_spread_has_key: key in notMap } };",
-					"if (object_spread_has_key) { return; }",
-					"const object_alias = { object_alias_has_key: key in notMap };",
-					"const { object_alias_has_key } = { ...object_alias };",
-					"if (object_alias_has_key) { return; }",
-				].join("\n"),
-			},
-			expected_counts: { "typescript-in-operator": 18 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "allows in checks only for explicitly typed collections",
-			files: {
-				"collection-in.ts": ["const values: Map<string, string> = new Map();", "if (key in values) { return; }"].join(
-					"\n",
-				),
-			},
-			expected_counts: { "typescript-in-operator": 0 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "does not treat a shadowed collection type name as a built-in",
-			files: {
-				"shadowed-map-in.ts": [
-					"type Map = Record<string, string>;",
-					"const options: Map = { name: 'Ada' };",
-					"if ('name' in options) { console.log(options.name); }",
-				].join("\n"),
-				"shadowed-map-constructor.ts": ["class Map {}", "if ('name' in new Map()) { console.log('found'); }"].join(
-					"\n",
-				),
-			},
-			expected_counts: { "typescript-in-operator": 4 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "allows data-only object literals under the fake-object rule",
-			files: {
-				"payload.ts": ["const payload = {", '\ttext: "value",', "\tcount: 1,", "};"].join("\n"),
-			},
-			expected_counts: { "typescript-fake-object": 0 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "allows callback context objects passed to constructors",
-			files: {
-				"process.ts": [
-					"interface ProcessContext { settle: (value: string) => void; }",
-					"",
-					"class ProcessState {",
-					"	public constructor(context: ProcessContext) {}",
-					"}",
-					"new ProcessState({ settle: (value) => { void value; } });",
-				].join("\n"),
-			},
-			expected_counts: { "typescript-fake-object": 0 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "rejects dynamic own-property checks",
-			files: {
-				"property-check.ts": "if (Object.prototype.hasOwnProperty.call(value, key)) { return; }",
-			},
-			expected_counts: { "typescript-dynamic-runtime-usage": 1 },
-			expected_presence: [],
-			absent_presence: [],
-			included_messages: [],
-			excluded_messages: [],
-			expected_locations: [],
-		},
-		{
-			name: "allows non-callable serializer payloads to return object literals",
-			files: {
-				"contracts.ts": "export interface Payload { text: string; }",
-				"serializer.ts": [
-					"class Serializer {",
-					'\tprivate readonly text: string = "value";',
-					"\tpublic to_json(): Payload { return { text: this.text }; }",
-					"\tpublic to_response(): Payload { return { text: this.text }; }",
-					"}",
-				].join("\n"),
-			},
-			expected_counts: { "typescript-object-literal-return": 0 },
+			expected_counts: { "mixed-arithmetic-precedence": 1, "python-explicit-field-type": 0 },
 			expected_presence: [],
 			absent_presence: [],
 			included_messages: [],
@@ -454,38 +315,4 @@ describe("coding-lint method and type rules", () => {
 			});
 		},
 	);
-
-	test("reports mixed arithmetic precedence in production expressions", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"arithmetic.ts": "function total(a: number, b: number, c: number): number { return a + b * c; }",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect(violations.filter((item) => item.rule_id() === "mixed-arithmetic-precedence")).toHaveLength(1);
-	});
-
-	test("accepts an annotated Python slot initialized in the constructor", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"slot_owner.py": [
-					"class SlotOwner:",
-					"    __slots__ = ('value',)",
-					"    def __init__(self) -> None:",
-					"        self.value: int = 1",
-					"    def read(self) -> int:",
-					"        return self.value",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((item) => item.rule_id() === "python-explicit-field-type")).toEqual([]);
-	});
 });

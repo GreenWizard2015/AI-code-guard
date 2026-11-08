@@ -5,77 +5,55 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint type boundary union edge cases", () => {
-	test("allows literal union aliases", () => {
+	test("allows literal aliases, primitive unions, and a single literal", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
-				"kinds.ts": ["type First = 'first' | 'second';", "type Second = First | 'third';"].join("\n"),
+				"literal-unions.ts": ["type First = 'first' | 'second';", "type Second = First | 'third';"].join("\n"),
+				"primitive-boundary.ts": "function load(value: string | number): string { return String(value); }",
+				"single-literal.ts": "type Status = 'ready';",
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		expect({
-			composite: violations.filter((item) => item.rule_id() === "composite-state-type"),
-			nullable: violations.filter((item) => item.rule_id() === "nullable-domain-type"),
-			bypass: violations.filter((item) => item.rule_id() === "typescript-union-contract-bypass"),
-		}).toEqual({ composite: [], nullable: [], bypass: [] });
+			literal_aliases: violations
+				.filter(
+					(item) =>
+						item.file() === "literal-unions.ts" &&
+						["composite-state-type", "nullable-domain-type", "typescript-union-contract-bypass"].includes(
+							item.rule_id(),
+						),
+				)
+				.map((item) => `${item.rule_id()}@${item.file()}:${item.line()}`),
+			primitive_union: violations
+				.filter(
+					(item) =>
+						item.file() === "primitive-boundary.ts" &&
+						["composite-state-type", "nullable-domain-type"].includes(item.rule_id()),
+				)
+				.map((item) => `${item.rule_id()}@${item.file()}:${item.line()}`),
+			single_literal: violations
+				.filter((item) => item.file() === "single-literal.ts" && item.rule_id() === "composite-state-type")
+				.map((item) => `${item.rule_id()}@${item.file()}:${item.line()}`),
+		}).toEqual({ literal_aliases: [], primitive_union: [], single_literal: [] });
 	});
 
-	test("allows primitive value unions at method boundaries", () => {
+	test("reports nullable and composite intersections at exact type boundaries", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
-				"boundary.ts": "function load(value: string | number): string { return String(value); }",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect({
-			composite: violations.filter((item) => item.rule_id() === "composite-state-type"),
-			nullable: violations.filter((item) => item.rule_id() === "nullable-domain-type"),
-		}).toEqual({ composite: [], nullable: [] });
-	});
-
-	test("rejects parenthesized nullable unions at method boundaries", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"parenthesized-nullable.ts": "function load(value: (string | undefined)): string { return String(value); }",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect(violations.filter((item) => item.rule_id() === "nullable-domain-type")).toHaveLength(1);
-	});
-
-	test("keeps composite intersections visible at type boundaries", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"boundary.ts": "function load(value: A & B): A & B { return value; }",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect(
-			violations
-				.filter((item) => item.rule_id() === "composite-state-type")
-				.map((item) => ({ rule_id: item.rule_id(), priority: item.priority() })),
-		).toEqual([
-			{ rule_id: "composite-state-type", priority: 6 },
-			{ rule_id: "composite-state-type", priority: 6 },
-		]);
-	});
-
-	test("rejects named-type intersections in both languages and allows explicit fields", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
+				"parenthesized-nullable.ts":
+					"function load_optional(value: (string | undefined)): string { return String(value); }",
+				"intersection-boundary.ts": [
+					"function load_composite(",
+					"  value: A & B,",
+					"): A & B {",
+					"  return value;",
+					"}",
+				].join("\n"),
 				"types.ts": [
 					"type UserId = { id: string };",
 					"type UserName = { name: string };",
@@ -95,21 +73,17 @@ describe("coding-lint type boundary union edge cases", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		const composite_violations = violations.filter((item) => item.rule_id() === "composite-state-type");
+		const boundary_violations = violations
+			.filter((item) => ["composite-state-type", "nullable-domain-type"].includes(item.rule_id()))
+			.map((item) => `${item.rule_id()}@${item.file()}:${item.line()}`)
+			.sort();
 
-		expect(composite_violations.map((item) => item.file()).sort()).toEqual(["types.py", "types.ts"]);
-	});
-
-	test("does not treat a single literal as a composite union", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"single.ts": "type Status = 'ready';",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		expect(violations.filter((item) => item.rule_id() === "composite-state-type")).toHaveLength(0);
+		expect(boundary_violations).toEqual([
+			"composite-state-type@intersection-boundary.ts:2",
+			"composite-state-type@intersection-boundary.ts:3",
+			"composite-state-type@types.py:4",
+			"composite-state-type@types.ts:3",
+			"nullable-domain-type@parenthesized-nullable.ts:1",
+		]);
 	});
 });

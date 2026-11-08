@@ -58,8 +58,14 @@ export class CliOptionApplication implements CliOptionApplicationContract {
 		if (this._option !== `${this.option_prefix}review-agent`) {
 			return false;
 		}
-		if (this._next_value !== "codex" && this._next_value !== "claude") {
-			throw new Error(`Invalid --review-agent value: ${this._next_value}`);
+		switch (this._next_value) {
+			case "codex":
+			case "cx":
+			case "cxa":
+			case "claude":
+				break;
+			default:
+				throw new Error(`Invalid --review-agent value: ${this._next_value}`);
 		}
 		this._options.review_agent = this._next_value;
 		this._options.skip_review = false;
@@ -98,10 +104,6 @@ export class CliOptionApplication implements CliOptionApplicationContract {
 	private apply_boolean_option(): boolean {
 		if (this._option === `${this.option_prefix}force-review`) {
 			this._options.force_review = true;
-			return true;
-		}
-		if (this._option === `${this.option_prefix}review-cleanup`) {
-			this._options.review_cleanup = true;
 			return true;
 		}
 		return false;

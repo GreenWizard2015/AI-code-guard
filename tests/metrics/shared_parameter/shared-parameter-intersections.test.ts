@@ -30,14 +30,12 @@ describe("shared parameter analyzer - reference intersections", () => {
 		const candidates = analyzer.collect_candidates();
 		const project_a_candidates = test_data_factory.candidate_named(candidates, "id:string, value:ProjectA");
 		const project_b_candidates = test_data_factory.candidate_named(candidates, "id:string, value:ProjectB");
-		const project_a = project_a_candidates[0];
-		const project_b = project_b_candidates[0];
 
 		expect({
-			project_a: project_a?.locations.length,
-			project_b: project_b?.locations.length,
+			project_a: project_a_candidates.map((candidate) => candidate.locations.length),
+			project_b: project_b_candidates.map((candidate) => candidate.locations.length),
 			combined: test_data_factory.candidate_named(candidates, "id:string, value:ProjectA, value:ProjectB"),
-		}).toEqual({ project_a: 4, project_b: 4, combined: [] });
+		}).toEqual({ project_a: [4], project_b: [4], combined: [] });
 	});
 
 	test("keeps disjoint bundles with equal support and different sizes", () => {
@@ -67,13 +65,11 @@ describe("shared parameter analyzer - reference intersections", () => {
 			candidates,
 			"id:string, scope:string, value:ProjectB",
 		);
-		const project_a = project_a_candidates[0];
-		const project_b = project_b_candidates[0];
 
 		expect({
-			project_a: project_a?.support,
-			project_b: project_b?.support,
-		}).toEqual({ project_a: 3, project_b: 3 });
+			project_a: project_a_candidates.map((candidate) => candidate.support),
+			project_b: project_b_candidates.map((candidate) => candidate.support),
+		}).toEqual({ project_a: [3], project_b: [3] });
 	});
 
 	test("uses the exact intersection instead of either node support", () => {
@@ -84,15 +80,12 @@ describe("shared parameter analyzer - reference intersections", () => {
 		const project_a_candidates = test_data_factory.candidate_named(candidates, "value:ProjectA");
 		const project_b_candidates = test_data_factory.candidate_named(candidates, "value:ProjectB");
 		const combined_candidates = test_data_factory.candidate_named(candidates, "value:ProjectA, value:ProjectB");
-		const project_a = project_a_candidates[0];
-		const project_b = project_b_candidates[0];
-		const combined = combined_candidates[0];
 
 		expect({
-			project_a: project_a?.support,
-			project_b: project_b?.support,
-			combined: combined?.support,
-		}).toEqual({ project_a: 8, project_b: 6, combined: 4 });
+			project_a: project_a_candidates.map((candidate) => candidate.support),
+			project_b: project_b_candidates.map((candidate) => candidate.support),
+			combined: combined_candidates.map((candidate) => candidate.support),
+		}).toEqual({ project_a: [8], project_b: [6], combined: [4] });
 	});
 
 	test("keeps overlapping maximal bundles from competing extensions", () => {
@@ -103,13 +96,11 @@ describe("shared parameter analyzer - reference intersections", () => {
 		const candidates = analyzer.collect_candidates();
 		const xz_candidates = test_data_factory.candidate_named(candidates, "value:Project, x:string, z:string");
 		const yz_candidates = test_data_factory.candidate_named(candidates, "value:Project, y:string, z:string");
-		const xz_candidate = xz_candidates[0];
-		const yz_candidate = yz_candidates[0];
 
 		expect({
-			xz: xz_candidate?.support,
-			yz: yz_candidate?.support,
-		}).toEqual({ xz: 3, yz: 3 });
+			xz: xz_candidates.map((candidate) => candidate.support),
+			yz: yz_candidates.map((candidate) => candidate.support),
+		}).toEqual({ xz: [3], yz: [3] });
 	});
 
 	test("reports repeated primitive parameters by exact name and type", () => {
@@ -135,10 +126,10 @@ describe("shared parameter analyzer - reference intersections", () => {
 		const candidates = analyzer.collect_candidates();
 
 		expect(
-			candidates.map((candidate) => ({
-				name: candidate.nodes[0]?.identity,
-				support: candidate.support,
-			})),
+			candidates.map((candidate) => {
+				const name = candidate.nodes.map((node) => node.identity).join(", ");
+				return { name, support: candidate.support };
+			}),
 		).toEqual([
 			{ name: "file:number", support: 3 },
 			{ name: "file:string", support: 3 },
@@ -157,7 +148,8 @@ describe("shared parameter analyzer - reference intersections", () => {
 		const analyzer = new SharedParameterAnalyzer(callables);
 		const candidates = analyzer.collect_candidates();
 
-		expect(candidates.map((candidate) => candidate.nodes[0]?.identity)).toEqual(["source_file:ts.SourceFile"]);
+		const identities = candidates.flatMap((candidate) => candidate.nodes.map((node) => node.identity));
+		expect(identities).toEqual(["source_file:ts.SourceFile"]);
 	});
 
 	test("returns the same dictionaries and candidates for reordered input", () => {

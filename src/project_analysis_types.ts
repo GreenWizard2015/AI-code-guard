@@ -50,10 +50,12 @@ export type LintRunInventory = {
 };
 export type LintRunCacheState = {
 	readonly global_enabled: boolean;
+	readonly project_analysis_rules: boolean;
 	readonly virtual_project: boolean;
 };
 export type LintRunState = {
 	readonly repo_root: string;
+	readonly ignore_files: readonly string[];
 	readonly inventory: LintRunInventory;
 	readonly names: ProjectNames;
 	readonly context: LintProjectContextContract;

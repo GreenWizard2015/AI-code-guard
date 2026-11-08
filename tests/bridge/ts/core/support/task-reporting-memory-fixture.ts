@@ -3,7 +3,6 @@ import { basename, dirname, join, resolve } from "node:path";
 import { REPORTING_PROJECT_ROOT } from "src/constants";
 import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import {
-	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
 	REVIEW_DOCUMENT_NAMES,
 	REVIEW_FINDING_DOCUMENT,
@@ -44,7 +43,6 @@ export class TaskReportingMemoryFixture {
 		}
 		file_io.file(join(directory, REVIEW_PREAMBLE_DOCUMENT)).write_text("Review preamble.\n");
 		file_io.file(join(directory, REVIEW_COMMON_DOCUMENT)).write_text("Allowed operations.\n");
-		file_io.file(join(directory, REVIEW_CLEANUP_COMMON_DOCUMENT)).write_text("Cleanup operations.\n");
 		file_io.file(join(directory, REVIEW_FINDING_DOCUMENT)).write_text("Finding requirements.\n");
 		file_io.file(join(directory, ON_REVIEW_DOCUMENT)).write_text("Defects remaining to find: {N}.\n");
 	}

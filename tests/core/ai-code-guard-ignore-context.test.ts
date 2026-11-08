@@ -46,6 +46,7 @@ describe("AI Code Guard ignore configuration in project context", () => {
 				source_texts: new Map([[source_file, "export const ready = true;"]]),
 				configuration_snapshot_complete: true,
 				entry_files: [],
+				project_analysis_enabled: false,
 			},
 			LintReportMode.IN_MEMORY_PROJECT,
 		);

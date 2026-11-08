@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { REVIEW_DELETION_DENIAL_REASON } from "src/core/support/task/review-agent/constants";
 import { ReviewFilePolicy } from "src/core/support/task/review-agent/policy/review_file_policy";
 import type {
 	ReviewDeletionPolicyContract,
@@ -16,7 +17,6 @@ export class ReviewDeletionPolicy implements ReviewDeletionPolicyContract {
 	private readonly _io: IOContract;
 	private readonly _command: string;
 	private readonly _cwd: string;
-	private readonly _cleanup: boolean;
 	private readonly _command_cwd: string;
 
 	/** Responsibilities: _removal command arguments_. **/
@@ -58,14 +58,6 @@ export class ReviewDeletionPolicy implements ReviewDeletionPolicyContract {
 		return this.single_removal_file(arguments_text);
 	}
 
-	/** Responsibilities: _deletion denial wording_. **/
-	private deletion_denial_reason(): string {
-		if (this._cleanup) {
-			return "Cleanup may remove only one existing open Markdown finding from .ai-code-guard/review/.";
-		}
-		return "Only an oversized open review file may be removed after its findings are split.";
-	}
-
 	/** Responsibilities: _command working-directory resolution_. **/
 	private effective_command_cwd(): string {
 		if (this._command_cwd === "") {
@@ -78,11 +70,11 @@ export class ReviewDeletionPolicy implements ReviewDeletionPolicyContract {
 	private deletion_target(): HookDecision {
 		const file = this.removal_command_file();
 		if (file === "") {
-			return { allowed: false, reason: this.deletion_denial_reason() };
+			return { allowed: false, reason: REVIEW_DELETION_DENIAL_REASON };
 		}
 		const target_cwd = this.effective_command_cwd();
 		if (!this.file(resolve(target_cwd, file), this._cwd).open_for_mutation()) {
-			return { allowed: false, reason: this.deletion_denial_reason() };
+			return { allowed: false, reason: REVIEW_DELETION_DENIAL_REASON };
 		}
 		return { allowed: true, reason: "" };
 	}
@@ -93,7 +85,6 @@ export class ReviewDeletionPolicy implements ReviewDeletionPolicyContract {
 		this._io = io;
 		this._command = payload.tool_input.command;
 		this._cwd = payload.cwd;
-		this._cleanup = payload.review_phase === "cleanup";
 		this._command_cwd = command_cwd;
 		this._trusted_removal_commands = new Set([
 			"/bin/rm",
@@ -115,13 +106,10 @@ export class ReviewDeletionPolicy implements ReviewDeletionPolicyContract {
 		if (!target.allowed) {
 			return target;
 		}
-		if (this._cleanup) {
-			return target;
-		}
 		const file = this.removal_command_file();
-		if (this.file(file, this._cwd).allows_patch_deletion(false)) {
+		if (this.file(file, this._cwd).allows_patch_deletion()) {
 			return target;
 		}
-		return { allowed: false, reason: this.deletion_denial_reason() };
+		return { allowed: false, reason: REVIEW_DELETION_DENIAL_REASON };
 	}
 }

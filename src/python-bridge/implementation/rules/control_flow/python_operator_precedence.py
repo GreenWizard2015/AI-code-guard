@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
 from implementation.rules.protocols import PythonExpressionBoundaryContract
-from implementation.types import JsonObject, PythonOperatorKinds
+from implementation.types import JsonObject, PythonASTLocatedNode, PythonOperatorKinds
 
 
 @dataclass(frozen=True)
@@ -150,7 +151,7 @@ class PythonOperatorPrecedence:
 
     def mixed_boolean_operator(self, expression_candidate: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection mixed boolean precedence_."""
-        line: int = expression_candidate.lineno - 1
+        line: int = cast(PythonASTLocatedNode, expression_candidate).lineno - 1
         kind: str = PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
         violation: JsonObject = {"line": line, "kind": kind}
         if self._expression_boundary.negation_comparison_boundary(expression_candidate):
@@ -174,7 +175,7 @@ class PythonOperatorPrecedence:
             if self._mixed(expression_candidate, boolean_group=False):
                 return [
                     {
-                        "line": expression_candidate.lineno - 1,
+                        "line": cast(PythonASTLocatedNode, expression_candidate).lineno - 1,
                         "kind": "mixed-arithmetic-precedence",
                     },
                 ]

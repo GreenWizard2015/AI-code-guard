@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { REPORTING_PROJECT_ROOT } from "src/constants";
 import {
-	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
 	REVIEW_DOCUMENT_NAMES,
 	REVIEW_FINDING_DOCUMENT,
@@ -32,7 +31,6 @@ export class TaskReviewAgentStageFixture {
 		}
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_PREAMBLE_DOCUMENT), "Review preamble.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_COMMON_DOCUMENT), "Allowed operations.\n");
-		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT), "Cleanup operations.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_FINDING_DOCUMENT), "Finding requirements.\n");
 		files.set(join(REPORTING_PROJECT_ROOT, "docs", "agent", ON_REVIEW_DOCUMENT), "Defects remaining to find: {N}.\n");
 		this._io.seed_files(files);

@@ -23,7 +23,6 @@ export class CliArchitectureReview {
 		if (review_pending && agent_selected && report_is_clean) {
 			return this._stage_timer.measure_async("architecture-review", () =>
 				this._task_reporting.run_review_agent(options.review_agent, {
-					review_cleanup: options.review_cleanup,
 					force_review: options.force_review,
 					review_stages: options.review_stages,
 				}),

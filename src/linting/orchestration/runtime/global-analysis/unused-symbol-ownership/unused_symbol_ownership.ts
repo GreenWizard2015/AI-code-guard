@@ -1,5 +1,8 @@
 import { TYPESCRIPT_CACHE_OWNER } from "src/constants";
-import type { UnusedSymbolPropertyOwnershipContract } from "src/contracts/protocols/global_analysis_protocols";
+import type {
+	UnusedSymbolParameterShadowContract,
+	UnusedSymbolPropertyOwnershipContract,
+} from "src/contracts/protocols/global_analysis_protocols";
 import type {
 	UnusedFieldOwner,
 	UnusedParameterInterval,
@@ -15,8 +18,10 @@ import type { LintSourceRecordData } from "src/source_types";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
-/** Responsibilities: _unused field owner resolution_, _shadow binding detection_. **/
-export class UnusedSymbolOwnership implements UnusedSymbolPropertyOwnershipContract {
+/** Responsibilities: _field owner resolution_, _parameter shadow detection_, _parameter interval indexing_. **/
+export class UnusedSymbolOwnership
+	implements UnusedSymbolParameterShadowContract, UnusedSymbolPropertyOwnershipContract
+{
 	private readonly _scanner: ProjectSourceScanContract;
 	private readonly _available_files: Set<string>;
 	private readonly _import_cache: UnusedSourceImportCache;
@@ -24,7 +29,6 @@ export class UnusedSymbolOwnership implements UnusedSymbolPropertyOwnershipContr
 	private readonly _fields: UnusedFieldOwnershipIndex;
 	private readonly _parameter_intervals: UnusedParameterIntervalCache;
 
-	/** Responsibilities: _source import cache_. **/
 	/** Responsibilities: _parameter interval indexing_. **/
 	private append_parameter_intervals(
 		source_file: ts.SourceFile,

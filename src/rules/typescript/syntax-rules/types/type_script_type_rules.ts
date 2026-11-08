@@ -65,7 +65,11 @@ export class TypeScriptTypeRules implements ASTSourceRuleContract {
 		if (!ts.isIdentifier(type_name)) {
 			return true;
 		}
-		return !statement.typeParameters?.some((parameter) => parameter.name.text === type_name.text);
+		const type_parameters = statement.typeParameters;
+		if (type_parameters === undefined) {
+			return true;
+		}
+		return !type_parameters.some((parameter) => parameter.name.text === type_name.text);
 	}
 
 	/** Responsibilities: _type rule dependencies_. **/

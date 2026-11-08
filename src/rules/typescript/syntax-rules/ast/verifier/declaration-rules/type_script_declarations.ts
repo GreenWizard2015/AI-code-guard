@@ -46,7 +46,11 @@ export class TypeScriptDeclarations {
 
 	/** Responsibilities: _extraction private named imports_. **/
 	private named_imports(statement: ts.ImportDeclaration): NamedDeclaration[] {
-		const bindings = statement.importClause?.namedBindings;
+		const import_clause = statement.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (!bindings || !ts.isNamedImports(bindings)) {
 			return [];
 		}

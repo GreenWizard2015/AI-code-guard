@@ -18,3 +18,4 @@ export const PYTHON_AST_SPLIT_BATCH_COMPLETION_UNAVAILABLE_MESSAGE =
 export const PYTHON_AST_SPLIT_BATCH_CLEANUP_UNAVAILABLE_MESSAGE = "Python AST split batch cleanup is unavailable.";
 export const PYTHON_AST_WORKER_REGISTRIES = new WeakMap<NodeJS.Process, Map<string, PythonAstWorkerRegistryEntry>>();
 export const PYTHON_AST_WORKER_INACTIVE_LEASE_MESSAGE = "Python AST worker lease is no longer active.";
+export const PYTHON_AST_PROMISE_REJECTED_STATUS = "rejected";

@@ -9,99 +9,52 @@ import { ProductionTestImportAnalyzer } from "src/rules/architecture/production_
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("production test import lint", () => {
-	test("routes TypeScript project import findings through the AST verifier", () => {
+	test("reports TypeScript production imports and allows tests to import production", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
-				"src/service.ts": "import { helper } from '../tests/support/helper'; helper();",
+				"src/consumer.ts": "import { helper } from '../tests/support/helper'; helper();",
 				"tests/support/helper.ts": "export const helper = (): void => {};",
+				"src/require-consumer.ts": "import helper = require('../tests/support/equal-helper'); helper.run();",
+				"tests/support/equal-helper.ts": "export const helper = { run: (): void => {} };",
+				"src/service.ts": "export const service = (): void => {};",
+				"tests/service.test.ts": "import { service } from '../src/service'; service();",
 			},
 			(configuration, options, mode) => configuration.lint_report(options, mode).report.violations,
 		);
+		const production_imports = violations
+			.filter((violation) => violation.rule_id() === "production-test-import")
+			.map((violation) => ({
+				file: violation.file(),
+				rule_id: violation.rule_id(),
+				message: violation.message(),
+			}))
+			.sort((left, right) => left.file.localeCompare(right.file));
 
-		expect(
-			violations
-				.filter((violation) => violation.rule_id() === "production-test-import")
-				.map((violation) => [violation.file(), violation.rule_id()]),
-		).toEqual([["src/service.ts", "production-test-import"]]);
-	});
-
-	test("reports a TypeScript production import of a test file", () => {
-		const test_fixture = new TestFixture();
-		const file_io = new NodeFileIO(process.cwd());
-		const context_factory = new LintProjectContextCreator(
-			test_fixture.python_ast_data(),
-			new ProjectAnalysisIdentity(file_io),
-			new SourceText(),
-			file_io,
-		);
-		const value = test_fixture.fixture({
-			"src/service.ts": "import { helper } from '../tests/support/helper';\nhelper();\n",
-			"tests/support/helper.ts": "export const helper = (): void => {};\n",
-		});
-		const context = context_factory.lint_context(
-			context_factory.snapshot({
-				repo_root: value.root,
-				project_files: value.paths,
-				ignore_files: [],
-				stage_timer: new LintStageTimer(),
-				source_texts: value.source_texts,
-				in_memory: true,
-				configuration_snapshot_complete: false,
-			}),
-		);
-		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture._project_source.project_source_analysis_options(value, context, new Set<string>()),
-		);
-
-		const violations = analyzer.language_violations("typescript");
-
-		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id(), message: item.message() }))).toEqual(
-			[
+		expect({
+			production_imports,
+			test_to_production_reported: violations.some(
+				(violation) => violation.rule_id() === "production-test-import" && violation.file() === "tests/service.test.ts",
+			),
+		}).toEqual({
+			production_imports: [
 				{
-					file: "src/service.ts",
+					file: "src/consumer.ts",
 					rule_id: "production-test-import",
 					message: "production file imports test file tests/support/helper.ts",
 				},
+				{
+					file: "src/require-consumer.ts",
+					rule_id: "production-test-import",
+					message: "production file imports test file tests/support/equal-helper.ts",
+				},
 			],
-		);
-	});
-
-	test("reports a TypeScript import-equals production import of a test file", () => {
-		const test_fixture = new TestFixture();
-		const file_io = new NodeFileIO(process.cwd());
-		const context_factory = new LintProjectContextCreator(
-			test_fixture.python_ast_data(),
-			new ProjectAnalysisIdentity(file_io),
-			new SourceText(),
-			file_io,
-		);
-		const value = test_fixture.fixture({
-			"src/service.ts": "import helper = require('../tests/support/helper');\nhelper.run();\n",
-			"tests/support/helper.ts": "export const run = (): void => {};\n",
+			test_to_production_reported: false,
 		});
-		const context = context_factory.lint_context(
-			context_factory.snapshot({
-				repo_root: value.root,
-				project_files: value.paths,
-				ignore_files: [],
-				stage_timer: new LintStageTimer(),
-				source_texts: value.source_texts,
-				in_memory: true,
-				configuration_snapshot_complete: false,
-			}),
-		);
-		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture._project_source.project_source_analysis_options(value, context, new Set<string>()),
-		);
-
-		expect(analyzer.language_violations("typescript").map((item) => item.rule_id())).toEqual([
-			"production-test-import",
-		]);
 	});
 
-	test("reports a Python production import of a test file", () => {
+	test("reports Python production imports of test modules and submodules", () => {
 		const test_fixture = new TestFixture();
 		const file_io = new NodeFileIO(process.cwd());
 		const context_factory = new LintProjectContextCreator(
@@ -112,39 +65,9 @@ describe("production test import lint", () => {
 		);
 		const value = test_fixture.fixture({
 			"src/service.py": "from tests.support.helper import helper\nhelper()\n",
-			"tests/support/helper.py": "def helper() -> None:\n    pass\n",
-		});
-		const context = context_factory.lint_context(
-			context_factory.snapshot({
-				repo_root: value.root,
-				project_files: value.paths,
-				ignore_files: [],
-				stage_timer: new LintStageTimer(),
-				source_texts: value.source_texts,
-				in_memory: true,
-				configuration_snapshot_complete: false,
-			}),
-		);
-		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture._project_source.project_source_analysis_options(value, context, new Set<string>()),
-		);
-
-		expect(analyzer.language_violations("python").map((item) => item.rule_id())).toEqual(["production-test-import"]);
-	});
-
-	test("reports a Python named submodule test import", () => {
-		const test_fixture = new TestFixture();
-		const file_io = new NodeFileIO(process.cwd());
-		const context_factory = new LintProjectContextCreator(
-			test_fixture.python_ast_data(),
-			new ProjectAnalysisIdentity(file_io),
-			new SourceText(),
-			file_io,
-		);
-		const value = test_fixture.fixture({
-			"src/service.py": "from tests.support import helper\nhelper.run()\n",
+			"src/submodule_service.py": "from tests.support import helper\nhelper.run()\n",
 			"tests/support/__init__.py": "",
-			"tests/support/helper.py": "def run() -> None:\n    pass\n",
+			"tests/support/helper.py": "def helper() -> None:\n    pass\n\ndef run() -> None:\n    pass\n",
 		});
 		const context = context_factory.lint_context(
 			context_factory.snapshot({
@@ -160,38 +83,12 @@ describe("production test import lint", () => {
 		const analyzer = new ProductionTestImportAnalyzer(
 			test_fixture._project_source.project_source_analysis_options(value, context, new Set<string>()),
 		);
+		const python_imports = analyzer
+			.language_violations("python")
+			.filter((violation) => violation.rule_id() === "production-test-import")
+			.map((violation) => `${violation.file()}:${violation.line()}`)
+			.sort();
 
-		expect(analyzer.language_violations("python").map((item) => item.rule_id())).toEqual(["production-test-import"]);
-	});
-
-	test("allows a test import of a production file", () => {
-		const test_fixture = new TestFixture();
-		const file_io = new NodeFileIO(process.cwd());
-		const context_factory = new LintProjectContextCreator(
-			test_fixture.python_ast_data(),
-			new ProjectAnalysisIdentity(file_io),
-			new SourceText(),
-			file_io,
-		);
-		const value = test_fixture.fixture({
-			"src/service.ts": "export const service = (): void => {};\n",
-			"tests/service.test.ts": "import { service } from '../src/service';\nservice();\n",
-		});
-		const context = context_factory.lint_context(
-			context_factory.snapshot({
-				repo_root: value.root,
-				project_files: value.paths,
-				ignore_files: [],
-				stage_timer: new LintStageTimer(),
-				source_texts: value.source_texts,
-				in_memory: true,
-				configuration_snapshot_complete: false,
-			}),
-		);
-		const analyzer = new ProductionTestImportAnalyzer(
-			test_fixture._project_source.project_source_analysis_options(value, context, new Set<string>()),
-		);
-
-		expect(analyzer.language_violations("typescript")).toEqual([]);
+		expect(python_imports).toEqual(["src/service.py:1", "src/submodule_service.py:1"]);
 	});
 });

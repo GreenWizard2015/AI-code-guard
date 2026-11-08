@@ -1,6 +1,6 @@
 # `test-max-count`
 
-Description: Each Jest `describe` suite may contain at most fifteen test methods. Split larger suites by cohesive behavior.
+Description: Each Jest `describe` suite may contain at most fifteen test cases. Count each row in a static `test.each([...])` table as a separate case. Split larger suites by cohesive behavior.
 
 
 Fix: Split the suite by cohesive behavior. Do not keep unrelated tests in one `describe` block.

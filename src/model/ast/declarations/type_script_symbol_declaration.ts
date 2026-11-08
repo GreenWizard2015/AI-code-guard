@@ -78,11 +78,13 @@ export class TypeScriptSymbolDeclaration {
 			return this.default_visibility;
 		}
 		const modifiers = ts.getModifiers(node);
-		if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
-			return "private";
-		}
-		if (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
-			return PROTECTED_VISIBILITY;
+		if (modifiers !== undefined) {
+			if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.PrivateKeyword)) {
+				return "private";
+			}
+			if (modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ProtectedKeyword)) {
+				return PROTECTED_VISIBILITY;
+			}
 		}
 		return this.default_visibility;
 	}

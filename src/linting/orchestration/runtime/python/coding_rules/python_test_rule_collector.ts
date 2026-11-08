@@ -52,19 +52,30 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 		const test_methods = class_node.structure.methods.filter(
 			(node) => node.identity.name.startsWith("test_") && !node.declaration.decorators.includes("fixture"),
 		);
-		if (test_methods.length === 0) {
+		const test_count = this.test_case_count(test_methods);
+		if (test_count === 0) {
 			return;
 		}
 		const violations = this._input.violations;
 		const file_name = this._input.file_name;
 		const line = class_node.identity.start + 1;
-		const count = String(test_methods.length);
-		if (test_methods.length < MIN_TESTS_PER_SUITE) {
+		const count = String(test_count);
+		if (test_count < MIN_TESTS_PER_SUITE) {
 			violations.push(this._min_count_rule.violation(file_name.value(), line, { count }));
 		}
-		if (test_methods.length > MAX_TESTS_PER_SUITE) {
+		if (test_count > MAX_TESTS_PER_SUITE) {
 			violations.push(this._max_count_rule.violation(file_name.value(), line, { count }));
 		}
+	}
+
+	/** Responsibilities: _parameterized test case count_. **/
+	private test_case_count(test_methods: AstCallableNode[]): number {
+		return test_methods.reduce((count, method) => {
+			if (!method.declaration.decorators.includes("expand")) {
+				return count + 1;
+			}
+			return count + method.declaration.parameterized_case_count;
+		}, 0);
 	}
 
 	/** Responsibilities: _unittest class identity_. **/

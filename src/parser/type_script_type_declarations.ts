@@ -32,7 +32,11 @@ export class TypeScriptTypeDeclarations {
 		if (!ts.isImportDeclaration(statement)) {
 			return [];
 		}
-		const bindings = statement.importClause?.namedBindings;
+		const import_clause = statement.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (bindings === undefined) {
 			return [];
 		}

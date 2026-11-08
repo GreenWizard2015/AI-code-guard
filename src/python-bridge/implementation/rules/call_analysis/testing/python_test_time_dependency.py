@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import PythonCallableConditionContextContract
 from implementation.references.protocols import PythonReferenceAliasesContract
@@ -9,7 +10,7 @@ from implementation.rules.constants import (
     PYTHON_NOW_ATTRIBUTE,
     PYTHON_TODAY_ATTRIBUTE,
 )
-from implementation.types import JsonObject, PythonTimeName
+from implementation.types import JsonObject, PythonASTLocatedNode, PythonTimeName
 
 
 class PythonTestTimeDependency:
@@ -62,4 +63,4 @@ class PythonTestTimeDependency:
             return []
         if not self.matches(node):
             return []
-        return [{"line": node.lineno - 1, "kind": "test-time-dependency"}]
+        return [{"line": cast(PythonASTLocatedNode, node).lineno - 1, "kind": "test-time-dependency"}]

@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { ClaudeReviewAgent } from "src/core/support/task/review-agent/providers/claude_review_agent";
 import { CodexReviewAgent } from "src/core/support/task/review-agent/providers/codex_review_agent";
@@ -6,11 +7,7 @@ import { NodeFileIO } from "src/io/node_file_io";
 import { METACHARACTER_REQUEST, REVIEW_PROMPT } from "tests/bridge/ts/core/constants";
 import { RecordingProcess } from "tests/bridge/ts/core/recording-review-process";
 import { StubReviewAgent } from "tests/bridge/ts/core/review-agent/stub-review-agent";
-import {
-	CATALOG_REVIEW_REQUEST,
-	CLEANUP_REVIEW_REQUEST,
-	REVIEW_REQUEST,
-} from "tests/core/support/task/review-agent/providers/constants";
+import { CATALOG_REVIEW_REQUEST, REVIEW_REQUEST } from "tests/core/support/task/review-agent/providers/constants";
 
 describe("review-agent runner", () => {
 	test("builds a hook-controlled Codex command with the project paths", async () => {
@@ -21,16 +18,20 @@ describe("review-agent runner", () => {
 		const process_arguments = [...process_snapshot.arguments_list];
 		const hook_argument_index = process_arguments.indexOf("-c");
 		const hook_configuration = process_arguments[hook_argument_index + 1] ?? "";
+		const completion_hooks_registered =
+			hook_configuration.includes('PostToolUse=[{matcher=".*",hooks=[{type="command"') &&
+			hook_configuration.includes('Stop=[{hooks=[{type="command"');
 		expect({
 			command: process_snapshot.command,
 			root: process_snapshot.root,
 			arguments: process_arguments.slice(0, 11),
 			prompt: process_arguments[12],
 			hooks_configured: hook_configuration.includes("PreToolUse"),
+			completion_hooks_registered,
 			pre_tool_use_matches_all_tools: hook_configuration.includes('PreToolUse=[{matcher=".*"'),
 			prefix_configured:
 				hook_configuration.includes("--review-prefix") && hook_configuration.includes("review-boundaries-"),
-			phase_configured: hook_configuration.includes("--review-phase") && hook_configuration.includes("initial"),
+			review_phase_removed: !hook_configuration.includes("--review-phase"),
 			start_time_configured: hook_configuration.includes("--review-started-at") && hook_configuration.includes("0"),
 		}).toEqual({
 			command: "codex",
@@ -50,12 +51,28 @@ describe("review-agent runner", () => {
 			],
 			prompt: REVIEW_PROMPT,
 			hooks_configured: true,
+			completion_hooks_registered: true,
 			pre_tool_use_matches_all_tools: true,
 			prefix_configured: true,
-			phase_configured: true,
+			review_phase_removed: true,
 			start_time_configured: true,
 		});
 	});
+
+	test.each(["cx", "cxa"] as const)(
+		"routes the Codex review through the %s account-switching wrapper",
+		async (agent_name) => {
+			const process = new RecordingProcess();
+			const agent = new CodexReviewAgent(process, agent_name);
+			await agent.run_async(REVIEW_REQUEST);
+			const process_snapshot = process.run_snapshot();
+
+			expect({ command: process_snapshot.command, name: agent.agent_name() }).toEqual({
+				command: agent_name,
+				name: agent_name,
+			});
+		},
+	);
 
 	test("builds a Claude command with review-only tools", async () => {
 		const process = new RecordingProcess();
@@ -64,13 +81,20 @@ describe("review-agent runner", () => {
 		const process_snapshot = process.run_snapshot();
 		const process_arguments = [...process_snapshot.arguments_list];
 		const settings_argument = process_arguments[10];
-		const settings_configured = settings_argument?.includes("PreToolUse") === true;
-		const pre_tool_use_matches_all_tools = settings_argument?.includes('"matcher":".*"') === true;
+		if (settings_argument === undefined) {
+			assert.ok(settings_argument);
+			return;
+		}
+		const settings_configured = settings_argument.includes("PreToolUse");
+		const pre_tool_use_matches_all_tools = settings_argument.includes('"matcher":".*"');
+		const settings = JSON.parse(settings_argument);
+		const completion_hooks_registered = settings.hooks.PostToolUse.length > 0 && settings.hooks.Stop.length > 0;
 		expect({
 			command: process_snapshot.command,
 			arguments: process_arguments.slice(0, 10),
 			prompt: process_arguments[11],
 			settings_configured: process_arguments.includes("--settings") && settings_configured,
+			completion_hooks_registered,
 			pre_tool_use_matches_all_tools,
 		}).toEqual({
 			command: "claude",
@@ -88,6 +112,7 @@ describe("review-agent runner", () => {
 			],
 			prompt: REVIEW_PROMPT,
 			settings_configured: true,
+			completion_hooks_registered: true,
 			pre_tool_use_matches_all_tools: true,
 		});
 	});
@@ -110,11 +135,11 @@ describe("review-agent runner", () => {
 		expect({
 			codex_file: codex_configuration.includes(expected_file),
 			codex_prefix: codex_configuration.includes(expected_prefix),
-			codex_phase: codex_configuration.includes("--review-phase") && codex_configuration.includes("cleanup"),
+			review_phase_removed: !codex_configuration.includes("--review-phase"),
 		}).toEqual({
 			codex_file: true,
 			codex_prefix: true,
-			codex_phase: true,
+			review_phase_removed: true,
 		});
 	});
 
@@ -134,8 +159,8 @@ describe("review-agent runner", () => {
 		expect({
 			claude_file: claude_configuration.includes(expected_file),
 			claude_prefix: claude_configuration.includes(expected_prefix),
-			claude_phase: claude_configuration.includes("--review-phase") && claude_configuration.includes("cleanup"),
-		}).toEqual({ claude_file: true, claude_prefix: true, claude_phase: true });
+			review_phase_removed: !claude_configuration.includes("--review-phase"),
+		}).toEqual({ claude_file: true, claude_prefix: true, review_phase_removed: true });
 	});
 
 	test("delivers the rendered prompt through the real Codex catalog", async () => {
@@ -161,14 +186,6 @@ describe("review-agent runner", () => {
 		expect(expected_prompt.length).toBeGreaterThan(0);
 		expect(prompt_argument).toBe(expected_prompt);
 	});
-
-	test("renders cleanup as a separate review dialogue", () => {
-		const catalog = new ReviewAgentCatalog([], new NodeFileIO("/project"));
-		const prompt = catalog.cleanup_prompt({ cleanup_request: CLEANUP_REVIEW_REQUEST });
-
-		expect(prompt).toContain("architecture review");
-	});
-
 	test("does not run another provider when the selected provider fails", async () => {
 		const codex = new StubReviewAgent("codex", true, 1, "codex failed");
 		const claude = new StubReviewAgent("claude", true, 0, "review completed");

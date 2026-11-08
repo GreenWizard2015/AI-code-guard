@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { TEST_PATH_SUFFIXES } from "src/constants";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { SingleClassFileNameRule } from "src/rules/support/single_class_file_name_rule";
+import { FileNameRules } from "src/rules/support/file_name_rules";
 import { TestPathSyntax } from "src/test_path_syntax";
 
 describe("single class file name rule", () => {
@@ -14,7 +14,7 @@ describe("single class file name rule", () => {
 	};
 
 	test("requires the snake_case TypeScript file name", () => {
-		const rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		const rule = new FileNameRules(new TestPathSyntax(TEST_PATH_SUFFIXES));
 		const violations: ViolationContract[] = [];
 
 		rule.append(violations, "wrong-name.ts", [class_node]);
@@ -36,7 +36,7 @@ describe("single class file name rule", () => {
 	});
 
 	test("requires the snake_case Python file name", () => {
-		const rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		const rule = new FileNameRules(new TestPathSyntax(TEST_PATH_SUFFIXES));
 		const violations: ViolationContract[] = [];
 
 		rule.append(violations, "wrong_name.py", [class_node]);
@@ -58,7 +58,7 @@ describe("single class file name rule", () => {
 	});
 
 	test("accepts derived names and ignores multiple classes", () => {
-		const rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		const rule = new FileNameRules(new TestPathSyntax(TEST_PATH_SUFFIXES));
 		const violations: ViolationContract[] = [];
 
 		rule.append(violations, "my_class.ts", [class_node]);
@@ -75,7 +75,7 @@ describe("single class file name rule", () => {
 	});
 
 	test("does not apply to tests or facade files", () => {
-		const rule = new SingleClassFileNameRule(new TestPathSyntax(TEST_PATH_SUFFIXES));
+		const rule = new FileNameRules(new TestPathSyntax(TEST_PATH_SUFFIXES));
 		const violations: ViolationContract[] = [];
 
 		rule.append(violations, "tests/my-class.test.ts", [class_node]);

@@ -47,7 +47,7 @@ describe("unused symbol rules", () => {
 		).toEqual([]);
 	});
 
-	test("reports unused TypeScript classes, constants, types, and public fields", () => {
+	test("reports unused TypeScript and Python declarations by language", () => {
 		const fixture = new TestFixture();
 		const files = {
 			"source.ts": [
@@ -72,71 +72,6 @@ describe("unused symbol rules", () => {
 				"instance;",
 				"value;",
 			].join("\n"),
-		};
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const rule_ids = violations
-			.filter((violation) =>
-				["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"].includes(
-					violation.rule_id(),
-				),
-			)
-			.map((violation) => violation.rule_id())
-			.sort();
-		const diagnostics = violations
-			.filter((violation) => rule_ids.includes(violation.rule_id()))
-			.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.line()}:${violation.message()}`)
-			.sort();
-		expect({ rule_ids, diagnostics, has_violations: violations.length > 0 }).toEqual({
-			rule_ids: ["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"],
-			diagnostics: [
-				'unused-class:source.ts:1:class "UnusedClass" has no production usage',
-				'unused-constant:source.ts:7:module constant "UNUSED_CONSTANT" has no production usage',
-				'unused-module-variable:source.ts:9:module variable "unused_state" has no production usage',
-				'unused-public-field:source.ts:5:public field "unused_field" has no production usage',
-				'unused-type:source.ts:10:type declaration "UnusedType" has no production usage',
-			],
-			has_violations: true,
-		});
-	});
-
-	test("resolves TypeScript type usage through named and cyclic star re-exports", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new InMemoryFileIO()),
-			{
-				"src/types/shape.ts": [
-					"export type Shape = { value: string };",
-					"export type UnusedShape = { other: number };",
-				].join("\n"),
-				"src/types/model.ts": 'export type { Shape as PublicShape } from "./shape";',
-				"src/types/index.ts": ['export * from "./model";', 'export * from "./cycle";'].join("\n"),
-				"src/types/cycle.ts": 'export * from "./index";',
-				"src/consumer.ts": [
-					'import type { PublicShape } from "./types";',
-					'const value: PublicShape = { value: "ready" };',
-					"value;",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations
-				.filter((violation) => violation.rule_id() === "unused-type")
-				.map((violation) => `${violation.file()}:${violation.message()}`),
-		).toEqual(['src/types/shape.ts:type declaration "UnusedShape" has no production usage']);
-	});
-
-	test("reports unused Python classes, constants, types, and public fields", () => {
-		const fixture = new TestFixture();
-		const files = {
 			"source.py": [
 				"from typing import TypeAlias",
 				"class UnusedClass:",
@@ -173,30 +108,89 @@ describe("unused symbol rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		const rule_ids = violations
-			.filter((violation) =>
-				["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"].includes(
-					violation.rule_id(),
-				),
-			)
-			.map((violation) => violation.rule_id())
-			.sort();
+		/** Responsibilities: _unused symbol rule lookup_. **/
+		const rule_ids_for = (file: string): string[] =>
+			violations
+				.filter((violation) => violation.file() === file)
+				.map((violation) => violation.rule_id())
+				.filter((rule_id) =>
+					["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"].includes(
+						rule_id,
+					),
+				)
+				.sort();
 		const diagnostics = violations
-			.filter((violation) => rule_ids.includes(violation.rule_id()) || violation.rule_id() === "unused-callable")
+			.filter((violation) =>
+				[
+					"unused-class",
+					"unused-constant",
+					"unused-module-variable",
+					"unused-public-field",
+					"unused-type",
+					"unused-callable",
+				].includes(violation.rule_id()),
+			)
 			.map((violation) => `${violation.rule_id()}:${violation.file()}:${violation.line()}:${violation.message()}`)
 			.sort();
-		expect({ rule_ids, diagnostics, has_violations: violations.length > 0 }).toEqual({
-			rule_ids: ["unused-class", "unused-constant", "unused-module-variable", "unused-public-field", "unused-type"],
+		const expected_rule_ids = [
+			"unused-class",
+			"unused-constant",
+			"unused-module-variable",
+			"unused-public-field",
+			"unused-type",
+		];
+		expect({
+			typescript_rule_ids: rule_ids_for("source.ts"),
+			python_rule_ids: rule_ids_for("source.py"),
+			diagnostics,
+			has_violations: violations.length > 0,
+		}).toEqual({
+			typescript_rule_ids: expected_rule_ids,
+			python_rule_ids: expected_rule_ids,
 			diagnostics: [
 				'unused-callable:source.py:11:method "FieldOwner.read" has insufficient production usage (found 0 other production files; candidate for removal/refactor)',
 				'unused-class:source.py:2:class "UnusedClass" has no production usage',
+				'unused-class:source.ts:1:class "UnusedClass" has no production usage',
 				'unused-constant:source.py:13:module constant "UNUSED_CONSTANT" has no production usage',
+				'unused-constant:source.ts:7:module constant "UNUSED_CONSTANT" has no production usage',
 				'unused-module-variable:source.py:15:module variable "unused_state" has no production usage',
+				'unused-module-variable:source.ts:9:module variable "unused_state" has no production usage',
 				'unused-public-field:source.py:7:public field "unused_field" has no production usage',
+				'unused-public-field:source.ts:5:public field "unused_field" has no production usage',
 				'unused-type:source.py:16:type declaration "UnusedType" has no production usage',
-			],
+				'unused-type:source.ts:10:type declaration "UnusedType" has no production usage',
+			].sort(),
 			has_violations: true,
 		});
+	});
+
+	test("resolves TypeScript type usage through named and cyclic star re-exports", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new InMemoryFileIO()),
+			{
+				"src/types/shape.ts": [
+					"export type Shape = { value: string };",
+					"export type UnusedShape = { other: number };",
+				].join("\n"),
+				"src/types/model.ts": 'export type { Shape as PublicShape } from "./shape";',
+				"src/types/index.ts": ['export * from "./model";', 'export * from "./cycle";'].join("\n"),
+				"src/types/cycle.ts": 'export * from "./index";',
+				"src/consumer.ts": [
+					'import type { PublicShape } from "./types";',
+					'const value: PublicShape = { value: "ready" };',
+					"value;",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((violation) => violation.rule_id() === "unused-type")
+				.map((violation) => `${violation.file()}:${violation.message()}`),
+		).toEqual(['src/types/shape.ts:type declaration "UnusedShape" has no production usage']);
 	});
 
 	test("treats Python __all__ as the module export declaration", () => {

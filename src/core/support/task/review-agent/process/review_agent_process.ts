@@ -4,7 +4,6 @@ import type { SystemFailureClassificationContract } from "src/analysis_protocols
 import {
 	REVIEW_AGENT_GROUP_TOKEN_VARIABLE,
 	REVIEW_AGENT_PROCESS_TIMEOUT_MS,
-	REVIEW_PHASE_ARGUMENT,
 	REVIEW_PREFIX_ARGUMENT,
 } from "src/core/support/task/review-agent/constants";
 import { ReviewAgentProcessLifecycle } from "src/core/support/task/review-agent/process/review_agent_process_lifecycle";
@@ -42,13 +41,7 @@ export class ReviewAgentProcess implements ReviewAgentProcessContract, ReviewAge
 	private spawn_process(request: ReviewAgentHookProcessRequest): SpawnSyncReturns<string> {
 		return this._spawner.spawn_sync(
 			request.command,
-			[
-				request.hook_file,
-				REVIEW_PREFIX_ARGUMENT,
-				request.event.context.review_prefix,
-				REVIEW_PHASE_ARGUMENT,
-				request.event.context.review_phase,
-			],
+			[request.hook_file, REVIEW_PREFIX_ARGUMENT, request.event.context.review_prefix],
 			{
 				cwd: request.root,
 				encoding: "utf8",
@@ -95,7 +88,6 @@ export class ReviewAgentProcess implements ReviewAgentProcessContract, ReviewAge
 			cwd: event.context.root,
 			review_stage: event.context.review_stage,
 			review_prefix: event.context.review_prefix,
-			review_phase: event.context.review_phase,
 		};
 	}
 

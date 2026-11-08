@@ -33,7 +33,6 @@ describe("task review agent", () => {
 			file_io: _io,
 		});
 		await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -64,7 +63,6 @@ describe("task review agent", () => {
 			file_io: _io,
 		});
 		const execution = await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -93,7 +91,6 @@ describe("task review agent", () => {
 			file_io: _io,
 		});
 		const execution = await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -125,7 +122,6 @@ describe("task review agent", () => {
 			file_io: _io,
 		});
 		const execution = await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: [],
 		});
@@ -157,7 +153,6 @@ describe("task review agent", () => {
 			file_io: _io,
 		});
 		const result = await review.run_parallel("codex", {
-			review_cleanup: true,
 			force_review: false,
 			review_stages: ["boundaries"],
 		});
@@ -189,7 +184,6 @@ describe("task review agent", () => {
 				file_io: _io,
 			});
 			const execution = await review.run_parallel("codex", {
-				review_cleanup: true,
 				force_review: false,
 				review_stages: [],
 			});

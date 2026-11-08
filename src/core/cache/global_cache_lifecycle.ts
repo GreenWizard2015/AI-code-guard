@@ -60,6 +60,37 @@ export class GlobalCacheLifecycle {
 		}
 	}
 
+	/** Responsibilities: _abandoned cache writer cleanup_. **/
+	private clean_inactive_writer(entry_path: string): void {
+		this._temporary_write_paths.delete(entry_path);
+		try {
+			this._file_io.file(entry_path).remove_file();
+		} catch (error) {
+			const message = String(error);
+			if (!this._failure_classification.check(message, BoundaryFailureCategory.System)) {
+				throw error;
+			}
+			if (!message.includes("ENOENT")) {
+				throw error;
+			}
+		}
+	}
+
+	/** Responsibilities: _committed cache record removal_. **/
+	private remove_committed_record(entry_path: string): void {
+		try {
+			this._file_io.file(entry_path).remove_file();
+		} catch (error) {
+			const message = String(error);
+			if (!this._failure_classification.check(message, BoundaryFailureCategory.System)) {
+				throw error;
+			}
+			if (!message.startsWith("Error: ENOENT:")) {
+				throw error;
+			}
+		}
+	}
+
 	/** Responsibilities: _cache entry cleanup_. **/
 	private clean_entry(entry: FileEntry, request: GlobalAnalysisCacheCleanupRequest): void {
 		if (!entry.is_file) {
@@ -69,13 +100,12 @@ export class GlobalCacheLifecycle {
 		const writer = this.writer_identity(entry.name);
 		if (writer.recognized) {
 			if (!this.writer_is_active(entry_path, writer.process_id)) {
-				this._temporary_write_paths.delete(entry_path);
-				this._file_io.file(entry_path).remove_file();
+				this.clean_inactive_writer(entry_path);
 			}
 			return;
 		}
 		if (request.remove_records && entry.name.endsWith(".json") && entry_path !== request.current_record) {
-			this._file_io.file(entry_path).remove_file();
+			this.remove_committed_record(entry_path);
 		}
 	}
 

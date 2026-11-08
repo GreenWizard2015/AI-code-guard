@@ -17,7 +17,6 @@ export class ClaudeReviewAgent implements ReviewAgentContract {
 			request.hook.hook_command,
 			request.hook.hook_file,
 			request.hook.review_prefix,
-			request.hook.review_phase,
 			request.hook.review_start_ms,
 		);
 		const handler = {

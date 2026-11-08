@@ -95,11 +95,11 @@ export class TypeScriptCallableAliasCollector {
 
 	/** Responsibilities: _callable declaration naming_. **/
 	private append_function(declaration: ts.FunctionDeclaration): boolean {
-		const callable_name = declaration.name?.text;
-		if (callable_name === undefined) {
+		const name = declaration.name;
+		if (name === undefined) {
 			return false;
 		}
-		return this.append_name(callable_name);
+		return this.append_name(name.text);
 	}
 
 	/** Responsibilities: _callable declaration indexing_. **/

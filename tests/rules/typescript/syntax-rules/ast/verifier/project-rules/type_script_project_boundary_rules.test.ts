@@ -16,13 +16,15 @@ describe("TypeScript project boundary rules", () => {
 			typescript_class_names: new Set(["DomainModel"]),
 		});
 		const context_source_file = context.state().source.source_file;
-		const view_state: ts.Node =
-			context_source_file.statements.find(
-				(statement) => ts.isClassDeclaration(statement) && statement.name?.text === "ViewState",
-			) ?? context_source_file;
+		const view_states = context_source_file.statements.filter(
+			(statement) =>
+				ts.isClassDeclaration(statement) && statement.name !== undefined && statement.name.text === "ViewState",
+		);
 
 		const rule = new TypeScriptProjectBoundaryRules();
-		rule.verify({ node: view_state, context });
+		for (const view_state of view_states) {
+			rule.verify({ node: view_state, context });
+		}
 
 		expect(context.rule_ids()).toContain("project-type-boundary");
 	});

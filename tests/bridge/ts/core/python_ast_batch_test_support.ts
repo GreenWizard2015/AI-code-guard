@@ -4,11 +4,16 @@ import { PythonAstWorkerBatch } from "src/core/python-ast/python_ast_worker_batc
 import type { PythonAstBridgeOptions, PythonAstWorkerAsts, PythonAstWorkerResponse } from "src/core/python-ast/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { NormalizedAstFile, PythonBatchAstOptions } from "src/model/ast/normalized_ast_types";
-import type { PythonAstWorkerContract } from "src/python_protocols";
+import type {
+	PythonAstWorkerBatchContract,
+	PythonAstWorkerBatchOwnerContract,
+	PythonAstWorkerContract,
+	PythonAstWorkerLeaseResourceContract,
+} from "src/python_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _Python batch response simulation_, _batch parser setup_. **/
-export class PythonAstBatchScenario implements PythonAstWorkerContract {
+export class PythonAstBatchScenario implements PythonAstWorkerContract, PythonAstWorkerBatchOwnerContract {
 	private _ast_model: AstModel;
 	private readonly _analysis_identity: ProjectAnalysisIdentity;
 	private readonly split_batch_enabled = true;
@@ -16,6 +21,8 @@ export class PythonAstBatchScenario implements PythonAstWorkerContract {
 	private _omitted_name: string;
 	private _response_batch_id: string;
 	private _pending_sources: Map<string, string>;
+	private readonly _pending_batches: Set<PythonAstWorkerBatchContract>;
+	private readonly _lease_resources: Set<PythonAstWorkerLeaseResourceContract>;
 	private _response_count: number;
 	private _closed: boolean;
 
@@ -43,13 +50,42 @@ export class PythonAstBatchScenario implements PythonAstWorkerContract {
 		this._omitted_name = omitted_name;
 		this._response_batch_id = response_batch_id;
 		this._pending_sources = new Map<string, string>();
+		this._pending_batches = new Set<PythonAstWorkerBatchContract>();
+		this._lease_resources = new Set<PythonAstWorkerLeaseResourceContract>();
 		this._response_count = 0;
 		this._closed = false;
 	}
 
 	/** Responsibilities: _worker batch identity_. **/
 	public batch(batch_id: string, sources: Map<string, string>): PythonAstWorkerBatch {
-		return new PythonAstWorkerBatch(batch_id, sources, () => this);
+		return new PythonAstWorkerBatch(batch_id, sources, this, this);
+	}
+
+	/** Responsibilities: _active batch validation_. **/
+	public assert_active(): void {
+		if (this._closed) {
+			throw new Error("Worker session is closed.");
+		}
+	}
+
+	/** Responsibilities: _pending batch registration_. **/
+	public batch_started(batch: PythonAstWorkerBatchContract): void {
+		this._pending_batches.add(batch);
+	}
+
+	/** Responsibilities: _pending batch removal_. **/
+	public batch_finished(batch: PythonAstWorkerBatchContract): void {
+		this._pending_batches.delete(batch);
+	}
+
+	/** Responsibilities: _lease resource registration_. **/
+	public register_release_resource(resource: PythonAstWorkerLeaseResourceContract): void {
+		this._lease_resources.add(resource);
+	}
+
+	/** Responsibilities: _lease resource removal_. **/
+	public unregister_release_resource(resource: PythonAstWorkerLeaseResourceContract): void {
+		this._lease_resources.delete(resource);
 	}
 
 	/** Responsibilities: _batch response creation_. **/
@@ -110,7 +146,18 @@ export class PythonAstBatchScenario implements PythonAstWorkerContract {
 
 	/** Responsibilities: _worker lifecycle_. **/
 	public close(): void {
+		this._pending_sources.clear();
+		for (const resource of this._lease_resources) {
+			resource.release_lease_resource();
+		}
+		this._lease_resources.clear();
+		this._pending_batches.clear();
 		this._closed = true;
+	}
+
+	/** Responsibilities: _worker shutdown resource reclamation_. **/
+	public release_lease_resource(): void {
+		this.close();
 	}
 
 	/** Responsibilities: _worker process completion_. **/

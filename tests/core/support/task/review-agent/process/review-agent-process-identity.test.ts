@@ -1,90 +1,71 @@
-import "src/core/lint_project_context_creator";
-import { Readable } from "node:stream";
+import { constants } from "node:os";
 import { describe, expect, test } from "@jest/globals";
-import {
-	AI_CODE_GUARD_DIRECTORY,
-	REVIEW_AGENT_DIRECTORY,
-	REVIEW_AGENT_GROUP_TOKEN_VARIABLE,
-	REVIEW_DIRECTORY,
-	REVIEW_RUN_LOCK_DIRECTORY,
-} from "src/core/support/task/review-agent/constants";
-import { NodeProcessSignal } from "src/core/support/task/review-agent/process/node_process_signal";
 import { ReviewAgentProcess } from "src/core/support/task/review-agent/process/review_agent_process";
-import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import { ReviewAgentChildProcess } from "tests/bridge/ts/core/review-agent/review-agent-child-process";
-import { ReviewAgentProcessTestDriver } from "tests/bridge/ts/core/review-agent/review-agent-process-test-driver";
+import { ReviewAgentProcessIdentityFixture } from "tests/core/support/task/review-agent/process/review_agent_process_identity_fixture";
 
 describe("review agent process identity", () => {
 	test("persists child identity through the supplied filesystem", () => {
-		const pid = 4321;
-		const root = "/virtual/review-process-io";
-		const identity_file = `${root}/${AI_CODE_GUARD_DIRECTORY}/${REVIEW_DIRECTORY}/${REVIEW_RUN_LOCK_DIRECTORY}/${REVIEW_AGENT_DIRECTORY}/${pid}`;
-		const file_io = new InMemoryFileIO();
-		file_io.seed_files(
-			new Map([
-				[`/proc/${pid}/stat`, `1 (node) ${Array.from({ length: 19 }, () => "0").join(" ")} start\n`],
-				["/proc/sys/kernel/random/boot_id", "review-process-test-boot\n"],
-			]),
+		const fixture = new ReviewAgentProcessIdentityFixture(4321, 4322, "/virtual/review-process-io");
+		fixture.seed_process_identity();
+		const dependencies = fixture.process_dependencies(process.platform);
+		const agent = new ReviewAgentProcess(
+			dependencies.file_io,
+			dependencies.spawner,
+			dependencies.platform,
+			dependencies.process_signal,
 		);
-		const child = new ReviewAgentChildProcess(pid, Readable.from([]), Readable.from([]));
-		const review_process = new ReviewAgentProcessTestDriver(child, {
-			pid: 0,
-			output: [],
-			stdout: "",
-			stderr: "",
-			status: 0,
-			signal: null,
-		});
-		const signal = new NodeProcessSignal(process, file_io, process.platform);
-		const review_agent_process = new ReviewAgentProcess(file_io, review_process, process.platform, signal);
-		const failure = review_agent_process.persist({
-			root,
-			child,
-			ownership_token: "test-token",
-		});
-		const stored_identity = file_io.file(identity_file).file_text();
+		const failure = agent.persist(fixture.process_execution("test-token"));
 
 		expect({
 			failure,
-			persisted: file_io.file(identity_file).path_exists(),
-			ownership_token: stored_identity.includes("test-token"),
-		}).toEqual({
-			failure: "",
-			persisted: true,
-			ownership_token: true,
+			persisted: fixture.identity_file_exists(),
+			ownership_token: fixture.persisted_token().includes("test-token"),
+		}).toEqual({ failure: "", persisted: true, ownership_token: true });
+	});
+
+	test("persists the spawned process ownership token", async () => {
+		const fixture = new ReviewAgentProcessIdentityFixture();
+		fixture.seed_owned_process();
+		const dependencies = fixture.process_dependencies("linux");
+		const agent = new ReviewAgentProcess(
+			dependencies.file_io,
+			dependencies.spawner,
+			dependencies.platform,
+			dependencies.process_signal,
+		);
+		const result = agent.run_async({ command: "codex", arguments_list: [], root: "/virtual/review-process-token" });
+		const spawned_token = fixture.spawned_token();
+		const persisted_token = fixture.persisted_token();
+		fixture.seed_descendant_token(spawned_token);
+		fixture.finish_child();
+		const completed = await result;
+
+		expect({ spawned_token, persisted_token, exit_code: completed.exit_code }).toEqual({
+			spawned_token: expect.any(String),
+			persisted_token: spawned_token,
+			exit_code: 0,
 		});
 	});
 
-	test("passes an ownership token to the child process environment", async () => {
+	test("cleans a live descendant with the persisted ownership token", async () => {
 		const pid = 4321;
-		const root = "/virtual/review-process-token";
-		const file_io = new InMemoryFileIO();
-		file_io.seed_files(
-			new Map([
-				[`/proc/${pid}/stat`, `1 (node) ${Array.from({ length: 19 }, () => "0").join(" ")} start\n`],
-				["/proc/sys/kernel/random/boot_id", "review-process-test-boot\n"],
-			]),
-		);
-		const child = new ReviewAgentChildProcess(pid, Readable.from([]), Readable.from([]));
-		const review_process = new ReviewAgentProcessTestDriver(child, {
-			pid: 0,
-			output: [],
-			stdout: "",
-			stderr: "",
-			status: 0,
-			signal: null,
-		});
-		const signal = new NodeProcessSignal(process, file_io, process.platform);
-		const review_agent_process = new ReviewAgentProcess(file_io, review_process, process.platform, signal);
-		const result = review_agent_process.run_async({
-			command: "codex",
-			arguments_list: [],
-			root,
-		});
-		const token = review_process.spawn_environment_value(0, REVIEW_AGENT_GROUP_TOKEN_VARIABLE);
-		child.emit("close", { received: true, code: 0 });
-		const completed = await result;
+		const fixture = new ReviewAgentProcessIdentityFixture(pid);
+		fixture.seed_owned_process();
+		const { file_io, spawner, platform, process_signal } = fixture.process_dependencies("linux");
+		const agent = new ReviewAgentProcess(file_io, spawner, platform, process_signal);
+		const completion = agent.run_async({ command: "codex", arguments_list: [], root: "/virtual/review-process-token" });
+		fixture.seed_descendant_token(fixture.spawned_token());
+		fixture.finish_child();
+		await completion;
 
-		expect({ token, exit_code: completed.exit_code }).toEqual({ token: expect.any(String), exit_code: 0 });
+		expect({
+			signals: fixture.termination_signals(),
+			identity_removed: fixture.identity_removed(),
+			process_group_live: fixture.process_group_live(),
+		}).toEqual({
+			signals: [-pid, constants.signals.SIGTERM, -pid, constants.signals.SIGKILL],
+			identity_removed: true,
+			process_group_live: false,
+		});
 	});
 });

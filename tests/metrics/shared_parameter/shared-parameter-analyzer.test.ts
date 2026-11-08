@@ -12,15 +12,16 @@ describe("SharedParameterAnalyzer", () => {
 	test("builds sorted nodes with unique file-line-method locations", () => {
 		const analyzer = new SharedParameterAnalyzer(cases.sorted_nodes());
 		const nodes = [...analyzer.shared_parameters().values()];
-		const node = nodes.at(0);
 
-		expect({ node_count: nodes.length, locations: node?.locations }).toEqual({
+		expect({ node_count: nodes.length, locations: nodes.map((node) => node.locations) }).toEqual({
 			node_count: 1,
 			locations: [
-				{ file: "a.ts", line: 1, method: "first" },
-				{ file: "a.ts", line: 2, method: "second" },
-				{ file: "b.ts", line: 3, method: "third" },
-				{ file: "b.ts", line: 4, method: "fourth" },
+				[
+					{ file: "a.ts", line: 1, method: "first" },
+					{ file: "a.ts", line: 2, method: "second" },
+					{ file: "b.ts", line: 3, method: "third" },
+					{ file: "b.ts", line: 4, method: "fourth" },
+				],
 			],
 		});
 	});
@@ -57,13 +58,13 @@ describe("SharedParameterAnalyzer", () => {
 		);
 
 		const nodes = [...analyzer.shared_parameters().values()];
-		const composite = analyzer.collect_candidates().find((candidate) => candidate.nodes.length === 2);
+		const composites = analyzer.collect_candidates().filter((candidate) => candidate.nodes.length === 2);
 
 		expect(nodes.map((node) => [node.identity, node.kind])).toEqual([
 			["id:string", "basic"],
 			["value:id:string", "reference"],
 		]);
-		expect(composite?.nodes.map((node) => node.kind)).toEqual(["basic", "reference"]);
+		expect(composites.map((candidate) => candidate.nodes.map((node) => node.kind))).toEqual([["basic", "reference"]]);
 	});
 
 	test("includes every annotated type in shared parameter candidates", () => {
@@ -121,13 +122,14 @@ describe("SharedParameterAnalyzer", () => {
 
 		const shared_parameters = analyzer.shared_parameters();
 		const parameter_nodes = [...shared_parameters.values()];
-		const parameter_node = parameter_nodes.at(0);
 
-		expect({ node_count: parameter_nodes.length, locations: parameter_node?.locations }).toEqual({
+		expect({ node_count: parameter_nodes.length, locations: parameter_nodes.map((node) => node.locations) }).toEqual({
 			node_count: 1,
 			locations: [
-				{ file: "service.ts", line: 1, method: "Service.read" },
-				{ file: "service.ts", line: 2, method: "Service.read" },
+				[
+					{ file: "service.ts", line: 1, method: "Service.read" },
+					{ file: "service.ts", line: 2, method: "Service.read" },
+				],
 			],
 		});
 	});
@@ -140,12 +142,11 @@ describe("SharedParameterAnalyzer", () => {
 		const supports = new Map(nodes.map((node) => [node.identity, node.locations.length]));
 		const candidates = analyzer.collect_candidates();
 		const named_candidates = factory.candidate_named(candidates, "id:string, value:clazzA");
-		const named_candidate = named_candidates[0];
 
 		expect({
 			supports,
 			candidate_names: candidates.map((item) => factory.candidate_name(item)),
-			locations: named_candidate?.locations.map((item) => item.method),
+			locations: named_candidates.map((candidate) => candidate.locations.map((item) => item.method)),
 		}).toEqual({
 			supports: new Map([
 				["id:string", 4],
@@ -154,7 +155,7 @@ describe("SharedParameterAnalyzer", () => {
 				["x:string", 1],
 			]),
 			candidate_names: ["id:string", "value:clazzA", "id:string, value:clazzA"],
-			locations: ["Fb6", "Fb7", "Fb8", "Fb9"],
+			locations: [["Fb6", "Fb7", "Fb8", "Fb9"]],
 		});
 	});
 
@@ -191,13 +192,12 @@ describe("SharedParameterAnalyzer", () => {
 			candidates,
 			"active:boolean, id:string, scope:string, value:ProjectA, value:ProjectB",
 		);
-		const matching_candidate = matching_candidates[0];
 
 		expect({
 			count: candidates.length,
 			lengths: new Set(candidates.map((candidate) => candidate.nodes.length)),
-			support: matching_candidate?.support,
-		}).toEqual({ count: 6, lengths: new Set([1, 5]), support: 4 });
+			support: matching_candidates.map((candidate) => candidate.support),
+		}).toEqual({ count: 6, lengths: new Set([1, 5]), support: [4] });
 	});
 
 	test("keeps dense parameter groups bounded", () => {

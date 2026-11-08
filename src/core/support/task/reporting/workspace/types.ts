@@ -1,5 +1,8 @@
 import type { TaskViolationSuppression } from "src/model_types";
 import type { TaskViolationPathContract, ViolationContract } from "src/reporting_protocols";
+import type { TaskReviewAgentContract } from "src/task_protocols";
+
+export type CallableReviewAgentProvider = () => TaskReviewAgentContract;
 
 export type TaskScopedViolationPath = {
 	path: TaskViolationPathContract;

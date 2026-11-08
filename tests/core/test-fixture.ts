@@ -22,7 +22,7 @@ import type { CallableLintRequest, CallablePathAction, Fixture } from "tests/cor
 /** Responsibilities: _in-memory project fixtures_, _lint execution fixtures_, _AST fixtures_. **/
 export class TestFixture {
 	private readonly placement_fixture_prefix = "module-placement-";
-	private readonly _python_ast_worker: PythonAstWorkerCapabilityContract;
+	private readonly _python_ast_workers: WeakMap<TestFixture, PythonAstWorkerCapabilityContract>;
 	public readonly _ast_nodes: FixtureAstMapper;
 	public readonly _project_source: ProjectSourceFixture;
 
@@ -31,11 +31,22 @@ export class TestFixture {
 		return new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd()));
 	}
 
+	/** Responsibilities: _shared bridge worker initialization_. **/
+	private active_python_ast_worker(): PythonAstWorkerCapabilityContract {
+		const existing_worker = this._python_ast_workers.get(this);
+		if (existing_worker !== undefined) {
+			return existing_worker;
+		}
+		const worker = this.lint_configuration().active_worker_session().worker();
+		this._python_ast_workers.set(this, worker);
+		return worker;
+	}
+
 	/** Responsibilities: _fixture adapter initialization_. **/
 	public constructor() {
-		this._python_ast_worker = this.lint_configuration().active_worker_session().worker();
+		this._python_ast_workers = new WeakMap<TestFixture, PythonAstWorkerCapabilityContract>();
 		this._ast_nodes = new FixtureAstMapper();
-		this._project_source = new ProjectSourceFixture(this._python_ast_worker);
+		this._project_source = new ProjectSourceFixture(() => this.active_python_ast_worker());
 	}
 
 	/** Responsibilities: _fixture file access_. **/
@@ -45,7 +56,7 @@ export class TestFixture {
 
 	/** Responsibilities: _shared Python worker access_. **/
 	public worker(): PythonAstWorkerCapabilityContract {
-		return this._python_ast_worker;
+		return this.active_python_ast_worker();
 	}
 
 	/** Responsibilities: _test stage timer creation_. **/
@@ -159,6 +170,7 @@ export class TestFixture {
 				source_texts,
 				configuration_snapshot_complete: false,
 				entry_files: [...entry_files],
+				project_analysis_enabled: false,
 			},
 			mode: LintReportMode.IN_MEMORY_PROJECT,
 		};

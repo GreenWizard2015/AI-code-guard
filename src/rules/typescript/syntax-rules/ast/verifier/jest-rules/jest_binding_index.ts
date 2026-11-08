@@ -92,7 +92,10 @@ export class JestBindingIndex implements JestBindingIndexContract {
 			return false;
 		}
 		const modifiers = ts.getModifiers(node);
-		return modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword) === true;
+		if (modifiers === undefined) {
+			return false;
+		}
+		return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.AsyncKeyword);
 	}
 
 	/** Responsibilities: _lazy binding index construction_. **/
@@ -129,9 +132,11 @@ export class JestBindingIndex implements JestBindingIndexContract {
 		let scope = this._node_scopes.get(identifier);
 		while (scope !== undefined) {
 			const scope_bindings = this._bindings.get(scope);
-			if (scope_bindings?.has(identifier.text)) {
-				const declaration = scope_bindings.get(identifier.text);
-				return declaration !== undefined && declarations.has(declaration);
+			if (scope_bindings !== undefined) {
+				if (scope_bindings.has(identifier.text)) {
+					const declaration = scope_bindings.get(identifier.text);
+					return declaration !== undefined && declarations.has(declaration);
+				}
 			}
 			scope = this._parent_scopes.get(scope);
 		}

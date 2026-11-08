@@ -130,6 +130,10 @@ describe("class ordering and runtime analysis", () => {
 					'void ({ ...{ mode: "fast" } }).mode;',
 					'const rule_ids = ["rule"]; rule_ids.sort();',
 					'const rule_options = { mode: "fast" }; rule_options.mode;',
+					'const files = ["first", "second"];',
+					"const sorted_files = [...files];",
+					"sorted_files.sort();",
+					"sorted_files.join(',');",
 					"new Date().toISOString();",
 					"new Date().toString;",
 					'new Date()["toISOString"]();',
@@ -199,20 +203,69 @@ describe("class ordering and runtime analysis", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
+		const temporary_file_violations = violations.filter((item) => item.file() === "temporary.ts");
+		const temporary_result_access_violations = temporary_file_violations.filter(
+			(item) => item.rule_id() === "temporary-result-access",
+		);
+		const assigned_copy_violations = temporary_result_access_violations.filter((item) => {
+			const is_at_or_after_copy_start = item.line() >= 3;
+			const is_at_or_before_copy_end = item.line() <= 6;
+			return is_at_or_after_copy_start && is_at_or_before_copy_end;
+		});
 		expect({
-			prototype_assignments: violations.filter((item) => item.rule_id() === "typescript-prototype-assignment").length,
-			temporary_result_access: violations.filter((item) => item.rule_id() === "temporary-result-access").length,
-			bind_calls: violations.filter((item) => item.rule_id() === "typescript-bind").length,
-			complex_constructors: violations.filter((item) => item.rule_id() === "complex-constructor").length,
+			prototype_assignment_locations: violations
+				.filter((item) => item.rule_id() === "typescript-prototype-assignment")
+				.map((item) => `${item.file()}:${item.line()}`)
+				.sort(),
+			temporary_result_access_locations: violations
+				.filter((item) => item.rule_id() === "temporary-result-access")
+				.map((item) => `${item.file()}:${item.line()}`)
+				.sort(),
+			bind_call_locations: violations
+				.filter((item) => item.rule_id() === "typescript-bind")
+				.map((item) => `${item.file()}:${item.line()}`),
+			complex_constructor_locations: violations
+				.filter((item) => item.rule_id() === "complex-constructor")
+				.map((item) => `${item.file()}:${item.line()}`)
+				.sort(),
+			assigned_copy_reported: assigned_copy_violations.length > 0,
 			field_initializers: violations
 				.filter((item) => item.rule_id() === "field-in-constructor")
 				.map((item) => ({ file: item.file(), line: item.line() }))
 				.sort((left, right) => left.file.localeCompare(right.file) || left.line - right.line),
 		}).toEqual({
-			prototype_assignments: 4,
-			temporary_result_access: 21,
-			bind_calls: 1,
-			complex_constructors: 2,
+			prototype_assignment_locations: [
+				"prototype-string.ts:2",
+				"prototype-updates.ts:2",
+				"prototype-updates.ts:3",
+				"prototype-updates.ts:4",
+			],
+			temporary_result_access_locations: [
+				"temporary-instance-parameter.ts:2",
+				"temporary.py:1",
+				"temporary.py:10",
+				"temporary.py:11",
+				"temporary.py:13",
+				"temporary.py:13",
+				"temporary.py:2",
+				"temporary.py:7",
+				"temporary.py:8",
+				"temporary.py:9",
+				"temporary.ts:1",
+				"temporary.ts:10",
+				"temporary.ts:11",
+				"temporary.ts:13",
+				"temporary.ts:14",
+				"temporary.ts:15",
+				"temporary.ts:16",
+				"temporary.ts:17",
+				"temporary.ts:18",
+				"temporary.ts:2",
+				"temporary.ts:9",
+			],
+			bind_call_locations: ["bind-apply.ts:4"],
+			complex_constructor_locations: ["constructor-work.ts:3", "constructor-work.ts:8"],
+			assigned_copy_reported: false,
 			field_initializers: [
 				{ file: "field-cache.ts", line: 2 },
 				{ file: "field-cache.ts", line: 3 },
@@ -221,27 +274,5 @@ describe("class ordering and runtime analysis", () => {
 				{ file: "field-cache.ts", line: 6 },
 			],
 		});
-	});
-
-	test("allows sorting and reading an assigned spread copy", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"sorted-files.ts": [
-					'const files = ["first", "second"];',
-					"const sorted_files = [...files];",
-					"sorted_files.sort();",
-					"sorted_files.join(',');",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-		const temporary_access = violations.filter(
-			(item) => item.file() === "sorted-files.ts" && item.rule_id() === "temporary-result-access",
-		);
-
-		expect(temporary_access).toEqual([]);
 	});
 });

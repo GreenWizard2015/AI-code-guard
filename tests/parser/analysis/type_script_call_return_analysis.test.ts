@@ -10,7 +10,11 @@ describe("TypeScript call return analysis cache", () => {
 			ts.ScriptTarget.Latest,
 			true,
 		);
-		const type_node = source_file.statements.find(ts.isFunctionDeclaration)?.type;
+		const function_declaration = source_file.statements.find(ts.isFunctionDeclaration);
+		let type_node: ts.TypeNode | undefined;
+		if (function_declaration !== undefined) {
+			type_node = function_declaration.type;
+		}
 		const analysis = new TypeScriptCallReturnAnalysis();
 
 		let first_owner = "missing";
@@ -27,7 +31,11 @@ describe("TypeScript call return analysis cache", () => {
 
 	test("returns an empty owner for repeated queries of an anonymous result", () => {
 		const source_file = ts.createSourceFile("calls.ts", "function run(): void {}", ts.ScriptTarget.Latest, true);
-		const type_node = source_file.statements.find(ts.isFunctionDeclaration)?.type;
+		const function_declaration = source_file.statements.find(ts.isFunctionDeclaration);
+		let type_node: ts.TypeNode | undefined;
+		if (function_declaration !== undefined) {
+			type_node = function_declaration.type;
+		}
 		const analysis = new TypeScriptCallReturnAnalysis();
 
 		let first_owner = "missing";

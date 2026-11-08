@@ -56,10 +56,14 @@ describe("factory object aliases", () => {
 		const expression = ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier("source"), "local");
 		const bodies = aliases.property_bodies(expression);
 
-		expect({ alias_count: expressions.size, body_count: bodies.length, body_kind: bodies[0]?.kind }).toEqual({
+		expect({
+			alias_count: expressions.size,
+			body_count: bodies.length,
+			body_kinds: bodies.map((body) => body.kind),
+		}).toEqual({
 			alias_count: 1,
 			body_count: 1,
-			body_kind: ts.SyntaxKind.ArrowFunction,
+			body_kinds: [ts.SyntaxKind.ArrowFunction],
 		});
 	});
 });

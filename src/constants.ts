@@ -140,7 +140,10 @@ export const RULE_LANGUAGE_BY_ID = new Map<string, AstLanguage>(
 		"typescript-literal-object-access": "typescript",
 	} as const),
 );
-export const LANGUAGE_NEUTRAL_RULE_IDS: ReadonlySet<string> = new Set(["ai-code-guard-directory-ignored"]);
+export const LANGUAGE_NEUTRAL_RULE_IDS: ReadonlySet<string> = new Set([
+	"ai-code-guard-directory-ignored",
+	"numeric-file-name",
+]);
 export const SHARED_RULE_DOCUMENT_IDS: ReadonlySet<string> = new Set([
 	"directory-class-max-size",
 	"directory-class-min-size",

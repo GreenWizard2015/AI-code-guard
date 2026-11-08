@@ -4,6 +4,7 @@ export enum CachePublicationFaultSchedule {
 	WriteAfterTempCreatedWithPeer = "write-after-temp-created-with-peer",
 	WriteAfterTempCreatedCleanupFails = "write-after-temp-created-cleanup-fails",
 	RenameTemp = "rename-temp",
+	ConcurrentCleanupRace = "concurrent-cleanup-race",
 }
 
 export type CallableCachePublicationScheduledWrite = () => void;

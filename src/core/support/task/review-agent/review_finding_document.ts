@@ -14,6 +14,7 @@ import {
 	REVIEW_STATUS_OPEN,
 	REVIEW_STATUS_RESOLVED,
 } from "src/core/support/task/review-agent/constants";
+import type { ReviewFenceState } from "src/core/support/task/review-agent/types";
 
 /** Responsibilities: _document structure_, _document status_. **/
 export class ReviewFindingDocument {
@@ -50,11 +51,11 @@ export class ReviewFindingDocument {
 	}
 
 	/** Responsibilities: _section item shape_. **/
-	private section_value_valid(value: string, require_list_item: boolean): boolean {
+	private section_value_valid(section_text: string, require_list_item: boolean): boolean {
 		if (!require_list_item) {
 			return true;
 		}
-		return value.startsWith("- ") && value.slice(2).trim().length > 0;
+		return section_text.startsWith("- ") && section_text.slice(2).trim().length > 0;
 	}
 
 	/** Responsibilities: _field values_. **/
@@ -76,24 +77,8 @@ export class ReviewFindingDocument {
 		});
 	}
 
-	/** Responsibilities: _header fields_. **/
-	private missing_header_fields(): string[] {
-		const missing: string[] = [];
-		if (!this.has_valid_severity()) {
-			missing.push(REVIEW_SEVERITY_REQUIREMENT);
-		}
-		if (this.status() === "") {
-			missing.push(`${REVIEW_FIELD_STATUS} (use ${REVIEW_STATUS_OPEN} or ${REVIEW_STATUS_RESOLVED} exactly once)`);
-		}
-		if (!this.has_value(REVIEW_FIELD_TASK)) {
-			missing.push(REVIEW_FIELD_TASK);
-		}
-		return missing;
-	}
-
 	/** Responsibilities: _evidence fields_. **/
-	private missing_evidence_fields(): string[] {
-		const missing: string[] = [];
+	private evidence_fields(missing: string[]): void {
 		if (!this.has_value(REVIEW_FIELD_INVARIANT)) {
 			missing.push(REVIEW_FIELD_INVARIANT);
 		}
@@ -106,35 +91,79 @@ export class ReviewFindingDocument {
 		if (!this.has_value(REVIEW_FIELD_REPRODUCTION)) {
 			missing.push(REVIEW_FIELD_REPRODUCTION);
 		}
-		return missing;
 	}
 
-	/** Responsibilities: _impact fields_. **/
-	private missing_correction_fields(): string[] {
-		const missing: string[] = [];
+	/** Responsibilities: _correction fields_. **/
+	private correction_fields(missing: string[]): void {
 		if (!this.has_value(REVIEW_FIELD_IMPACT)) {
 			missing.push(REVIEW_FIELD_IMPACT);
 		}
 		if (!this.has_content_section(REVIEW_FIELD_REQUIRED_CORRECTION)) {
 			missing.push(REVIEW_FIELD_REQUIRED_CORRECTION);
 		}
-		return missing;
 	}
 
 	/** Responsibilities: _code fences_. **/
 	private unfenced_lines(): string[] {
 		const lines: string[] = [];
-		let fenced = false;
+		let fence_state: ReviewFenceState = { character: "", length: 0, is_open: false };
 		for (const line of this._text.split(/\r?\n/u)) {
-			if (/^```/u.test(line.trim())) {
-				fenced = !fenced;
+			const value = line.trimStart();
+			if (fence_state.is_open) {
+				fence_state = this.close_fence_line(value, fence_state);
 				continue;
 			}
-			if (!fenced) {
-				lines.push(line);
+			fence_state = this.open_fence_line(value);
+			if (fence_state.is_open) {
+				continue;
 			}
+			lines.push(line);
 		}
 		return lines;
+	}
+
+	/** Responsibilities: _fence opener syntax_. **/
+	private open_fence_line(line_text: string): ReviewFenceState {
+		const fence = line_text.match(/^(`{3,}|~{3,})(.*)$/u);
+		if (fence === null) {
+			return { character: "", length: 0, is_open: false };
+		}
+		const delimiter = fence[1] ?? "";
+		const info = fence[2] ?? "";
+		if (delimiter[0] === "`" && info.includes("`")) {
+			return { character: "", length: 0, is_open: false };
+		}
+		const character = delimiter[0] ?? "";
+		return { character, length: delimiter.length, is_open: true };
+	}
+
+	/** Responsibilities: _fence closer syntax_. **/
+	private close_fence_line(line_text: string, state: ReviewFenceState): ReviewFenceState {
+		const closing = line_text.match(/^(`+|~+)[ \t]*$/u);
+		if (closing === null) {
+			return state;
+		}
+		const delimiter = closing[1] ?? "";
+		if (delimiter[0] !== state.character || delimiter.length < state.length) {
+			return state;
+		}
+		return { character: "", length: 0, is_open: false };
+	}
+
+	/** Responsibilities: _document header fields_. **/
+	private header_fields(): string[] {
+		const missing: string[] = [];
+		const title = this.unfenced_lines().find((line) => line.trim().length > 0);
+		if (title === undefined || !title.trim().startsWith("# ")) {
+			missing.push("title");
+		}
+		if (!this.has_valid_severity()) {
+			missing.push(REVIEW_SEVERITY_REQUIREMENT);
+		}
+		if (this.status() === "") {
+			missing.push(`${REVIEW_FIELD_STATUS} (use ${REVIEW_STATUS_OPEN} or ${REVIEW_STATUS_RESOLVED} exactly once)`);
+		}
+		return missing;
 	}
 
 	/** Responsibilities: _document state_. **/
@@ -163,15 +192,12 @@ export class ReviewFindingDocument {
 
 	/** Responsibilities: _field schema_. **/
 	public missing_fields(): string[] {
-		const title = this.unfenced_lines().find((line) => line.trim().length > 0);
-		const missing = [
-			...this.missing_header_fields(),
-			...this.missing_evidence_fields(),
-			...this.missing_correction_fields(),
-		];
-		if (title === undefined || !title.trim().startsWith("# ")) {
-			return ["title", ...missing];
+		const missing = this.header_fields();
+		if (!this.has_value(REVIEW_FIELD_TASK)) {
+			missing.push(REVIEW_FIELD_TASK);
 		}
+		this.evidence_fields(missing);
+		this.correction_fields(missing);
 		return missing;
 	}
 

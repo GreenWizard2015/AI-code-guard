@@ -33,7 +33,12 @@ describe("naming rules integration", () => {
 					"function four_word_function_name() { return VALID_NAME; } function valid_function() { return VALID_NAME; }",
 					"class Sample { method_with_local_constant() { const local_name = 1; return local_name; } storeFailedTaskResult = 1; storeFailedTaskResult() { return VALID_NAME; } }",
 				].join("\n"),
-				"type-fields.ts": "type InputShape = { fileName: string; projectClassNames?: ReadonlySet<string>; };",
+				"type-fields.ts": [
+					"type InputShape = { fileName: string; projectClassNames?: ReadonlySet<string>; };",
+					"type RequestData = { _request_id: string; };",
+					"interface ResponseContract { _result: string; }",
+					"class RequestState { private _state = ''; }",
+				].join("\n"),
 				"records.ts":
 					"export type PythonLintInput = { file_name: string; text: string; project_class_names?: ReadonlySet<string>; project_protocol_names?: ReadonlySet<string>; project_type_names?: ReadonlySet<string>; normalized_ast?: object; }; export type LintSourceRecordData = { absolutePath: string; relativePath: string; fileName: string; text: string; language: string; typescriptAst?: object; normalizedAst: object; };",
 				"tests/source.test.ts": "function storeFailedTaskResultWithExtraWords() { return 1; }",
@@ -51,9 +56,14 @@ describe("naming rules integration", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const messages = violations.map((violation) => violation.message());
+		const type_field_messages = violations
+			.filter((violation) => violation.file() === "type-fields.ts" && violation.rule_id() === "naming-private")
+			.map((violation) => violation.message());
 
 		expect({
 			expected_messages: messages,
+			type_field_messages,
+			class_private_field_reported: type_field_messages.some((message) => message.includes("_state")),
 			private_method_reported: messages.some((message) => message.includes("_private_method")),
 			long_test_symbol_reported: messages.some((message) => message.includes("storeFailedTaskResultWithExtraWords")),
 			ignored_external_names_reported: IGNORED_EXTERNAL_NAMES.some((name) =>
@@ -76,6 +86,11 @@ describe("naming rules integration", () => {
 				'type "invalid_type" must use PascalCase without underscores',
 				'type "_InvalidInterface" must not use a leading underscore',
 			]),
+			type_field_messages: [
+				'field "_request_id" must not use a leading underscore',
+				'field "_result" must not use a leading underscore',
+			],
+			class_private_field_reported: false,
 			private_method_reported: false,
 			long_test_symbol_reported: false,
 			ignored_external_names_reported: false,
@@ -83,7 +98,7 @@ describe("naming rules integration", () => {
 		});
 	});
 
-	test("applies leading-underscore and TypeAlias naming rules to Python", () => {
+	test("applies Python leading-underscore, TypeAlias, and __all__ naming rules", () => {
 		const source_file_key = "source.py";
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
@@ -103,14 +118,19 @@ describe("naming rules integration", () => {
 					PYTHON_ALIAS_FILES[source_file_key],
 					"",
 				].join("\n"),
+				"exports.py": '__all__ = ["PublicService"]',
 			},
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const messages = violations.map((violation) => violation.message());
+		const export_name_violations = violations
+			.filter((violation) => violation.file() === "exports.py" && violation.rule_id() === "naming-private")
+			.map((violation) => `${violation.file()}:${violation.line()}: ${violation.message()}`);
 
 		expect({
 			expected_messages: messages,
+			export_name_violations,
 			field_reported: messages.includes('field "_field" must use snake_case and has too many words (found 1)'),
 			magic_method_reported: messages.includes('public method "__init__" must not use a leading underscore'),
 		}).toEqual({
@@ -119,45 +139,9 @@ describe("naming rules integration", () => {
 				'type alias "valid_alias" must use PascalCase without underscores',
 				'type_alias "_PrivateAlias" must not use a leading underscore',
 			]),
+			export_name_violations: [],
 			field_reported: false,
 			magic_method_reported: false,
 		});
-	});
-
-	test("rejects leading underscores on TypeScript type fields but allows class fields", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"type-fields.ts": [
-					"type RequestData = { _request_id: string; };",
-					"interface ResponseContract { _result: string; }",
-					"class RequestState { private _state = ''; }",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations
-				.filter((violation) => violation.rule_id() === "naming-private")
-				.map((violation) => violation.message()),
-		).toEqual([
-			'field "_request_id" must not use a leading underscore',
-			'field "_result" must not use a leading underscore',
-		]);
-	});
-
-	test("accepts Python __all__ as a language-defined export name", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{ "exports.py": '__all__ = ["PublicService"]' },
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((violation) => violation.rule_id() === "naming-private")).toEqual([]);
 	});
 });

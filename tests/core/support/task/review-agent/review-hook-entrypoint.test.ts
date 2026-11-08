@@ -24,9 +24,8 @@ describe("review hook payload normalization", () => {
 			cwd: PROJECT_ROOT,
 			review_stage: "algorithms",
 			review_prefix: "wrong-prefix-",
-			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-algorithms-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-algorithms-", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
 		const application = new AgentHookApplication(io, PROJECT_ROOT);
@@ -49,9 +48,8 @@ describe("review hook payload normalization", () => {
 			cwd: PROJECT_ROOT,
 			review_stage: "tests",
 			review_prefix: "wrong-prefix-",
-			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-tests-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-tests-", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
 		const application = new AgentHookApplication(io, PROJECT_ROOT);
@@ -66,7 +64,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("preserves and authorizes the command execution context", () => {
-		const normalizer = new HookPayloadNormalizer("review-boundaries-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-boundaries-", Number.POSITIVE_INFINITY);
 		const payload = normalizer.normalize({
 			event: "PreToolUse",
 			hook_event_name: "PreToolUse",
@@ -85,7 +83,6 @@ describe("review hook payload normalization", () => {
 			cwd: PROJECT_ROOT,
 			review_stage: "boundaries",
 			review_prefix: "review-boundaries-",
-			review_phase: "initial",
 		});
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
@@ -101,7 +98,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("allows bare pwd without an active review prefix", () => {
-		const normalizer = new HookPayloadNormalizer("", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
 		const application = new AgentHookApplication(io, PROJECT_ROOT);
@@ -114,7 +111,6 @@ describe("review hook payload normalization", () => {
 			cwd: "",
 			review_stage: "",
 			review_prefix: "",
-			review_phase: "initial",
 		});
 
 		expect(application.decision(payload)).toEqual({ allowed: true, reason: "" });
@@ -137,9 +133,8 @@ describe("review hook payload normalization", () => {
 			cwd: PROJECT_ROOT,
 			review_stage: "abstractions",
 			review_prefix: "review-abstractions-",
-			review_phase: "initial",
 		};
-		const normalizer = new HookPayloadNormalizer("review-abstractions-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-abstractions-", Number.POSITIVE_INFINITY);
 		const io = new InMemoryFileIO();
 		io.create_directory(PROJECT_ROOT);
 		const application = new AgentHookApplication(io, PROJECT_ROOT);
@@ -153,7 +148,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("normalizes a payload with omitted optional fields", () => {
-		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-contract-", Number.POSITIVE_INFINITY);
 		const normalized = normalizer.normalize(JSON.parse('{"event":"PreToolUse","tool_name":"Bash"}'));
 
 		expect({
@@ -170,7 +165,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("preserves the provider stop-continuation state", () => {
-		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", Number.POSITIVE_INFINITY);
+		const normalizer = new HookPayloadNormalizer("review-contract-", Number.POSITIVE_INFINITY);
 		const normalized = normalizer.normalize(
 			JSON.parse('{"event":"Stop","hook_event_name":"Stop","stop_hook_active":true}'),
 		);
@@ -179,7 +174,7 @@ describe("review hook payload normalization", () => {
 	});
 
 	test("uses the trusted review start timestamp for the finding cutoff", () => {
-		const normalizer = new HookPayloadNormalizer("review-contract-", "initial", 1234);
+		const normalizer = new HookPayloadNormalizer("review-contract-", 1234);
 		const normalized = normalizer.normalize(
 			JSON.parse('{"event":"PostToolUse","tool_name":"Write","review_start_ms":1}'),
 		);

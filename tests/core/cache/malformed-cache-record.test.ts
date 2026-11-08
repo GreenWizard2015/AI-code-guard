@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
 import { ViolationCache } from "src/core/cache/violation_cache";
+import { ViolationValue } from "src/model/violation_value";
 import type { ReportViolationOptions } from "src/reporting_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
@@ -40,7 +41,6 @@ describe("malformed complete cache records", () => {
 				entry_files: [],
 				skip_review: true,
 				force_review: false,
-				review_cleanup: false,
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
@@ -60,7 +60,6 @@ describe("malformed complete cache records", () => {
 				entry_files: [],
 				skip_review: true,
 				force_review: false,
-				review_cleanup: false,
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
@@ -99,7 +98,6 @@ describe("malformed complete cache records", () => {
 				entry_files: [],
 				skip_review: true,
 				force_review: false,
-				review_cleanup: false,
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
@@ -123,5 +121,43 @@ describe("malformed complete cache records", () => {
 
 		expect(() => cache.valid_cache()).not.toThrow();
 		expect(cache.valid_cache()).toBe(false);
+	});
+
+	test("rejects fractional diagnostic lines in cache and value construction", () => {
+		const entry = {
+			file: "module.ts",
+			line: 1.5,
+			message: "diagnostic",
+			hint: "fix it",
+			rule_id: "example-rule",
+			priority: 1,
+		};
+		const cache = new ViolationCache([entry]);
+
+		expect(cache.valid_cache()).toBe(false);
+		expect(() => new ViolationValue(entry)).toThrow("Invalid diagnostic line 1.5");
+	});
+
+	test("preserves the zero line sentinel for file-level diagnostics", () => {
+		const entry = new ViolationValue({
+			file: "module.ts",
+			line: 0,
+			message: "file-level diagnostic",
+			hint: "review the file",
+			rule_id: "file-rule",
+			priority: 1,
+		});
+		const cache = new ViolationCache([
+			{
+				file: entry.file(),
+				line: entry.line(),
+				message: entry.message(),
+				hint: entry.hint(),
+				rule_id: entry.rule_id(),
+				priority: entry.priority(),
+			},
+		]);
+
+		expect({ line: entry.line(), valid: cache.valid_cache() }).toEqual({ line: 0, valid: true });
 	});
 });

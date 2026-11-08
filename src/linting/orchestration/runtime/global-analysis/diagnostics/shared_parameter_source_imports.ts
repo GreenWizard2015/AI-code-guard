@@ -17,7 +17,11 @@ export class SharedParameterSourceImports {
 
 	/** Responsibilities: _named import declarations_. **/
 	private named_imports(statement: ts.ImportDeclaration): readonly ts.ImportSpecifier[] {
-		const bindings = statement.importClause?.namedBindings;
+		const import_clause = statement.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (bindings === undefined || !ts.isNamedImports(bindings)) {
 			return [];
 		}

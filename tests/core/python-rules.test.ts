@@ -138,30 +138,24 @@ describe("Python-specific coding rules", () => {
 
 	test("limits attribute chains to four levels in Python and TypeScript", () => {
 		const fixture = new TestFixture();
-		const messages = fixture
-			.with_lint_request(
-				new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-				{ "chain.py": "value = a.b.c.d.e\n", "chain.ts": "const value = a.b.c.d.e;\n" },
-				(production_lint_configuration, options, mode) =>
-					production_lint_configuration.lint_report(options, mode).report.violations,
-			)
-			.map((item) => item.message());
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{ "chain.ts": "const value = a.b.c.d.e;\n" },
+			{ "chain.py": "value = a.b.c.d.e\n", "chain.ts": "const value = a.b.c.d.e;\n" },
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-
-		const depth_violations = violations.filter(
-			(item) => item.message() === "attribute access is too deep (found 5 levels)",
+		const depth_violations = violations.filter((item) =>
+			item.message().includes("attribute access is too deep (found 5 levels)"),
 		);
+		const typescript_violations = depth_violations.filter((item) => item.file() === "chain.ts");
 
 		expect({
-			message_count: messages.filter((message) => message === "attribute access is too deep (found 5 levels)").length,
-			hints: depth_violations.map((item) => item.hint()),
+			message_count: depth_violations.length,
+			typescript_message_count: typescript_violations.length,
+			hints: typescript_violations.map((item) => item.hint()),
 		}).toEqual({
 			message_count: 2,
+			typescript_message_count: 1,
 			hints: expect.arrayContaining([expect.stringContaining("temporary local variables")]),
 		});
 	});

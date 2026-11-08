@@ -100,6 +100,15 @@ describe("broad catch diagnostics", () => {
 					"\t}",
 					"}",
 				].join("\n"),
+				"classified-boundary-message-alias.ts": [
+					"function remove_temporary_file(): void {",
+					"\ttry { remove_file(); } catch (error) {",
+					"\t\tconst message = String(error);",
+					"\t\tif (!is_system_failure(message)) { throw error; }",
+					'\t\tif (!message.includes("ENOENT")) { throw error; }',
+					"\t}",
+					"}",
+				].join("\n"),
 				"transaction-rollback.ts": [
 					"function publish(): void {",
 					"\ttry { stage(); commit(); } catch (error) {",

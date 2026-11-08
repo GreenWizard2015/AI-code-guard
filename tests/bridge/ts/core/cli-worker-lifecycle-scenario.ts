@@ -148,7 +148,7 @@ export class CliWorkerLifecycleScenario {
 	/** Responsibilities: _worker application cleanup_. **/
 	public async close(): Promise<boolean> {
 		try {
-			this._registry.close();
+			await this._registry.close();
 		} finally {
 			this.restore_scope();
 		}

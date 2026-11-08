@@ -39,12 +39,6 @@ describe("ProjectTypeBoundary", () => {
 				"export function use_many(values: Port[]): number { return values.length; }",
 			].join("\n"),
 		};
-		const without_collision = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			files,
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
 		const with_collision = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
@@ -54,14 +48,14 @@ describe("ProjectTypeBoundary", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		/** Responsibilities: _boundary violation counts_. **/
-		const boundary_violations = (violations: readonly ViolationContract[]): number =>
-			violations.filter((item) => item.file() === "use.ts" && item.rule_id() === "project-type-boundary").length;
-
-		expect({
-			without_collision: boundary_violations(without_collision),
-			with_collision: boundary_violations(with_collision),
-		}).toEqual({ without_collision: 2, with_collision: 2 });
+		expect(
+			with_collision
+				.filter((item) => item.file() === "use.ts" && item.rule_id() === "project-type-boundary")
+				.map((item) => ({ file: item.file(), line: item.line(), rule_id: item.rule_id() })),
+		).toEqual([
+			{ file: "use.ts", line: 2, rule_id: "project-type-boundary" },
+			{ file: "use.ts", line: 3, rule_id: "project-type-boundary" },
+		]);
 	});
 
 	test("rejects aliased project classes and allows contract types", () => {

@@ -39,10 +39,25 @@ export class InheritedMethodReplacement {
 		return this.project_class({ file: module_file, name: expression.name.text });
 	}
 
+	/** Responsibilities: _named class import registration_. **/
+	private append_named_imports(module_file: string, bindings: ts.NamedImports): void {
+		for (const element of bindings.elements) {
+			const property_name = element.propertyName;
+			let imported_name = element.name.text;
+			if (property_name !== undefined) {
+				imported_name = property_name.text;
+			}
+			if (this.project_class({ file: module_file, name: imported_name })) {
+				this._imported_class_names.add(element.name.text);
+			}
+		}
+	}
+
 	/** Responsibilities: _import clause registration_. **/
 	private append_import_clause(module_file: string, clause: ts.ImportClause): void {
-		if (clause.name !== undefined && this.project_class({ file: module_file, name: "default" })) {
-			this._imported_class_names.add(clause.name.text);
+		const default_name = clause.name;
+		if (default_name !== undefined && this.project_class({ file: module_file, name: "default" })) {
+			this._imported_class_names.add(default_name.text);
 		}
 		const bindings = clause.namedBindings;
 		if (bindings === undefined) {
@@ -52,12 +67,7 @@ export class InheritedMethodReplacement {
 			this._namespace_imports.set(bindings.name.text, module_file);
 			return;
 		}
-		for (const element of bindings.elements) {
-			const imported_name = element.propertyName?.text ?? element.name.text;
-			if (this.project_class({ file: module_file, name: imported_name })) {
-				this._imported_class_names.add(element.name.text);
-			}
-		}
+		this.append_named_imports(module_file, bindings);
 	}
 
 	/** Responsibilities: _import declaration processing_. **/
@@ -120,7 +130,11 @@ export class InheritedMethodReplacement {
 			if (!callable) {
 				return false;
 			}
-			return member.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.OverrideKeyword) === true;
+			const modifiers = member.modifiers;
+			if (modifiers === undefined) {
+				return false;
+			}
+			return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.OverrideKeyword);
 		});
 	}
 }

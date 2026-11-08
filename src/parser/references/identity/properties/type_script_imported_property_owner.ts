@@ -14,7 +14,8 @@ export class TypeScriptImportedPropertyOwner {
 	/** Responsibilities: _named declaration classification_. **/
 	private is_owner_declaration(declaration: ts.Statement, declaration_name: string): boolean {
 		if (ts.isClassLike(declaration)) {
-			return declaration.name?.text === declaration_name;
+			const name = declaration.name;
+			return name !== undefined && name.text === declaration_name;
 		}
 		if (ts.isInterfaceDeclaration(declaration)) {
 			return declaration.name.text === declaration_name;
@@ -47,7 +48,11 @@ export class TypeScriptImportedPropertyOwner {
 		if (!ts.isStringLiteral(import_declaration.moduleSpecifier)) {
 			return [];
 		}
-		const bindings = import_declaration.importClause?.namedBindings;
+		const import_clause = import_declaration.importClause;
+		if (import_clause === undefined) {
+			return [];
+		}
+		const bindings = import_clause.namedBindings;
 		if (bindings === undefined || !ts.isNamedImports(bindings)) {
 			return [];
 		}

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonScopedTypeAliasIndexContract,
 )
 from implementation.references.protocols import PythonReferenceAliasesContract
+from implementation.types import PythonASTLocatedNode
 
 
 class PythonScopedTypeAliasNode:
@@ -36,7 +38,7 @@ class PythonScopedTypeAliasNode:
                 imported.asname,
                 target,
                 self._scope_owner(),
-                self._node.lineno,
+                cast(PythonASTLocatedNode, self._node).lineno,
             )
 
     def _assignment_aliases(self) -> None:
@@ -49,7 +51,7 @@ class PythonScopedTypeAliasNode:
                 target,
                 ast.unparse(value),
                 self._scope_owner(),
-                self._node.lineno,
+                cast(PythonASTLocatedNode, self._node).lineno,
             )
 
     def _assignment_values(self) -> dict[str, ast.AST]:

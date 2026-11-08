@@ -120,13 +120,13 @@ export const TESTING_RULE_DATA = {
 		priority: 6,
 	},
 	"test-min-count": {
-		message: "test suite has too few test methods (found {count})",
-		hint: "Add a focused test method or remove an unnecessary suite. Do not: add a placeholder test to satisfy the minimum.",
+		message: "test suite has too few test cases (found {count})",
+		hint: "Add a focused test case or remove an unnecessary suite. Do not: add a placeholder test to satisfy the minimum.",
 		priority: 6,
 	},
 	"test-max-count": {
-		message: "test suite has too many test methods (found {count})",
-		hint: "Split the suite by cohesive behavior. Do not: keep unrelated test methods in one suite.",
+		message: "test suite has too many test cases (found {count})",
+		hint: "Split the suite by cohesive behavior. Do not: keep unrelated test cases in one suite.",
 		priority: 3,
 	},
 	"typescript-jest-test-ending": {

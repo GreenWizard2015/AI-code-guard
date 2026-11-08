@@ -14,7 +14,6 @@ import type {
 export class ReviewPatchMutation {
 	private readonly _patch: string;
 	private readonly _cwd: string;
-	private readonly _cleanup: boolean;
 	private readonly _paths: ReviewPathPolicyContract;
 	private readonly _deletion_policy: ReviewDeletionPolicyContract;
 
@@ -48,7 +47,7 @@ export class ReviewPatchMutation {
 				continue;
 			}
 			const path = line.slice(PATCH_DELETE_FILE_PREFIX.length);
-			if (!this._deletion_policy.file(path, this._cwd).allows_patch_deletion(this._cleanup)) {
+			if (!this._deletion_policy.file(path, this._cwd).allows_patch_deletion()) {
 				return false;
 			}
 		}
@@ -89,7 +88,6 @@ export class ReviewPatchMutation {
 			this._patch = request.input.command;
 		}
 		this._cwd = request.cwd;
-		this._cleanup = request.cleanup;
 		this._paths = paths;
 		this._deletion_policy = deletion_policy;
 	}

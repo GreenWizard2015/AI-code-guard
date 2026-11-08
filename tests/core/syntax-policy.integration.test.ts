@@ -94,44 +94,27 @@ describe("syntax policy integration", () => {
 		expect(violations.filter((violation) => violation.rule_id() === "typescript-contract-getter")).toHaveLength(1);
 	});
 
-	test("reports a return-only local assignment", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{ "src/value.ts": "export function value(): string { const result = source; return result; }" },
-			(configuration, options, mode) => configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((violation) => violation.rule_id() === "pointless-assignment")).toHaveLength(1);
-	});
-
-	test("keeps assignments that are used before returning", () => {
+	test("reports only the return-only local assignment", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
-				"src/value.ts": [
+				"src/value.ts": "export function value(): string { const result = source; return result; }",
+				"src/used-before-return.ts": [
 					"export function value(): string {",
 					"  const result = source;",
 					"  consume(result);",
 					"  return result;",
 					"}",
 				].join("\n"),
+				"src/returned-computation.ts": "export function value(): string { return source.trim(); }",
 			},
 			(configuration, options, mode) => configuration.lint_report(options, mode).report.violations,
 		);
-
-		expect(violations.filter((violation) => violation.rule_id() === "pointless-assignment")).toEqual([]);
-	});
-
-	test("does not report a returned computation", () => {
-		const fixture = new TestFixture();
-		const violations = fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{ "src/value.ts": "export function value(): string { return source.trim(); }" },
-			(configuration, options, mode) => configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((violation) => violation.rule_id() === "pointless-assignment")).toEqual([]);
+		expect(
+			violations
+				.filter((violation) => violation.rule_id() === "pointless-assignment")
+				.map((violation) => `${violation.file()}:${violation.line()}`),
+		).toEqual(["src/value.ts:1"]);
 	});
 });

@@ -77,7 +77,7 @@ describe("task workspace in-memory lifecycle", () => {
 		});
 	});
 
-	test("retains and recovers a transaction after journal initialization fails", async () => {
+	test("leaves no published transaction owner when journal initialization fails", async () => {
 		const scenario = new TaskPublicationFaultScenario("/virtual/task-publication-journal-failure");
 		const file_io = scenario.file_io();
 		const workspace = new TaskWorkspace(scenario.root(), file_io);
@@ -100,7 +100,7 @@ describe("task workspace in-memory lifecycle", () => {
 				transaction_exists: true,
 				transaction_listed: true,
 				owner_exists: true,
-				owner_references_transaction: true,
+				owner_references_transaction: false,
 				issues: "previous issues\n",
 				report: "previous report\n",
 				rule: "previous rule\n",

@@ -33,7 +33,11 @@ export class TypeScriptFunctionMetricRules implements ASTSourceRuleContract {
 	/** Responsibilities: _callable names_. **/
 	private callable_name(node: ts.Node, source_file: ts.SourceFile): string {
 		if (ts.isFunctionDeclaration(node)) {
-			return node.name?.text ?? "";
+			const name = node.name;
+			if (name === undefined) {
+				return "";
+			}
+			return name.text;
 		}
 		if (ts.isVariableDeclaration(node)) {
 			return node.name.getText(source_file);

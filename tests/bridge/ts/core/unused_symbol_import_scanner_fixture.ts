@@ -6,10 +6,13 @@ import type { ProjectSourceEntryContract } from "src/source_protocols";
 /** Responsibilities: _project import fixture_, _source scanner contract_, _entry classification_. **/
 export class ImportedSourceScanner implements ProjectSourceScanContract, ProjectSourceEntryContract {
 	private readonly _imported_files: readonly string[];
+	private readonly _resolved_target: string;
+	private _resolved_path_count = 0;
 
 	/** Responsibilities: _fixture scanner initialization_. **/
-	public constructor(imported_files: readonly string[] = ["dependency.py"]) {
+	public constructor(imported_files: readonly string[] = ["dependency.py"], resolved_target = "dependency.py") {
 		this._imported_files = imported_files;
+		this._resolved_target = resolved_target;
 	}
 
 	/** Responsibilities: _fixture project source entry_. **/
@@ -44,7 +47,13 @@ export class ImportedSourceScanner implements ProjectSourceScanContract, Project
 
 	/** Responsibilities: _single import target resolution_. **/
 	public resolved_import_path(_file: string, _specifier: string, _available: Set<string>): string {
-		return "dependency.py";
+		this._resolved_path_count += 1;
+		return this._resolved_target;
+	}
+
+	/** Responsibilities: _import-resolution operation count_. **/
+	public resolved_path_count(): number {
+		return this._resolved_path_count;
 	}
 
 	/** Responsibilities: _fixture import analysis_. **/

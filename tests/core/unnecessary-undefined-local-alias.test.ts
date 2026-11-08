@@ -5,7 +5,7 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding-lint local type property resolution", () => {
-	test("reports every required-field undefined comparison in a combined condition", () => {
+	test("reports required-field undefined comparisons in direct and parenthesized forms", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
@@ -16,41 +16,6 @@ describe("coding-lint local type property resolution", () => {
 					"  return parts.first_segment === undefined || parts.last_segment === undefined;",
 					"}",
 				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(violations.filter((item) => item.rule_id() === "unnecessary-undefined-check")).toHaveLength(2);
-	});
-
-	test("resolves required fields through local type aliases", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"local-property-alias.ts": [
-					"function candidate(): boolean {",
-					"\ttype CandidateParsed = { value: string };",
-					'\tconst candidate_parsed: CandidateParsed = { value: "" };',
-					"\treturn candidate_parsed.value === undefined;",
-					"}",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
-		).toEqual([4]);
-	});
-
-	test("resolves parenthesized required field comparisons", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"parenthesized-property.ts": [
 					"type Parsed = { attribute_accesses: string[] };",
 					"function has_attributes(parsed: Parsed): boolean {",
@@ -62,14 +27,26 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id() === "unnecessary-undefined-check")).toHaveLength(1);
+		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
+		expect(undefined_checks.map((item) => `${item.file()}:${item.line()}`).sort()).toEqual([
+			"parenthesized-property.ts:3",
+			"required-parts.ts:3",
+			"required-parts.ts:3",
+		]);
 	});
 
-	test("resolves required fields through local interfaces", () => {
+	test("resolves local aliases and keeps same-named fields scoped", () => {
 		const test_fixture = new TestFixture();
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
 			{
+				"local-property-alias.ts": [
+					"function candidate(): boolean {",
+					"\ttype CandidateParsed = { value: string };",
+					'\tconst candidate_parsed: CandidateParsed = { value: "" };',
+					"\treturn candidate_parsed.value === undefined;",
+					"}",
+				].join("\n"),
 				"local-property-interface.ts": [
 					"function candidate(): boolean {",
 					"\tinterface CandidateParsed { value: string; }",
@@ -77,109 +54,12 @@ describe("coding-lint local type property resolution", () => {
 					"\treturn candidate_parsed.value === undefined;",
 					"}",
 				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
-		).toEqual([4]);
-	});
-
-	test("resolves required fields through namespace imported interfaces", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"model.ts": "export interface Model { id: string; }",
-				"consumer.ts": [
-					"import * as Domain from './model';",
-					'const model: Domain.Model = { id: "" };',
-					"const invalid = model.id === undefined;",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
-		).toEqual([3]);
-	});
-
-	test("resolves required fields through star re-exported interfaces", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"model.ts": "export interface Model { id: string; }",
-				"barrel.ts": "export * from './model';",
-				"consumer.ts": [
-					"import { Model } from './barrel';",
-					'const model: Model = { id: "" };',
-					"const invalid = model.id === undefined;",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
-		expect(undefined_checks.map((item) => item.line())).toEqual([3]);
-		expect(undefined_checks.map((item) => item.file().includes("consumer.ts"))).toEqual([true]);
-	});
-
-	test("resolves required fields through project-root compiler aliases", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
-				"tsconfig.json": JSON.stringify({
-					compilerOptions: { baseUrl: ".", paths: { "@domain/*": ["src/domain/*"] } },
-				}),
-				"src/domain/model.ts": "export interface Model { id: string; }",
-				"consumer.ts": [
-					"import { Model } from '@domain/model';",
-					'const model: Model = { id: "" };',
-					"const invalid = model.id === undefined;",
-				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
-		expect(undefined_checks.map((item) => item.line())).toEqual([3]);
-		expect(undefined_checks.map((item) => item.file().includes("consumer.ts"))).toEqual([true]);
-	});
-
-	test("resolves required fields through value aliases", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"object-alias.ts": [
 					"interface Model { id: string; }",
 					'const model: Model = { id: "" };',
 					"const alias = model;",
 					"const invalid = alias.id === undefined;",
 				].join("\n"),
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
-		).toEqual([4]);
-	});
-
-	test("keeps same parameter names in separate lexical scopes", () => {
-		const test_fixture = new TestFixture();
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"scoped-property-types.ts": [
 					"type OptionalModel = { value?: string };",
 					"type RequiredModel = { value: string };",
@@ -195,8 +75,57 @@ describe("coding-lint local type property resolution", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(
-			violations.filter((item) => item.rule_id() === "unnecessary-undefined-check").map((item) => item.line()),
-		).toEqual([7]);
+		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
+		expect(undefined_checks.map((item) => `${item.file()}:${item.line()}`).sort()).toEqual([
+			"local-property-alias.ts:4",
+			"local-property-interface.ts:4",
+			"object-alias.ts:4",
+			"scoped-property-types.ts:7",
+		]);
+	});
+
+	test("resolves required fields through namespace, re-export, and compiler aliases", () => {
+		const test_fixture = new TestFixture();
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"namespace-model.ts": "export interface NamespaceModel { id: string; }",
+				"namespace-consumer.ts": [
+					"import * as Domain from './namespace-model';",
+					'const model: Domain.NamespaceModel = { id: "" };',
+					"const invalid = model.id === undefined;",
+				].join("\n"),
+				"star-model.ts": "export interface StarModel { id: string; }",
+				"star-barrel.ts": "export * from './star-model';",
+				"star-consumer.ts": [
+					"import { StarModel } from './star-barrel';",
+					'const model: StarModel = { id: "" };',
+					"const invalid = model.id === undefined;",
+				].join("\n"),
+				"tsconfig.json": JSON.stringify({
+					compilerOptions: { baseUrl: ".", paths: { "@domain/*": ["src/domain/*"] } },
+				}),
+				"src/domain/compiler-model.ts": "export interface CompilerModel { id: string; }",
+				"compiler-consumer.ts": [
+					"import { CompilerModel } from '@domain/compiler-model';",
+					'const model: CompilerModel = { id: "" };',
+					"const invalid = model.id === undefined;",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		const undefined_checks = violations.filter((item) => item.rule_id() === "unnecessary-undefined-check");
+		expect({
+			count: undefined_checks.length,
+			namespace: undefined_checks
+				.filter((item) => item.file().endsWith("namespace-consumer.ts"))
+				.map((item) => item.line()),
+			star: undefined_checks.filter((item) => item.file().endsWith("star-consumer.ts")).map((item) => item.line()),
+			compiler_alias: undefined_checks
+				.filter((item) => item.file().endsWith("compiler-consumer.ts"))
+				.map((item) => item.line()),
+		}).toEqual({ count: 3, namespace: [3], star: [3], compiler_alias: [3] });
 	});
 });

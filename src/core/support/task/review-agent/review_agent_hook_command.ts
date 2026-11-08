@@ -1,15 +1,10 @@
-import {
-	REVIEW_PHASE_ARGUMENT,
-	REVIEW_PREFIX_ARGUMENT,
-	REVIEW_STARTED_AT_ARGUMENT,
-} from "src/core/support/task/review-agent/constants";
+import { REVIEW_PREFIX_ARGUMENT, REVIEW_STARTED_AT_ARGUMENT } from "src/core/support/task/review-agent/constants";
 
 /** Responsibilities: _hook command argument encoding_, _provider command serialization_. **/
 export class ReviewAgentHookCommand {
 	private readonly _hook_command: string;
 	private readonly _hook_file: string;
 	private readonly _review_prefix: string;
-	private readonly _review_phase: string;
 	private readonly _review_start_ms: number;
 
 	/** Responsibilities: _hook configuration validation_. **/
@@ -24,17 +19,10 @@ export class ReviewAgentHookCommand {
 	}
 
 	/** Responsibilities: _hook command initialization_. **/
-	public constructor(
-		hook_command: string,
-		hook_file: string,
-		review_prefix: string,
-		review_phase: string,
-		review_start_ms: number,
-	) {
+	public constructor(hook_command: string, hook_file: string, review_prefix: string, review_start_ms: number) {
 		this._hook_command = hook_command;
 		this._hook_file = hook_file;
 		this._review_prefix = review_prefix;
-		this._review_phase = review_phase;
 		this._review_start_ms = review_start_ms;
 		if (this.missing_hook_inputs()) {
 			throw new Error("Review hook command, file, and prefix are required.");
@@ -48,8 +36,6 @@ export class ReviewAgentHookCommand {
 			this._hook_file,
 			REVIEW_PREFIX_ARGUMENT,
 			this._review_prefix,
-			REVIEW_PHASE_ARGUMENT,
-			this._review_phase,
 			REVIEW_STARTED_AT_ARGUMENT,
 			String(this._review_start_ms),
 		];

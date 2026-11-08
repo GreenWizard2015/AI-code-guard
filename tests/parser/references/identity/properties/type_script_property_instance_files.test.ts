@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { INSTANCE_PROPERTY_SIDE } from "src/constants";
 import { TypeScriptPropertyInstanceFiles } from "src/parser/references/identity/properties/type_script_property_instance_files";
@@ -12,11 +13,11 @@ describe("TypeScript property instance files", () => {
 			true,
 		);
 		const class_declaration = source.statements.find(ts.isClassDeclaration);
-		const property = class_declaration?.members.find(ts.isPropertyDeclaration);
+		assert.ok(class_declaration);
+		const property = class_declaration.members.find(ts.isPropertyDeclaration);
+		assert.ok(property);
 		const files = new TypeScriptPropertyInstanceFiles(new Map([["Service", "service.ts"]]));
-		if (property !== undefined) {
-			files.collect(property, "consumer.ts", "Consumer");
-		}
+		files.collect(property, "consumer.ts", "Consumer");
 
 		expect(files.file("consumer.ts", "Consumer", "service", INSTANCE_PROPERTY_SIDE)).toBe("service.ts");
 	});
@@ -29,11 +30,11 @@ describe("TypeScript property instance files", () => {
 			true,
 		);
 		const class_declaration = source.statements.find(ts.isClassDeclaration);
-		const property = class_declaration?.members.find(ts.isPropertyDeclaration);
+		assert.ok(class_declaration);
+		const property = class_declaration.members.find(ts.isPropertyDeclaration);
+		assert.ok(property);
 		const files = new TypeScriptPropertyInstanceFiles(new Map([["Service", "service.ts"]]));
-		if (property !== undefined) {
-			files.collect(property, "consumer.ts", "Consumer");
-		}
+		files.collect(property, "consumer.ts", "Consumer");
 
 		expect(files.file("consumer.ts", "Consumer", "service", INSTANCE_PROPERTY_SIDE)).toBe("service.ts");
 	});

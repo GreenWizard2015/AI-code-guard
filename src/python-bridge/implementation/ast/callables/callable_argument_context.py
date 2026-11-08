@@ -44,6 +44,24 @@ class CallableArgumentContext:
                     names.append(decorator_expression.attr)
         return names
 
+    def _parameterized_case_count(self) -> int:
+        """Responsibilities: _parameterized case metadata_."""
+        for decorator in self._decorator_nodes:
+            if type(decorator) is not ast.Call:
+                continue
+            target = decorator.func
+            is_expand = type(target) is ast.Attribute and target.attr == "expand"
+            is_expand = is_expand or (type(target) is ast.Name and target.id == "expand")
+            if not is_expand or not decorator.args:
+                continue
+            cases = decorator.args[0]
+            match cases:
+                case ast.List(elts=elements):
+                    return len(elements)
+                case ast.Tuple(elts=elements):
+                    return len(elements)
+        return 0
+
     def _untyped_parameters(self) -> list[str]:
         """Responsibilities: _untyped callable parameter collection_."""
         return [
@@ -122,6 +140,7 @@ class CallableArgumentContext:
                 [item for items in typed for item in items],
             ),
             "decorators": cast(JsonValueList, self._decorators()),
+            "parameterized_case_count": self._parameterized_case_count(),
             "has_self": bool(arguments) and arguments[0].arg == "self",
             "visibility": self.visibility(),
         }

@@ -68,23 +68,9 @@ describe("callable ownership identity", () => {
 				"consumer.ts":
 					"import { PublicService } from './facade'; const service = new PublicService(); service.execute();",
 				"other.ts": "export class Service { public execute(): number { return 2; } }",
-			},
-			(production_lint_configuration, options, mode) =>
-				production_lint_configuration.lint_report(options, mode).report.violations,
-		);
-
-		expect(
-			violations.filter((violation) => violation.rule_id() === "unused-callable").map((violation) => violation.file()),
-		).toEqual(["other.ts"]);
-	});
-
-	test("matches runtime module imports to their declaration file callables", () => {
-		const violations = test_fixture.with_lint_request(
-			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
-			{
 				"worker.mjs": "export class Worker { close() {} }",
 				"worker.d.mts": "export declare class Worker { close(): void; }",
-				"consumer.ts": [
+				"worker-consumer.ts": [
 					"import { Worker } from './worker.mjs';",
 					"export function stop(worker: Worker): void { worker.close(); }",
 					"stop(new Worker());",
@@ -95,8 +81,10 @@ describe("callable ownership identity", () => {
 		);
 
 		expect(
-			violations.filter((violation) => violation.rule_id() === "unused-callable").map((violation) => violation.file()),
-		).toEqual([]);
+			violations
+				.filter((violation) => violation.rule_id() === "unused-callable")
+				.map((violation) => `${violation.file()}:${violation.line()}`),
+		).toEqual(["other.ts:1"]);
 	});
 
 	test("resolves a property constructor through an imported alias", () => {

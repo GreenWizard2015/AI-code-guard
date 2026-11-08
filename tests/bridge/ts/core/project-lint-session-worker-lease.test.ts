@@ -2,8 +2,8 @@ import { resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { UnusedCode } from "src/core/project-source/unused_code";
-import { ProjectLintSession } from "src/core/project_lint_session";
+import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { ProjectLintExecution } from "src/core/project_lint_execution";
 import { PYTHON_AST_WORKER_INACTIVE_LEASE_MESSAGE } from "src/core/python-ast/constants";
 import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
 import { PythonAstWorkerRegistry } from "src/core/python-ast/python_ast_worker_registry";
@@ -19,7 +19,7 @@ import { TestFixture } from "tests/core/test-fixture";
 
 describe("project lint session worker lease", () => {
 	test("replaces a closed session and resumes Python lint", async () => {
-		const project = new InMemoryLintProject({ "module.py": "value = 1\n" });
+		const project = new InMemoryLintProject({ "module.py": "value = 1\n" }, new InMemoryFileIO());
 		const configuration = new LintRunConfiguration(project._source_io, project._file_io);
 		const closed_session = configuration.active_worker_session();
 		await closed_session.close();
@@ -57,10 +57,17 @@ describe("project lint session worker lease", () => {
 		);
 		const configuration = new LintRunConfiguration(source_io, file_io);
 		const worker = configuration.active_worker_session().worker();
-		const session = new ProjectLintSession(file_io, source_io, configuration);
 		const command_line = new CommandLineOptions(["node", "cli.ts", "--root", "/virtual/project"]);
 		const options = command_line.value();
-		const report = await session.analyze(options, new LintStageTimer(), new UnusedCode());
+		const execution = new ProjectLintExecution({
+			lint_run_factory: configuration,
+			file_io,
+			source_io,
+			analysis_identity: new ProjectAnalysisIdentity(file_io),
+			options,
+			stage_timer: new LintStageTimer(),
+		});
+		const report = await execution.run();
 		const analysis_completed = report.files.length === 1;
 		const post_release_batch = worker.batch("after-disposal", new Map([["closed.py", "value = 2\n"]]));
 		await configuration.close_worker_session();
@@ -70,20 +77,14 @@ describe("project lint session worker lease", () => {
 	});
 
 	test("reuses its worker across two analyses", async () => {
-		const project_files = new Map([
-			[resolve("/virtual/project/.gitignore"), ".ai-code-guard/\n"],
-			[resolve("/virtual/project/source.py"), "value = 1\n"],
-		]);
-		const file_io = new InMemoryFileIO();
-		file_io.seed_files(project_files);
-		const source_io = new InMemoryProjectSourceIO(project_files);
-		const configuration = new LintRunConfiguration(source_io, file_io);
+		const project = new InMemoryLintProject({ "source.py": "value = 1\n" }, new InMemoryFileIO());
+		const configuration = new LintRunConfiguration(project._source_io, project._file_io);
 		const worker = configuration.active_worker_session().worker();
-		const session = new ProjectLintSession(file_io, source_io, configuration);
-		const command_line = new CommandLineOptions(["node", "cli.ts", "--root", "/virtual/project"]);
-		const options = command_line.value();
-		const first_report = session.analyze(options, new LintStageTimer(), new UnusedCode());
-		const second_report = session.analyze(options, new LintStageTimer(), new UnusedCode());
+		const options = project.options(configuration);
+		const first_execution = configuration.lint_report(options, LintReportMode.IN_MEMORY_PROJECT);
+		const second_execution = configuration.lint_report(options, LintReportMode.IN_MEMORY_PROJECT);
+		const first_report = first_execution.report;
+		const second_report = second_execution.report;
 		const worker_reused = worker === configuration.active_worker_session().worker();
 		await configuration.close_worker_session();
 

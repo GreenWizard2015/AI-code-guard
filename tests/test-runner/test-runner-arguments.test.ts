@@ -19,6 +19,13 @@ describe("test runner request arguments", () => {
 		expect(request.review_agent).toBe("claude");
 	});
 
+	test.each(["codex", "cx", "cxa", "claude"] as const)("accepts review provider %s", (agent) => {
+		const parser = new TestRunnerArguments(["--review-agent", agent]);
+		const request = parser.request();
+
+		expect(request.review_agent).toBe(agent);
+	});
+
 	test("keeps the first provider when duplicate provider options are present", () => {
 		const arguments_parser = new TestRunnerArguments(["--review-agent", "codex", "--review-agent", "claude"]);
 		const request = arguments_parser.request();

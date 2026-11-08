@@ -1,17 +1,15 @@
-export type ReviewAgentName = "codex" | "claude";
+export type CodexReviewAgentName = "codex" | "cx" | "cxa";
+export type ReviewAgentName = CodexReviewAgentName | "claude";
 export type ReviewAgentSelection = ReviewAgentName | "none";
-export type ReviewAgentPhase = "initial" | "cleanup";
 export type ReviewStageDefinition = { id: string; prefix: string; focus: string; document: string };
 export type ReviewAgentStageRunRequest = {
 	selection: ReviewAgentName;
 	stage: ReviewStageDefinition;
-	review_cleanup: boolean;
 	review_start_ms: number;
 };
 export type ReviewAgentStageBatchRequest = {
 	selection: ReviewAgentName;
 	stages: readonly ReviewStageDefinition[];
-	review_cleanup: boolean;
 	review_start_ms: number;
 };
 export type ReviewAgentPreparedRun = {
@@ -23,7 +21,6 @@ export type ReviewAgentHookConfiguration = {
 	hook_file: string;
 	hook_command: string;
 	review_prefix: string;
-	review_phase: ReviewAgentPhase;
 	review_start_ms: number;
 };
 export type ReviewAgentRequest = {
@@ -46,10 +43,8 @@ export type ReviewAgentPromptValues = {
 export type ReviewAgentDialogueExecution = {
 	request: ReviewAgentRequest;
 	dialogue: string;
-	phase: ReviewAgentPhase;
 };
 export type ReviewAgentPromptRequest = { prompt_request: ReviewAgentRequest };
-export type ReviewAgentCleanupRequest = { cleanup_request: ReviewAgentRequest };
 export type ReviewAgentRunRequest = { run_request: ReviewAgentRequest };
 /** Responsibilities: _review agent process outcome_. **/
 export type ReviewAgentProcessResult = {
@@ -66,7 +61,6 @@ export type ReviewAgentHookEventContext = {
 	hook_file: string;
 	review_stage: string;
 	review_prefix: string;
-	review_phase: ReviewAgentPhase;
 	review_start_ms: number;
 };
 export type ReviewAgentHookTool = { name: string; input: string };

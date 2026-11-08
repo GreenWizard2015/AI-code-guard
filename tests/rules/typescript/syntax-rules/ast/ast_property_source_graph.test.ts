@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { AstPropertySourceIndexCache } from "src/model/ast/ast_property_source_index_cache";
 import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
@@ -97,8 +98,10 @@ describe("AST property source graph", () => {
 			true,
 		);
 		const statement = source.statements.find(ts.isVariableStatement);
-		const declaration = statement?.declarationList.declarations[0];
-		const identifier = declaration?.name;
+		assert.ok(statement);
+		const declaration = statement.declarationList.declarations[0];
+		assert.ok(declaration);
+		const identifier = declaration.name;
 		const unknown_type = ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword);
 		const cache = new AstPropertySourceIndexCache();
 		let resolved_type: ts.TypeNode = unknown_type;
@@ -107,7 +110,7 @@ describe("AST property source graph", () => {
 		}
 
 		expect({ resolved_type, identifier_valid: identifier !== undefined && ts.isIdentifier(identifier) }).toEqual({
-			resolved_type: declaration?.type,
+			resolved_type: declaration.type,
 			identifier_valid: true,
 		});
 	});

@@ -72,7 +72,11 @@ export class TypeScriptNamespaceAliases implements TypeScriptNamespaceAliasesCon
 			if (!ts.isImportDeclaration(statement)) {
 				continue;
 			}
-			const bindings = statement.importClause?.namedBindings;
+			const import_clause = statement.importClause;
+			if (import_clause === undefined) {
+				continue;
+			}
+			const bindings = import_clause.namedBindings;
 			if (bindings && ts.isNamespaceImport(bindings)) {
 				names.add(bindings.name.text);
 			}

@@ -97,6 +97,10 @@ class PerformanceReportModesTest(unittest.TestCase):
 
         self.assertEqual((status, output.getvalue(), errors.getvalue()), (0, expected_report, ""))
 
+
+class FilesystemPerformanceReportTest(unittest.TestCase):
+    """Responsibilities: _real snapshot discovery_, _filesystem input deduplication_."""
+
     def test_discovers_nested_snapshots_and_deduplicates_overlapping_inputs(self) -> None:
         """Responsibilities: _nested snapshot discovery_, _input deduplication_."""
         with TemporaryDirectory() as temporary_directory:
@@ -120,3 +124,17 @@ class PerformanceReportModesTest(unittest.TestCase):
 
         self.assertEqual(report.count("| startup |"), 1)
         self.assertIn("| startup | 2.0 sec +- 0.0 | 10.0 sec +- 0.0 |", report)
+
+    def test_reads_an_explicit_snapshot_file(self) -> None:
+        """Responsibilities: _explicit snapshot file reading_."""
+        with TemporaryDirectory() as temporary_directory:
+            snapshot_path = Path(temporary_directory) / "cold_custom_report.performance.md"
+            snapshot_path.write_text(
+                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 8 sec |\n",
+                encoding="utf-8",
+            )
+            snapshot_io = PathPerformanceSnapshotIO()
+            report_source = PerformanceReport([str(snapshot_path)], snapshot_io)
+            report = report_source.markdown()
+
+        self.assertIn("| startup | — | 8.0 sec +- 0.0 |", report)

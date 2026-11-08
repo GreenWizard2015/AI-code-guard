@@ -1,6 +1,6 @@
 # `test-max-count`
 
-Description: Each Python `unittest.TestCase` suite may contain at most fifteen test methods. Count only `test_*` methods; setup, teardown, and fixture methods do not count. Split larger suites by cohesive behavior.
+Description: Each Python `unittest.TestCase` suite may contain at most fifteen test cases. Count `test_*` methods and rows in a static `@parameterized.expand([...])` table; setup, teardown, and fixture methods do not count. Split larger suites by cohesive behavior.
 
 ## Bad
 

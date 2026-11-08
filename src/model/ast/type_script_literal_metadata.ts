@@ -82,6 +82,9 @@ export class TypeScriptLiteralMetadata {
 		while (current.parent !== undefined) {
 			current = current.parent;
 			if (ts.isVariableDeclaration(current)) {
+				if (current.initializer !== declared_literal) {
+					return "";
+				}
 				return this.constant_name_for(current);
 			}
 			if (ts.isStatement(current)) {
@@ -89,6 +92,21 @@ export class TypeScriptLiteralMetadata {
 			}
 		}
 		return "";
+	}
+
+	/** Responsibilities: _constant object data classification_. **/
+	private constant_object_value(declared_literal: ts.StringLiteralLike): boolean {
+		let current: ts.Node = declared_literal;
+		while (current.parent !== undefined) {
+			current = current.parent;
+			if (ts.isVariableDeclaration(current)) {
+				return current.initializer !== declared_literal && this.constant_name_for(current).length > 0;
+			}
+			if (ts.isStatement(current)) {
+				return false;
+			}
+		}
+		return false;
 	}
 
 	/** Responsibilities: _literal metadata initialization_. **/
@@ -107,6 +125,9 @@ export class TypeScriptLiteralMetadata {
 			return;
 		}
 		if (this.excluded_literal(recorded_literal)) {
+			return;
+		}
+		if (this.constant_object_value(recorded_literal)) {
 			return;
 		}
 		const value = recorded_literal.text;

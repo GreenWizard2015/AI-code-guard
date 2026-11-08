@@ -107,10 +107,11 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 
 	/** Responsibilities: _indexing callable names owners_. **/
 	private add_class_methods(class_declaration: ts.ClassLikeDeclaration): void {
-		const class_name = class_declaration.name?.text;
-		if (!class_name) {
+		const name = class_declaration.name;
+		if (name === undefined) {
 			return;
 		}
+		const class_name = name.text;
 		for (const member of class_declaration.members) {
 			const owner = this.class_method_owner(member);
 			const method_name = this.class_method_name(member);

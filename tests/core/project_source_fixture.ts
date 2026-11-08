@@ -8,20 +8,19 @@ import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
-import type { PythonAstWorkerCapabilityContract } from "src/python_protocols";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
-import type { CallableProjectSourceAction, Fixture } from "tests/core/types";
+import type { CallableProjectSourceAction, CallablePythonAstWorkerProvider, Fixture } from "tests/core/types";
 import type ts from "typescript";
 
 /** Responsibilities: _in-memory project contexts_, _source graph fixtures_. **/
 export class ProjectSourceFixture {
-	private readonly _python_ast_worker: PythonAstWorkerCapabilityContract;
+	private readonly _python_ast_worker_provider: CallablePythonAstWorkerProvider;
 	private readonly placement_fixture_prefix = "module-placement-";
 
 	/** Responsibilities: _source graph fixture initialization_. **/
-	public constructor(worker: PythonAstWorkerCapabilityContract) {
-		this._python_ast_worker = worker;
+	public constructor(worker_provider: CallablePythonAstWorkerProvider) {
+		this._python_ast_worker_provider = worker_provider;
 	}
 
 	/** Responsibilities: _in-memory project context creation_, _Python worker reuse_. **/
@@ -46,7 +45,7 @@ export class ProjectSourceFixture {
 		const analysis_identity = new ProjectAnalysisIdentity(file_io);
 		const context_factory = new LintProjectContextCreator(
 			new PythonAstData({
-				worker: this._python_ast_worker,
+				worker: this._python_ast_worker_provider(),
 				analysis_identity: analysis_identity,
 				split_batch_enabled: true,
 				file_io: file_io,

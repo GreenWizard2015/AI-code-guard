@@ -112,8 +112,11 @@ export class TypeScriptBooleanExpression implements BooleanExpressionContract {
 		if (declaration.name.text !== result_name) {
 			return false;
 		}
-		if (declaration.type?.kind === ts.SyntaxKind.BooleanKeyword) {
-			return true;
+		const type = declaration.type;
+		if (type !== undefined) {
+			if (type.kind === ts.SyntaxKind.BooleanKeyword) {
+				return true;
+			}
 		}
 		if (declaration.initializer === undefined) {
 			return false;

@@ -42,7 +42,6 @@ export class ReviewAgentDialoguePlan {
 				hook_file: this._hook_file,
 				hook_command: this._hook_command,
 				review_prefix: this._review_prefix,
-				review_phase: "initial",
 				review_start_ms: this._review_start_ms,
 			},
 			review_stage: this._review_stage,

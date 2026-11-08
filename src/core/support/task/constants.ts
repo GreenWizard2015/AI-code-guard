@@ -8,7 +8,6 @@ import {
 
 export const REVIEW_PRIMARY_DOCUMENT = REVIEW_BOUNDARIES_DOCUMENT;
 export const REVIEW_COMMON_DOCUMENT = "allowed-operations.md";
-export const REVIEW_CLEANUP_COMMON_DOCUMENT = "cleanup-allowed-operations.md";
 export const REVIEW_FINDING_DOCUMENT = "review-finding-rules.md";
 export const REVIEW_PREAMBLE_DOCUMENT = "architecture-review-preamble.md";
 export const REVIEW_DOCUMENT_NAMES: readonly string[] = [

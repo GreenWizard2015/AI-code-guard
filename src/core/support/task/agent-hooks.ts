@@ -5,11 +5,7 @@ import { fileURLToPath } from "node:url";
 import { BoundaryFailureCategory } from "src/analysis_protocols";
 import { REPORTING_PROJECT_ROOT } from "src/constants";
 import { AgentHookApplication } from "src/core/support/task/review-agent/agent_hook_application";
-import {
-	REVIEW_PHASE_ARGUMENT,
-	REVIEW_PREFIX_ARGUMENT,
-	REVIEW_STARTED_AT_ARGUMENT,
-} from "src/core/support/task/review-agent/constants";
+import { REVIEW_PREFIX_ARGUMENT, REVIEW_STARTED_AT_ARGUMENT } from "src/core/support/task/review-agent/constants";
 import { HookPayloadNormalizer } from "src/core/support/task/review-agent/hook_payload_normalizer";
 import type { RawHookPayload } from "src/core/support/task/review-agent/types";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
@@ -35,11 +31,6 @@ if (process.argv.length > 1) {
 						review_prefix = argument;
 					}
 				}
-				let review_phase = "initial";
-				const review_phase_index = process.argv.indexOf(REVIEW_PHASE_ARGUMENT);
-				if (review_phase_index >= 0 && process.argv[review_phase_index + 1] === "cleanup") {
-					review_phase = "cleanup";
-				}
 				let review_start_ms = Number.POSITIVE_INFINITY;
 				const timestamp_index = process.argv.indexOf(REVIEW_STARTED_AT_ARGUMENT);
 				if (timestamp_index >= 0) {
@@ -48,7 +39,7 @@ if (process.argv.length > 1) {
 						review_start_ms = Number(argument);
 					}
 				}
-				const normalizer = new HookPayloadNormalizer(review_prefix, review_phase, review_start_ms);
+				const normalizer = new HookPayloadNormalizer(review_prefix, review_start_ms);
 				const payload = normalizer.normalize(raw_payload);
 				const decision = application.decision(payload);
 				const output = application.response({ payload, decision });

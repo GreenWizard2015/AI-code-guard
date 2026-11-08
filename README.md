@@ -150,16 +150,13 @@ Available options:
     and even when lint diagnostics exist. Diagnostics remain reported; this flag
     only removes them as a prerequisite for starting the review.
 
---review-agent <codex|claude>
+--review-agent <codex|cx|cxa|claude>
     Run the selected external architecture-review CLI. If no agent is selected,
-    architecture review is skipped.
+    architecture review is skipped. `cx` and `cxa` use the local Codex
+    account-switching wrapper.
 
 --review-stage <boundaries|data-lifecycle|algorithms|tests|abstractions>
     Run ONLY the selected architecture-review stage. Repeat the option to select multiple stages.
-
---review-cleanup
-    Enable the cleanup dialogue after architecture-review findings. Cleanup is
-    disabled by default; review findings are retained unless this flag is set.
 
 --batch-size <number>
     Maximum number of files included in the generated task. The default is 10.
@@ -248,7 +245,7 @@ directory as history and are ignored on later runs.
 Start a review with:
 
 ```bash
-ai-code-guard --review-agent <codex|claude>
+ai-code-guard --review-agent <codex|cx|cxa|claude>
 ```
 
 The usual workflow is:
@@ -260,8 +257,7 @@ The usual workflow is:
 
 Use `--force-review` to start a new review even when there are existing review
 files or lint diagnostics. A run without `--review-agent` skips architecture
-review. Use `--review-cleanup` only when you want the assistant to process
-review findings after the initial review; it is disabled by default.
+review.
 
 The linter keeps the assistant output in
 `.ai-code-guard/agent-debug.log`. It does not copy instruction files into the
@@ -321,8 +317,10 @@ written to `.ai-code-guard/issues.md`, and the referenced rule documents are
 copied to `.ai-code-guard/rules/`. The complete rule summary is written to
 `.ai-code-guard/report.md`. Review notes may be placed in
 `.ai-code-guard/review/`. After the code is clean, use
-`--review-agent codex` or `--review-agent claude`; the linter starts only the
-selected external agent and presents one review note at a time.
+`--review-agent codex`, `cx`, `cxa`, or `claude`; the linter starts only the
+selected CLI and presents one review note at a time. `cx` and `cxa` are
+account-switching Codex wrappers that can continue through another configured
+Codex account when one reaches its usage limit.
 
 ## Development workflow
 
@@ -348,7 +346,7 @@ python3 -m ruff check --isolated --select ALL --extend-select ARG --ignore D101,
 # Python types
 python3 -m mypy --strict --extra-checks --warn-unreachable --explicit-package-bases .
 
-ai-code-guard --review-agent <codex|claude>
+ai-code-guard --review-agent <codex|cx|cxa|claude>
 ```
 
 The ignored rules cover docstring-presence checks where the linter requires
@@ -377,7 +375,7 @@ git diff --check
 `pnpm install` activates the versioned `.githooks/pre-commit` hook. Before every commit it runs
 `pnpm test:runner -- --headless`; because no review agent is specified, architecture review is skipped.
 A failing test, quality check, or lint check blocks the commit. Git hooks and GitHub Actions run without an agent;
-select `--review-agent codex` or `--review-agent claude` explicitly to request review.
+select `--review-agent codex`, `cx`, `cxa`, or `claude` explicitly to request review.
 
 Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
 
@@ -400,7 +398,7 @@ This repository is a private project configuration and rule set. The rules evolv
 The following benchmark measures AI-code-guard against its own repository with
 architecture review disabled. Each series contains 10 measured runs.
 
-Results recorded on 2026-10-21:
+Results recorded on 2026-11-09:
 
 | Mode | Average | Median |
 | --- | ---: | ---: |
@@ -410,4 +408,7 @@ Results recorded on 2026-10-21:
 | **Date: 2026-10-21 Files: 1131 (911 TypeScript files and 220 Python files)** | | |
 | Without cache | 16.546 sec | 16.610 sec |
 | With cache | 1.325 sec | 1.320 sec |
+| **Date: 2026-11-09 Files: 1749 (1428 TypeScript files and 321 Python files)** | | |
+| Without cache | 27.508 sec | 27.625 sec |
+| With cache | 2.454 sec | 2.430 sec |
 

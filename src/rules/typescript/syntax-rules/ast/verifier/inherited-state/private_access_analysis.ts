@@ -56,10 +56,11 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 
 	/** Responsibilities: _private members declared addition_. **/
 	private append_class(node: ts.ClassLikeDeclaration): void {
-		const name = node.name?.text;
-		if (!name) {
+		const declaration_name = node.name;
+		if (declaration_name === undefined) {
 			return;
 		}
+		const name = declaration_name.text;
 		const private_names = new Set(
 			node.members.flatMap((member) => {
 				return this.private_names(member);
@@ -101,7 +102,11 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 		let current = node.parent;
 		while (current !== undefined && !ts.isSourceFile(current)) {
 			if (ts.isClassLike(current)) {
-				return current.name?.text ?? "";
+				const name = current.name;
+				if (name === undefined) {
+					return "";
+				}
+				return name.text;
 			}
 			current = current.parent;
 		}

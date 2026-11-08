@@ -20,17 +20,27 @@ export class ReviewAgentProcessLifecycleFixture
 	private readonly _cleanup_error: string;
 	private readonly _registration_error: string;
 	private readonly _signals: NodeJS.Signals[];
+	private readonly _events: string[];
+	private readonly _group_cleanup_succeeds: boolean;
 
 	/** Responsibilities: _review lifecycle fixture setup_. **/
-	public constructor(registration_error = "", cleanup_error = "") {
+	public constructor(registration_error = "", cleanup_error = "", group_cleanup_succeeds = true) {
 		this._cleanup_error = cleanup_error;
 		this._registration_error = registration_error;
 		this._signals = [];
+		this._events = [];
+		this._group_cleanup_succeeds = group_cleanup_succeeds;
 	}
 
 	/** Responsibilities: _process termination signal observation_. **/
 	public terminate(_child: ReviewAgentChildProcessContract, signal: NodeJS.Signals): void {
 		this._signals.push(signal);
+	}
+
+	/** Responsibilities: _owned group cleanup observation_. **/
+	public cleanup_owned_group(_child: ReviewAgentChildProcessContract, _token: string): boolean {
+		this._events.push("group-cleanup");
+		return this._group_cleanup_succeeds;
 	}
 
 	/** Responsibilities: _registration failure simulation_. **/
@@ -40,6 +50,7 @@ export class ReviewAgentProcessLifecycleFixture
 
 	/** Responsibilities: _cleanup failure simulation_. **/
 	public unregister_agent(_execution: ReviewAgentProcessExecution): string {
+		this._events.push("unregister");
 		return this._cleanup_error;
 	}
 
@@ -57,5 +68,10 @@ export class ReviewAgentProcessLifecycleFixture
 	/** Responsibilities: _termination signal results_. **/
 	public termination_signals(): readonly NodeJS.Signals[] {
 		return [...this._signals];
+	}
+
+	/** Responsibilities: _cleanup order observations_. **/
+	public cleanup_events(): readonly string[] {
+		return [...this._events];
 	}
 }

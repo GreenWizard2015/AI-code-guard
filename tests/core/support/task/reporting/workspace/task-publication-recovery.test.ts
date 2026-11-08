@@ -34,7 +34,7 @@ describe("task publication recovery", () => {
 	const create_temporary_directory_failure_fixture = (): {
 		workspace: TaskReportingMemoryWorkspace<IOContract>;
 		lock_path: string;
-		options: Readonly<{ batch_size: 10; policy: "all"; skip_review: false }>;
+		options: { readonly batch_size: 10; readonly policy: "all"; readonly skip_review: false };
 	} => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const file_io = new TaskPublicationFaultIO();
@@ -109,7 +109,35 @@ describe("task publication recovery", () => {
 		io.file(join(lock, "owner")).write_text(`999999999\n${outside_transaction}\nold-token\n`);
 		return fixture;
 	};
+	/** Responsibilities: _abandoned transaction lock creation_. **/
+	const create_abandoned_lock = (fixture: TaskReportingMemoryWorkspace, transaction: string): string => {
+		const lock = join(fixture._root, ".ai-code-guard", ".task-publication-lock");
+		fixture._file_io.create_directory(lock);
+		fixture._file_io.file(join(lock, "owner")).write_text(`999999999\n${transaction}\nold-token\n`);
+		return lock;
+	};
+	/** Responsibilities: _prefix-sibling transaction fixture_. **/
+	const sibling_transaction_fixture = (): TaskReportingMemoryWorkspace => {
+		const fixture = create_reporting_fixture();
+		const transaction = join(fixture._root, ".ai-code-guard-task-container", "unrelated");
+		fixture._file_io.create_directory(transaction);
+		fixture._file_io.file(join(transaction, "journal")).write_text("committed\n0\nissues");
+		create_abandoned_lock(fixture, transaction);
+		return fixture;
+	};
+	/** Responsibilities: _symbolic-link transaction fixture_. **/
+	const symlink_transaction_fixture = (): TaskReportingMemoryWorkspace => {
+		const fixture = create_reporting_fixture();
+		const outside = join(fixture._root, "unrelated-transaction");
+		const transaction_link = join(fixture._root, ".ai-code-guard-task-link");
+		fixture._file_io.create_directory(outside);
+		fixture._file_io.file(join(outside, "journal")).write_text("committed\n0\nissues");
+		fixture._file_io.create_symbolic_link(transaction_link, outside);
+		create_abandoned_lock(fixture, transaction_link);
+		return fixture;
+	};
 
+	// Publication lock recovery.
 	test("recovers an abandoned publication lock without spawning a process", () => {
 		const result = with_reporting((fixture) => {
 			const { _root, _file_io: io } = fixture;
@@ -191,6 +219,7 @@ describe("task publication recovery", () => {
 		});
 	});
 
+	// Publication rollback recovery.
 	test("keeps committed documents when recovery cleans a partially deleted transaction", () => {
 		const result = with_reporting((fixture) => {
 			const { _root, _file_io: io } = fixture;
@@ -293,6 +322,7 @@ describe("task publication recovery", () => {
 		expect(scenario.documents()).toEqual(previous);
 	});
 
+	// Publication owner and journal validation.
 	test("does not replace a live publication owner", () => {
 		const fixture = create_reporting_fixture();
 		const { _root, _file_io: io } = fixture;
@@ -351,6 +381,7 @@ describe("task publication recovery", () => {
 		});
 	});
 
+	// Transaction path containment and symlink safety.
 	test("rejects an abandoned transaction outside the workspace", () => {
 		const fixture = outside_transaction_fixture();
 		const { _root, _file_io: io } = fixture;
@@ -368,5 +399,46 @@ describe("task publication recovery", () => {
 			io.file(join(lock, "recovery")).path_exists(),
 			io.file(outside_transaction).path_exists(),
 		]).toEqual([true, true, false, true]);
+	});
+
+	test("rejects a nested sibling whose name only shares the transaction prefix", () => {
+		const fixture = sibling_transaction_fixture();
+		const { _root, _file_io: io } = fixture;
+		const reporting = new TaskReporting(_root, { file_io: io, documentation: fixture._documentation });
+		const options = { batch_size: 10, policy: "all", skip_review: false } as const;
+		const unrelated_transaction = join(_root, ".ai-code-guard-task-container", "unrelated");
+		const issues_path = join(_root, ".ai-code-guard", "issues.md");
+		const issues_existed_before = io.file(issues_path).path_exists();
+
+		expect(() => reporting.format([violation("b.ts", 1, "unused-file", 3)], options)).toThrow("outside the workspace");
+		expect({
+			issues_unchanged: io.file(issues_path).path_exists() === issues_existed_before,
+			unrelated_transaction_exists: io.file(unrelated_transaction).path_exists(),
+			unrelated_journal_exists: io.file(join(unrelated_transaction, "journal")).path_exists(),
+		}).toEqual({ issues_unchanged: true, unrelated_transaction_exists: true, unrelated_journal_exists: true });
+	});
+
+	test("rejects a transaction root that is a symbolic link before recovery mutations", () => {
+		const fixture = symlink_transaction_fixture();
+		const { _root, _file_io: io } = fixture;
+		const reporting = new TaskReporting(_root, { file_io: io, documentation: fixture._documentation });
+		const options = { batch_size: 10, policy: "all", skip_review: false } as const;
+		const outside = join(_root, "unrelated-transaction");
+		const transaction_link = join(_root, ".ai-code-guard-task-link");
+		const issues_path = join(_root, ".ai-code-guard", "issues.md");
+		const issues_existed_before = io.file(issues_path).path_exists();
+
+		expect(() => reporting.format([violation("b.ts", 1, "unused-file", 3)], options)).toThrow("outside the workspace");
+		expect({
+			issues_unchanged: io.file(issues_path).path_exists() === issues_existed_before,
+			link_exists: io.symbolic_link(transaction_link),
+			outside_exists: io.file(outside).path_exists(),
+			outside_journal_exists: io.file(join(outside, "journal")).path_exists(),
+		}).toEqual({
+			issues_unchanged: true,
+			link_exists: true,
+			outside_exists: true,
+			outside_journal_exists: true,
+		});
 	});
 });

@@ -5,7 +5,6 @@ import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_bo
 import { TypeScriptConditionalParentIndex } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_parent_index";
 import { TypeScriptExpressionContainers } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_containers";
 import { TypeScriptNonBooleanCallAnalysis } from "src/rules/typescript/syntax-rules/expressions/type_script_non_boolean_call_analysis";
-import { TypeScriptOptionalCallExecution } from "src/rules/typescript/syntax-rules/expressions/type_script_optional_call_execution";
 import type { BooleanExpressionContract } from "src/runtime_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type {
@@ -25,7 +24,6 @@ export class TypeScriptConditionalRules implements TypeScriptConditionalRulesCon
 	private readonly _boolean_expression: BooleanExpressionContract;
 	private readonly _conditional_parent_index: TypeScriptConditionalParentIndexContract;
 	private readonly _non_boolean_analysis: TypeScriptNonBooleanCallAnalysis;
-	private readonly _optional_call_execution: TypeScriptOptionalCallExecution;
 	private readonly _primitive_type_kinds: ReadonlySet<ts.SyntaxKind>;
 
 	/** Responsibilities: _pure conditional classification_. **/
@@ -165,10 +163,12 @@ export class TypeScriptConditionalRules implements TypeScriptConditionalRulesCon
 	private append_conditional_execution(execution_source: TypeScriptConditionalSource): boolean {
 		const { node: candidate, source_file } = execution_source;
 		if (ts.isCallExpression(candidate)) {
-			return this._optional_call_execution.optional_call(candidate, source_file);
+			return candidate.questionDotToken !== undefined;
 		}
-		if (this._optional_call_execution.optional_member_call(candidate, source_file)) {
-			return true;
+		if (ts.isPropertyAccessExpression(candidate) || ts.isElementAccessExpression(candidate)) {
+			if (candidate.questionDotToken !== undefined) {
+				return true;
+			}
 		}
 		if (!ts.isBinaryExpression(candidate)) {
 			return false;
@@ -189,7 +189,6 @@ export class TypeScriptConditionalRules implements TypeScriptConditionalRulesCon
 		]);
 		this._boolean_expression = new TypeScriptBooleanExpression(variable_declaration_index);
 		this._non_boolean_analysis = new TypeScriptNonBooleanCallAnalysis(this._boolean_expression);
-		this._optional_call_execution = new TypeScriptOptionalCallExecution(this._boolean_expression);
 		this._assignment_context = new TypeScriptAssignmentContext(this._boolean_expression);
 		const expression_containers = new TypeScriptExpressionContainers();
 		this._conditional_parent_index = new TypeScriptConditionalParentIndex(expression_containers);

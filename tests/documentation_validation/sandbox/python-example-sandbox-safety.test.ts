@@ -4,7 +4,7 @@ import { PythonSandboxResult } from "documentation_validation/sandbox/python/pyt
 import type { CallableDocumentationPythonProcessRunner } from "documentation_validation/types";
 import { PYTHON_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants";
 
-describe("Python example sandbox safety", () => {
+describe("Python example sandbox behavior", () => {
 	test.each([
 		[
 			"timeout",
@@ -25,6 +25,21 @@ describe("Python example sandbox safety", () => {
 		const execution = sandbox_result.execution();
 
 		expect(execution).toMatchObject({ stdout: message, exit_code });
+	});
+
+	test("decodes the Python exception type and message returned by the worker", () => {
+		const python_runner = jest.fn<CallableDocumentationPythonProcessRunner>(() => ({
+			pid: 1,
+			output: [],
+			stdout: JSON.stringify({ stdout: "", exit_code: 1, error: "NameError: missing value" }),
+			stderr: "",
+			status: 0,
+			signal: null,
+		}));
+		const result_sandbox = new DocumentationExampleSandbox(python_runner);
+		const result = result_sandbox.capture_output(PYTHON_SANDBOX_EXAMPLE);
+
+		expect(result).toEqual({ stdout: "NameError: missing value", exit_code: 1 });
 	});
 
 	test("rejects Python runtime introspection before invoking the runtime", () => {
@@ -138,20 +153,5 @@ describe("Python example sandbox safety", () => {
 			["-I", "-S", "-c", expect.any(String)],
 			expect.objectContaining({ cwd: "/", env: {}, timeout: 1000 }),
 		);
-	});
-
-	test("preserves isolated Python runtime errors for documentation diagnostics", () => {
-		const python_runner = jest.fn<CallableDocumentationPythonProcessRunner>(() => ({
-			pid: 1,
-			output: [],
-			stdout: JSON.stringify({ stdout: "", exit_code: 1, error: "NameError: missing value" }),
-			stderr: "",
-			status: 0,
-			signal: null,
-		}));
-		const result_sandbox = new DocumentationExampleSandbox(python_runner);
-		const result = result_sandbox.capture_output(PYTHON_SANDBOX_EXAMPLE);
-
-		expect(result).toEqual({ stdout: "NameError: missing value", exit_code: 1 });
 	});
 });

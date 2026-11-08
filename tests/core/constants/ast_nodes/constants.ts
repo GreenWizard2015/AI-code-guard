@@ -104,7 +104,7 @@ export const SHORT_FUNCTION_NODE = {
 		unittest_ending_valid: false,
 		unittest_assertion_count: 0,
 	},
-	declaration: { decorators: [], is_accessor: false, has_self: false },
+	declaration: { decorators: [], parameterized_case_count: 0, is_accessor: false, has_self: false },
 };
 
 export const ARGUMENT_FUNCTION_NODE = {

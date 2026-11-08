@@ -73,6 +73,11 @@ export class CachePublicationFaultFileIO extends InMemoryFileIO {
 			return;
 		}
 		this._cleanup_attempts += 1;
+		if (this._schedule === CachePublicationFaultSchedule.ConcurrentCleanupRace && !this._cleanup_injected) {
+			this._cleanup_injected = true;
+			super.remove_file(file);
+			throw new Error(`ENOENT: ${file}`);
+		}
 		const cleanup_failure_is_scheduled =
 			this._schedule === CachePublicationFaultSchedule.WriteAfterTempCreatedCleanupFails;
 		if (!cleanup_failure_is_scheduled) {

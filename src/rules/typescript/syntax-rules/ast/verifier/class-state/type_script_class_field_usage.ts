@@ -17,7 +17,8 @@ export class TypeScriptClassFieldUsage implements TypeScriptClassFieldAnalysisCo
 		if (!ts.isObjectBindingPattern(declaration.name)) {
 			return;
 		}
-		if (declaration.initializer?.kind !== ts.SyntaxKind.ThisKeyword) {
+		const initializer = declaration.initializer;
+		if (initializer === undefined || initializer.kind !== ts.SyntaxKind.ThisKeyword) {
 			return;
 		}
 		const scope = this.binding_scope(declaration);

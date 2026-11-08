@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { LexicalBindingScope } from "src/parser/typescript-aliases/lexical_binding_scope";
 import ts from "typescript";
@@ -72,13 +73,14 @@ describe("lexical binding scope", () => {
 		);
 		const scope = new LexicalBindingScope(source);
 		const function_statement = source.statements.find(ts.isFunctionDeclaration);
-		const variable_statement = function_statement?.body?.statements.find(ts.isVariableStatement);
-		const declaration = variable_statement?.declarationList.declarations.find(ts.isVariableDeclaration);
-		const value_type = declaration?.type;
-		let shadowed = false;
-		if (value_type !== undefined && ts.isTypeReferenceNode(value_type)) {
-			shadowed = scope.type_name_shadowed(value_type.typeName, "Shape");
-		}
+		assert.ok(function_statement && function_statement.body);
+		const function_body = function_statement.body;
+		const variable_statement = function_body.statements.find(ts.isVariableStatement);
+		assert.ok(variable_statement && ts.isVariableStatement(variable_statement));
+		const declaration = variable_statement.declarationList.declarations.find(ts.isVariableDeclaration);
+		assert.ok(declaration && declaration.type && ts.isTypeReferenceNode(declaration.type));
+		const value_type = declaration.type;
+		const shadowed = scope.type_name_shadowed(value_type.typeName, "Shape");
 
 		expect(shadowed).toBe(true);
 	});

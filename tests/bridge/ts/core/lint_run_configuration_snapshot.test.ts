@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { NODE_ENV_VARIABLE } from "src/core/constants";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { LintReportMode } from "src/core/types";
+import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import { InMemoryLintProject } from "tests/core/lint-run-configuration-project";
 import { GlobalAnalysisSnapshotScenario } from "tests/core/support/global_analysis_snapshot_scenario";
 
 describe("global analysis cache source snapshots", () => {
@@ -89,5 +91,58 @@ describe("global analysis cache source snapshots", () => {
 			configuration.close_worker_session();
 		}
 		expect(results).toEqual([[], ["tools/webmcp_project/plugin.py"]]);
+	});
+
+	test("returns Python project import and reachability diagnostics from the lint report itself", async () => {
+		const project = new InMemoryLintProject(
+			{
+				"tools/app/main.py": "import tools.app.missing\nvalue = 1\n",
+				"tools/app/orphan.py": "value = 2\n",
+			},
+			new InMemoryFileIO(),
+		);
+		const configuration = new LintRunConfiguration(project._source_io, project._file_io);
+		const report = configuration.lint_report(
+			project.options(configuration, [], ["tools/app/main.py"]),
+			LintReportMode.PROJECT,
+		).report;
+		const project_rules = report.violations
+			.filter((item) => item.rule_id() === "missing-import" || item.rule_id() === "unused-file")
+			.map((item) => [item.file(), item.rule_id()]);
+		await configuration.close_worker_session();
+
+		expect(project_rules).toEqual([
+			["tools/app/main.py", "missing-import"],
+			["tools/app/orphan.py", "unused-file"],
+		]);
+	});
+
+	test("evaluates Python directory ignore rules from each run snapshot", async () => {
+		const project = new InMemoryLintProject(
+			{
+				"tools/app/main.py": "value = 1\n",
+				".gitignore": ".ai-code-guard/\n",
+			},
+			new InMemoryFileIO(),
+		);
+		const configuration = new LintRunConfiguration(project._source_io, project._file_io);
+		const options = project.options(configuration);
+		const initial_ignored_violation = configuration
+			.lint_report(options, LintReportMode.PROJECT)
+			.report.violations.some((item) => item.rule_id() === "ai-code-guard-directory-ignored");
+		const changed_snapshot = new Map(project._source_texts);
+		changed_snapshot.set(`${project.root}/.gitignore`, "");
+		const updated_violations = configuration.lint_report(
+			{ ...options, source_texts: changed_snapshot },
+			LintReportMode.PROJECT,
+		).report.violations;
+		await configuration.close_worker_session();
+
+		expect({
+			initial_ignored_violation,
+			ignored_after_snapshot_change: updated_violations.some(
+				(item) => item.rule_id() === "ai-code-guard-directory-ignored",
+			),
+		}).toEqual({ initial_ignored_violation: false, ignored_after_snapshot_change: true });
 	});
 });

@@ -1,5 +1,4 @@
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import type { UnusedCode } from "src/core/project-source/unused_code";
 import type { ProjectLintExecutionOptions } from "src/core/types";
 import type { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -18,16 +17,20 @@ export class CompleteCacheCliFixture {
 	}
 
 	/** Responsibilities: _execution dependency assembly_. **/
-	public execution_options(stage_timer: LintStageTimer, unused_code: UnusedCode): ProjectLintExecutionOptions {
+	public execution_options(stage_timer: LintStageTimer): ProjectLintExecutionOptions {
 		return {
 			file_io: this._project_fixture._file_io,
 			source_io: this._project_fixture._source_io,
 			analysis_identity: this._project_fixture._analysis_identity,
 			options: this._project_fixture._options,
-			unused_code,
 			stage_timer,
 			lint_run_factory: this._configuration,
 		};
+	}
+
+	/** Responsibilities: _complete-cache test source_. **/
+	public set_source(text: string): void {
+		this._project_fixture.write_source(this._project_fixture._file, text);
 	}
 
 	/** Responsibilities: _worker environment cleanup_. **/
@@ -47,5 +50,24 @@ export class CompleteCacheCliFixture {
 				item.priority(),
 			]),
 		);
+	}
+
+	/** Responsibilities: _complete cached diagnostic fields_. **/
+	public diagnostic_values(violations: readonly ViolationContract[]): {
+		file: string;
+		line: number;
+		message: string;
+		hint: string;
+		rule_id: string;
+		priority: number;
+	}[] {
+		return violations.map((item) => ({
+			file: item.file(),
+			line: item.line(),
+			message: item.message(),
+			hint: item.hint(),
+			rule_id: item.rule_id(),
+			priority: item.priority(),
+		}));
 	}
 }

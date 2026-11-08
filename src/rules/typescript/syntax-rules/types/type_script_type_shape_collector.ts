@@ -28,9 +28,11 @@ export class TypeScriptTypeShapeCollector {
 					type = member.type.getText(this._source_file);
 				}
 				const optional = member.questionToken === undefined ? "" : "?";
-				const readonly = member.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword)
-					? "readonly "
-					: "";
+				const modifiers = member.modifiers;
+				let readonly = "";
+				if (modifiers !== undefined && modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.ReadonlyKeyword)) {
+					readonly = "readonly ";
+				}
 				return `${readonly}${member.name.getText(this._source_file)}${optional}:${type}`;
 			})
 			.filter((field) => field !== "");

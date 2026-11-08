@@ -65,34 +65,32 @@ describe("GitIgnoreGlobMatcher", () => {
 		const catalog = new GitIgnorePatternCatalog(source_io);
 		const parsed = catalog.patterns_from_file("/virtual/repo/.gitignore", "/virtual/repo");
 
-		expect({
-			root_file: parsed[0]?.matcher.match_candidate("src/main.ts").matched,
-			nested_file: parsed[0]?.matcher.match_candidate("src/nested/main.ts").matched,
-		}).toEqual({ root_file: true, nested_file: false });
+		const root_matches = parsed.map((pattern) => pattern.matcher.match_candidate("src/main.ts").matched);
+		const nested_matches = parsed.map((pattern) => pattern.matcher.match_candidate("src/nested/main.ts").matched);
+
+		expect({ root_matches, nested_matches }).toEqual({ root_matches: [true], nested_matches: [false] });
 	});
 
 	test("rejects candidates shorter than a pattern's required characters before evaluating states", () => {
 		const source_io = new InMemoryProjectSourceIO(new Map([["/virtual/repo/.gitignore", "*.typescript"]]));
 		const catalog = new GitIgnorePatternCatalog(source_io);
 		const parsed = catalog.patterns_from_file("/virtual/repo/.gitignore", "/virtual/repo");
-		const result = parsed[0]?.matcher.match_candidate(".ts");
+		const results = parsed.map((pattern) => pattern.matcher.match_candidate(".ts"));
 
-		expect({ matched: result?.matched, visited_states: result?.visited_states }).toEqual({
-			matched: false,
-			visited_states: 0,
-		});
+		expect(results.map((result) => ({ matched: result.matched, visited_states: result.visited_states }))).toEqual([
+			{ matched: false, visited_states: 0 },
+		]);
 	});
 
 	test("rejects wrong lengths for fixed-width patterns before evaluating states", () => {
 		const source_io = new InMemoryProjectSourceIO(new Map([["/virtual/repo/.gitignore", "src/file.ts"]]));
 		const catalog = new GitIgnorePatternCatalog(source_io);
 		const parsed = catalog.patterns_from_file("/virtual/repo/.gitignore", "/virtual/repo");
-		const result = parsed[0]?.matcher.match_candidate("src/nested/file.ts");
+		const results = parsed.map((pattern) => pattern.matcher.match_candidate("src/nested/file.ts"));
 
-		expect({ matched: result?.matched, visited_states: result?.visited_states }).toEqual({
-			matched: false,
-			visited_states: 0,
-		});
+		expect(results.map((result) => ({ matched: result.matched, visited_states: result.visited_states }))).toEqual([
+			{ matched: false, visited_states: 0 },
+		]);
 	});
 
 	test("matches fixed-width patterns in one state per character", () => {
@@ -101,17 +99,18 @@ describe("GitIgnoreGlobMatcher", () => {
 		);
 		const catalog = new GitIgnorePatternCatalog(source_io);
 		const parsed = catalog.patterns_from_file("/virtual/repo/.gitignore", "/virtual/repo");
-		const result = parsed[0]?.matcher.match_candidate("fixed-name.ts");
-		const wildcard_match = parsed[1]?.matcher.match_candidate("file1.ts");
+		const fixed_matches = parsed.map((pattern) => pattern.matcher.match_candidate("fixed-name.ts"));
+		const wildcard_matches = parsed.map((pattern) => pattern.matcher.match_candidate("file1.ts"));
 
 		expect({
-			matched: result?.matched,
-			visited_states: result?.visited_states,
-			fixed_width_wildcard: wildcard_match?.matched,
+			fixed: fixed_matches.map((result) => ({ matched: result.matched, visited_states: result.visited_states })),
+			wildcard: wildcard_matches.map((result) => result.matched),
 		}).toEqual({
-			matched: true,
-			visited_states: "fixed-name.ts".length + 1,
-			fixed_width_wildcard: true,
+			fixed: [
+				{ matched: true, visited_states: "fixed-name.ts".length + 1 },
+				{ matched: false, visited_states: 0 },
+			],
+			wildcard: [false, true],
 		});
 	});
 
@@ -132,9 +131,9 @@ describe("GitIgnoreGlobMatcher", () => {
 		const catalog = new GitIgnorePatternCatalog(source_io);
 		const parsed = catalog.patterns_from_file("/virtual/repo/.gitignore", "/virtual/repo");
 
-		expect({
-			literal_question_mark: parsed[0]?.matcher.match_candidate("file?.ts").matched,
-			other_character: parsed[0]?.matcher.match_candidate("file1.ts").matched,
-		}).toEqual({ literal_question_mark: true, other_character: false });
+		const literal_matches = parsed.map((pattern) => pattern.matcher.match_candidate("file?.ts").matched);
+		const other_matches = parsed.map((pattern) => pattern.matcher.match_candidate("file1.ts").matched);
+
+		expect({ literal_matches, other_matches }).toEqual({ literal_matches: [true], other_matches: [false] });
 	});
 });

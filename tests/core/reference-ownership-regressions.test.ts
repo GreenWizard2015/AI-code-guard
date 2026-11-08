@@ -1,4 +1,5 @@
 import "src/callable_usage";
+import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
@@ -43,10 +44,10 @@ describe("reference ownership regressions", () => {
 		const class_node = source.statements.find(ts.isClassDeclaration);
 		if (class_node !== undefined) {
 			const method = class_node.members.find(ts.isMethodDeclaration);
-			const statement = method?.body?.statements.find(ts.isReturnStatement);
-			if (statement?.expression !== undefined) {
-				owner = receiver.owner(statement.expression);
-			}
+			assert.ok(method && method.body);
+			const statement = method.body.statements.find(ts.isReturnStatement);
+			assert.ok(statement && statement.expression);
+			owner = receiver.owner(statement.expression);
 		}
 		expect(owner).toBe("Service");
 	});

@@ -10,7 +10,8 @@ export class TypeScriptPropertyTypeLookup {
 	/** Responsibilities: _named declaration classification_. **/
 	private is_owner_declaration(declaration: ts.Statement): boolean {
 		if (ts.isClassLike(declaration)) {
-			return declaration.name?.text === this._declaration_name;
+			const name = declaration.name;
+			return name !== undefined && name.text === this._declaration_name;
 		}
 		if (ts.isInterfaceDeclaration(declaration) || ts.isTypeAliasDeclaration(declaration)) {
 			return declaration.name.text === this._declaration_name;

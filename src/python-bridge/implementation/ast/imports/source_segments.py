@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import ast
+from typing import cast
 
-from implementation.types import PythonCharacterColumnsByLine
+from implementation.types import PythonASTLocatedNode, PythonCharacterColumnsByLine
 
 
 class SourceSegments:
@@ -31,11 +32,32 @@ class SourceSegments:
             columns[byte_column] = character_column
         return columns
 
+    def _ast_segment(self, node: ast.AST) -> str:
+        """Responsibilities: _AST source span extraction_."""
+        position = cast(PythonASTLocatedNode, node)
+        if position.end_lineno is None or position.end_col_offset is None:
+            return ""
+        return self._segment_text(
+            position.lineno - 1,
+            position.end_lineno - 1,
+            position.col_offset,
+            position.end_col_offset,
+        )
+
     def __init__(self, source: str) -> None:
         """Responsibilities: _source segment state initialization_."""
         self._source: str = source
         self._lines: list[str] = source.splitlines(keepends=True)
-        unsupported_line_breaks = ("\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029")
+        unsupported_line_breaks = (
+            "\v",
+            "\f",
+            "\x1c",
+            "\x1d",
+            "\x1e",
+            "\x85",
+            "\u2028",
+            "\u2029",
+        )
         self._has_non_ast_line_break: bool = any(line.endswith(unsupported_line_breaks) for line in self._lines)
         self._character_columns: PythonCharacterColumnsByLine = {}
 
@@ -68,14 +90,7 @@ class SourceSegments:
                 if source_segment is None:
                     return ""
                 return source_segment
-            if node.end_lineno is None or node.end_col_offset is None:
-                return ""
-            return self._segment_text(
-                node.lineno - 1,
-                node.end_lineno - 1,
-                node.col_offset,
-                node.end_col_offset,
-            )
+            return self._ast_segment(node)
         except IndexError:
             return ""
         except AttributeError:

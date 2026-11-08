@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { REPORTING_PROJECT_ROOT, REVIEW_STAGES } from "src/constants";
 import {
-	REVIEW_CLEANUP_COMMON_DOCUMENT,
 	REVIEW_COMMON_DOCUMENT,
 	REVIEW_FINDING_DOCUMENT,
 	REVIEW_PREAMBLE_DOCUMENT,
@@ -19,7 +18,6 @@ import type {
 } from "src/core/support/task/review-agent/protocols";
 import type { IOContract } from "src/io/protocols";
 import type {
-	ReviewAgentCleanupRequest,
 	ReviewAgentExecutionResult,
 	ReviewAgentPromptRequest,
 	ReviewAgentPromptValues,
@@ -33,7 +31,6 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 	private readonly _agents: readonly ReviewAgentContract[];
 	private readonly _io: IOContract;
 	private readonly _allowed_operations: string;
-	private readonly _cleanup_allowed_operations: string;
 	private readonly _finding_rules: string;
 	private readonly _review_preamble: string;
 	private readonly _common_template: MarkdownTemplate;
@@ -77,7 +74,6 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 			["{{REVIEW_STAGE}}", ""],
 			["{{REVIEW_STAGE_PLAN}}", ""],
 			[ALLOWED_OPERATIONS_PLACEHOLDER, this._allowed_operations],
-			["{{CLEANUP_ALLOWED_OPERATIONS}}", this._cleanup_allowed_operations],
 			["{{REVIEW_FINDING_RULES}}", this._finding_rules],
 			["{{REVIEW_INSTRUCTIONS}}", review_instructions],
 			["{{OPEN_REVIEWS}}", open_reviews],
@@ -173,10 +169,6 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_COMMON_DOCUMENT),
 			this._io,
 		);
-		const cleanup_common_template = new MarkdownTemplate(
-			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_CLEANUP_COMMON_DOCUMENT),
-			this._io,
-		);
 		this._finding_template = new MarkdownTemplate(
 			join(REPORTING_PROJECT_ROOT, "docs", "agent", REVIEW_FINDING_DOCUMENT),
 			this._io,
@@ -186,7 +178,6 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 			this._io,
 		);
 		this._allowed_operations = this._common_template.render_all(new Map());
-		this._cleanup_allowed_operations = cleanup_common_template.render_all(new Map());
 		this._finding_rules = this._finding_template.render_all(new Map());
 		this._review_preamble = preamble_template.render_all(new Map());
 	}
@@ -205,15 +196,6 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 		}
 		return this.prompt_from_documents(request, [stage.document]);
 	}
-
-	/** Responsibilities: _minor-finding cleanup prompt construction_. **/
-	public cleanup_prompt(request: ReviewAgentCleanupRequest): string {
-		return this.prompt_from_documents({ prompt_request: request.cleanup_request }, [
-			"architecture-review-cleanup-prompt.md",
-			...REVIEW_STAGES.map((stage) => stage.document),
-		]);
-	}
-
 	/** Responsibilities: _parallel review-agent execution_. **/
 	public run_async(
 		selection: ReviewAgentSelection,
@@ -225,7 +207,7 @@ export class ReviewAgentCatalog implements ReviewAgentCatalogContract {
 				process: { exit_code: 1, stdout: "", stderr: "" },
 				no_issues: false,
 				message:
-					"No review agent was selected. Architecture review is skipped unless --review-agent codex|claude is provided.",
+					"No review agent was selected. Architecture review is skipped unless --review-agent codex|cx|cxa|claude is provided.",
 			});
 		}
 		return this.selected_agent(selection, request.run_request);
