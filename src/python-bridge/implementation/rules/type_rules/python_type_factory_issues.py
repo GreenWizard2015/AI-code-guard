@@ -71,9 +71,12 @@ class PythonTypeFactoryIssues:
     def issues(self, syntax_node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _type factory issue classification_."""
         match syntax_node:
-            case ast.ClassDef() as class_definition if type(
-                syntax_node,
-            ) is ast.ClassDef:
+            case ast.ClassDef() as class_definition if (
+                type(
+                    syntax_node,
+                )
+                is ast.ClassDef
+            ):
                 return self.class_issues(class_definition)
             case ast.stmt() as statement:
                 return self.assignment_issues(statement)

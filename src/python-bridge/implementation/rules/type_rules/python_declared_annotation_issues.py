@@ -17,21 +17,13 @@ class PythonDeclaredAnnotationIssues:
     def _annotations(self, declaration: ast.AST) -> list[ast.expr]:
         """Responsibilities: _declaration annotation extraction_."""
         match declaration:
-            case ast.arg(annotation=ast.expr() as annotation) if type(
-                declaration,
-            ) is ast.arg:
+            case ast.arg(annotation=ast.expr() as annotation) | ast.AnnAssign(
+                annotation=ast.expr() as annotation,
+            ) if type(declaration) in (ast.arg, ast.AnnAssign):
                 return [annotation]
-            case ast.AnnAssign(annotation=ast.expr() as annotation) if type(
-                declaration,
-            ) is ast.AnnAssign:
-                return [annotation]
-            case ast.FunctionDef(returns=ast.expr() as annotation) if type(
-                declaration,
-            ) is ast.FunctionDef:
-                return [annotation]
-            case ast.AsyncFunctionDef(returns=ast.expr() as annotation) if type(
-                declaration,
-            ) is ast.AsyncFunctionDef:
+            case ast.FunctionDef(returns=ast.expr() as annotation) | ast.AsyncFunctionDef(
+                returns=ast.expr() as annotation,
+            ) if type(declaration) in (ast.FunctionDef, ast.AsyncFunctionDef):
                 return [annotation]
             case _:
                 return []
