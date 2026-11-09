@@ -400,14 +400,14 @@ architecture review disabled. Each series contains 10 measured runs.
 
 Results recorded on 2026-11-09:
 
-| Mode | Average | Median | Files/sec (based on average) | Maximum cold Files/sec |
-| --- | ---: | ---: | ---: | ---: |
-| **Date: 2026-10-19 Files: 1141 (892 TypeScript files and 249 Python files)** | | | | |
-| Without cache | 15.912 sec | 15.920 sec | 71.7 | — |
-| With cache | 1.353 sec | 1.350 sec | 843.3 | — |
-| **Date: 2026-10-21 Files: 1131 (911 TypeScript files and 220 Python files)** | | | | |
-| Without cache | 16.546 sec | 16.610 sec | 68.4 | — |
-| With cache | 1.325 sec | 1.320 sec | 853.6 | — |
-| **Date: 2026-11-09 Files: 1753 (1431 TypeScript files and 322 Python files)** | | | | |
-| Without cache | 31.205 sec | 31.190 sec | 56.2 | 56.4 |
-| With cache | 2.469 sec | 2.460 sec | 710.0 | — |
+| Mode | Average | Median | Files/sec |
+| --- | ---: | ---: | ---: |
+| **Date: 2026-10-19 Files: 1141 (892 TypeScript files and 249 Python files)** | | | |
+| Without cache | 15.912 sec | 15.920 sec | 71.7 |
+| With cache | 1.353 sec | 1.350 sec | 843.3 |
+| **Date: 2026-10-21 Files: 1131 (911 TypeScript files and 220 Python files)** | | | |
+| Without cache | 16.546 sec | 16.610 sec | 68.4 |
+| With cache | 1.325 sec | 1.320 sec | 853.6 |
+| **Date: 2026-11-09 Files: 1753 (1431 TypeScript files and 322 Python files)** | | | |
+| Without cache | 31.205 sec | 31.190 sec | 56.2 |
+| With cache | 2.469 sec | 2.460 sec | 710.0 |
