@@ -1,9 +1,9 @@
 import "src/core/lint_project_context_creator";
+import { LintFileName } from "src/core/context/lint_file_name";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
-import "src/lint_stage_timer";
-import { LintFileName } from "src/core/context/lint_file_name";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { RULE_IDS } from "src/linting/constants";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
@@ -83,6 +83,7 @@ describe("class boundary ownership", () => {
 				dependencies: [],
 			});
 			const reporter = new ClassStructureReporter({
+				stage_timer: new LintStageTimer(),
 				violations,
 				file_name: new LintFileName(`${name}.ts`),
 				node,
@@ -126,6 +127,7 @@ describe("class boundary ownership", () => {
 			dependencies: [],
 		});
 		const reporting = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("tools/webmcp/core/proxy_handler.py"),
 			node,

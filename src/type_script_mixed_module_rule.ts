@@ -69,11 +69,14 @@ export class TypeScriptMixedModuleRule implements ASTSourceRuleContract {
 		if (!ts.isSourceFile(request.node)) {
 			return;
 		}
-		const file = request.context.state().source.file;
-		if (TEST_PATH_SUFFIXES.typescript.some((suffix) => file.endsWith(suffix))) {
-			this.append_test_entity(request.context, file, request.node);
-			return;
-		}
-		this.append_implementation_mix(request.context, file);
+		const source_file = request.node;
+		request.context.state().analysis.stage_timer.measure("rule.mixed-module.typescript", () => {
+			const file = request.context.state().source.file;
+			if (TEST_PATH_SUFFIXES.typescript.some((suffix) => file.endsWith(suffix))) {
+				this.append_test_entity(request.context, file, source_file);
+				return;
+			}
+			this.append_implementation_mix(request.context, file);
+		});
 	}
 }

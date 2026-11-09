@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonTypeRuleCollector } from "src/linting/orchestration/runtime/python/coding_rules/python_type_rule_collector";
 import { ParsedSourceFiles } from "tests/bridge/ts/runner/orchestration/runtime/parsed_source_files";
 
@@ -18,7 +19,7 @@ describe("coding-lint Python callable boundaries", () => {
 				'\treturn candidate("value")',
 			].join("\n"),
 		);
-		const collector = new PythonTypeRuleCollector(input);
+		const collector = new PythonTypeRuleCollector(input, new LintStageTimer());
 		collector.append_type_rules();
 
 		expect(
@@ -31,7 +32,7 @@ describe("coding-lint Python callable boundaries", () => {
 			"nested-async-callable.py",
 			["def outer() -> str:", "\tasync def candidate(value: str):", "\t\treturn value", '\treturn "value"'].join("\n"),
 		);
-		const collector = new PythonTypeRuleCollector(input);
+		const collector = new PythonTypeRuleCollector(input, new LintStageTimer());
 		collector.append_type_rules();
 
 		expect(

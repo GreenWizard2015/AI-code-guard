@@ -7,7 +7,11 @@ import type { ViolationContract } from "src/reporting_protocols";
 import { ClassReferenceMetric } from "src/rules/class_reference_metric";
 import { ClassStructure } from "src/rules/class_structure";
 import { PythonFields } from "src/rules/python_fields";
-import type { LintProjectContextContract, TestPathSyntaxContract } from "src/shared_services_protocols";
+import type {
+	LintProjectContextContract,
+	LintStageTimerContract,
+	TestPathSyntaxContract,
+} from "src/shared_services_protocols";
 import type { PythonProjectImportContext } from "src/source_types";
 import { TestPathSyntax } from "src/test_path_syntax";
 
@@ -154,10 +158,14 @@ export class ClassRules {
 	}
 
 	/** Responsibilities: _Python-only contextual class-field diagnostics_. **/
-	public python_context_fields(input: ClassFieldFiles, context: LintProjectContextContract): ViolationContract[] {
+	public python_context_fields(
+		input: ClassFieldFiles,
+		context: LintProjectContextContract,
+		stage_timer: LintStageTimerContract,
+	): ViolationContract[] {
 		const scanner = new PythonFields(this._import_context);
 		const context_sources = context.files();
-		const references = this._class_reference_metric.language_class_refs(context_sources, "python");
+		const references = this._class_reference_metric.language_class_refs(context_sources, "python", stage_timer);
 		return [...references, ...scanner.collect_fields(input, context_sources)];
 	}
 

@@ -1,5 +1,6 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import type { PrivateAccessAnalysisContract } from "src/contracts/types/type_script_rule_group_types";
+import { RULE_IDS } from "src/linting/constants";
 import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
 import type { ViolationContract } from "src/reporting_protocols";
 import { PrivateAccessAnalysis } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/private_access_analysis";
@@ -58,13 +59,15 @@ export class TypeScriptFilePrivateMemberRules implements ASTSourceRuleContract {
 		if (analysis === undefined) {
 			return;
 		}
-		context.state().analysis.stage_timer.measure("file-analysis.typescript.script-rule.private-member-access", () => {
-			const { file } = context.state().source;
-			const violations: ViolationContract[] = [];
-			analysis.append_private_access(violations, file);
-			for (const violation of violations) {
-				context.append_violation(violation);
-			}
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.private_member}`, () => {
+			context.state().analysis.stage_timer.measure("file-analysis.typescript.script-rule.private-member-access", () => {
+				const { file } = context.state().source;
+				const violations: ViolationContract[] = [];
+				analysis.append_private_access(violations, file);
+				for (const violation of violations) {
+					context.append_violation(violation);
+				}
+			});
 		});
 	}
 }

@@ -99,6 +99,7 @@ export class TypeScriptClassMetrics implements ASTSourceRuleContract {
 			mutated_readonly_fields = this.mutated_readonly_fields(declaration);
 		}
 		return {
+			stage_timer: context_state.analysis.stage_timer,
 			violations,
 			file_name: new LintFileName(file),
 			node,
@@ -133,7 +134,13 @@ export class TypeScriptClassMetrics implements ASTSourceRuleContract {
 		const reporter_options = this.class_reporter_options(report_context.state(), target, violations);
 		const reporter = new ClassStructureReporter(reporter_options);
 		reporter.report_class(false);
-		this.append_method_order(file, target.node, violations);
+		const method_order_violations: ViolationContract[] = [];
+		report_context.state().analysis.stage_timer.measure("rule.method-order.typescript", () => {
+			this.append_method_order(file, target.node, method_order_violations);
+			for (const violation of method_order_violations) {
+				report_context.append_violation(violation);
+			}
+		});
 		for (const violation of violations) {
 			report_context.append_violation(violation);
 		}

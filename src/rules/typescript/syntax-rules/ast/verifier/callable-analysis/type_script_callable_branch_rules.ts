@@ -88,8 +88,10 @@ export class TypeScriptCallableBranchRules implements ASTSourceRuleContract {
 
 	/** Responsibilities: _callable branch owner dispatch_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
-		if (this.callable(request.node)) {
-			this.append(request);
-		}
+		request.context.state().analysis.stage_timer.measure("rule.callable-branch-count.typescript", () => {
+			if (this.callable(request.node)) {
+				this.append(request);
+			}
+		});
 	}
 }

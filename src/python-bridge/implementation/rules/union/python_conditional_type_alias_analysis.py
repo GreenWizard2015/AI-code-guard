@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.constants import PYTHON_CONDITIONAL_TYPE_ALIAS_RULE
 from implementation.rules.union.protocols import (
     PythonConditionalTypeAliasAnalysisContract,
 )
@@ -86,4 +87,4 @@ class PythonConditionalTypeAliasAnalysis(PythonConditionalTypeAliasAnalysisContr
         branches = (node.body, node.orelse)
         if not any(any(self._nested_alias(item) for item in branch) for branch in branches):
             return []
-        return [{"line": node.lineno - 1, "kind": "python-conditional-type-alias"}]
+        return [{"line": node.lineno - 1, "kind": PYTHON_CONDITIONAL_TYPE_ALIAS_RULE}]

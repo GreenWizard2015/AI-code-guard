@@ -1,4 +1,5 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
+import { RULE_IDS } from "src/linting/constants";
 import type { ViolationContract } from "src/reporting_protocols";
 import { ObjectLiteralReturns } from "src/rules/typescript/syntax-rules/ast/verifier/object-returns/object_literal_returns";
 import type { ObjectReturnNodes } from "src/rules/typescript/syntax-rules/types";
@@ -73,6 +74,10 @@ export class ObjectLiteralReturnRules implements ASTSourceRuleContract {
 		if (nodes === undefined || nodes.returns.length === 0) {
 			return;
 		}
-		this.append_violations(context, nodes);
+		context
+			.state()
+			.analysis.stage_timer.measure(`rule.${RULE_IDS.typescript_object_literal_return}`, () =>
+				this.append_violations(context, nodes),
+			);
 	}
 }

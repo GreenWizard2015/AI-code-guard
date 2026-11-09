@@ -4,6 +4,7 @@ import type { FileLintRunOptions } from "src/core/types";
 import type { IOContract } from "src/io/protocols";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { FileAnalysisCache } from "src/linting/orchestration/runtime/file_analysis_cache";
+import { FilePostAnalysis } from "src/linting/orchestration/runtime/file_post_analysis";
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
 import type { CachedFileOptions, FileAnalysisOptions, FileLintOptions } from "src/linting/orchestration/runtime/types";
 import { TypeScriptFileScanner } from "src/linting/orchestration/runtime/typescript/type_script_file_scanner";
@@ -28,17 +29,20 @@ export class FileLinter {
 		names: PythonProjectNames,
 	): ViolationContract[] {
 		if (source.language === "python") {
-			return this._python_scanner.lint_python_file({
-				file_name: source.file_name,
-				source_file: source.absolute_path,
-				text: source.text,
-				project_class_names: names.project_class_names,
-				python_class_names: names.project_class_names,
-				project_protocol_names: names.project_protocol_names,
-				project_type_names: names.project_type_names,
-				project_alias_names: names.project_alias_names,
-				normalized_ast: source.normalized_ast,
-			});
+			return this._python_scanner.lint_python_file(
+				{
+					file_name: source.file_name,
+					source_file: source.absolute_path,
+					text: source.text,
+					project_class_names: names.project_class_names,
+					python_class_names: names.project_class_names,
+					project_protocol_names: names.project_protocol_names,
+					project_type_names: names.project_type_names,
+					project_alias_names: names.project_alias_names,
+					normalized_ast: source.normalized_ast,
+				},
+				stage_timer,
+			);
 		}
 		this._typescript_scanner.prepare_source(source, stage_timer);
 		return [];
@@ -69,31 +73,6 @@ export class FileLinter {
 		return { available: true, value: [...cached.value] };
 	}
 
-	/** Responsibilities: _post-analysis file violations_. **/
-	private append_post_analysis(options: FileAnalysisOptions, violations: ViolationContract[]): void {
-		const { source, stage_timer, repo_root, violation_collector, coding_rule_linter } = options;
-		let language = TYPESCRIPT_LANGUAGE;
-		if (source.language === "python") {
-			language = PYTHON_LANGUAGE;
-		}
-		stage_timer.measure(`file-analysis.${language}.post-directory`, () =>
-			violation_collector.append_directory(violations, source, source.relative_path, source.text, repo_root),
-		);
-		stage_timer.measure(`file-analysis.${language}.post-remaining`, () =>
-			violation_collector.append_remaining_violations(
-				{
-					violations,
-					source,
-					file: source.relative_path,
-					text: source.text,
-					python: source.language === "python",
-					stage_timer,
-				},
-				coding_rule_linter,
-			),
-		);
-	}
-
 	/** Responsibilities: _file analysis selection_, _post-analysis violations_. **/
 	private analyze_file(options: FileAnalysisOptions): ViolationContract[] {
 		const { source, ignored, stage_timer, names } = options;
@@ -104,7 +83,9 @@ export class FileLinter {
 			return [];
 		}
 		const violations = this.scan_source(source, stage_timer, names);
-		this.append_post_analysis(options, violations);
+		const post_analysis = new FilePostAnalysis(options, violations);
+		post_analysis.append_directory();
+		post_analysis.append_remaining();
 		return violations;
 	}
 
@@ -176,7 +157,7 @@ export class FileLinter {
 	/** Responsibilities: _initialization project context rule_. **/
 	public constructor(options: FileLinterOptions) {
 		this._typescript_scanner = new TypeScriptFileScanner(options);
-		this._python_scanner = new PythonScanner(options.repo_root, options.context.files());
+		this._python_scanner = new PythonScanner(options.repo_root, options.context.files(), options.stage_timer);
 		this._cache_enabled = options.cache_enabled;
 		this._file_io = options.file_io;
 	}

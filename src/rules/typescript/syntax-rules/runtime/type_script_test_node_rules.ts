@@ -40,19 +40,18 @@ export class TypeScriptTestNodeRules implements TypeScriptTestNodeRulesContract 
 
 	/** Responsibilities: _aggregation expectation diagnostics test_. **/
 	private append_expect(call_candidate: ts.Node, assertion_context: RuleContextContract): void {
-		if (!assertion_context.state().source.test_file) {
-			return;
-		}
-		if (!ts.isCallExpression(call_candidate)) {
-			return;
-		}
-		if (this.inside_test_callback(call_candidate)) {
-			return;
-		}
-		const expect_callee = this.unwrapped_expression(call_candidate.expression);
-		if (this._expect_aliases.receiver({ expression: expect_callee, node: call_candidate })) {
-			assertion_context.for_node(call_candidate).append_rule(RULE_IDS.assertion_outside_test);
-		}
+		assertion_context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.assertion_outside_test}`, () => {
+			if (!assertion_context.state().source.test_file || !ts.isCallExpression(call_candidate)) {
+				return;
+			}
+			if (this.inside_test_callback(call_candidate)) {
+				return;
+			}
+			const expect_callee = this.unwrapped_expression(call_candidate.expression);
+			if (this._expect_aliases.receiver({ expression: expect_callee, node: call_candidate })) {
+				assertion_context.for_node(call_candidate).append_rule(RULE_IDS.assertion_outside_test);
+			}
+		});
 	}
 
 	/** Responsibilities: _classification node inside Jest_. **/
@@ -102,11 +101,20 @@ export class TypeScriptTestNodeRules implements TypeScriptTestNodeRulesContract 
 
 	/** Responsibilities: _aggregation console-mock console-use diagnostics_. **/
 	private append_console_rule(console_candidate: ts.Node, console_context: RuleContextContract): void {
-		if (this._console_mock.console_mock(console_candidate)) {
+		const stage_timer = console_context.state().analysis.stage_timer;
+		if (
+			stage_timer.measure(`rule.${RULE_IDS.typescript_console_mock_in_test}`, () =>
+				this._console_mock.console_mock(console_candidate),
+			)
+		) {
 			console_context.for_node(console_candidate).append_rule(RULE_IDS.typescript_console_mock_in_test);
 			return;
 		}
-		if (this._console_mock.console_usage(console_candidate)) {
+		if (
+			stage_timer.measure(`rule.${RULE_IDS.typescript_console_in_test}`, () =>
+				this._console_mock.console_usage(console_candidate),
+			)
+		) {
 			console_context.for_node(console_candidate).append_rule(RULE_IDS.typescript_console_in_test);
 		}
 	}
@@ -114,19 +122,21 @@ export class TypeScriptTestNodeRules implements TypeScriptTestNodeRulesContract 
 	/** Responsibilities: _test runtime patch diagnostics_. **/
 	private append_patch_rule(candidate: ts.Node, context: RuleContextContract): void {
 		const state = context.state();
-		let is_patch: boolean;
-		if (state.source.test_file) {
-			is_patch = this._runtime_patching.patch_test_node(
-				candidate,
-				state.analysis.module_resolver,
-				state.analysis.source_resolver,
-			);
-		} else {
-			is_patch = this._runtime_patching.patch_node(candidate);
-		}
-		if (is_patch) {
-			context.for_node(candidate).append_rule(RULE_IDS.runtime_patching);
-		}
+		state.analysis.stage_timer.measure("rule.runtime-patching.typescript", () => {
+			let is_patch: boolean;
+			if (state.source.test_file) {
+				is_patch = this._runtime_patching.patch_test_node(
+					candidate,
+					state.analysis.module_resolver,
+					state.analysis.source_resolver,
+				);
+			} else {
+				is_patch = this._runtime_patching.patch_node(candidate);
+			}
+			if (is_patch) {
+				context.for_node(candidate).append_rule(RULE_IDS.runtime_patching);
+			}
+		});
 	}
 
 	/** Responsibilities: _reporting AST node Jest_. **/

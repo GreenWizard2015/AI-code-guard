@@ -26,7 +26,6 @@ import type { ProjectNames } from "src/project_analysis_types";
 import type { CodingRuleLinterContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { TypeScriptRuleScopeContract } from "src/types";
-import type { TypeScriptSourceVerificationRequest } from "src/typescript_analysis_types";
 
 /** Responsibilities: _coding rule collection_, _responsibility violation collection_. **/
 export class CodingRuleLinter implements CodingRuleLinterContract {
@@ -44,12 +43,14 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 		violations: ViolationContract[],
 		source: CodingRuleSourceData,
 		source_file: ts.SourceFile,
-		stage_timer: LintStageTimerContract,
+		ast_timer: LintStageTimerContract,
 	): void {
 		const services = this._source_services_cache.for_resolver(source.source_resolver);
-		const node_rules = services.node_rules.build(source.text);
+		const node_rules = ast_timer.measure("typescript.ast-rule.registry-build", () =>
+			services.node_rules.build(source.text),
+		);
 		const context = new TypeScriptRuleContext(violations, source.file, source_file, {
-			stage_timer,
+			stage_timer: ast_timer,
 			normalized_ast: source.normalized_ast,
 			project_names: this._project_names,
 			rule_scope: this._rule_scope,
@@ -58,12 +59,12 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 			source_index: services.source_index,
 			traversal: source.traversal,
 		});
-		const verifier_request: TypeScriptSourceVerificationRequest = { source_root: source_file, context, stage_timer };
-		stage_timer.measure("file-analysis.typescript.post-remaining.coding-rules.ast-rules", () =>
+		const verifier_request = { source_root: source_file, context, stage_timer: ast_timer };
+		ast_timer.measure("file-analysis.typescript.post-remaining.coding-rules.ast-rules", () =>
 			node_rules.verify_source_file(verifier_request),
 		);
 		if (this._syntax.syntax_issues(source_file).length > 0) {
-			this._typescript_coding_rules.append_recovered_rules(violations, source.file, source.text);
+			this._typescript_coding_rules.append_recovered_rules(violations, source.file, source.text, ast_timer);
 		}
 	}
 
@@ -92,7 +93,10 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 	}
 
 	/** Responsibilities: _Python source rule violations_. **/
-	public lint_python(source_ast: SourceFileAstContract): ViolationContract[] {
+	public lint_python(
+		source_ast: SourceFileAstContract,
+		python_postprocess_timer: LintStageTimerContract,
+	): ViolationContract[] {
 		const prepared_source = source_ast.snapshot();
 		const responsibilities = this._responsibility_rules.collect(
 			prepared_source.file,
@@ -102,13 +106,17 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 			prepared_source,
 			this._duplicate_type_shapes,
 			this._test_path_syntax,
+			python_postprocess_timer,
 		);
 		const is_test_file = this._test_path_syntax.classify(prepared_source.file).has(TestPathKind.TestFile);
 		return [...responsibilities, ...analysis.python_issues(is_test_file)];
 	}
 
 	/** Responsibilities: _TypeScript source rule violations_. **/
-	public lint_typescript(source_ast: SourceFileAstContract, stage_timer: LintStageTimerContract): ViolationContract[] {
+	public lint_typescript(
+		source_ast: SourceFileAstContract,
+		typescript_rule_timer: LintStageTimerContract,
+	): ViolationContract[] {
 		const prepared_source = source_ast.snapshot();
 		if (prepared_source.file.endsWith(".py")) {
 			return this._responsibility_rules.collect(
@@ -117,7 +125,7 @@ export class CodingRuleLinter implements CodingRuleLinterContract {
 			);
 		}
 		const violations: ViolationContract[] = [];
-		this.append_typescript_rules(violations, prepared_source, prepared_source.source_file, stage_timer);
+		this.append_typescript_rules(violations, prepared_source, prepared_source.source_file, typescript_rule_timer);
 		return violations;
 	}
 }

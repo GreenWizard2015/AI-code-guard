@@ -21,10 +21,12 @@ import type {
 import type { CallableMetricsContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ClassStructureReporterContract } from "src/runtime_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _class design diagnostics_, _class size metric reporting_. **/
 export class ClassStructureReporter implements ClassStructureReporterContract {
 	private readonly _violations: ViolationContract[];
+	private readonly _stage_timer: LintStageTimerContract;
 	private readonly _file_name: LintFileNameContract;
 	private readonly _node: AstClassNode;
 	private readonly _class_identity: AstClassNodeIdentity;
@@ -46,19 +48,23 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 	/** Responsibilities: _aggregation class size method-count_. **/
 	private append_class_sizes(): void {
 		const line = this._class_identity.start;
-		if (this._minimum_class_size > MAX_CLASS_LINES) {
-			this._metric_violations.metric_violation(line, this._minimum_class_size, METRIC_KIND_CLASS_SIZE);
-		}
-		const methods = this._class_structure.methods.filter(
-			(method) => method.identity.name !== CONSTRUCTOR_NAME && method.identity.name !== PYTHON_CONSTRUCTOR_NAME,
-		);
-		const has_constructor = this._class_structure.methods.some(
-			(method) => method.identity.name === CONSTRUCTOR_NAME || method.identity.name === PYTHON_CONSTRUCTOR_NAME,
-		);
-		const method_count = methods.length + (has_constructor ? 1 : 0);
-		if (method_count > MAX_CLASS_METHODS) {
-			this._metric_violations.metric_violation(line, method_count, METRIC_KIND_CLASS_METHODS);
-		}
+		this._stage_timer.measure("rule.class-max-size", () => {
+			if (this._minimum_class_size > MAX_CLASS_LINES) {
+				this._metric_violations.metric_violation(line, this._minimum_class_size, METRIC_KIND_CLASS_SIZE);
+			}
+		});
+		this._stage_timer.measure("rule.class-size", () => {
+			const methods = this._class_structure.methods.filter(
+				(method) => method.identity.name !== CONSTRUCTOR_NAME && method.identity.name !== PYTHON_CONSTRUCTOR_NAME,
+			);
+			const has_constructor = this._class_structure.methods.some(
+				(method) => method.identity.name === CONSTRUCTOR_NAME || method.identity.name === PYTHON_CONSTRUCTOR_NAME,
+			);
+			const method_count = methods.length + (has_constructor ? 1 : 0);
+			if (method_count > MAX_CLASS_METHODS) {
+				this._metric_violations.metric_violation(line, method_count, METRIC_KIND_CLASS_METHODS);
+			}
+		});
 	}
 
 	/** Responsibilities: _reporting size metrics exclusion_. **/
@@ -88,14 +94,16 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 
 	/** Responsibilities: _reporting short class metric_. **/
 	private append_short_class(): void {
-		if (this.short_class_excluded()) {
-			return;
-		}
-		this._metric_violations.metric_violation(
-			this._class_identity.start,
-			this._minimum_class_size,
-			METRIC_KIND_SHORT_CLASS,
-		);
+		this._stage_timer.measure("rule.class-min-size", () => {
+			if (this.short_class_excluded()) {
+				return;
+			}
+			this._metric_violations.metric_violation(
+				this._class_identity.start,
+				this._minimum_class_size,
+				METRIC_KIND_SHORT_CLASS,
+			);
+		});
 	}
 
 	/** Responsibilities: _reporting method metrics_. **/
@@ -104,7 +112,14 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 			return;
 		}
 		const metrics = this._class_structure.methods.map(
-			(method) => new CallableMetrics(this._violations, this._file_name.value(), method, this.report_as_method),
+			(method) =>
+				new CallableMetrics(
+					this._violations,
+					this._file_name.value(),
+					method,
+					this.report_as_method,
+					this._stage_timer,
+				),
 		);
 		this.append_metrics(metrics);
 	}
@@ -113,6 +128,7 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 	public constructor(options: ClassStructureReporterOptions) {
 		this._metric_violations = new MetricViolations(options.violations, options.file_name.value());
 		this._violations = options.violations;
+		this._stage_timer = options.stage_timer;
 		this._file_name = options.file_name;
 		this._node = options.node;
 		this._class_identity = options.node.identity;
@@ -127,7 +143,14 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 	public report_test_limits(): void {
 		this._design_reporter.report_interface_limit();
 		const metrics = this._class_structure.methods.map(
-			(method) => new CallableMetrics(this._violations, this._file_name.value(), method, this.report_as_method),
+			(method) =>
+				new CallableMetrics(
+					this._violations,
+					this._file_name.value(),
+					method,
+					this.report_as_method,
+					this._stage_timer,
+				),
 		);
 		for (const metric of metrics) {
 			metric.append_nesting_depth();
@@ -143,6 +166,7 @@ export class ClassStructureReporter implements ClassStructureReporterContract {
 			this._violations,
 			this._file_name.value(),
 			this._node,
+			this._stage_timer,
 		);
 		specialization_reporter.report_api();
 		specialization_reporter.report_implementation();

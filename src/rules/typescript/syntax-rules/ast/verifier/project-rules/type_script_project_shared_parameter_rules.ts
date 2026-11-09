@@ -100,12 +100,14 @@ export class TypeScriptProjectSharedParameterRules implements ASTSourceRuleContr
 		if (!rule_scope.project_scope()) {
 			return [];
 		}
-		const analysis_request = {
-			scope: rule_scope.project_analysis(),
-			project_types: state.project.project_names.project_type_names,
-		};
-		const analysis = this.module_function_analysis(analysis_request);
-		const callables = this.module_function_callables(analysis);
-		return this.report_shared_parameters(callables);
+		return state.analysis.stage_timer.measure("rule.shared-parameter.typescript-module-functions", () => {
+			const analysis_request = {
+				scope: rule_scope.project_analysis(),
+				project_types: state.project.project_names.project_type_names,
+			};
+			const analysis = this.module_function_analysis(analysis_request);
+			const callables = this.module_function_callables(analysis);
+			return this.report_shared_parameters(callables);
+		});
 	}
 }

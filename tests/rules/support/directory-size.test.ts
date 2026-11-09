@@ -3,6 +3,7 @@ import "src/lint_stage_timer";
 import { join } from "node:path";
 import { AstModel } from "src/core/ast_model";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
 import {
 	MODULE_CONSTANT_FILES,
@@ -39,14 +40,17 @@ describe("directory size lint rules", () => {
 		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
 		const source_line = file.endsWith(".py") ? "value = 1" : "export const value = 1;";
 		const source = Array.from({ length: 501 }, () => source_line).join("\n");
-		directory_rules.append_file_violation({
-			violations,
-			file,
-			text: source,
-			classes: [],
-			docstring_spans: [],
-			normalized_ast,
-		});
+		directory_rules.append_file_violation(
+			{
+				violations,
+				file,
+				text: source,
+				classes: [],
+				docstring_spans: [],
+				normalized_ast,
+			},
+			new LintStageTimer(),
+		);
 
 		expect(violations).toHaveLength(1);
 		expect(
@@ -83,14 +87,17 @@ describe("directory size lint rules", () => {
 			"src/protocols.py",
 			"src/cli.ts",
 		]) {
-			directory_rules.append_file_violation({
-				violations,
-				file,
-				text: file.endsWith(".py") ? "value = 1" : "export const value = 1;",
-				classes: [],
-				docstring_spans: [],
-				normalized_ast,
-			});
+			directory_rules.append_file_violation(
+				{
+					violations,
+					file,
+					text: file.endsWith(".py") ? "value = 1" : "export const value = 1;",
+					classes: [],
+					docstring_spans: [],
+					normalized_ast,
+				},
+				new LintStageTimer(),
+			);
 		}
 
 		expect(violations.filter((item) => item.rule_id() === "file-min-size").map((item) => item.file())).toEqual([

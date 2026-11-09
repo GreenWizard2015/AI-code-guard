@@ -167,6 +167,10 @@ export class TypeOperations implements TypeScriptTypeOperationsContract, ASTSour
 		if (!ts.isTypeNode(request.node)) {
 			return;
 		}
-		this.append_node_operation(request.node, request.context);
+		const type_node = request.node;
+		const stage_timer = request.context.state().analysis.stage_timer;
+		stage_timer.measure(`rule.${RULE_IDS.typescript_type_operation}`, () =>
+			this.append_node_operation(type_node, request.context),
+		);
 	}
 }

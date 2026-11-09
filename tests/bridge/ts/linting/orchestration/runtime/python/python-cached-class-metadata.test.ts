@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
 import { TestFixture } from "tests/core/test-fixture";
 
@@ -28,8 +29,8 @@ describe("cached Python class metadata", () => {
 			project_alias_names: new Set<string>(),
 			normalized_ast: cached_ast,
 		};
-		const scanner = new PythonScanner();
-		scanner.lint_python_file(input);
+		const scanner = new PythonScanner("", [], new LintStageTimer());
+		scanner.lint_python_file(input, new LintStageTimer());
 
 		expect(cached_ast.source.classes.map(({ structure }) => structure.interfaces)).toEqual([[]]);
 	});
@@ -56,11 +57,11 @@ describe("cached Python class metadata", () => {
 			project_alias_names: new Set<string>(),
 			normalized_ast: cached_ast,
 		};
-		const scanner = new PythonScanner();
-		scanner.lint_python_file(input);
+		const scanner = new PythonScanner("", [], new LintStageTimer());
+		scanner.lint_python_file(input, new LintStageTimer());
 		const initial_interfaces = cached_ast.source.classes.map(({ structure }) => structure.interfaces);
 		const rescanned_input = { ...input, project_protocol_names: new Set<string>() };
-		scanner.lint_python_file(rescanned_input);
+		scanner.lint_python_file(rescanned_input, new LintStageTimer());
 		const rescanned_interfaces = cached_ast.source.classes.map(({ structure }) => structure.interfaces);
 
 		expect({ initial_interfaces, rescanned_interfaces }).toEqual({

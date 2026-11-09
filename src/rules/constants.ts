@@ -4,6 +4,7 @@ export const UPPER_CASE_PATTERN = /^_?[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_?$/u;
 export const UPPER_SNAKE_CASE_PATTERN = /^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*$/u;
 export const PASCAL_CASE_PATTERN = /^[A-Z][a-zA-Z0-9]*$/u;
 export const NUMERIC_NAME_PATTERN = /[0-9]/u;
+export const NUMERIC_NAME_RULE_ID = "numeric-name";
 export const CLASS_REFERENCE_INFO = 5;
 export const CLASS_REFERENCE_WARNING = 15;
 export const IGNORED_DIRECTORIES = new Set([

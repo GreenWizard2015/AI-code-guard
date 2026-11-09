@@ -11,7 +11,7 @@ from implementation.references.protocols import (
     PythonContainerValuesContract,
     PythonExceptionAliasStateContract,
 )
-from implementation.rules.constants import PYTHON_MULTI_EXCEPT_KIND
+from implementation.rules.constants import PYTHON_BROAD_EXCEPT_RULE, PYTHON_MULTI_EXCEPT_KIND
 from implementation.rules.protocols import PythonExceptionHandlerAssignmentsContract
 from implementation.rules.python_syntax.exceptions.python_exception_handler_assignments import (
     PythonExceptionHandlerAssignments,
@@ -142,7 +142,7 @@ class PythonExceptionHandlerAnalysis:
     def _append_type_issues(self, issues: list[JsonObject]) -> None:
         """Responsibilities: _exception type diagnostics_."""
         if self._broad_issue():
-            issues.append({"line": self._handler.lineno - 1, "kind": "broad-except"})
+            issues.append({"line": self._handler.lineno - 1, "kind": PYTHON_BROAD_EXCEPT_RULE})
         match self._handler.type:
             case ast.Tuple(elts=[_, _, *_]):
                 issues.append(

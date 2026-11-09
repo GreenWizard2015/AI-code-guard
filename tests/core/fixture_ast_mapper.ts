@@ -1,4 +1,5 @@
 import { LintFileName } from "src/core/context/lint_file_name";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import type { AstCallableNode, AstClassNode, AstTypeKind, AstVisibility } from "src/model/ast/normalized_ast_types";
@@ -60,6 +61,7 @@ export class FixtureAstMapper {
 		const normalized_node = this.class_node(node);
 		const file_name = new LintFileName(file);
 		const structure = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name,
 			node: normalized_node,

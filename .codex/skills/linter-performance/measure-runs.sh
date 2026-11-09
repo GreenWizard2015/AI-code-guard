@@ -3,14 +3,13 @@ set -euo pipefail
 
 usage() {
 	cat >&2 <<'EOF'
-Usage: measure-runs.sh --target /absolute/project/path [--runs N] [--linter-arg ARG ...]
+Usage: measure-runs.sh --target /absolute/project/path [--runs N] [--baseline-cold-max SEC] [--linter-arg ARG ...]
 
 Options:
 	--target PATH    Existing absolute directory to lint.
 	--runs N         Number of cold/warm pairs (default: 3).
 	--linter-arg ARG Append one argument to every linter invocation; repeat for multiple arguments.
-	--baseline-cold-max SEC  Accepted baseline maximum cold time.
-	--baseline-warm-max SEC  Accepted baseline maximum warm time.
+	--baseline-cold-max SEC  Accepted baseline maximum cold time for maximum Files/sec comparison.
 
 Each pair clears the complete known cache, measures one cold run, then measures
 one warm run using the cache produced by that cold run. Exit codes: 0 means the
@@ -33,7 +32,6 @@ trap 'interrupt_measurement 143' TERM
 target=""
 runs=3
 baseline_cold_max=""
-baseline_warm_max=""
 linter_arguments=()
 
 while (($# > 0)); do
@@ -62,14 +60,6 @@ while (($# > 0)); do
 			baseline_cold_max="$2"
 			shift 2
 			;;
-		--baseline-warm-max)
-			if (($# < 2)) || ! [[ "$2" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-				usage
-				exit 2
-			fi
-			baseline_warm_max="$2"
-			shift 2
-			;;
 		--linter-arg)
 			if (($# < 2)); then
 				usage
@@ -96,11 +86,6 @@ while (($# > 0)); do
 	esac
 done
 
-if [[ -n "$baseline_cold_max" && -z "$baseline_warm_max" ]] || [[ -z "$baseline_cold_max" && -n "$baseline_warm_max" ]]; then
-	printf '%s\n' 'Provide both baseline maximum values or neither.' >&2
-	usage
-	exit 2
-fi
 if [[ -n "$baseline_cold_max" ]] && ((runs < 3)); then
 	printf '%s\n' 'At least three cold/warm pairs are required for a timing decision.' >&2
 	exit 2
@@ -128,7 +113,7 @@ measurement_id="$(date +%Y%m%d%H%M%S%N)"
 performance_directory="$linter_root/.ai-code-guard/performance-runs/$measurement_id"
 mkdir -p -- "$performance_directory"
 run_manifest="$performance_directory/runs.tsv"
-printf 'mode\trun\twall_seconds\texit\tissues\tfiles\n' >"$run_manifest"
+printf 'mode\trun\twall_seconds\texit\tissues\tfiles\tfiles_per_second\n' >"$run_manifest"
 
 clear_known_cache() {
 	local cache_directory="$target/.ai-code-guard/cache"
@@ -183,13 +168,19 @@ run_guard() {
 		printf 'CONSISTENCY_ERROR=%s missing analyzed-file total\n' "$run_label" >&2
 		measurement_status=2
 	fi
+	run_files_per_second="unavailable"
+	if [[ "$run_files" =~ ^[0-9]+$ && "$run_wall" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+		run_files_per_second="$(awk -v files="$run_files" -v seconds="$run_wall" \
+			'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
+	fi
 
-	printf '%s_SECONDS=%s EXIT=%s ISSUES=%s FILES=%s\n' \
+	printf '%s_SECONDS=%s EXIT=%s ISSUES=%s FILES=%s FILES_PER_SEC=%s\n' \
 		"$run_label" "$run_wall" "$run_exit" "${run_issues:-unavailable}" \
-		"${run_files:-missing}"
-	printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+		"${run_files:-missing}" "$run_files_per_second"
+	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 		"$mode" "$run_number" "$run_wall" "$run_exit" \
-		"${run_issues:-unavailable}" "${run_files:-missing}" >>"$run_manifest"
+		"${run_issues:-unavailable}" "${run_files:-missing}" \
+		"$run_files_per_second" >>"$run_manifest"
 }
 
 compare_run_value() {
@@ -234,7 +225,7 @@ maximum() {
 printf 'Linter workspace: %s\n' "$linter_root"
 printf 'Target: %s\n' "$target"
 printf 'Cold/warm pairs: %s\n' "$runs"
-printf 'Score: best cold time + best warm time\n'
+printf 'Primary score: maximum cold Files/sec\n'
 
 run_directory="$(mktemp -d /tmp/ai-code-guard-measure-XXXXXX)"
 trap 'rm -rf -- "$run_directory"' EXIT
@@ -296,29 +287,41 @@ warm_maximum="$(maximum "${warm_times[@]}")"
 paired_median="$(median "${paired_totals[@]}")"
 best_paired_total="$(minimum "${paired_totals[@]}")"
 score="$(awk -v cold="$best_cold" -v warm="$best_warm" 'BEGIN { printf "%.3f", cold + warm }')"
+cold_files_per_second="$(awk -v files="$expected_files" -v seconds="$cold_average" \
+	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
+maximum_cold_files_per_second="$(awk -v files="$expected_files" -v seconds="$best_cold" \
+	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
+warm_files_per_second="$(awk -v files="$expected_files" -v seconds="$warm_average" \
+	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
 
 printf '\nCold average: %s seconds\n' "$cold_average"
 printf 'Cold median: %s seconds\n' "$cold_median"
+printf 'Cold files/sec (files / average): %s\n' "$cold_files_per_second"
+printf 'Maximum cold files/sec (files / best cold): %s\n' "$maximum_cold_files_per_second"
 printf 'Best cold: %s seconds\n' "$best_cold"
 printf 'Maximum cold: %s seconds\n' "$cold_maximum"
 printf 'Warm average: %s seconds\n' "$warm_average"
 printf 'Warm median: %s seconds\n' "$warm_median"
+printf 'Warm files/sec (files / average): %s\n' "$warm_files_per_second"
 printf 'Best warm: %s seconds\n' "$best_warm"
 printf 'Maximum warm: %s seconds\n' "$warm_maximum"
 printf 'Median paired total: %s seconds\n' "$paired_median"
 printf 'Best paired total: %s seconds\n' "$best_paired_total"
 printf 'Candidate minimum sum (best cold + best warm): %s seconds\n' "$score"
 timing_status=0
-if [[ -n "$baseline_cold_max" && -n "$baseline_warm_max" ]]; then
-	baseline_maximum_sum="$(awk -v cold="$baseline_cold_max" -v warm="$baseline_warm_max" 'BEGIN { printf "%.3f", cold + warm }')"
-	if awk -v candidate="$score" -v baseline="$baseline_maximum_sum" 'BEGIN { exit !(candidate < baseline) }'; then
-		printf 'Timing threshold: PASS (candidate minima %s sec < baseline maxima %s sec)\n' "$score" "$baseline_maximum_sum"
+	if [[ -n "$baseline_cold_max" ]]; then
+	baseline_minimum_files_per_second="$(awk -v files="$expected_files" -v seconds="$baseline_cold_max" \
+		'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
+	if awk -v candidate="$best_cold" -v baseline="$baseline_cold_max" 'BEGIN { exit !(candidate < baseline) }'; then
+		printf 'Cold throughput threshold: PASS (candidate maximum %s files/sec > baseline minimum %s files/sec)\n' \
+			"$maximum_cold_files_per_second" "$baseline_minimum_files_per_second"
 	else
-		printf 'Timing threshold: FAIL (candidate minima %s sec >= baseline maxima %s sec)\n' "$score" "$baseline_maximum_sum"
+		printf 'Cold throughput threshold: FAIL (candidate maximum %s files/sec <= baseline minimum %s files/sec)\n' \
+			"$maximum_cold_files_per_second" "$baseline_minimum_files_per_second"
 		timing_status=1
 	fi
 else
-	printf '%s\n' 'Timing threshold: not evaluated (provide both baseline maximum values)'
+	printf '%s\n' 'Cold throughput threshold: not evaluated (provide --baseline-cold-max)'
 fi
 printf 'Performance snapshots: %s\n' "$performance_directory"
 printf 'Run manifest: %s\n' "$run_manifest"

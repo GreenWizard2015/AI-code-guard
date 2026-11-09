@@ -15,13 +15,15 @@ export class FileRemainingTextRules implements FileRemainingTextRulesContract {
 		const rule: RuleContract = new DiagnosticRule("non-english-source-text");
 		const text_rules = new NonEnglishSourceTextRules(rule);
 		options.stage_timer.measure(`file-analysis.${language}.post-remaining.non-english-text`, () =>
-			options.violations.push(
-				...text_rules.source_violations({
-					file: options.file,
-					text: options.text,
-					language: options.source.language,
-					test_file: options.source.file_name.test(),
-				}),
+			options.stage_timer.measure(`rule.non-english-source-text.${language}`, () =>
+				options.violations.push(
+					...text_rules.source_violations({
+						file: options.file,
+						text: options.text,
+						language: options.source.language,
+						test_file: options.source.file_name.test(),
+					}),
+				),
 			),
 		);
 	}
@@ -37,7 +39,9 @@ export class FileRemainingTextRules implements FileRemainingTextRulesContract {
 			return;
 		}
 		options.stage_timer.measure(`file-analysis.${PYTHON_LANGUAGE}.post-remaining.reexports`, () =>
-			this._reexports.append_reexport_violations(options.violations, options.file, options.text, options.source),
+			options.stage_timer.measure("rule.reexports.python", () =>
+				this._reexports.append_reexport_violations(options.violations, options.file, options.text, options.source),
+			),
 		);
 		this.append_foreign_text(options, PYTHON_LANGUAGE);
 	}

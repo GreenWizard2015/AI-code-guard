@@ -13,6 +13,7 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { Syntax } from "src/parser/analysis/syntax";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
 import type { CodingRuleSourceData } from "src/source_types";
 import { TestPathKind } from "src/types";
@@ -25,6 +26,20 @@ export class PythonCodingRuleSourceAnalysis {
 	private readonly _python_test_skips: ReadonlySet<string>;
 	private readonly _test_only_kinds: ReadonlySet<string>;
 	private readonly _fixture_names: ReadonlySet<string>;
+	private readonly _stage_timer: LintStageTimerContract;
+
+	/** Responsibilities: _AST coding issue materialization_. **/
+	private append_ast_issue(violations: ViolationContract[], ast_issue: AstCodingIssue): void {
+		if (this.skip_issue(ast_issue)) {
+			return;
+		}
+		if (!RULE_DATA_BY_ID.has(ast_issue.kind)) {
+			return;
+		}
+		const rule = new DiagnosticRule(ast_issue.kind);
+		const parameters = this.issue_parameters(ast_issue);
+		violations.push(rule.violation(this._source.file, ast_issue.line + 1, parameters));
+	}
 
 	/** Responsibilities: _fixture method diagnostics_. **/
 	private fixture_method_issue(rule: RuleContract, method: AstCallableNode): ViolationContract[] {
@@ -70,10 +85,12 @@ export class PythonCodingRuleSourceAnalysis {
 		source: CodingRuleSourceData,
 		duplicate_type_shapes: DuplicateTypeShapesContract,
 		test_path_syntax: TestPathSyntaxContract,
+		stage_timer: LintStageTimerContract,
 	) {
 		this._source = source;
 		this._duplicate_type_shapes = duplicate_type_shapes;
 		this._test_path_syntax = test_path_syntax;
+		this._stage_timer = stage_timer;
 		this._python_test_skips = new Set([
 			RULE_IDS.repeated_literal,
 			RULE_IDS.callable_branch_count,
@@ -99,6 +116,7 @@ export class PythonCodingRuleSourceAnalysis {
 			PYTHON_REFLECTION_CALLS,
 			PYTHON_ONLY_REFLECTIONS,
 			PYTHON_TYPE_CALL,
+			this._stage_timer,
 		);
 		for (const [line, text] of syntax.split_lines(this._source.text).entries()) {
 			for (const kind of coding_line_rules.invalid_line_kinds(text)) {
@@ -125,30 +143,26 @@ export class PythonCodingRuleSourceAnalysis {
 	/** Responsibilities: _AST coding issue diagnostics_. **/
 	public ast_issues(issues: readonly AstCodingIssue[]): ViolationContract[] {
 		const violations: ViolationContract[] = [];
-		for (const issue of issues) {
-			if (this.skip_issue(issue)) {
-				continue;
-			}
-			if (!RULE_DATA_BY_ID.has(issue.kind)) {
-				continue;
-			}
-			const rule = new DiagnosticRule(issue.kind);
-			const parameters = this.issue_parameters(issue);
-			violations.push(rule.violation(this._source.file, issue.line + 1, parameters));
+		for (const coding_issue of issues) {
+			this._stage_timer.measure(`rule.${coding_issue.kind}.python.postprocess`, () =>
+				this.append_ast_issue(violations, coding_issue),
+			);
 		}
 		return violations;
 	}
 
 	/** Responsibilities: _test fixture complexity diagnostics_. **/
 	public fixture_complexity_issues(): ViolationContract[] {
-		const violations: ViolationContract[] = [];
-		const rule = new DiagnosticRule(RULE_IDS.fixture_complexity);
-		const ast = this._source.normalized_ast;
-		const methods = ast.source.classes.flatMap((node) => node.structure.methods);
-		for (const method of methods) {
-			violations.push(...this.fixture_method_issue(rule, method));
-		}
-		return violations;
+		return this._stage_timer.measure(`rule.${RULE_IDS.fixture_complexity}.python`, () => {
+			const violations: ViolationContract[] = [];
+			const rule = new DiagnosticRule(RULE_IDS.fixture_complexity);
+			const ast = this._source.normalized_ast;
+			const methods = ast.source.classes.flatMap((node) => node.structure.methods);
+			for (const method of methods) {
+				violations.push(...this.fixture_method_issue(rule, method));
+			}
+			return violations;
+		});
 	}
 
 	/** Responsibilities: _per-file Python rules_. **/

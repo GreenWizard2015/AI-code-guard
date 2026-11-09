@@ -9,10 +9,11 @@ import type { StaticExpressionValuesContract } from "src/shared_services_protoco
 import type { TypeScriptProxyExpressionsContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
+import type { TypeScriptBuiltinMutationContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _prototype mutation recognition_, _prototype alias analysis_. **/
-export class RuntimeBuiltinPredicates {
+export class RuntimeBuiltinPredicates implements TypeScriptBuiltinMutationContract {
 	private readonly _assignment_kinds: Set<ts.SyntaxKind>;
 	private readonly _object_aliases: TypeScriptExpressionAliasesContract;
 	private readonly _reflect_aliases: TypeScriptExpressionAliasesContract;

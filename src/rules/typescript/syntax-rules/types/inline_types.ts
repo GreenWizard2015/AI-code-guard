@@ -1,5 +1,6 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { RULE_IDS } from "src/linting/constants";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { RuleContextContract } from "src/types";
 import { TestPathKind } from "src/types";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
@@ -96,15 +97,26 @@ export class InlineTypes implements ASTSourceRuleContract {
 	}
 
 	/** Responsibilities: _inline violation classification_. **/
-	private violation_flags(source_node: ts.Node): InlineViolationFlags {
-		let field_count = 0;
-		if (ts.isInterfaceDeclaration(source_node) || ts.isTypeAliasDeclaration(source_node)) {
-			field_count = this.type_members(source_node).filter(ts.isPropertySignature).length;
-		}
+	private violation_flags(source_node: ts.Node, stage_timer: LintStageTimerContract): InlineViolationFlags {
+		const object = stage_timer.measure(`rule.${this._object_rule_id}`, () => this.object_violation(source_node));
+		const union = stage_timer.measure(
+			`rule.${this._union_rule_id}`,
+			() => ts.isUnionTypeNode(source_node) && this.is_inline_union(source_node),
+		);
+		const generic = stage_timer.measure(
+			`rule.${this._generic_rule_id}`,
+			() => ts.isTypeLiteralNode(source_node) && this.generic_type_node(source_node),
+		);
+		const field_count = stage_timer.measure(`rule.${this._field_count_id}`, () => {
+			if (!ts.isInterfaceDeclaration(source_node) && !ts.isTypeAliasDeclaration(source_node)) {
+				return 0;
+			}
+			return this.type_members(source_node).filter(ts.isPropertySignature).length;
+		});
 		return {
-			object: this.object_violation(source_node),
-			union: ts.isUnionTypeNode(source_node) && this.is_inline_union(source_node),
-			generic: ts.isTypeLiteralNode(source_node) && this.generic_type_node(source_node),
+			object,
+			union,
+			generic,
 			field_count,
 		};
 	}
@@ -169,7 +181,7 @@ export class InlineTypes implements ASTSourceRuleContract {
 	}
 	/** Responsibilities: _inline type violation processing_. **/
 	public append_node(analyzed_node: ts.Node, context: RuleContextContract): void {
-		const flags = this.violation_flags(analyzed_node);
+		const flags = this.violation_flags(analyzed_node, context.state().analysis.stage_timer);
 		if (!this.has_violation(flags)) {
 			return;
 		}
@@ -183,7 +195,7 @@ export class InlineTypes implements ASTSourceRuleContract {
 
 	/** Responsibilities: _inline type node dispatch_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
-		const flags = this.violation_flags(request.node);
+		const flags = this.violation_flags(request.node, request.context.state().analysis.stage_timer);
 		if (request.context.state().source.path_kinds.has(TestPathKind.TypeScriptTestFile)) {
 			if (flags.generic) {
 				request.context.for_node(request.node).append_rule(this._generic_rule_id);

@@ -1,13 +1,15 @@
 ---
 name: linter-performance
-description: Measure linter and test-runner speed; diagnose to zero and stage only after timing acceptance.
+description: Measure linter and test-runner throughput, improve performance, and verify accepted changes.
 ---
 
 # Linter performance optimization
 
 Use this skill when improving the linter, its Python bridge, or fixture-test
 execution. Prioritize production lint speed; measure test-runner speed
-separately when in scope. Performance acceptance is based on timing only.
+separately when in scope. The primary optimization metric is analyzed files per
+second (`Files/sec`); wall-clock time is retained to calculate and interpret
+throughput.
 Diagnostic counts and hashes are informational during benchmarking; after a
 candidate passes, immediately invoke the `diagnostics-to-zero` skill on the
 linter workspace and continue until its requested scope reaches zero or the
@@ -38,23 +40,25 @@ timing snapshots, and experiment reports. Do not create Markdown logs in the
 workspace root, the target project root, or the skill directory. The skill's
 own `SKILL.md` is instruction text and is the only intentional exception.
 
-## Acceptance score
+## Primary metric: maximum cold files per second
 
-Judge an optimization's timing threshold by comparing the candidate's best
-cold-plus-warm sum with the accepted baseline's maximum cold-plus-warm sum:
+Optimize best measured cold-start throughput. For each run, calculate
+`Files/sec = analyzed files / wall seconds`; the candidate's primary score is
+its maximum cold `Files/sec` (equivalently, files divided by its minimum cold
+time). Compare it with the accepted baseline's minimum cold throughput:
 
 ```text
-candidate minimum cold + candidate minimum warm
-    < baseline maximum cold + baseline maximum warm
+candidate maximum cold Files/sec = analyzed files / candidate minimum cold seconds
+baseline minimum cold Files/sec = analyzed files / baseline maximum cold seconds
 ```
 
-Select candidate minima and baseline maximums independently across their runs.
-Stage timings, profiler samples, medians, paired totals, and diagnostics do not
-affect the timing decision. Correctness checks remain a separate gate before
-staging.
-Do not compare the candidate against the baseline minimum, median, or historical
-best when deciding this threshold. A candidate qualifies on timing when its
-candidate minimum cold + candidate minimum warm is strictly below baseline maximum cold + baseline maximum warm.
+Require identical analyzed-file counts and scope. Accept only when candidate
+maximum cold `Files/sec` is strictly higher than the baseline minimum cold
+`Files/sec`. Warm throughput, averages, medians, paired totals, stage timings,
+profiler samples, and diagnostics are secondary information; they do not
+change the throughput decision. Record them to show variance and tradeoffs.
+Correctness checks remain a separate gate before staging. Do not use medians,
+paired totals, or historical measurements for the throughput decision.
 
 ## Measurement helper
 
@@ -70,15 +74,19 @@ The helper resolves the linter workspace from its own location. Each pair
 clears only `<target>/.ai-code-guard/cache/`, runs cold, then runs warm from the
 cache just produced. It uses `--policy all --batch-size 10000` and no review
 agent. It snapshots each timing report and writes `runs.tsv` with wall time,
-exit code, issue count, and analyzed-file count. Those diagnostic values are
-informational and do not affect the timing score. The helper checks valid wall
+exit code, issue count, analyzed-file count, and per-run `files_per_second`.
+It prints maximum cold `Files/sec` as the primary score, plus cold and warm
+average throughput for context.
+Diagnostic values are informational and do not affect throughput acceptance.
+The helper checks valid wall
 time, stable file scope, and warm-cache behavior. It returns `0` when the
 measurement is valid and the threshold passes or was not requested, `1` when a
-valid candidate misses the requested timing threshold, and `2` for invalid
+valid candidate misses the requested seconds threshold, and `2` for invalid
 arguments or measurement integrity. A non-zero linter exit is recorded, not
 treated as a benchmark failure. At least three pairs are required when a
 threshold is supplied; fewer pairs can screen a candidate but cannot produce a
-timing verdict.
+throughput verdict. The helper's cold-seconds threshold implements the
+maximum-cold-`Files/sec` comparison when the analyzed-file count is unchanged.
 
 The helper records timing reports and issue totals, not a complete
 machine-readable diagnostic inventory; counts alone cannot serve as the
@@ -89,9 +97,10 @@ measurement and integration checkpoints. Its schema and report-reuse rules are
 in [`../diagnostics-to-zero/references/work-status.md`](../diagnostics-to-zero/references/work-status.md).
 
 Use three matched pairs for baseline and candidates considered for acceptance.
-One pair may screen out a poor candidate but cannot accept it. `--baseline-cold-max`
-and `--baseline-warm-max` print the timing threshold result. Hotspot sampling
-runs after all pairs so it cannot perturb a cold/warm pair.
+One pair may screen out a poor candidate but cannot accept it.
+`--baseline-cold-max` prints whether the maximum-cold-`Files/sec` threshold
+passes. Hotspot sampling runs after all pairs so it cannot perturb a cold/warm
+pair.
 
 Do not spawn or assign agents by default. The coordinator performs investigation,
 implementation, and validation directly. Use [`agent-protocol.md`](agent-protocol.md)
@@ -110,8 +119,9 @@ Before changing code, record a representative paired baseline for the full
 production lint command. Measure fixture/test-runner time separately only when
 test performance is in scope or its overhead is blocking lint work:
 
-- every cold and warm wall time, each mode's minimum, maximum, and median, the
-  candidate minimum sum, the baseline maximum sum, the best paired total, and
+- analyzed-file count and `Files/sec` for every cold and warm run, maximum cold
+  throughput, each mode's average throughput, wall-time minimum, maximum, and
+  median, baseline maximum cold throughput, the best paired total, and
   relevant stage times;
 - process count and Python bridge startup/exit behavior;
 - complete diagnostics, including rule, file, line, message, hint, and exit code;
@@ -157,7 +167,8 @@ before every attempt; other measured load changes still follow baseline rules.
 
 Check again at cold/warm pair boundaries where practical without delaying the
 immediate warm run or perturbing its cache. If an appearance/disappearance is
-observed during a series, mark that series inconclusive for timing acceptance,
+observed during a series, mark that series inconclusive for throughput
+acceptance,
 refresh the control baseline under the stable new state, and remeasure the
 candidate. Endpoint checks cannot prove that no short-lived transition happened;
 record an observed transition even if the final state matches the initial state.
@@ -167,11 +178,12 @@ Do not stop, restart, pause, or otherwise modify `train.py` to stabilize results
 
 Start with a single full cold/warm pair using `--runs 1` **without baseline
 threshold flags**; the helper requires at least three pairs with those flags.
-Use this only to screen the hypothesis. Clearly poor timing with no evidence of
-a recoverable bottleneck can end the experiment early; record `screened out`,
-not a conclusive three-pair timing verdict. Borderline or promising candidates
-proceed to a three-pair confirmation with the baseline maximum flags. Diagnostic
-counts, hashes and medians must not be used to reject a timing-qualified candidate.
+Use this only to screen the hypothesis. Clearly poor `Files/sec` with no
+evidence of a recoverable bottleneck can end the experiment early; record
+`screened out`, not a conclusive three-pair throughput verdict. Borderline or
+promising candidates proceed to a three-pair confirmation with the baseline
+maximum flags. Diagnostic counts, hashes and medians must not be used to reject
+a throughput-qualified candidate.
 
 Do not finish two more pairs merely to formalize an obvious screening failure.
 One pair cannot establish acceptance or prove the absence of a small speedup.
@@ -223,10 +235,11 @@ Follow this algorithm in order; do not jump directly to a code change:
    A new baseline requires three matched cold/warm pairs. Use a single-pair screen to reject clearly
    unpromising experiments early; run three pairs for candidates that may be
    accepted. Include Python bridge/analysis changes in the same process.
-   Retain every individual result and calculate the candidate timing value as
-   minimum cold plus minimum warm. Record the accepted baseline's maximum cold
-   plus maximum warm as the comparison threshold. Also record the fastest
-   matched pair's combined cold and warm time.
+   Retain every individual result and calculate candidate maximum cold
+   `Files/sec` from its minimum cold duration. Compare it with the baseline
+  minimum cold throughput from the baseline maximum cold duration. Also
+   record each mode's throughput and the fastest matched pair's combined cold
+   and warm time.
 3. Map the execution pipeline and its data flow: discovery, parsing, bridge
    startup, normalization, per-file rules, global rules, serialization, and
    reporting. Identify the actual hot stages from measurements.
@@ -236,20 +249,22 @@ Follow this algorithm in order; do not jump directly to a code change:
    affected invalidation boundary, and the expected correctness risk.
 5. Test one hypothesis per experiment, then measure the same command and the
    same scope. Do not combine unrelated changes before measuring them.
-6. Accept or reject performance using the timing threshold only. Record issue
-   totals and exit codes as context, not as inputs to the timing decision.
+6. Accept or reject performance using maximum cold `Files/sec` only. Record
+   issue totals and exit codes as context, not as inputs to the throughput
+   decision.
    Record rejected and inconclusive experiments too.
-7. Only after a valid candidate passes the timing threshold, immediately load
-   and execute [`diagnostics-to-zero`](../diagnostics-to-zero/SKILL.md) against
+7. Only after a valid candidate passes the throughput threshold, immediately
+   load and execute [`diagnostics-to-zero`](../diagnostics-to-zero/SKILL.md) against
    the linter workspace. Continue through its fresh inventory until the
    requested diagnostic scope reaches zero or the user stops the task. Do not
    replace this with a summary, partial lint run, or optional note. Run relevant
    tests and type checks when permitted. Stage accepted performance paths
-   after timing acceptance even if diagnostics remain; stage diagnostic-fix
-   paths only after they reach zero. If timing fails or the measurement is
+   after throughput acceptance even if diagnostics remain; stage diagnostic-fix
+   paths only after they reach zero. If throughput fails or the measurement is
    invalid, do not start diagnostics-to-zero for that candidate.
-8. After diagnostic repairs, follow the final-implementation timing gate below
-   before promoting the next baseline. Continue while the requested goal and measured opportunities remain. Cover
+8. After diagnostic repairs, follow the final-implementation throughput gate
+   below before promoting the next baseline. Continue while the requested goal
+   and measured opportunities remain. Cover
    production lint first; optimize test-runner speed only when requested or
    when its overhead blocks lint work.
 
@@ -341,11 +356,11 @@ the real input variables. At minimum consider:
 
 Prefer lowering a repeated factor (for example `O(RN)` to `O(N + R)` where
 the semantics allow it) over a local constant-factor change. Use stage timings
-and profiler data to explain the affected work; accept the change only by the
-candidate-minimum versus baseline-maximum timing threshold. When in scope,
-report fixture-test timings separately; a test speedup never compensates for a
-linter timing regression. Diagnostics are recorded separately and do not alter
-the performance decision. After timing acceptance, invoke and complete
+and profiler data to explain the affected work; accept the change only when
+maximum cold `Files/sec` exceeds the baseline minimum. When in scope, report
+fixture-test throughput separately; a test speedup never compensates for a
+linter throughput regression. Diagnostics are recorded separately and do not
+alter the performance decision. After throughput acceptance, invoke and complete
 `diagnostics-to-zero` for the linter workspace before ending the task.
 
 ## Python analysis changes
@@ -358,25 +373,26 @@ For other pipeline stages, do not load that reference.
 
 Each warm run must immediately follow its cold run and reuse that run's cache.
 Compare only runs with the same target, command, scope, and configuration.
-Accept or reject the performance experiment using the timing condition in the
-Acceptance score section only. Diagnostics, counts, and exit codes are not part
-of this decision; record them for the later quality gate. Relevant tests and
-type checks remain separate correctness gates.
+Accept or reject the performance experiment using maximum cold `Files/sec` as
+defined in the primary metric section. Diagnostics, counts, and exit codes are
+not part of this decision; record them for the later quality gate.
+Relevant tests and type checks remain separate correctness gates.
 
-If timing misses the threshold or measurement integrity fails, revert only
+If throughput misses the threshold or measurement integrity fails, revert only
 that experiment's changes and preserve unrelated user and agent work; do not
-start diagnostics-to-zero for that candidate. If timing passes, immediately
+start diagnostics-to-zero for that candidate. If throughput passes, immediately
 invoke [`diagnostics-to-zero`](../diagnostics-to-zero/SKILL.md) on the linter
 workspace and continue until zero or an explicit user stop. Do not finish while
 this follow-on skill has not been started. Track its status as `active`, `zero`,
 or `blocked`; a blocker must be concrete and external. Run required checks when
-permitted. Before handoff, set `timing=passed`, `diagnostics=active`, and the
-accepted measurement ID in `work-status.md`. If a complete diagnostic report
+permitted. Before handoff, set `timing=passed` (the shared status field for the
+throughput gate), `diagnostics=active`, and the accepted measurement ID in
+`work-status.md`. If a complete diagnostic report
 from the exact accepted source snapshot, command, configuration and scope is
 available, pass its path and snapshot ID to `diagnostics-to-zero` as the
 baseline. Otherwise, let that skill capture one complete baseline and reuse it
 through the diagnostic phase; do not run a separate duplicate baseline scan.
-Apply the final-implementation timing gate below, then promote the
+Apply the final-implementation throughput gate below, then promote the
 verified implementation's measurement ranges and threshold in `.ai-code-guard/linter-performance-log.md`,
 then stage only accepted performance paths with explicit `git add -- <paths>`.
 Stage diagnostic-fix paths only after the diagnostic report reaches zero. If
@@ -385,12 +401,13 @@ unfinished diagnostic paths unstaged, and report the separate gate status.
 Capture the initial index/worktree state; stage only owned paths or hunks and
 preserve pre-existing staged and unstaged changes. Never use `git add .`.
 
-## Recheck timing after diagnostic repairs
+## Recheck throughput after diagnostic repairs
 
-Track `timing=passed|failed|unmeasured`, `diagnostics=active|zero|blocked`, and
+Track `timing=passed|failed|unmeasured` (the shared status field for throughput),
+`diagnostics=active|zero|blocked`, and
 `correctness=passed|failed|unverified` separately, tied to their actual snapshots.
-An initial timing pass immediately triggers diagnostics-to-zero as required;
-new diagnostics alone never revoke that timing pass.
+An initial throughput pass immediately triggers diagnostics-to-zero as
+required; new diagnostics alone never revoke that pass.
 
 If subsequent diagnostic repairs change executable code, analysis algorithms,
 initialization, imports, cache behavior, configuration or measured target inputs,
@@ -401,9 +418,9 @@ conditions. This is validation of the completed candidate, not a new unrelated
 optimization. No timing rerun is needed for changes proven outside the executed
 and measured inputs; record that reasoning.
 
-Promote the final measured ranges only when the same timing formula passes.
+Promote the final measured ranges only when the same throughput formula passes.
 If conditions changed, remeasure the saved control under those conditions rather
-than comparing incompatible regimes. If the final timing fails, report the
+than comparing incompatible regimes. If the final throughput fails, report the
 initial pass and final failure separately; simplify or selectively revert only
 owned experiment/repair changes, preserving unrelated work and meaningful tests.
 Do not start a new optimization or claim the speedup is finalized while this
@@ -414,9 +431,10 @@ use a broad reset to clean them up.
 ## Verification
 
 Run the relevant unit/integration tests, type-check, and the complete linter.
-Report baseline and optimized best cold times, best warm times, summed scores,
-descriptive medians, process model, separate diagnostic-zero status, staged paths, and the
-exact `target_project_path`. Do not claim completion from a lower summed time
-alone.
+Report baseline and optimized maximum cold `Files/sec` as the primary result;
+also show average cold and warm `Files/sec`, best cold and warm times,
+descriptive medians, process model, separate
+diagnostic-zero status, staged paths, and the exact `target_project_path`. Do
+not claim completion from lower wall time alone.
 If the user asks to stop, do not start further experiments; report current
 measurements and outstanding verification accurately.

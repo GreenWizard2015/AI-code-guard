@@ -1,8 +1,11 @@
 import type { ConstructorRulesContract, DeclarationPredicatesContract } from "src/parser/analysis/protocols";
+import type { TypeScriptClassDeclarationPredicatesContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _static declaration detection_, _temporary access analysis_. **/
-export class DeclarationPredicates implements DeclarationPredicatesContract {
+export class DeclarationPredicates
+	implements DeclarationPredicatesContract, TypeScriptClassDeclarationPredicatesContract
+{
 	private readonly _static_kind: ts.SyntaxKind;
 	private readonly _constructor_rules: ConstructorRulesContract;
 

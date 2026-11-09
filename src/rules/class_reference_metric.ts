@@ -1,35 +1,22 @@
 import { SourceReferenceIndex } from "src/core/source_reference_index";
-import type { SourceReferenceIndexContract, TestPathSyntaxContract } from "src/shared_services_protocols";
+import { ClassReferenceMetricEvaluation } from "src/rules/class_reference_metric_evaluation";
+import type {
+	LintStageTimerContract,
+	SourceReferenceIndexContract,
+	TestPathSyntaxContract,
+} from "src/shared_services_protocols";
 import { TestPathKind } from "src/types";
 
-import { RULE_IDS } from "src/linting/constants";
 import { CONSTRUCTOR_NAME, PYTHON_CONSTRUCTOR_NAME } from "src/metrics/constants";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ClassDefinition, ParsedClassFile } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { CLASS_REFERENCE_INFO, CLASS_REFERENCE_WARNING } from "src/rules/constants";
 import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _class reference indexing_, _reference metric diagnostics_. **/
 export class ClassReferenceMetric {
 	private readonly _test_path_syntax: TestPathSyntaxContract;
-	private readonly _reference_info: number;
-	private readonly _reference_warning: number;
-
-	/** Responsibilities: _creation class-reference metric violation_. **/
-	private violation(definition: ClassDefinition, count: number): ViolationContract {
-		let rule_id: string = RULE_IDS.class_reference_info;
-		if (count >= this._reference_warning) {
-			rule_id = RULE_IDS.class_reference_warning;
-		}
-		const rule = new DiagnosticRule(rule_id);
-		return rule.violation(definition.file, definition.node.identity.start + 1, {
-			name: definition.node.identity.name,
-			count: String(count),
-		});
-	}
 
 	/** Responsibilities: _class reference registration_. **/
 	private append_class_references(
@@ -53,19 +40,24 @@ export class ClassReferenceMetric {
 		return references_by_class;
 	}
 
-	/** Responsibilities: _creation violation class exceeds_. **/
-	private reference_violation(
-		definition: ClassDefinition,
+	/** Responsibilities: _class reference violation collection_. **/
+	private file_violations(
+		file: ParsedClassFile,
 		references_by_class: SourceReferenceIndexContract<string>,
+		stage_timer: LintStageTimerContract,
 	): ViolationContract[] {
-		const references = references_by_class.references_for(definition.node.identity.name, "usage");
-		const files = new Set(references.map((reference) => reference.file));
-		files.delete(definition.file);
-		const count = files.size;
-		if (count >= this._reference_info) {
-			return [this.violation(definition, count)];
+		const violations: ViolationContract[] = [];
+		for (const node of file.ast.source.classes) {
+			if (!this.contract_class(node)) {
+				const evaluation = new ClassReferenceMetricEvaluation(
+					{ file: file.file, node },
+					references_by_class,
+					stage_timer,
+				);
+				violations.push(...evaluation.violations());
+			}
 		}
-		return [];
+		return violations;
 	}
 
 	/** Responsibilities: _class field type collection_. **/
@@ -114,8 +106,6 @@ export class ClassReferenceMetric {
 	/** Responsibilities: _class-reference metric dependencies_. **/
 	public constructor(test_path_syntax: TestPathSyntaxContract) {
 		this._test_path_syntax = test_path_syntax;
-		this._reference_info = CLASS_REFERENCE_INFO;
-		this._reference_warning = CLASS_REFERENCE_WARNING;
 	}
 
 	/** Responsibilities: _output names which class_. **/
@@ -132,7 +122,11 @@ export class ClassReferenceMetric {
 	}
 
 	/** Responsibilities: _language-scoped class-reference collection_. **/
-	public language_class_refs(sources: readonly LintSourceRecordData[], language: AstLanguage): ViolationContract[] {
+	public language_class_refs(
+		sources: readonly LintSourceRecordData[],
+		language: AstLanguage,
+		stage_timer: LintStageTimerContract,
+	): ViolationContract[] {
 		const parsed = sources
 			.filter((source) => source.language === language)
 			.filter((source) => !this._test_path_syntax.classify(source.relative_path).has(TestPathKind.TestFile))
@@ -140,16 +134,9 @@ export class ClassReferenceMetric {
 				file: source.relative_path,
 				ast: source.normalized_ast,
 			}));
-		const references_by_class = this.collect_references(parsed);
-		const violations: ViolationContract[] = [];
-		for (const file of parsed) {
-			for (const node of file.ast.source.classes) {
-				if (this.contract_class(node)) {
-					continue;
-				}
-				violations.push(...this.reference_violation({ file: file.file, node }, references_by_class));
-			}
-		}
-		return violations;
+		const references_by_class = stage_timer.measure("class-reference-metric.index", () =>
+			this.collect_references(parsed),
+		);
+		return parsed.flatMap((file) => this.file_violations(file, references_by_class, stage_timer));
 	}
 }

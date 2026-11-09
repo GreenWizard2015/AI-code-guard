@@ -10,6 +10,7 @@ import type {
 	NormalizedAstFile,
 } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { SourceReferenceIndexContract } from "src/shared_services_protocols";
 import type { SourceReference } from "src/source_types";
 import type { CallableOwnershipResolver, RuleContextState } from "src/types";
@@ -65,6 +66,7 @@ export type ClassStructureProjectNames = {
 };
 
 export type ClassStructureReporterOptions = {
+	stage_timer: LintStageTimerContract;
 	violations: ViolationContract[];
 	file_name: LintFileNameContract;
 	node: AstClassNode;

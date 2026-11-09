@@ -7,12 +7,14 @@ import type {
 	AnyTypeParameterDiagnosticsContext,
 	AnyTypesContract,
 } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";
 
 /** Responsibilities: _any parameter diagnostics_, _any field diagnostics_. **/
 export class AnyTypes implements AnyTypesContract {
 	private readonly _type_aliases: TypeScriptTypeAliasesContract;
 	private readonly _receiver_names: ReadonlySet<string>;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _generic type classification_. **/
 	private is_generic_type(type: string): boolean {
@@ -93,21 +95,24 @@ export class AnyTypes implements AnyTypesContract {
 	}
 
 	/** Responsibilities: _initialization type alias resolver_. **/
-	public constructor(type_aliases: TypeScriptTypeAliasesContract) {
+	public constructor(type_aliases: TypeScriptTypeAliasesContract, stage_timer: LintStageTimerContract) {
 		this._type_aliases = type_aliases;
+		this._stage_timer = stage_timer;
 		this._receiver_names = new Set(["self", "cls", "_"]);
 	}
 
 	/** Responsibilities: _aggregation any diagnostics callable_. **/
 	public append_any_info(context: AnyTypeDiagnosticsContext): void {
-		for (const callable of [...context.functions, ...context.methods]) {
-			this.append_callable_parameters(context.violations, context.file, callable);
-			this.append_return_info(context.violations, context.file, callable);
-		}
-		this.append_field_infos({
-			violations: context.violations,
-			file: context.file,
-			classes: context.classes,
+		this._stage_timer.measure("rule.type-warning", () => {
+			for (const callable of [...context.functions, ...context.methods]) {
+				this.append_callable_parameters(context.violations, context.file, callable);
+				this.append_return_info(context.violations, context.file, callable);
+			}
+			this.append_field_infos({
+				violations: context.violations,
+				file: context.file,
+				classes: context.classes,
+			});
 		});
 	}
 

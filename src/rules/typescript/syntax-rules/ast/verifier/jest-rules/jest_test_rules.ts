@@ -24,6 +24,7 @@ import { JestTestProductionUsage } from "src/rules/typescript/syntax-rules/ast/v
 import { JestTestShapeViolations } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_test_shape_violations";
 import { JestTestSize } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_test_size";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type {
 	JestAsyncCompletionRulesContract,
@@ -59,6 +60,7 @@ export class JestTestRules implements JestTestRulesContract {
 	private readonly _execution_dependency_rules: JestExecutionDependencyRules;
 	private readonly _setup_rules: JestSetupRulesContract;
 	private readonly _test_path_syntax: TestPathSyntaxContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _test violation count addition_. **/
 	private count_violations(line: number, count: number): ViolationContract[] {
@@ -170,7 +172,9 @@ export class JestTestRules implements JestTestRulesContract {
 		resolver: TypeScriptModuleResolverContract,
 	): ViolationContract[] {
 		const violations: ViolationContract[] = [];
-		violations.push(...this._setup_rules.fixture_complexity());
+		violations.push(
+			...this._stage_timer.measure("rule.fixture-complexity.typescript", () => this._setup_rules.fixture_complexity()),
+		);
 		const production_usage = new JestTestProductionUsage(
 			this._suite_collector,
 			this._test_path_syntax,
@@ -178,16 +182,24 @@ export class JestTestRules implements JestTestRulesContract {
 			this._source_file,
 			resolver,
 		);
-		production_usage.append(
-			violations,
-			suites.flatMap((suite) => suite.tests),
+		this._stage_timer.measure("rule.test-production-usage.typescript", () =>
+			production_usage.append(
+				violations,
+				suites.flatMap((suite) => suite.tests),
+			),
 		);
 		return violations;
 	}
 
 	/** Responsibilities: _Jest test composition_. **/
-	public constructor(file: string, source_file: ts.SourceFile, bindings: JestBindingIndexContract) {
+	public constructor(
+		file: string,
+		source_file: ts.SourceFile,
+		bindings: JestBindingIndexContract,
+		stage_timer: LintStageTimerContract,
+	) {
 		this._file = file;
+		this._stage_timer = stage_timer;
 		this._source_file = source_file;
 		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
 		const declaration_index = new TypeScriptObjectAliasDeclarationIndex();

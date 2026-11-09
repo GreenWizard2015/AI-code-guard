@@ -2,7 +2,7 @@ import "src/core/lint_project_context_creator";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
-import "src/lint_stage_timer";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { CallableMetrics } from "src/metrics/callable_metrics";
 import type { ViolationContract } from "src/reporting_protocols";
 import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
@@ -18,7 +18,7 @@ import ts from "typescript";
 describe("AST metric rules", () => {
 	test("applies function metrics from normalized nodes", () => {
 		const violations: ViolationContract[] = [];
-		const metrics = new CallableMetrics(violations, "helper.py", ARGUMENT_FUNCTION_NODE, false);
+		const metrics = new CallableMetrics(violations, "helper.py", ARGUMENT_FUNCTION_NODE, false, new LintStageTimer());
 		metrics.append_callable_metrics();
 
 		const messages = violations.map((item) => item.message());
@@ -35,7 +35,13 @@ describe("AST metric rules", () => {
 	test("allows functions and methods up to 100 characters despite line minimum", () => {
 		const test_fixture = new TestFixture();
 		const functionViolations: ViolationContract[] = [];
-		const metrics = new CallableMetrics(functionViolations, "short.ts", SHORT_FUNCTION_NODE, false);
+		const metrics = new CallableMetrics(
+			functionViolations,
+			"short.ts",
+			SHORT_FUNCTION_NODE,
+			false,
+			new LintStageTimer(),
+		);
 		metrics.append_callable_metrics();
 		const methodViolations: ViolationContract[] = [];
 		test_fixture._ast_nodes.append_class_violations(methodViolations, "Service.ts", SHORT_METHOD_CLASS);
@@ -66,6 +72,7 @@ describe("AST metric rules", () => {
 				visibility: "public",
 			}),
 			false,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 
@@ -91,6 +98,7 @@ describe("AST metric rules", () => {
 				visibility: "private",
 			}),
 			true,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 
@@ -116,6 +124,7 @@ describe("AST metric rules", () => {
 				visibility: "public",
 			}),
 			false,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 
@@ -141,6 +150,7 @@ describe("AST metric rules", () => {
 				visibility: "public",
 			}),
 			false,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 
@@ -166,6 +176,7 @@ describe("AST metric rules", () => {
 				visibility: "public",
 			}),
 			false,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 
@@ -191,6 +202,7 @@ describe("AST metric rules", () => {
 				visibility: "public",
 			}),
 			false,
+			new LintStageTimer(),
 		);
 		metrics.append_callable_metrics();
 

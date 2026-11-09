@@ -53,6 +53,16 @@ export class TypeScriptTypeRules implements ASTSourceRuleContract {
 		}
 	}
 
+	/** Responsibilities: _bare type alias timing_. **/
+	private time_alias_rule(request: TypeScriptNodeVerificationRequest): void {
+		const { node, context } = request;
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.typescript_bare_type_alias}`, () => {
+			if (ts.isTypeAliasDeclaration(node)) {
+				this.append_alias(node, context.for_node(node));
+			}
+		});
+	}
+
 	/** Responsibilities: _bare alias structure_. **/
 	private bare_alias(statement: ts.TypeAliasDeclaration): boolean {
 		if (!ts.isTypeReferenceNode(statement.type) || statement.type.typeArguments !== undefined) {
@@ -102,8 +112,8 @@ export class TypeScriptTypeRules implements ASTSourceRuleContract {
 	/** Responsibilities: _type syntax rules_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { node, context } = request;
-		if (ts.isTypeAliasDeclaration(node)) {
-			this.append_alias(node, context.for_node(node));
+		if (node.kind === ts.SyntaxKind.TypeAliasDeclaration) {
+			this.time_alias_rule(request);
 		}
 		if (this.append_access_conditionals(node, context)) {
 			return;

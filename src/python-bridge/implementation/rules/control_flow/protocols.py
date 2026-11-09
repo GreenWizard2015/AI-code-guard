@@ -55,6 +55,8 @@ class PythonExceptionRulesContract(Protocol):
 
     def try_statement_issues(self, node: ast.AST) -> list[JsonObject]: ...
 
+    def timings_data(self) -> dict[str, float]: ...
+
 
 class PythonExceptionHandlerAssignmentsContract(Protocol):
     """Responsibilities: _handler assignment state_, _exception cause lookup_."""

@@ -4,6 +4,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { SourceText } from "src/io/source_text";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
 import { NULLABLE_DOMAIN_FILES } from "tests/core/constants/callable_usage/constants";
 import { TestFixture } from "tests/core/test-fixture";
@@ -212,18 +213,21 @@ describe("coding-lint Python type rules", () => {
 		});
 		const source = ["def consume(value: Item) -> str:", "    return value.value()"].join("\n");
 		const ast = python_ast_data.source_ast(source);
-		const scanner = new PythonScanner();
-		const violations = scanner.lint_python_file({
-			file_name: new LintFileName("consumer.py"),
-			source_file: "consumer.py",
-			text: source,
-			project_class_names: new Set(["Item"]),
-			python_class_names: new Set(["Item"]),
-			project_protocol_names: new Set(["Item"]),
-			project_type_names: new Set<string>(),
-			project_alias_names: new Set<string>(),
-			normalized_ast: ast,
-		});
+		const scanner = new PythonScanner("", [], new LintStageTimer());
+		const violations = scanner.lint_python_file(
+			{
+				file_name: new LintFileName("consumer.py"),
+				source_file: "consumer.py",
+				text: source,
+				project_class_names: new Set(["Item"]),
+				python_class_names: new Set(["Item"]),
+				project_protocol_names: new Set(["Item"]),
+				project_type_names: new Set<string>(),
+				project_alias_names: new Set<string>(),
+				normalized_ast: ast,
+			},
+			new LintStageTimer(),
+		);
 
 		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id() }))).toContainEqual({
 			file: "consumer.py",

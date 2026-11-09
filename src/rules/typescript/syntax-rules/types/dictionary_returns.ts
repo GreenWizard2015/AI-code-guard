@@ -120,14 +120,16 @@ export class DictionaryReturns implements ASTSourceRuleContract {
 
 	/** Responsibilities: _function return type diagnostics_. **/
 	private append_return(node: ts.Node, context: RuleContextContract): void {
-		if (!ts.isFunctionLike(node) || node.type === undefined) {
-			return;
-		}
-		const source_file = context.state().source.source_file;
-		const names = this.dictionary_types(source_file);
-		if (this.type_contains_dictionary(node.type, names)) {
-			context.for_node(node).append_rule(RULE_IDS.typescript_dictionary_return);
-		}
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.typescript_dictionary_return}`, () => {
+			if (!ts.isFunctionLike(node) || node.type === undefined) {
+				return;
+			}
+			const source_file = context.state().source.source_file;
+			const names = this.dictionary_types(source_file);
+			if (this.type_contains_dictionary(node.type, names)) {
+				context.for_node(node).append_rule(RULE_IDS.typescript_dictionary_return);
+			}
+		});
 	}
 
 	/** Responsibilities: _dictionary return verifier initialization_. **/

@@ -1,9 +1,9 @@
 import type { ValueRulesContract } from "src/analysis_protocols";
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { RULE_IDS } from "src/linting/constants";
-import { TypeScriptClassMemberPolicy } from "src/model/type_script_class_member_policy";
 import { ConstructorRules } from "src/parser/analysis/constructor_rules";
 import { DeclarationPredicates } from "src/parser/analysis/declaration_predicates";
+import { TypeScriptClassDeclarationRuleAnalyzer } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_declaration_rule_analyzer";
 import { TypeScriptFieldWriteTargetIndex } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/type_script_field_write_target_index";
 import { RuntimeBuiltinPredicates } from "src/rules/typescript/syntax-rules/runtime/runtime_builtin_predicates";
 import type { RuleContextContract } from "src/types";
@@ -19,99 +19,68 @@ export class TypeScriptClassNodeRules implements ASTSourceRuleContract {
 	private readonly _value_rules: ValueRulesContract;
 	private readonly _rule_ids: typeof RULE_IDS;
 
-	/** Responsibilities: _declaration rule identifiers_. **/
-	private declaration_rule_ids(declaration_candidate: ts.Node): string[] {
-		const rule_ids: string[] = [];
-		rule_ids.push(...this.empty_rule_ids(declaration_candidate));
-		rule_ids.push(...this.static_rule_ids(declaration_candidate));
-		if (this._prototype_predicates.prototype_assignment(declaration_candidate)) {
-			rule_ids.push(this._rule_ids.typescript_prototype_assignment);
-		}
-		if (this._declaration_predicates.temporary_result_access(declaration_candidate)) {
-			rule_ids.push(this._rule_ids.temporary_result_access);
-		}
-		if (this._declaration_predicates.complex_constructor(declaration_candidate)) {
-			rule_ids.push(this._rule_ids.complex_constructor);
-		}
-		if (this._declaration_predicates.complex_field(declaration_candidate)) {
-			rule_ids.push(this._rule_ids.field_in_constructor);
-		}
-		return rule_ids;
-	}
-
-	/** Responsibilities: _empty contract rule identification_. **/
-	private empty_rule_ids(contract_candidate: ts.Node): string[] {
-		if (!ts.isInterfaceDeclaration(contract_candidate)) {
-			return [];
-		}
-		if (contract_candidate.members.length > 0) {
-			return [];
-		}
-		if (contract_candidate.heritageClauses !== undefined) {
-			return [];
-		}
-		return [this._rule_ids.empty_contract];
-	}
-
-	/** Responsibilities: _static declaration rule identifiers_. **/
-	private static_rule_ids(static_candidate: ts.Node): string[] {
-		if (!this._declaration_predicates.static_declaration(static_candidate)) {
-			return [];
-		}
-		if (ts.isMethodDeclaration(static_candidate)) {
-			return [this._rule_ids.typescript_static_method];
-		}
-		if (ts.isGetAccessor(static_candidate) || ts.isSetAccessor(static_candidate)) {
-			return [this._rule_ids.typescript_static_method];
-		}
-		if (ts.isPropertyDeclaration(static_candidate)) {
-			return [this._rule_ids.typescript_static_field];
-		}
-		return [];
-	}
-
-	/** Responsibilities: _field rule identifiers_. **/
-	private field_rule_ids(field_candidate: ts.Node, field_context: RuleContextContract): string[] {
-		const rule_ids: string[] = [];
-		const policy = new TypeScriptClassMemberPolicy(field_candidate, field_context.state().source.path_kinds);
-		const state = policy.state();
-		if (state.requires_explicit_visibility) {
-			rule_ids.push(this._rule_ids.typescript_explicit_visibility);
-		}
-		if (state.mutable) {
-			rule_ids.push(this._rule_ids.typescript_mutable_field);
-		}
-		return rule_ids;
-	}
-
 	/** Responsibilities: _call-site rule ownership_. **/
 	private append_call_rules(call_expression: ts.Node, call_context: RuleContextContract): void {
-		if (this._prototype_predicates.prototype_assignment(call_expression)) {
+		const stage_timer = call_context.state().analysis.stage_timer;
+		if (
+			stage_timer.measure(`rule.${this._rule_ids.typescript_prototype_assignment}`, () =>
+				this._prototype_predicates.prototype_assignment(call_expression),
+			)
+		) {
 			call_context.for_node(call_expression).append_rule(this._rule_ids.typescript_prototype_assignment);
 		}
-		if (this._declaration_predicates.temporary_result_access(call_expression)) {
+		if (
+			stage_timer.measure(`rule.${this._rule_ids.temporary_result_access}`, () =>
+				this._declaration_predicates.temporary_result_access(call_expression),
+			)
+		) {
 			call_context.for_node(call_expression).append_rule(this._rule_ids.temporary_result_access);
 		}
-		if (this._value_rules.dynamic_class(call_expression)) {
+		if (
+			stage_timer.measure(`rule.${this._rule_ids.dynamic_type}`, () => this._value_rules.dynamic_class(call_expression))
+		) {
 			call_context.for_node(call_expression).append_rule(this._rule_ids.dynamic_type);
 		}
 	}
 
 	/** Responsibilities: _prototype class rules_. **/
 	private append_prototype_rules(prototype_candidate: ts.Node, prototype_context: RuleContextContract): void {
-		if (this._field_write_targets.field_write_violation(prototype_candidate)) {
-			prototype_context.for_node(prototype_candidate).append_rule(this._rule_ids.object_field_write);
-		}
-		if (this._prototype_predicates.prototype_assignment(prototype_candidate)) {
+		prototype_context.state().analysis.stage_timer.measure("rule.object-field-write.typescript", () => {
+			if (this._field_write_targets.field_write_violation(prototype_candidate)) {
+				prototype_context.for_node(prototype_candidate).append_rule(this._rule_ids.object_field_write);
+			}
+		});
+		if (
+			prototype_context
+				.state()
+				.analysis.stage_timer.measure(`rule.${this._rule_ids.typescript_prototype_assignment}`, () =>
+					this._prototype_predicates.prototype_assignment(prototype_candidate),
+				)
+		) {
 			prototype_context.for_node(prototype_candidate).append_rule(this._rule_ids.typescript_prototype_assignment);
 		}
 	}
 
 	/** Responsibilities: _declaration class rules_. **/
 	private append_declaration_rules(declaration_node: ts.Node, declaration_context: RuleContextContract): void {
-		const rule_ids = this.declaration_rule_ids(declaration_node);
-		rule_ids.push(...this.field_rule_ids(declaration_node, declaration_context));
-		if (this._value_rules.dynamic_class(declaration_node)) {
+		const declaration_rules = new TypeScriptClassDeclarationRuleAnalyzer(
+			declaration_node,
+			declaration_context,
+			this._declaration_predicates,
+			this._prototype_predicates,
+		);
+		const rule_ids = [
+			...declaration_rules.shape_rule_ids(),
+			...declaration_rules.state_rule_ids(),
+			...declaration_rules.field_rule_ids(),
+		];
+		if (
+			declaration_context
+				.state()
+				.analysis.stage_timer.measure(`rule.${this._rule_ids.dynamic_type}`, () =>
+					this._value_rules.dynamic_class(declaration_node),
+				)
+		) {
 			rule_ids.push(this._rule_ids.dynamic_type);
 		}
 		for (const rule_id of rule_ids) {
@@ -125,8 +94,10 @@ export class TypeScriptClassNodeRules implements ASTSourceRuleContract {
 		declaration_index: TypeScriptObjectAliasDeclarationIndexContract,
 	) {
 		this._rule_ids = RULE_IDS;
-		this._declaration_predicates = new DeclarationPredicates(new ConstructorRules());
-		this._prototype_predicates = new RuntimeBuiltinPredicates(declaration_index);
+		const declaration_predicates = new DeclarationPredicates(new ConstructorRules());
+		const prototype_predicates = new RuntimeBuiltinPredicates(declaration_index);
+		this._declaration_predicates = declaration_predicates;
+		this._prototype_predicates = prototype_predicates;
 		this._field_write_targets = new TypeScriptFieldWriteTargetIndex();
 		this._value_rules = value_rules;
 	}

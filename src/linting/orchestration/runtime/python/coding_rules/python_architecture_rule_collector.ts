@@ -14,6 +14,7 @@ import type {
 import type { MetricViolationsContract } from "src/reporting_protocols";
 import { NamingSupport } from "src/rules/naming_support";
 import { PythonArchitecture } from "src/rules/python_architecture";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { SyntaxContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _Python architecture_, _Python syntax_. **/
@@ -26,24 +27,27 @@ export class PythonArchitectureRuleCollector {
 	private readonly _tests: PythonTestRuleCollectorContract;
 	private readonly _metrics: MetricViolationsContract;
 
+	/** Responsibilities: _pointless assignment diagnostics_. **/
 	/** Responsibilities: _Python architecture state_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInput, stage_timer: LintStageTimerContract) {
 		this._input = input;
 		this._architecture = new PythonArchitecture(
 			PYTHON_RULE_IDS.empty_contract,
 			MODULE_PROTOCOL_KIND,
 			PYTHON_RULE_IDS.data_class_method,
 			PYTHON_RULE_IDS.abstract_class,
+			stage_timer,
 		);
-		this._hacks = new PythonHacks(RULE_IDS.pointless_assignment);
+		this._hacks = new PythonHacks(RULE_IDS.pointless_assignment, stage_timer);
 		this._syntax = new Syntax();
 		this._naming = new NamingSupport(
 			input.file_name.value(),
 			input.operations.named_symbols.filter((symbol) => symbol.name !== "__all__"),
 			input.source.classes,
 			[],
+			stage_timer,
 		);
-		this._tests = new PythonTestRuleCollector(input);
+		this._tests = new PythonTestRuleCollector(input, stage_timer);
 		this._metrics = new MetricViolations(input.violations, input.file_name.value());
 	}
 

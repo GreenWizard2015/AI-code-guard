@@ -1,10 +1,12 @@
 import { PYTHON_RULE_IDS } from "src/linting/constants";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _Python syntax_, _forbidden syntax_. **/
 export class PythonCodingLineRules {
 	private readonly _reflection_calls: readonly string[];
 	private readonly _python_only_reflections: ReadonlySet<string>;
 	private readonly _type_call: string;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _classification qualified decorator_. **/
 	private is_decorator(trimmed: string, decorator_name: string): boolean {
@@ -80,29 +82,44 @@ export class PythonCodingLineRules {
 		return digit_start && digit_end;
 	}
 
+	/** Responsibilities: _broad exception detection_. **/
+	private broad_except(exception_line: string): boolean {
+		return this._stage_timer.measure(`rule.${PYTHON_RULE_IDS.broad_except}`, () => {
+			const is_bare_except = exception_line === "except:";
+			return is_bare_except || exception_line.startsWith("except Exception:");
+		});
+	}
+
 	/** Responsibilities: _Python coding-rule configuration_. **/
 	/** Responsibilities: _Python coding-rule configuration_. **/
 	public constructor(
 		reflection_calls: readonly string[],
 		python_only_reflections: ReadonlySet<string>,
 		type_call: string,
+		stage_timer: LintStageTimerContract,
 	) {
 		this._reflection_calls = reflection_calls;
 		this._python_only_reflections = python_only_reflections;
 		this._type_call = type_call;
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _public operation_. **/
-	public base_line_kinds(trimmed: string): string[] {
+	public base_line_kinds(line_text: string): string[] {
 		const kinds: string[] = [];
-		const is_bare_except = trimmed === "except:";
-		if (is_bare_except || trimmed.startsWith("except Exception:")) {
+		if (this.broad_except(line_text)) {
 			kinds.push(PYTHON_RULE_IDS.broad_except);
 		}
-		if (this.is_decorator(trimmed, "staticmethod")) {
+		const static_method = this._stage_timer.measure(`rule.${PYTHON_RULE_IDS.static_method}`, () =>
+			this.is_decorator(line_text, "staticmethod"),
+		);
+		if (static_method) {
 			kinds.push(PYTHON_RULE_IDS.static_method);
 		}
-		if (this.is_decorator(trimmed, "classmethod")) {
+		const class_method = this._stage_timer.measure(`rule.${PYTHON_RULE_IDS.class_method}`, () =>
+			this.is_decorator(line_text, "classmethod"),
+		);
+		if (class_method) {
 			kinds.push(PYTHON_RULE_IDS.class_method);
 		}
 		return kinds;
@@ -113,11 +130,16 @@ export class PythonCodingLineRules {
 		const trimmed = source.trim();
 		const kinds = this.base_line_kinds(trimmed);
 		for (const name of this._reflection_calls) {
-			if (this.contains_call(source, name)) {
-				kinds.push(this.reflection_rule_name(name));
+			const rule_id = this.reflection_rule_name(name);
+			const found = this._stage_timer.measure(`rule.${rule_id}`, () => this.contains_call(source, name));
+			if (found) {
+				kinds.push(rule_id);
 			}
 		}
-		if (this.is_type_assignment(trimmed)) {
+		const dynamic_type = this._stage_timer.measure(`rule.${PYTHON_RULE_IDS.dynamic_type}`, () =>
+			this.is_type_assignment(trimmed),
+		);
+		if (dynamic_type) {
 			kinds.push(PYTHON_RULE_IDS.dynamic_type);
 		}
 		return kinds;

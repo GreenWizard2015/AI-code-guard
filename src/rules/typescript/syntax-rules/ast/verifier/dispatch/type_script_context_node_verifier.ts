@@ -11,22 +11,26 @@ export class TypeScriptContextNodeVerifier implements ASTSourceRuleContract {
 
 	/** Responsibilities: _callable proxy classification_. **/
 	private append_callable_proxy(node: ts.FunctionLikeDeclaration, context: RuleContextContract): void {
-		if (context.state().source.test_file) {
-			return;
-		}
-		if (this._proxy_rules.proxy_callable(node)) {
-			context.for_node(node).append_rule(RULE_IDS.proxy_callable);
-		}
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.proxy_callable}`, () => {
+			if (context.state().source.test_file) {
+				return;
+			}
+			if (this._proxy_rules.proxy_callable(node)) {
+				context.for_node(node).append_rule(RULE_IDS.proxy_callable);
+			}
+		});
 	}
 
 	/** Responsibilities: _lambda proxy classification_. **/
 	private append_lambda_proxy(node: ts.FunctionLikeDeclaration, context: RuleContextContract): void {
-		if (context.state().source.test_file) {
-			return;
-		}
-		if (this._proxy_rules.proxy_lambda(node)) {
-			context.for_node(node).append_rule(RULE_IDS.proxy_lambda);
-		}
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.proxy_lambda}`, () => {
+			if (context.state().source.test_file) {
+				return;
+			}
+			if (this._proxy_rules.proxy_lambda(node)) {
+				context.for_node(node).append_rule(RULE_IDS.proxy_lambda);
+			}
+		});
 	}
 
 	/** Responsibilities: _context verifier dependencies_. **/
@@ -43,7 +47,11 @@ export class TypeScriptContextNodeVerifier implements ASTSourceRuleContract {
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { node, context } = request;
 		if (node.kind === ts.SyntaxKind.TupleType) {
-			context.for_node(node).append_rule(RULE_IDS.tuple_type);
+			context
+				.state()
+				.analysis.stage_timer.measure(`rule.${RULE_IDS.tuple_type}`, () =>
+					context.for_node(node).append_rule(RULE_IDS.tuple_type),
+				);
 			return;
 		}
 		if (ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) {

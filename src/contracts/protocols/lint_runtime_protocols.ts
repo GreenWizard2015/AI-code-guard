@@ -11,6 +11,7 @@ import type { RemainingViolationOptions } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ExpressionNamesContract, ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 import type { CallableArrayValuesVisitor } from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 import type {
 	TypeScriptFactoryArrayAliasesContract,
@@ -34,6 +35,7 @@ export type RecoveredRuleContextInput = {
 	readonly file: string;
 	readonly ast_file: RecoveredRuleAstFileContract;
 	readonly traversal: TypeScriptAstTraversalContract;
+	readonly stage_timer: LintStageTimerContract;
 };
 
 /** Responsibilities: _responsibility target contract_. **/

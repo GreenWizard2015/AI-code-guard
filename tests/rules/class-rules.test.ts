@@ -51,7 +51,7 @@ describe("coding-lint class rules", () => {
 			},
 			({ root, context, files }) => {
 				const class_rules = new ClassRules({ root, files: new Set(files), resolver: new ProjectSourcePython(root) });
-				return class_rules.python_context_fields({ files: [...files], repo_root: root }, context);
+				return class_rules.python_context_fields({ files: [...files], repo_root: root }, context, new LintStageTimer());
 			},
 			new Map(),
 		);

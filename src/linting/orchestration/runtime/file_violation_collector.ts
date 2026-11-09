@@ -7,12 +7,14 @@ import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/imp
 import { PythonReexports } from "src/linting/orchestration/runtime/reexports/python_reexports";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RemainingViolationOptions } from "src/model_types";
-import type { ViolationContract } from "src/reporting_protocols";
 import { FunctionPlacementRules } from "src/rules/architecture/function_placement_rules";
 import { DirectoryRules } from "src/rules/support/directory_rules";
-import type { CodingRuleLinterContract, FileViolationCollectorContract } from "src/shared_services_protocols";
+import type {
+	CodingRuleLinterContract,
+	FileDirectoryViolationOptions,
+	FileViolationCollectorContract,
+} from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
-import type { LintSourceRecordData } from "src/source_types";
 import type { TestFileViolationCollectorContract } from "src/testing_protocols";
 import { TypeScriptReexports } from "src/type_script_reexports";
 
@@ -59,25 +61,23 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 	}
 
 	/** Responsibilities: _directory diagnostics_, _test file diagnostics_. **/
-	public append_directory(
-		violations: ViolationContract[],
-		source: LintSourceRecordData,
-		file: string,
-		text: string,
-		project_root: string,
-	): void {
+	public append_directory(options: FileDirectoryViolationOptions): void {
+		const { violations, source, file, text, project_root, stage_timer } = options;
 		if (source.language === PYTHON_LANGUAGE) {
-			this._tests.append_location(violations, source, file);
-			this._tests.append(violations, source, file, project_root);
+			this._tests.append_location(violations, source, file, stage_timer);
+			this._tests.append(violations, source, file, project_root, stage_timer);
 			const directory_rules = new DirectoryRules(this._file_io, this._source_io);
-			directory_rules.append_file_violation({
-				violations,
-				file,
-				text,
-				classes: source.normalized_ast.source.classes,
-				docstring_spans: source.normalized_ast.module_declarations.docstring_spans,
-				normalized_ast: source.normalized_ast,
-			});
+			directory_rules.append_file_violation(
+				{
+					violations,
+					file,
+					text,
+					classes: source.normalized_ast.source.classes,
+					docstring_spans: source.normalized_ast.module_declarations.docstring_spans,
+					normalized_ast: source.normalized_ast,
+				},
+				stage_timer,
+			);
 		}
 	}
 }

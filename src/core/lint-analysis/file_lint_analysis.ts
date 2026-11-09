@@ -101,9 +101,10 @@ export class FileLintAnalysis {
 
 	/** Responsibilities: _file-specific linter configuration_. **/
 	public file_linter_options(): FileLinterOptions {
-		const { state, analysis_identity, file_io } = this._options;
+		const { state, analysis_identity, file_io, stage_timer } = this._options;
 		return {
 			repo_root: state.repo_root,
+			stage_timer,
 			project_names: {
 				project_class_names: state.names.project_class_names,
 				python_class_names: state.names.python_class_names,

@@ -131,7 +131,7 @@ export interface FileNameRulesContract {
 
 /** Responsibilities: _directory rule aggregation_. **/
 export interface DirectoryRulesContract {
-	append_file_violation(options: DirectoryFileViolationOptions): void;
+	append_file_violation(options: DirectoryFileViolationOptions, stage_timer: LintStageTimerContract): void;
 	collect_directory_violations(
 		files: string[],
 		repo_root: string,
@@ -219,21 +219,25 @@ export interface SyntaxContract {
 
 /** Responsibilities: _file violation collection_. **/
 export interface CodingRuleLinterContract {
-	lint_python(source_ast: SourceFileAstContract): ViolationContract[];
+	lint_python(source_ast: SourceFileAstContract, stage_timer: LintStageTimerContract): ViolationContract[];
 	lint_typescript(source_ast: SourceFileAstContract, stage_timer: LintStageTimerContract): ViolationContract[];
 }
 
 /** Responsibilities: _file violation collection_. **/
 export interface FileViolationCollectorContract {
 	append_remaining_violations(options: RemainingViolationOptions, coding_rule_linter: CodingRuleLinterContract): void;
-	append_directory(
-		violations: ViolationContract[],
-		source: LintSourceRecordData,
-		file: string,
-		text: string,
-		project_root: string,
-	): void;
+	append_directory(options: FileDirectoryViolationOptions): void;
 }
+
+/** Responsibilities: _file directory diagnostic inputs_. **/
+export type FileDirectoryViolationOptions = {
+	readonly violations: ViolationContract[];
+	readonly source: LintSourceRecordData;
+	readonly file: string;
+	readonly text: string;
+	readonly project_root: string;
+	readonly stage_timer: LintStageTimerContract;
+};
 
 /** Responsibilities: _directory code lines_. **/
 export interface DirectoryCommentSegmentsContract {

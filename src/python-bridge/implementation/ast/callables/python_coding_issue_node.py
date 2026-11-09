@@ -4,6 +4,7 @@ import ast
 from time import perf_counter
 
 from implementation.ast.callables.coding_issue_protocols import PythonCodingIssueNodeContract
+from implementation.ast.callables.constants import PYTHON_EXPLICITLY_TIMED_RULES
 from implementation.ast.protocols import PythonCodingIssueTimingContract
 from implementation.rules.constants import (
     PYTHON_OPERATOR_PRECEDENCE_STAGE,
@@ -35,6 +36,18 @@ class PythonCodingIssueNode(PythonCodingIssueNodeContract):
         issues = stage(node)
         elapsed_ms = (perf_counter() - started) * 1000
         self._timing.add_duration(stage_name, elapsed_ms)
+        measured_rules = set()
+        for issue in issues:
+            rule_id = issue.get("kind")
+            if not rule_id:
+                continue
+            if stage_name == f"rule.{rule_id}":
+                continue
+            if rule_id in PYTHON_EXPLICITLY_TIMED_RULES:
+                continue
+            measured_rules.add(rule_id)
+        for rule_id in measured_rules:
+            self._timing.add_duration(f"rule.{rule_id}", elapsed_ms)
         return issues
 
     def timed_precedence(self, node: ast.AST) -> list[JsonObject]:

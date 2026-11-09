@@ -8,6 +8,7 @@ import type { AstCallableNode, AstClassNode } from "src/model/ast/normalized_ast
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { PythonTestRuleCollectorContract } from "src/python_protocols";
 import type { RuleContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _Python test assertion checks_, _production usage checks_. **/
 export class PythonTestRuleCollector implements PythonTestRuleCollectorContract {
@@ -19,6 +20,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 	private readonly _min_count_rule: RuleContract;
 	private readonly _max_count_rule: RuleContract;
 	private readonly _framework_identity: PythonTestFrameworkIdentity;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _test callable size diagnostics_. **/
 	private append_test_size(test: AstCallableNode): void {
@@ -124,7 +126,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 	}
 
 	/** Responsibilities: _initialization Python test rule_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInput, stage_timer: LintStageTimerContract) {
 		this._inheritance_rule = new DiagnosticRule("python-test-class-inheritance");
 		this._production_usage = new PythonTestProductionUsage(input);
 		this._min_size_rule = new DiagnosticRule("test-min-size");
@@ -136,6 +138,7 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 			input.source.python_imports,
 		);
 		this._input = input;
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _Python test shape diagnostics_. **/
@@ -148,7 +151,9 @@ export class PythonTestRuleCollector implements PythonTestRuleCollectorContract 
 		this.append_test_counts();
 		this.append_function_shape();
 		this.append_inheritance();
-		this._production_usage.append(this._production_usage.test_callables());
+		this._stage_timer.measure("rule.test-production-usage.python", () =>
+			this._production_usage.append(this._production_usage.test_callables()),
+		);
 	}
 
 	/** Responsibilities: _aggregation assertion grouping complexity_. **/

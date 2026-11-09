@@ -25,7 +25,7 @@ export class TypeScriptFileAstRules implements ASTSourceRuleContract {
 		stage_timer: LintStageTimerContract,
 		context: RuleContextContract,
 	): void {
-		stage_timer.measure("file-analysis.typescript.coding-rules.duplicate-type-shape", () => {
+		stage_timer.measure(`rule.${RULE_IDS.duplicate_type_shape}.typescript`, () => {
 			const shape_analyzer = new DuplicateTypeShapes();
 			const duplicates = shape_analyzer.typescript(source_file);
 			const rule = new DiagnosticRule(RULE_IDS.duplicate_type_shape);

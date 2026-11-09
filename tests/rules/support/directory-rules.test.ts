@@ -3,6 +3,7 @@ import "src/rules/support/directory_rules";
 import { join } from "node:path";
 import { AstModel } from "src/core/ast_model";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import type { DirectoryFileSet } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -67,14 +68,17 @@ describe("coding-lint directory rules", () => {
 		const violations: ViolationContract[] = [];
 
 		const file_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
-		file_rules.append_file_violation({
-			violations,
-			file,
-			text,
-			classes: normalized_ast.source.classes,
-			docstring_spans: normalized_ast.module_declarations.docstring_spans,
-			normalized_ast,
-		});
+		file_rules.append_file_violation(
+			{
+				violations,
+				file,
+				text,
+				classes: normalized_ast.source.classes,
+				docstring_spans: normalized_ast.module_declarations.docstring_spans,
+				normalized_ast,
+			},
+			new LintStageTimer(),
+		);
 
 		expect(violations.map((item) => item.rule_id())).toContain("file-min-size");
 	});
@@ -87,14 +91,17 @@ describe("coding-lint directory rules", () => {
 		const violations: ViolationContract[] = [];
 		const file_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
 
-		file_rules.append_file_violation({
-			violations,
-			file,
-			text,
-			classes: [],
-			docstring_spans: [],
-			normalized_ast,
-		});
+		file_rules.append_file_violation(
+			{
+				violations,
+				file,
+				text,
+				classes: [],
+				docstring_spans: [],
+				normalized_ast,
+			},
+			new LintStageTimer(),
+		);
 
 		expect(violations.map((item) => item.rule_id())).not.toContain("file-min-size");
 	});

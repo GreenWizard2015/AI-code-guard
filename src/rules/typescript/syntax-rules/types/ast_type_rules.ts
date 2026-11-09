@@ -79,6 +79,7 @@ export class ASTTypeRules implements ASTSourceRuleContract {
 	/** Responsibilities: _type node verification_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { node, context } = request;
+		const timer = context.state().analysis.stage_timer;
 		if (ts.isFunctionTypeNode(node)) {
 			const owner = this.function_type_owner(node);
 			const function_request: TypeScriptFunctionTypeRuleRequest = {
@@ -87,13 +88,15 @@ export class ASTTypeRules implements ASTSourceRuleContract {
 				context,
 				callable_alias: ts.isTypeAliasDeclaration(owner) && owner.name.text.startsWith(CALLABLE_TYPE_NAME),
 			};
-			if (!function_request.callable_alias) {
-				context.for_node(node).append_rule(RULE_IDS.callable_type_alias);
-			}
-			this.append_callback_size(function_request);
+			context.state().analysis.stage_timer.measure("rule.callable-type-alias.typescript", () => {
+				if (!function_request.callable_alias) {
+					context.for_node(node).append_rule(RULE_IDS.callable_type_alias);
+				}
+			});
+			timer.measure(`rule.${RULE_IDS.callback_contract_size}`, () => this.append_callback_size(function_request));
 		}
 		if (ts.isTypeReferenceNode(node)) {
-			this.append_nested_generic(node, request);
+			timer.measure(`rule.${RULE_IDS.nested_generic_type}`, () => this.append_nested_generic(node, request));
 		}
 	}
 }

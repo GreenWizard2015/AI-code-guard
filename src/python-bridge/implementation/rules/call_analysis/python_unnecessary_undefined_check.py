@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import ast
 
-from implementation.rules.constants import PYTHON_OPTIONAL_NAME, PYTHON_UNION_NAME
+from implementation.rules.constants import (
+    PYTHON_OPTIONAL_NAME,
+    PYTHON_UNION_NAME,
+    PYTHON_UNNECESSARY_UNDEFINED_CHECK_RULE,
+)
 from implementation.rules.protocols import PythonUndefinedCheckStateContract
 from implementation.types import JsonObject, PythonClassFieldMap
 
@@ -123,4 +127,4 @@ class PythonUnnecessaryUndefinedCheck:
             return []
         if not self.detected(node):
             return []
-        return [{"line": node.lineno - 1, "kind": "unnecessary-undefined-check"}]
+        return [{"line": node.lineno - 1, "kind": PYTHON_UNNECESSARY_UNDEFINED_CHECK_RULE}]

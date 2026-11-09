@@ -104,12 +104,12 @@ export class TypeScriptCallableRules implements ASTSourceRuleContract {
 	}
 
 	/** Responsibilities: _source any-type rule resolution_. **/
-	private any_types(diagnostics_source: ts.SourceFile): AnyTypesContract {
+	private any_types(diagnostics_source: ts.SourceFile, context: RuleContextContract): AnyTypesContract {
 		const cached = this._any_types.get(diagnostics_source);
 		if (cached !== undefined) {
 			return cached;
 		}
-		const rules = new AnyTypes(this.type_aliases(diagnostics_source));
+		const rules = new AnyTypes(this.type_aliases(diagnostics_source), context.state().analysis.stage_timer);
 		this._any_types.set(diagnostics_source, rules);
 		return rules;
 	}
@@ -134,7 +134,7 @@ export class TypeScriptCallableRules implements ASTSourceRuleContract {
 		const naming = this.callable_naming(source_file, file);
 		naming.append(violations, [callable]);
 		naming.append_flag_parameters(violations, [callable]);
-		this.any_types(source_file).append_any_info({
+		this.any_types(source_file, callable_context).append_any_info({
 			violations,
 			file,
 			functions: [callable],
@@ -157,7 +157,7 @@ export class TypeScriptCallableRules implements ASTSourceRuleContract {
 			naming.append(violations, [method]);
 			naming.append_flag_parameters(violations, [method]);
 		}
-		this.any_types(source_file).append_any_info({
+		this.any_types(source_file, class_context).append_any_info({
 			violations,
 			file,
 			functions: [],

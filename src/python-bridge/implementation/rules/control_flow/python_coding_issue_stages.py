@@ -8,7 +8,13 @@ from implementation.references.decorator_protocols import (
     PythonPropertyDecoratorContract,
 )
 from implementation.references.protocols import PythonContainerKeysContract
-from implementation.rules.constants import SPECIAL_NAMES
+from implementation.rules.constants import (
+    PYTHON_EXCEPTION_RAISING_RULE,
+    PYTHON_MULTIPLE_RESULT_SHAPES_RULE,
+    PYTHON_PROPERTY_RULE,
+    PYTHON_TEST_SUBTEST_RULE,
+    SPECIAL_NAMES,
+)
 from implementation.types import JsonObject, PythonASTLocatedNode
 
 
@@ -110,7 +116,7 @@ class PythonCodingIssueStages:
         return [
             {
                 "line": cast(PythonASTLocatedNode, shape_expression).lineno - 1,
-                "kind": "multiple-result-shapes",
+                "kind": PYTHON_MULTIPLE_RESULT_SHAPES_RULE,
             },
         ]
 
@@ -130,14 +136,14 @@ class PythonCodingIssueStages:
             return issues
         for decorator in decorators:
             if self._python_decorator_rules.property_decorator(decorator):
-                issues.append({"line": decorator.lineno - 1, "kind": "python-property"})
+                issues.append({"line": decorator.lineno - 1, "kind": PYTHON_PROPERTY_RULE})
         return issues
 
     def exception_issues(self, raise_statement: ast.AST) -> list[JsonObject]:
         """Responsibilities: _exception-raising issue collection_."""
         if type(raise_statement) is not ast.Raise:
             return []
-        return [{"line": raise_statement.lineno - 1, "kind": "exception-raising"}]
+        return [{"line": raise_statement.lineno - 1, "kind": PYTHON_EXCEPTION_RAISING_RULE}]
 
     def subtest_issues(self, subtest_candidate: ast.AST) -> list[JsonObject]:
         """Responsibilities: _subtest issue collection_."""
@@ -147,6 +153,6 @@ class PythonCodingIssueStages:
         return [
             {
                 "line": cast(PythonASTLocatedNode, subtest_candidate).lineno - 1,
-                "kind": "python-test-subtest",
+                "kind": PYTHON_TEST_SUBTEST_RULE,
             },
         ]

@@ -71,19 +71,21 @@ export class TypeScriptSharedParameterRules implements ASTSourceRuleContract {
 		if (class_node.classification.extends_external_class) {
 			return;
 		}
-		const adapter = new SharedParameterAdapter({
-			file: analysis.file,
-			kind: "method",
-			nodes: class_node.structure.methods,
-			type_sources: this.type_sources(analysis.source_file, analysis.normalized_ast),
-			project_types: analysis.project_types,
-			reference_aliases: analysis.normalized_ast.references.reference_aliases,
-			language: TYPESCRIPT_CACHE_OWNER,
+		analysis.context.state().analysis.stage_timer.measure("rule.shared-parameter.typescript-class-methods", () => {
+			const adapter = new SharedParameterAdapter({
+				file: analysis.file,
+				kind: "method",
+				nodes: class_node.structure.methods,
+				type_sources: this.type_sources(analysis.source_file, analysis.normalized_ast),
+				project_types: analysis.project_types,
+				reference_aliases: analysis.normalized_ast.references.reference_aliases,
+				language: TYPESCRIPT_CACHE_OWNER,
+			});
+			const violations = adapter.violations();
+			for (const violation of violations) {
+				analysis.context.append_violation(violation);
+			}
 		});
-		const violations = adapter.violations();
-		for (const violation of violations) {
-			analysis.context.append_violation(violation);
-		}
 	}
 
 	/** Responsibilities: _class summary matching_. **/

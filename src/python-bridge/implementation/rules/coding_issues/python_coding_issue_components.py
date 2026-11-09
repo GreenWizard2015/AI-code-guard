@@ -66,6 +66,7 @@ class PythonCodingIssueComponents:
     _simple_stages: PythonCodingIssueStagesContract
     _source_nodes: list[ast.AST]
     _test_order_dependency: PythonTestOrderDependencyContract
+    _primary_rules: PythonPrimaryRulesContract
     _global_issue_collector: PythonGlobalIssueCollectorContract
     _phase_timings: dict[str, float]
     _execution_plan: PythonCodingIssueExecutionPlanContract
@@ -75,13 +76,9 @@ class PythonCodingIssueComponents:
         tree = self._context.tree()
         if type(tree) is not ast.Module:
             raise TypeError("Module rule analysis requires a module tree")
-        issues = self._unbounded_type_rules.issues()
-        default_parameter = PythonDefaultParameterIssues(tree, self._context.node_index())
-        issues.extend(default_parameter.issues())
-        issues.extend(self._test_order_dependency.issues())
-        issues.extend(self._primary_branch_count(tree))
-        export_rules = PythonExportDeclarationRules(tree, self._context.node_index())
-        issues.extend(export_rules.issues())
+        with self._measure_phase("rule.unbounded-type"):
+            issues = self._unbounded_type_rules.issues()
+        issues.extend(self._module_declaration_issues(tree))
         return issues
 
     @contextmanager
@@ -92,6 +89,21 @@ class PythonCodingIssueComponents:
             yield
         finally:
             self._phase_timings.update({name: (perf_counter() - started) * 1000})
+
+    def _module_declaration_issues(self, tree: ast.Module) -> list[JsonObject]:
+        """Responsibilities: _module scopes_, _module declarations_."""
+        issues: list[JsonObject] = []
+        default_parameter = PythonDefaultParameterIssues(tree, self._context.node_index())
+        with self._measure_phase("rule.complex-default-parameter"):
+            issues.extend(default_parameter.issues())
+        with self._measure_phase("rule.test-order-dependency"):
+            issues.extend(self._test_order_dependency.issues())
+        with self._measure_phase("rule.callable-branch-count"):
+            issues.extend(self._primary_branch_count(tree))
+        export_rules = PythonExportDeclarationRules(tree, self._context.node_index())
+        with self._measure_phase("rule.python-all-list-assignment"):
+            issues.extend(export_rules.issues())
+        return issues
 
     def _prepare_container_aliases(self, nodes: list[ast.AST]) -> None:
         """Responsibilities: _container alias state preparation_."""
@@ -112,12 +124,12 @@ class PythonCodingIssueComponents:
             issues.extend(self._global_issue_collector.collection_issues())
         with self._measure_phase("global-issues.state"):
             issues.extend(self._global_issue_collector.state_issues())
-        self._phase_timings.update(
-            {
-                f"global-issues.{name}": duration_ms
-                for name, duration_ms in self._global_issue_collector.timings_data().items()
-            },
-        )
+        for name, duration_ms in self._global_issue_collector.timings_data().items():
+            if name.startswith("rule."):
+                timing_name = name
+            else:
+                timing_name = f"global-issues.{name}"
+            self._phase_timings.update({timing_name: duration_ms})
         return issues
 
     def __init__(
@@ -146,6 +158,7 @@ class PythonCodingIssueComponents:
         self._simple_stages: PythonCodingIssueStagesContract = structure_state.simple_stages
         self._context: PythonCodingIssueComponentContextContract = context
         self._test_order_dependency: PythonTestOrderDependencyContract = structure_state.test_order_dependency
+        self._primary_rules = primary
         self._primary_field_stage: CallablePythonRuleStage = primary_rules.constructor_rules.field_constructor_issues
         self._primary_dynamic_stage: CallablePythonRuleStage = primary_rules.dynamic_type_rules.issues
         self._primary_branch_count: CallablePythonRuleStage = primary.branch_count_issues
@@ -191,7 +204,10 @@ class PythonCodingIssueComponents:
 
     def phase_timings(self) -> dict[str, float]:
         """Responsibilities: _rule analysis timing access_."""
-        return dict(self._phase_timings.items())
+        timings = dict(self._phase_timings.items())
+        timings.update(self._primary_rules.timings_data())
+        timings.update(self._call_rules.timings_data())
+        return timings
 
     def global_issues(self) -> list[JsonObject]:
         """Responsibilities: _global Python rule analysis_."""

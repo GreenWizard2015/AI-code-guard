@@ -8,7 +8,11 @@ from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonSourceSegmentsContract,
 )
-from implementation.rules.constants import PYTHON_TERNARY_KIND
+from implementation.rules.constants import (
+    PYTHON_ASSIGNMENT_EXPRESSION_RULE,
+    PYTHON_ELIF_RULE,
+    PYTHON_TERNARY_KIND,
+)
 from implementation.rules.control_flow.python_logical_chain_analysis import (
     PythonLogicalChainAnalysis,
 )
@@ -133,7 +137,7 @@ class PythonControlFlowIssues:
             return []
         if not self._options.source_lines[line].lstrip().startswith("elif "):
             return []
-        return [{"line": first.lineno - 1, "kind": "python-elif"}]
+        return [{"line": first.lineno - 1, "kind": PYTHON_ELIF_RULE}]
 
     def walrus_issues(self, assignment_expression: ast.AST) -> list[JsonObject]:
         """Responsibilities: _Python walrus violations collection_."""
@@ -142,6 +146,6 @@ class PythonControlFlowIssues:
         return [
             {
                 "line": assignment_expression.lineno - 1,
-                "kind": "python-assignment-expression",
+                "kind": PYTHON_ASSIGNMENT_EXPRESSION_RULE,
             },
         ]

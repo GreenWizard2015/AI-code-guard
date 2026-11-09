@@ -9,6 +9,7 @@ import type { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/ty
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { CallableSpreadValueAppender } from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { Assignment, CallableRuleAppender, RuleContextContract } from "src/types";
 import type {
 	CallableTypeScriptAstTraversalVisitor,
@@ -21,6 +22,19 @@ import type ts from "typescript";
 export interface LexicalBindingScopeContract {
 	type_name_shadowed(type_reference: ts.Node, name: string): boolean;
 	value_name_shadowed(value_reference: ts.Node, name: string): boolean;
+}
+
+/** Responsibilities: _class declaration rule predicates_. **/
+export interface TypeScriptClassDeclarationPredicatesContract {
+	static_declaration(node: ts.Node): boolean;
+	temporary_result_access(node: ts.Node): boolean;
+	complex_constructor(node: ts.Node): boolean;
+	complex_field(node: ts.Node): boolean;
+}
+
+/** Responsibilities: _prototype assignment rule predicate_. **/
+export interface TypeScriptBuiltinMutationContract {
+	prototype_assignment(node: ts.Node): boolean;
 }
 
 /** Responsibilities: _lexical declaration lookup_. **/
@@ -356,7 +370,7 @@ export interface TypeScriptBasicRulesContract {
 
 /** Responsibilities: _TypeScript expression rule collection_. **/
 export interface TypeScriptExpressionRuleContract {
-	append(node: ts.Node, append_rule: CallableRuleAppender): void;
+	append(node: ts.Node, append_rule: CallableRuleAppender, stage_timer: LintStageTimerContract): void;
 }
 
 /** Responsibilities: _TypeScript factory object sources_. **/

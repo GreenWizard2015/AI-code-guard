@@ -102,19 +102,24 @@ export class TypeScriptBoundaryRuleAppender implements TypeScriptBoundaryRuleApp
 	}
 
 	/** Responsibilities: _expression rule dispatch_. **/
-	private append_expression_rules(candidate: ts.Node, append_rule: CallableRuleAppender): void {
+	private append_expression_rules(
+		candidate: ts.Node,
+		append_rule: CallableRuleAppender,
+		context: RuleContextContract,
+	): void {
 		const expression_rule_flags = EXPRESSION_RULE_FLAGS_BY_KIND.get(candidate.kind);
 		if (expression_rule_flags === undefined) {
 			return;
 		}
+		const stage_timer = context.state().analysis.stage_timer;
 		if ((expression_rule_flags & EXPRESSION_RULE_FLAGS.declaration) !== 0) {
-			this._expression_declaration_rules.append(candidate, append_rule);
+			this._expression_declaration_rules.append(candidate, append_rule, stage_timer);
 		}
 		if ((expression_rule_flags & EXPRESSION_RULE_FLAGS.operator) !== 0) {
-			this._expression_operator_rules.append(candidate, append_rule);
+			this._expression_operator_rules.append(candidate, append_rule, stage_timer);
 		}
 		if ((expression_rule_flags & EXPRESSION_RULE_FLAGS.terminal) !== 0) {
-			this._expression_terminal_rules.append(candidate, append_rule);
+			this._expression_terminal_rules.append(candidate, append_rule, stage_timer);
 		}
 	}
 
@@ -153,7 +158,7 @@ export class TypeScriptBoundaryRuleAppender implements TypeScriptBoundaryRuleApp
 		if (ts.isParameter(boundary_candidate)) {
 			this._basic_rules.append_parameter_rules(boundary_candidate, append_rule);
 		}
-		this.append_expression_rules(boundary_candidate, append_rule);
+		this.append_expression_rules(boundary_candidate, append_rule, boundary_context);
 		this.append_test_exception(boundary_candidate, boundary_context);
 		this.append_union_types(boundary_candidate, boundary_context);
 	}

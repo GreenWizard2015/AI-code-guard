@@ -1,6 +1,6 @@
 import "src/core/lint_project_context_creator";
-import "src/lint_stage_timer";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import type { AstClassField, AstClassNode } from "src/model/ast/normalized_ast_types";
@@ -144,6 +144,7 @@ describe("class state ownership", () => {
 			dependencies: [],
 		});
 		const reporter = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("local.ts"),
 			node,
@@ -182,6 +183,7 @@ describe("class state ownership", () => {
 			fields: READONLY_METADATA_FIELDS,
 		});
 		const reporter = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("source_names.ts"),
 			node,
@@ -214,6 +216,7 @@ describe("class state ownership", () => {
 			fields: READONLY_METADATA_FIELDS,
 		});
 		const reporter = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("source_names.ts"),
 			node,

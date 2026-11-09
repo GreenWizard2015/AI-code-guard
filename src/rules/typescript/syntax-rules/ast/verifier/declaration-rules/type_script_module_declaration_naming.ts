@@ -32,11 +32,15 @@ export class TypeScriptModuleDeclarationNaming implements ASTSourceRuleContract 
 
 	/** Responsibilities: _single module binding naming_. **/
 	private append_binding_name(name: ts.Identifier, context: RuleContextContract, constant: boolean): void {
+		const timer = context.state().analysis.stage_timer;
 		if (constant) {
-			if (UPPER_SNAKE_CASE_PATTERN.test(name.text) || name.text.startsWith("_")) {
-				return;
-			}
-			context.for_node(name).append_parameterized_rule(RULE_IDS.typescript_module_constant_case, { name: name.text });
+			timer.measure(`rule.${RULE_IDS.typescript_module_constant_case}`, () => {
+				if (!UPPER_SNAKE_CASE_PATTERN.test(name.text) && !name.text.startsWith("_")) {
+					context
+						.for_node(name)
+						.append_parameterized_rule(RULE_IDS.typescript_module_constant_case, { name: name.text });
+				}
+			});
 			return;
 		}
 		context.for_node(name).append_parameterized_rule(RULE_IDS.typescript_module_variable, { name: name.text });
@@ -50,14 +54,16 @@ export class TypeScriptModuleDeclarationNaming implements ASTSourceRuleContract 
 	/** Responsibilities: _module variable node verification_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { node, context } = request;
-		if (!ts.isVariableDeclaration(node) || !this.module_declaration(node)) {
-			return;
-		}
-		const declaration_list = node.parent;
-		if (!ts.isVariableDeclarationList(declaration_list)) {
-			return;
-		}
-		const constant = (declaration_list.flags & ts.NodeFlags.Const) !== 0;
-		this.append_binding_names(node.name, context, constant);
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.typescript_module_variable}`, () => {
+			if (!ts.isVariableDeclaration(node) || !this.module_declaration(node)) {
+				return;
+			}
+			const declaration_list = node.parent;
+			if (!ts.isVariableDeclarationList(declaration_list)) {
+				return;
+			}
+			const constant = (declaration_list.flags & ts.NodeFlags.Const) !== 0;
+			this.append_binding_names(node.name, context, constant);
+		});
 	}
 }

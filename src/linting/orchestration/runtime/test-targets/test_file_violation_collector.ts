@@ -7,6 +7,7 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type {
@@ -60,30 +61,54 @@ export class TestFileViolationCollector implements TestFileViolationCollectorCon
 	}
 
 	/** Responsibilities: _test organization_, _test target_. **/
-	public append(violations: ViolationContract[], source: LintSourceRecordData, file: string, root: string): void {
-		if (!this.valid_test_filename(source.relative_path)) {
-			return;
-		}
-		if (!this._path_syntax.classify(source.relative_path).has(TestPathKind.RootTestsFile)) {
-			return;
-		}
-		const project = this.test_project(root);
-		if (!project.organization.for_file(source.relative_path).valid()) {
-			violations.push(this._organization_rule.violation(file, 1, {}));
-		}
-		if (!project.targets.valid_source(source)) {
-			violations.push(this._target_rule.violation(file, 1, {}));
-		}
+	public append(
+		violations: ViolationContract[],
+		source: LintSourceRecordData,
+		file: string,
+		root: string,
+		stage_timer: LintStageTimerContract,
+	): void {
+		stage_timer.measure("rule.test-file-organization", () => {
+			if (!this.valid_test_filename(source.relative_path)) {
+				return;
+			}
+			if (!this._path_syntax.classify(source.relative_path).has(TestPathKind.RootTestsFile)) {
+				return;
+			}
+			const project = this.test_project(root);
+			if (!project.organization.for_file(source.relative_path).valid()) {
+				violations.push(this._organization_rule.violation(file, 1, {}));
+			}
+		});
+		stage_timer.measure("rule.test-targets", () => {
+			if (!this.valid_test_filename(source.relative_path)) {
+				return;
+			}
+			if (!this._path_syntax.classify(source.relative_path).has(TestPathKind.RootTestsFile)) {
+				return;
+			}
+			const project = this.test_project(root);
+			if (!project.targets.valid_source(source)) {
+				violations.push(this._target_rule.violation(file, 1, {}));
+			}
+		});
 	}
 
 	/** Responsibilities: _misplaced test file violation_. **/
-	public append_location(violations: ViolationContract[], source: LintSourceRecordData, file: string): void {
-		if (!this._path_syntax.classify(source.relative_path).has(TestPathKind.TestFile)) {
-			return;
-		}
-		if (this._path_syntax.classify(source.relative_path).has(TestPathKind.RootTestsFile)) {
-			return;
-		}
-		violations.push(this._location_rule.violation(file, 1, {}));
+	public append_location(
+		violations: ViolationContract[],
+		source: LintSourceRecordData,
+		file: string,
+		stage_timer: LintStageTimerContract,
+	): void {
+		stage_timer.measure("rule.test-file-location", () => {
+			if (!this._path_syntax.classify(source.relative_path).has(TestPathKind.TestFile)) {
+				return;
+			}
+			if (this._path_syntax.classify(source.relative_path).has(TestPathKind.RootTestsFile)) {
+				return;
+			}
+			violations.push(this._location_rule.violation(file, 1, {}));
+		});
 	}
 }

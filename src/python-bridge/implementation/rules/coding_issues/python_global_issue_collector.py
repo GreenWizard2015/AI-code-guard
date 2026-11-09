@@ -59,29 +59,35 @@ class PythonGlobalIssueCollector:
 
     def _finite_variant_issues(self) -> list[JsonObject]:
         """Responsibilities: _finite variant analysis_."""
-        with self._measure("collection.finite-variants"):
-            rule = FiniteVariantMapping(self._module_tree(), self._context.node_index())
-            rule.prepare()
-            return rule.issues()
+        with self._measure("rule.finite-variant-mapping-is-incomplete"):
+            with self._measure("rule.finite-variant-mapping-is-incomplete.prepare"):
+                rule = FiniteVariantMapping(self._module_tree(), self._context.node_index())
+                rule.prepare()
+            with self._measure("rule.finite-variant-mapping-is-incomplete.analysis"):
+                return rule.issues()
 
     def _collaborator_creation_issues(self) -> list[JsonObject]:
         """Responsibilities: _collaborator creation analysis_."""
-        with self._measure("collection.collaborator-creation"):
-            rule = ConcreteCollaboratorCreation(self._module_tree(), self._context.node_index())
-            rule.prepare()
-            return rule.issues()
+        with self._measure("rule.concrete-collaborator-created-per-operation"):
+            with self._measure("rule.concrete-collaborator-created-per-operation.prepare"):
+                rule = ConcreteCollaboratorCreation(self._module_tree(), self._context.node_index())
+                rule.prepare()
+            with self._measure("rule.concrete-collaborator-created-per-operation.analysis"):
+                return rule.issues()
 
     def _global_state_issues(self) -> list[JsonObject]:
         """Responsibilities: _global state analysis_."""
-        with self._measure("collection.hidden-state-scan"):
+        with self._measure("rule.hidden-global-state"):
             rule = PythonHiddenGlobalStateRules(self._context.node_index())
             return rule.issues(self._module_tree())
 
     def _runtime_patching_issues(self) -> list[JsonObject]:
         """Responsibilities: _runtime patch prohibition analysis_."""
-        with self._measure("collection.runtime-patching"):
-            rule = PythonRuntimePatching(self._module_tree(), self._context.node_index())
-            return rule.issues()
+        with self._measure("rule.runtime-patching"):
+            with self._measure("rule.runtime-patching.prepare"):
+                rule = PythonRuntimePatching(self._module_tree(), self._context.node_index())
+            with self._measure("rule.runtime-patching.analysis"):
+                return rule.issues()
 
     def _state_rule_analyzers(self) -> dict[str, PythonModuleIssueRuleContract]:
         """Responsibilities: _state rule selection_."""
@@ -91,10 +97,10 @@ class PythonGlobalIssueCollector:
         async_completion = PythonUnassertedAsyncCompletion(index)
         retry_ownership = PythonRetryWithoutOwnership(index)
         return {
-            "field-order": temporal_coupling,
-            "error-deduplication": error_translation,
-            "completion-assertion": async_completion,
-            "retry-safety": retry_ownership,
+            "temporal-coupling": temporal_coupling,
+            "duplicate-error-translation": error_translation,
+            "unasserted-async-completion": async_completion,
+            "retry-without-ownership": retry_ownership,
         }
 
     def __init__(self, context: PythonCodingIssueComponentContextContract) -> None:
@@ -115,7 +121,7 @@ class PythonGlobalIssueCollector:
         tree = self._module_tree()
         issues: list[JsonObject] = []
         for name, rule in self._state_rule_analyzers().items():
-            with self._measure(f"state.{name}"):
+            with self._measure(f"rule.{name}"):
                 issues.extend(rule.issues(tree))
         return issues
 

@@ -411,6 +411,8 @@ class PythonCallRulesContract(Protocol):
 
     def configure_reflection(self) -> None: ...
 
+    def timings_data(self) -> dict[str, float]: ...
+
 
 class PythonDowncastAnalysisContract(Protocol):
     """Responsibilities: _Protocol downcast analysis_."""
@@ -431,6 +433,8 @@ class PythonTypeRulesContract(Protocol):
         self,
         callable_definition: ast.AST,
     ) -> list[JsonObject]: ...
+
+    def timings_data(self) -> dict[str, float]: ...
 
 
 class PythonCodingIssueOptionsContract(Protocol):

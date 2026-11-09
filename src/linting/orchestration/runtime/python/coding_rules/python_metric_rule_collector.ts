@@ -10,16 +10,19 @@ import type { AstCallableNode, AstClassNode } from "src/model/ast/normalized_ast
 import type { PythonTypeRuleCollectorContract } from "src/python_protocols";
 import { MethodOrder } from "src/rules/method_order";
 import type { CallableNamingRulesContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _Python metrics_, _Python contracts_. **/
 export class PythonMetricRuleCollector {
 	private readonly _input: PythonRuleInput;
 	private readonly _contracts: CallableNamingRulesContract;
 	private readonly _types: PythonTypeRuleCollectorContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _Python class metric collection_. **/
 	private append_class_metrics(class_node: AstClassNode): void {
 		const reporter = new ClassStructureReporter({
+			stage_timer: this._stage_timer,
 			violations: this._input.violations,
 			file_name: this._input.file_name,
 			node: class_node,
@@ -46,8 +49,10 @@ export class PythonMetricRuleCollector {
 		if (class_node.classification.extends_external_class) {
 			return;
 		}
-		const order = new MethodOrder(this._input.file_name.value(), class_node);
-		order.append_order(this._input.violations);
+		this._stage_timer.measure("rule.method-order.python", () => {
+			const order = new MethodOrder(this._input.file_name.value(), class_node);
+			order.append_order(this._input.violations);
+		});
 	}
 
 	/** Responsibilities: _shared-parameter violation collection_. **/
@@ -60,9 +65,11 @@ export class PythonMetricRuleCollector {
 		const type_sources = new Map(
 			classes.map((item) => [item.identity.name, { file: file_name.value(), name: item.identity.name }] as const),
 		);
-		for (const node of classes) {
-			this.append_shared_class(node, type_sources);
-		}
+		this._stage_timer.measure("rule.shared-parameter.python-class-methods", () => {
+			for (const node of classes) {
+				this.append_shared_class(node, type_sources);
+			}
+		});
 	}
 
 	/** Responsibilities: _Python class shared parameters_. **/
@@ -91,7 +98,7 @@ export class PythonMetricRuleCollector {
 			return;
 		}
 		for (const node of functions) {
-			const metrics = new CallableMetrics(violations, file_name.value(), node, false);
+			const metrics = new CallableMetrics(violations, file_name.value(), node, false, this._stage_timer);
 			metrics.append_callable_metrics();
 		}
 	}
@@ -107,10 +114,11 @@ export class PythonMetricRuleCollector {
 
 	/** Responsibilities: _Python callable contract aggregation_. **/
 	/** Responsibilities: _Python metric collection state_. **/
-	public constructor(input: PythonRuleInput) {
+	public constructor(input: PythonRuleInput, stage_timer: LintStageTimerContract) {
 		this._input = input;
+		this._stage_timer = stage_timer;
 		this._contracts = new CallableNamingRules(input.file_name);
-		this._types = new PythonTypeRuleCollector(input);
+		this._types = new PythonTypeRuleCollector(input, stage_timer);
 	}
 
 	/** Responsibilities: _Python metric violations_. **/

@@ -30,6 +30,11 @@ export class ASTVerifierNodeGroup implements ASTVerifierNodeGroupContract {
 		this._registrations = [registration];
 	}
 
+	/** Responsibilities: _rule timer names_. **/
+	public timing_name(): string {
+		return this._verifier.constructor.name;
+	}
+
 	/** Responsibilities: _verifier identity matching_. **/
 	public shares_verifier(verifier: ASTNodeVerificationContract): boolean {
 		return this._verifier === verifier;

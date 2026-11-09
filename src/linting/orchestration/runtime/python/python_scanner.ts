@@ -7,6 +7,7 @@ import { PythonAstFileRuleCollector } from "src/linting/orchestration/runtime/py
 import { PythonCollaboratorScanner } from "src/linting/orchestration/runtime/python/python_collaborator_scanner";
 import type { AstClassNode, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
 import type { ProjectSourcePythonContract } from "src/source_protocols";
 import type { LintSourceRecordData } from "src/source_types";
@@ -132,7 +133,7 @@ export class PythonScanner {
 	}
 
 	/** Responsibilities: _Python scanner initialization_. **/
-	public constructor(root = "", sources: readonly LintSourceRecordData[] = []) {
+	public constructor(root: string, sources: readonly LintSourceRecordData[], stage_timer: LintStageTimerContract) {
 		this._source_imports = new ProjectSourcePython(root);
 		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
 		const source_asts = new Map(
@@ -150,13 +151,16 @@ export class PythonScanner {
 			import_resolver: this._import_resolver,
 			test_path_syntax: this._test_path_syntax,
 		});
-		this._collaborator_scanner.prepare();
+		stage_timer.measure("rule.concrete-collaborator-created-per-operation.python.prepare", () =>
+			this._collaborator_scanner.prepare(),
+		);
 		this._class_ownership = new PythonClassOwnership({
 			export_symbols: this._import_resolver,
 			project_imports: this._source_imports,
 			sources,
 		});
 	}
+
 	/** Responsibilities: _public operation_. **/
 	public project_names(input: PythonLintInput): PythonProjectNames {
 		return {
@@ -168,7 +172,7 @@ export class PythonScanner {
 	}
 
 	/** Responsibilities: _lint Python file output_. **/
-	public lint_python_file(input: PythonLintInput): ViolationContract[] {
+	public lint_python_file(input: PythonLintInput, stage_timer: LintStageTimerContract): ViolationContract[] {
 		const names = this.project_names(input);
 		const normalized_ast = input.normalized_ast;
 		const ast = this.create_python_rules(
@@ -178,7 +182,12 @@ export class PythonScanner {
 			normalized_ast,
 		);
 		const production_import_names = this.production_import_names(input.source_file);
-		const collector = new PythonAstFileRuleCollector(input, ast, production_import_names);
-		return [...collector.collect_violations(), ...this._collaborator_scanner.violations(input)];
+		const collector = new PythonAstFileRuleCollector(input, ast, production_import_names, stage_timer);
+		const violations = collector.collect_violations();
+		const collaborator_violations = stage_timer.measure(
+			"rule.concrete-collaborator-created-per-operation.python-project",
+			() => this._collaborator_scanner.violations(input),
+		);
+		return [...violations, ...collaborator_violations];
 	}
 }

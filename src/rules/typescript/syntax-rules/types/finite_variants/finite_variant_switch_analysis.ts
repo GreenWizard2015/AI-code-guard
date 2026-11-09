@@ -60,8 +60,10 @@ export class FiniteVariantSwitchAnalysis {
 		if (owner === node.getSourceFile()) {
 			return;
 		}
-		if (this.incomplete_mapping(node, owner)) {
-			context.for_node(node).append_rule(RULE_IDS.finite_variant_mapping_incomplete);
-		}
+		context.state().analysis.stage_timer.measure("rule.finite-variant-mapping-is-incomplete.typescript", () => {
+			if (this.incomplete_mapping(node, owner)) {
+				context.for_node(node).append_rule(RULE_IDS.finite_variant_mapping_incomplete);
+			}
+		});
 	}
 }

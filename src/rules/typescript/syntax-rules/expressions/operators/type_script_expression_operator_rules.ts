@@ -6,6 +6,7 @@ import { TypeScriptCallableFeatureDetection } from "src/rules/typescript/syntax-
 import { DynamicBindingNames } from "src/rules/typescript/syntax-rules/expressions/operators/dynamic_binding_names";
 import { TypeScriptInOperatorAliases } from "src/rules/typescript/syntax-rules/expressions/operators/type_script_in_operator_aliases";
 import { TypeScriptStructuralDowncast } from "src/rules/typescript/syntax-rules/types/structural/type_script_structural_downcast";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type { TypeScriptExpressionRuleContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
@@ -118,20 +119,39 @@ export class TypeScriptExpressionOperatorRules implements TypeScriptExpressionRu
 		]);
 	}
 
-	/** Responsibilities: _operator rule collection_. **/
-	public append(candidate: ts.Node, append_rule: CallableRuleAppender): void {
-		if (this.has_callable_feature(candidate)) {
-			append_rule(candidate, RULE_IDS.callable_feature_detection);
-		}
-		if (this.has_membership_alias(candidate)) {
-			append_rule(candidate, RULE_IDS.typescript_in_operator);
-		}
-		if (ts.isBinaryExpression(candidate) && candidate.operatorToken.kind === ts.SyntaxKind.InstanceOfKeyword) {
+	/** Responsibilities: _protocol downcast reporting_. **/
+	public append_instanceof_rule(
+		candidate: ts.Node,
+		append_rule: CallableRuleAppender,
+		stage_timer: LintStageTimerContract,
+	): boolean {
+		return stage_timer.measure("rule.protocol-downcast-to-implementation.typescript", () => {
+			if (!ts.isBinaryExpression(candidate) || candidate.operatorToken.kind !== ts.SyntaxKind.InstanceOfKeyword) {
+				return false;
+			}
 			if (this._protocol_downcast.reports(candidate)) {
 				append_rule(candidate, RULE_IDS.protocol_downcast_to_implementation);
-				return;
+				return true;
 			}
 			append_rule(candidate, INSTANCEOF);
+			return true;
+		});
+	}
+
+	/** Responsibilities: _operator rule collection_. **/
+	public append(candidate: ts.Node, append_rule: CallableRuleAppender, stage_timer: LintStageTimerContract): void {
+		stage_timer.measure(`rule.${RULE_IDS.callable_feature_detection}`, () => {
+			if (this.has_callable_feature(candidate)) {
+				append_rule(candidate, RULE_IDS.callable_feature_detection);
+			}
+		});
+		stage_timer.measure(`rule.${RULE_IDS.typescript_in_operator}`, () => {
+			if (this.has_membership_alias(candidate)) {
+				append_rule(candidate, RULE_IDS.typescript_in_operator);
+			}
+		});
+		if (this.append_instanceof_rule(candidate, append_rule, stage_timer)) {
+			return;
 		}
 		if (ts.isCallExpression(candidate) && this.prototype_check(candidate)) {
 			append_rule(candidate, INSTANCEOF);

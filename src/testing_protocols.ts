@@ -2,6 +2,7 @@ import type { AstPythonImport, JestSuite, TestTargetImport } from "src/model/ast
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableConsumer } from "src/runtime_types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 import type ts from "typescript";
 
@@ -147,8 +148,19 @@ export interface TestTargetImportResolverContract {
 
 /** Responsibilities: _test-file violation collection_. **/
 export interface TestFileViolationCollectorContract {
-	append(violations: ViolationContract[], source: LintSourceRecordData, file: string, root: string): void;
-	append_location(violations: ViolationContract[], source: LintSourceRecordData, file: string): void;
+	append(
+		violations: ViolationContract[],
+		source: LintSourceRecordData,
+		file: string,
+		root: string,
+		stage_timer: LintStageTimerContract,
+	): void;
+	append_location(
+		violations: ViolationContract[],
+		source: LintSourceRecordData,
+		file: string,
+		stage_timer: LintStageTimerContract,
+	): void;
 }
 
 /** Responsibilities: _test path classification_. **/

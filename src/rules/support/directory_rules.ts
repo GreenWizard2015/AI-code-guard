@@ -19,6 +19,7 @@ import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_ru
 import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
 import { FileNameRules } from "src/rules/support/file_name_rules";
 import { ModuleDeclarationsRule } from "src/rules/support/module_declarations_rule";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type {
 	DirectoryRulesContract,
 	FileNameRulesContract,
@@ -85,13 +86,17 @@ export class DirectoryRules implements DirectoryRulesContract {
 	}
 
 	/** Responsibilities: _directory file violation collection_. **/
-	public append_file_violation(options: DirectoryFileViolationOptions): void {
+	public append_file_violation(options: DirectoryFileViolationOptions, stage_timer: LintStageTimerContract): void {
 		const { violations, file, text, normalized_ast } = options;
-		this.append_file_max(violations, file, text);
-		this._file_name_rule.append_numeric(violations, file);
-		this._file_name_rule.append(violations, file, normalized_ast.source.classes);
-		this._module_declarations_rule.append(violations, file, normalized_ast);
-		this.append_file_size(options);
+		stage_timer.measure("rule.file-max-size", () => this.append_file_max(violations, file, text));
+		stage_timer.measure("rule.numeric-file-name", () => this._file_name_rule.append_numeric(violations, file));
+		stage_timer.measure("rule.single-class-file-name", () =>
+			this._file_name_rule.append(violations, file, normalized_ast.source.classes),
+		);
+		stage_timer.measure("rule.module-declaration-separation", () =>
+			this._module_declarations_rule.append(violations, file, normalized_ast),
+		);
+		stage_timer.measure("rule.file-min-size", () => this.append_file_size(options));
 	}
 
 	/** Responsibilities: _collection directory-level file-size violations_. **/

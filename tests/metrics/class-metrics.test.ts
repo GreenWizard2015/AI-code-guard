@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
@@ -20,6 +21,7 @@ describe("normalized AST class metrics", () => {
 		const violations: ViolationContract[] = [];
 		for (const node of source.normalized().source.classes) {
 			const reporter = new ClassStructureReporter({
+				stage_timer: new LintStageTimer(),
 				violations,
 				file_name: new LintFileName("rule.ts"),
 				node,
@@ -54,6 +56,7 @@ describe("normalized AST class metrics", () => {
 		const file_name = new LintFileName("service.ts");
 		for (const node of normalized_ast.source.classes) {
 			const class_structure_reporter = new ClassStructureReporter({
+				stage_timer: new LintStageTimer(),
 				violations,
 				file_name,
 				node,
@@ -87,6 +90,7 @@ describe("normalized AST class metrics", () => {
 		const file_name = new LintFileName("service.ts");
 		for (const node of normalized_ast.source.classes) {
 			const class_structure_reporter = new ClassStructureReporter({
+				stage_timer: new LintStageTimer(),
 				violations,
 				file_name,
 				node,

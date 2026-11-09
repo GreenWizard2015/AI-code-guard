@@ -52,7 +52,7 @@ export class TypeScriptFunctionMetricRules implements ASTSourceRuleContract {
 		callable: AstCallableNode,
 	): void {
 		const violations: ViolationContract[] = [];
-		const metrics = new CallableMetrics(violations, state.source.file, callable, false);
+		const metrics = new CallableMetrics(violations, state.source.file, callable, false, state.analysis.stage_timer);
 		metrics.append_callable_metrics();
 		for (const violation of violations) {
 			context.append_violation(violation);

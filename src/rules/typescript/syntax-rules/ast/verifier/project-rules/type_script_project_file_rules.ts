@@ -105,7 +105,7 @@ export class TypeScriptProjectFileRules {
 			return;
 		}
 		const violations: ViolationContract[] = [];
-		prepared.collector.append(violations, source, file, scope.root);
+		prepared.collector.append(violations, source, file, scope.root, request.context.state().analysis.stage_timer);
 		for (const violation of violations) {
 			request.context.append_violation(violation);
 		}

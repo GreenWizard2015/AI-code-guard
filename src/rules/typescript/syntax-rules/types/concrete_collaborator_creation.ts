@@ -161,7 +161,12 @@ export class ConcreteCollaboratorCreation implements ASTSourceRuleContract {
 	/** Responsibilities: _collaborator creation node dispatch_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		if (!request.context.state().source.test_file && ts.isNewExpression(request.node)) {
-			this.append_creation(request.node, request.context);
+			const creation = request.node;
+			request.context
+				.state()
+				.analysis.stage_timer.measure("rule.concrete-collaborator-created-per-operation.typescript", () =>
+					this.append_creation(creation, request.context),
+				);
 		}
 	}
 }

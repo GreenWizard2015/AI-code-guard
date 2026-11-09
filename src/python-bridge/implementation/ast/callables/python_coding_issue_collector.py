@@ -11,6 +11,7 @@ from implementation.ast.callables.coding_issue_protocols import (
     PythonRuleNodeDispatchIndex,
     PythonRuleStageEntryContract,
 )
+from implementation.ast.callables.constants import PYTHON_RULE_STAGE_NAMES
 from implementation.ast.callables.python_coding_issue_node import PythonCodingIssueNode
 from implementation.ast.callables.python_coding_issue_timing import (
     PythonCodingIssueTiming,
@@ -43,6 +44,13 @@ class PythonRuleNodeDispatch:
 class PythonCodingIssueCollector:
     """Responsibilities: _rule stage coordination_, _AST issue aggregation_."""
 
+    def _stage_name(self, stage: CallablePythonRuleStage) -> str:
+        """Responsibilities: _rule timing identity resolution_."""
+        rule_id = PYTHON_RULE_STAGE_NAMES.get(stage.__name__)
+        if rule_id is not None:
+            return f"rule.{rule_id}"
+        return f"python-rule-stage.{stage.__name__}"
+
     def __init__(
         self,
         components: PythonCodingIssueComponentsContract,
@@ -72,7 +80,7 @@ class PythonCodingIssueCollector:
         return {
             node_type: PythonRuleNodeDispatch(
                 [
-                    PythonRuleStageEntry(self._stages[index], f"rule.{self._stages[index].__name__}")
+                    PythonRuleStageEntry(self._stages[index], self._stage_name(self._stages[index]))
                     for index in STAGE_TYPES.get(node_type, ())
                 ],
                 node_type in PYTHON_PRECEDENCE_NODE_TYPES,
@@ -84,7 +92,7 @@ class PythonCodingIssueCollector:
     @cached_property
     def rule_stage_catalog(self) -> list[str]:
         """Responsibilities: _Python rule stage catalog_."""
-        return [f"rule.{stage.__name__}" for stage in self._stages]
+        return [self._stage_name(stage) for stage in self._stages]
 
     def collect(self) -> list[JsonObject]:
         """Responsibilities: _collection Python coding issues_."""
@@ -95,12 +103,12 @@ class PythonCodingIssueCollector:
         started = perf_counter()
         issues: list[JsonObject] = self._components.global_issues()
         self._timing.add_duration("global-issues", (perf_counter() - started) * 1000)
-        for name, duration_ms in self._components.phase_timings().items():
-            self._timing.add_duration(name, duration_ms)
         started = perf_counter()
         nodes = self._execution_plan.source_nodes
         self._timing.add_duration("source-nodes", (perf_counter() - started) * 1000)
         self._timing.collect(nodes, proxy_issues, issues)
+        for name, duration_ms in self._components.phase_timings().items():
+            self._timing.add_duration(name, duration_ms)
         return proxy_issues + issues
 
     def timing(self) -> PythonCodingIssueTimingContract:

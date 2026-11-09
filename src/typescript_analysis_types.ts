@@ -39,6 +39,12 @@ export type TypeScriptNodeVerificationRequest = {
 	readonly context: RuleContextContract;
 };
 
+/** Responsibilities: _new expression rule verification input_. **/
+export type TypeScriptNewExpressionVerificationRequest = {
+	readonly node: ts.NewExpression;
+	readonly context: RuleContextContract;
+};
+
 /** Responsibilities: _source AST verification phases_. **/
 export type TypeScriptSourceVerificationRequest = {
 	readonly source_root: ts.Node;

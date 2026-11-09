@@ -30,7 +30,16 @@ export class DynamicRuntimeUsage implements DynamicRuntimeUsageContract, ASTSour
 
 	/** Responsibilities: _dynamic runtime source activation_. **/
 	public active_for(source_code: string): boolean {
-		return source_code.length > 0;
+		if (source_code.includes("Reflect")) {
+			return true;
+		}
+		if (source_code.includes("Proxy")) {
+			return true;
+		}
+		if (source_code.includes("Object")) {
+			return true;
+		}
+		return source_code.includes("string") && source_code.includes("[");
 	}
 
 	/** Responsibilities: _dynamic runtime candidate rules_. **/

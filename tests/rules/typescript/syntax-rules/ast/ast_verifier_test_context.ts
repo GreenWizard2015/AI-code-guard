@@ -136,7 +136,13 @@ export class ASTVerifierTestContext
 
 	/** Responsibilities: _node-scoped test diagnostics_. **/
 	public for_node(node: ts.Node): RuleNodeDiagnosticContextContract {
-		return new TypeScriptNodeRuleContext(node, this._source_file.fileName, this._source_file, this._violations);
+		return new TypeScriptNodeRuleContext(
+			node,
+			this._source_file.fileName,
+			this._source_file,
+			this._violations,
+			this._state.analysis.stage_timer,
+		);
 	}
 
 	/** Responsibilities: _precomputed violation collection_. **/

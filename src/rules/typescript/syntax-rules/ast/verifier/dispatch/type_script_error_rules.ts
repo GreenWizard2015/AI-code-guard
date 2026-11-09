@@ -146,15 +146,20 @@ export class TypeScriptErrorRules implements ASTSourceRuleContract {
 		if (!ts.isCatchClause(node)) {
 			return;
 		}
-		if (node.block.statements.length === 0) {
-			context.for_node(node).append_rule(RULE_IDS.empty_error_handler);
-		}
-		this.append_context_loss(node, context);
+		const stage_timer = context.state().analysis.stage_timer;
+		stage_timer.measure(`rule.${RULE_IDS.empty_error_handler}`, () => {
+			if (node.block.statements.length === 0) {
+				context.for_node(node).append_rule(RULE_IDS.empty_error_handler);
+			}
+		});
+		stage_timer.measure(`rule.${RULE_IDS.error_context_loss}`, () => this.append_context_loss(node, context));
 		if (context.state().source.test_file) {
 			return;
 		}
-		if (this.has_duplicate_translation(node.block, new Set<string>())) {
-			context.for_node(node).append_rule(RULE_IDS.duplicate_error_translation);
-		}
+		stage_timer.measure(`rule.${RULE_IDS.duplicate_error_translation}`, () => {
+			if (this.has_duplicate_translation(node.block, new Set<string>())) {
+				context.for_node(node).append_rule(RULE_IDS.duplicate_error_translation);
+			}
+		});
 	}
 }

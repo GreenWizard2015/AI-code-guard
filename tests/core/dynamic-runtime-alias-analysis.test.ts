@@ -2,9 +2,24 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
+import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
+import { DynamicRuntimeUsage } from "src/rules/typescript/syntax-rules/runtime/dynamic_runtime_usage";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("dynamic runtime alias analysis", () => {
+	test("activates only for source forms handled by the rule", () => {
+		const rule = new DynamicRuntimeUsage(new TypeScriptObjectAliasDeclarationIndex());
+		const samples = [
+			{ source: "const value = 1;", active: false },
+			{ source: "Reflect.get(target, key);", active: true },
+			{ source: "new Proxy(target, handler);", active: true },
+			{ source: "Object.hasOwn(target, key);", active: true },
+			{ source: "function read(key: string) { return target[key]; }", active: true },
+		];
+		const results = samples.map(({ source }) => rule.active_for(source));
+		expect(results).toEqual(samples.map(({ active }) => active));
+	});
+
 	test("detects runtime APIs through saved and spread object aliases", () => {
 		const fixture = new TestFixture();
 		const count = fixture

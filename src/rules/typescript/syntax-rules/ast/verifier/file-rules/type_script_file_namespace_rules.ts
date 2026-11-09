@@ -71,20 +71,22 @@ export class TypeScriptFileNamespaceRules implements ASTSourceRuleContract {
 	/** Responsibilities: _namespace file policy_. **/
 	public finish_source(request: TypeScriptSourceVerificationRequest): void {
 		const { context } = request;
-		const namespaces = this._namespaces.get(context);
-		this._namespaces.delete(context);
-		if (namespaces === undefined || namespaces.length === 0) {
-			return;
-		}
 		const {
 			source: { file, source_file },
 			analysis: { stage_timer },
 		} = context.state();
-		stage_timer.measure("file-analysis.typescript.coding-rules.root-rules.namespace", () => {
-			for (const node of this.placement_violation_nodes(namespaces, source_file)) {
-				const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
-				context.append_violation(this._namespace_rule.violation(file, line, {}));
-			}
+		stage_timer.measure(`rule.${RULE_IDS.typescript_namespace_file}`, () => {
+			stage_timer.measure("file-analysis.typescript.coding-rules.root-rules.namespace", () => {
+				const namespaces = this._namespaces.get(context);
+				this._namespaces.delete(context);
+				if (namespaces === undefined || namespaces.length === 0) {
+					return;
+				}
+				for (const node of this.placement_violation_nodes(namespaces, source_file)) {
+					const line = source_file.getLineAndCharacterOfPosition(node.getStart(source_file)).line + 1;
+					context.append_violation(this._namespace_rule.violation(file, line, {}));
+				}
+			});
 		});
 	}
 }

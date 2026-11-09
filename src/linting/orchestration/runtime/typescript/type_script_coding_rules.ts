@@ -3,7 +3,6 @@ import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import type { RecoveredRuleContextInput } from "src/contracts/protocols/lint_runtime_protocols";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptSourceRuleRuntime } from "src/linting/orchestration/runtime/typescript/type_script_source_rule_runtime";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { ViolationValue } from "src/model/violation_value";
@@ -13,6 +12,7 @@ import type { ProjectNames } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
 import type { SyntaxContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 import type { RuleContextContract } from "src/types";
 import type { TypeScriptSourceVerificationRequest } from "src/typescript_analysis_types";
@@ -36,7 +36,7 @@ export class TypeScriptCodingRules {
 		const verifier_request: TypeScriptSourceVerificationRequest = {
 			source_root: source_file,
 			context,
-			stage_timer: context.state().analysis.stage_timer,
+			stage_timer: input.stage_timer,
 		};
 		verifier.verify_source_file(verifier_request);
 		return input.violations;
@@ -67,7 +67,7 @@ export class TypeScriptCodingRules {
 			this._project_names,
 			exports_context.module_exports(),
 		);
-		return runtime.context_for_source(input.violations, input.ast_file.normalized(), new LintStageTimer());
+		return runtime.context_for_source(input.violations, input.ast_file.normalized(), input.stage_timer);
 	}
 
 	/** Responsibilities: _recovered violation line assignment_. **/
@@ -114,7 +114,12 @@ export class TypeScriptCodingRules {
 	}
 
 	/** Responsibilities: _recovered rule violation collection_. **/
-	public append_recovered_rules(violations: ViolationContract[], file: string, text: string): void {
+	public append_recovered_rules(
+		violations: ViolationContract[],
+		file: string,
+		text: string,
+		stage_timer: LintStageTimerContract,
+	): void {
 		for (const [line, source] of this._syntax.split_lines(text).entries()) {
 			const recovered = this.recover_rule_source(source);
 			if (recovered.length === 0) {
@@ -126,9 +131,12 @@ export class TypeScriptCodingRules {
 				file,
 				ast_file,
 				traversal: new TypeScriptAstTraversal(ast_file.source_file_node()),
+				stage_timer,
 			};
-			const found = this.analyze_recovered_source(input, recovered);
-			this.append_source_violations(violations, found, line + 1);
+			stage_timer.measure("typescript.ast-rule.recovered-source", () => {
+				const found = this.analyze_recovered_source(input, recovered);
+				this.append_source_violations(violations, found, line + 1);
+			});
 		}
 	}
 }

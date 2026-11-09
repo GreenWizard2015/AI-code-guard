@@ -73,6 +73,39 @@ describe("coding lint project context timing", () => {
 		}).toEqual({ post_remaining: true, coding_rules: true, ast_rules: true, node_dispatch: true });
 	});
 
+	test("times syntax rules only for applicable node kinds", () => {
+		const sources = [
+			"const result = 1;",
+			`function is_text(value: unknown): value is string {
+	return typeof value === "string";
+}
+			const result = is_text("ready");`,
+			"type ExistingAlias = ExistingType;",
+		];
+		const timing_results: { has_bind: boolean; has_type_guard: boolean; has_bare_alias: boolean }[] = [];
+		for (const source of sources) {
+			const request = fixture.fixture_lint_request({ "tools/coding-lint/index.ts": source });
+			const source_io = new InMemoryProjectSourceIO(request.options.source_texts);
+			const file_io = new InMemoryFileIO();
+			file_io.seed_files(request.options.source_texts);
+			const options = { ...request.options, source_texts: new Map<string, string>() };
+			const configuration = new LintRunConfiguration(source_io, file_io);
+			configuration.lint_report(options, LintReportMode.PROJECT);
+			const rule_timings = new Set(options.stage_timer.durations().map((duration) => duration.name));
+			timing_results.push({
+				has_bind: rule_timings.has("rule.typescript-bind"),
+				has_type_guard: rule_timings.has("rule.typescript-type-guard"),
+				has_bare_alias: rule_timings.has("rule.typescript-bare-type-alias"),
+			});
+		}
+
+		expect(timing_results).toEqual([
+			{ has_bind: false, has_type_guard: false, has_bare_alias: false },
+			{ has_bind: true, has_type_guard: true, has_bare_alias: false },
+			{ has_bind: false, has_type_guard: false, has_bare_alias: true },
+		]);
+	});
+
 	test("keeps run-local source records and Python parse statistics", () => {
 		const request = fixture.fixture_lint_request({
 			"tools/coding-lint/index.ts": "export const value = 1;\n",

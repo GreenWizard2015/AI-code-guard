@@ -4,12 +4,14 @@ import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { DiagnosticRuleContract } from "src/model/protocols";
 import type { PythonHacksContract } from "src/python_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 import type { PythonAssignment, ReturnViolationContext, StatementContext } from "src/model_types";
 
 /** Responsibilities: _pointless operations_, _assignment forms_. **/
 export class PythonHacks implements PythonHacksContract {
 	private readonly _pointless_rule: DiagnosticRuleContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _normalization assignment statement conversion_. **/
 	private assignment_candidate(statement: AstStatementNode): PythonAssignment[] {
@@ -80,8 +82,9 @@ export class PythonHacks implements PythonHacksContract {
 	}
 
 	/** Responsibilities: _pointless assignment rule setup_. **/
-	public constructor(pointless_rule_id: string) {
+	public constructor(pointless_rule_id: string, stage_timer: LintStageTimerContract) {
 		this._pointless_rule = new DiagnosticRule(pointless_rule_id);
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _classification aggregation violations Python_. **/
@@ -103,15 +106,17 @@ export class PythonHacks implements PythonHacksContract {
 		file: string,
 		callables: AstCallableNode[],
 	): void {
-		for (const callable of callables) {
-			const candidates: PythonAssignment[] = [];
-			let statements = callable.signature.statements;
-			if (statements === undefined) {
-				statements = [];
+		this._stage_timer.measure("rule.pointless-assignment.python", () => {
+			for (const callable of callables) {
+				const candidates: PythonAssignment[] = [];
+				let statements = callable.signature.statements;
+				if (statements === undefined) {
+					statements = [];
+				}
+				for (const statement of statements) {
+					this.append_statement({ violations, file, candidates, statement });
+				}
 			}
-			for (const statement of statements) {
-				this.append_statement({ violations, file, candidates, statement });
-			}
-		}
+		});
 	}
 }

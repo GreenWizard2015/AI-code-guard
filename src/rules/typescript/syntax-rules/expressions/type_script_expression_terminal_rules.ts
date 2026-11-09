@@ -4,6 +4,7 @@ import { BROAD_CATCH, TYPEOF, TYPE_ASSERTION } from "src/parser/internals/consta
 import { TypeScriptCatchClause } from "src/rules/typescript/syntax-rules/expressions/catch/type_script_catch_clause";
 import { TypeScriptJsonParseCatchBoundary } from "src/rules/typescript/syntax-rules/expressions/catch/type_script_json_parse_catch_boundary";
 import { TypeScriptVmExecutionCatchBoundary } from "src/rules/typescript/syntax-rules/expressions/catch/type_script_vm_execution_catch_boundary";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type { TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptExpressionRuleContract } from "src/typescript_runtime_protocols";
@@ -77,11 +78,17 @@ export class TypeScriptExpressionTerminalRules implements TypeScriptExpressionRu
 	}
 
 	/** Responsibilities: _terminal expression rule collection_. **/
-	public append(expression_node: ts.Node, append_rule: CallableRuleAppender): void {
-		if (ts.isCatchClause(expression_node)) {
-			this.append_catch_clause(expression_node, append_rule);
-			return;
-		}
-		this.append_value_rules(expression_node, append_rule);
+	public append(
+		expression_node: ts.Node,
+		append_rule: CallableRuleAppender,
+		stage_timer: LintStageTimerContract,
+	): void {
+		stage_timer.measure("typescript-expression.terminal-rules", () => {
+			if (ts.isCatchClause(expression_node)) {
+				this.append_catch_clause(expression_node, append_rule);
+				return;
+			}
+			this.append_value_rules(expression_node, append_rule);
+		});
 	}
 }

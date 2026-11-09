@@ -28,7 +28,6 @@ export class TypeScriptCoreAstRegistrations {
 			ts.SyntaxKind.InterfaceDeclaration,
 			ts.SyntaxKind.GetAccessor,
 			ts.SyntaxKind.SetAccessor,
-			ts.SyntaxKind.PropertyDeclaration,
 			ts.SyntaxKind.Constructor,
 			ts.SyntaxKind.MethodDeclaration,
 			ts.SyntaxKind.FunctionDeclaration,
@@ -40,7 +39,6 @@ export class TypeScriptCoreAstRegistrations {
 			ts.SyntaxKind.ConstructSignature,
 			ts.SyntaxKind.JSDocFunctionType,
 			ts.SyntaxKind.ConstructorType,
-			ts.SyntaxKind.TupleType,
 			ts.SyntaxKind.SourceFile,
 		]);
 	}
@@ -49,14 +47,10 @@ export class TypeScriptCoreAstRegistrations {
 	private register_syntax_expressions(syntax_rules: ASTSourceRuleContract): void {
 		this._registry.register(syntax_rules, [
 			ts.SyntaxKind.BinaryExpression,
-			ts.SyntaxKind.PrefixUnaryExpression,
-			ts.SyntaxKind.PostfixUnaryExpression,
 			ts.SyntaxKind.CallExpression,
 			ts.SyntaxKind.NewExpression,
 			ts.SyntaxKind.PropertyAccessExpression,
 			ts.SyntaxKind.ElementAccessExpression,
-			ts.SyntaxKind.ForInStatement,
-			ts.SyntaxKind.ForOfStatement,
 		]);
 	}
 

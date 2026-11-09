@@ -5,6 +5,7 @@ import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { ClassReferenceMetric } from "src/rules/class_reference_metric";
 import type { ProjectViolationsByScope } from "src/rules/typescript/syntax-rules/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
 import ts from "typescript";
@@ -14,24 +15,30 @@ export class TypeScriptProjectClassFieldRules implements ASTSourceRuleContract {
 	private readonly _violations_by_scope: ProjectViolationsByScope;
 
 	/** Responsibilities: _project class-field diagnostic index_. **/
-	private violations_by_file(scope: ProjectSourceAnalysisOptions): ReadonlyMap<string, readonly ViolationContract[]> {
+	private violations_by_file(
+		scope: ProjectSourceAnalysisOptions,
+		stage_timer: LintStageTimerContract,
+	): ReadonlyMap<string, readonly ViolationContract[]> {
 		const cached = this._violations_by_scope.get(scope);
 		if (cached !== undefined) {
 			return cached;
 		}
-		const grouped = this.index_project_violations(scope);
+		const grouped = this.index_project_violations(scope, stage_timer);
 		this._violations_by_scope.set(scope, grouped);
 		return grouped;
 	}
 
 	/** Responsibilities: _project violation indexing_. **/
-	private index_project_violations(scope: ProjectSourceAnalysisOptions): Map<string, ViolationContract[]> {
+	private index_project_violations(
+		scope: ProjectSourceAnalysisOptions,
+		stage_timer: LintStageTimerContract,
+	): Map<string, ViolationContract[]> {
 		const analysis = new TypeScriptContextClassFieldAnalysis(scope.project_files, scope.root, scope.context);
-		const violations = analysis.collect();
+		const violations = stage_timer.measure("rule.class-field-import.typescript", () => analysis.collect());
 		const sources = scope.context.files().filter((source) => source.language === TYPESCRIPT_LANGUAGE);
 		const path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
 		const reference_metric = new ClassReferenceMetric(path_syntax);
-		const reference_violations = reference_metric.language_class_refs(sources, TYPESCRIPT_LANGUAGE);
+		const reference_violations = reference_metric.language_class_refs(sources, TYPESCRIPT_LANGUAGE, stage_timer);
 		violations.push(...reference_violations);
 		return this.group_by_file(violations);
 	}
@@ -69,7 +76,12 @@ export class TypeScriptProjectClassFieldRules implements ASTSourceRuleContract {
 		if (!rule_scope.project_scope()) {
 			return;
 		}
-		for (const violation of this.violations_by_file(rule_scope.project_analysis()).get(file) ?? []) {
+		const violations_by_file = this.violations_by_file(
+			rule_scope.project_analysis(),
+			request.context.state().analysis.stage_timer,
+		);
+		const file_violations = violations_by_file.get(file) ?? [];
+		for (const violation of file_violations) {
 			request.context.append_violation(violation);
 		}
 	}

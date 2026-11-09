@@ -51,7 +51,7 @@ export class FileRemainingViolationCollector {
 			source.traversal,
 		);
 		if (options.python) {
-			options.violations.push(...this._coding_rule_linter.lint_python(source_ast));
+			options.violations.push(...this._coding_rule_linter.lint_python(source_ast, options.stage_timer));
 			return;
 		}
 		options.violations.push(...this._coding_rule_linter.lint_typescript(source_ast, options.stage_timer));
@@ -64,6 +64,15 @@ export class FileRemainingViolationCollector {
 		const normalized_ast = source.normalized_ast;
 		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.function-placement`, () =>
 			this._function_placement_rules.append(options.violations, options.file, normalized_ast.source.functions),
+		);
+	}
+
+	/** Responsibilities: _Python import fan-out diagnostics_. **/
+	private append_fan_out(): void {
+		const options = this._options;
+		const source = options.source;
+		options.stage_timer.measure("rule.import-fan-out.python", () =>
+			this._import_fan_out.append(options.violations, source),
 		);
 	}
 
@@ -101,9 +110,8 @@ export class FileRemainingViolationCollector {
 	/** Responsibilities: _common remaining violation stages_. **/
 	public append_common_rules(): void {
 		const options = this._options;
-		const source = options.source;
 		if (options.python) {
-			this._import_fan_out.append(options.violations, source);
+			this.append_fan_out();
 			this.append_function_placements();
 		}
 		this._text_rules.append(options);
@@ -118,11 +126,13 @@ export class FileRemainingViolationCollector {
 		if (!options.python) {
 			return;
 		}
-		const normalized_ast = options.source.normalized_ast;
-		const local_class_names = new Set(normalized_ast.source.classes.map((node) => node.identity.name));
-		const collector = new SingletonCollector(options.file, local_class_names, normalized_ast, this.source_file());
 		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.singletons`, () =>
-			options.violations.push(...collector.collect_violations(options.python)),
+			options.stage_timer.measure("rule.singleton.python", () => {
+				const normalized_ast = options.source.normalized_ast;
+				const local_class_names = new Set(normalized_ast.source.classes.map((node) => node.identity.name));
+				const collector = new SingletonCollector(options.file, local_class_names, normalized_ast, this.source_file());
+				options.violations.push(...collector.collect_violations(options.python));
+			}),
 		);
 	}
 
@@ -135,11 +145,13 @@ export class FileRemainingViolationCollector {
 		const source = options.source;
 		const normalized_ast = source.normalized_ast;
 		options.stage_timer.measure(`file-analysis.${this.language()}.post-remaining.type-declarations`, () =>
-			this.append_type_declarations(
-				options.violations,
-				options.file,
-				source.file_name,
-				normalized_ast.references.type_declarations,
+			options.stage_timer.measure("rule.functions-file-type-declaration.python", () =>
+				this.append_type_declarations(
+					options.violations,
+					options.file,
+					source.file_name,
+					normalized_ast.references.type_declarations,
+				),
 			),
 		);
 	}

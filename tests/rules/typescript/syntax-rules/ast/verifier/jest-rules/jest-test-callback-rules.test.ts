@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
 import { JestBindingIndex } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_binding_index";
 import { JestTestRules } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_test_rules";
@@ -27,7 +28,12 @@ describe("AST-detectable implementation hacks", () => {
 			ts.ScriptKind.TS,
 		);
 		const violations: ViolationContract[] = [];
-		const rules = new JestTestRules(source_file.fileName, source_file, new JestBindingIndex(source_file));
+		const rules = new JestTestRules(
+			source_file.fileName,
+			source_file,
+			new JestBindingIndex(source_file),
+			new LintStageTimer(),
+		);
 		rules.append_violations(violations, new TestModuleResolver());
 
 		expect(violations.filter((violation) => violation.rule_id() === "typescript-jest-test-ending")).toHaveLength(1);
@@ -47,7 +53,12 @@ describe("AST-detectable implementation hacks", () => {
 			ts.ScriptKind.TS,
 		);
 		const violations: ViolationContract[] = [];
-		const rules = new JestTestRules(source_file.fileName, source_file, new JestBindingIndex(source_file));
+		const rules = new JestTestRules(
+			source_file.fileName,
+			source_file,
+			new JestBindingIndex(source_file),
+			new LintStageTimer(),
+		);
 		rules.append_violations(violations, new TestModuleResolver());
 
 		expect({
@@ -70,7 +81,12 @@ describe("AST-detectable implementation hacks", () => {
 			ts.ScriptKind.TS,
 		);
 		const violations: ViolationContract[] = [];
-		const rules = new JestTestRules(source_file.fileName, source_file, new JestBindingIndex(source_file));
+		const rules = new JestTestRules(
+			source_file.fileName,
+			source_file,
+			new JestBindingIndex(source_file),
+			new LintStageTimer(),
+		);
 		rules.append_violations(violations, new TestModuleResolver());
 		const lambda_lines = violations
 			.filter((violation) => violation.rule_id() === "typescript-jest-test-lambda")
@@ -92,7 +108,12 @@ describe("AST-detectable implementation hacks", () => {
 			ts.ScriptKind.TS,
 		);
 		const violations: ViolationContract[] = [];
-		const rules = new JestTestRules(source_file.fileName, source_file, new JestBindingIndex(source_file));
+		const rules = new JestTestRules(
+			source_file.fileName,
+			source_file,
+			new JestBindingIndex(source_file),
+			new LintStageTimer(),
+		);
 		rules.append_violations(violations, new TestModuleResolver());
 		expect({
 			lambda: violations

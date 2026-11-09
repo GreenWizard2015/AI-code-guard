@@ -4,6 +4,7 @@ import type { AstCallableNode, NamedLine } from "src/model/ast/normalized_ast_ty
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _callable annotation checks_, _callback contract limits_. **/
 export class PythonCallableTypeRules {
@@ -140,11 +141,17 @@ export class PythonCallableTypeRules {
 	}
 
 	/** Responsibilities: _callable type validation_. **/
-	public append_callable_types(): void {
+	public append_return_types(): void {
 		for (const callable of this._callables) {
 			if (!callable.signature.return_type) {
 				this._violations.push(this._return_type_rule.violation(this._file, callable.identity.start + 1, {}));
 			}
+		}
+	}
+
+	/** Responsibilities: _callable parameter type validation_. **/
+	public append_parameter_types(): void {
+		for (const callable of this._callables) {
 			for (const name of callable.signature.untyped_parameters) {
 				this._violations.push(this._parameter_type_rule.violation(this._file, callable.identity.start + 1, { name }));
 			}
@@ -171,9 +178,9 @@ export class PythonCallableTypeRules {
 	}
 
 	/** Responsibilities: _inline callable type diagnostics_. **/
-	public append_callable_aliases(): void {
-		this.append_callable_declarations();
-		this.append_callable_signatures();
-		this.append_callable_fields();
+	public append_callable_aliases(stage_timer: LintStageTimerContract): void {
+		stage_timer.measure("rule.callable-type-alias.python.declarations", () => this.append_callable_declarations());
+		stage_timer.measure("rule.callable-type-alias.python.signatures", () => this.append_callable_signatures());
+		stage_timer.measure("rule.callable-type-alias.python.fields", () => this.append_callable_fields());
 	}
 }

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { LiteralConstantReferenceIndex } from "src/literal_constant_reference_index";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TestFixture } from "tests/core/test-fixture";
@@ -188,6 +189,7 @@ describe("project-wide repeated literal analysis", () => {
 			sources,
 			new DiagnosticRule("literal-constant-reuse"),
 			new DiagnosticRule("repeated-literal"),
+			new LintStageTimer(),
 		);
 		ordered_index.register_constants();
 		ordered_index.register_references();
@@ -198,6 +200,7 @@ describe("project-wide repeated literal analysis", () => {
 			reversed_sources,
 			new DiagnosticRule("literal-constant-reuse"),
 			new DiagnosticRule("repeated-literal"),
+			new LintStageTimer(),
 		);
 		reversed_index.register_constants();
 		reversed_index.register_references();

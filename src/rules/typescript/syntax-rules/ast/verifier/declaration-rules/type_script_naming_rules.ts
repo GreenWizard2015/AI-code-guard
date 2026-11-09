@@ -167,7 +167,13 @@ export class TypeScriptNamingRules implements ASTSourceRuleContract {
 	/** Responsibilities: _naming violation reporting_. **/
 	private append_matches(context: RuleContextContract, scope: NamingScope, matches: NamingMatches): void {
 		const violations: ViolationContract[] = [];
-		const naming = new NamingSupport(scope.file, matches.symbols, scope.classes, matches.declarations);
+		const naming = new NamingSupport(
+			scope.file,
+			matches.symbols,
+			scope.classes,
+			matches.declarations,
+			context.state().analysis.stage_timer,
+		);
 		if (matches.symbols.length > 0) {
 			naming.append_symbol_violations(violations);
 			naming.report_symbol_numbers(violations);

@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 
 from implementation.rules.constants import (
+    PYTHON_COMPLEX_CONSTRUCTOR_RULE,
+    PYTHON_FIELD_IN_CONSTRUCTOR_RULE,
     PYTHON_INIT_METHOD,
     PYTHON_POST_INIT_METHOD,
     PYTHON_VALIDATION_PREFIXES,
@@ -153,7 +155,7 @@ class ConstructorRules(PythonConstructorRulesContract):
                     statements.append(item)
         if all(self.statement_allowed(item) for item in statements):
             return []
-        return [{"line": line - 1, "kind": "complex-constructor"}]
+        return [{"line": line - 1, "kind": PYTHON_COMPLEX_CONSTRUCTOR_RULE}]
 
     def field_constructor_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _class field construction violations_."""
@@ -171,5 +173,5 @@ class ConstructorRules(PythonConstructorRulesContract):
                 continue
             if self._constructor_call_name(value.func) == "field":
                 continue
-            issues.append({"line": item.lineno - 1, "kind": "field-in-constructor"})
+            issues.append({"line": item.lineno - 1, "kind": PYTHON_FIELD_IN_CONSTRUCTOR_RULE})
         return issues

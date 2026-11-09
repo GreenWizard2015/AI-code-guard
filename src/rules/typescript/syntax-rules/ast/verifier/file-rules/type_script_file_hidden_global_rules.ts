@@ -1,4 +1,5 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
+import { RULE_IDS } from "src/linting/constants";
 import { TypeScriptHiddenGlobalStateIndex } from "src/rules/typescript/syntax-rules/ast/verifier/file-rules/type_script_hidden_global_state_index";
 import type { TypeScriptHiddenGlobalStateIndexContract } from "src/rules/typescript/syntax-rules/types";
 import type {
@@ -24,32 +25,36 @@ export class TypeScriptFileHiddenGlobalRules implements ASTSourceRuleContract {
 	/** Responsibilities: _hidden global state policy_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { context, node } = request;
-		if (ts.isSourceFile(node)) {
-			this._state_index.reset_source();
-			return;
-		}
-		if (ts.isVariableStatement(node)) {
-			this._state_index.append_collection_declarations(node, context.state().source.source_file);
-			return;
-		}
-		if (ts.isBinaryExpression(node) || ts.isCallExpression(node)) {
-			this._state_index.append_mutation(context, node);
-		}
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.hidden_global_state}.typescript`, () => {
+			if (ts.isSourceFile(node)) {
+				this._state_index.reset_source();
+				return;
+			}
+			if (ts.isVariableStatement(node)) {
+				this._state_index.append_collection_declarations(node, context.state().source.source_file);
+				return;
+			}
+			if (ts.isBinaryExpression(node) || ts.isCallExpression(node)) {
+				this._state_index.append_mutation(context, node);
+			}
+		});
 	}
 
 	/** Responsibilities: _shared state source reporting_. **/
 	public finish_source(request: TypeScriptSourceVerificationRequest): void {
 		const { context } = request;
-		const mutations = this._state_index.take_mutations(context);
-		if (mutations.length === 0) {
+		context.state().analysis.stage_timer.measure(`rule.${RULE_IDS.hidden_global_state}.typescript`, () => {
+			const mutations = this._state_index.take_mutations(context);
+			if (mutations.length === 0) {
+				this._state_index.reset_source();
+				return;
+			}
+			if (context.state().source.test_file) {
+				this._state_index.reset_source();
+				return;
+			}
+			this._state_index.report_shared_state(context, mutations);
 			this._state_index.reset_source();
-			return;
-		}
-		if (context.state().source.test_file) {
-			this._state_index.reset_source();
-			return;
-		}
-		this._state_index.report_shared_state(context, mutations);
-		this._state_index.reset_source();
+		});
 	}
 }

@@ -5,6 +5,10 @@ from collections import deque
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.protocols import PythonTupleTypeNamesContract
+from implementation.rules.constants import (
+    PYTHON_INLINE_GENERIC_TYPE_RULE,
+    PYTHON_TUPLE_TYPE_RULE,
+)
 from implementation.types import JsonObject, PythonCallableAstNode
 
 
@@ -42,7 +46,7 @@ class PythonDeclaredAnnotationIssues:
         """Responsibilities: _annotation rule checks_."""
         issues: list[JsonObject] = []
         if self._tuple_type_names.annotation(annotation):
-            issues.append({"line": annotation.lineno - 1, "kind": "tuple-type"})
+            issues.append({"line": annotation.lineno - 1, "kind": PYTHON_TUPLE_TYPE_RULE})
         if self._contains_string_literal(annotation):
             issues.append(
                 {
@@ -98,7 +102,7 @@ class PythonDeclaredAnnotationIssues:
         if return_annotation is not None:
             annotations.append(return_annotation)
         return [
-            {"line": annotation.lineno - 1, "kind": "inline-generic-type"}
+            {"line": annotation.lineno - 1, "kind": PYTHON_INLINE_GENERIC_TYPE_RULE}
             for annotation in annotations
             if self._nested_generic(annotation)
         ]

@@ -67,7 +67,11 @@ export class ASTVerifier implements ASTVerifierContract {
 		if (candidates !== undefined) {
 			const request: TypeScriptNodeVerificationRequest = { node, context };
 			for (const candidate of candidates) {
-				candidate.verify_if_match(request);
+				context
+					.state()
+					.analysis.stage_timer.measure(`typescript.ast-rule.${candidate.timing_name()}`, () =>
+						candidate.verify_if_match(request),
+					);
 			}
 		}
 	}
@@ -83,9 +87,13 @@ export class ASTVerifier implements ASTVerifierContract {
 				context,
 			);
 			for (const rule of this._source_finalizers) {
-				if (rule.finish_source !== undefined) {
-					rule.finish_source(request);
+				const finalizer = rule.finish_source;
+				if (finalizer === undefined) {
+					continue;
 				}
+				stage_timer.measure(`typescript.ast-rule.${rule.constructor.name}.finalize`, () =>
+					finalizer.call(rule, request),
+				);
 			}
 		});
 	}

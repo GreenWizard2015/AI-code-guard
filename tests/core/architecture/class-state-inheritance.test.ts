@@ -1,9 +1,9 @@
 import "src/core/lint_project_context_creator";
-import "src/lint_stage_timer";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
@@ -147,6 +147,7 @@ describe("class state ownership", () => {
 			dependencies: [],
 		});
 		const reporter = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("external.ts"),
 			node,
@@ -190,6 +191,7 @@ describe("class state ownership", () => {
 			dependencies: [],
 		});
 		const reporter = new ClassStructureReporter({
+			stage_timer: new LintStageTimer(),
 			violations,
 			file_name: new LintFileName("adapter.py"),
 			node,

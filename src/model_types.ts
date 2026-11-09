@@ -62,6 +62,7 @@ export type TestFrameworkFile = { source: LintSourceRecordData; framework: Pytho
 
 export type FileLinterOptions = {
 	repo_root: string;
+	stage_timer: LintStageTimerContract;
 	project_names: ProjectNames;
 	context: LintProjectContextContract;
 	ignored_files: ReadonlySet<string>;

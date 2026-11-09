@@ -33,17 +33,20 @@ export class TypeScriptTemporalCouplingRules implements ASTSourceRuleContract {
 
 	/** Responsibilities: _class state protocol dispatch_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
-		if (!ts.isClassDeclaration(request.node)) {
-			return;
-		}
-		const source_state = request.context.state().source;
-		if (source_state.test_file) {
-			return;
-		}
-		const violations: ViolationContract[] = [];
-		this.analysis(request).append_class(violations, source_state.file, request.node);
-		for (const violation of violations) {
-			request.context.append_violation(violation);
-		}
+		const { context, node } = request;
+		context.state().analysis.stage_timer.measure("rule.temporal-coupling.typescript", () => {
+			if (!ts.isClassDeclaration(node)) {
+				return;
+			}
+			const source_state = context.state().source;
+			if (source_state.test_file) {
+				return;
+			}
+			const violations: ViolationContract[] = [];
+			this.analysis(request).append_class(violations, source_state.file, node);
+			for (const violation of violations) {
+				context.append_violation(violation);
+			}
+		});
 	}
 }

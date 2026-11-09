@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import ast
 
+from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.coding_issues.primary_rule_protocols import (
     PythonPrimaryRuleSetContract,
-    PythonPrimaryRuleStateContract,
 )
-from implementation.rules.coding_issues.primary_rule_set import PythonPrimaryRuleState
 from implementation.rules.constants import MAX_CALLABLE_BRANCHES
-from implementation.rules.protocols import PythonCodingIssueComponentContextContract
+from implementation.rules.protocols import PythonCodingIssueComponentContextContract, PythonTypeRulesContract
 from implementation.rules.type_rules.type_rules import TypeRules
 from implementation.rules.type_rules.type_rules_options import TypeRulesOptions
 from implementation.types import CallablePythonRuleStage, JsonObject
@@ -17,7 +16,9 @@ from implementation.types import CallablePythonRuleStage, JsonObject
 class PythonCodingIssuePrimaryRules:
     """Responsibilities: _rule stage composition_, _branch count preparation_."""
 
-    _state: PythonPrimaryRuleStateContract
+    _rule_set: PythonPrimaryRuleSetContract
+    _type_rules: PythonTypeRulesContract
+    _node_index: PythonAstNodeIndexContract
     _branch_counts: dict[ast.AST, int]
     _prepared_tree: ast.AST
     _callable_nodes: list[ast.AST]
@@ -52,7 +53,7 @@ class PythonCodingIssuePrimaryRules:
         while current not in self._callable_owners:
             if type(current) in (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda):
                 break
-            parents = self._state.node_index.parents(current)
+            parents = self._node_index.parents(current)
             if not parents:
                 return node
             path.append(current)
@@ -72,7 +73,7 @@ class PythonCodingIssuePrimaryRules:
             return self._callable_nodes
         return [
             node
-            for node in self._state.node_index.nodes(requested_tree)
+            for node in self._node_index.nodes(requested_tree)
             if type(node) is ast.FunctionDef or type(node) is ast.AsyncFunctionDef
         ]
 
@@ -82,7 +83,7 @@ class PythonCodingIssuePrimaryRules:
         self._callable_nodes.clear()
         self._callable_owners.clear()
         self._prepared_tree = analysis_tree
-        for node in self._state.node_index.nodes(analysis_tree):
+        for node in self._node_index.nodes(analysis_tree):
             if type(node) is ast.FunctionDef or type(node) is ast.AsyncFunctionDef:
                 self._callable_nodes.append(node)
             branch_count = self._branch_count_node(node)
@@ -119,11 +120,9 @@ class PythonCodingIssuePrimaryRules:
                 rule_set.tuple_type_names,
             ),
         )
-        self._state: PythonPrimaryRuleStateContract = PythonPrimaryRuleState(
-            rule_set,
-            type_rules,
-            context.node_index(),
-        )
+        self._rule_set = rule_set
+        self._type_rules = type_rules
+        self._node_index = context.node_index()
         self._branch_counts: dict[ast.AST, int] = {}
         self._prepared_tree: ast.AST = context.tree()
         self._callable_nodes: list[ast.AST] = []
@@ -131,11 +130,11 @@ class PythonCodingIssuePrimaryRules:
 
     def stages(self) -> list[CallablePythonRuleStage]:
         """Responsibilities: _primary Python rule stages_."""
-        rules = self._state.rule_set
+        rules = self._rule_set
         return [
             rules.constructor_rules.collect_constructor_issues,
-            self._state.type_rules.collect_type_issues,
-            self._state.type_rules.collect_generic_types,
+            self._type_rules.collect_type_issues,
+            self._type_rules.collect_generic_types,
             rules.exception_rules.try_statement_issues,
             rules.call_rules.issues,
         ]
@@ -149,14 +148,21 @@ class PythonCodingIssuePrimaryRules:
 
     def prepare(self, analysis_tree: ast.AST) -> None:
         """Responsibilities: _primary Python rule preparation_."""
-        rules = self._state.rule_set
+        rules = self._rule_set
         self._prepare_branch_counts(analysis_tree)
         rules.decorator_aliases.observe_module(analysis_tree)
-        self._state.type_rules.prepare()
+        self._type_rules.prepare()
         rules.dynamic_type_rules.configure_imports(analysis_tree)
         rules.exception_aliases.configure_imports(analysis_tree)
         rules.call_rules.configure_reflection()
 
     def rule_set(self) -> PythonPrimaryRuleSetContract:
         """Responsibilities: _primary rule dependency access_."""
-        return self._state.rule_set
+        return self._rule_set
+
+    def timings_data(self) -> dict[str, float]:
+        """Responsibilities: _primary rule timing access_."""
+        timings = self._type_rules.timings_data()
+        for name, duration in self._rule_set.exception_rules.timings_data().items():
+            timings[name] = timings.get(name, 0.0) + duration
+        return timings

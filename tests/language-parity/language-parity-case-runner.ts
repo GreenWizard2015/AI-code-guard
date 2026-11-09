@@ -116,7 +116,7 @@ export class LanguageParityCaseRunner implements LanguageParityCaseRunnerContrac
 			);
 			return this.pair(
 				typescript_linter.lint_typescript(typescript_source, new LintStageTimer()),
-				python_linter.lint_python(python_source),
+				python_linter.lint_python(python_source, new LintStageTimer()),
 				item.rule_id,
 			);
 		});

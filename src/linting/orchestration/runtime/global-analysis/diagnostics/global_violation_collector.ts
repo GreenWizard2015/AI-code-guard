@@ -92,6 +92,7 @@ export class GlobalViolationCollector {
 		this._literal_constant_rules = new LiteralConstantRules(
 			new DiagnosticRule("literal-constant-reuse"),
 			new DiagnosticRule("repeated-literal"),
+			this._stage_timer,
 		);
 	}
 

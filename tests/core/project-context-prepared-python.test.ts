@@ -5,6 +5,7 @@ import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { SourceText } from "src/io/source_text";
+import { LintStageTimer } from "src/lint_stage_timer";
 import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
 import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
 import { TypeScriptSourceRuleRuntime } from "src/linting/orchestration/runtime/typescript/type_script_source_rule_runtime";
@@ -67,7 +68,7 @@ describe("project context prepared Python AST", () => {
 		const module_exports = module_exports_context.module_exports();
 		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports);
 		const linter = new CodingRuleLinter(runtime, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
-		const violations = linter.lint_python(source_ast);
+		const violations = linter.lint_python(source_ast, new LintStageTimer());
 
 		expect(violations.map((violation) => [violation.line(), violation.rule_id()])).toEqual([[1, "python-elif"]]);
 	});
@@ -77,7 +78,7 @@ describe("project context prepared Python AST", () => {
 		const module_exports = module_exports_context.module_exports();
 		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports);
 		const linter = new CodingRuleLinter(runtime, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
-		const violations = linter.lint_python(source_ast);
+		const violations = linter.lint_python(source_ast, new LintStageTimer());
 
 		expect(violations).toEqual([]);
 	});

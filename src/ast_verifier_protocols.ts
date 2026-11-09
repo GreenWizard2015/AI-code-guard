@@ -54,6 +54,7 @@ export interface ASTVerifierNodeRegistrationContract {
 
 /** Responsibilities: _AST verifier grouping_. **/
 export interface ASTVerifierNodeGroupContract {
+	timing_name(): string;
 	shares_verifier(verifier: ASTNodeVerificationContract): boolean;
 	append_registration(registration: ASTVerifierNodeRegistrationContract): void;
 	append_match(node: ts.Node, selected: ASTNodeVerificationContract[]): void;

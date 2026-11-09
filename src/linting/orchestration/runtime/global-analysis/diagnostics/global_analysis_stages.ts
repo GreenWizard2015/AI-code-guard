@@ -93,7 +93,11 @@ export class GlobalAnalysisStages {
 	private class_fields(): ViolationContract[] {
 		const class_rules = new ClassRules(this._import_context);
 		return this._stage_timer.measure("global-analysis.class-fields", () =>
-			class_rules.python_context_fields({ files: this._project_files, repo_root: this._repo_root }, this._context),
+			class_rules.python_context_fields(
+				{ files: this._project_files, repo_root: this._repo_root },
+				this._context,
+				this._stage_timer,
+			),
 		);
 	}
 
@@ -187,15 +191,17 @@ export class GlobalAnalysisStages {
 
 	/** Responsibilities: _collection reporting shared parameter_. **/
 	public parameter_violations(language: string): ViolationContract[] {
-		const groups = this.callable_groups();
-		const candidates = groups
-			.filter((group) => group.every((callable) => callable.language === language))
-			.flatMap((callable_group) => {
-				const analyzer = new SharedParameterAnalyzer(callable_group);
-				return analyzer.collect_candidates();
-			});
-		const reporter = new SharedParameterReporter(candidates);
-		return reporter.violations();
+		return this._stage_timer.measure(`rule.shared-parameter.${language}-module-functions`, () => {
+			const groups = this.callable_groups();
+			const candidates = groups
+				.filter((group) => group.every((callable) => callable.language === language))
+				.flatMap((callable_group) => {
+					const analyzer = new SharedParameterAnalyzer(callable_group);
+					return analyzer.collect_candidates();
+				});
+			const reporter = new SharedParameterReporter(candidates);
+			return reporter.violations();
+		});
 	}
 
 	/** Responsibilities: _collection shared analysis violations_. **/

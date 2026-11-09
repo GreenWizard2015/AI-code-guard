@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 from typing import cast
 
+from implementation.rules.constants import PYTHON_OBJECT_FIELD_WRITE_RULE
 from implementation.types import JsonObject, PythonASTLocatedNode
 
 
@@ -72,6 +73,6 @@ class PythonFieldMutationCollector:
         return [
             {
                 "line": cast(PythonASTLocatedNode, invalid_targets[0]).lineno - 1,
-                "kind": "object-field-write",
+                "kind": PYTHON_OBJECT_FIELD_WRITE_RULE,
             },
         ]

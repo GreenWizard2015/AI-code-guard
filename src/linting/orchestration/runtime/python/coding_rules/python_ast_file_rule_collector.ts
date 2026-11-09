@@ -23,6 +23,7 @@ import type { ViolationContract } from "src/reporting_protocols";
 import { ClassRules } from "src/rules/class_rules";
 import { IMPORT_RULE_IDS } from "src/rules/constants";
 import { MixCollection } from "src/rules/mix_collection";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { DirectoryCommentSegmentsContract, TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { TestPathKind } from "src/types";
@@ -45,6 +46,7 @@ export class PythonAstFileRuleCollector {
 	private readonly _module_functions: readonly AstCallableNode[];
 
 	private readonly _violations: ViolationContract[];
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _construction Python operation inputs_. **/
 	private operations(): PythonOperationInput {
@@ -155,13 +157,15 @@ export class PythonAstFileRuleCollector {
 
 	/** Responsibilities: _mixed module violation collection_. **/
 	private append_mixed_violations(): void {
-		const mix_collection = new MixCollection(
-			this._file_name,
-			this._class_nodes,
-			this._module_functions,
-			new DiagnosticRule(RULE_IDS.mixed_module),
-		);
-		mix_collection.append_mix_violations(this._violations);
+		this._stage_timer.measure("rule.mixed-module.python", () => {
+			const mix_collection = new MixCollection(
+				this._file_name,
+				this._class_nodes,
+				this._module_functions,
+				new DiagnosticRule(RULE_IDS.mixed_module),
+			);
+			mix_collection.append_mix_violations(this._violations);
+		});
 	}
 
 	/** Responsibilities: _aggregation basic class structure_. **/
@@ -187,26 +191,34 @@ export class PythonAstFileRuleCollector {
 
 	/** Responsibilities: _contract field diagnostics_. **/
 	private contract_field_diagnostics(): void {
-		const rule = new DiagnosticRule("public-field-on-contract-implementation");
-		for (const class_node of this._class_nodes) {
-			const implements_protocol = class_node.structure.base_class_names.some((name) =>
-				this._project_protocol_names.has(name),
-			);
-			if (!implements_protocol) {
-				continue;
-			}
-			for (const field of class_node.field_analysis.fields) {
-				if (field.visibility !== "public") {
+		this._stage_timer.measure("rule.public-field-on-contract-implementation.python", () => {
+			const rule = new DiagnosticRule("public-field-on-contract-implementation");
+			for (const class_node of this._class_nodes) {
+				const implements_protocol = class_node.structure.base_class_names.some((name) =>
+					this._project_protocol_names.has(name),
+				);
+				if (!implements_protocol) {
 					continue;
 				}
-				this._violations.push(rule.violation(this._file_name.value(), field.line, {}));
+				for (const field of class_node.field_analysis.fields) {
+					if (field.visibility !== "public") {
+						continue;
+					}
+					this._violations.push(rule.violation(this._file_name.value(), field.line, {}));
+				}
 			}
-		}
+		});
 	}
 
 	/** Responsibilities: _initialization Python source data_. **/
-	public constructor(input: PythonLintInput, ast: NormalizedAstFile, production_import_names: ReadonlySet<string>) {
+	public constructor(
+		input: PythonLintInput,
+		ast: NormalizedAstFile,
+		production_import_names: ReadonlySet<string>,
+		stage_timer: LintStageTimerContract,
+	) {
 		this._violations = [];
+		this._stage_timer = stage_timer;
 		const syntax = new Syntax();
 		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
 		this._class_rules = new ClassRules({
@@ -239,10 +251,10 @@ export class PythonAstFileRuleCollector {
 	public collect_violations(): ViolationContract[] {
 		this.append_basics();
 		const input = this.input();
-		const metric_rules = new PythonMetricRuleCollector(input);
+		const metric_rules = new PythonMetricRuleCollector(input, this._stage_timer);
 		metric_rules.append_metrics();
 		metric_rules.append_type_rules();
-		const architecture_rules = new PythonArchitectureRuleCollector(input);
+		const architecture_rules = new PythonArchitectureRuleCollector(input, this._stage_timer);
 		architecture_rules.append_architecture_rules();
 		architecture_rules.append_syntax_rules();
 		return this._violations;

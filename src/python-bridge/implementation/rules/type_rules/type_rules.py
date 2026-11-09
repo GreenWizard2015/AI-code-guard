@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import ast
+from time import perf_counter
 from typing import cast
 
 from implementation.protocols import (
     PythonTupleTypeNamesContract,
     PythonTypeFactoryNamesContract,
+)
+from implementation.rules.constants import (
+    PYTHON_CLASS_METHOD_RULE,
+    PYTHON_STATIC_METHOD_RULE,
+    PYTHON_TUPLE_TYPE_RULE,
 )
 from implementation.rules.protocols import (
     PythonDecoratorAliasStateContract,
@@ -33,6 +39,28 @@ class TypeRules:
     _type_factory_names: PythonTypeFactoryNamesContract
     _type_factory_issues: PythonTypeFactoryIssuesContract
     _declared_annotation_issues: PythonDeclaredAnnotationIssuesContract
+    _timings: dict[str, float]
+
+    def _record_rule_timings(self, rule_ids: list[str], started: float) -> None:
+        """Responsibilities: _per-rule elapsed-time accumulation_."""
+        elapsed_ms = (perf_counter() - started) * 1000
+        for rule_id in rule_ids:
+            name = f"rule.{rule_id}"
+            self._timings[name] = self._timings.get(name, 0.0) + elapsed_ms
+
+    def _type_node_issues(self, syntax_node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _type node rule analysis_, _per-rule timing_."""
+        started = perf_counter()
+        annotation_issues = self._declared_annotation_issues.issues(syntax_node)
+        self._record_rule_timings([PYTHON_TUPLE_TYPE_RULE], started)
+        started = perf_counter()
+        kinds = self._decorator_rules.kinds(syntax_node)
+        self._record_rule_timings([PYTHON_STATIC_METHOD_RULE, PYTHON_CLASS_METHOD_RULE], started)
+        issues: list[JsonObject] = [
+            {"line": cast(PythonASTLocatedNode, syntax_node).lineno - 1, "kind": kind} for kind in kinds
+        ]
+        issues.extend(annotation_issues)
+        return issues
 
     def __init__(self, options: TypeRulesOptionsContract) -> None:
         """Responsibilities: _type rule analysis setup_."""
@@ -46,6 +74,7 @@ class TypeRules:
             options.tuple_type_names,
             options.node_index,
         )
+        self._timings = {}
 
     def prepare(self) -> None:
         """Responsibilities: _type factory alias preparation_."""
@@ -58,14 +87,13 @@ class TypeRules:
         self._tuple_type_names.observe(syntax_node)
         self._decorator_aliases.observe(syntax_node)
         factory_issues = self._type_factory_issues.issues(syntax_node)
-        annotation_issues = self._declared_annotation_issues.issues(syntax_node)
-        issues: list[JsonObject] = [
-            {"line": cast(PythonASTLocatedNode, syntax_node).lineno - 1, "kind": kind}
-            for kind in self._decorator_rules.kinds(syntax_node)
-        ]
+        issues = self._type_node_issues(syntax_node)
         issues.extend(factory_issues)
-        issues.extend(annotation_issues)
         return issues
+
+    def timings_data(self) -> dict[str, float]:
+        """Responsibilities: _type rule timing access_."""
+        return dict(self._timings.items())
 
     def collect_generic_types(self, callable_definition: ast.AST) -> list[JsonObject]:
         """Responsibilities: _callable generic issue collection_."""

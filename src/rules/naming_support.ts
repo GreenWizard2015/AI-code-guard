@@ -1,12 +1,13 @@
 import type { NamingValidationContract, NumericNameReportingContext } from "src/analysis_protocols";
 import { TEST_PATH_SUFFIXES, TYPE_FIELD_SYMBOL_KIND } from "src/constants";
+import { RULE_IDS } from "src/linting/constants";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 import type { AstClassNode, NamedLine, NamedSymbol } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import { NUMERIC_NAME_PATTERN } from "src/rules/constants";
+import { NUMERIC_NAME_PATTERN, NUMERIC_NAME_RULE_ID } from "src/rules/constants";
 import { NamingValidation } from "src/rules/naming_validation";
-import type { TestPathSyntaxContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract, TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { TestPathKind } from "src/types";
 
@@ -18,6 +19,7 @@ export class NamingSupport {
 	private readonly _type_declarations: readonly NamedLine[];
 	private readonly _naming_validation: NamingValidationContract;
 	private readonly _test_path_syntax: TestPathSyntaxContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _retrieval normalization declarations lint_. **/
 	private source_declarations(
@@ -171,6 +173,7 @@ export class NamingSupport {
 		symbols: readonly NamedSymbol[],
 		classes: readonly AstClassNode[],
 		type_declarations: readonly NamedLine[],
+		stage_timer: LintStageTimerContract,
 	) {
 		this._file = file;
 		this._symbols = symbols;
@@ -178,6 +181,7 @@ export class NamingSupport {
 		this._type_declarations = type_declarations;
 		this._naming_validation = new NamingValidation(file);
 		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _symbol naming diagnostics_. **/
@@ -185,9 +189,11 @@ export class NamingSupport {
 		if (this._test_path_syntax.classify(this._file).has(TestPathKind.TestFile)) {
 			return;
 		}
-		for (const symbol of this._symbols) {
-			this.append_symbol(symbol_violations, symbol, this._classes);
-		}
+		this._stage_timer.measure(`rule.${RULE_IDS.naming}`, () => {
+			for (const symbol of this._symbols) {
+				this.append_symbol(symbol_violations, symbol, this._classes);
+			}
+		});
 	}
 
 	/** Responsibilities: _type declaration naming diagnostics_. **/
@@ -195,10 +201,12 @@ export class NamingSupport {
 		if (this._test_path_syntax.classify(this._file).has(TestPathKind.TestFile)) {
 			return;
 		}
-		const declarations = this.source_declarations(this._type_declarations, this._classes);
-		for (const declaration of declarations) {
-			this.append_type_violation(type_violations, this._file, declaration);
-		}
+		this._stage_timer.measure(`rule.${RULE_IDS.naming_type}`, () => {
+			const declarations = this.source_declarations(this._type_declarations, this._classes);
+			for (const declaration of declarations) {
+				this.append_type_violation(type_violations, this._file, declaration);
+			}
+		});
 	}
 
 	/** Responsibilities: _numeric identifier diagnostics_. **/
@@ -207,11 +215,13 @@ export class NamingSupport {
 			return;
 		}
 		const context: NumericNameReportingContext = { violations: numeric_violations, reported: new Set<string>() };
-		this.append_numeric_symbols(context, this._symbols);
-		this.append_numeric_declarations(context, this.source_declarations(this._type_declarations, this._classes));
-		if (this._file.endsWith(".py")) {
-			this.append_numeric_fields(context, [...this._classes]);
-		}
+		this._stage_timer.measure(`rule.${NUMERIC_NAME_RULE_ID}`, () => {
+			this.append_numeric_symbols(context, this._symbols);
+			this.append_numeric_declarations(context, this.source_declarations(this._type_declarations, this._classes));
+			if (this._file.endsWith(".py")) {
+				this.append_numeric_fields(context, [...this._classes]);
+			}
+		});
 	}
 
 	/** Responsibilities: _numeric symbol diagnostics_. **/
@@ -219,7 +229,9 @@ export class NamingSupport {
 		if (this._test_path_syntax.classify(this._file).has(TestPathKind.TestFile)) {
 			return;
 		}
-		this.append_numeric_symbols({ violations, reported: new Set<string>() }, this._symbols);
+		this._stage_timer.measure(`rule.${NUMERIC_NAME_RULE_ID}`, () => {
+			this.append_numeric_symbols({ violations, reported: new Set<string>() }, this._symbols);
+		});
 	}
 
 	/** Responsibilities: _numeric declaration diagnostics_. **/
@@ -227,7 +239,9 @@ export class NamingSupport {
 		if (this._test_path_syntax.classify(this._file).has(TestPathKind.TestFile)) {
 			return;
 		}
-		const declarations = this.source_declarations(this._type_declarations, this._classes);
-		this.append_numeric_declarations({ violations, reported: new Set<string>() }, declarations);
+		this._stage_timer.measure(`rule.${NUMERIC_NAME_RULE_ID}`, () => {
+			const declarations = this.source_declarations(this._type_declarations, this._classes);
+			this.append_numeric_declarations({ violations, reported: new Set<string>() }, declarations);
+		});
 	}
 }

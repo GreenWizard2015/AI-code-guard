@@ -6,7 +6,10 @@ import { UnnecessaryUndefinedCheck } from "src/rules/typescript/syntax-rules/run
 import type { CallableRuleAppender, RuleContextContract } from "src/types";
 import type { TypeScriptCallExpressionInspectorContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptNodeRuntimeRulesData } from "src/typescript_analysis_protocols";
-import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
+import type {
+	TypeScriptNewExpressionVerificationRequest,
+	TypeScriptNodeVerificationRequest,
+} from "src/typescript_analysis_types";
 import ts from "typescript";
 
 /** Responsibilities: _syntax node classification_, _syntax diagnostic reporting_. **/
@@ -54,23 +57,56 @@ export class TypeScriptSyntaxNodeVerifier implements ASTSourceRuleContract {
 		return predicate.kind === ts.SyntaxKind.TypePredicate;
 	}
 
-	/** Responsibilities: _runtime syntax diagnostics_. **/
-	private append_semantic_diagnostics(request: TypeScriptNodeVerificationRequest): void {
-		const { node, context } = request;
-		if (ts.isNewExpression(node)) {
+	/** Responsibilities: _module namespace dependency diagnostic_. **/
+	private append_namespace_dependency(request: TypeScriptNewExpressionVerificationRequest): void {
+		const node = request.node;
+		const context = request.context;
+		context.state().analysis.stage_timer.measure("rule.typescript-module-namespace-dependency", () => {
 			const imports = this._runtime_rules.platform_api.module_namespace_imports();
 			if (imports.dependency(node)) {
 				context.for_node(node).append_rule(RULE_IDS.module_namespace_dependency);
 			}
+		});
+	}
+
+	/** Responsibilities: _runtime syntax diagnostics_. **/
+	private append_semantic_diagnostics(node: ts.Node, context: RuleContextContract): void {
+		const stage_timer = context.state().analysis.stage_timer;
+		if (ts.isNewExpression(node)) {
+			this.append_namespace_dependency({ node, context });
 		}
 		if (ts.isCallExpression(node)) {
-			const is_bind_call = this._call_expression_inspector.bind_call(node);
-			if (is_bind_call) {
-				context.for_node(node).append_diagnostic_rule(this._bind_rule);
-			}
+			stage_timer.measure(`rule.${RULE_IDS.typescript_bind}`, () => {
+				if (this._call_expression_inspector.bind_call(node)) {
+					context.for_node(node).append_diagnostic_rule(this._bind_rule);
+				}
+			});
 		}
-		if (this.matches_type_guard(node)) {
-			context.for_node(node).append_diagnostic_rule(this._type_guard_rule);
+		if (this._type_guard_kinds.has(node.kind)) {
+			stage_timer.measure(`rule.${RULE_IDS.typescript_type_guard}`, () => {
+				if (this.matches_type_guard(node)) {
+					context.for_node(node).append_diagnostic_rule(this._type_guard_rule);
+				}
+			});
+		}
+	}
+
+	/** Responsibilities: _undefined-check diagnostics_. **/
+	private append_undefined_check(request: TypeScriptNodeVerificationRequest): void {
+		const { node, context } = request;
+		switch (node.kind) {
+			case ts.SyntaxKind.SourceFile:
+			case ts.SyntaxKind.BinaryExpression:
+			case ts.SyntaxKind.PropertyAccessExpression:
+			case ts.SyntaxKind.ElementAccessExpression:
+				context
+					.state()
+					.analysis.stage_timer.measure(`rule.${RULE_IDS.unnecessary_undefined_check}`, () =>
+						this.undefined_check(context).append(node),
+					);
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -103,31 +139,22 @@ export class TypeScriptSyntaxNodeVerifier implements ASTSourceRuleContract {
 		]);
 	}
 
-	/** Responsibilities: _source applicability_. **/
-	public active_for(source_code: string): boolean {
-		return source_code.length > 0;
-	}
-
 	/** Responsibilities: _syntax rule evaluation_. **/
 	public verify(request: TypeScriptNodeVerificationRequest): void {
 		const { node, context } = request;
-		switch (node.kind) {
-			case ts.SyntaxKind.SourceFile:
-			case ts.SyntaxKind.BinaryExpression:
-			case ts.SyntaxKind.PropertyAccessExpression:
-			case ts.SyntaxKind.ElementAccessExpression: {
-				this.undefined_check(context).append(node);
-				if (node.kind === ts.SyntaxKind.BinaryExpression) {
-					this._runtime_rules.test_node_rules.append_rules(node, context);
-				}
-				break;
-			}
-			case ts.SyntaxKind.CallExpression:
-				this._runtime_rules.test_node_rules.append_rules(node, context);
-				break;
-			default:
-				break;
+		this.append_undefined_check(request);
+		if (node.kind === ts.SyntaxKind.BinaryExpression) {
+			this._runtime_rules.test_node_rules.append_rules(node, context);
+			return;
 		}
-		this.append_semantic_diagnostics(request);
+		if (node.kind === ts.SyntaxKind.CallExpression) {
+			this._runtime_rules.test_node_rules.append_rules(node, context);
+		}
+		this.append_semantic_diagnostics(node, context);
+	}
+
+	/** Responsibilities: _source applicability_. **/
+	public active_for(source_code: string): boolean {
+		return source_code.length > 0;
 	}
 }

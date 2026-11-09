@@ -43,7 +43,10 @@ export class TypeScriptImportRules implements ASTSourceRuleContract {
 			if (issue.line !== line || issue.kind === "sys_path_mutation") {
 				continue;
 			}
-			context.for_node(node).append_rule(IMPORT_RULE_IDS[issue.kind]);
+			const rule_id = IMPORT_RULE_IDS[issue.kind];
+			context
+				.state()
+				.analysis.stage_timer.measure(`rule.${rule_id}.typescript`, () => context.for_node(node).append_rule(rule_id));
 		}
 	}
 

@@ -18,6 +18,7 @@ import type { AstCallableNode } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { CallableMetricsContract, MetricViolationsContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { MetricViolationKind } from "src/types";
 
 /** Responsibilities: _callable size diagnostics_, _control-flow metric reporting_. **/
@@ -29,19 +30,23 @@ export class CallableMetrics implements CallableMetricsContract {
 	private readonly _characters: number;
 	private readonly _minimum_size: number;
 	private readonly _metric_violations: MetricViolationsContract;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _aggregation short long callable_. **/
 	private append_length_violations(): void {
 		if (this._node.identity.name === CONSTRUCTOR_NAME || this._node.identity.name === PYTHON_CONSTRUCTOR_NAME) {
 			return;
 		}
-		const is_allowed = this.length_allowed();
-		if (!is_allowed) {
-			this.append_short_violation();
-		}
-		if (this._minimum_size > MAX_FUNCTION_LINES) {
-			this.append_long_violation();
-		}
+		this._stage_timer.measure("rule.callable-min-size", () => {
+			if (!this.length_allowed()) {
+				this.append_short_violation();
+			}
+		});
+		this._stage_timer.measure("rule.callable-max-size", () => {
+			if (this._minimum_size > MAX_FUNCTION_LINES) {
+				this.append_long_violation();
+			}
+		});
 	}
 
 	/** Responsibilities: _classification callable length configuration_. **/
@@ -80,23 +85,32 @@ export class CallableMetrics implements CallableMetricsContract {
 	}
 
 	/** Responsibilities: _initialization metric inputs violation_. **/
-	public constructor(violations: ViolationContract[], file: string, node: AstCallableNode, is_method: boolean) {
+	public constructor(
+		violations: ViolationContract[],
+		file: string,
+		node: AstCallableNode,
+		is_method: boolean,
+		stage_timer: LintStageTimerContract,
+	) {
 		this._violations = violations;
 		this._file = file;
 		this._node = node;
 		this._is_method = is_method;
 		this._metric_violations = new MetricViolations(violations, file);
+		this._stage_timer = stage_timer;
 		this._characters = node.metrics.characters;
 		this._minimum_size = (node.metrics.lines + node.metrics.sloc) / 2;
 	}
 
 	/** Responsibilities: _reporting callable control-flow nesting_. **/
 	public append_nesting_depth(): void {
-		if (this._node.metrics.control_flow_depth <= MAX_CALLABLE_NESTING_DEPTH) {
-			return;
-		}
-		const rule = new DiagnosticRule("callable-nesting-depth");
-		this._violations.push(rule.violation(this._file, this._node.identity.start + 1));
+		this._stage_timer.measure("rule.callable-nesting-depth", () => {
+			if (this._node.metrics.control_flow_depth <= MAX_CALLABLE_NESTING_DEPTH) {
+				return;
+			}
+			const rule = new DiagnosticRule("callable-nesting-depth");
+			this._violations.push(rule.violation(this._file, this._node.identity.start + 1));
+		});
 	}
 
 	/** Responsibilities: _aggregation maximum length violations_. **/
@@ -118,9 +132,15 @@ export class CallableMetrics implements CallableMetricsContract {
 
 	/** Responsibilities: _aggregation argument-count violations callable_. **/
 	public append_arguments(): void {
-		if (this._node.metrics.argument_count <= MAX_FUNCTION_ARGUMENTS) {
-			return;
-		}
-		this._metric_violations.metric_violation(this._node.identity.start, this._node.metrics.argument_count, "arguments");
+		this._stage_timer.measure("rule.argument-count", () => {
+			if (this._node.metrics.argument_count <= MAX_FUNCTION_ARGUMENTS) {
+				return;
+			}
+			this._metric_violations.metric_violation(
+				this._node.identity.start,
+				this._node.metrics.argument_count,
+				"arguments",
+			);
+		});
 	}
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from time import perf_counter
 
 from implementation.protocols import (
     PythonExceptionBroadnessContract,
@@ -10,6 +11,7 @@ from implementation.references.protocols import (
     PythonContainerValuesContract,
     PythonExceptionAliasStateContract,
 )
+from implementation.rules.constants import PYTHON_BROAD_EXCEPT_RULE
 from implementation.rules.protocols import PythonExceptionRulesContract
 from implementation.rules.python_syntax.exceptions.python_exception_handler_analysis import (
     PythonExceptionHandlerAnalysis,
@@ -25,6 +27,7 @@ class PythonExceptionRules(PythonExceptionRulesContract):
     _broadness: PythonExceptionBroadnessContract
     _multiplicity: PythonExceptionMultiplicityContract
     _container_values: PythonContainerValuesContract
+    _timings: dict[str, float]
 
     def __init__(
         self,
@@ -38,6 +41,7 @@ class PythonExceptionRules(PythonExceptionRulesContract):
         self._broadness = broadness
         self._multiplicity = multiplicity
         self._container_values = container_values
+        self._timings = {}
 
     def except_clause_issues(
         self,
@@ -55,8 +59,12 @@ class PythonExceptionRules(PythonExceptionRulesContract):
                 self._container_values,
             ),
         )
+        started = perf_counter()
         issues = analysis.issues()
         issues.extend(analysis.context_issues())
+        elapsed_ms = (perf_counter() - started) * 1000
+        name = f"rule.{PYTHON_BROAD_EXCEPT_RULE}"
+        self._timings[name] = self._timings.get(name, 0.0) + elapsed_ms
         return issues
 
     def try_statement_issues(self, node: ast.AST) -> list[JsonObject]:
@@ -72,3 +80,7 @@ class PythonExceptionRules(PythonExceptionRulesContract):
         for handler in handlers:
             issues.extend(self.except_clause_issues(handler, node))
         return issues
+
+    def timings_data(self) -> dict[str, float]:
+        """Responsibilities: _exception rule timing access_."""
+        return dict(self._timings.items())

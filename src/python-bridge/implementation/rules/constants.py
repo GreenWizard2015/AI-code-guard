@@ -10,6 +10,8 @@ SYS_PATH_MUTATION_NODE_TYPES = (
 )
 
 PYTHON_ISINSTANCE_FUNCTION = "isinstance"
+PROTOCOL_DOWNCAST_TIMING = "rule.protocol-downcast-to-implementation"
+PROTOCOL_DOWNCAST_PREPARE_TIMING = f"{PROTOCOL_DOWNCAST_TIMING}.prepare"
 PYTHON_KNOWN_PREDICATE_NAMES: frozenset[str] = frozenset(
     {
         "type",
@@ -79,6 +81,7 @@ PYTHON_COMPOSITE_STATE_RULE = "composite-state-type"
 PYTHON_OPTIONAL_UNION_RULE = "python-optional-union"
 PYTHON_LARGE_UNION_RULE = "large-union"
 PYTHON_TEMPORAL_COUPLING_RULE_ID = "temporal-coupling"
+PYTHON_TUPLE_TYPE_RULE = "tuple-type"
 PYTHON_VALIDATION_PREFIXES: frozenset[str] = frozenset(
     {"validate_", "check_", "positive_"},
 )
@@ -214,6 +217,14 @@ PYTHON_CALL_METHOD_RULE = "python-call-method"
 PYTHON_TEST_ASSERTION_RULE = "python-test-assert-statement"
 PYTHON_TEMPORARY_RESULT_RULE = "temporary-result-access"
 PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE = "single-item-array-state"
+PYTHON_COMPLEX_CONSTRUCTOR_RULE = "complex-constructor"
+PYTHON_FIELD_IN_CONSTRUCTOR_RULE = "field-in-constructor"
+PYTHON_INLINE_GENERIC_TYPE_RULE = "inline-generic-type"
+PYTHON_MULTIPLE_RESULT_SHAPES_RULE = "multiple-result-shapes"
+PYTHON_EXCEPTION_RAISING_RULE = "exception-raising"
+PYTHON_BROAD_EXCEPT_RULE = "broad-except"
+PYTHON_TEST_SUBTEST_RULE = "python-test-subtest"
+PYTHON_UNNECESSARY_UNDEFINED_CHECK_RULE = "unnecessary-undefined-check"
 PYTHON_FIELD_READ_EFFECT = "read"
 PYTHON_FIELD_WRITE_EFFECT = "write"
 PYTHON_FIELD_READ_EFFECTS: frozenset[str] = frozenset({PYTHON_FIELD_READ_EFFECT})
@@ -224,6 +235,11 @@ PYTHON_FIELD_READ_WRITE_EFFECTS: frozenset[str] = frozenset(
 PYTHON_STATIC_METHOD_RULE = "python-static-method"
 PYTHON_CLASS_METHOD_RULE = "python-class-method"
 PYTHON_PROPERTY_SETTER_RULE = "python-property-setter"
+PYTHON_OBJECT_FIELD_WRITE_RULE = "object-field-write"
+PYTHON_PROPERTY_RULE = "python-property"
+PYTHON_ELIF_RULE = "python-elif"
+PYTHON_ASSIGNMENT_EXPRESSION_RULE = "python-assignment-expression"
+PYTHON_CONDITIONAL_TYPE_ALIAS_RULE = "python-conditional-type-alias"
 CALLABLE_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
     ast.FunctionDef: (0, 1, 2, 7, 4, 13, 14),
     ast.AsyncFunctionDef: (0, 1, 2, 7, 4, 13, 14),

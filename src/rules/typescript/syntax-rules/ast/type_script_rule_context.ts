@@ -65,7 +65,7 @@ export class TypeScriptRuleContext implements RuleContextContract {
 
 	/** Responsibilities: _node-scoped diagnostic creation_. **/
 	public for_node(node: ts.Node): RuleNodeDiagnosticContextContract {
-		return new TypeScriptNodeRuleContext(node, this._file, this._source_file, this._violations);
+		return new TypeScriptNodeRuleContext(node, this._file, this._source_file, this._violations, this._stage_timer);
 	}
 
 	/** Responsibilities: _precomputed violation collection_. **/

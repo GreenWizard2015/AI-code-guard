@@ -6,6 +6,7 @@ import type { ArchitectureInput, SimpleViolationGroup, StructuralDeclarationKind
 import type { PythonArchitectureContract } from "src/python_protocols";
 import { DeclarationNames } from "src/rules/declaration_names";
 import { StructuralFieldRules } from "src/rules/structural_field_rules";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _contract shape analysis_, _class design diagnostics_. **/
 export class PythonArchitecture implements PythonArchitectureContract {
@@ -13,6 +14,7 @@ export class PythonArchitecture implements PythonArchitectureContract {
 	private readonly _protocol_kind: StructuralDeclarationKind;
 	private readonly _data_class_rule: string;
 	private readonly _abstract_class_rule: string;
+	private readonly _stage_timer: LintStageTimerContract;
 
 	/** Responsibilities: _aggregation empty-contract violation class_. **/
 	private append_empty_contract(contract_input: ArchitectureInput): void {
@@ -142,11 +144,13 @@ export class PythonArchitecture implements PythonArchitectureContract {
 		protocol_kind: StructuralDeclarationKind,
 		data_class_rule: string,
 		abstract_class_rule: string,
+		stage_timer: LintStageTimerContract,
 	) {
 		this._empty_contract_rule = empty_contract_rule;
 		this._protocol_kind = protocol_kind;
 		this._data_class_rule = data_class_rule;
 		this._abstract_class_rule = abstract_class_rule;
+		this._stage_timer = stage_timer;
 	}
 
 	/** Responsibilities: _reporting protocol class_. **/
@@ -173,8 +177,12 @@ export class PythonArchitecture implements PythonArchitectureContract {
 		contract_names.append(violations);
 		this.append_empty_contract(architecture_input);
 		contract_fields.append_contract_fields(violations);
-		this.append_abstract_classes(architecture_input);
-		this.append_class_methods(architecture_input);
+		this._stage_timer.measure(`rule.${this._abstract_class_rule}.python`, () =>
+			this.append_abstract_classes(architecture_input),
+		);
+		this._stage_timer.measure(`rule.${this._data_class_rule}.python`, () =>
+			this.append_class_methods(architecture_input),
+		);
 		this.append_simple_violations(architecture_input, [
 			{ items: accesses, rule_id: PYTHON_RULE_IDS.private_member },
 			{ items: branches, rule_id: PYTHON_RULE_IDS.branch_duplication },

@@ -1,6 +1,7 @@
 import { RULE_IDS } from "src/linting/constants";
 import { OVERLOAD } from "src/parser/internals/constants";
 import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/type_script_overload_rules";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type { TypeScriptExpressionRuleContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
@@ -95,12 +96,14 @@ export class TypeScriptExpressionDeclarationRules implements TypeScriptExpressio
 	}
 
 	/** Responsibilities: _callable declaration rule collection_. **/
-	public append(node: ts.Node, append_rule: CallableRuleAppender): void {
-		if (this.overloaded_declaration(node)) {
-			append_rule(node, OVERLOAD);
-		}
-		if (this._return_type_kinds.has(node.kind) && ts.isFunctionLike(node)) {
-			this.append_return_rule(node, append_rule);
-		}
+	public append(node: ts.Node, append_rule: CallableRuleAppender, stage_timer: LintStageTimerContract): void {
+		stage_timer.measure("typescript-expression.declaration-rules", () => {
+			if (this.overloaded_declaration(node)) {
+				append_rule(node, OVERLOAD);
+			}
+			if (this._return_type_kinds.has(node.kind) && ts.isFunctionLike(node)) {
+				this.append_return_rule(node, append_rule);
+			}
+		});
 	}
 }

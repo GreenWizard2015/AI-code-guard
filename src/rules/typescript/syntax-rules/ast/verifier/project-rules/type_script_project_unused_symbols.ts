@@ -45,13 +45,10 @@ export class TypeScriptProjectUnusedSymbols implements ASTSourceRuleContract, Ty
 		scope: ProjectSourceAnalysisOptions,
 		sources: readonly LintSourceRecordData[],
 	): ViolationContract[] {
-		const typescript_files = new Set(sources.map((source) => source.relative_path));
 		const typescript_absolute_files = new Set(sources.map((source) => source.absolute_path));
 		const unused_code = new UnusedCode();
 		const scanned_files = scope.scanner.files().filter((file) => typescript_absolute_files.has(file));
-		return unused_code
-			.collect_scanner_violations(scope.root, scope.scanner, scanned_files)
-			.filter((violation) => typescript_files.has(violation.file()));
+		return unused_code.collect_scanner_violations(scope.root, scope.scanner, scanned_files);
 	}
 
 	/** Responsibilities: _unused-symbol rule initialization_. **/

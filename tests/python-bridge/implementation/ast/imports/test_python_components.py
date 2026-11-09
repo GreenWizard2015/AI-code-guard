@@ -85,7 +85,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
                 "alias_preparation_timing": "coding-issues.prepare.container-aliases" in timings,
                 "global_issue_timing": "coding-issues.global-issues" in timings,
                 "global_collection_timing": "coding-issues.global-issues.collections" in timings,
-                "collaborator_timing": "coding-issues.global-issues.collection.collaborator-creation" in timings,
+                "collaborator_timing": "coding-issues.rule.concrete-collaborator-created-per-operation" in timings,
                 "options_setup_timing": "coding-issues.setup.options" in timings,
                 "components_setup_timing": "coding-issues.setup.components" in timings,
                 "collector_setup_timing": "coding-issues.setup.collector" in timings,
