@@ -25,7 +25,7 @@ describe("task file fix plan reporting", () => {
 		});
 	});
 
-	test("selects each file's maximum priority and every tied rule", () => {
+	test("includes every rule for each selected file", () => {
 		reporting = new TaskReporting(fixture._root, {
 			file_io: fixture._file_io,
 			documentation: fixture._documentation,
@@ -43,7 +43,7 @@ describe("task file fix plan reporting", () => {
 
 		expect({
 			a_maximum_and_tie: report.includes(
-				`| \`${fixture._root}/src/a.ts\` | 7 | \`callable-min-size\`, \`class-min-size\` | \`naming\` (1) | — | In current batch |`,
+				`| \`${fixture._root}/src/a.ts\` | 7 | \`callable-min-size\`, \`class-min-size\`, \`naming\` | — | — | In current batch |`,
 			),
 			b_maximum: report.includes(
 				`| \`${fixture._root}/src/b.ts\` | 3 | \`callable-max-size\` | — | — | In current batch |`,
@@ -86,7 +86,7 @@ describe("task file fix plan reporting", () => {
 		expect(report.includes(`| \`${fixture._root}/src/b.ts\` | 3 | — | — | — | Deferred by batch cap |`)).toBe(true);
 	});
 
-	test("explains directory suppression with the suppressing path", () => {
+	test("does not suppress descendant diagnostics under the all policy", () => {
 		reporting = new TaskReporting(fixture._root, {
 			file_io: fixture._file_io,
 			documentation: fixture._documentation,
@@ -100,12 +100,12 @@ describe("task file fix plan reporting", () => {
 		);
 		const report = fixture.task_text("report.md");
 
-		expect(report.includes(`class-min-size (line 1), directory suppression at \`${fixture._root}/src/dir\``)).toBe(
-			true,
-		);
+		expect(
+			report.includes(`| \`${fixture._root}/src/dir/child.ts\` | 7 | \`class-min-size\` | — | — | In current batch |`),
+		).toBe(true);
 	});
 
-	test("explains placement suppression with the placed file path", () => {
+	test("does not suppress other diagnostics on a placed file under the all policy", () => {
 		reporting = new TaskReporting(fixture._root, {
 			file_io: fixture._file_io,
 			documentation: fixture._documentation,
@@ -126,6 +126,10 @@ describe("task file fix plan reporting", () => {
 		);
 		const report = fixture.task_text("report.md");
 
-		expect(report.includes(`naming (line 2), placement suppression at \`${fixture._root}/src/placed.ts\``)).toBe(true);
+		expect(
+			report.includes(
+				`| \`${fixture._root}/src/placed.ts\` | 7 | \`module-placement\`, \`naming\` | — | — | In current batch |`,
+			),
+		).toBe(true);
 	});
 });

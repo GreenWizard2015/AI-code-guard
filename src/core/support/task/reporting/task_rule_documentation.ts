@@ -33,6 +33,23 @@ export class TaskRuleDocumentation implements TaskRuleDocumentationContract {
 		});
 	}
 
+	/** Responsibilities: _shared rule documentation fallback_. **/
+	private source_document_path(rule_label: string, rule_id: string, language: string): string {
+		let shared_path = "";
+		for (const path of this.rule_documents(rule_id)) {
+			if (language.length === 0 || path.includes(`/${language}/`)) {
+				return join(this._documentation_root, path);
+			}
+			if (!path.includes("/typescript/") && !path.includes("/python/")) {
+				shared_path = path;
+			}
+		}
+		if (shared_path.length > 0) {
+			return join(this._documentation_root, shared_path);
+		}
+		throw new Error(`Rule "${rule_label}" has no registered documentation path for ${language}.`);
+	}
+
 	/** Responsibilities: _rule document initialization_. **/
 	public constructor(documentation_root: string, file_io: IOContract) {
 		this._documentation_root = documentation_root;
@@ -57,12 +74,7 @@ export class TaskRuleDocumentation implements TaskRuleDocumentationContract {
 			rule_id = rule_label.slice(0, suffix_start);
 			language = rule_label.slice(suffix_start + 1, -1);
 		}
-		for (const path of this.rule_documents(rule_id)) {
-			if (language.length === 0 || path.includes(`/${language}/`)) {
-				return join(this._documentation_root, path);
-			}
-		}
-		throw new Error(`Rule "${rule_label}" has no registered documentation path for ${language}.`);
+		return this.source_document_path(rule_label, rule_id, language);
 	}
 
 	/** Responsibilities: _rule document coverage_. **/

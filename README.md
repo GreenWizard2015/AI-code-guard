@@ -162,8 +162,10 @@ Available options:
     Maximum number of files included in the generated task. The default is 10.
 
 --policy <top-category|all>
-    Select files from the largest top-severity rule category (the default), or
-    include files from all top-severity categories.
+    `top-category` selects files from the largest top-severity rule category
+    and applies directory and placement suppression. `all` includes every
+    diagnostic in files selected for the batch, across all rule categories,
+    without directory or placement suppression.
 
 ```
 

@@ -111,19 +111,6 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return files;
 	}
 
-	/** Responsibilities: _per-file maximum-priority violation selection_. **/
-	private maximum_priority_violations(
-		files: readonly string[],
-		visible_violations: readonly ViolationContract[],
-		priorities: ReadonlyMap<string, number>,
-	): ViolationContract[] {
-		const selected_files = new Set(files);
-		return visible_violations.filter((violation) => {
-			const file = resolve(this._root, violation.file());
-			return selected_files.has(file) && priorities.get(file) === violation.priority();
-		});
-	}
-
 	/** Responsibilities: _selection for chosen files_. **/
 	private file_selection(
 		files: string[],
@@ -154,16 +141,13 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return this.file_selection(files, visible_violations, visibility);
 	}
 
-	/** Responsibilities: _highest-priority file inclusion_. **/
+	/** Responsibilities: _all-file diagnostic inclusion_. **/
 	public select_all(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection {
-		const selection_groups = new TaskViolationGroups(this._root, violations);
-		const visibility = selection_groups.analyze_visibility();
-		const visible_violations = visibility.visible;
-		const visible_groups = new TaskViolationGroups(this._root, visible_violations);
-		const file_priorities = visible_groups.path_priorities();
-		const file_counts = this.file_counts(visible_violations);
+		const file_groups = new TaskViolationGroups(this._root, violations);
+		const file_priorities = file_groups.path_priorities();
+		const file_counts = this.file_counts(violations);
 		const selected_files = this.ranked_files(file_priorities, file_counts).slice(0, batch_size);
-		const selected_violations = this.maximum_priority_violations(selected_files, visible_violations, file_priorities);
-		return { files: selected_files, violations: selected_violations, visibility };
+		const visibility: TaskViolationVisibility = { visible: [...violations], suppressed: [] };
+		return this.file_selection(selected_files, violations, visibility);
 	}
 }

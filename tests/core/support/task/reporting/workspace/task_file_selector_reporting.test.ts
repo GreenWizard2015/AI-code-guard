@@ -39,7 +39,7 @@ describe("transformation reporting selection", () => {
 		}).toEqual({ moved_file: true, import_file: false, destination: true });
 	});
 
-	test("suppresses nested files when reporting a directory finding", () => {
+	test("all policy reports directory and nested-file findings together", () => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const fixture = fixture_factory.create({
 			"src/parser/child.ts": "export class Child {}",
@@ -73,12 +73,12 @@ describe("transformation reporting selection", () => {
 		}).toEqual({
 			selected_class_finding: true,
 			selected_file_finding: true,
-			nested_file_finding: false,
+			nested_file_finding: true,
 			unrelated_file_finding: true,
 		});
 	});
 
-	test("reports each selected file's maximum-priority diagnostics", () => {
+	test("reports every diagnostic in each selected file", () => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const fixture = fixture_factory.create({
 			"a-high.ts": "export class High {}\n",
@@ -114,7 +114,7 @@ describe("transformation reporting selection", () => {
 			high_tie_a: true,
 			high_tie_b: true,
 			lower_priority_file: true,
-			same_file_lower_priority: false,
+			same_file_lower_priority: true,
 		});
 	});
 });

@@ -95,7 +95,7 @@ describe("coding-lint task reporting files", () => {
 		expect(result).toContain("/b.ts");
 	});
 
-	test("applies the batch size and per-file maximum priority without changing totals", () => {
+	test("includes every rule in selected files without changing totals", () => {
 		const fixture = fixture_factory.create(reporting_files);
 		const reporting = new TaskReporting(fixture._root, {
 			file_io: fixture._file_io,
@@ -113,7 +113,7 @@ describe("coding-lint task reporting files", () => {
 		expect({
 			output: result.output.includes("Total files: 2."),
 			unused: result.issue_document.includes("Problem: unused-file message"),
-		}).toEqual({ output: true, unused: false });
+		}).toEqual({ output: true, unused: true });
 	});
 
 	test("keeps every directory diagnostic in the task document", () => {

@@ -5,7 +5,7 @@ import { TaskReporting } from "src/core/support/task/reporting/workspace/task_re
 import { TaskReportingScenario } from "tests/core/support/task/reporting/workspace/task_reporting_scenario";
 
 describe("coding-lint task reporting selection", () => {
-	test("all policy includes each file and only its maximum-priority findings", () => {
+	test("all policy includes every finding in each selected file", () => {
 		const scenario = new TaskReportingScenario();
 		const files = {
 			"a.ts": "const a = 1;\n",
@@ -32,18 +32,18 @@ describe("coding-lint task reporting selection", () => {
 		const issue_document = fixture.task_text("issues.md");
 		const all_files_selected =
 			issue_document.includes("/a.ts") && issue_document.includes("/b.ts") && issue_document.includes("/c.ts");
-		const lower_priority_problem_in_selected_file = !issue_document.includes("unused-file message");
-		const maximum_priority_of_lower_priority_file = issue_document.includes("naming message");
+		const lower_priority_problem_in_selected_file = issue_document.includes("unused-file message");
+		const other_file_finding = issue_document.includes("naming message");
 		expect({
 			project_totals: output.includes("Total issues: 5.") && output.includes("Total files: 3."),
 			all_files_selected,
 			lower_priority_problem_in_selected_file,
-			maximum_priority_of_lower_priority_file,
+			other_file_finding,
 		}).toEqual({
 			project_totals: true,
 			all_files_selected: true,
 			lower_priority_problem_in_selected_file: true,
-			maximum_priority_of_lower_priority_file: true,
+			other_file_finding: true,
 		});
 	});
 
@@ -86,16 +86,15 @@ describe("coding-lint task reporting selection", () => {
 			all_totals: all_output.includes("Total issues: 5.") && all_output.includes("Total files: 3."),
 			top_category_files: top_category_issues.includes("/a.ts") && !top_category_issues.includes("/b.ts"),
 			all_files_selected: all_issues.includes("/a.ts") && all_issues.includes("/b.ts") && all_issues.includes("/c.ts"),
-			all_includes_only_each_files_maximum:
-				!all_issues.includes("unused-file message") && all_issues.includes("naming message"),
-			lower_priority_is_deferred: all_report.includes("`a.ts:1` (priority 3, unused-file): unused-file message"),
+			all_includes_every_finding: all_issues.includes("unused-file message") && all_issues.includes("naming message"),
+			lower_priority_is_not_deferred: !all_report.includes("`a.ts:1` (priority 3, unused-file): unused-file message"),
 		}).toEqual({
 			top_category_totals: true,
 			all_totals: true,
 			top_category_files: true,
 			all_files_selected: true,
-			all_includes_only_each_files_maximum: true,
-			lower_priority_is_deferred: true,
+			all_includes_every_finding: true,
+			lower_priority_is_not_deferred: true,
 		});
 	});
 

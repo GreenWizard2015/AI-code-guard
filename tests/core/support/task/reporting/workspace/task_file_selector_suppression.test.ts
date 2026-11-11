@@ -4,7 +4,7 @@ import { TaskViolationGroups } from "src/core/support/task/reporting/workspace/t
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 
 describe("transformation diagnostic suppression", () => {
-	test("directory findings suppress every descendant and preserve sibling findings", () => {
+	test("all policy includes directory findings and every descendant finding", () => {
 		const selector = new TaskFileSelector("/project");
 		const directory_rule = new DiagnosticRule("directory-max-size");
 		const nested_directory_rule = new DiagnosticRule("directory-class-max-size");
@@ -22,12 +22,26 @@ describe("transformation diagnostic suppression", () => {
 			all_files: all.files,
 			all_violations: all.violations.map((violation) => `${violation.file()}:${violation.rule_id()}`),
 		}).toEqual({
-			all_files: ["/project/src/package", "/project/src/peer/peer.ts"],
-			all_violations: ["src/package:directory-max-size", "src/peer/peer.ts:file-max-size"],
+			all_files: [
+				"/project/src/package",
+				"/project/src/package/feature",
+				"/project/src/package/feature/deep",
+				"/project/src/package/feature/deep/item.ts",
+				"/project/src/package/feature/item.ts",
+				"/project/src/peer/peer.ts",
+			],
+			all_violations: [
+				"src/package:directory-max-size",
+				"src/package/feature:directory-class-max-size",
+				"src/package/feature/deep:directory-class-max-size",
+				"src/package/feature/item.ts:file-max-size",
+				"src/package/feature/deep/item.ts:file-max-size",
+				"src/peer/peer.ts:file-max-size",
+			],
 		});
 	});
 
-	test("AI state directory metadata suppresses diagnostics inside the reported directory", () => {
+	test("all policy includes diagnostics beneath state directories", () => {
 		const selector = new TaskFileSelector("/project");
 		const state_directory_rule = new DiagnosticRule("ai-code-guard-directory-ignored");
 		const file_rule = new DiagnosticRule("file-max-size");
@@ -48,49 +62,53 @@ describe("transformation diagnostic suppression", () => {
 			files: selected.files,
 			violations: selected.violations.map((violation) => `${violation.file()}:${violation.rule_id()}`),
 		}).toEqual({
-			files: ["/project/.ai-code-guard", "/project/src/peer.ts"],
-			violations: [".ai-code-guard:ai-code-guard-directory-ignored", "src/peer.ts:module-placement"],
+			files: ["/project/.ai-code-guard", "/project/src/peer.ts", "/project/.ai-code-guard/cache/report.md"],
+			violations: [
+				".ai-code-guard:ai-code-guard-directory-ignored",
+				".ai-code-guard/cache/report.md:file-max-size",
+				"src/peer.ts:module-placement",
+			],
 		});
 	});
 
-	test.each(["top-category", "all"] as const)(
-		"%s preserves placement findings and suppresses other diagnostics on the same file",
-		(policy) => {
-			const selector = new TaskFileSelector("/project");
-			const placement_rule = new DiagnosticRule("module-placement");
-			const function_placement_rule = new DiagnosticRule("function-placement");
-			const size_rule = new DiagnosticRule("file-max-size");
-			const naming_rule = new DiagnosticRule("naming");
-			const placement = placement_rule.violation("src/module.ts", 1, {
-				target: "Module",
-				members: "Module",
-				importers: "src/consumer.ts",
-				placement_message: "misplaced",
-				suggestions: "src/module/module.ts",
-				guidance: "move it",
-			});
-			const function_placement = function_placement_rule.violation("src/module.ts", 2, { ext: "ts" });
-			const size = size_rule.violation("src/module.ts", 3, { count: "501" });
-			const naming = naming_rule.violation("src/module.ts", 4, {
-				kind: "class",
-				name: "bad_name",
-				word_count: "7",
-			});
-			const violations = [placement, function_placement, size, naming];
-			let selected = selector.select_top_category(violations, 10);
-			if (policy === "all") {
-				selected = selector.select_all(violations, 10);
-			}
+	test.each(["top-category", "all"] as const)("%s applies its placement visibility policy", (policy) => {
+		const selector = new TaskFileSelector("/project");
+		const placement_rule = new DiagnosticRule("module-placement");
+		const function_placement_rule = new DiagnosticRule("function-placement");
+		const size_rule = new DiagnosticRule("file-max-size");
+		const naming_rule = new DiagnosticRule("naming");
+		const placement = placement_rule.violation("src/module.ts", 1, {
+			target: "Module",
+			members: "Module",
+			importers: "src/consumer.ts",
+			placement_message: "misplaced",
+			suggestions: "src/module/module.ts",
+			guidance: "move it",
+		});
+		const function_placement = function_placement_rule.violation("src/module.ts", 2, { ext: "ts" });
+		const size = size_rule.violation("src/module.ts", 3, { count: "501" });
+		const naming = naming_rule.violation("src/module.ts", 4, {
+			kind: "class",
+			name: "bad_name",
+			word_count: "7",
+		});
+		const violations = [placement, function_placement, size, naming];
+		let selected = selector.select_top_category(violations, 10);
+		if (policy === "all") {
+			selected = selector.select_all(violations, 10);
+		}
 
-			expect({
-				files: selected.files,
-				violations: selected.violations.map((violation) => violation.rule_id()),
-			}).toEqual({
-				files: ["/project/src/module.ts"],
-				violations: ["module-placement", "function-placement"],
-			});
-		},
-	);
+		expect({
+			files: selected.files,
+			violations: selected.violations.map((violation) => violation.rule_id()),
+		}).toEqual({
+			files: ["/project/src/module.ts"],
+			violations:
+				policy === "all"
+					? ["module-placement", "function-placement", "file-max-size", "naming"]
+					: ["module-placement", "function-placement"],
+		});
+	});
 
 	test("unclassified rules do not create directory or file-placement scopes", () => {
 		const naming_rule = new DiagnosticRule("naming");
@@ -145,7 +163,7 @@ describe("transformation diagnostic suppression", () => {
 			visible: ["module-placement"],
 			group_count: 1,
 			files: ["/project/src/module.ts"],
-			selected_rules: ["module-placement"],
+			selected_rules: ["module-placement", "file-max-size"],
 		});
 	});
 });

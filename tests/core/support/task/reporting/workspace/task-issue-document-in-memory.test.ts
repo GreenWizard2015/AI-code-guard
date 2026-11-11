@@ -1,4 +1,4 @@
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskRuleDocumentation } from "src/core/support/task/reporting/task_rule_documentation";
 import { TaskIssueDocument } from "src/core/support/task/reporting/workspace/task_issue_document";
@@ -6,6 +6,14 @@ import { ViolationValue } from "src/model/violation_value";
 import { TaskIssueDocumentFixture } from "tests/bridge/ts/core/support/task/reporting/task_issue_document_fixture";
 
 describe("task issue document in-memory IOContract", () => {
+	test("uses shared rule documentation for a language-labeled diagnostic", () => {
+		const root = "/virtual/task-issue-document-shared-rule";
+		const fixture = new TaskIssueDocumentFixture(root);
+		const documentation = new TaskRuleDocumentation(root, fixture._file_io);
+
+		expect(documentation.source_path("numeric-file-name[python]")).toBe(join(root, "docs/rules/numeric-file-name.md"));
+	});
+
 	test("renders source context and publishes its rule document virtually", () => {
 		const root = "/virtual/task-issue-document";
 		const fixture = new TaskIssueDocumentFixture(root);

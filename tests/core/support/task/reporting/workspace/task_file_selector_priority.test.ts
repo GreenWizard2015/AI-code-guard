@@ -107,7 +107,7 @@ describe("transformation rule priority", () => {
 		});
 	});
 
-	test("selects files by their maximum priority and emits only tied maximum-priority findings", () => {
+	test("selects files by priority and emits every finding in each selected file", () => {
 		const class_minimum = new DiagnosticRule("class-min-size");
 		const callable_minimum = new DiagnosticRule("callable-min-size");
 		const callable_maximum = new DiagnosticRule("callable-max-size");
@@ -138,11 +138,12 @@ describe("transformation rule priority", () => {
 			selected: [
 				"a-high.ts:class-min-size",
 				"a-high.ts:callable-min-size",
+				"a-high.ts:naming",
 				"z-high.ts:class-min-size",
 				"m-lower.ts:callable-max-size",
 			],
 			capped_files: ["/project/a-high.ts"],
-			capped_rules: ["class-min-size", "callable-min-size"],
+			capped_rules: ["class-min-size", "callable-min-size", "naming"],
 		});
 	});
 });
