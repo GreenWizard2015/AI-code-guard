@@ -1,7 +1,7 @@
 import type { PythonAstWorkerRegistryEntry } from "src/core/python-ast/types";
 
 /** Responsibilities: _Python AST worker timeout_, _process worker registry_. **/
-export const PYTHON_AST_WORKER_IO_TIMEOUT_MS = 10000;
+export const PYTHON_AST_WORKER_IO_TIMEOUT_MS = 30_000;
 export const PYTHON_AST_STAGE_PREFIX = "python-bridge";
 export const PYTHON_AST_INCOMPLETE_BATCH_MESSAGE = "Python AST worker returned an incomplete batch.";
 export const PYTHON_AST_PARSE_STAGE = "python-ast-parse";

@@ -7,7 +7,7 @@ import { performance } from "node:perf_hooks";
 /** Responsibilities: _Python worker frame transport_, _blocking I/O deadlines_. **/
 export class PythonAstWorkerTransport {
 	/** @param {number} [io_timeout_ms] */
-	constructor(io_timeout_ms = 10000) {
+	constructor(io_timeout_ms = 30_000) {
 		/** @type {number} */
 		this.io_timeout_ms = io_timeout_ms;
 		/** @type {number | null} */

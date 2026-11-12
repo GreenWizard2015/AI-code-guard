@@ -132,8 +132,26 @@ class PythonExceptionHandlerAnalysis:
             assignments.record_statement(statement)
         return assignments
 
+    def _bound_error_used(self) -> bool:
+        """Responsibilities: _bound exception usage_."""
+        exception_name = self._handler.name
+        if exception_name is None:
+            return False
+        for statement in self._handler.body:
+            for node in ast.walk(statement):
+                if type(node) is not ast.Name:
+                    continue
+                if node.id != exception_name:
+                    continue
+                if type(node.ctx) is not ast.Load:
+                    continue
+                return True
+        return False
+
     def _broad_issue(self) -> bool:
         """Responsibilities: _broad exception diagnostics_."""
+        if self._bound_error_used():
+            return False
         exception_type = self._handler.type
         if exception_type is None:
             return True

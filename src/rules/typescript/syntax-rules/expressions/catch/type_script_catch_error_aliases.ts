@@ -20,6 +20,24 @@ export class TypeScriptCatchErrorAliases {
 		return initializer.arguments.some((argument) => ts.isIdentifier(argument) && argument.text === this._error_name);
 	}
 
+	/** Responsibilities: _handler error references_. **/
+	private node_uses_error(node: ts.Node): boolean {
+		if (ts.isIdentifier(node) && node.text === this._error_name && ts.isExpression(node)) {
+			return true;
+		}
+		if (!ts.isIfStatement(node)) {
+			return ts.forEachChild(node, (child) => this.node_uses_error(child)) ?? false;
+		}
+		if (this.node_uses_error(node.thenStatement)) {
+			return true;
+		}
+		const else_statement = node.elseStatement;
+		if (else_statement === undefined) {
+			return false;
+		}
+		return this.node_uses_error(else_statement);
+	}
+
 	/** Responsibilities: _error alias index initialization_. **/
 	public constructor(clause: ts.CatchClause) {
 		const declaration = clause.variableDeclaration;
@@ -61,5 +79,13 @@ export class TypeScriptCatchErrorAliases {
 			return false;
 		}
 		return reference.arguments.some((argument) => ts.isIdentifier(argument) && argument.text === this._error_name);
+	}
+
+	/** Responsibilities: _caught error handler references_. **/
+	public used_in_handler(): boolean {
+		if (this._error_name.length === 0) {
+			return false;
+		}
+		return this._statements.some((statement) => this.node_uses_error(statement));
 	}
 }

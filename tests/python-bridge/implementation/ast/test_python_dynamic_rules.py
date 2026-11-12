@@ -301,6 +301,27 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             ["broad-except"],
         )
 
+    def test_accepts_broad_exception_when_bound_error_is_used(self) -> None:
+        """Responsibilities: _exception binding usage_."""
+        source = (
+            "try:\n"
+            "    run()\n"
+            "except Exception as error:\n"
+            "    logger.error('operation failed: %s', error)\n"
+            "try:\n"
+            "    run()\n"
+            "except Exception as cause:\n"
+            "    raise RuntimeError('operation failed') from cause\n"
+            "try:\n"
+            "    run()\n"
+            "except Exception as unused:\n"
+            "    pass\n"
+        )
+        collector = PythonAstTree(source)
+        issues = [issue for issue in collector.coding_issues() if issue["kind"] == "broad-except"]
+
+        self.assertEqual([issue["line"] for issue in issues], [10])
+
     def test_collects_starred_exception_alias(self) -> None:
         """Responsibilities: _starred exception tuple_."""
         source = (

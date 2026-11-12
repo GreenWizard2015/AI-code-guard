@@ -179,6 +179,9 @@ export class TypeScriptCatchClause {
 		if (!this.error_binding_named()) {
 			return true;
 		}
+		if (this._error_aliases.used_in_handler()) {
+			return false;
+		}
 		const variable = this._clause.variableDeclaration;
 		if (variable === undefined) {
 			return true;

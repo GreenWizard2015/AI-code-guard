@@ -72,7 +72,7 @@ describe("broad catch diagnostics", () => {
 				.filter((item) => item.rule_id() === "broad-except")
 				.map((item) => item.file())
 				.sort(),
-		).toEqual(["bare-catch.ts", "partially-narrowed.ts", "task-runner.ts", "unmatched-predicate.ts"]);
+		).toEqual(["bare-catch.ts", "partially-narrowed.ts", "unmatched-predicate.ts"]);
 	});
 
 	test("accepts an explicit return for a handled error and rethrows every other value", () => {
@@ -186,8 +186,6 @@ describe("broad catch diagnostics", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id() === "broad-except").map((item) => item.file())).toEqual([
-			"expanded-vm-boundary.ts",
-		]);
+		expect(violations.filter((item) => item.rule_id() === "broad-except")).toHaveLength(0);
 	});
 });
