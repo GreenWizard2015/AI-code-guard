@@ -145,8 +145,10 @@ describe("coding-lint Python type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const dynamic_factory_locations = violations
-			.filter((item) =>
-				item.message() === "avoid SimpleNamespace and dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
+			.filter(
+				(item) =>
+					item.message() ===
+					"avoid SimpleNamespace and dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
 			)
 			.map((item) => `${item.file()}:${item.line()}`)
 			.sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
