@@ -65,8 +65,8 @@ export const TYPES_RULE_DATA = {
 		priority: 6,
 	},
 	"python-type-factory": {
-		message: "avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
-		hint: "declare an explicit dataclass or normal class with typed fields. Do not: assemble project-owned types through type factories.",
+		message: "avoid SimpleNamespace and dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
+		hint: "declare an explicit dataclass or normal class with typed fields. Do not: use SimpleNamespace or assemble project-owned types through type factories.",
 		priority: 6,
 	},
 	"large-union": {

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import ast
 from collections import deque
+from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.protocols import PythonTypeFactoryNamesContract
-from implementation.rules.constants import PYTHON_TYPE_FACTORY_KIND
-from implementation.types import JsonObject
+from implementation.rules.constants import PYTHON_SIMPLE_NAMESPACE_NAME, PYTHON_TYPE_FACTORY_KIND
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonTypeFactoryIssues:
@@ -14,6 +15,23 @@ class PythonTypeFactoryIssues:
 
     _type_factory_names: PythonTypeFactoryNamesContract
     _node_index: PythonAstNodeIndexContract
+
+    def _simple_namespace_reference(self, syntax_node: ast.AST) -> bool:
+        """Responsibilities: _SimpleNamespace reference detection_."""
+        match syntax_node:
+            case ast.Name(id=name) if name == PYTHON_SIMPLE_NAMESPACE_NAME:
+                return True
+            case ast.Attribute(attr=attribute) if attribute == PYTHON_SIMPLE_NAMESPACE_NAME:
+                return True
+            case ast.ImportFrom(module="types", names=names):
+                return any(imported.name == PYTHON_SIMPLE_NAMESPACE_NAME for imported in names)
+            case ast.Call(func=ast.Name(id=method_name), args=arguments) if (
+                method_name in ("getattr", "setattr") and len(arguments) > 1
+            ):
+                namespace_name = arguments[1]
+                return type(namespace_name) is ast.Constant and namespace_name.value == PYTHON_SIMPLE_NAMESPACE_NAME
+            case _:
+                return False
 
     def _contains_factory_call(self, expression: ast.expr) -> bool:
         """Responsibilities: _nested type factory detection_."""
@@ -52,24 +70,22 @@ class PythonTypeFactoryIssues:
     def assignment_issues(self, statement: ast.stmt) -> list[JsonObject]:
         """Responsibilities: _type factory assignment analysis_."""
         match statement:
-            case ast.Assign(value=expression) if type(statement) is ast.Assign:
+            case ast.Assign(value=expression) | ast.Expr(value=expression) if type(statement) in (ast.Assign, ast.Expr):
                 pass
-            case ast.AnnAssign(value=expression) if type(statement) is ast.AnnAssign:
-                if expression is None:
-                    return []
-            case ast.Return(value=expression) if type(statement) is ast.Return:
-                if expression is None:
-                    return []
-            case ast.Expr(value=expression) if type(statement) is ast.Expr:
+            case ast.AnnAssign(value=expression) | ast.Return(value=expression) if (
+                type(statement) in (ast.AnnAssign, ast.Return) and expression is not None
+            ):
                 pass
             case _:
                 return []
-        if self._contains_factory_call(expression):
-            return [{"line": statement.lineno - 1, "kind": PYTHON_TYPE_FACTORY_KIND}]
-        return []
+        if not self._contains_factory_call(expression):
+            return []
+        return [{"line": statement.lineno - 1, "kind": PYTHON_TYPE_FACTORY_KIND}]
 
     def issues(self, syntax_node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _type factory issue classification_."""
+        if self._simple_namespace_reference(syntax_node):
+            return [{"line": cast(PythonASTLocatedNode, syntax_node).lineno - 1, "kind": PYTHON_TYPE_FACTORY_KIND}]
         match syntax_node:
             case ast.ClassDef() as class_definition if (
                 type(

@@ -1,9 +1,9 @@
 # `type-factory`
 
-Description: `namedtuple`, `NamedTuple`, `TypedDict`, and `NewType` can hide project-owned models.
+Description: `SimpleNamespace`, `namedtuple`, `NamedTuple`, `TypedDict`, and `NewType` can hide project-owned models or untyped state.
 
 ```python
-user_type = NamedTuple("User", [("id", str)])
+display_state = SimpleNamespace(user_id="user-1")
 ```
 
 

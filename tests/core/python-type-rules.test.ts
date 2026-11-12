@@ -127,6 +127,16 @@ describe("coding-lint Python type rules", () => {
 				"def create():",
 				'    yield type("CandidateYield", (), {})',
 			].join("\n"),
+			"simple-namespace.py": [
+				"from types import SimpleNamespace as Namespace",
+				"first = Namespace(value=1)",
+				"import types as runtime_types",
+				"second = runtime_types.SimpleNamespace(value=2)",
+				"third = getattr(runtime_types, 'SimpleNamespace')(value=3)",
+				"if SimpleNamespace:",
+				"    pass",
+				"setattr(runtime_types, 'SimpleNamespace', None)",
+			].join("\n"),
 		};
 		const violations = test_fixture.with_lint_request(
 			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
@@ -135,7 +145,9 @@ describe("coding-lint Python type rules", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 		const dynamic_factory_locations = violations
-			.filter((item) => item.message() === "avoid dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)")
+			.filter((item) =>
+				item.message() === "avoid SimpleNamespace and dynamic type factories (namedtuple, NamedTuple, TypedDict, NewType)",
+			)
 			.map((item) => `${item.file()}:${item.line()}`)
 			.sort((left, right) => left.localeCompare(right, "en", { numeric: true }));
 		const dynamic_class_locations = violations
@@ -152,6 +164,11 @@ describe("coding-lint Python type rules", () => {
 				"namedtuple.py:8",
 				"namedtuple.py:9",
 				"namedtuple.py:10",
+				"simple-namespace.py:1",
+				"simple-namespace.py:4",
+				"simple-namespace.py:5",
+				"simple-namespace.py:6",
+				"simple-namespace.py:8",
 			],
 			dynamic_class_locations: [
 				"wrapped-type-factories.py:1",

@@ -204,6 +204,7 @@ PYTHON_LOGICAL_CHAIN_SIZE_KIND = "logical-chain-size"
 PYTHON_LOGICAL_CHAIN_MAX_CHARS = 100
 PYTHON_MULTI_EXCEPT_KIND = "python-multi-except"
 PYTHON_TYPE_FACTORY_KIND = "python-type-factory"
+PYTHON_SIMPLE_NAMESPACE_NAME = "SimpleNamespace"
 PYTHON_NODE_RULE_ANALYSIS_STAGE = "node-rule-analysis"
 PYTHON_REFERENCE_COLLECTION_STAGE = "reference-data"
 PYTHON_INIT_METHOD = "__init__"
@@ -247,6 +248,7 @@ CALLABLE_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
     ast.arg: (1, 13, 14),
 }
 STATEMENT_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
+    ast.ImportFrom: (1,),
     ast.Assign: (1, 6, 12, 13, 14, 16),
     ast.AnnAssign: (1, 6, 12, 13, 14, 16),
     ast.Return: (6,),
@@ -254,9 +256,9 @@ STATEMENT_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
     ast.AugAssign: (12,),
     ast.Try: (3,),
     ast.TryStar: (3,),
-    ast.Call: (4, 5),
-    ast.Name: (5,),
-    ast.Attribute: (4, 5),
+    ast.Call: (1, 4, 5),
+    ast.Name: (1, 5),
+    ast.Attribute: (1, 4, 5),
     ast.Subscript: (4, 5, 16),
     ast.Raise: (6, 8),
     ast.IfExp: (9,),
