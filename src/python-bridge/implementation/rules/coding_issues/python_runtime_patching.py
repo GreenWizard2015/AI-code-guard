@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.coding_issues.python_patch_alias_index import (
     PythonPatchAliasIndex,
 )
-from implementation.rules.constants import PYTHON_INIT_METHOD, PYTHON_LINE_KEY
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.rules.constants import PYTHON_INIT_METHOD, PYTHON_LINE_KEY, PYTHON_RUNTIME_PATCHING_KIND
+from implementation.types import JsonObject
 
 
 class PythonRuntimePatching:
@@ -97,6 +96,17 @@ class PythonRuntimePatching:
             return line
         return -1
 
+    def _issues_for_node(self, node: ast.AST) -> list[JsonObject]:
+        """Responsibilities: _patch diagnostic entries_."""
+        patch_call = self._aliases.patch_call(node)
+        replacement = self.callable_replacement(node)
+        dynamic_replacement = self._aliases.dynamic_replacement(node)
+        if type(node) is ast.Call and (patch_call or dynamic_replacement):
+            return [{PYTHON_LINE_KEY: node.lineno - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
+        if type(node) in (ast.Assign, ast.AnnAssign) and replacement:
+            return [{PYTHON_LINE_KEY: node.lineno - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
+        return []
+
     def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _module patch analysis initialization_."""
         self._tree = tree
@@ -116,14 +126,5 @@ class PythonRuntimePatching:
         self._aliases.collect(self._tree, self._node_index)
         issues: list[JsonObject] = []
         for node in self._node_index.nodes(self._tree):
-            patch_call = self._aliases.patch_call(node)
-            replacement = self.callable_replacement(node)
-            dynamic_replacement = self._aliases.dynamic_replacement(node)
-            if patch_call or replacement or dynamic_replacement:
-                issues.append(
-                    {
-                        PYTHON_LINE_KEY: cast(PythonASTLocatedNode, node).lineno - 1,
-                        "kind": "runtime-patching",
-                    },
-                )
+            issues.extend(self._issues_for_node(node))
         return sorted(issues, key=self._issue_line)

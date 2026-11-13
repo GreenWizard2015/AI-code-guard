@@ -22,13 +22,20 @@ from implementation.rules.protocols import (
     PythonUnionRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.types import CallablePythonRuleStage, JsonObject
+from implementation.types import (
+    CallablePythonRuleStage,
+    JsonObject,
+    PythonASTLocatedNode,
+    PythonCallableAstNode,
+)
 
 PythonTestMutationIndex = dict[ast.AST, set[ast.AST]]
 PythonScopeTypes = set[type[ast.AST]]
 PythonAliasTimeline: TypeAlias = list[JsonObject]
 PythonScopeAliasHistoryData: TypeAlias = dict[str, PythonAliasTimeline]
 PythonScopeAliasHistories: TypeAlias = dict[ast.AST, PythonScopeAliasHistoryData]
+PythonAstLocatedNodeListIndex: TypeAlias = dict[ast.AST, list[PythonASTLocatedNode]]
+PythonTemporalReaderIndex: TypeAlias = dict[str, set[PythonCallableAstNode]]
 
 
 @dataclass(frozen=True)
@@ -43,6 +50,14 @@ class AliasWalkStateData:
     positions: dict[str, int]
     result: ast.expr
     result_present: bool
+
+
+@dataclass
+class PythonTemporalFieldState:
+    """Responsibilities: _class field initialization_, _field reader index_."""
+
+    initialized_fields: set[str]
+    readers: PythonTemporalReaderIndex
 
 
 @dataclass(frozen=True)

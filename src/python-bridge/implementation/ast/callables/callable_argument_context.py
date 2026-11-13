@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.constants import BUILTIN_TYPES
 from implementation.ast.protocols import PythonAstNodeIndexContract
@@ -43,6 +42,21 @@ class CallableArgumentContext:
                 if type(decorator_expression) is ast.Attribute:
                     names.append(decorator_expression.attr)
         return names
+
+    def _parameter_types(self) -> JsonValueList:
+        """Responsibilities: _callable annotation metadata normalization_."""
+        parameter_types: JsonValueList = []
+        for argument in self._arguments:
+            if argument.annotation is not None:
+                parameter_types.append(ast.unparse(argument.annotation))
+        return parameter_types
+
+    def _typed_arguments(self) -> JsonValueList:
+        """Responsibilities: _typed parameter metadata_."""
+        typed_arguments: JsonValueList = []
+        for argument in self._arguments:
+            typed_arguments.extend(self._typed_argument(argument))
+        return typed_arguments
 
     def _parameterized_case_count(self) -> int:
         """Responsibilities: _parameterized case metadata_."""
@@ -125,21 +139,20 @@ class CallableArgumentContext:
     def metadata(self, characters: int) -> JsonObject:
         """Responsibilities: _callable signature metadata_."""
         arguments = self._arguments
-        typed = [self._typed_argument(argument) for argument in arguments]
+        untyped_parameters: JsonValueList = []
+        untyped_parameters.extend(self._untyped_parameters())
+        argument_uses: JsonValueList = []
+        argument_uses.extend(self._uses())
+        decorators: JsonValueList = []
+        decorators.extend(self._decorators())
         return {
             "argument_count": len(arguments),
             "characters": characters,
-            "parameter_types": cast(
-                JsonValueList,
-                [ast.unparse(argument.annotation) for argument in arguments if argument.annotation],
-            ),
-            "untyped_parameters": cast(JsonValueList, self._untyped_parameters()),
-            "argument_uses": cast(JsonValueList, self._uses()),
-            "typed_arguments": cast(
-                JsonValueList,
-                [item for items in typed for item in items],
-            ),
-            "decorators": cast(JsonValueList, self._decorators()),
+            "parameter_types": self._parameter_types(),
+            "untyped_parameters": untyped_parameters,
+            "argument_uses": argument_uses,
+            "typed_arguments": self._typed_arguments(),
+            "decorators": decorators,
             "parameterized_case_count": self._parameterized_case_count(),
             "has_self": bool(arguments) and arguments[0].arg == "self",
             "visibility": self.visibility(),

@@ -68,7 +68,7 @@ class PythonUnionDeclarationAnnotations(PythonUnionDeclarationAnnotationsContrac
             return False
         return id(field_candidate) in self._field_annotations
 
-    def _assignment_annotations(self, assignment_statement: ast.AST) -> list[ast.AST]:
+    def _assignment_annotations(self, assignment_statement: ast.AST) -> list[ast.expr]:
         """Responsibilities: _assigned type annotation collection_."""
         if type(assignment_statement) is not ast.Assign:
             return []
@@ -76,7 +76,7 @@ class PythonUnionDeclarationAnnotations(PythonUnionDeclarationAnnotationsContrac
             return [assignment_statement.value]
         return []
 
-    def _field_annotation(self, field_statement: ast.AST) -> list[ast.AST]:
+    def _field_annotation(self, field_statement: ast.AST) -> list[ast.expr]:
         """Responsibilities: _field type annotation collection_."""
         if type(field_statement) is not ast.AnnAssign:
             return []
@@ -84,7 +84,7 @@ class PythonUnionDeclarationAnnotations(PythonUnionDeclarationAnnotationsContrac
             return []
         return [field_statement.annotation]
 
-    def _callable_annotations(self, callable_declaration: ast.AST) -> list[ast.AST]:
+    def _callable_annotations(self, callable_declaration: ast.AST) -> list[ast.expr]:
         """Responsibilities: _callable type annotation collection_."""
         if type(callable_declaration) is ast.arg:
             if callable_declaration.annotation is not None:
@@ -100,7 +100,7 @@ class PythonUnionDeclarationAnnotations(PythonUnionDeclarationAnnotationsContrac
             return []
         return [returns]
 
-    def annotations(self, declaration_node: ast.AST) -> list[ast.AST]:
+    def annotations(self, declaration_node: ast.AST) -> list[ast.expr]:
         """Responsibilities: _declaration annotation lookup_."""
         values = self._assignment_annotations(declaration_node)
         if values:

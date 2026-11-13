@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.references.aliases.python_proxy_scope_alias_index import (
     PythonProxyScopeAliasIndex,
 )
 from implementation.references.protocols import PythonProxyScopeAliasIndexContract
 from implementation.types import (
-    PythonASTLocatedNode,
     PythonAstParents,
     PythonProxyAliasAssignment,
     PythonProxyAliasRecords,
@@ -114,7 +112,8 @@ class PythonProxyReceiverAliases:
         """Responsibilities: _receiver owner resolution_."""
         self.configure()
         scope = self._function_scope(receiver_expression)
-        return self._scope_alias_index(scope).resolve(
-            name,
-            cast(PythonASTLocatedNode, receiver_expression).lineno,
-        )
+        match receiver_expression:
+            case ast.expr(lineno=line):
+                return self._scope_alias_index(scope).resolve(name, line)
+            case _:
+                return ""

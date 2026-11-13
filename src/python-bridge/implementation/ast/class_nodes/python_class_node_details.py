@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
-from implementation.ast.constants import CLASS_BASE_CLASS_NAMES_KEY
+from implementation.ast.constants import AST_INTERFACES_KEY, CLASS_BASE_CLASS_NAMES_KEY
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonCallableStatementsContract,
@@ -144,10 +143,11 @@ class PythonClassNodeDetails:
 
     def metadata(self, method_nodes: list[NodeData]) -> NodeData:
         """Responsibilities: _normalization class identity assembly_."""
-        base_class_names = [ast.unparse(base) for base in self._node.bases]
         end_line = self._node.end_lineno
         if end_line is None:
             end_line = self._node.lineno
+        base_class_names: JsonValueList = []
+        base_class_names.extend(ast.unparse(base) for base in self._node.bases)
         return {
             "name": self._node.name,
             "start": self._node.lineno - 1,
@@ -158,6 +158,6 @@ class PythonClassNodeDetails:
             "type_contract": self._is_type_contract(),
             "protocol": self._is_protocol(),
             "extends_external_class": bool(self._node.bases),
-            CLASS_BASE_CLASS_NAMES_KEY: cast(JsonValueList, base_class_names),
-            "interfaces": [],
+            CLASS_BASE_CLASS_NAMES_KEY: base_class_names,
+            AST_INTERFACES_KEY: [],
         }

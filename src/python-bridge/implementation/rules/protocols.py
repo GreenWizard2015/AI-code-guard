@@ -30,6 +30,7 @@ from implementation.rules.type_rule_protocols import (
 )
 from implementation.types import (
     CallablePythonRuleStage,
+    PythonCallableAstNode,
     PythonNameSetIndex,
 )
 
@@ -85,6 +86,7 @@ if TYPE_CHECKING:
     from implementation.references.decorator_protocols import (
         PythonAssignedDescriptorIndexContract,
     )
+    from implementation.rules.types import PythonTemporalReaderIndex
     from implementation.types import (
         JsonObject,
         PythonDecoratorAliasGroups,
@@ -96,11 +98,21 @@ class PythonMethodRecordContract(Protocol):
 
     def method_name(self) -> str: ...
 
-    def syntax_node(self) -> ast.AST: ...
+    def syntax_node(self) -> PythonCallableAstNode: ...
 
     def written_set(self) -> set[str]: ...
 
     def access_set(self) -> set[str]: ...
+
+
+class PythonTemporalFieldStateContract(Protocol):
+    """Responsibilities: _temporal field initialization_, _field readers_."""
+
+    @property
+    def initialized_fields(self) -> set[str]: ...
+
+    @property
+    def readers(self) -> PythonTemporalReaderIndex: ...
 
 
 class PythonStructuralMemberLookupContract(Protocol):

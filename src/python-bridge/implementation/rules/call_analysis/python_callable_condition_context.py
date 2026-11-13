@@ -1,122 +1,14 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
-from implementation.rules.call_analysis.python_name_access import PythonNameAccess
-from implementation.types import PythonASTLocatedNode
+from implementation.rules.call_analysis.python_callable_condition_alias_analysis import (
+    PythonCallableConditionAliasAnalysis,
+)
 
 
 class PythonCallableConditionContext:
     """Responsibilities: _callable condition scope_, _test function context_."""
-
-    def _condition_variable(self, assignment: ast.AST) -> str:
-        """Responsibilities: _condition assignment target_."""
-        if type(assignment) is ast.Assign:
-            if len(assignment.targets) == 1 and type(assignment.targets[0]) is ast.Name:
-                return assignment.targets[0].id
-        if type(assignment) is ast.AnnAssign and type(assignment.target) is ast.Name:
-            return assignment.target.id
-        return ""
-
-    def _assignment_precedes(self, first: ast.AST, second: ast.AST) -> bool:
-        """Responsibilities: _same-scope statement order_."""
-        if cast(PythonASTLocatedNode, first).lineno < cast(PythonASTLocatedNode, second).lineno:
-            return True
-        if cast(PythonASTLocatedNode, first).lineno > cast(PythonASTLocatedNode, second).lineno:
-            return False
-        return cast(PythonASTLocatedNode, first).col_offset < cast(PythonASTLocatedNode, second).col_offset
-
-    def _assignment_targets(self, candidate: ast.AST) -> list[ast.expr]:
-        """Responsibilities: _assignment target extraction_."""
-        if type(candidate) is ast.Assign:
-            return candidate.targets
-        if type(candidate) is ast.AnnAssign:
-            return [candidate.target]
-        if type(candidate) is ast.AugAssign:
-            return [candidate.target]
-        if type(candidate) is ast.NamedExpr:
-            return [candidate.target]
-        if type(candidate) is ast.For:
-            return [candidate.target]
-        if type(candidate) is ast.AsyncFor:
-            return [candidate.target]
-        return []
-
-    def _condition_expressions(self, condition: ast.AST) -> list[ast.expr]:
-        """Responsibilities: _conditional expression selection_."""
-        for field_name, field_value in ast.iter_fields(condition):
-            if field_name == "test":
-                return [field_value]
-            if field_name == "guard" and field_value is not None:
-                return [field_value]
-            if field_name == "ifs":
-                return list(field_value)
-        return []
-
-    def _reassigned_before(
-        self,
-        initial_assignment: ast.AST,
-        target_condition: ast.AST,
-        tracked_name: str,
-    ) -> bool:
-        """Responsibilities: _condition alias reassignment detection_."""
-        for candidate in self._nodes:
-            if candidate is initial_assignment:
-                continue
-            if self._scopes.get(candidate) != self._scopes.get(target_condition):
-                continue
-            if not self._tracked_name_match(candidate, tracked_name):
-                continue
-            if not self._assignment_precedes(initial_assignment, candidate):
-                continue
-            if self._assignment_precedes(candidate, target_condition):
-                return True
-        return False
-
-    def _tracked_name_match(self, candidate: ast.AST, tracked_name: str) -> bool:
-        """Responsibilities: _alias target lookup_."""
-        targets = self._assignment_targets(candidate)
-        for target in targets:
-            name_access = PythonNameAccess(target, tracked_name)
-            if name_access.writes():
-                return True
-        return False
-
-    def _live_condition_alias(self, alias_assignment: ast.AST) -> bool:
-        """Responsibilities: _live alias matching_."""
-        alias_name = self._condition_variable(alias_assignment)
-        if not alias_name:
-            return False
-        scope = self._scopes.get(alias_assignment)
-        if scope is None:
-            return False
-        for condition in self._nodes:
-            if self._condition_preserves_alias(alias_assignment, condition, alias_name):
-                return True
-        return False
-
-    def _condition_preserves_alias(
-        self,
-        alias_assignment: ast.AST,
-        candidate_condition: ast.AST,
-        alias_name: str,
-    ) -> bool:
-        """Responsibilities: _live condition alias verification_."""
-        scope = self._scopes.get(candidate_condition)
-        if scope is None:
-            return False
-        expressions = self._condition_expressions(candidate_condition)
-        name_accesses = [PythonNameAccess(expression, alias_name) for expression in expressions]
-        if not any(name_access.reads() for name_access in name_accesses):
-            return False
-        if not self._assignment_precedes(alias_assignment, candidate_condition):
-            return False
-        return not self._reassigned_before(
-            alias_assignment,
-            candidate_condition,
-            alias_name,
-        )
 
     def _parent_chain(self, leaf_node: ast.AST) -> list[ast.AST]:
         """Responsibilities: _AST parent chain construction_."""
@@ -133,10 +25,10 @@ class PythonCallableConditionContext:
         """Responsibilities: _callable assignment scope_."""
         if type(parent) not in (ast.Assign, ast.AnnAssign):
             return False
-        name = self._condition_variable(parent)
+        name = self._alias_analysis.condition_variable(parent)
         if not name:
             return False
-        return self._live_condition_alias(parent)
+        return self._alias_analysis.live_alias(parent)
 
     def _condition_parent(self, parent: ast.AST, target: ast.AST) -> bool:
         """Responsibilities: _callable condition parent matching_."""
@@ -155,8 +47,7 @@ class PythonCallableConditionContext:
         parents: dict[int, ast.AST],
     ) -> None:
         """Responsibilities: _source scope index ownership_."""
-        self._nodes: list[ast.AST] = nodes
-        self._scopes: dict[ast.AST, str] = scopes
+        self._alias_analysis: PythonCallableConditionAliasAnalysis = PythonCallableConditionAliasAnalysis(nodes, scopes)
         self._parents: dict[int, ast.AST] = parents
 
     def contains_callable_condition(self, call_node: ast.Call) -> bool:

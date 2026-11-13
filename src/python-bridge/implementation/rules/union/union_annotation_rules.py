@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_NULLABLE_DOMAIN_RULE
@@ -16,19 +15,21 @@ from implementation.rules.union.python_union_annotation_classifier import (
 from implementation.rules.union.python_union_annotation_issue_collector import (
     PythonUnionAnnotationIssueCollector,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class UnionAnnotationRules:
     """Responsibilities: _annotation analysis gating_, _union diagnostic collection_."""
 
-    def _composite_candidates(self, union_node: ast.AST) -> list[ast.AST]:
+    def _composite_candidates(self, union_node: ast.expr) -> list[ast.expr]:
         """Responsibilities: _composite union candidate selection_."""
-        return [
-            item
-            for item in self._classifier.nodes(union_node)
-            if len(self._classifier.annotation_composite_types(item)) > 1
-        ]
+        candidates: list[ast.expr] = []
+        for item in self._classifier.nodes(union_node):
+            match item:
+                case ast.expr() as expression:
+                    if len(self._classifier.annotation_composite_types(expression)) > 1:
+                        candidates.append(expression)
+        return candidates
 
     def __init__(
         self,
@@ -44,7 +45,7 @@ class UnionAnnotationRules:
             classifier,
         )
 
-    def requires_analysis(self, annotation: ast.AST, is_field: bool = False) -> bool:
+    def requires_analysis(self, annotation: ast.expr, is_field: bool = False) -> bool:
         """Responsibilities: _annotation analysis requirement_."""
         if is_field:
             if self._classifier.nullish_type(annotation):
@@ -55,7 +56,7 @@ class UnionAnnotationRules:
 
     def issues_for_annotation(
         self,
-        annotation: ast.AST,
+        annotation: ast.expr,
         is_field: bool = False,
     ) -> list[JsonObject]:
         """Responsibilities: _annotation violations collection_."""
@@ -65,12 +66,7 @@ class UnionAnnotationRules:
         if not nullable:
             nullable = self._classifier.optional_type(annotation)
         if nullable:
-            return [
-                {
-                    "line": cast(PythonASTLocatedNode, annotation).lineno - 1,
-                    "kind": PYTHON_NULLABLE_DOMAIN_RULE,
-                },
-            ]
+            return [{"line": annotation.lineno - 1, "kind": PYTHON_NULLABLE_DOMAIN_RULE}]
         if not self._classifier.contains_union(annotation):
             return []
         return self._issue_collector.issues_for_candidates(self._composite_candidates(annotation))

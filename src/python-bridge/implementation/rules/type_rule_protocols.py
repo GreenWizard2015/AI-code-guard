@@ -98,12 +98,12 @@ class PythonUnionAnnotationRulesContract(Protocol):
 
     def requires_analysis(
         self,
-        annotation: ast.AST,
+        annotation: ast.expr,
         is_field: bool = False,
     ) -> bool: ...
 
     def issues_for_annotation(
         self,
-        annotation: ast.AST,
+        annotation: ast.expr,
         is_field: bool = False,
     ) -> list[JsonObject]: ...

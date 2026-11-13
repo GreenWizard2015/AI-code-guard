@@ -25,6 +25,12 @@ AST_MODULE_DECLARATIONS_KEY = "module_declarations"
 AST_CLASSES_KEY = "classes"
 FUNCTIONS_KEY = "functions"
 AST_METHODS_KEY = "methods"
+AST_INTERFACES_KEY = "interfaces"
+AST_DEPENDENCIES_KEY = "dependencies"
+AST_CALLBACK_FIELDS_KEY = "callback_fields"
+AST_INLINE_CALLBACK_FIELDS_KEY = "inline_callback_fields"
+AST_FIELDS_KEY = "fields"
+AST_UNTYPED_FIELDS_KEY = "untyped_fields"
 CLASS_BASE_CLASS_NAMES_KEY = "base_class_names"
 AST_FIELD_RECORDS_REQUIRED = "AST field {field!r} must contain records"
 AST_FIELD_OBJECT_RECORD_REQUIRED = "AST field {field!r} contains a non-object record"
@@ -75,7 +81,7 @@ CALLABLE_GROUPED_FIELDS = CALLABLE_IDENTITY_FIELDS.union(
 
 CLASS_IDENTITY_FIELDS = AST_NAMED_RANGE_FIELDS.union(AST_LINE_COUNT_FIELDS)
 CLASS_STRUCTURE_FIELDS = frozenset(
-    {"methods", "interfaces", CLASS_BASE_CLASS_NAMES_KEY, "dependencies"},
+    {AST_METHODS_KEY, AST_INTERFACES_KEY, CLASS_BASE_CLASS_NAMES_KEY, AST_DEPENDENCIES_KEY},
 )
 CLASSIFICATION_FIELDS = frozenset(
     {
@@ -86,7 +92,12 @@ CLASSIFICATION_FIELDS = frozenset(
     },
 )
 CLASS_FIELD_ANALYSIS_FIELDS = frozenset(
-    {"callback_fields", "inline_callback_fields", "fields", "untyped_fields"},
+    {
+        AST_CALLBACK_FIELDS_KEY,
+        AST_INLINE_CALLBACK_FIELDS_KEY,
+        AST_FIELDS_KEY,
+        AST_UNTYPED_FIELDS_KEY,
+    },
 )
 CLASS_GROUPED_FIELDS = CLASS_IDENTITY_FIELDS.union(
     CLASS_STRUCTURE_FIELDS,

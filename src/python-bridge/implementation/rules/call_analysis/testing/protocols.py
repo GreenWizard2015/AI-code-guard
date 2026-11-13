@@ -29,6 +29,6 @@ class PythonTestTimeDependencyContract(Protocol):
 
     def issue(
         self,
-        node: ast.AST,
+        node: ast.Call,
         classification: PythonCallableConditionContextContract,
     ) -> list[JsonObject]: ...

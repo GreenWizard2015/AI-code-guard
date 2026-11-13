@@ -1,15 +1,15 @@
 import ast
 from bisect import bisect_right
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import PythonAssignmentAliasContract
 from implementation.rules.types import (
+    PythonAstLocatedNodeListIndex,
     PythonScopeAliasHistories,
     PythonScopeAliasHistoryData,
     PythonScopeTypes,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode, PythonAstNodeListIndex
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonScopeAliasHistory:
@@ -50,20 +50,20 @@ class PythonScopeAliasHistory:
             return {"found": False, "target": alias_name}
         return {"found": True, "target": valid_entries[index]["target"]}
 
-    def _owner_assignments(self, owner_scope: ast.AST) -> list[ast.AST]:
+    def _owner_assignments(self, owner_scope: ast.AST) -> list[PythonASTLocatedNode]:
         """Responsibilities: _scope-owned assignment selection_."""
-        assignments: list[ast.AST] = []
+        assignments: list[PythonASTLocatedNode] = []
         for item in self._node_index.nodes(owner_scope):
-            if type(item) not in (ast.Assign, ast.AnnAssign):
-                continue
-            item_scopes = self._scope_chain(item)
-            if item_scopes and item_scopes[0] is owner_scope:
-                assignments.append(item)
+            match item:
+                case ast.Assign() | ast.AnnAssign():
+                    item_scopes = self._scope_chain(item)
+                    if item_scopes and item_scopes[0] is owner_scope:
+                        assignments.append(item)
         return sorted(
             assignments,
             key=lambda item: (
-                cast(PythonASTLocatedNode, item).lineno,
-                cast(PythonASTLocatedNode, item).col_offset,
+                item.lineno,
+                item.col_offset,
             ),
         )
 
@@ -76,11 +76,8 @@ class PythonScopeAliasHistory:
         if scope not in self._assignment_cache:
             self._assignment_cache.update({scope: self._owner_assignments(scope)})
         for assignment in self._assignment_cache[scope]:
-            aliases = self._alias_source.assignment_aliases(assignment)
-            for name, target in aliases.items():
-                history.setdefault(name, []).append(
-                    {"line": cast(PythonASTLocatedNode, assignment).lineno, "target": target},
-                )
+            for name, target in self._alias_source.assignment_aliases(assignment).items():
+                history.setdefault(name, []).append({"line": assignment.lineno, "target": target})
         self._history_cache.update({scope: history})
         return history
 
@@ -94,7 +91,7 @@ class PythonScopeAliasHistory:
         self._node_index: PythonAstNodeIndexContract = node_index
         self._scope_types: PythonScopeTypes = scope_types
         self._alias_source: PythonAssignmentAliasContract = alias_source
-        self._assignment_cache: PythonAstNodeListIndex = {}
+        self._assignment_cache: PythonAstLocatedNodeListIndex = {}
         self._history_cache: PythonScopeAliasHistories = {}
 
     def resolve_scope(self, scope: ast.AST, name: str, line: int) -> JsonObject:

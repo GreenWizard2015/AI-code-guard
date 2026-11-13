@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
@@ -11,11 +10,11 @@ from implementation.rules.constants import (
 from implementation.rules.control_flow.python_temporal_access import (
     PythonTemporalAccess,
 )
-from implementation.rules.protocols import PythonMethodRecordContract
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.rules.protocols import PythonMethodRecordContract, PythonTemporalFieldStateContract
+from implementation.rules.types import PythonTemporalFieldState, PythonTemporalReaderIndex
+from implementation.types import JsonObject
 
-FieldReaderIndex = dict[str, set[ast.AST]]
-ClassMethodRecords = tuple[list[PythonMethodRecordContract], set[str]]
+ClassMethodRecords = tuple[list[PythonMethodRecordContract], PythonTemporalFieldStateContract]
 
 
 class PythonTemporalCoupling:
@@ -33,9 +32,9 @@ class PythonTemporalCoupling:
     def _field_readers(
         self,
         methods: list[PythonMethodRecordContract],
-    ) -> FieldReaderIndex:
+    ) -> PythonTemporalReaderIndex:
         """Responsibilities: _field reader index_."""
-        readers: FieldReaderIndex = {}
+        readers: PythonTemporalReaderIndex = {}
         for method in methods:
             for field in method.access_set():
                 readers.setdefault(field, set()).add(method.syntax_node())
@@ -45,44 +44,43 @@ class PythonTemporalCoupling:
         self,
         item: ast.stmt,
         methods: list[PythonMethodRecordContract],
-        initialized_fields: set[str],
+        field_state: PythonTemporalFieldStateContract,
     ) -> None:
         """Responsibilities: _class member inventory_, _field initialization_."""
-        if type(item) is not ast.FunctionDef and type(item) is not ast.AsyncFunctionDef:
-            initialized_fields.update(self._declared_fields(item))
-            return
-        method = self._access.method_record(item, item.name)
-        methods.append(method)
-        if method.method_name() == PYTHON_INIT_METHOD:
-            initialized_fields.update(method.written_set())
+        match item:
+            case ast.FunctionDef(name=name) | ast.AsyncFunctionDef(name=name):
+                method = self._access.method_record(item, name)
+                methods.append(method)
+                if method.method_name() == PYTHON_INIT_METHOD:
+                    field_state.initialized_fields.update(method.written_set())
+            case _:
+                field_state.initialized_fields.update(self._declared_fields(item))
 
     def _method_records(self, class_body: list[ast.stmt]) -> ClassMethodRecords:
         """Responsibilities: _method record collection_, _field initialization analysis_."""
         methods: list[PythonMethodRecordContract] = []
-        initialized_fields: set[str] = set()
+        field_state = PythonTemporalFieldState(initialized_fields=set(), readers={})
         for item in class_body:
-            self._append_class_member(item, methods, initialized_fields)
-        return methods, initialized_fields
+            self._append_class_member(item, methods, field_state)
+        return methods, field_state
 
     def _append_method_issues(
         self,
         method: PythonMethodRecordContract,
-        initialized_fields: set[str],
-        field_readers: FieldReaderIndex,
+        field_state: PythonTemporalFieldStateContract,
         issues: list[JsonObject],
     ) -> None:
         """Responsibilities: _temporal coupling analysis_."""
         if method.method_name() == PYTHON_INIT_METHOD:
             return
         for field in method.written_set():
-            if field in initialized_fields:
+            if field in field_state.initialized_fields:
                 continue
-            readers = field_readers.get(field, set())
-            if not any(reader is not method.syntax_node() for reader in readers):
+            if not any(reader is not method.syntax_node() for reader in field_state.readers.get(field, set())):
                 continue
             issues.append(
                 {
-                    "line": cast(PythonASTLocatedNode, method.syntax_node()).lineno - 1,
+                    "line": method.syntax_node().lineno - 1,
                     "kind": PYTHON_TEMPORAL_COUPLING_RULE_ID,
                     "name": field,
                 },
@@ -95,11 +93,11 @@ class PythonTemporalCoupling:
 
     def class_issues(self, class_definition: ast.ClassDef) -> list[JsonObject]:
         """Responsibilities: _class temporal coupling_."""
-        methods, initialized_fields = self._method_records(class_definition.body)
-        field_readers = self._field_readers(methods)
+        methods, field_state = self._method_records(class_definition.body)
+        field_state.readers.update(self._field_readers(methods))
         issues: list[JsonObject] = []
         for method in methods:
-            self._append_method_issues(method, initialized_fields, field_readers, issues)
+            self._append_method_issues(method, field_state, issues)
         return issues
 
     def issues(self, tree: ast.Module) -> list[JsonObject]:

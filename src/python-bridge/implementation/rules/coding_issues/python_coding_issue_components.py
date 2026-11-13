@@ -220,6 +220,10 @@ class PythonCodingIssueComponents:
 
     def precedence_issues(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _Python operator precedence analysis_."""
-        issues = self._python_operator_precedence.mixed_boolean_operator(node)
-        issues.extend(self._python_operator_precedence.mixed_arithmetic_operator(node))
-        return issues
+        match node:
+            case ast.expr() as expression:
+                issues = self._python_operator_precedence.mixed_boolean_operator(expression)
+                issues.extend(self._python_operator_precedence.mixed_arithmetic_operator(expression))
+                return issues
+            case _:
+                return []

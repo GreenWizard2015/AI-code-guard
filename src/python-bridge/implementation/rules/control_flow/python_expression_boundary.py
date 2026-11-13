@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonSourceSegmentsContract
-from implementation.types import PythonASTLocatedNode
 
 
 class PythonExpressionBoundary:
     """Responsibilities: _source grouping detection_, _boolean boundary analysis_."""
 
-    def _previous_character(self, expression_start: ast.AST) -> str:
+    def _previous_character(self, expression_start: ast.expr) -> str:
         """Responsibilities: _character before expression access_."""
-        line = self._source_segments.line(cast(PythonASTLocatedNode, expression_start).lineno)
+        line = self._source_segments.line(expression_start.lineno)
         index = self._source_segments.character_column(
             line,
-            cast(PythonASTLocatedNode, expression_start).col_offset,
+            expression_start.col_offset,
         )
         while index > 0:
             index -= 1
@@ -23,14 +21,14 @@ class PythonExpressionBoundary:
                 return line[index]
         return ""
 
-    def _end_line(self, source_expression: ast.AST) -> int:
+    def _end_line(self, source_expression: ast.expr) -> int:
         """Responsibilities: _identification expression end line_."""
-        end_line = cast(PythonASTLocatedNode, source_expression).end_lineno
-        if end_line is not None:
+        end_line = source_expression.end_lineno
+        if type(end_line) is int:
             return end_line
-        return cast(PythonASTLocatedNode, source_expression).lineno
+        return source_expression.lineno
 
-    def _next_character(self, expression_end: ast.AST) -> str:
+    def _next_character(self, expression_end: ast.expr) -> str:
         """Responsibilities: _character after expression access_."""
         line = self._source_segments.line(self._end_line(expression_end))
         index = self._source_segments.character_column(
@@ -43,14 +41,14 @@ class PythonExpressionBoundary:
             index += 1
         return ""
 
-    def _end_column(self, source_expression: ast.AST) -> int:
+    def _end_column(self, source_expression: ast.expr) -> int:
         """Responsibilities: _identification expression end column_."""
-        end_column = cast(PythonASTLocatedNode, source_expression).end_col_offset
-        if end_column is not None:
+        end_column = source_expression.end_col_offset
+        if type(end_column) is int:
             return end_column
         return 0
 
-    def _simple_boolean_wrapper(self, wrapper: ast.AST) -> bool:
+    def _simple_boolean_wrapper(self, wrapper: ast.expr) -> bool:
         """Responsibilities: _simple boolean wrapper_."""
         if type(wrapper) is ast.UnaryOp and type(wrapper.op) is ast.Not:
             return self._simple_boolean_operand(wrapper.operand)
@@ -72,7 +70,7 @@ class PythonExpressionBoundary:
             return False
         return all(self._simple_boolean_operand(value) for value in boolean_chain.values)
 
-    def _simple_boolean_operand(self, operand: ast.AST) -> bool:
+    def _simple_boolean_operand(self, operand: ast.expr) -> bool:
         """Responsibilities: _simple boolean operand_."""
         if self.parenthesized(operand):
             return False
@@ -110,7 +108,7 @@ class PythonExpressionBoundary:
         """Responsibilities: _expression boundary initialization_."""
         self._source_segments: PythonSourceSegmentsContract = source_segments
 
-    def negation_comparison_boundary(self, comparison: ast.AST) -> bool:
+    def negation_comparison_boundary(self, comparison: ast.expr) -> bool:
         """Responsibilities: _negation comparison boundary_."""
         if type(comparison) is ast.UnaryOp and type(comparison.op) is ast.Not:
             if type(comparison.operand) is not ast.Compare:
@@ -127,7 +125,7 @@ class PythonExpressionBoundary:
                 return True
         return False
 
-    def parenthesized(self, expression: ast.AST) -> bool:
+    def parenthesized(self, expression: ast.expr) -> bool:
         """Responsibilities: _parenthesized expressions identification_."""
         previous = self._previous_character(expression)
         following = self._next_character(expression)
@@ -135,7 +133,7 @@ class PythonExpressionBoundary:
             return False
         return following == ")"
 
-    def ungrouped(self, expression: ast.AST, root_parenthesized: bool = False) -> bool:
+    def ungrouped(self, expression: ast.expr, root_parenthesized: bool = False) -> bool:
         """Responsibilities: _ungrouped boolean boundary_."""
         parenthesized = False
         if not root_parenthesized:

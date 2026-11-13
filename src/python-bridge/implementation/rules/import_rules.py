@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
@@ -11,7 +10,7 @@ from implementation.rules.constants import (
 from implementation.rules.python_syntax.protocols import (
     PythonDynamicImportNamesContract,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 from protocols import PythonSysPathRulesContract
 
 
@@ -62,6 +61,19 @@ class ImportRules:
         nested: bool,
     ) -> None:
         """Responsibilities: _collection current import issues_."""
+        kinds = self._node_issue_kinds(syntax_node, nested)
+        if not kinds:
+            return
+        match syntax_node:
+            case ast.expr(lineno=line) | ast.stmt(lineno=line):
+                pass
+            case _:
+                return
+        line = max(0, line - 1)
+        issues.extend({"line": line, "kind": kind} for kind in kinds)
+
+    def _node_issue_kinds(self, syntax_node: ast.AST, nested: bool) -> list[str]:
+        """Responsibilities: _import issue classification_."""
         if type(syntax_node) in IMPORT_OBSERVER_NODE_TYPES:
             self._dynamic_import_names.observe(syntax_node)
         kinds: list[str] = []
@@ -73,9 +85,7 @@ class ImportRules:
             kinds.append("dynamic")
         if self._path_mutation(syntax_node):
             kinds.append("sys_path_mutation")
-        if kinds:
-            line = max(0, cast(PythonASTLocatedNode, syntax_node).lineno - 1)
-            issues.extend({"line": line, "kind": kind} for kind in kinds)
+        return kinds
 
     def __init__(
         self,

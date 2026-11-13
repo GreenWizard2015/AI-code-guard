@@ -45,12 +45,14 @@ class PythonComponentsMetricsTest(unittest.TestCase):
         """Responsibilities: _AST index creation_."""
         return PythonAstNodeIndex()
 
-    def _function_node(self, tree: ast.Module) -> ast.AST:
+    def _function_node(self, tree: ast.Module) -> ast.FunctionDef:
         """Responsibilities: _test function node extraction_."""
         function_node = tree.body[0]
-        if type(function_node) is ast.FunctionDef:
-            return function_node
-        return tree
+        match function_node:
+            case ast.FunctionDef() as function_definition:
+                return function_definition
+            case _:
+                return self.fail("Expected the source tree to begin with a function definition")
 
     def test_reuses_python_ast_node_index(self) -> None:
         """Responsibilities: _cached indexes verification_."""
@@ -236,9 +238,7 @@ else:
         source = "def build():\n    value = (\n        '" + unicode_value + "'\n    )\n"
         parsed_source = ast.parse(source)
         source_function = self._function_node(parsed_source)
-        node = source_function
-        if type(source_function) is ast.FunctionDef:
-            node = source_function.body[0]
+        node = source_function.body[0]
         segments = SourceSegments(source)
 
         self.assertEqual(

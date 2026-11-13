@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from functools import cached_property
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.aliases.python_reference_aliases import (
@@ -20,7 +19,7 @@ from implementation.rules.constants import (
     PYTHON_TYPING_EXTENSIONS_MODULE,
     PYTHON_TYPING_MODULE,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonModuleConstantSpans:
@@ -134,9 +133,9 @@ class PythonModuleConstantSpans:
             pending.extend(reversed(self._nested_statements(statement)))
         return statements
 
-    def _span(self, node: ast.AST) -> JsonObject:
+    def _span(self, node: ast.stmt) -> JsonObject:
         """Responsibilities: _source span record creation_."""
-        position = cast(PythonASTLocatedNode, node)
+        position = node
         end_line = position.lineno
         source_end_line = position.end_lineno
         if source_end_line is not None:

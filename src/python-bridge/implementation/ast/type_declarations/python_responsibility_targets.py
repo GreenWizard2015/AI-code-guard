@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Iterable
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_FUNCTION_KIND, PYTHON_PROTOCOL_NAME
@@ -49,14 +48,14 @@ class PythonResponsibilityTargets:
         self,
         kind: str,
         name: str,
-        responsibility_node: ast.AST,
+        responsibility_node: PythonASTLocatedNode,
         documentation: str,
     ) -> JsonObject:
         """Responsibilities: _Python responsibility targets collection_."""
         return {
             "kind": kind,
             "name": name,
-            "line": cast(PythonASTLocatedNode, responsibility_node).lineno - 1,
+            "line": responsibility_node.lineno - 1,
             "documentation": documentation,
         }
 

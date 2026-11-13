@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import ast
 from collections import deque
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.protocols import PythonTypeFactoryNamesContract
 from implementation.rules.constants import PYTHON_SIMPLE_NAMESPACE_NAME, PYTHON_TYPE_FACTORY_KIND
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonTypeFactoryIssues:
@@ -84,8 +83,16 @@ class PythonTypeFactoryIssues:
 
     def issues(self, syntax_node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _type factory issue classification_."""
-        if self._simple_namespace_reference(syntax_node):
-            return [{"line": cast(PythonASTLocatedNode, syntax_node).lineno - 1, "kind": PYTHON_TYPE_FACTORY_KIND}]
+        match syntax_node:
+            case (
+                ast.Name(lineno=line)
+                | ast.Attribute(lineno=line)
+                | ast.ImportFrom(
+                    lineno=line,
+                )
+                | ast.Call(lineno=line)
+            ) if self._simple_namespace_reference(syntax_node):
+                return [{"line": line - 1, "kind": PYTHON_TYPE_FACTORY_KIND}]
         match syntax_node:
             case ast.ClassDef() as class_definition if (
                 type(

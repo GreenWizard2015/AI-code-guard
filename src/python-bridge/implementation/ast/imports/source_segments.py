@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
-from implementation.types import PythonASTLocatedNode, PythonCharacterColumnsByLine
+from implementation.types import PythonCharacterColumnsByLine
 
 
 class SourceSegments:
@@ -32,9 +31,9 @@ class SourceSegments:
             columns[byte_column] = character_column
         return columns
 
-    def _ast_segment(self, node: ast.AST) -> str:
+    def _ast_segment(self, node: ast.stmt) -> str:
         """Responsibilities: _AST source span extraction_."""
-        position = cast(PythonASTLocatedNode, node)
+        position = node
         if position.end_lineno is None or position.end_col_offset is None:
             return ""
         return self._segment_text(
@@ -82,7 +81,7 @@ class SourceSegments:
         """Responsibilities: _source non-whitespace character count_."""
         return len("".join(text.split()))
 
-    def segment(self, node: ast.AST) -> str:
+    def segment(self, node: ast.stmt) -> str:
         """Responsibilities: _AST source segment extraction_."""
         try:
             if self._has_non_ast_line_break:

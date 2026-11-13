@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.references.protocols import PythonPositionedWriteContract
-from implementation.types import PythonASTLocatedNode
 
 
 class PythonInstanceWrite(PythonPositionedWriteContract):
@@ -39,6 +37,6 @@ class PythonInstanceWrite(PythonPositionedWriteContract):
     def visible_at(self, node: ast.AST) -> bool:
         """Responsibilities: _source order visibility_."""
         return (self._line_number, self._column_offset) <= (
-            cast(PythonASTLocatedNode, node).lineno,
-            cast(PythonASTLocatedNode, node).col_offset,
+            node.lineno,
+            node.col_offset,
         )

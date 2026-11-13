@@ -14,9 +14,9 @@ from implementation.types import JsonObject
 class PythonUnionAnnotationClassifierContract(Protocol):
     """Responsibilities: _Python union annotation classification_."""
 
-    def annotation_composite_types(self, node: ast.AST) -> list[ast.AST]: ...
+    def annotation_composite_types(self, node: ast.expr) -> list[ast.expr]: ...
 
-    def contains_union(self, annotation: ast.AST) -> bool: ...
+    def contains_union(self, annotation: ast.expr) -> bool: ...
 
     def nullish_type(self, value: ast.AST) -> bool: ...
 
@@ -28,12 +28,12 @@ class PythonUnionAnnotationClassifierContract(Protocol):
 class PythonUnionAnnotationIssueCollectorContract(Protocol):
     """Responsibilities: _union issue data_."""
 
-    def issues_for_candidates(self, candidates: list[ast.AST]) -> list[JsonObject]: ...
+    def issues_for_candidates(self, candidates: list[ast.expr]) -> list[JsonObject]: ...
 
     def issues_for_values(
         self,
-        node: ast.AST,
-        values: list[ast.AST],
+        node: ast.expr,
+        values: list[ast.expr],
     ) -> list[JsonObject]: ...
 
 
@@ -62,7 +62,7 @@ class PythonConditionalTypeAliasAnalysisContract(Protocol):
 class PythonUnionDeclarationAnnotationsContract(Protocol):
     """Responsibilities: _union declaration annotation lookup_."""
 
-    def annotations(self, node: ast.AST) -> list[ast.AST]: ...
+    def annotations(self, node: ast.AST) -> list[ast.expr]: ...
 
     def field_declaration(self, field_candidate: ast.AST) -> bool: ...
 

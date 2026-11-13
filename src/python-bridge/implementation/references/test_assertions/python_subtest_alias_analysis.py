@@ -1,64 +1,61 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from functools import cached_property
-from typing import cast
 
 from implementation.references.protocols import (
     PythonSubtestAliasesOptionsContract,
 )
+from implementation.references.test_assertions.types import (
+    PythonSubtestAliasAnalysisState,
+    PythonSubtestAliasMap,
+    PythonSubtestAssignmentList,
+    PythonSubtestTargetValues,
+)
 from implementation.types import PythonASTLocatedNode
-
-
-@dataclass
-class PythonSubtestAliasAnalysisState:
-    """Responsibilities: _source assignment history_, _subtest alias transitions_."""
-
-    assignments: list[ast.AST]
-    receivers: dict[str, str]
-    subtests: set[str]
 
 
 class PythonSubtestAliasAnalysis:
     """Responsibilities: _single subtest scope analysis_, _receiver alias ownership_."""
 
-    def _target_values(self, assignment: ast.AST) -> dict[str, ast.AST]:
+    def _target_values(self, alias_assignment: PythonASTLocatedNode) -> PythonSubtestTargetValues:
         """Responsibilities: _destructured alias resolution_."""
-        if type(assignment) is ast.Assign:
-            if len(assignment.targets) == 1:
+        cached = self._state.assignment_aliases.get(alias_assignment)
+        if cached is not None:
+            return cached
+        values = self._compute_target_values(alias_assignment)
+        self._state.assignment_aliases.update({alias_assignment: values})
+        return values
+
+    def _compute_target_values(self, source_assignment: PythonASTLocatedNode) -> PythonSubtestTargetValues:
+        """Responsibilities: _assignment target aliases_."""
+        if type(source_assignment) is ast.Assign:
+            if len(source_assignment.targets) == 1:
                 return self._options.assignment_aliases.target_values(
-                    assignment.targets[0],
-                    assignment.value,
+                    source_assignment.targets[0],
+                    source_assignment.value,
                 )
-        if type(assignment) is ast.AnnAssign:
-            if assignment.value is not None:
+        if type(source_assignment) is ast.AnnAssign:
+            if source_assignment.value is not None:
                 return self._options.assignment_aliases.target_values(
-                    assignment.target,
-                    assignment.value,
+                    source_assignment.target,
+                    source_assignment.value,
                 )
         return {}
 
-    def _assignments_before(self, node: ast.AST) -> list[ast.AST]:
-        """Responsibilities: _prior assignment selection_."""
-        prior_assignments: list[ast.AST] = []
-        for assignment in self._state.assignments:
-            if cast(PythonASTLocatedNode, assignment).lineno < cast(PythonASTLocatedNode, node).lineno:
-                prior_assignments.append(assignment)
-                continue
-            if cast(PythonASTLocatedNode, assignment).lineno > cast(PythonASTLocatedNode, node).lineno:
-                continue
-            if cast(PythonASTLocatedNode, assignment).col_offset < cast(PythonASTLocatedNode, node).col_offset:
-                prior_assignments.append(assignment)
-        return prior_assignments
+    def _assignment_precedes(self, earlier_assignment: PythonASTLocatedNode, node: PythonASTLocatedNode) -> bool:
+        """Responsibilities: _single assignment source-order comparison_."""
+        if type(earlier_assignment) is ast.Assign:
+            return (earlier_assignment.lineno, earlier_assignment.col_offset) < (node.lineno, node.col_offset)
+        if type(earlier_assignment) is ast.AnnAssign:
+            return (earlier_assignment.lineno, earlier_assignment.col_offset) < (node.lineno, node.col_offset)
+        return False
 
-    def _resolve(self, name: str, aliases: dict[str, str]) -> str:
+    def _resolve(self, name: str, aliases: PythonSubtestAliasMap) -> str:
         """Responsibilities: _alias chain resolution_."""
         resolved = name
         seen: set[str] = set()
-        while resolved in aliases:
-            if resolved in seen:
-                break
+        while resolved in aliases and resolved not in seen:
             seen.add(resolved)
             resolved = aliases[resolved]
         return resolved
@@ -90,32 +87,28 @@ class PythonSubtestAliasAnalysis:
             return self._bound_getattr_subtest(value, receivers)
         return False
 
-    def _record_name(self, target: str, value: ast.Name) -> None:
-        """Responsibilities: _named alias recording_."""
-        if value.id in self._state.subtests:
-            self._state.subtests.add(target)
-            return
-        if self._resolve(value.id, self._state.receivers) == "self":
-            self._state.receivers.update({target: value.id})
-            return
-        self._state.receivers.pop(target, None)
-        self._state.subtests.discard(target)
-
     def _record_target(self, target: str, value: ast.AST) -> None:
-        """Responsibilities: _subtest alias target recording_."""
+        """Responsibilities: _subtest alias transitions_."""
         if type(value) is ast.Name:
-            self._record_name(target, value)
-            return
-        if self._bound_subtest(value, self._state.receivers):
-            self._state.subtests.add(target)
-            return
+            if value.id in self._state.subtests:
+                self._state.subtests.add(target)
+                return
+            if self._resolve(value.id, self._state.receivers) == "self":
+                self._state.receivers.update({target: value.id})
+                return
+        else:
+            if self._bound_subtest(value, self._state.receivers):
+                self._state.subtests.add(target)
+                return
         self._state.receivers.pop(target, None)
         self._state.subtests.discard(target)
 
-    def _receiver_names(self, context: ast.AST) -> dict[str, str]:
+    def _receiver_names(self, context: PythonASTLocatedNode) -> dict[str, str]:
         """Responsibilities: _receiver alias collection_."""
         receivers = {"self": "self"}
-        for assignment in self._assignments_before(context):
+        for assignment in self._state.assignments:
+            if not self._assignment_precedes(assignment, context):
+                continue
             for target, value in self._target_values(assignment).items():
                 if type(value) is not ast.Name:
                     continue
@@ -123,7 +116,7 @@ class PythonSubtestAliasAnalysis:
                     receivers[target] = value.id
         return receivers
 
-    def _context_subtest(self, context: ast.AST, aliases: set[str]) -> bool:
+    def _context_subtest(self, context: PythonASTLocatedNode, aliases: set[str]) -> bool:
         """Responsibilities: _context subtest classification_."""
         if type(context) is ast.Call:
             context = context.func
@@ -135,33 +128,36 @@ class PythonSubtestAliasAnalysis:
 
     def __init__(
         self,
-        target: ast.AST,
+        target: PythonASTLocatedNode,
         scope: ast.AST,
-        assignments: list[ast.AST],
+        assignments: PythonSubtestAssignmentList,
         options: PythonSubtestAliasesOptionsContract,
     ) -> None:
         """Responsibilities: _subtest scope state initialization_."""
-        self._target: ast.AST = target
+        self._target: PythonASTLocatedNode = target
         self._scope: ast.AST = scope
         self._state: PythonSubtestAliasAnalysisState = PythonSubtestAliasAnalysisState(
             assignments,
             {"self": "self"},
             set(),
+            {},
         )
         self._options: PythonSubtestAliasesOptionsContract = options
 
     @cached_property
     def aliases(self) -> set[str]:
         """Responsibilities: _subtest alias collection_."""
-        for assignment in self._assignments_before(self._target):
+        for assignment in self._state.assignments:
+            if not self._assignment_precedes(assignment, self._target):
+                continue
             for target, value in self._target_values(assignment).items():
                 self._record_target(target, value)
         return self._state.subtests
 
     def matches(self, aliases: set[str]) -> bool:
         """Responsibilities: _subtest context matching_."""
-        if type(self._target) is ast.With or type(self._target) is ast.AsyncWith:
-            items = self._target.items
-        else:
-            return False
-        return any(self._context_subtest(item.context_expr, aliases) for item in items)
+        match self._target:
+            case ast.With(items=items) | ast.AsyncWith(items=items):
+                return any(self._context_subtest(item.context_expr, aliases) for item in items)
+            case _:
+                return False

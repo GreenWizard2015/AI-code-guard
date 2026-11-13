@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.rules.constants import PYTHON_OBJECT_FIELD_WRITE_RULE
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonFieldMutationCollector:
@@ -38,9 +37,9 @@ class PythonFieldMutationCollector:
                     targets.append(target)
         return targets
 
-    def _invalid_store_target(self, store_target: ast.AST) -> bool:
+    def _invalid_store_target(self, store_target: ast.Attribute) -> bool:
         """Responsibilities: _invalid field target classification_."""
-        if type(store_target) is not ast.Attribute or type(store_target.ctx) is not ast.Store:
+        if type(store_target.ctx) is not ast.Store:
             return False
         current: ast.AST = store_target
         root_field = ""
@@ -67,12 +66,18 @@ class PythonFieldMutationCollector:
     def collect_mutations(self, mutation_node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _field mutation records_."""
         targets = self.assignment_targets(mutation_node)
-        invalid_targets = [target for target in targets if self._invalid_store_target(target)]
+        invalid_targets: list[ast.Attribute] = []
+        for target in targets:
+            match target:
+                case ast.Attribute() as attribute:
+                    if self._invalid_store_target(attribute):
+                        invalid_targets.append(attribute)
         if not invalid_targets:
             return []
+        invalid_target = invalid_targets[0]
         return [
             {
-                "line": cast(PythonASTLocatedNode, invalid_targets[0]).lineno - 1,
+                "line": invalid_target.lineno - 1,
                 "kind": PYTHON_OBJECT_FIELD_WRITE_RULE,
             },
         ]

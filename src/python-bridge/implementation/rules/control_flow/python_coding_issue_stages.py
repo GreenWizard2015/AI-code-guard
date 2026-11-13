@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonSubtestAliasesContract
 from implementation.references.decorator_protocols import (
@@ -15,7 +14,7 @@ from implementation.rules.constants import (
     PYTHON_TEST_SUBTEST_RULE,
     SPECIAL_NAMES,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonCodingIssueStages:
@@ -72,7 +71,7 @@ class PythonCodingIssueStages:
             previous = statement
         return []
 
-    def _shape_name(self, shape_expression: ast.AST) -> str:
+    def _shape_name(self, shape_expression: ast.expr) -> str:
         """Responsibilities: _special result shape name_."""
         if type(shape_expression) is ast.Name:
             return shape_expression.id
@@ -110,15 +109,13 @@ class PythonCodingIssueStages:
 
     def shape_issues(self, shape_expression: ast.AST) -> list[JsonObject]:
         """Responsibilities: _multiple-result-shape issue collection_."""
-        name = self._shape_name(shape_expression)
-        if name not in SPECIAL_NAMES:
-            return []
-        return [
-            {
-                "line": cast(PythonASTLocatedNode, shape_expression).lineno - 1,
-                "kind": PYTHON_MULTIPLE_RESULT_SHAPES_RULE,
-            },
-        ]
+        match shape_expression:
+            case ast.expr(lineno=line) as expression:
+                if self._shape_name(expression) in SPECIAL_NAMES:
+                    return [{"line": line - 1, "kind": PYTHON_MULTIPLE_RESULT_SHAPES_RULE}]
+            case _:
+                return []
+        return []
 
     def property_issues(self, property_declaration: ast.AST) -> list[JsonObject]:
         """Responsibilities: _property issue collection_."""
@@ -147,12 +144,17 @@ class PythonCodingIssueStages:
 
     def subtest_issues(self, subtest_candidate: ast.AST) -> list[JsonObject]:
         """Responsibilities: _subtest issue collection_."""
-        aliases = self._subtest_aliases.aliases_for(subtest_candidate)
-        if not self._subtest_aliases.matches(subtest_candidate, aliases):
+        match subtest_candidate:
+            case ast.With(lineno=line) | ast.AsyncWith(lineno=line) as subtest:
+                pass
+            case _:
+                return []
+        aliases = self._subtest_aliases.aliases_for(subtest)
+        if not self._subtest_aliases.matches(subtest, aliases):
             return []
         return [
             {
-                "line": cast(PythonASTLocatedNode, subtest_candidate).lineno - 1,
+                "line": line - 1,
                 "kind": PYTHON_TEST_SUBTEST_RULE,
             },
         ]

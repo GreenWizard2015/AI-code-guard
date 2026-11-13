@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE
 from implementation.rules.protocols import PythonArrayCallAnalyzerContract
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonSingleItemArrayStateRules:
@@ -39,18 +38,18 @@ class PythonSingleItemArrayStateRules:
 
     def collect_array_rules(self, node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _collection violations AST node_."""
-        targets: list[ast.expr] = []
-        if type(node) is ast.Assign:
-            targets = node.targets
-        else:
-            if type(node) is ast.AnnAssign:
-                targets = [node.target]
+        match node:
+            case ast.Assign(lineno=line, targets=targets):
+                pass
+            case ast.AnnAssign(lineno=line, target=target):
+                targets = [target]
+            case ast.Subscript() as indexed_expression:
+                return self.collect_indexed_result(indexed_expression)
+            case _:
+                return []
         if self._single_item_target(targets):
-            position = cast(PythonASTLocatedNode, node)
-            return [{"line": position.lineno - 1, "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE}]
-        if type(node) is not ast.Subscript:
-            return []
-        return self.collect_indexed_result(node)
+            return [{"line": line - 1, "kind": PYTHON_SINGLE_ITEM_ARRAY_STATE_RULE}]
+        return []
 
     def collect_indexed_result(self, indexed_expression: ast.Subscript) -> list[JsonObject]:
         """Responsibilities: _single-item indexed result diagnostics_."""

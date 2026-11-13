@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import cast
 
 from implementation.ast.callable_nodes.python_function_node_context import (
     PythonFunctionNodeContext,
@@ -23,7 +22,7 @@ from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonScopedTypeAliasesContract,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 @dataclass(frozen=True)
@@ -71,10 +70,6 @@ class PythonFunctionNodes:
             CallableStatements(),
         )
 
-    def function(self, node: ast.AST) -> bool:
-        """Responsibilities: _classification Python function node_."""
-        return type(node) in (ast.FunctionDef, ast.AsyncFunctionDef)
-
     def nodes(self) -> list[JsonObject]:
         """Responsibilities: _collection Python function nodes_."""
         return self._records(self._function_selector.nodes())
@@ -85,16 +80,14 @@ class PythonFunctionNodes:
 
     def callable_count(self) -> JsonObject:
         """Responsibilities: _count Python callable nodes_."""
-        nodes: list[ast.AST] = []
+        nodes: list[ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = []
         for node in self._node_index.nodes(self._tree):
-            if self.function(node):
-                nodes.append(node)
-                continue
-            if type(node) is ast.Lambda:
-                nodes.append(node)
+            match node:
+                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda():
+                    nodes.append(node)
         if not nodes:
             return {"count": 0, "first_line": 0}
         return {
             "count": len(nodes),
-            "first_line": min(cast(PythonASTLocatedNode, node).lineno for node in nodes) - 1,
+            "first_line": min(node.lineno for node in nodes) - 1,
         }

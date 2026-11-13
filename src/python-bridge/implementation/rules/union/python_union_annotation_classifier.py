@@ -10,7 +10,7 @@ from implementation.rules.protocols import PythonTypingAliasesContract
 class PythonUnionAnnotationClassifier:
     """Responsibilities: _composite annotation flattening_, _optional type classification_."""
 
-    def _annotation_name(self, name_expression: ast.AST) -> str:
+    def _annotation_name(self, name_expression: ast.expr) -> str:
         """Responsibilities: _annotation expression name resolution_."""
         name = self._python_typing_aliases.expression_name(name_expression)
         if name:
@@ -25,7 +25,7 @@ class PythonUnionAnnotationClassifier:
         self,
         node: ast.expr,
         operation: type[ast.operator],
-    ) -> list[ast.AST]:
+    ) -> list[ast.expr]:
         """Responsibilities: _binary annotation type flattening_."""
         if type(node) is not ast.BinOp or type(node.op) is not operation:
             return [node]
@@ -33,7 +33,7 @@ class PythonUnionAnnotationClassifier:
         flattened.extend(self._flatten_types(node.right, operation))
         return flattened
 
-    def _annotation_union_types(self, union_annotation: ast.AST) -> list[ast.AST]:
+    def _annotation_union_types(self, union_annotation: ast.expr) -> list[ast.expr]:
         """Responsibilities: _annotation union member collection_."""
         if type(union_annotation) is ast.BinOp and type(union_annotation.op) is ast.BitOr:
             return self._flatten_types(union_annotation, ast.BitOr)
@@ -43,15 +43,15 @@ class PythonUnionAnnotationClassifier:
         if not self._python_typing_aliases.matches_union(name):
             return [union_annotation]
         if type(union_annotation.slice) is ast.Tuple:
-            members: list[ast.AST] = []
+            members: list[ast.expr] = []
             members.extend(union_annotation.slice.elts)
             return members
         return [union_annotation.slice]
 
     def _annotation_intersection_types(
         self,
-        intersection_annotation: ast.AST,
-    ) -> list[ast.AST]:
+        intersection_annotation: ast.expr,
+    ) -> list[ast.expr]:
         """Responsibilities: _annotation intersection member collection_."""
         if type(intersection_annotation) is ast.BinOp and type(intersection_annotation.op) is ast.BitAnd:
             return self._flatten_types(intersection_annotation, ast.BitAnd)
@@ -68,8 +68,8 @@ class PythonUnionAnnotationClassifier:
 
     def annotation_composite_types(
         self,
-        composite_annotation: ast.AST,
-    ) -> list[ast.AST]:
+        composite_annotation: ast.expr,
+    ) -> list[ast.expr]:
         """Responsibilities: _composite annotation member collection_."""
         union_values = self._annotation_union_types(composite_annotation)
         if len(union_values) > 1:
@@ -98,9 +98,14 @@ class PythonUnionAnnotationClassifier:
             return result_annotation.id in {"Never", "NoReturn", "undefined"}
         return False
 
-    def contains_union(self, annotation: ast.AST) -> bool:
+    def contains_union(self, annotation: ast.expr) -> bool:
         """Responsibilities: _composite annotation identification_."""
-        return any(len(self.annotation_composite_types(item)) > 1 for item in self._node_index.nodes(annotation))
+        for item in self._node_index.nodes(annotation):
+            match item:
+                case ast.expr() as expression:
+                    if len(self.annotation_composite_types(expression)) > 1:
+                        return True
+        return False
 
     def nodes(self, annotation: ast.AST) -> list[ast.AST]:
         """Responsibilities: _annotation node traversal_."""

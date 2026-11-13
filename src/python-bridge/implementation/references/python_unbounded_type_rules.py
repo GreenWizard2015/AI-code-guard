@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import UNBOUNDED_TYPE_NAMES
 from implementation.references.protocols import PythonScopedTypeAliasesContract
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonUnboundedTypeRules:
     """Responsibilities: _unbounded type detection_, _annotation issue reporting_."""
 
-    def _is_unbounded_name(self, name: str, context: ast.AST) -> bool:
+    def _is_unbounded_name(self, name: str, context: ast.expr) -> bool:
         """Responsibilities: _unbounded name classification_."""
         resolved = self._type_aliases.resolve(name, context)
         if resolved in UNBOUNDED_TYPE_NAMES:
@@ -21,7 +20,7 @@ class PythonUnboundedTypeRules:
         final_name = name_parts[-1]
         return final_name in UNBOUNDED_TYPE_NAMES
 
-    def _is_unbounded_node(self, item: ast.AST, context: ast.AST) -> bool:
+    def _is_unbounded_node(self, item: ast.AST, context: ast.expr) -> bool:
         """Responsibilities: _classification annotation node unbounded_."""
         if type(item) is ast.Name:
             return self._is_unbounded_name(item.id, context)
@@ -123,11 +122,17 @@ class PythonUnboundedTypeRules:
 
     def annotation_issues(self, annotation: ast.AST) -> list[JsonObject]:
         """Responsibilities: _reporting unbounded nodes contained_."""
-        return [
-            {"line": cast(PythonASTLocatedNode, node).lineno - 1, "kind": "unbounded-type"}
-            for node in self._node_index.nodes(annotation)
-            if self._is_unbounded_node(node, annotation)
-        ]
+        match annotation:
+            case ast.expr() as expression:
+                issues: list[JsonObject] = []
+                for node in self._node_index.nodes(expression):
+                    if type(node) not in (ast.Name, ast.Attribute):
+                        continue
+                    if self._is_unbounded_node(node, expression):
+                        issues.append({"line": node.lineno - 1, "kind": "unbounded-type"})
+                return issues
+            case _:
+                return []
 
     def issues(self) -> list[JsonObject]:
         """Responsibilities: _collection unbounded annotation issues_."""

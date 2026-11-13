@@ -69,6 +69,11 @@ export const TYPES_RULE_DATA = {
 		hint: "declare an explicit dataclass or normal class with typed fields. Do not: use SimpleNamespace or assemble project-owned types through type factories.",
 		priority: 6,
 	},
+	"python-type-cast": {
+		message: "do not use Python typing.cast",
+		hint: "narrow values with runtime checks or correct the declared type. Do not: silence the type checker with typing.cast.",
+		priority: 5,
+	},
 	"large-union": {
 		message: "avoid overly broad unions",
 		hint: "split a broad union into a focused type or protocol. For T | None, use Optional[T]. Do not: widen one contract with unrelated alternatives.",

@@ -15,6 +15,7 @@ from implementation.rules.control_flow.python_method_record_value import (
     PythonMethodRecordValue,
 )
 from implementation.rules.protocols import PythonMethodRecordContract
+from implementation.types import PythonCallableAstNode
 
 
 @dataclass(frozen=True, order=True)
@@ -167,7 +168,7 @@ class PythonTemporalAccess:
 
     def method_record(
         self,
-        method_definition: ast.AST,
+        method_definition: PythonCallableAstNode,
         method_name: str,
     ) -> PythonMethodRecordContract:
         """Responsibilities: _method access record_."""

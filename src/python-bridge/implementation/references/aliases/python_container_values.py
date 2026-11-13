@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.references.alias_types import (
     ExpandedContainerValues,
@@ -117,11 +116,16 @@ class PythonContainerValues:
         nested = self._item_at_container(request)
         if nested.found():
             return nested
-        expression = ast.Attribute(
-            value=cast(ast.expr, resolved.expression_node()),
-            attr=value.attr,
-            ctx=ast.Load(),
-        )
+        nested_expression = resolved.expression_node()
+        match nested_expression:
+            case ast.expr() as expression_value:
+                expression = ast.Attribute(
+                    value=expression_value,
+                    attr=value.attr,
+                    ctx=ast.Load(),
+                )
+            case _:
+                return PythonContainerLookup(found_value=False, expression=value)
         return PythonContainerLookup(found_value=True, expression=expression)
 
     def __init__(

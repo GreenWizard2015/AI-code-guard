@@ -25,7 +25,7 @@ from implementation.references.reference_alias_protocols import (
     PythonReferenceAliasStateContract,
     PythonScopeAliasHistoryContract,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 __all__ = [
     "CallablePythonReferenceOperation",
@@ -378,4 +378,4 @@ class PythonScopedTypeAliasesContract(Protocol):
 
     def collect(self) -> None: ...
 
-    def resolve(self, name: str, context: ast.AST) -> str: ...
+    def resolve(self, name: str, context: PythonASTLocatedNode) -> str: ...

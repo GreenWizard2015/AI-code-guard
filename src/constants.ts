@@ -86,6 +86,7 @@ export const RULE_LANGUAGE_BY_ID = new Map<string, AstLanguage>(
 		"typescript-setter": "typescript",
 		"typescript-prototype-assignment": "typescript",
 		"python-type-factory": "python",
+		"python-type-cast": "python",
 		"python-optional-union": "python",
 		"python-conditional-type-alias": "python",
 		"typescript-type-guard": "typescript",

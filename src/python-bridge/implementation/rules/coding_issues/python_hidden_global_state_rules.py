@@ -6,7 +6,7 @@ from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.coding_issues.python_collection_mutation_analysis import (
     PythonCollectionMutationAnalysis,
 )
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonCallableAstNode
 
 
 class PythonHiddenGlobalStateRules:
@@ -79,9 +79,11 @@ class PythonHiddenGlobalStateRules:
     def issues(self, tree: ast.Module) -> list[JsonObject]:
         """Responsibilities: _shared module collection reporting_."""
         collections = self.collections(tree)
-        callables = [
-            node for node in self._node_index.nodes(tree) if type(node) in (ast.FunctionDef, ast.AsyncFunctionDef)
-        ]
+        callables: list[PythonCallableAstNode] = []
+        for node in self._node_index.nodes(tree):
+            match node:
+                case ast.FunctionDef() | ast.AsyncFunctionDef():
+                    callables.append(node)
         mutation_analysis = PythonCollectionMutationAnalysis(
             collections,
             self._node_index,

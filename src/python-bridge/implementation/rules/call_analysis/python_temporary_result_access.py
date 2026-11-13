@@ -113,7 +113,7 @@ class PythonTemporaryResultAccess:
                 return False
         return self._class_call_target(ast.unparse(function))
 
-    def violates(self, candidate: ast.AST) -> bool:
+    def violates(self, candidate: ast.expr) -> bool:
         """Responsibilities: _temporary result rule decision_."""
         match candidate:
             case ast.Call(

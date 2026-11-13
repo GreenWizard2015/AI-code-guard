@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 from time import perf_counter
-from typing import cast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
@@ -51,7 +50,7 @@ from implementation.rules.constants import (
 from implementation.rules.protocols import (
     PythonDowncastAnalysisContract,
 )
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 @dataclass
@@ -127,7 +126,7 @@ class CallRules:
         """Responsibilities: _Python call-specific diagnostics_."""
         kind = self._call_kind(source_node)
         if kind:
-            return [{"line": cast(PythonASTLocatedNode, source_node).lineno - 1, "kind": kind}]
+            return [{"line": source_node.lineno - 1, "kind": kind}]
         time_issues = self._test_time_dependency.issue(
             source_node,
             self._callable_condition_context,
@@ -228,13 +227,12 @@ class CallRules:
         if type(source_node) is ast.Assert:
             issues.extend(self._assertion_issues(source_node))
         issues.extend(self._call_method_issues(source_node))
-        if self._temporary_result_access.violates(source_node):
-            issues.append(
-                {
-                    "line": cast(PythonASTLocatedNode, source_node).lineno - 1,
-                    "kind": PYTHON_TEMPORARY_RESULT_RULE,
-                },
-            )
+        match source_node:
+            case ast.expr(lineno=line) as expression:
+                if self._temporary_result_access.violates(expression):
+                    issues.append({"line": line - 1, "kind": PYTHON_TEMPORARY_RESULT_RULE})
+            case _:
+                pass
         if type(source_node) is ast.Call:
             issues.extend(self._call_issues(source_node))
         return issues

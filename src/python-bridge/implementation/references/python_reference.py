@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.references.constants import (
     PYTHON_CALL_USE_KEY,
@@ -15,7 +14,7 @@ from implementation.references.python_receiver_expression import (
     PythonReceiverExpression,
 )
 from implementation.rules.constants import PYTHON_FUNCTION_KIND
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class PythonReference:
@@ -36,7 +35,7 @@ class PythonReference:
             "target_file": "",
             "is_call": False,
             "dynamic": False,
-            "line": cast(PythonASTLocatedNode, function_site).lineno - 1,
+            "line": function_site.lineno - 1,
             "call_use": self._call_use(),
         }
 
@@ -56,7 +55,7 @@ class PythonReference:
             "target_file": "",
             "is_call": False,
             "dynamic": not receiver_owner,
-            "line": cast(PythonASTLocatedNode, method_site).lineno - 1,
+            "line": method_site.lineno - 1,
             "call_use": self._call_use(),
         }
 

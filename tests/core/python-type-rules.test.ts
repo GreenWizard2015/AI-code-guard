@@ -181,6 +181,46 @@ describe("coding-lint Python type rules", () => {
 		});
 	});
 
+	test("rejects Python typing casts and import aliases", () => {
+		const test_fixture = new TestFixture();
+		const files = {
+			"type-cast.py": [
+				"from typing import cast as assume_type",
+				"from typing_extensions import cast as extension_cast",
+				"import typing as typing_module",
+				"first = assume_type(str, value)",
+				"second = extension_cast(str, value)",
+				"third = typing_module.cast(str, value)",
+				"from typing import cast",
+				"fourth = cast(str, value)",
+				"runtime_conversion = int(value)",
+				"import typing_extensions as extension_module",
+				"sixth = extension_module.cast(str, value)",
+			].join("\n"),
+			"star-cast.py": ["from typing import *", "cast_value = cast(str, value)"].join("\n"),
+		};
+		const violations = test_fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), test_fixture.file_io()),
+			files,
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((item) => item.rule_id() === "python-type-cast")
+				.map((item) => `${item.file()}:${item.line()}`)
+				.sort(),
+		).toEqual([
+			"star-cast.py:2",
+			"type-cast.py:11",
+			"type-cast.py:4",
+			"type-cast.py:5",
+			"type-cast.py:6",
+			"type-cast.py:8",
+		]);
+	});
+
 	test("resolves Python aliased bases by declaration file", () => {
 		const test_fixture = new TestFixture();
 		const files = {

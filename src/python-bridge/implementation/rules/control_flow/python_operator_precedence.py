@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
 from implementation.rules.protocols import PythonExpressionBoundaryContract
-from implementation.types import JsonObject, PythonASTLocatedNode, PythonOperatorKinds
+from implementation.types import JsonObject, PythonOperatorKinds
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,7 @@ class PythonOperatorPrecedence:
 
     def _same_group_parent(
         self,
-        child_expression: ast.AST,
+        child_expression: ast.expr,
         boolean_group: bool,
     ) -> bool:
         """Responsibilities: _same-group parent operators identification_."""
@@ -55,29 +54,29 @@ class PythonOperatorPrecedence:
 
     def _append_operators(
         self,
-        expression: ast.AST,
+        traversal_expression: ast.expr,
         options: OperatorAppendOptions,
         root_expression: bool = True,
     ) -> PythonOperatorKinds:
         """Responsibilities: _collection operators expression_."""
-        if self._expression_boundary.parenthesized(expression):
+        if self._expression_boundary.parenthesized(traversal_expression):
             if not root_expression:
                 return set()
             if not options.root_parenthesized:
                 return set()
         if options.boolean_group:
-            return self._append_boolean_operators(expression, options)
-        if type(expression) is not ast.BinOp:
+            return self._append_boolean_operators(traversal_expression, options)
+        if type(traversal_expression) is not ast.BinOp:
             return set()
         return (
-            {type(expression.op)}
-            | self._append_operators(expression.left, options, root_expression=False)
-            | self._append_operators(expression.right, options, root_expression=False)
+            {type(traversal_expression.op)}
+            | self._append_operators(traversal_expression.left, options, root_expression=False)
+            | self._append_operators(traversal_expression.right, options, root_expression=False)
         )
 
     def _append_boolean_operators(
         self,
-        traversal_node: ast.AST,
+        traversal_node: ast.expr,
         boolean_options: OperatorAppendOptions,
         root_expression: bool = True,
     ) -> PythonOperatorKinds:
@@ -100,34 +99,34 @@ class PythonOperatorPrecedence:
             )
         return set()
 
-    def _mixed(self, expression: ast.AST, boolean_group: bool) -> bool:
+    def _mixed(self, candidate_expression: ast.expr, boolean_group: bool) -> bool:
         """Responsibilities: _mixed operator precedence identification_."""
-        if self._same_group_parent(expression, boolean_group):
+        if self._same_group_parent(candidate_expression, boolean_group):
             return False
         operators = self._append_operators(
-            expression,
+            candidate_expression,
             OperatorAppendOptions(
                 boolean_group,
-                self._expression_boundary.parenthesized(expression),
+                self._expression_boundary.parenthesized(candidate_expression),
             ),
         )
         if boolean_group:
-            return self._mixed_boolean_operators(expression, operators)
+            return self._mixed_boolean_operators(candidate_expression, operators)
         return len(operators) > 1
 
     def _mixed_boolean_operators(
         self,
-        boolean_expression: ast.AST,
+        candidate_boolean: ast.expr,
         operators: PythonOperatorKinds,
     ) -> bool:
         """Responsibilities: _mixed boolean operator classification_."""
         if ast.Not not in operators:
             return len(operators) > 1
-        if self._binary_operator_count(boolean_expression) < 2:
+        if self._binary_operator_count(candidate_boolean) < 2:
             return False
         return len(operators) > 1
 
-    def _binary_operator_count(self, boolean_expression: ast.AST) -> int:
+    def _binary_operator_count(self, boolean_expression: ast.expr) -> int:
         """Responsibilities: _binary operator count_."""
         if self._expression_boundary.parenthesized(boolean_expression):
             return 0
@@ -137,6 +136,18 @@ class PythonOperatorPrecedence:
             if type(boolean_expression.op) is ast.Not:
                 return self._binary_operator_count(boolean_expression.operand)
         return 0
+
+    def _mixed_boolean_issue(self, candidate: ast.expr) -> bool:
+        """Responsibilities: _mixed boolean precedence classification_."""
+        if self._expression_boundary.negation_comparison_boundary(candidate):
+            return True
+        if type(candidate) is not ast.BoolOp:
+            return False
+        if type(candidate.op) not in (ast.And, ast.Or):
+            return False
+        if self._same_group_parent(candidate, boolean_group=True):
+            return False
+        return self._mixed(candidate, boolean_group=True)
 
     def __init__(
         self,
@@ -149,33 +160,22 @@ class PythonOperatorPrecedence:
         self._expression_boundary: PythonExpressionBoundaryContract = expression_boundary
         self._node_index: PythonAstNodeIndexContract = node_index
 
-    def mixed_boolean_operator(self, expression_candidate: ast.AST) -> list[JsonObject]:
+    def mixed_boolean_operator(self, expression: ast.expr) -> list[JsonObject]:
         """Responsibilities: _collection mixed boolean precedence_."""
-        line: int = cast(PythonASTLocatedNode, expression_candidate).lineno - 1
-        kind: str = PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
-        violation: JsonObject = {"line": line, "kind": kind}
-        if self._expression_boundary.negation_comparison_boundary(expression_candidate):
-            return [violation]
-        if type(expression_candidate) is not ast.BoolOp:
-            return []
-        if type(expression_candidate.op) not in (ast.And, ast.Or):
-            return []
-        if self._same_group_parent(expression_candidate, boolean_group=True):
-            return []
-        if self._mixed(expression_candidate, boolean_group=True):
-            return [violation]
+        if self._mixed_boolean_issue(expression):
+            return [{"line": expression.lineno - 1, "kind": PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND}]
         return []
 
     def mixed_arithmetic_operator(
         self,
-        expression_candidate: ast.AST,
+        node: ast.expr,
     ) -> list[JsonObject]:
         """Responsibilities: _collection mixed arithmetic precedence_."""
-        if self._arithmetic_operator(expression_candidate):
-            if self._mixed(expression_candidate, boolean_group=False):
+        if self._arithmetic_operator(node):
+            if self._mixed(node, boolean_group=False):
                 return [
                     {
-                        "line": cast(PythonASTLocatedNode, expression_candidate).lineno - 1,
+                        "line": node.lineno - 1,
                         "kind": "mixed-arithmetic-precedence",
                     },
                 ]

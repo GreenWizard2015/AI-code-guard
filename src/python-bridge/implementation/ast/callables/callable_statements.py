@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonCallableStatementsContract,
 )
 from implementation.rules.constants import PYTHON_VALUE_NAME_KEY
-from implementation.types import JsonObject, PythonASTLocatedNode
+from implementation.types import JsonObject
 
 
 class CallableStatements(PythonCallableStatementsContract):
@@ -22,7 +21,7 @@ class CallableStatements(PythonCallableStatementsContract):
 
     def _assignment_record(
         self,
-        item: ast.AST,
+        item: ast.stmt,
         target: ast.AST,
         value_name: str,
         simple_alias: bool,
@@ -33,7 +32,7 @@ class CallableStatements(PythonCallableStatementsContract):
             name = target.id
         statement: JsonObject = {
             "kind": "assignment",
-            "line": cast(PythonASTLocatedNode, item).lineno - 1,
+            "line": item.lineno - 1,
             "simple_alias": simple_alias,
             "destructured": type(target) in (ast.Tuple, ast.List),
         }
@@ -45,7 +44,7 @@ class CallableStatements(PythonCallableStatementsContract):
 
     def _value_assignment_record(
         self,
-        item: ast.AST,
+        item: ast.stmt,
         target: ast.AST,
         value: ast.AST,
     ) -> JsonObject:
@@ -71,7 +70,7 @@ class CallableStatements(PythonCallableStatementsContract):
         """Responsibilities: _normalization output statement_."""
         statement: JsonObject = {
             "kind": "return",
-            "line": cast(PythonASTLocatedNode, item).lineno - 1,
+            "line": item.lineno - 1,
         }
         if type(item.value) is ast.Name:
             statement["name"] = item.value.id
@@ -125,7 +124,7 @@ class CallableStatements(PythonCallableStatementsContract):
             return self._assignment_statement(item, item.target)
         if type(item) is ast.Return:
             return self._return_statement(item)
-        return {"kind": "other", "line": cast(PythonASTLocatedNode, item).lineno - 1}
+        return {"kind": "other", "line": item.lineno - 1}
 
     def _append_assignment_value(self, result: set[int], node: ast.AST) -> None:
         """Responsibilities: _assignment value identity recording_."""

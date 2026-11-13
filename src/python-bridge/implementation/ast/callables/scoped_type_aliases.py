@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import cast
 
 from implementation.ast.callables.python_scoped_type_alias_node import (
     PythonScopedTypeAliasNode,
@@ -71,7 +70,7 @@ class PythonScopedTypeAliases(PythonScopedTypeAliasIndexContract):
         """Responsibilities: _scoped type alias records_."""
         self._aliases.append(PythonTypeAliasRecord(name, target, scope, line))
 
-    def resolve(self, name: str, context: ast.AST) -> str:
+    def resolve(self, name: str, context: PythonASTLocatedNode) -> str:
         """Responsibilities: _transitive scoped alias resolution_."""
         current = name
         visited: set[str] = set()
@@ -84,7 +83,7 @@ class PythonScopedTypeAliases(PythonScopedTypeAliasIndexContract):
             visited.add(current)
             target = ""
             for scope in alias_node.scope_chain():
-                target = self._scope_target(current, scope, cast(PythonASTLocatedNode, context).lineno)
+                target = self._scope_target(current, scope, context.lineno)
                 if target != "":
                     break
             if target == "":

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.types import PythonASTLocatedNode
+from implementation.types import PythonCallableAstNode
 
 CollectionOwnerLines = dict[str, set[int]]
 
@@ -74,17 +73,17 @@ class PythonCollectionMutationAnalysis:
         self._global_names: set[str] = set()
         self._mutations: set[str] = set()
 
-    def mutations(self, callable_node: ast.AST) -> set[str]:
+    def mutations(self, callable_node: PythonCallableAstNode) -> set[str]:
         """Responsibilities: _callable collection mutations_."""
         self._global_names.clear()
         self._mutations.clear()
         self._visit(callable_node, callable_node)
         return set(self._mutations)
 
-    def owners(self, callables: list[ast.AST]) -> CollectionOwnerLines:
+    def owners(self, callables: list[PythonCallableAstNode]) -> CollectionOwnerLines:
         """Responsibilities: _collection mutation owners_."""
         owners: CollectionOwnerLines = {name: set() for name in self._collections}
         for callable_node in callables:
             for name in self.mutations(callable_node):
-                owners[name].add(cast(PythonASTLocatedNode, callable_node).lineno)
+                owners[name].add(callable_node.lineno)
         return owners

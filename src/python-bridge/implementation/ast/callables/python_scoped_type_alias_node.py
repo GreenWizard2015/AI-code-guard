@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import ast
-from typing import cast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonScopedTypeAliasIndexContract,
 )
 from implementation.references.protocols import PythonReferenceAliasesContract
-from implementation.types import PythonASTLocatedNode
 
 
 class PythonScopedTypeAliasNode:
@@ -26,23 +24,27 @@ class PythonScopedTypeAliasNode:
 
     def _import_aliases(self) -> None:
         """Responsibilities: _imported type alias entries_."""
-        if type(self._node) is not ast.ImportFrom:
+        node = self._node
+        if type(node) is not ast.ImportFrom:
             return
-        for imported in self._node.names:
+        for imported in node.names:
             if imported.asname is None:
                 continue
             target = imported.name
-            if self._node.module is not None:
-                target = f"{self._node.module}.{target}"
+            if node.module is not None:
+                target = f"{node.module}.{target}"
             self._alias_index.add_alias(
                 imported.asname,
                 target,
                 self._scope_owner(),
-                cast(PythonASTLocatedNode, self._node).lineno,
+                node.lineno,
             )
 
     def _assignment_aliases(self) -> None:
         """Responsibilities: _assigned type alias entries_."""
+        node = self._node
+        if type(node) not in (ast.Assign, ast.AnnAssign):
+            return
         target_values = self._assignment_values()
         for target, value in target_values.items():
             if type(value) not in (ast.Name, ast.Attribute):
@@ -51,7 +53,7 @@ class PythonScopedTypeAliasNode:
                 target,
                 ast.unparse(value),
                 self._scope_owner(),
-                cast(PythonASTLocatedNode, self._node).lineno,
+                node.lineno,
             )
 
     def _assignment_values(self) -> dict[str, ast.AST]:

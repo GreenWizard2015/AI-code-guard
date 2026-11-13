@@ -360,6 +360,7 @@ the applicable languages.
 - [`tuple-type (TypeScript)`](rules/typescript/tuple-type.md)
 - [`tuple-type (Python)`](rules/python/tuple-type.md)
 - [`python-type-factory`](rules/python/type-factory.md)
+- [`python-type-cast`](rules/python/type-cast.md)
 - [`type-field-count (TypeScript)`](rules/typescript/type-field-count.md)
 - [`type-field-count (Python)`](rules/python/type-field-count.md)
 - [`type-info (TypeScript)`](rules/typescript/type-info.md)

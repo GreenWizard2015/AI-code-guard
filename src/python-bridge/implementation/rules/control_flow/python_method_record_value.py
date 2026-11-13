@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import ast
+from implementation.types import PythonCallableAstNode
 
 
 class PythonMethodRecordValue:
@@ -9,13 +9,13 @@ class PythonMethodRecordValue:
     def __init__(
         self,
         name: str,
-        node: ast.AST,
+        node: PythonCallableAstNode,
         written: set[str],
         read: set[str],
     ) -> None:
         """Responsibilities: _method temporal record initialization_."""
         self._name: str = name
-        self._node: ast.AST = node
+        self._node: PythonCallableAstNode = node
         self._written: frozenset[str] = frozenset(written)
         self._read: frozenset[str] = frozenset(read)
 
@@ -23,7 +23,7 @@ class PythonMethodRecordValue:
         """Responsibilities: _method name state_."""
         return self._name
 
-    def syntax_node(self) -> ast.AST:
+    def syntax_node(self) -> PythonCallableAstNode:
         """Responsibilities: _method syntax state_."""
         return self._node
 
