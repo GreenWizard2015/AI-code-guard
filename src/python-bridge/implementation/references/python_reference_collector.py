@@ -28,7 +28,7 @@ from implementation.references.python_reference_source import (
     PythonReferenceSource,
 )
 from implementation.rules.constants import PYTHON_REFERENCE_COLLECTION_STAGE
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 @dataclass
@@ -118,7 +118,7 @@ class PythonReferenceCollector:
             self._state.references.append(reference)
         self._append_call_args(call_expression)
 
-    def _append_value_reference(self, value_statement: ast.AST) -> None:
+    def _append_value_reference(self, value_statement: PythonASTLocatedNode) -> None:
         """Responsibilities: _assigned value reference collection_."""
         reference = self.python_reference().for_value(
             value_statement,
@@ -129,14 +129,13 @@ class PythonReferenceCollector:
 
     def _append_node(self, ast_node: ast.AST) -> None:
         """Responsibilities: _AST reference dispatch_."""
-        if type(ast_node) is ast.Call:
-            self._append_call(ast_node)
-            return
-        if type(ast_node) in (ast.Assign, ast.AnnAssign, ast.Return, ast.keyword):
-            self._append_value_reference(ast_node)
-            return
-        if type(ast_node) in (ast.Dict, ast.List, ast.Set, ast.Tuple):
-            self._append_container(ast_node)
+        match ast_node:
+            case ast.Call() as call_expression:
+                self._append_call(call_expression)
+            case (ast.Assign() | ast.AnnAssign() | ast.Return() | ast.keyword()) as value_statement:
+                self._append_value_reference(value_statement)
+            case ast.Dict() | ast.List() | ast.Set() | ast.Tuple() as container_expression:
+                self._append_container(container_expression)
 
     def _deferred_callable(self, call_site: ast.AST) -> bool:
         """Responsibilities: _deferred call scope detection_."""

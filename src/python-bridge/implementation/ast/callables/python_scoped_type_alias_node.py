@@ -24,27 +24,32 @@ class PythonScopedTypeAliasNode:
 
     def _import_aliases(self) -> None:
         """Responsibilities: _imported type alias entries_."""
-        node = self._node
-        if type(node) is not ast.ImportFrom:
-            return
-        for imported in node.names:
-            if imported.asname is None:
-                continue
-            target = imported.name
-            if node.module is not None:
-                target = f"{node.module}.{target}"
-            self._alias_index.add_alias(
-                imported.asname,
-                target,
-                self._scope_owner(),
-                node.lineno,
-            )
+        match self._node:
+            case ast.ImportFrom() as node:
+                for imported in node.names:
+                    if imported.asname is None:
+                        continue
+                    target = imported.name
+                    if node.module is not None:
+                        target = f"{node.module}.{target}"
+                    self._alias_index.add_alias(
+                        imported.asname,
+                        target,
+                        self._scope_owner(),
+                        node.lineno,
+                    )
+            case _:
+                return
 
     def _assignment_aliases(self) -> None:
         """Responsibilities: _assigned type alias entries_."""
-        node = self._node
-        if type(node) not in (ast.Assign, ast.AnnAssign):
-            return
+        match self._node:
+            case ast.Assign() as node:
+                pass
+            case ast.AnnAssign() as node:
+                pass
+            case _:
+                return
         target_values = self._assignment_values()
         for target, value in target_values.items():
             if type(value) not in (ast.Name, ast.Attribute):

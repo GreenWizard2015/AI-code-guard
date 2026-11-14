@@ -101,11 +101,13 @@ class PythonRuntimePatching:
         patch_call = self._aliases.patch_call(node)
         replacement = self.callable_replacement(node)
         dynamic_replacement = self._aliases.dynamic_replacement(node)
-        if type(node) is ast.Call and (patch_call or dynamic_replacement):
-            return [{PYTHON_LINE_KEY: node.lineno - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
-        if type(node) in (ast.Assign, ast.AnnAssign) and replacement:
-            return [{PYTHON_LINE_KEY: node.lineno - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
-        return []
+        match node:
+            case ast.Call(lineno=line) if patch_call or dynamic_replacement:
+                return [{PYTHON_LINE_KEY: line - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
+            case ast.Assign(lineno=line) | ast.AnnAssign(lineno=line) if replacement:
+                return [{PYTHON_LINE_KEY: line - 1, "kind": PYTHON_RUNTIME_PATCHING_KIND}]
+            case _:
+                return []
 
     def __init__(self, tree: ast.Module, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _module patch analysis initialization_."""

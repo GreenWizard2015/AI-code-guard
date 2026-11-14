@@ -36,7 +36,14 @@ class PythonInstanceWrite(PythonPositionedWriteContract):
 
     def visible_at(self, node: ast.AST) -> bool:
         """Responsibilities: _source order visibility_."""
+        match node:
+            case (
+                ast.expr() | ast.stmt() | ast.arg() | ast.keyword() | ast.alias() | ast.excepthandler() | ast.pattern()
+            ) as positioned_node:
+                pass
+            case _:
+                return False
         return (self._line_number, self._column_offset) <= (
-            node.lineno,
-            node.col_offset,
+            positioned_node.lineno,
+            positioned_node.col_offset,
         )

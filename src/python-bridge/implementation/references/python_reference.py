@@ -14,7 +14,7 @@ from implementation.references.python_receiver_expression import (
     PythonReceiverExpression,
 )
 from implementation.rules.constants import PYTHON_FUNCTION_KIND
-from implementation.types import JsonObject
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 
 class PythonReference:
@@ -23,7 +23,7 @@ class PythonReference:
     def _function_reference(
         self,
         function: ast.Name,
-        function_site: ast.AST,
+        function_site: PythonASTLocatedNode,
     ) -> JsonObject:
         """Responsibilities: _construction normalization function reference_."""
         name = self._context.name_resolver().alias_target(function.id)
@@ -42,7 +42,7 @@ class PythonReference:
     def _method_reference(
         self,
         name: str,
-        method_site: ast.AST,
+        method_site: PythonASTLocatedNode,
         receiver_owner: str,
         caller_owner: str = "",
     ) -> JsonObject:
@@ -73,7 +73,7 @@ class PythonReference:
     def _bound_reference(
         self,
         value: ast.AST,
-        call_node: ast.AST,
+        call_node: PythonASTLocatedNode,
         current_owner: str,
     ) -> JsonObject:
         """Responsibilities: _construction normalization bound callable_."""
@@ -89,7 +89,7 @@ class PythonReference:
     def _expression_reference(
         self,
         expression: ast.AST,
-        expression_site: ast.AST,
+        expression_site: PythonASTLocatedNode,
         caller_owner: str,
     ) -> JsonObject:
         """Responsibilities: _expression callable reference construction_."""
@@ -196,7 +196,7 @@ class PythonReference:
             case _:
                 return {}
 
-    def for_value(self, node: ast.AST, owner: str) -> JsonObject:
+    def for_value(self, node: PythonASTLocatedNode, owner: str) -> JsonObject:
         """Responsibilities: _construction normalization reference callable_."""
         value = self._assignment_value(node)
         match value:
@@ -204,6 +204,6 @@ class PythonReference:
                 return {}
         return self._expression_reference(value, node, owner)
 
-    def for_expression(self, value: ast.AST, owner: str) -> JsonObject:
+    def for_expression(self, value: ast.expr, owner: str) -> JsonObject:
         """Responsibilities: _construction normalization reference callable_."""
         return self._expression_reference(value, value, owner)

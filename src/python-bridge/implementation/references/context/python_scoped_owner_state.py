@@ -93,10 +93,17 @@ class PythonScopedOwnerState:
         binding_site: ast.AST,
     ) -> None:
         """Responsibilities: _scoped binding indexing_."""
+        match binding_site:
+            case (
+                ast.expr() | ast.stmt() | ast.arg() | ast.keyword() | ast.alias() | ast.excepthandler() | ast.pattern()
+            ) as positioned_site:
+                pass
+            case _:
+                raise TypeError("binding_site must have a source position")
         key = f"{recording_scope}\u0000{binding_name}"
         write = PythonInstanceWrite(
-            binding_site.lineno,
-            binding_site.col_offset,
+            positioned_site.lineno,
+            positioned_site.col_offset,
             owner,
         )
         if type(binding_site) is ast.AnnAssign:

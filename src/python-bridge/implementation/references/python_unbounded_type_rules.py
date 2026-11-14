@@ -109,6 +109,19 @@ class PythonUnboundedTypeRules:
             return []
         return self.annotation_issues(assignment.value)
 
+    def _append_node_issue(
+        self,
+        node: ast.AST,
+        expression: ast.expr,
+        issues: list[JsonObject],
+    ) -> None:
+        """Responsibilities: _unbounded annotation node diagnostics_."""
+        match node:
+            case ast.Name(lineno=line) | ast.Attribute(lineno=line) if self._is_unbounded_node(node, expression):
+                issues.append({"line": line - 1, "kind": "unbounded-type"})
+            case _:
+                return
+
     def __init__(
         self,
         tree: ast.AST,
@@ -126,10 +139,7 @@ class PythonUnboundedTypeRules:
             case ast.expr() as expression:
                 issues: list[JsonObject] = []
                 for node in self._node_index.nodes(expression):
-                    if type(node) not in (ast.Name, ast.Attribute):
-                        continue
-                    if self._is_unbounded_node(node, expression):
-                        issues.append({"line": node.lineno - 1, "kind": "unbounded-type"})
+                    self._append_node_issue(node, expression, issues)
                 return issues
             case _:
                 return []
