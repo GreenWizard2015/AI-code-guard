@@ -111,6 +111,16 @@ export class ClassRules {
 		summary_options.violations.push(this.single_class_violation(summary_options.file, class_indexes));
 	}
 
+	/** Responsibilities: _Python class structure diagnostics_. **/
+	private append_python_structure(options: PythonClassSummaryOptions): void {
+		const { violations, file, lines, parsed_indexes, has_module_functions, test_file } = options;
+		if (!test_file) {
+			const class_structure = new ClassStructure(file, lines, true, parsed_indexes);
+			class_structure.append_nested_class(violations);
+		}
+		this.append_class_summary({ violations, file, lines, python: true, parsed_indexes, has_module_functions });
+	}
+
 	/** Responsibilities: _Python nested type diagnostics_. **/
 	private is_nested_type(line: string): boolean {
 		let indentation = 0;
@@ -171,21 +181,13 @@ export class ClassRules {
 
 	/** Responsibilities: _Python class diagnostics addition_. **/
 	public append_python_classes(options: PythonClassSummaryOptions): void {
-		const {
-			violations,
-			file,
-			lines,
-			parsed_indexes,
-			has_module_functions,
-			has_implementation_classes,
-			type_declarations,
-		} = options;
-		const class_structure = new ClassStructure(file, lines, true, parsed_indexes);
-		this.append_python_types(file, lines, type_declarations, violations);
+		const { violations, file, lines, has_implementation_classes, test_file, type_declarations } = options;
+		if (!test_file) {
+			this.append_python_types(file, lines, type_declarations, violations);
+		}
 		if (!has_implementation_classes) {
 			return;
 		}
-		class_structure.append_nested_class(violations);
-		this.append_class_summary({ violations, file, lines, python: true, parsed_indexes, has_module_functions });
+		this.append_python_structure(options);
 	}
 }

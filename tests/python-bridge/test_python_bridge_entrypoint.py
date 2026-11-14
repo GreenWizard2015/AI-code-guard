@@ -2,6 +2,7 @@ import io
 import json
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -9,22 +10,6 @@ from implementation.types import JsonObject, JsonValue, JsonValueList, JsonValue
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from python_bridge_entrypoint import PythonBridgeEntrypoint
 from python_bridge_input import PythonBridgeInput
-
-
-class InMemoryPythonFileIO:
-    """Responsibilities: _virtual source file membership_, _source text retrieval_."""
-
-    def __init__(self, files: dict[Path, str]) -> None:
-        """Responsibilities: _virtual source map initialization_."""
-        self._files: dict[Path, str] = files
-
-    def file_present(self, path: Path) -> bool:
-        """Responsibilities: _virtual source membership_."""
-        return path in self._files
-
-    def source_content(self, path: Path) -> str:
-        """Responsibilities: _virtual source text retrieval_."""
-        return self._files[path]
 
 
 class PythonBridgeEntrypointTest(unittest.TestCase):
@@ -111,26 +96,35 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
 
     def test_resolves_file_source_prefix(self) -> None:
         """Responsibilities: _file source routing_."""
-        path = Path("/virtual/item.py")
-        source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
-        self.assertEqual(source.resolve(f"File:{path}"), "class Item:\n    pass\n")
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "item.py"
+            path.write_text("class Item:\n    pass\n", encoding="utf-8")
+            source = PythonBridgeInput(PathPythonBridgeFileIO(Path(temporary_directory)))
+            resolved = source.resolve(f"File:{path}")
+        self.assertEqual(resolved, "class Item:\n    pass\n")
 
     def test_reads_resolved_file_path(self) -> None:
         """Responsibilities: _source file content_."""
-        path = Path("/virtual/item.py")
-        source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
-        self.assertEqual(source.file_text(path), "class Item:\n    pass\n")
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "item.py"
+            path.write_text("class Item:\n    pass\n", encoding="utf-8")
+            source = PythonBridgeInput(PathPythonBridgeFileIO(Path(temporary_directory)))
+            content = source.file_text(path)
+        self.assertEqual(content, "class Item:\n    pass\n")
 
     def test_runs_file_source_mode(self) -> None:
         """Responsibilities: _file mode output_."""
         bridge = PythonAstBridge(PythonAstTree)
         output = io.StringIO()
-        path = Path("/virtual/item.py")
-        source = PythonBridgeInput(InMemoryPythonFileIO({path: "class Item:\n    pass\n"}))
-        entrypoint = PythonBridgeEntrypoint(bridge, io.StringIO(f"File:{path}"), output, source)
-        entrypoint.run_cli(["entrypoint"])
-        result = self._output_object(output.getvalue())
-        self.assertEqual(self._first_symbol_name(result, "classes"), "Item")
+        with TemporaryDirectory() as temporary_directory:
+            path = Path(temporary_directory) / "item.py"
+            path.write_text("class Item:\n    pass\n", encoding="utf-8")
+            source = PythonBridgeInput(PathPythonBridgeFileIO(Path(temporary_directory)))
+            entrypoint = PythonBridgeEntrypoint(bridge, io.StringIO(f"File:{path}"), output, source)
+            entrypoint.run_cli(["entrypoint"])
+            result = self._output_object(output.getvalue())
+            first_symbol_name = self._first_symbol_name(result, "classes")
+        self.assertEqual(first_symbol_name, "Item")
 
     def test_stream_reports_syntax(self) -> None:
         """Responsibilities: _stream syntax reporting_."""

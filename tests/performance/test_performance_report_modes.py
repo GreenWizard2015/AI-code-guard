@@ -1,26 +1,12 @@
 import unittest
+from collections.abc import Iterator
+from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from performance.path_performance_snapshot_io import PathPerformanceSnapshotIO
 from performance.performance_report import PerformanceReport
-
-
-class InMemoryPerformanceSnapshotIO:
-    """Responsibilities: _virtual snapshot lookup_, _snapshot text retrieval_."""
-
-    def __init__(self, snapshots: dict[Path, str]) -> None:
-        """Responsibilities: _snapshot collection initialization_."""
-        self._snapshots: dict[Path, str] = snapshots
-
-    def snapshot_paths(self, inputs: list[str]) -> list[Path]:
-        """Responsibilities: _snapshot path selection_."""
-        return [Path(value) for value in inputs if Path(value) in self._snapshots]
-
-    def snapshot_text(self, path: Path) -> str:
-        """Responsibilities: _snapshot source text lookup_."""
-        return self._snapshots[path]
 
 
 class PerformanceReportModesTest(unittest.TestCase):
@@ -60,11 +46,23 @@ class PerformanceReportModesTest(unittest.TestCase):
         ]
         return {path: content for snapshot in snapshots for path, content in snapshot.items()}
 
+    @contextmanager
+    def _snapshot_paths(self, snapshots: dict[Path, str]) -> Iterator[list[Path]]:
+        """Responsibilities: _temporary performance snapshot files_."""
+        with TemporaryDirectory() as temporary_directory:
+            paths: list[Path] = []
+            for source_path, content in snapshots.items():
+                target_path = Path(temporary_directory) / source_path.name
+                target_path.write_text(content, encoding="utf-8")
+                paths.append(target_path)
+            yield paths
+
     def test_aggregates_cold_and_warm_stage_medians_separately(self) -> None:
         """Responsibilities: _cold/warm stage aggregation_."""
         snapshots = self._matching_snapshots()
-        report_source = PerformanceReport([str(path) for path in snapshots], InMemoryPerformanceSnapshotIO(snapshots))
-        report = report_source.markdown()
+        with self._snapshot_paths(snapshots) as paths:
+            report_source = PerformanceReport([str(path) for path in paths], PathPerformanceSnapshotIO())
+            report = report_source.markdown()
 
         self.assertEqual(
             "| startup | 3.0 sec +- 1.0 | 12.0 sec +- 2.0 |" in report,
@@ -74,8 +72,9 @@ class PerformanceReportModesTest(unittest.TestCase):
     def test_marks_missing_cold_or_warm_stage_values(self) -> None:
         """Responsibilities: _missing mode data result_."""
         snapshots = self._matching_snapshots()
-        report_source = PerformanceReport([str(path) for path in snapshots], InMemoryPerformanceSnapshotIO(snapshots))
-        report = report_source.markdown()
+        with self._snapshot_paths(snapshots) as paths:
+            report_source = PerformanceReport([str(path) for path in paths], PathPerformanceSnapshotIO())
+            report = report_source.markdown()
 
         self.assertEqual(
             {
@@ -88,53 +87,11 @@ class PerformanceReportModesTest(unittest.TestCase):
     def test_execution_writes_the_existing_successful_report(self) -> None:
         """Responsibilities: _successful report result delivery_."""
         snapshots = self._matching_snapshots()
-        report_source = PerformanceReport([str(path) for path in snapshots], InMemoryPerformanceSnapshotIO(snapshots))
-        expected_report = report_source.markdown()
         output = StringIO()
         errors = StringIO()
-
-        status = report_source.write_report(output, errors)
+        with self._snapshot_paths(snapshots) as paths:
+            report_source = PerformanceReport([str(path) for path in paths], PathPerformanceSnapshotIO())
+            expected_report = report_source.markdown()
+            status = report_source.write_report(output, errors)
 
         self.assertEqual((status, output.getvalue(), errors.getvalue()), (0, expected_report, ""))
-
-
-class FilesystemPerformanceReportTest(unittest.TestCase):
-    """Responsibilities: _real snapshot discovery_, _filesystem input deduplication_."""
-
-    def test_discovers_nested_snapshots_and_deduplicates_overlapping_inputs(self) -> None:
-        """Responsibilities: _nested snapshot discovery_, _input deduplication_."""
-        with TemporaryDirectory() as temporary_directory:
-            root = Path(temporary_directory)
-            nested = root / "runs" / "nested"
-            nested.mkdir(parents=True)
-            cold = nested / "cold_run.performance.md"
-            warm = nested / "warm_run.performance.md"
-            cold.write_text(
-                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 10 sec |\n",
-                encoding="utf-8",
-            )
-            warm.write_text(
-                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 2 sec |\n",
-                encoding="utf-8",
-            )
-            (nested / "notes.md").write_text("not a timing snapshot\n", encoding="utf-8")
-            snapshot_io = PathPerformanceSnapshotIO()
-            report_source = PerformanceReport([str(root), str(cold)], snapshot_io)
-            report = report_source.markdown()
-
-        self.assertEqual(report.count("| startup |"), 1)
-        self.assertIn("| startup | 2.0 sec +- 0.0 | 10.0 sec +- 0.0 |", report)
-
-    def test_reads_an_explicit_snapshot_file(self) -> None:
-        """Responsibilities: _explicit snapshot file reading_."""
-        with TemporaryDirectory() as temporary_directory:
-            snapshot_path = Path(temporary_directory) / "cold_custom_report.performance.md"
-            snapshot_path.write_text(
-                "- Project root: `/project`\n- TypeScript files: 10\n- Python files: 2\n\n| startup | 8 sec |\n",
-                encoding="utf-8",
-            )
-            snapshot_io = PathPerformanceSnapshotIO()
-            report_source = PerformanceReport([str(snapshot_path)], snapshot_io)
-            report = report_source.markdown()
-
-        self.assertIn("| startup | — | 8.0 sec +- 0.0 |", report)

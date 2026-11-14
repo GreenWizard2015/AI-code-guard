@@ -3,7 +3,7 @@ from pathlib import Path
 
 from performance.performance_report import PerformanceReport
 from performance.performance_snapshot_files import PerformanceSnapshotFiles
-from tests.performance.test_performance_report_modes import (
+from tests.performance.in_memory_performance_snapshot_io import (
     InMemoryPerformanceSnapshotIO,
 )
 

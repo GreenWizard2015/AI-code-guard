@@ -1,3 +1,4 @@
+import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
@@ -26,6 +27,7 @@ describe("coding-lint class rules", () => {
 			parsed_indexes: [0, 3],
 			has_module_functions: false,
 			has_implementation_classes: true,
+			test_file: false,
 			type_declarations: [],
 		});
 		const class_violations = violations.filter((violation) => violation.rule_id() === "top-level-classes");
@@ -34,13 +36,47 @@ describe("coding-lint class rules", () => {
 
 	test("reports multiple TypeScript top-level classes", () => {
 		const text = "export class First {}\nclass Second {}";
-		const source_file = ts.createSourceFile("models.ts", text, ts.ScriptTarget.Latest, true);
+		const source_file = ts.createSourceFile("tests/models.test.ts", text, ts.ScriptTarget.Latest, true);
 		const registry = new ASTVerifierRegistry();
 		registry.initialize();
 		const scenario = new ASTVerifierTestContext(source_file);
 		scenario.append_tree(registry.build(text));
 
 		expect(scenario.rule_ids()).toContain("top-level-classes");
+	});
+
+	test("reports type and class separation diagnostics in test files for both languages", () => {
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), fixture.file_io()),
+			{
+				"tests/test_models.py": [
+					"from typing import TypeAlias",
+					"ModelOptions: TypeAlias = dict[str, str]",
+					"class FirstTest:",
+					"    pass",
+					"class SecondTest:",
+					"    pass",
+				].join("\n"),
+				"tests/models.test.ts": [
+					"type ModelOptions = { name: string };",
+					"class FirstTest {}",
+					"class SecondTest {}",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		const relevant = violations
+			.filter((violation) => ["module-types-separation", "top-level-classes"].includes(violation.rule_id()))
+			.map((violation) => [violation.file(), violation.rule_id()])
+			.sort((left, right) => `${left[0]}:${left[1]}`.localeCompare(`${right[0]}:${right[1]}`));
+
+		expect(relevant).toEqual([
+			["tests/models.test.ts", "module-types-separation"],
+			["tests/models.test.ts", "top-level-classes"],
+			["tests/test_models.py", "module-types-separation"],
+			["tests/test_models.py", "top-level-classes"],
+		]);
 	});
 
 	test("reports imported functions assigned as Python class fields", () => {

@@ -175,17 +175,16 @@ export class PythonAstFileRuleCollector {
 		const class_indexes = this._class_nodes
 			.filter((node) => !node.classification.type_contract && !node.classification.protocol)
 			.map((node) => node.identity.start);
-		if (!this._test_path_syntax.classify(file).has(TestPathKind.TestFile)) {
-			this._class_rules.append_python_classes({
-				violations: this._violations,
-				file,
-				lines: this._lines,
-				parsed_indexes: class_indexes,
-				has_module_functions: ast.source.functions.length > 0,
-				has_implementation_classes: class_indexes.length > 0,
-				type_declarations: ast.references.type_declarations,
-			});
-		}
+		this._class_rules.append_python_classes({
+			violations: this._violations,
+			file,
+			lines: this._lines,
+			parsed_indexes: class_indexes,
+			has_module_functions: ast.source.functions.length > 0,
+			has_implementation_classes: class_indexes.length > 0,
+			test_file: this._test_path_syntax.classify(file).has(TestPathKind.TestFile),
+			type_declarations: ast.references.type_declarations,
+		});
 		this.append_mixed_violations();
 	}
 

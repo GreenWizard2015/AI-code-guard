@@ -305,6 +305,7 @@ export type PythonClassSummaryOptions = {
 	parsed_indexes: number[];
 	has_module_functions: boolean;
 	has_implementation_classes: boolean;
+	test_file: boolean;
 	type_declarations: readonly NamedLine[];
 };
 export type SourceTextOccurrenceKind = "comment" | "string";

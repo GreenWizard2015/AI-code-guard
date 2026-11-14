@@ -3,13 +3,10 @@ from __future__ import annotations
 import ast
 import unittest
 from collections import Counter
-from collections.abc import Iterator, Mapping
 
+from counted_bindings_support import CountedBindings
+from counting_async_completion_support import CountingAsyncCompletion
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.rules.call_analysis.testing.python_async_module_name_state import (
-    PythonAsyncModuleNameState,
-)
 from implementation.rules.call_analysis.testing.python_test_callable_definition import (
     PythonTestCallableDefinition,
 )
@@ -22,75 +19,6 @@ from implementation.rules.call_analysis.testing.python_test_order_dependency imp
 from implementation.rules.call_analysis.testing.python_unasserted_async_completion import (
     PythonUnassertedAsyncCompletion,
 )
-
-
-class CountedBindings(Mapping[str, ast.AST]):
-    """Responsibilities: _binding lookup_, _iteration cost observation_, _binding count_."""
-
-    def __init__(self, bindings: dict[str, ast.AST]) -> None:
-        """Responsibilities: _binding fixture initialization_."""
-        self._bindings: Mapping[str, ast.AST] = bindings
-        self._metrics: dict[str, int] = {"iterated_entries": 0}
-
-    def __getitem__(self, name: str) -> ast.AST:
-        """Responsibilities: _binding lookup_."""
-        return self._bindings[name]
-
-    def __iter__(self) -> Iterator[str]:
-        """Responsibilities: _binding iteration count_."""
-        self._metrics.update({"iterated_entries": self._metrics["iterated_entries"] + len(self._bindings)})
-        return iter(self._bindings)
-
-    def __len__(self) -> int:
-        """Responsibilities: _binding count lookup_."""
-        return len(self._bindings)
-
-    def iteration_count(self) -> int:
-        """Responsibilities: _binding iteration measurement_."""
-        return self._metrics["iterated_entries"]
-
-
-class CountingTestOrderDependency(PythonTestOrderDependency):
-    """Responsibilities: _module binding metrics_, _test analysis metrics_."""
-
-    def __init__(self, tree: ast.Module, bindings: CountedBindings) -> None:
-        """Responsibilities: _module binding fixture initialization_."""
-        super().__init__(tree, PythonAstNodeIndex())
-        self._bindings: CountedBindings = bindings
-
-    def module_mutable_objects(self) -> Mapping[str, ast.AST]:
-        """Responsibilities: _instrumented module bindings_."""
-        return self._bindings
-
-
-class CountedAsyncModuleNameState(PythonAsyncModuleNameState):
-    """Responsibilities: _module snapshot count_, _async name state_."""
-
-    def __init__(self, snapshots: Counter[str]) -> None:
-        """Responsibilities: _snapshot instrumentation setup_."""
-        super().__init__()
-        self._snapshots: Counter[str] = snapshots
-
-    def snapshot(self) -> set[str]:
-        """Responsibilities: _snapshot count tracking_."""
-        self._snapshots.update(count=1)
-        return super().snapshot()
-
-
-class CountingAsyncCompletion(PythonUnassertedAsyncCompletion):
-    """Responsibilities: _async name instrumentation_, _completion result comparison_."""
-
-    def __init__(
-        self,
-        node_index: PythonAstNodeIndexContract,
-        snapshots: Counter[str],
-    ) -> None:
-        """Responsibilities: _async analysis instrumentation initialization_."""
-        super().__init__(node_index)
-        self._counted_names: CountedAsyncModuleNameState = CountedAsyncModuleNameState(
-            snapshots,
-        )
-        self._module_names: PythonAsyncModuleNameState = self._counted_names
 
 
 class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
@@ -112,7 +40,7 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
         test_function = self._helper_scope_scenario()
         helper_definitions = [node for node in test_function.body if type(node) is ast.FunctionDef]
         bindings: dict[str, ast.AST] = {node.name: node for node in helper_definitions}
-        counted_bindings = CountedBindings(bindings)
+        counted_bindings = CountedBindings(bindings, ast.parse(""))
         helper_bodies = [node.body[0] for node in helper_definitions]
         node_index = PythonAstNodeIndex()
         node_index.nodes(test_function)
@@ -180,8 +108,9 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
         tree = ast.parse("\n\n".join([*assignments, *test_functions]))
         module_bindings = CountedBindings(
             {f"state_{index}": ast.List(elts=[], ctx=ast.Load()) for index in range(binding_count)},
+            tree,
         )
-        counting_order = CountingTestOrderDependency(tree, module_bindings)
+        counting_order = module_bindings
         order_issues = counting_order.issues()
         production_order = PythonTestOrderDependency(tree, PythonAstNodeIndex())
         production_issues = production_order.issues()
