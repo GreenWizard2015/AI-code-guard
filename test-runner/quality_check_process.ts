@@ -1,5 +1,6 @@
 import type { QualityCheckCatalogContract, QualityCheckRunnerContract } from "src/task_types";
-import { FORCE_REVIEW_ARGUMENT, REVIEW_AGENT_OPTION } from "test-runner/constants";
+import { REVIEW_AGENT_OPTION } from "src/constants";
+import { FORCE_REVIEW_ARGUMENT } from "test-runner/constants";
 import { QualityCheckDefinitions } from "test-runner/quality_check_definitions";
 import type {
 	CommandResult,

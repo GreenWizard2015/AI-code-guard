@@ -1,10 +1,9 @@
-import { IGNORE_DIRECTORY_OPTION, POLICY_TOP_CATEGORY } from "src/constants";
+import { IGNORE_DIRECTORY_OPTION, POLICY_TOP_CATEGORY, REVIEW_AGENT_OPTION } from "src/constants";
 import { INVALID_AGENT_BATCH_SIZE_MESSAGE, MINIMUM_AGENT_BATCH_SIZE } from "src/core/constants";
 import { CliOptionApplication } from "src/core/support/cli_option_application";
 import { CliOptionsParseResult } from "src/core/support/cli_options_parse_result";
 import type { CommandLineOptionsContract } from "src/task_protocols";
 import type { CliOptions, CliOptionsParseResultContract } from "src/task_types";
-import { REVIEW_AGENT_OPTION } from "test-runner/constants";
 
 /** Responsibilities: _CLI argument parsing_, _task policy option application_. **/
 export class CommandLineOptions implements CommandLineOptionsContract {

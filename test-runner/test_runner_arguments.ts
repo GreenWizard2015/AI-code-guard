@@ -1,6 +1,6 @@
-import { REMOVED_SKIP_REVIEW_MESSAGE } from "src/constants";
+import { REMOVED_SKIP_REVIEW_MESSAGE, REVIEW_AGENT_OPTION } from "src/constants";
 import type { ReviewAgentSelection } from "src/task_review_types";
-import { FORCE_REVIEW_ARGUMENT, HEADLESS_ARGUMENT, REVIEW_AGENT_OPTION } from "test-runner/constants";
+import { FORCE_REVIEW_ARGUMENT, HEADLESS_ARGUMENT } from "test-runner/constants";
 import type { TestRunnerRequest } from "test-runner/types";
 
 /** Responsibilities: _test runner command arguments_, _request option interpretation_. **/

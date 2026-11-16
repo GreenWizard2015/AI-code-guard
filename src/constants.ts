@@ -20,6 +20,7 @@ import ts from "typescript";
 
 export const MISSING_CACHE_VALUE = "<missing>";
 export const IGNORE_DIRECTORY_OPTION = "--ignore-dir";
+export const REVIEW_AGENT_OPTION = "--review-agent";
 export const REMOVED_SKIP_REVIEW_MESSAGE = "--skip-review was removed; omit --review-agent to skip review.";
 export const MARKDOWN_TEXT_SUFFIXES: ReadonlySet<string> = new Set([".md", ".markdown", ".mdown", ".mkdn"]);
 export const RULE_DOCUMENT_DIRECTORY = "docs/rules";
