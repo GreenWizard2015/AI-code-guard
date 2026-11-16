@@ -1,9 +1,25 @@
 import { dirname, join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
-import { TaskWorkspace } from "src/core/support/task/reporting/workspace/task_workspace";
+import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
+import { TaskWorkspace } from "src/core/task_workspace";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
 describe("task workspace in-memory IOContract", () => {
+	test("publishes formatted task documents through the workspace reporting owner", () => {
+		const fixture_factory = new TaskReportingMemoryFixture();
+		const fixture = fixture_factory.create();
+		const reporting = new TaskReporting(fixture._root, {
+			file_io: fixture._file_io,
+			documentation: fixture._documentation,
+		});
+		const output = reporting.format([], { batch_size: 10, policy: "top-category", skip_review: true });
+		expect({
+			output_has_workspace_path: output.includes(".ai-code-guard/report.md"),
+			report_exists: fixture.task_text("report.md").length > 0,
+		}).toEqual({ output_has_workspace_path: true, report_exists: true });
+	});
+
 	test("writes documents and prepares review directories in virtual storage", () => {
 		const root = "/virtual/task-workspace";
 		const file_io = new InMemoryFileIO();

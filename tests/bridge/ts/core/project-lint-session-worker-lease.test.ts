@@ -68,7 +68,7 @@ describe("project lint session worker lease", () => {
 			stage_timer: new LintStageTimer(),
 		});
 		const report = await execution.run();
-		const analysis_completed = report.files.length === 1;
+		const analysis_completed = report.report.files.length === 1;
 		const post_release_batch = worker.batch("after-disposal", new Map([["closed.py", "value = 2\n"]]));
 		await configuration.close_worker_session();
 

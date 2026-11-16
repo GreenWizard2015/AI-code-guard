@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { CliApplication } from "src/core/cli_application";
+import { CommandLineOptions } from "src/core/support/command_line_options";
 import type { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { CliOptions } from "src/task_types";
@@ -42,8 +43,9 @@ export class TaskReviewMemoryWorkspace {
 	}
 
 	/** Responsibilities: _virtual CLI execution_. **/
-	public run_cli(arguments_list: string[]): ReturnType<CliApplication["run_cli"]> {
-		return this.cli().run_cli(["node", "cli.ts", ...arguments_list]);
+	public run_cli(arguments_list: string[]): ReturnType<CliApplication["run_project"]> {
+		const parser = new CommandLineOptions(["node", "cli.ts", ...arguments_list]);
+		return this.cli().run_project(parser.value(), this.stage_timer());
 	}
 
 	/** Responsibilities: _ignored source CLI behavior_. **/
@@ -56,12 +58,13 @@ export class TaskReviewMemoryWorkspace {
 		this._io.seed_files(new Map([[ignored_source, source_text]]));
 		const ignore_arguments = options.ignored_directories.flatMap((directory) => ["--ignore-dir", directory]);
 		const result = await this.run_cli(["--root", options.root, ...ignore_arguments]);
+		const review_failed = result.review_failed;
 		const issues_path = join(this._root, ".ai-code-guard", "issues.md");
 		const report_path = join(this._root, ".ai-code-guard", "report.md");
 		const issues = this._io.file(issues_path).file_text();
 		const report = this._io.file(report_path);
 		return {
-			review_failed: result.review_failed,
+			review_failed,
 			ignored_source_reported: issues.includes(ignored_source),
 			report_written: report.path_exists(),
 		};
@@ -82,6 +85,7 @@ export class TaskReviewMemoryWorkspace {
 			review_agent,
 			review_stages: [],
 			batch_size: 10,
+			agent_mode: { package_count: 0, test_target_links: [] },
 			policy: "all",
 		};
 	}

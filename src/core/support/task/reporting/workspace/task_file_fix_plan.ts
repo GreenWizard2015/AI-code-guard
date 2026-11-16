@@ -1,10 +1,6 @@
 import { TASK_REPORT_DIRECTORY_SCOPE } from "src/constants";
 import { TaskViolationGroups } from "src/core/support/task/reporting/workspace/task_violation_groups";
-import type {
-	TaskFilePlanPath,
-	TaskFilePlanPriorityLabels,
-	TaskFilePlanRowsContext,
-} from "src/core/support/task/reporting/workspace/types";
+import type { TaskFilePlanPath, TaskFilePlanPriorityLabels, TaskFilePlanRowsContext } from "src/core/types";
 import type {
 	TaskFileFixPlanRow,
 	TaskFileSelection,

@@ -70,6 +70,7 @@ export class CompleteCacheFixture {
 			review_agent: "none",
 			review_stages: [],
 			batch_size: 10,
+			agent_mode: { package_count: 0, test_target_links: [] },
 			policy: "all",
 		};
 	}

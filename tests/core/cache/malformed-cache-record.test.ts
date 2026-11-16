@@ -44,6 +44,7 @@ describe("malformed complete cache records", () => {
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
+				agent_mode: { package_count: 0, test_target_links: [] },
 				policy: "all",
 			}).available,
 		).toBe(false);
@@ -63,6 +64,7 @@ describe("malformed complete cache records", () => {
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
+				agent_mode: { package_count: 0, test_target_links: [] },
 				policy: "all",
 			}).available,
 		).toBe(false);
@@ -101,6 +103,7 @@ describe("malformed complete cache records", () => {
 				review_agent: "none",
 				review_stages: [],
 				batch_size: 10,
+				agent_mode: { package_count: 0, test_target_links: [] },
 				policy: "all",
 			}).available,
 		).toBe(false);

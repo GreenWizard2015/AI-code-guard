@@ -39,7 +39,7 @@ describe("transformation reporting selection", () => {
 		}).toEqual({ moved_file: true, import_file: false, destination: true });
 	});
 
-	test("all policy reports directory and nested-file findings together", () => {
+	test("all policy reports directory findings and hides nested-file findings", () => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const fixture = fixture_factory.create({
 			"src/parser/child.ts": "export class Child {}",
@@ -73,7 +73,7 @@ describe("transformation reporting selection", () => {
 		}).toEqual({
 			selected_class_finding: true,
 			selected_file_finding: true,
-			nested_file_finding: true,
+			nested_file_finding: false,
 			unrelated_file_finding: true,
 		});
 	});

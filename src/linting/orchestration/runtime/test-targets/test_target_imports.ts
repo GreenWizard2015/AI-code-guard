@@ -1,8 +1,10 @@
+import { DUNDER_TESTS_DIRECTORY_NAME } from "src/constants";
 import type { AstPythonImport, TestTargetImport } from "src/model/ast/normalized_ast_types";
+import type { TestTargetImportsContract } from "src/testing_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _import usage indexing_, _test import extraction_. **/
-export class TestTargetImports {
+export class TestTargetImports implements TestTargetImportsContract {
 	private readonly _usage_counts: Map<string, number>;
 
 	/** Responsibilities: _import usage count_. **/
@@ -24,7 +26,7 @@ export class TestTargetImports {
 	}
 
 	/** Responsibilities: _TypeScript usage indexing_. **/
-	private append_typescript_usages(source: ts.SourceFile): void {
+	private append_typescript_usages(statements: readonly ts.Statement[]): void {
 		const visit = (node: ts.Node): void => {
 			if (ts.isImportDeclaration(node)) {
 				return;
@@ -42,7 +44,9 @@ export class TestTargetImports {
 			}
 			ts.forEachChild(node, visit);
 		};
-		ts.forEachChild(source, visit);
+		for (const statement of statements) {
+			visit(statement);
+		}
 	}
 
 	/** Responsibilities: _declaration identifier matching_. **/
@@ -111,12 +115,11 @@ export class TestTargetImports {
 	}
 
 	/** Responsibilities: _Python import usage indexing_. **/
-	private append_python_usage(source_text: string): void {
-		const source_lines = source_text
-			.split("\n")
+	private append_python_usage(source_lines: readonly string[]): void {
+		const content_lines = source_lines
 			.filter((line) => !/^\s*(?:from\s+\S+\s+import|import\s+|#)/.test(line))
 			.join("\n");
-		const source_names = source_lines.match(/[A-Za-z_]\w*/g);
+		const source_names = content_lines.match(/[A-Za-z_]\w*/g);
 		if (source_names === null) {
 			return;
 		}
@@ -126,22 +129,34 @@ export class TestTargetImports {
 	}
 
 	/** Responsibilities: _Python target import construction_. **/
-	private python_imports(imports: readonly AstPythonImport[]): TestTargetImport[] {
+	private python_import(item: AstPythonImport): TestTargetImport[] {
 		const result: TestTargetImport[] = [];
-		for (const item of imports) {
-			for (const imported of item.names) {
-				let local_name = imported.name;
-				if (imported.alias.length > 0) {
-					local_name = imported.alias;
-				}
-				result.push({
-					specifier: item.module,
-					names: [imported.name],
-					usage_count: this.usage_count(local_name),
-				});
+		for (const imported of item.names) {
+			let local_name = imported.name;
+			if (imported.alias.length > 0) {
+				local_name = imported.alias;
 			}
+			result.push({
+				specifier: item.module,
+				names: [imported.name],
+				usage_count: this.usage_count(local_name),
+			});
 		}
 		return result;
+	}
+
+	/** Responsibilities: _production import filtering_. **/
+	private production_imports(imports: readonly TestTargetImport[]): TestTargetImport[] {
+		const production: TestTargetImport[] = [];
+		for (const item of imports) {
+			const segments = item.specifier.replaceAll("\\", "/").split(/[/.]/).filter(Boolean);
+			const test_module = segments.some((segment) => segment === "tests" || segment === DUNDER_TESTS_DIRECTORY_NAME);
+			if (test_module) {
+				continue;
+			}
+			production.push(item);
+		}
+		return production;
 	}
 
 	/** Responsibilities: _target usage index initialization_. **/
@@ -152,14 +167,31 @@ export class TestTargetImports {
 	/** Responsibilities: _TypeScript target imports_. **/
 	public typescript(source: ts.SourceFile): TestTargetImport[] {
 		this._usage_counts.clear();
-		this.append_typescript_usages(source);
+		this.append_typescript_usages(source.statements);
 		return source.statements.flatMap((statement) => this.runtime_imports(statement));
 	}
 
 	/** Responsibilities: _Python target imports_. **/
 	public python(imports: readonly AstPythonImport[], source_text: string): TestTargetImport[] {
 		this._usage_counts.clear();
-		this.append_python_usage(source_text);
-		return this.python_imports(imports);
+		this.append_python_usage(source_text.split("\n"));
+		const result: TestTargetImport[] = [];
+		for (const item of imports) {
+			const item_imports = this.python_import(item);
+			for (const item_import of item_imports) {
+				result.push(item_import);
+			}
+		}
+		return result;
+	}
+
+	/** Responsibilities: _TypeScript production imports_. **/
+	public production_typescript(source: ts.SourceFile): TestTargetImport[] {
+		return this.production_imports(this.typescript(source));
+	}
+
+	/** Responsibilities: _Python production imports_. **/
+	public production_python(imports: readonly AstPythonImport[], source_text: string): TestTargetImport[] {
+		return this.production_imports(this.python(imports, source_text));
 	}
 }

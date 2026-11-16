@@ -55,8 +55,8 @@ describe("function placement rules", () => {
 
 		rules.append(violations, "worker.ts", functions);
 
-		expect(violations.map((item) => [item.rule_id(), item.line(), item.message()])).toEqual([
-			["function-placement", 1, "module-level functions must be declared in the project-root functions file"],
+		expect(violations.map((item) => [item.rule_id(), item.line(), item.priority(), item.message()])).toEqual([
+			["function-placement", 1, 7, "module-level functions must be declared in the project-root functions file"],
 		]);
 	});
 
@@ -67,8 +67,8 @@ describe("function placement rules", () => {
 
 		rules.append(violations, "worker.py", functions);
 
-		expect(violations.map((item) => [item.rule_id(), item.message()])).toEqual([
-			["function-placement", "module-level functions must be declared in the project-root functions file"],
+		expect(violations.map((item) => [item.rule_id(), item.priority(), item.message()])).toEqual([
+			["function-placement", 7, "module-level functions must be declared in the project-root functions file"],
 		]);
 	});
 

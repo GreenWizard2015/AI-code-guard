@@ -202,7 +202,7 @@ export const TYPES_RULE_DATA = {
 	"typescript-jest-min-size": {
 		message: "Jest suite is too short ({size} lines/SLOC metric)",
 		hint: "Keep focused tests in a meaningful suite. Do not: create a describe block for one tiny test.",
-		priority: 7,
+		priority: 3,
 	},
 	"typescript-jest-max-size": {
 		message: "Jest suite is too large ({size} lines/SLOC metric)",
@@ -247,7 +247,7 @@ export const TYPES_RULE_DATA = {
 	"unused-type": {
 		message: 'type declaration "{name}" has no production usage',
 		hint: "Remove the type or add a real production usage. Do not: preserve an unused type only for tests.",
-		priority: 7,
+		priority: 6,
 	},
 	"typescript-class-callback-fields": {
 		message: "class has {count} callback fields with default implementations",
@@ -282,12 +282,12 @@ export const TYPES_RULE_DATA = {
 	"nested-type": {
 		message: "nested type declarations are not allowed ({count})",
 		hint: "Move every type alias, interface, or enum to a top-level focused module. Do not: hide type declarations inside namespaces, classes, functions, or blocks.",
-		priority: 8,
+		priority: 6,
 	},
 	"typescript-namespace-file": {
 		message: "namespace file must contain one namespace and imports only outside it",
 		hint: "Keep exactly one namespace declaration per file; move all other code inside it and leave only imports outside. Do not: place classes, functions, values, or additional namespaces beside it.",
-		priority: 7,
+		priority: 5,
 	},
 	"contract-fields": {
 		message: '{kind} "{class_name}" must not declare {field_policy} field "{field_name}"',
@@ -347,11 +347,11 @@ export const TYPES_RULE_DATA = {
 	"functions-file-type-declaration": {
 		message: "functions file must not declare types",
 		hint: "Keep functions.ts and functions.py limited to cohesive callable implementations; move every type description into its owning type module or class. Do not: declare classes, aliases, interfaces, enums, or structural type values here.",
-		priority: 7,
+		priority: 5,
 	},
 	"module-types-separation": {
 		message: "module-level types must move to {target} or a focused file",
 		hint: "Move module-level types out of ordinary implementation files. Use types.ts or types.py, or a focused file when the types belong together. Do not: keep module-level types beside implementation code.",
-		priority: 7,
+		priority: 5,
 	},
 } as const;

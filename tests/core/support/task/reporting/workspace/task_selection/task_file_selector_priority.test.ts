@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { RULE_DATA } from "src/constants";
-import { TaskFileSelector } from "src/core/support/task/reporting/workspace/task_file_selector";
+import { TaskFileSelector } from "src/core/support/task/reporting/workspace/task_selection/task_file_selector";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 
 describe("transformation rule priority", () => {
-	test("creates zero-priority diagnostics for string literal rules", () => {
+	test("keeps editorial source text at zero and repeated literals at style priority", () => {
 		const rule_ids = ["non-english-source-text", "repeated-literal", "literal-constant-reuse"];
 		const violations = rule_ids.map((rule_id) => {
 			let parameters = {};
@@ -17,7 +17,7 @@ describe("transformation rule priority", () => {
 
 		expect(violations.map((violation) => [violation.rule_id(), violation.priority()])).toEqual([
 			["non-english-source-text", 0],
-			["repeated-literal", 0],
+			["repeated-literal", 2],
 			["literal-constant-reuse", 0],
 		]);
 	});
@@ -30,13 +30,17 @@ describe("transformation rule priority", () => {
 			const small = minimum.violation("z-small.ts", 1, { count: "1", size: "1", callable: "method" });
 			const large = maximum.violation("a-large.ts", 1, { count: "501", size: "501", callable: "method" });
 			const selector = new TaskFileSelector("/project");
-			const first = selector.select_top_category([large, large, small], 1);
-			const next = selector.select_top_category([large, large], 1);
+			const first = selector.select({ violations: [large, large, small], mode: "top-category", batch_size: 1 });
+			const next = selector.select({ violations: [large, large], mode: "top-category", batch_size: 1 });
 			expect({
 				priorities: [small.priority(), large.priority()],
 				first: first.files,
 				next: next.files,
-			}).toEqual({ priorities: [7, 3], first: ["/project/z-small.ts"], next: ["/project/a-large.ts"] });
+			}).toEqual({
+				priorities: prefix.startsWith("directory") ? [8, 8] : [3, 3],
+				first: ["/project/a-large.ts"],
+				next: ["/project/a-large.ts"],
+			});
 		},
 	);
 
@@ -57,7 +61,11 @@ describe("transformation rule priority", () => {
 		});
 		const import_error = import_rule.violation("consumer.ts", 1, { specifier: "./missing" });
 		const split_file = file_size_rule.violation("large.ts", 1, { count: "501" });
-		const selected = selector.select_top_category([import_error, split_file, relocation], 1);
+		const selected = selector.select({
+			violations: [import_error, split_file, relocation],
+			mode: "top-category",
+			batch_size: 1,
+		});
 		expect({
 			placement_priority: placement,
 			selected_files: selected.files,
@@ -93,7 +101,11 @@ describe("transformation rule priority", () => {
 			lower_priority_rule.violation("lower-c.ts", 1, { callable: "method" }),
 		];
 		const selector = new TaskFileSelector("/project");
-		const result = selector.select_top_category([small, ...large, ...lower_priority], 10);
+		const result = selector.select({
+			violations: [small, ...large, ...lower_priority],
+			mode: "top-category",
+			batch_size: 10,
+		});
 		expect({
 			priorities: [
 				small.priority(),
@@ -102,7 +114,7 @@ describe("transformation rule priority", () => {
 			],
 			files: result.files,
 		}).toEqual({
-			priorities: [7, [7, 7], [3, 3, 3]],
+			priorities: [3, [7, 7], [3, 3, 3]],
 			files: ["/project/large-a.ts", "/project/large-b.ts"],
 		});
 	});
@@ -123,8 +135,8 @@ describe("transformation rule priority", () => {
 		const callable_lower = callable_maximum.violation("m-lower.ts", 1, { callable: "method" });
 		const violations = [class_high, callable_high, naming_lower, other_class_high, callable_lower];
 		const selector = new TaskFileSelector("/project");
-		const complete = selector.select_all(violations, 10);
-		const capped = selector.select_all(violations, 1);
+		const complete = selector.select({ violations, mode: "all", batch_size: 10 });
+		const capped = selector.select({ violations, mode: "all", batch_size: 1 });
 
 		expect({
 			priorities: [class_high.priority(), callable_high.priority(), naming_lower.priority(), callable_lower.priority()],
@@ -133,8 +145,8 @@ describe("transformation rule priority", () => {
 			capped_files: capped.files,
 			capped_rules: capped.violations.map((violation) => violation.rule_id()),
 		}).toEqual({
-			priorities: [7, 7, 2, 3],
-			files: ["/project/a-high.ts", "/project/z-high.ts", "/project/m-lower.ts"],
+			priorities: [3, 3, 2, 3],
+			files: ["/project/a-high.ts", "/project/m-lower.ts", "/project/z-high.ts"],
 			selected: [
 				"a-high.ts:class-min-size",
 				"a-high.ts:callable-min-size",

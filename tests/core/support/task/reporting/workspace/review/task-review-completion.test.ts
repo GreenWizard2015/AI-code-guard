@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReview } from "src/core/support/task/reporting/workspace/review/task_review";
 import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
+import { TaskReportingReviewState } from "src/core/support/task/reporting/workspace/task_reporting_review_state";
 import {
 	REVIEW_COMPLETION_TEXT,
 	REVIEW_FAILURE_FILE,
@@ -138,10 +139,7 @@ describe("coding-lint review completion reporting", () => {
 	test("invalidates completion after the source state changes", () => {
 		const fixture_factory = new TaskReportingMemoryFixture();
 		const fixture = fixture_factory.create({ "a.ts": "const value = 1;\n" });
-		const reporting = new TaskReporting(fixture._root, {
-			file_io: fixture._file_io,
-			documentation: fixture._documentation,
-		});
+		const review_state = new TaskReportingReviewState(fixture._root, fixture._file_io);
 		const review_root = fixture.task_path("review");
 		fixture._file_io.create_directory(review_root);
 		const identity = new ReviewStateIdentity(fixture._root, fixture._file_io);
@@ -149,7 +147,7 @@ describe("coding-lint review completion reporting", () => {
 			.file(join(review_root, "review-complete.md"))
 			.write_text(`${REVIEW_COMPLETION_TEXT}\n${REVIEW_SOURCE_IDENTITY_PREFIX}${identity.value()}\n`);
 		fixture._file_io.file(join(fixture._root, "a.ts")).write_text("const value = 2;\n");
-		expect(reporting.review_status().completed).toBe(false);
+		expect(review_state.review_status().completed).toBe(false);
 	});
 
 	test("requests details for short review notes", () => {

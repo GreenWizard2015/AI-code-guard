@@ -3,6 +3,7 @@ import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import { CliResultReporter } from "src/core/support/reporting/cli_result_reporter";
 import { PerformanceReport } from "src/core/support/reporting/performance_report";
 import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
+import type { CliLintReportRequest } from "src/core/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { ViolationValue } from "src/model/violation_value";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
@@ -43,7 +44,11 @@ describe("coding-lint task reporting summaries", () => {
 		const all_rule_ids = [...RULE_DOCUMENT_PATHS_BY_ID.keys()];
 		const rule_ids = all_rule_ids.slice(0, 12);
 		const violations = rule_ids.map((rule_id, index) => violation(`file-${index}.ts`, index + 1, rule_id, 2));
-		reporting.format(violations, { batch_size: 20, policy: "all", skip_review: true });
+		reporting.format(violations, {
+			batch_size: 20,
+			policy: "all",
+			skip_review: true,
+		});
 		const report = fixture.task_text("report.md");
 		const summary = report.slice(0, report.indexOf("## File fix plan"));
 		const visible_rule_rows = summary.match(/^\| `/gmu);
@@ -63,7 +68,11 @@ describe("coding-lint task reporting summaries", () => {
 			file_io: fixture._file_io,
 			documentation: fixture._documentation,
 		});
-		const output = reporting.format([], { batch_size: 10, policy: "all", skip_review: true });
+		const output = reporting.format([], {
+			batch_size: 10,
+			policy: "all",
+			skip_review: true,
+		});
 		expect(fixture.task_text("lint-output.md")).toBe(`${output}\n`);
 	});
 
@@ -85,13 +94,15 @@ describe("coding-lint task reporting summaries", () => {
 			review_stages: [],
 			batch_size: 10,
 			policy: "all" as const,
+			agent_mode: { package_count: 0, test_target_links: [] },
 		};
 		const expected_lint_output = reporting.format([], {
 			batch_size: options.batch_size,
 			policy: options.policy,
 			skip_review: options.skip_review,
 		});
-		reporter.report(report, options);
+		const request: CliLintReportRequest = { report, options, test_target_links: [] };
+		reporter.report_lint(request);
 		reporter.report_performance(report, options, new LintStageTimer());
 		const result = {
 			lint_output: fixture.task_text("lint-output.md"),

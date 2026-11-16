@@ -121,7 +121,7 @@ describe("coding-lint class metrics rules", () => {
 			).length,
 		}).toEqual({
 			class_thresholds: expect.arrayContaining([
-				["class has too few public methods (found 1)", 6, "class-method-min-count"],
+				["class has too few public methods (found 1)", 3, "class-method-min-count"],
 				["class has many public methods (found 7)", 1, "class-method-count-info"],
 				["class has too many public methods (found 16)", 3, "class-method-max-count"],
 			]),

@@ -4,11 +4,15 @@ import type { TaskFileSelection } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ReviewAgentSelection } from "src/task_review_types";
 import type { TaskReviewRunResult } from "src/task_review_types";
+import type { TaskFileSelectionRequest } from "src/task_selection_types";
 import type {
+	AgentPackageTaskReportingOptions,
+	CliOptionsParseResultContract,
 	ReviewAgentRunOptions,
 	ReviewStatus,
 	TaskBatchReplacementOptions,
 	TaskReportingOptions,
+	TaskReportingReviewPreparation,
 	TaskWorkspaceDocument,
 } from "src/task_types";
 import type { CliOptions } from "src/task_types";
@@ -51,13 +55,17 @@ export interface CliOptionApplicationContract {
 
 /** Responsibilities: _CLI option parsing_. **/
 export interface CommandLineOptionsContract {
-	value(): CliOptions;
+	validated_options(): CliOptionsParseResultContract;
 }
 
 /** Responsibilities: _diagnostic task formatting_. **/
 export interface TaskReportingFormatContract {
 	format(violations: readonly ViolationContract[], options: TaskReportingOptions): string;
+	format_agent_packages(violations: readonly ViolationContract[], options: AgentPackageTaskReportingOptions): string;
 }
+
+/** Responsibilities: _diagnostic task reporting_. **/
+export interface TaskReportingContract extends TaskReportingFormatContract {}
 
 /** Responsibilities: _lint report rendering_. **/
 export interface TaskReportDocumentContract {
@@ -65,10 +73,15 @@ export interface TaskReportDocumentContract {
 	write(): void;
 }
 
-/** Responsibilities: _diagnostic task reporting_. **/
-export interface TaskReportingContract extends TaskReportingFormatContract {
+/** Responsibilities: _review status_, _review execution_. **/
+export interface TaskReviewOperationsContract {
 	review_status(): ReviewStatus;
 	run_review_agent(selection: ReviewAgentSelection, options: ReviewAgentRunOptions): Promise<TaskReviewRunResult>;
+}
+
+/** Responsibilities: _task reporting review state_. **/
+export interface TaskReportingReviewStateContract extends TaskReviewOperationsContract {
+	prepare_report(skip_review: boolean): TaskReportingReviewPreparation;
 }
 
 /** Responsibilities: _task workspace operations_. **/
@@ -88,6 +101,16 @@ export interface TaskBatchReplacementContract {
 export interface TaskWorkspaceContract {
 	clear_batch(): void;
 	prepare_review(): void;
+}
+
+/** Responsibilities: _task document access_, _review workspace lifecycle_. **/
+export interface TaskReportingWorkspaceContract {
+	clear_batch(): void;
+	prepare_review(): void;
+	write_document(document: TaskWorkspaceDocument, content: string): void;
+	write_performance(content: string): void;
+	path_for_document(document: TaskWorkspaceDocument): string;
+	rule_document_path(rule_id: string): string;
 }
 
 /** Responsibilities: _task rule documentation operations_. **/
@@ -122,6 +145,7 @@ export interface TaskReviewFileContract {
 /** Responsibilities: _review archive state_. **/
 export interface ResolvedReviewArchiveContract {
 	status(file: string): string;
+	archive_resolved_reviews(): void;
 }
 
 /** Responsibilities: _task review-agent execution_. **/
@@ -132,8 +156,7 @@ export interface TaskReviewAgentContract {
 
 /** Responsibilities: _task violation file selection_. **/
 export interface TaskFileSelectorContract {
-	select_top_category(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection;
-	select_all(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection;
+	select(request: TaskFileSelectionRequest): TaskFileSelection;
 }
 
 /** Responsibilities: _task report formatting_. **/

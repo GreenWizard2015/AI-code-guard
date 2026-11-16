@@ -3,7 +3,7 @@ import "src/lint_stage_timer";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
-import { TaskWorkspace } from "src/core/support/task/reporting/workspace/task_workspace";
+import { TaskWorkspace } from "src/core/task_workspace";
 import { ViolationValue } from "src/model/violation_value";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 

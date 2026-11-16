@@ -25,6 +25,7 @@ import type {
 	PythonSourceAstBatch,
 } from "src/model/ast/normalized_ast_types";
 import type { PythonProjectNames } from "src/model_types";
+import type { TaskViolationSuppression } from "src/model_types";
 import type { LintAnalysisStage, LintInputFiles, LintRunResult, LintRunState } from "src/project_analysis_types";
 import type {
 	PythonAstDataContract,
@@ -33,6 +34,7 @@ import type {
 	PythonAstWorkerSessionContract,
 	PythonSourceFilesContract,
 } from "src/python_protocols";
+import type { TaskViolationPathContract, ViolationContract } from "src/reporting_protocols";
 import type {
 	LintRunAnalysisContract,
 	LintRunWorkerLifecycleContract,
@@ -47,10 +49,43 @@ import type {
 } from "src/shared_services_protocols";
 import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
 import type { TaskReportingContract } from "src/task_protocols";
-import type { CliOptions } from "src/task_types";
+import type { TaskReviewAgentContract } from "src/task_protocols";
+import type { CliOptions, TestTargetLink } from "src/task_types";
 import type ts from "typescript";
 
 export type ContextProjectPaths = ReadonlySet<string>;
+
+export type CallableReviewAgentProvider = () => TaskReviewAgentContract;
+
+export type TaskScopedViolationPath = {
+	path: TaskViolationPathContract;
+	absolute_path: string;
+};
+
+export type TaskFilePlanPath = {
+	path: string;
+	visible: readonly ViolationContract[];
+	suppressed: readonly TaskViolationSuppression[];
+	maximum_priority: number;
+	has_visible_priority: boolean;
+	selected_paths: ReadonlySet<string>;
+	selected_violations: ReadonlySet<ViolationContract>;
+};
+
+export type TaskFilePlanRowsContext = {
+	ordered_paths: readonly string[];
+	visible_by_path: ReadonlyMap<string, ViolationContract[]>;
+	suppressed_by_path: ReadonlyMap<string, TaskViolationSuppression[]>;
+	priorities: ReadonlyMap<string, number>;
+	selected_paths: ReadonlySet<string>;
+	selected_violations: ReadonlySet<ViolationContract>;
+};
+
+export type TaskFilePlanPriorityLabels = {
+	max_priority: string;
+	in_batch_rules: string;
+	deferred_rules: string;
+};
 export type FileLintRunOptions = {
 	files: string[];
 	repo_root: string;
@@ -92,8 +127,14 @@ export type ProjectLintExecutionOptions = {
 
 /** Responsibilities: _project execution contract_. **/
 export interface ProjectLintExecutionContract {
-	run(): LintRunResult;
+	run(): ProjectLintExecutionResult;
 }
+
+/** Responsibilities: _project lint execution result_. **/
+export type ProjectLintExecutionResult = {
+	readonly report: LintRunResult;
+	readonly test_target_links: readonly TestTargetLink[];
+};
 
 export type CliProjectRunContext = {
 	options: CliOptions;
@@ -105,6 +146,14 @@ export type CliProjectReportContext = {
 	report: LintRunResult;
 	stage_timer: LintStageTimerContract;
 	task_reporting: TaskReportingContract;
+	test_target_links: readonly TestTargetLink[];
+};
+
+/** Responsibilities: _CLI lint diagnostics_, _task summary options_. **/
+export type CliLintReportRequest = {
+	readonly report: LintRunResult;
+	readonly options: CliOptions;
+	readonly test_target_links: readonly TestTargetLink[];
 };
 
 export const UNUSED_SYMBOL_KIND = {

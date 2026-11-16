@@ -17,7 +17,7 @@ import type { ViolationContract } from "src/reporting_protocols";
 import { ResponsibilityRules } from "src/rules/architecture/responsibility_rules";
 import { ResponsibilityWording } from "src/rules/architecture/responsibility_wording";
 import { TypeScriptRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_rule_context";
-import type { SyntaxContract } from "src/shared_services_protocols";
+import type { SyntaxContract, TestPathSyntaxContract } from "src/shared_services_protocols";
 import type { SourceFileAstContract } from "src/source_protocols";
 import type { CodingRuleSourceData } from "src/source_types";
 import type ts from "typescript";
@@ -30,7 +30,7 @@ import type { TypeScriptRuleScopeContract } from "src/types";
 /** Responsibilities: _coding rule collection_, _responsibility violation collection_. **/
 export class CodingRuleLinter implements CodingRuleLinterContract {
 	private readonly _duplicate_type_shapes: DuplicateTypeShapes;
-	private readonly _test_path_syntax: TestPathSyntax;
+	private readonly _test_path_syntax: TestPathSyntaxContract;
 	private readonly _syntax: SyntaxContract;
 	private readonly _responsibility_rules: ResponsibilityRules;
 	private readonly _typescript_coding_rules: TypeScriptCodingRules;

@@ -14,22 +14,6 @@ export class TestTargetSource implements TestTargetSourceContract {
 	private readonly _project_root: string;
 	private readonly _test_file_organization: TestFileOrganizationContract;
 
-	/** Responsibilities: _production declaration matching_. **/
-	private declaration_matches(imported_target: TestTargetImport, resolver: TestTargetImportResolverContract): boolean {
-		const declaration_paths = resolver.declaration_paths(this._file, [imported_target], this._python);
-		if (declaration_paths.length === 0) {
-			return false;
-		}
-		const test_file = this._test_file_organization.for_file(this._file);
-		for (const declaration_path of declaration_paths) {
-			const match = new TestTargetFileMatch(this._project_root, declaration_path, test_file);
-			if (match.matches()) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/** Responsibilities: _field initialization_. **/
 	public constructor(
 		file: string,
@@ -46,12 +30,24 @@ export class TestTargetSource implements TestTargetSourceContract {
 	}
 
 	/** Responsibilities: _test import resolution_. **/
-	public matches_target(resolver: TestTargetImportResolverContract): boolean {
+	public matching_target_paths(resolver: TestTargetImportResolverContract): string[] {
+		const matching_paths = new Set<string>();
 		for (const imported_target of this._imports) {
-			if (this.declaration_matches(imported_target, resolver)) {
-				return true;
+			for (const declaration_path of resolver.declaration_paths(this._file, [imported_target], this._python)) {
+				const test_file = this._test_file_organization.for_file(this._file);
+				const match = new TestTargetFileMatch(this._project_root, declaration_path, test_file);
+				if (match.matches()) {
+					matching_paths.add(declaration_path);
+				}
 			}
 		}
-		return false;
+		const ordered_paths = Array.from(matching_paths);
+		ordered_paths.sort();
+		return ordered_paths;
+	}
+
+	/** Responsibilities: _test target match result_. **/
+	public matches_target(resolver: TestTargetImportResolverContract): boolean {
+		return this.matching_target_paths(resolver).length > 0;
 	}
 }

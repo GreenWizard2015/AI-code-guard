@@ -41,6 +41,20 @@ export class CliOptionApplication implements CliOptionApplicationContract {
 		return true;
 	}
 
+	/** Responsibilities: _agent count validation_. **/
+	private apply_agents(): boolean {
+		if (this._option !== `${this.option_prefix}agents`) {
+			return false;
+		}
+		const agents = Number(this._next_value);
+		const valid_agents = Number.isInteger(agents) && agents >= 1;
+		if (!this._has_next_value || !valid_agents) {
+			throw new Error(`Invalid --agents value: ${this._next_value}`);
+		}
+		this._options.agent_mode = { package_count: agents, test_target_links: [] };
+		return true;
+	}
+
 	/** Responsibilities: _policy CLI option application_. **/
 	private apply_policy(): boolean {
 		if (this._option !== `${this.option_prefix}policy`) {
@@ -129,6 +143,10 @@ export class CliOptionApplication implements CliOptionApplicationContract {
 	public apply(): boolean {
 		if (this._option === `${this.option_prefix}skip-review`) {
 			throw new Error(REMOVED_SKIP_REVIEW_MESSAGE);
+		}
+		if (this._option === `${this.option_prefix}agents`) {
+			this.apply_agents();
+			return true;
 		}
 		if (this.apply_boolean_option()) {
 			return false;

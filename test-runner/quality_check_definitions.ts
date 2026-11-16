@@ -1,11 +1,17 @@
 import { readdirSync } from "node:fs";
 import { delimiter, join } from "node:path";
-import { DOCUMENTATION_VALIDATION_DIRECTORY, NODE_MODULES_DIRECTORY, TEST_RUNNER_DIRECTORY } from "src/constants";
+import {
+	DOCUMENTATION_VALIDATION_DIRECTORY,
+	IGNORE_DIRECTORY_OPTION,
+	NODE_MODULES_DIRECTORY,
+	TEST_RUNNER_DIRECTORY,
+} from "src/constants";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
 import { SourceText } from "src/io/source_text";
 import { IGNORED_DIRECTORIES } from "src/rules/constants";
 import type { QualityCheckCatalogContract } from "src/task_types";
 import {
+	CODEX_DIRECTORY,
 	MIN_CONFIDENCE_ARGUMENT,
 	MYPYPATH_VARIABLE,
 	PYTHON_BRIDGE_DIRECTORY,
@@ -42,7 +48,7 @@ export class QualityCheckDefinitions implements QualityCheckCatalogContract {
 		const files: string[] = [];
 		for (const entry of readdirSync(directory, { withFileTypes: true })) {
 			if (entry.isDirectory()) {
-				if (entry.name === ".codex" || IGNORED_DIRECTORIES.has(entry.name)) {
+				if (entry.name === CODEX_DIRECTORY || IGNORED_DIRECTORIES.has(entry.name)) {
 					continue;
 				}
 				files.push(...this.python_files_in(join(directory, entry.name)));
@@ -250,7 +256,7 @@ export class QualityCheckDefinitions implements QualityCheckCatalogContract {
 			{
 				label: "Coding lint",
 				command: "pnpm",
-				args: ["--dir", this._project_root, "lint", "--", "--ignore-dir", ".codex"],
+				args: ["--dir", this._project_root, "lint", "--", IGNORE_DIRECTORY_OPTION, CODEX_DIRECTORY],
 				environment: process.env,
 				supports_review_options: true,
 				supports_review_agent: true,

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { TaskFileSelector } from "src/core/support/task/reporting/workspace/task_file_selector";
+import { TaskFileSelector } from "src/core/support/task/reporting/workspace/task_selection/task_file_selector";
 import { TaskViolationGroups } from "src/core/support/task/reporting/workspace/task_violation_groups";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 
 describe("transformation diagnostic suppression", () => {
-	test("all policy includes directory findings and every descendant finding", () => {
+	test("all policy keeps directory findings and suppresses every other descendant finding", () => {
 		const selector = new TaskFileSelector("/project");
 		const directory_rule = new DiagnosticRule("directory-max-size");
 		const nested_directory_rule = new DiagnosticRule("directory-class-max-size");
@@ -16,32 +16,18 @@ describe("transformation diagnostic suppression", () => {
 		const deep_nested_file = file_rule.violation("src/package/feature/deep/item.ts", 1, { count: "501" });
 		const sibling_file = file_rule.violation("src/peer/peer.ts", 1, { count: "501" });
 		const violations = [parent, nested, deep_nested, nested_file, deep_nested_file, sibling_file];
-		const all = selector.select_all(violations, 10);
+		const all = selector.select({ violations, mode: "all", batch_size: 10 });
 
 		expect({
 			all_files: all.files,
 			all_violations: all.violations.map((violation) => `${violation.file()}:${violation.rule_id()}`),
 		}).toEqual({
-			all_files: [
-				"/project/src/package",
-				"/project/src/package/feature",
-				"/project/src/package/feature/deep",
-				"/project/src/package/feature/deep/item.ts",
-				"/project/src/package/feature/item.ts",
-				"/project/src/peer/peer.ts",
-			],
-			all_violations: [
-				"src/package:directory-max-size",
-				"src/package/feature:directory-class-max-size",
-				"src/package/feature/deep:directory-class-max-size",
-				"src/package/feature/item.ts:file-max-size",
-				"src/package/feature/deep/item.ts:file-max-size",
-				"src/peer/peer.ts:file-max-size",
-			],
+			all_files: ["/project/src/package", "/project/src/peer/peer.ts"],
+			all_violations: ["src/package:directory-max-size", "src/peer/peer.ts:file-max-size"],
 		});
 	});
 
-	test("all policy includes diagnostics beneath state directories", () => {
+	test("all policy suppresses every diagnostic beneath state directories", () => {
 		const selector = new TaskFileSelector("/project");
 		const state_directory_rule = new DiagnosticRule("ai-code-guard-directory-ignored");
 		const file_rule = new DiagnosticRule("file-max-size");
@@ -56,18 +42,18 @@ describe("transformation diagnostic suppression", () => {
 			suggestions: "src/peer/peer.ts",
 			guidance: "move it",
 		});
-		const selected = selector.select_all([state_directory, state_file, sibling_placement], 10);
+		const selected = selector.select({
+			violations: [state_directory, state_file, sibling_placement],
+			mode: "all",
+			batch_size: 10,
+		});
 
 		expect({
 			files: selected.files,
 			violations: selected.violations.map((violation) => `${violation.file()}:${violation.rule_id()}`),
 		}).toEqual({
-			files: ["/project/.ai-code-guard", "/project/src/peer.ts", "/project/.ai-code-guard/cache/report.md"],
-			violations: [
-				".ai-code-guard:ai-code-guard-directory-ignored",
-				".ai-code-guard/cache/report.md:file-max-size",
-				"src/peer.ts:module-placement",
-			],
+			files: ["/project/.ai-code-guard", "/project/src/peer.ts"],
+			violations: [".ai-code-guard:ai-code-guard-directory-ignored", "src/peer.ts:module-placement"],
 		});
 	});
 
@@ -93,9 +79,9 @@ describe("transformation diagnostic suppression", () => {
 			word_count: "7",
 		});
 		const violations = [placement, function_placement, size, naming];
-		let selected = selector.select_top_category(violations, 10);
+		let selected = selector.select({ violations, mode: "top-category", batch_size: 10 });
 		if (policy === "all") {
-			selected = selector.select_all(violations, 10);
+			selected = selector.select({ violations, mode: "all", batch_size: 10 });
 		}
 
 		expect({
@@ -103,11 +89,19 @@ describe("transformation diagnostic suppression", () => {
 			violations: selected.violations.map((violation) => violation.rule_id()),
 		}).toEqual({
 			files: ["/project/src/module.ts"],
-			violations:
-				policy === "all"
-					? ["module-placement", "function-placement", "file-max-size", "naming"]
-					: ["module-placement", "function-placement"],
+			violations: ["module-placement", "function-placement"],
 		});
+	});
+
+	test("file name diagnostics suppress same-file implementation findings", () => {
+		const selector = new TaskFileSelector("/project");
+		const file_name_rule = new DiagnosticRule("single-class-file-name");
+		const content_rule = new DiagnosticRule("file-max-size");
+		const file_name = file_name_rule.violation("src/wrong.ts", 1, { expected_name: "right.ts" });
+		const content = content_rule.violation("src/wrong.ts", 2, { count: "501" });
+		const selected = selector.select({ violations: [file_name, content], mode: "all", batch_size: 2 });
+
+		expect(selected.violations.map((violation) => violation.rule_id())).toEqual(["single-class-file-name"]);
 	});
 
 	test("unclassified rules do not create directory or file-placement scopes", () => {
@@ -152,7 +146,7 @@ describe("transformation diagnostic suppression", () => {
 		});
 		const size = size_rule.violation("/project/src/module.ts", 2, { count: "501" });
 		const groups = new TaskViolationGroups(root, [placement, size]);
-		const selected = selector.select_all([placement, size], 10);
+		const selected = selector.select({ violations: [placement, size], mode: "all", batch_size: 10 });
 
 		expect({
 			visible: groups.analyze_visibility().visible.map((violation) => violation.rule_id()),
@@ -163,7 +157,7 @@ describe("transformation diagnostic suppression", () => {
 			visible: ["module-placement"],
 			group_count: 1,
 			files: ["/project/src/module.ts"],
-			selected_rules: ["module-placement", "file-max-size"],
+			selected_rules: ["module-placement"],
 		});
 	});
 });

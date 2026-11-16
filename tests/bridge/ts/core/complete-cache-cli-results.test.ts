@@ -19,7 +19,7 @@ describe("complete cache CLI execution", () => {
 		message: "typescript parse error: Expression expected.",
 		hint: "correct the syntax before applying structural lint rules. Do not: rely on regex recovery for malformed code.",
 		rule_id: "parse-error",
-		priority: 7,
+		priority: 6,
 	};
 
 	test("preserves exact file results between cold and warm executions", async () => {
@@ -32,7 +32,7 @@ describe("complete cache CLI execution", () => {
 			const cold = cold_execution.run();
 			const warm_execution = new ProjectLintExecution(scenario.execution_options(warm_timer));
 			const warm = warm_execution.run();
-			files_match = JSON.stringify(cold.files) === JSON.stringify(warm.files);
+			files_match = JSON.stringify(cold.report.files) === JSON.stringify(warm.report.files);
 		} finally {
 			await scenario.close();
 		}
@@ -50,7 +50,8 @@ describe("complete cache CLI execution", () => {
 			const warm_execution = new ProjectLintExecution(scenario.execution_options(warm_timer));
 			const warm = warm_execution.run();
 			diagnostics_match =
-				scenario.diagnostic_signatures(cold.violations) === scenario.diagnostic_signatures(warm.violations);
+				scenario.diagnostic_signatures(cold.report.violations) ===
+				scenario.diagnostic_signatures(warm.report.violations);
 		} finally {
 			await scenario.close();
 		}
@@ -65,7 +66,9 @@ describe("complete cache CLI execution", () => {
 		try {
 			const cold_execution = new ProjectLintExecution(scenario.execution_options(timer));
 			const cold = cold_execution.run();
-			const parse_violations = cold.violations.filter((item) => item.rule_id() === expected_parse_diagnostic.rule_id);
+			const parse_violations = cold.report.violations.filter(
+				(item) => item.rule_id() === expected_parse_diagnostic.rule_id,
+			);
 			cold_diagnostics = scenario.diagnostic_values(parse_violations);
 		} finally {
 			await scenario.close();
@@ -85,7 +88,7 @@ describe("complete cache CLI execution", () => {
 			const warm_execution = new ProjectLintExecution(scenario.execution_options(warm_timer));
 			const warm = warm_execution.run();
 			warm_diagnostics = scenario.diagnostic_values(
-				warm.violations.filter((item) => item.rule_id() === expected_parse_diagnostic.rule_id),
+				warm.report.violations.filter((item) => item.rule_id() === expected_parse_diagnostic.rule_id),
 			);
 		} finally {
 			await scenario.close();

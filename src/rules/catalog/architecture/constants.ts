@@ -27,12 +27,12 @@ export const ARCHITECTURE_RULE_DATA = {
 	"python-abstract-class": {
 		message: "replace Python abstract classes with Protocols or interfaces",
 		hint: "use a structural Protocol or interface for the contract and a normal class for behavior. Do not: inherit from ABC or ABCMeta or use abstractmethod in a project class.",
-		priority: 7,
+		priority: 5,
 	},
 	"single-item-array-state": {
 		message: "do not use a single-item array as nullable state",
 		hint: "return an explicit state class or a named result contract. Do not: return T[] only to represent a missing value and read the result with [0].",
-		priority: 6,
+		priority: 4,
 	},
 	"callable-feature-detection": {
 		message: "avoid callable feature detection for project-owned interfaces",
@@ -88,17 +88,17 @@ export const ARCHITECTURE_RULE_DATA = {
 		message:
 			'{kind} "{label}" has insufficient production usage (found {count} other production {file_word}; candidate for removal/refactor)',
 		hint: "Review it for deletion or refactoring; test-only references do not count. If it is an external entry point, document the boundary or add an explicit exemption. If you checked the code and this advice is not appropriate for its context, ignore it.",
-		priority: 7,
+		priority: 6,
 	},
 	"unused-class": {
 		message: 'class "{name}" has no production usage',
 		hint: "Remove the class or add a real production usage. Do not: keep an implementation class only because it is exported or mentioned by tests.",
-		priority: 7,
+		priority: 6,
 	},
 	"unused-public-field": {
 		message: 'public field "{name}" has no production usage',
 		hint: "Remove the field or expose it through a real production contract. Do not: keep public state without a production consumer.",
-		priority: 7,
+		priority: 6,
 	},
 	"class-method-count-info": {
 		message: "class has many {visibility} methods (found {count})",
@@ -108,7 +108,7 @@ export const ARCHITECTURE_RULE_DATA = {
 	"class-method-min-count": {
 		message: "class has too few {visibility} methods (found {count})",
 		hint: "Add meaningful behavior or move the class to a boundary where one method is sufficient. Do not: add placeholder methods only to satisfy the count.",
-		priority: 6,
+		priority: 3,
 	},
 	"class-method-max-count": {
 		message: "class has too many {visibility} methods (found {count})",
@@ -128,7 +128,7 @@ export const ARCHITECTURE_RULE_DATA = {
 	"class-min-size": {
 		message: "class is too short",
 		hint: "move shared behavior into a smaller focused module or add meaningful behavior before keeping a class. Do not: keep a class as a thin wrapper.",
-		priority: 7,
+		priority: 3,
 	},
 	"class-size": {
 		message: "class has too many methods (found {count})",
@@ -138,7 +138,7 @@ export const ARCHITECTURE_RULE_DATA = {
 	"callable-min-size": {
 		message: "{callable} is too short",
 		hint: "inline a short function or refactor the behavior into a focused function/module. Do not: retain a short indirection or wrapper.",
-		priority: 7,
+		priority: 3,
 	},
 	"callable-max-size": {
 		message: "{callable} is too long",

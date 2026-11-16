@@ -9,11 +9,11 @@ import {
 	REPORT_DOCUMENT_NAME,
 } from "src/core/support/task/constants";
 import type { IOContract } from "src/io/protocols";
-import type { TaskWorkspaceContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";
+import type { TaskReportingWorkspaceContract } from "src/task_protocols";
 import type { TaskWorkspaceDocument } from "src/task_types";
 
 /** Responsibilities: _task document ownership_, _workspace lifecycle_. **/
-export class TaskWorkspace implements TaskWorkspaceContract, TaskWorkspaceDocumentsContract {
+export class TaskWorkspace implements TaskReportingWorkspaceContract {
 	private readonly _workspace_root: string;
 	private readonly _rules_root: string;
 	private readonly _file_io: IOContract;

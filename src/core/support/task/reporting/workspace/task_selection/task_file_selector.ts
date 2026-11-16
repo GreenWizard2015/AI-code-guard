@@ -1,14 +1,16 @@
 import { resolve } from "node:path";
+import { POLICY_TOP_CATEGORY } from "src/constants";
 import { TaskViolationGroups } from "src/core/support/task/reporting/workspace/task_violation_groups";
 import type { TaskFileSelection, TaskViolationVisibility } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { TaskFileSelectorContract } from "src/task_protocols";
+import type { TaskFileSelectionRequest } from "src/task_selection_types";
 
-/** Responsibilities: _priority category selection_, _impact-ordered file batching_. **/
+/** Responsibilities: _diagnostic priority_, _file order_. **/
 export class TaskFileSelector implements TaskFileSelectorContract {
 	private readonly _root: string;
 
-	/** Responsibilities: _selection largest grouped rule_. **/
+	/** Responsibilities: _largest rule group_. **/
 	private largest_rule_group(groups: ReadonlyMap<string, ViolationContract[]>): ViolationContract[] {
 		let selected: ViolationContract[] = [];
 		let selected_rule = "";
@@ -21,7 +23,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return selected;
 	}
 
-	/** Responsibilities: _maximum-priority violation selection_. **/
+	/** Responsibilities: _maximum-priority findings_. **/
 	private priority_violations(input_violations: readonly ViolationContract[]): ViolationContract[] {
 		let maximum_priority = 0;
 		for (const violation of input_violations) {
@@ -32,7 +34,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return input_violations.filter((violation) => violation.priority() === maximum_priority);
 	}
 
-	/** Responsibilities: _category file counts_. **/
+	/** Responsibilities: _category counts_. **/
 	private file_counts(category_violations: readonly ViolationContract[]): Map<string, number> {
 		const counts = new Map<string, number>();
 		for (const violation of category_violations) {
@@ -47,7 +49,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return counts;
 	}
 
-	/** Responsibilities: _category rule groups_. **/
+	/** Responsibilities: _rule groups_. **/
 	private rule_groups(grouped_violations: readonly ViolationContract[]): Map<string, ViolationContract[]> {
 		const groups = new Map<string, ViolationContract[]>();
 		for (const violation of grouped_violations) {
@@ -62,7 +64,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return groups;
 	}
 
-	/** Responsibilities: _violation file ordering_. **/
+	/** Responsibilities: _file ordering_. **/
 	private sorted_files(category: readonly ViolationContract[], counts: ReadonlyMap<string, number>): string[] {
 		const files = new Set<string>();
 		for (const violation of category) {
@@ -111,7 +113,7 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return files;
 	}
 
-	/** Responsibilities: _selection for chosen files_. **/
+	/** Responsibilities: _file selection_. **/
 	private file_selection(
 		files: string[],
 		visible_violations: readonly ViolationContract[],
@@ -124,30 +126,44 @@ export class TaskFileSelector implements TaskFileSelectorContract {
 		return { files, violations: selected_violations, visibility };
 	}
 
-	/** Responsibilities: _initialization task root usage_. **/
-	public constructor(root: string) {
-		this._root = root;
-	}
-
-	/** Responsibilities: _selection top rule category_. **/
-	public select_top_category(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection {
+	/** Responsibilities: _top category file selection_. **/
+	private top_category_selection(violations: readonly ViolationContract[]): TaskFileSelection {
 		const selection_groups = new TaskViolationGroups(this._root, violations);
 		const visibility = selection_groups.analyze_visibility();
 		const visible_violations = visibility.visible;
 		const top_violations = this.priority_violations(visible_violations);
 		const counts = this.file_counts(top_violations);
 		const category = this.largest_rule_group(this.rule_groups(top_violations));
-		const files = this.sorted_files(category, counts).slice(0, batch_size);
-		return this.file_selection(files, visible_violations, visibility);
+		const ordered_files = this.sorted_files(category, counts);
+		return this.file_selection(ordered_files, visible_violations, visibility);
 	}
 
-	/** Responsibilities: _all-file diagnostic inclusion_. **/
-	public select_all(violations: readonly ViolationContract[], batch_size: number): TaskFileSelection {
+	/** Responsibilities: _all diagnostic files_. **/
+	private all_file_selection(violations: readonly ViolationContract[]): TaskFileSelection {
 		const file_groups = new TaskViolationGroups(this._root, violations);
-		const file_priorities = file_groups.path_priorities();
-		const file_counts = this.file_counts(violations);
-		const selected_files = this.ranked_files(file_priorities, file_counts).slice(0, batch_size);
-		const visibility: TaskViolationVisibility = { visible: [...violations], suppressed: [] };
-		return this.file_selection(selected_files, violations, visibility);
+		const visibility = file_groups.analyze_visibility();
+		const visible_violations = visibility.visible;
+		const visible_groups = new TaskViolationGroups(this._root, visible_violations);
+		const file_priorities = visible_groups.path_priorities();
+		const file_counts = this.file_counts(visible_violations);
+		const ordered_files = this.ranked_files(file_priorities, file_counts);
+		return this.file_selection(ordered_files, visible_violations, visibility);
+	}
+
+	/** Responsibilities: _workspace root_. **/
+	public constructor(root: string) {
+		this._root = root;
+	}
+
+	/** Responsibilities: _task file selection_. **/
+	public select(request: TaskFileSelectionRequest): TaskFileSelection {
+		let selection: TaskFileSelection;
+		if (request.mode === POLICY_TOP_CATEGORY) {
+			selection = this.top_category_selection(request.violations);
+		} else {
+			selection = this.all_file_selection(request.violations);
+		}
+		const selected_files = selection.files.slice(0, request.batch_size);
+		return this.file_selection(selected_files, selection.visibility.visible, selection.visibility);
 	}
 }

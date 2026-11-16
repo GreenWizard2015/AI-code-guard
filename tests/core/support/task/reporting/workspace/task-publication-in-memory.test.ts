@@ -1,7 +1,7 @@
 import { basename, dirname, join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TaskBatchReplacement } from "src/core/support/task/reporting/workspace/task_batch_replacement";
-import { TaskWorkspace } from "src/core/support/task/reporting/workspace/task_workspace";
+import { TaskWorkspace } from "src/core/task_workspace";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { TaskPublicationFaultScenario } from "tests/bridge/ts/core/support/task-publication-fault-scenario";
 

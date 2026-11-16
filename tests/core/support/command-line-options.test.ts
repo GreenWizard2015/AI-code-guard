@@ -10,6 +10,54 @@ import { OUTSIDE_PROJECT_MODULE_NAME, TSX_IMPORT_API_SPECIFIER } from "tests/cor
 import { OutsideRootModuleImportScenario } from "tests/core/support/outside_root_module_import_scenario";
 
 describe("command line options", () => {
+	test("parses a positive agent count and preserves the default without the option", () => {
+		const defaults_parser = new CommandLineOptions(["node", "cli"]);
+		const configured_parser = new CommandLineOptions(["node", "cli", "--agents", "1"]);
+		const defaults = defaults_parser.value();
+		const configured = configured_parser.value();
+
+		expect({
+			default_agent_mode: defaults.agent_mode,
+			configured_agent_mode: configured.agent_mode,
+		}).toEqual({
+			default_agent_mode: { package_count: 0, test_target_links: [] },
+			configured_agent_mode: { package_count: 1, test_target_links: [] },
+		});
+	});
+
+	test.each(["0", "-1", "1.5", "abc"])("rejects invalid --agents value %s", (value) => {
+		const parser = new CommandLineOptions(["node", "cli", "--agents", value]);
+		const result = parser.validated_options();
+		expect({ valid: result.valid(), error_message: result.error_message() }).toEqual({
+			valid: false,
+			error_message: `Invalid --agents value: ${value}`,
+		});
+	});
+
+	test("rejects --agents without a value", () => {
+		const parser = new CommandLineOptions(["node", "cli", "--agents"]);
+		const result = parser.validated_options();
+		expect({ valid: result.valid(), error_message: result.error_message() }).toEqual({
+			valid: false,
+			error_message: "Invalid --agents value: ",
+		});
+	});
+
+	test("enforces the hidden minimum batch size only when agents are enabled", () => {
+		const agent_parser = new CommandLineOptions(["node", "cli", "--agents", "2", "--batch-size", "9"]);
+		const solo_parser = new CommandLineOptions(["node", "cli", "--batch-size", "9"]);
+		const agent_result = agent_parser.validated_options();
+		const solo_result = solo_parser.validated_options();
+		expect({ valid: agent_result.valid(), error_message: agent_result.error_message() }).toEqual({
+			valid: false,
+			error_message: "Invalid --batch-size value with --agents: expected at least 10.",
+		});
+		expect({ valid: solo_result.valid(), batch_size: solo_result.options().batch_size }).toEqual({
+			valid: true,
+			batch_size: 9,
+		});
+	});
+
 	test("skips architecture review when no review agent is selected", () => {
 		const command_line_options = new CommandLineOptions(["node", "cli"]);
 		const options = command_line_options.value();

@@ -105,6 +105,12 @@ export interface TestFileOrganizationContract {
 	for_file(file: string): TestFileOrganizationPathContract;
 }
 
+/** Responsibilities: _production import extraction_. **/
+export interface TestTargetImportsContract {
+	production_typescript(source: ts.SourceFile): TestTargetImport[];
+	production_python(imports: readonly AstPythonImport[], source_text: string): TestTargetImport[];
+}
+
 /** Responsibilities: _test file organization_, _test module paths_. **/
 export interface TestFileOrganizationPathContract {
 	valid(): boolean;

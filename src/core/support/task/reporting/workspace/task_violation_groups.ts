@@ -6,7 +6,7 @@ import {
 	UNCLASSIFIED_TASK_REPORT_SCOPE,
 } from "src/constants";
 import { TaskViolationPath } from "src/core/support/task/reporting/workspace/task_violation_path";
-import type { TaskScopedViolationPath } from "src/core/support/task/reporting/workspace/types";
+import type { TaskScopedViolationPath } from "src/core/types";
 import type { TaskReportDiagnosticScope } from "src/model/types";
 import type { TaskViolationSuppression, TaskViolationVisibility } from "src/model_types";
 import type { TaskViolationPathContract, ViolationContract } from "src/reporting_protocols";

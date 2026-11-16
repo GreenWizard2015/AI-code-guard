@@ -1,8 +1,13 @@
 import type { LintExecutionCachePreparerContract } from "src/cache_protocols";
 import { LintExecutionCachePreparer } from "src/core/cache/lint_execution_cache_preparer";
 import { EMPTY_SOURCE_TEXTS, NODE_ENV_VARIABLE } from "src/core/constants";
-import type { ProjectLintExecutionContract, ProjectLintExecutionOptions } from "src/core/types";
-import type { LintInputFiles, LintRunResult } from "src/project_analysis_types";
+import type {
+	ProjectLintExecutionContract,
+	ProjectLintExecutionOptions,
+	ProjectLintExecutionResult,
+} from "src/core/types";
+import { ProjectTestTargetImportPaths } from "src/linting/orchestration/runtime/test-targets/project_test_target_import_paths";
+import type { LintInputFiles } from "src/project_analysis_types";
 import type { LintExecutionReport } from "src/runtime_types";
 
 /** Responsibilities: _cache execution_, _project input snapshot_. **/
@@ -23,22 +28,28 @@ export class ProjectLintExecution implements ProjectLintExecutionContract {
 	}
 
 	/** Responsibilities: _uncached input selection_. **/
-	private run_direct(): LintRunResult {
+	private run_direct(): ProjectLintExecutionResult {
 		const { options, stage_timer, lint_run_factory } = this._options;
 		const inputs = stage_timer.measure("startup.file-discovery", () =>
 			lint_run_factory.input_files(options.root, options.ignored_directories),
 		);
-		return this.run_inputs(inputs, EMPTY_SOURCE_TEXTS).report;
+		const execution = this.run_inputs(inputs, EMPTY_SOURCE_TEXTS);
+		if (options.agent_mode.package_count === 0) {
+			return { report: execution.report, test_target_links: [] };
+		}
+		const import_paths = new ProjectTestTargetImportPaths(options.root, execution.context);
+		const test_target_links = import_paths.test_target_links();
+		return { report: execution.report, test_target_links };
 	}
 
 	/** Responsibilities: _complete-cache analysis_. **/
-	private run_cached(): LintRunResult {
+	private run_cached(): ProjectLintExecutionResult {
 		const { stage_timer } = this._options;
 		const cache_preparer = this.cache_preparer();
 		let prepared = cache_preparer.complete_cache();
 		const cached_result = stage_timer.measure("startup.complete-cache-read", () => prepared.cache.cached_result());
 		if (cached_result.available) {
-			return cached_result.value;
+			return { report: cached_result.value, test_target_links: [] };
 		}
 		if (!prepared.snapshot_complete) {
 			prepared = stage_timer.measure("startup.cache-miss-preparation", () =>
@@ -47,7 +58,7 @@ export class ProjectLintExecution implements ProjectLintExecutionContract {
 		}
 		const execution = this.run_inputs(prepared.inputs, prepared.source_texts, prepared.snapshot_complete);
 		stage_timer.measure("startup.complete-cache-write", () => prepared.cache.write(execution.report));
-		return execution.report;
+		return { report: execution.report, test_target_links: [] };
 	}
 
 	/** Responsibilities: _project execution initialization_. **/
@@ -56,9 +67,13 @@ export class ProjectLintExecution implements ProjectLintExecutionContract {
 	}
 
 	/** Responsibilities: _cache-aware project analysis_. **/
-	public run(): LintRunResult {
+	public run(): ProjectLintExecutionResult {
 		const { options } = this._options;
-		if (options.review_agent !== "none" || process.env[NODE_ENV_VARIABLE] === "test") {
+		const agent_packages_requested = options.agent_mode.package_count > 0;
+		const review_requested = options.review_agent !== "none";
+		const test_run = process.env[NODE_ENV_VARIABLE] === "test";
+		const should_run_directly = agent_packages_requested || review_requested || test_run;
+		if (should_run_directly) {
 			return this.run_direct();
 		}
 		return this.run_cached();

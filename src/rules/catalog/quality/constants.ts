@@ -132,7 +132,7 @@ export const QUALITY_RULE_DATA = {
 	"repeated-literal": {
 		message: "non-trivial string literal is repeated without a constant",
 		hint: "define a named constant for the repeated value and use it at every occurrence. Do not: repeat the same non-trivial value in production code.",
-		priority: 0,
+		priority: 2,
 	},
 	"literal-constant-reuse": {
 		message: 'non-trivial string literal must use existing constant "{constant}"',
@@ -177,12 +177,12 @@ export const QUALITY_RULE_DATA = {
 	"exception-raising": {
 		message: "tests must not raise or throw exceptions",
 		hint: "Return an explicit result or handle failure without an exception. Do not: use raise or throw in tests.",
-		priority: 6,
+		priority: 4,
 	},
 	"temporary-result-access": {
 		message: "avoid direct access through temporary results or spread copies",
 		hint: "name copied arrays or dictionaries before accessing them. Do not: access a spread copy before assigning it.",
-		priority: 4,
+		priority: 2,
 	},
 	"python-call-method": {
 		message: "avoid __call__ methods",
@@ -202,7 +202,7 @@ export const QUALITY_RULE_DATA = {
 	"unused-constant": {
 		message: 'module constant "{name}" has no production usage',
 		hint: "Remove the constant or add a real production usage. Do not: keep dead configuration or vocabulary in the module.",
-		priority: 7,
+		priority: 6,
 	},
 	"attribute-depth": {
 		message: "attribute access is too deep (found {depth} levels)",
@@ -227,7 +227,7 @@ export const QUALITY_RULE_DATA = {
 	"parse-error": {
 		message: "{language} parse error: {message}",
 		hint: "correct the syntax before applying structural lint rules. Do not: rely on regex recovery for malformed code.",
-		priority: 7,
+		priority: 6,
 	},
 	"python-sys-path-mutation": {
 		message: "avoid sys.path mutations",
@@ -242,12 +242,13 @@ export const QUALITY_RULE_DATA = {
 	"numeric-file-name": {
 		message: "file names must not contain numbers",
 		hint: "replace numbers in file names with descriptive words. Powers of two from 16 onward are allowed. Do not: use other numeric suffixes or embedded numbers.",
-		priority: 2,
+		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"exception-grouping": {
 		message: "exception class should be colocated with its caller",
 		hint: "Move a one-use Error class into the caller module, or group related exception classes in one focused module. Do not: keep a one-use exception in an isolated file.",
-		priority: 7,
+		priority: 5,
 	},
 	"pointless-assignment": {
 		message: "avoid pointless temporary assignments",

@@ -25,15 +25,22 @@ The project intentionally favors focused classes, explicit interfaces, small own
 
 | Priority | General scope |
 | ---: | --- |
-| 8 | Forbidden nested ownership structures, including nested classes and type declarations. |
-| 7 | Critical placement, missing/unused code, and size violations. |
-| 6 | Critical test, type-safety, and architecture violations. |
-| 5 | Type, contract, ownership, and responsibility-boundary violations. |
-| 4 | Import, runtime, proxy, and dynamic-access restrictions. |
-| 3 | Size, complexity, count, and architectural threshold violations. |
-| 2 | Naming, simple control-flow, and low-cost structural conventions. |
+| 8 | Directory structure and ownership findings. A directory finding suppresses every other finding beneath that directory. |
+| 7 | File location, placement, and naming findings. These precede and suppress findings about that file's contents. |
+| 6 | High-impact code findings, including parse errors, hard structural bans, dead code, execution, test-observation, and type-safety risks. |
+| 5 | Significant contracts and architecture problems without a direct runtime failure. |
+| 4 | Non-critical test-safety, runtime-boundary, and maintainability problems. |
+| 3 | Complexity, size, count, and other structural thresholds. |
+| 2 | Naming, simple control-flow, duplication, and lightweight style conventions. |
 | 1 | Informational counts and usage signals. |
-| 0 | Responsibility wording review. |
+| 0 | Editorial wording and source-text review. |
+
+Diagnostics follow a repair hierarchy: resolve directory ownership and structure
+first, then file location, placement, and naming, then code findings from broad
+contracts and architecture down to local behavior, size, and style. A directory
+finding hides all descendant findings; a file organization finding hides code
+findings for that file. This keeps a report focused on the wider cause before
+the issues that may be consequences of moving or restructuring code.
 
 
 ## Requirements
@@ -159,13 +166,38 @@ Available options:
     Run ONLY the selected architecture-review stage. Repeat the option to select multiple stages.
 
 --batch-size <number>
-    Maximum number of files included in the generated task. The default is 10.
+    Maximum number of distinct files included in a generated task or package.
+    This is always a file count, never a finding count. With `--agents`, each
+    package counts both production and test files. The default is 10. Linked test files stay
+    with their production scope and count toward this limit. Packages target
+    at least 10 files when possible; a nonempty selection with fewer than 10
+    files still emits one nonempty package. A nonempty selection always emits
+    at least one package.
+
+--agents <number>
+    Create up to this many non-overlapping task packages in
+    `.ai-code-guard/agent-tasks/`. Packages keep resolver-linked production
+    and test files together. Each package contains at most `--batch-size`
+    distinct files, including linked test files; across `N` packages this is at
+    most `N × --batch-size` files. The CLI creates fewer than `N` packages when
+    that is the largest partition with 10–`--batch-size` files per package.
+    If the selected set is larger than aggregate file capacity, files with
+    higher-priority findings are retained first; findings in files not
+    packaged remain visible in `issues.md` and are reported as excluded from
+    packages. Existing
+    folder assignments and package numbers are retained where possible; clean
+    folders release their previous assignment. A nonempty selection always
+    creates at least one package.
 
 --policy <top-category|all>
     `top-category` selects files from the largest top-severity rule category
-    and applies directory and placement suppression. `all` includes every
-    diagnostic in files selected for the batch, across all rule categories,
-    without directory or placement suppression.
+    after directory and file-placement suppression. `all` includes every
+    remaining visible diagnostic across all rule categories. Directory findings
+    suppress all descendant findings; file location, placement, and naming
+    findings suppress content findings for that file. With `--agents`, the
+    policy selects the complete remaining visible finding set; `issues.md`
+    contains it all, while packages may omit findings from files beyond their
+    total file capacity.
 
 ```
 

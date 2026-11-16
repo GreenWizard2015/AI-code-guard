@@ -1,4 +1,5 @@
 export const TESTS_DIRECTORY = "tests";
+export const CODEX_DIRECTORY = ".codex";
 export const PYTHON_BRIDGE_DIRECTORY = "src/python-bridge";
 export const PYTHON_TEST_DIRECTORY = "tests/python-bridge";
 export const MYPYPATH_VARIABLE = "MYPYPATH";

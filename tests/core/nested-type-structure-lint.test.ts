@@ -26,7 +26,7 @@ describe("coding-lint nested type declarations", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([8]);
+		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([6]);
 	});
 
 	test("gives nested type violations higher priority than type checks", () => {
@@ -49,7 +49,7 @@ describe("coding-lint nested type declarations", () => {
 			unbounded: violations.filter((item) => item.rule_id() === "unbounded-type").map((item) => item.priority()),
 		};
 
-		expect(priorities).toEqual({ nested: [8], unbounded: [5, 5] });
+		expect(priorities).toEqual({ nested: [6], unbounded: [5, 5] });
 	});
 
 	test("rejects nested Python type aliases", () => {
@@ -69,7 +69,7 @@ describe("coding-lint nested type declarations", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([8]);
+		expect(violations.filter((item) => item.rule_id() === "nested-type").map((item) => item.priority())).toEqual([6]);
 	});
 
 	test("does not treat a module constant used inside a method as a nested type alias", () => {

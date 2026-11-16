@@ -107,7 +107,7 @@ describe("AST-detectable implementation hacks", () => {
 			violations
 				.filter((violation) => violation.rule_id() === "test-exception-only")
 				.map((violation) => violation.priority()),
-		).toEqual([6]);
+		).toEqual([4]);
 	});
 
 	test("rejects Jest exception-only bypass patterns", () => {

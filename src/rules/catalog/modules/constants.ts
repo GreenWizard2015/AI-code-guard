@@ -2,12 +2,12 @@ export const MODULES_RULE_DATA = {
 	"mixed-module": {
 		message: "avoid mixing classes and functions or tests with module-level declarations",
 		hint: "Keep implementation modules focused on class and function ownership. Jest test modules may contain imports and test declarations; move module-level helper classes, functions, values, and types to support files. Do not: mix tests with module-level entities.",
-		priority: 6,
+		priority: 5,
 	},
 	"unused-module-variable": {
 		message: 'module variable "{name}" has no production usage',
 		hint: "Remove the variable or add a real production usage. Do not: keep mutable module state without a consumer.",
-		priority: 7,
+		priority: 6,
 	},
 	"import-fan-out": {
 		message: "module imports too many distinct modules",
@@ -22,7 +22,7 @@ export const MODULES_RULE_DATA = {
 	"unused-file": {
 		message: "Source file is not imported by any project source file",
 		hint: "remove the unused file or add a real production/test import that uses it.",
-		priority: 7,
+		priority: 6,
 	},
 	reexports: {
 		message: "avoid re-exporting imported symbols: {reason}",
@@ -52,12 +52,13 @@ export const MODULES_RULE_DATA = {
 	"single-class-file-name": {
 		message: 'file with one class must use the file name "{expected_name}"',
 		hint: "rename the file to the snake_case class name and keep its language extension. Do not: use kebab-case or hide the class behind an unrelated file name.",
-		priority: 5,
+		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"nested-class": {
 		message: "nested classes are not allowed ({count})",
 		hint: "Move each nested class to a focused top-level module or replace it with composition. Do not: hide a class inside another class or function.",
-		priority: 8,
+		priority: 6,
 	},
 	"class-field-import": {
 		message: "class field {field} references imported function {name}",
@@ -74,37 +75,37 @@ export const MODULES_RULE_DATA = {
 	"directory-min-size": {
 		message: "directory contains too few files (found {count})",
 		hint: "move the module to its parent directory or merge it with a focused sibling. Do not: add placeholder files just to satisfy the directory structure.",
-		priority: 7,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"ai-code-guard-directory-ignored": {
 		message: ".ai-code-guard directory is not ignored by Git",
 		hint: "Add .ai-code-guard/ to the project-root .gitignore so reports, caches, and review state are not committed.",
-		priority: 7,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"directory-max-size": {
 		message: "directory contains too many files (found {count})",
 		hint: "split the directory by domain ownership or move one cohesive group into a child directory. Do not: add placeholder files or hide the size behind wrappers.",
-		priority: 3,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"directory-max-source-subdirectories": {
 		message: "directory contains too many source subdirectories (found {count})",
 		hint: "group related source subdirectories under focused intermediate directories. Do not: count empty or test-only directories.",
-		priority: 3,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"directory-class-min-size": {
 		message: "directory contains too few classes (found {count})",
 		hint: "move the module to its parent directory or group related classes in one focused sibling. Do not: add placeholder classes or files.",
-		priority: 7,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"directory-class-max-size": {
 		message: "directory contains too many classes (found {count})",
 		hint: "hide implementation details one level below or move one cohesive group to a focused parent or child directory. Do not: add placeholder classes or files.",
-		priority: 3,
+		priority: 8,
 		task_report_scope: "directory",
 	},
 	"facade-file-content": {
@@ -115,7 +116,7 @@ export const MODULES_RULE_DATA = {
 	"file-min-size": {
 		message: "file is too short",
 		hint: "keep the file focused enough to justify its existence, or merge it into a nearby module. Do not: leave a thin file wrapper just to split the code.",
-		priority: 7,
+		priority: 3,
 	},
 	"file-max-size": {
 		message: "file is too large (found {count} raw lines)",
@@ -131,22 +132,22 @@ export const MODULES_RULE_DATA = {
 	"cli-file-function-count": {
 		message: "cli file contains more than one free function",
 		hint: "Keep exactly one free entry-point function in cli.{ext}; move every other operation into focused domain classes. Do not: add multiple CLI entry points to one module.",
-		priority: 7,
+		priority: 5,
 	},
 	"functions-file-domain-class": {
 		message: "functions file contains a free function",
 		hint: "Move the function and its state into a focused domain class in a focused module, then remove the root functions file when it is empty. Do not: keep free functions or hide them behind a forwarding wrapper.",
-		priority: 7,
+		priority: 5,
 	},
 	"module-constants-separation": {
 		message: "module-level constants must move to {target} or a focused file",
 		hint: "Move module-level constants out of ordinary implementation files. Use constants.ts or constants.py, or a focused file when the constants belong together. Do not: keep module-level constants beside implementation code.",
-		priority: 7,
+		priority: 5,
 	},
 	"module-protocols-separation": {
 		message: "module-level protocols must move to {target} or a focused file",
 		hint: "Move module-level protocols out of ordinary implementation files. Use protocols.ts or protocols.py, or a focused file when the protocols belong together. Do not: keep module-level protocols beside implementation code.",
-		priority: 7,
+		priority: 5,
 	},
 	"constants-file-content": {
 		message: "constants file must contain only constants (found {kind})",

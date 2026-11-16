@@ -8,16 +8,19 @@ export const TESTING_RULE_DATA = {
 		message: "test file must be inside a root tests or __tests__ directory",
 		hint: "move the test file below the project-root /tests/ or /__tests__/ path. Do not: keep a test-named file in a production directory or nested test directory.",
 		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"test-file-organization": {
 		message: "test file is not organized below its source module",
 		hint: "place the file under tests or __tests__, include the matching module path from the project root or src, and optionally use a unit or integration directory before the module or before the test file.",
 		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"test-targets": {
 		message: "test imports do not identify a source root",
 		hint: "Import at least one production module outside tests or __tests__. The common source root of those imports must match the test path. Target existence is not checked.",
 		priority: 7,
+		task_report_scope: "file-placement",
 	},
 	"test-production-usage": {
 		message: "test does not use an imported production class or function",
@@ -27,7 +30,7 @@ export const TESTING_RULE_DATA = {
 	"production-test-import": {
 		message: "production file imports test file {target}",
 		hint: "Move shared code into a production module or keep the import inside tests. Do not: make production code depend on tests.",
-		priority: 7,
+		priority: 6,
 	},
 	"typescript-type-assertion": {
 		message: "do not use TypeScript type assertions",
@@ -122,7 +125,7 @@ export const TESTING_RULE_DATA = {
 	"test-min-count": {
 		message: "test suite has too few test cases (found {count})",
 		hint: "Add a focused test case or remove an unnecessary suite. Do not: add a placeholder test to satisfy the minimum.",
-		priority: 6,
+		priority: 3,
 	},
 	"test-max-count": {
 		message: "test suite has too many test cases (found {count})",
@@ -132,7 +135,7 @@ export const TESTING_RULE_DATA = {
 	"typescript-jest-test-ending": {
 		message: "Jest test must end with an expect assertion",
 		hint: "Finish every Jest test callback with an expect assertion. Do not: leave cleanup, logging, or other statements after the final assertion.",
-		priority: 6,
+		priority: 4,
 	},
 	"typescript-jest-test-lambda": {
 		message: "Jest test must use an arrow-function callback",
@@ -152,12 +155,12 @@ export const TESTING_RULE_DATA = {
 	"test-exception-only": {
 		message: "test checks only that an exception is raised",
 		hint: "Assert the returned value or observable behavior. If there is no direct result, test the next public boundary, such as the server response instead of the request handler. Do not: test only that an internal call throws.",
-		priority: 6,
+		priority: 4,
 	},
 	"test-only-usage": {
 		message: '{kind} "{label}" is referenced only from tests',
 		hint: "Add a real production use or remove/refactor the declaration; test references alone do not establish production usage.",
-		priority: 7,
+		priority: 6,
 	},
 	"unasserted-async-completion": {
 		message: "test starts a local async operation without observing its completion",
@@ -172,6 +175,6 @@ export const TESTING_RULE_DATA = {
 	"test-min-size": {
 		message: "test is too short",
 		hint: "add the missing behavior assertion or combine the test with a meaningful scenario. Do not: add padding only to satisfy the size limit.",
-		priority: 7,
+		priority: 3,
 	},
 } as const;

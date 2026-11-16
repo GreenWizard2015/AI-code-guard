@@ -1,9 +1,22 @@
 import { relative, resolve } from "node:path";
+import { TEST_PATH_SUFFIXES } from "src/constants";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
+import { FileSystemTestPathChecker } from "src/linting/orchestration/runtime/test-targets/file_system_test_path_checker";
+import { TestFileOrganization } from "src/linting/orchestration/runtime/test-targets/test_file_organization";
+import { TestTargetImports } from "src/linting/orchestration/runtime/test-targets/test_target_imports";
+import { TestTargetSource } from "src/linting/orchestration/runtime/test-targets/test_target_source";
 import type { NormalizedAstSource, TestTargetImport } from "src/model/ast/normalized_ast_types";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { ProjectSourceContextImportsContract } from "src/source_protocols";
-import type { TestTargetImportResolverContract } from "src/testing_protocols";
+import type { LintSourceRecordData } from "src/source_types";
+import type { TestTargetLink } from "src/task_types";
+import { TestPathSyntax } from "src/test_path_syntax";
+import type {
+	TestFileOrganizationContract,
+	TestTargetImportResolverContract,
+	TestTargetImportsContract,
+} from "src/testing_protocols";
+import { TestPathKind } from "src/types";
 
 /** Responsibilities: _test import path resolution_, _declaration target lookup_. **/
 export class ProjectTestTargetImportPaths implements TestTargetImportResolverContract {
@@ -43,6 +56,38 @@ export class ProjectTestTargetImportPaths implements TestTargetImportResolverCon
 		return false;
 	}
 
+	/** Responsibilities: _language-specific test imports_. **/
+	private production_imports(source: LintSourceRecordData, parser: TestTargetImportsContract): TestTargetImport[] {
+		if (source.language === "python") {
+			return parser.production_python(source.normalized_ast.source.python_imports, source.text);
+		}
+		return parser.production_typescript(source.typescript_ast.source_file_node());
+	}
+
+	/** Responsibilities: _resolver-confirmed target links_. **/
+	private append_target_link(
+		source: LintSourceRecordData,
+		imports: readonly TestTargetImport[],
+		organization: TestFileOrganizationContract,
+		links: TestTargetLink[],
+	): void {
+		if (imports.length === 0) {
+			return;
+		}
+		const target_source = new TestTargetSource(
+			source.relative_path,
+			imports,
+			source.language === "python",
+			this._root,
+			organization,
+		);
+		const production_files = target_source.matching_target_paths(this);
+		production_files.sort();
+		if (production_files.length > 0) {
+			links.push({ test_file: source.relative_path, production_files });
+		}
+	}
+
 	/** Responsibilities: _project import resolution initialization_. **/
 	public constructor(root: string, context: LintProjectContextContract) {
 		this._root = root;
@@ -78,5 +123,23 @@ export class ProjectTestTargetImportPaths implements TestTargetImportResolverCon
 			}
 		}
 		return paths;
+	}
+
+	/** Responsibilities: _resolver-confirmed test target links_. **/
+	public test_target_links(): TestTargetLink[] {
+		const sources = this._context.files();
+		const source_paths = sources.map((source) => source.relative_path);
+		const organization = new TestFileOrganization(this._root, new FileSystemTestPathChecker(this._root, source_paths));
+		const path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
+		const links: TestTargetLink[] = [];
+		for (const source of sources) {
+			if (!path_syntax.classify(source.relative_path).has(TestPathKind.TestFile)) {
+				continue;
+			}
+			const parser = new TestTargetImports();
+			const imports = this.production_imports(source, parser);
+			this.append_target_link(source, imports, organization, links);
+		}
+		return links.sort((left, right) => left.test_file.localeCompare(right.test_file));
 	}
 }

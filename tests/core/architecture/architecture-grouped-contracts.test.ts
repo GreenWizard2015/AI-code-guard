@@ -58,7 +58,7 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 
 		expect(violations.map((item) => ({ message: item.message(), priority: item.priority() }))).toContainEqual({
 			message: "exception class should be colocated with its caller",
-			priority: 7,
+			priority: 5,
 		});
 	});
 

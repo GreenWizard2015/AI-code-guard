@@ -86,7 +86,7 @@ export class CliWorkerLifecycleScenario {
 		application: CliApplication,
 		workspace: TaskReviewMemoryWorkspace,
 	): Promise<WorkerRunObservation> {
-		await application.run_cli(["node", "cli.ts", "--root", workspace._root]);
+		await application.run_project(workspace.cli_options(true, false, "none"), workspace.stage_timer());
 		return this.run_observation(workspace);
 	}
 
