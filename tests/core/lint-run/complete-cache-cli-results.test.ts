@@ -55,6 +55,13 @@ describe("complete cache CLI execution", () => {
 		const bundle_command = [launcher_alias];
 		const lint_arguments = ["--root", fixture_root, "--policy", "all", "--batch-size", "10000"];
 		const child_options = { cwd: tmpdir(), encoding: "utf8" as const, env: { ...process.env, NODE_ENV: "production" } };
+		const bundle_options = {
+			...child_options,
+			env: {
+				...child_options.env,
+				["NODE_OPTIONS"]: [process.env["NODE_OPTIONS"], "--preserve-symlinks-main"].filter(Boolean).join(" "),
+			},
+		};
 		let build_status: number | null = null;
 		let source_status: number | null = null;
 		let bundle_status: number | null = null;
@@ -74,7 +81,7 @@ describe("complete cache CLI execution", () => {
 			source_status = source.status;
 			const source_result = JSON.parse(readFileSync(cache_record, "utf8"));
 			rmSync(join(fixture_root, ".ai-code-guard", "cache"), { recursive: true, force: true });
-			const bundle = spawnSync(process.execPath, [...bundle_command, ...lint_arguments], child_options);
+			const bundle = spawnSync(process.execPath, [...bundle_command, ...lint_arguments], bundle_options);
 			bundle_status = bundle.status;
 			const bundle_result = JSON.parse(readFileSync(cache_record, "utf8"));
 			results_match = JSON.stringify(bundle_result.result) === JSON.stringify(source_result.result);
