@@ -1,10 +1,10 @@
 import { REVIEW_ADD_DIRECTORY_ARGUMENT } from "src/core/support/task/review-agent/constants";
+import { ReviewAgentHookCommand } from "src/core/support/task/review-agent/hooks/review_agent_hook_command";
 import type {
 	ReviewAgentContract,
 	ReviewAgentProcessContract,
 	ReviewAgentProcessRequest,
 } from "src/core/support/task/review-agent/protocols";
-import { ReviewAgentHookCommand } from "src/core/support/task/review-agent/review_agent_hook_command";
 import type { ReviewAgentProcessResult, ReviewAgentRequest } from "src/task_review_types";
 
 /** Responsibilities: _Claude review invocation_, _Claude hook settings assembly_. **/

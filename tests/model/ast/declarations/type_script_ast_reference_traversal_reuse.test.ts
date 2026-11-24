@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptCallReferenceCollector } from "src/model/ast/declarations/type_script_call_reference_collector";
@@ -8,6 +9,7 @@ import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-ali
 import ts from "typescript";
 
 describe("TypeScript AST reference traversal reuse", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("preserves owners through anonymous and named classes", () => {
 		const source_text =
 			"class Outer { run(): void { const outer = 1; const anonymous = class { run(): void { const inner = 2; class Named { run(): void { const nested = 3; } } } }; } }";
@@ -55,7 +57,7 @@ describe("TypeScript AST reference traversal reuse", () => {
 			declaration_index: new TypeScriptObjectAliasDeclarationIndex(),
 			project_root: root,
 			stage_timer: new LintStageTimer(),
-			source_files: new Map([[file, source_file]]),
+			source_files: source_file_map_cache.for_map(new Map([[file, source_file]])),
 			traversal,
 			source_io: new InMemoryProjectSourceIO(new Map([[file, text]])),
 		});

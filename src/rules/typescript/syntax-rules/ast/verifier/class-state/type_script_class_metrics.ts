@@ -6,11 +6,11 @@ import type { ClassStateEvidence, ClassStructureProjectNames, ClassStructureRepo
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { MethodOrder } from "src/rules/method_order";
-import { TypeScriptClassFieldClassifier } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_field_classifier";
-import { TypeScriptClassFieldUsage } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_field_usage";
+import { TypeScriptClassFieldClassifier } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/class-analysis/type_script_class_field_classifier";
+import { TypeScriptClassFieldUsage } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/class-analysis/type_script_class_field_usage";
+import { TypeScriptClassMutationAnalysis } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/class-analysis/type_script_class_mutation_analysis";
+import { TypeScriptConstructorState } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/constructor-analysis/type_script_constructor_state";
 import { TypeScriptClassMetricsSourceIndex } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_metrics_source_index";
-import { TypeScriptClassMutationAnalysis } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_mutation_analysis";
-import { TypeScriptConstructorState } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_constructor_state";
 import type {
 	TypeScriptClassMetricsSource,
 	TypeScriptClassMetricsSourceIndexContract,
@@ -98,8 +98,9 @@ export class TypeScriptClassMetrics implements ASTSourceRuleContract {
 		if (ts.isClassLike(declaration)) {
 			mutated_readonly_fields = this.mutated_readonly_fields(declaration);
 		}
+		const { stage_timer } = context_state.analysis;
 		return {
-			stage_timer: context_state.analysis.stage_timer,
+			stage_timer,
 			violations,
 			file_name: new LintFileName(file),
 			node,
@@ -133,7 +134,9 @@ export class TypeScriptClassMetrics implements ASTSourceRuleContract {
 		const violations: ViolationContract[] = [];
 		const reporter_options = this.class_reporter_options(report_context.state(), target, violations);
 		const reporter = new ClassStructureReporter(reporter_options);
-		reporter.report_class(false);
+		report_context
+			.state()
+			.analysis.stage_timer.measure("typescript.class-metrics.class-reporter", () => reporter.report_class(false));
 		const method_order_violations: ViolationContract[] = [];
 		report_context.state().analysis.stage_timer.measure("rule.method-order.typescript", () => {
 			this.append_method_order(file, target.node, method_order_violations);
@@ -206,7 +209,11 @@ export class TypeScriptClassMetrics implements ASTSourceRuleContract {
 			normalized_ast: source.normalized_ast,
 			declarations,
 		};
-		const source_metrics = this._source_index.source_metrics(context, source_input);
+		const source_metrics = context
+			.state()
+			.analysis.stage_timer.measure("typescript.class-metrics.source-index", () =>
+				this._source_index.source_metrics(context, source_input),
+			);
 		this.report_source_classes(context, declarations, source_input.source_file, source_metrics);
 	}
 }

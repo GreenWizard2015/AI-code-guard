@@ -1,5 +1,6 @@
 import type { StringSetMap } from "src/analysis_types";
 import { MODULE_CLASS_KIND, MODULE_INTERFACE_KIND, MODULE_ROOT_KIND } from "src/constants";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type {
 	AstCallableNode,
 	AstCallableReference,
@@ -76,11 +77,10 @@ export type DestructuredInstanceOptions = {
 	source_file: ts.SourceFile;
 	property_state: TypeScriptPropertyStateContract;
 };
-export type TypeScriptSourceResolver = ReadonlyMap<string, ts.SourceFile>;
 export type TypeScriptAstOptions = {
 	source_file: ts.SourceFile;
 	traversal: TypeScriptAstTraversalContract;
-	source_resolver: ReadonlyMap<string, ts.SourceFile>;
+	source_resolver: SourceFileResolverContract;
 	source_io: ProjectSourceIOContract;
 	project_root: string;
 	stage_timer: LintStageTimerContract;
@@ -90,7 +90,7 @@ export type TypeScriptCallReferenceCollectorOptions = {
 	declaration_index: TypeScriptObjectAliasDeclarationIndexContract;
 	project_root: string;
 	stage_timer: LintStageTimerContract;
-	source_files: TypeScriptSourceResolver;
+	source_files: SourceFileResolverContract;
 	traversal: TypeScriptAstTraversalContract;
 	source_io: ProjectSourceIOContract;
 };

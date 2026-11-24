@@ -1,7 +1,7 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import type { PrivateAccessAnalysisContract } from "src/contracts/types/type_script_rule_group_types";
 import { RULE_IDS } from "src/linting/constants";
-import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionOperations } from "src/parser/type_script_static_expression_operations";
 import type { ViolationContract } from "src/reporting_protocols";
 import { PrivateAccessAnalysis } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/private_access_analysis";
 import type { RuleContextContract } from "src/types";
@@ -25,6 +25,7 @@ export class TypeScriptFilePrivateMemberRules implements ASTSourceRuleContract {
 			source_file: context.state().source.source_file,
 			static_expression_operations: new TypeScriptStaticExpressionOperations(),
 			traversal: context.state().analysis.traversal,
+			stage_timer: context.state().analysis.stage_timer,
 		});
 		this._analysis_by_context.set(context, analysis);
 		return analysis;
@@ -37,7 +38,7 @@ export class TypeScriptFilePrivateMemberRules implements ASTSourceRuleContract {
 
 	/** Responsibilities: _private member eligibility_. **/
 	public active_for(source_code: string): boolean {
-		return source_code.length > 0;
+		return source_code.includes("class");
 	}
 
 	/** Responsibilities: _private member access policy_. **/

@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import type { SystemFailureClassificationContract } from "src/analysis_protocols";
 import { BoundaryFailureCategory } from "src/analysis_protocols";
 import { AstCacheMiss } from "src/core/cache/ast-disk-cache/ast_cache_miss";
-import { AstCacheRecordState } from "src/core/cache/ast-disk-cache/ast_cache_record_state";
+import { AstCacheRecordState } from "src/core/cache/ast-disk-cache/records/ast_cache_record_state";
 import type { AstCacheSourceIdentity } from "src/core/cache/ast-disk-cache/types";
 import type { IOContract } from "src/io/protocols";
 import type { AstCacheRecord } from "src/model_types";

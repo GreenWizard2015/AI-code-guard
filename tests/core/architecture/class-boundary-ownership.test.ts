@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
@@ -10,7 +10,7 @@ import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import { MixCollection } from "src/rules/mix_collection";
+import { MixCollection } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/mix_collection";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("class boundary ownership", () => {

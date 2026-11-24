@@ -9,6 +9,15 @@ import { TestFixture } from "tests/core/test-fixture";
 describe("coding lint project context timing", () => {
 	const fixture = new TestFixture();
 
+	test("records direct measurement timestamps", () => {
+		const timer = new LintStageTimer();
+		const start_time = timer.start_measurement();
+		timer.finish_measurement("typescript.ast-rule.direct-timing", start_time);
+		const durations = timer.durations();
+
+		expect(durations).toEqual([{ name: "typescript.ast-rule.direct-timing", duration_ms: expect.any(Number) }]);
+	});
+
 	test("reports aggregate source timing without per-file stages", () => {
 		const request = fixture.fixture_lint_request({
 			"tools/coding-lint/index.ts": "export const value = 1;\n",
@@ -71,6 +80,29 @@ describe("coding lint project context timing", () => {
 			ast_rules: names.has("file-analysis.typescript.post-remaining.coding-rules.ast-rules"),
 			node_dispatch: names.has("file-analysis.typescript.post-remaining.coding-rules.ast-rules.node-rules"),
 		}).toEqual({ post_remaining: true, coding_rules: true, ast_rules: true, node_dispatch: true });
+	});
+
+	test("reports TypeScript class metrics substage timings", () => {
+		const request = fixture.fixture_lint_request({
+			"tools/coding-lint/example.ts": [
+				"export class Example {",
+				"  private readonly value = 1;",
+				"  public read(): number { return this.value; }",
+				"}",
+			].join("\n"),
+		});
+		const source_io = new InMemoryProjectSourceIO(request.options.source_texts);
+		const file_io = new InMemoryFileIO();
+		file_io.seed_files(request.options.source_texts);
+		const options = { ...request.options, source_texts: new Map<string, string>() };
+		const configuration = new LintRunConfiguration(source_io, file_io);
+		configuration.lint_report(options, LintReportMode.PROJECT);
+		const names = new Set(options.stage_timer.durations().map((duration) => duration.name));
+
+		expect({
+			source_index: names.has("typescript.class-metrics.source-index"),
+			class_reporter: names.has("typescript.class-metrics.class-reporter"),
+		}).toEqual({ source_index: true, class_reporter: true });
 	});
 
 	test("times syntax rules only for applicable node kinds", () => {

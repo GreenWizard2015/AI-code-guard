@@ -1,14 +1,16 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { CompositionModel } from "src/linting/composition/composition_model";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
-import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/analysis/type_script_module_exports";
+import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/analysis/module-resolution/type_script_module_exports";
 import { TYPESCRIPT_FACADE_FILES } from "tests/bridge/ts/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
 describe("coding-lint facade resolution part two", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const fixture = new TestFixture();
 
 	test("resolves TypeScript type exports through index.ts", () => {
@@ -21,7 +23,12 @@ describe("coding-lint facade resolution part two", () => {
 						.filter((source) => source.language === "typescript")
 						.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
 				);
-				const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, context.source_io());
+				const exports_context = new TypeScriptModuleExportsContext(
+					root,
+					source_file_map_cache.for_map(source_files),
+					false,
+					context.source_io(),
+				);
 				const export_resolver = exports_context.module_exports();
 				const index_file = join(root, "pkg/index.ts");
 				const resolved = export_resolver.resolve({ file: index_file, name: "User" });
@@ -47,7 +54,12 @@ describe("coding-lint facade resolution part two", () => {
 						.filter((source) => source.language === "typescript")
 						.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
 				);
-				const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, context.source_io());
+				const exports_context = new TypeScriptModuleExportsContext(
+					root,
+					source_file_map_cache.for_map(source_files),
+					false,
+					context.source_io(),
+				);
 				const resolver = exports_context.module_exports();
 				if (consumer.language !== "typescript") {
 					return { resolved: "", expected: join(root, "service.ts") };
@@ -79,7 +91,7 @@ describe("coding-lint facade resolution part two", () => {
 				);
 				const module_resolver_context = new TypeScriptModuleExportsContext(
 					root,
-					source_files,
+					source_file_map_cache.for_map(source_files),
 					false,
 					context.source_io(),
 				);
@@ -112,7 +124,12 @@ describe("coding-lint facade resolution part two", () => {
 						.filter((source) => source.language === "typescript")
 						.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
 				);
-				const resolver = new TypeScriptSourceExports(root, source_files, false, context.source_io());
+				const resolver = new TypeScriptSourceExports(
+					root,
+					source_file_map_cache.for_map(source_files),
+					false,
+					context.source_io(),
+				);
 				const index_file = join(root, "pkg/index.ts");
 				const factory = resolver.resolved_exported_declaration(index_file, "create");
 				const instance = resolver.resolved_exported_declaration(index_file, "service");
@@ -138,7 +155,7 @@ describe("coding-lint facade resolution part two", () => {
 				const composition_parser = new CompositionModel(
 					root,
 					{ root, files: new Set(files), resolver: new ProjectSourcePython(root) },
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					false,
 					context.source_io(),
 				);
@@ -174,7 +191,7 @@ describe("coding-lint facade resolution part two", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set(files), resolver: new ProjectSourcePython(root) },
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					false,
 					context.source_io(),
 				);
@@ -201,7 +218,7 @@ describe("coding-lint facade resolution part two", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set(files), resolver: new ProjectSourcePython(root) },
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					false,
 					context.source_io(),
 				);
@@ -234,7 +251,7 @@ describe("coding-lint facade resolution part two", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set(files), resolver: new ProjectSourcePython(root) },
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					false,
 					context.source_io(),
 				);

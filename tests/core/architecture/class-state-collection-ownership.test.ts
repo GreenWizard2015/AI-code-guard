@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";

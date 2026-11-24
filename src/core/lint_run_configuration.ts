@@ -1,5 +1,5 @@
-import { LintRunConfigurationAssembly } from "src/core/lint_run_configuration_assembly";
-import { LintRunStateContext } from "src/core/lint_run_state_context";
+import { LintRunConfigurationAssembly } from "src/core/lint-run/lint_run_configuration_assembly";
+import { LintRunStateContext } from "src/core/project-context/lint_run_state_context";
 import type {
 	LintReportMode,
 	LintReportOptions,

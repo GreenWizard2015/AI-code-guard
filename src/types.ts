@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { LintFileNameContract } from "src/core/support/protocols";
 import type {
 	AstClassNode,
@@ -9,11 +10,11 @@ import type {
 import type { TypeScriptReferenceQuery, TypeScriptReferenceResolutionContract } from "src/model/protocols";
 import type { ArgumentUse, TypedArgument } from "src/model/types";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
-import type { ProjectNames, ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectNames, ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { AstPropertySourceIndexContract } from "src/source_protocols";
-import type { LintSourceRecordData, SourceFileResolver } from "src/source_types";
+import type { LintSourceRecordData } from "src/source_types";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
 
@@ -35,7 +36,7 @@ export type CallableStageOperation<T> = () => T;
 /** Responsibilities: _scope capability_, _project analysis access_. **/
 export interface TypeScriptRuleScopeContract {
 	project_scope(): boolean;
-	project_analysis(): ProjectSourceAnalysisOptions;
+	project_analysis(): ProjectSourceAnalysisOptionsContract;
 	source_files(language: AstLanguage): readonly LintSourceRecordData[];
 }
 
@@ -44,7 +45,7 @@ export type TypeScriptRuleContextOptions = {
 	normalized_ast: NormalizedAstFile;
 	project_names: ProjectNames;
 	rule_scope: TypeScriptRuleScopeContract;
-	source_resolver: SourceFileResolver;
+	source_resolver: SourceFileResolverContract;
 	module_exports: TypeScriptModuleExportsContract;
 	source_index: AstPropertySourceIndexContract;
 	traversal: TypeScriptAstTraversalContract;
@@ -89,7 +90,7 @@ export type RuleProjectState = {
 export type RuleAnalysisState = {
 	stage_timer: LintStageTimerContract;
 	traversal: TypeScriptAstTraversalContract;
-	source_resolver: SourceFileResolver;
+	source_resolver: SourceFileResolverContract;
 	module_resolver: TypeScriptModuleExportsContract;
 	source_index: AstPropertySourceIndexContract;
 };

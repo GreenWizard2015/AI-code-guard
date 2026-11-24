@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import { RuntimePatching } from "src/rules/typescript/syntax-rules/runtime/runtime-patching/runtime_patching";
 import { RuntimePatchingTestSource } from "tests/rules/typescript/syntax-rules/runtime/runtime-patching/runtime-patching-test-source";
@@ -6,17 +7,27 @@ import { TestModuleResolver } from "tests/rules/typescript/syntax-rules/test-mod
 import ts from "typescript";
 
 describe("runtime patching policy", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("detects framework and callable replacements", () => {
 		const direct_source = new RuntimePatchingTestSource('jest.spyOn(gateway, "send");');
 		const direct = direct_source.analyzed_node();
 		const aliased_source = new RuntimePatchingTestSource('const patch = jest.spyOn; patch(gateway, "send");');
 		const aliased = aliased_source.analyzed_node();
+		const forward_alias_source = new RuntimePatchingTestSource(
+			'const patch = chained_patch; const chained_patch = patch_alias; const patch_alias = jest.spyOn; patch(gateway, "send");',
+		);
+		const forward_alias = forward_alias_source.analyzed_node();
 		const assigned_source = new RuntimePatchingTestSource('gateway.send = () => "patched";');
 		const assigned = assigned_source.analyzed_node();
 		const rule = new RuntimePatching(new TypeScriptObjectAliasDeclarationIndex());
-		const outcomes = [rule.patch_node(direct), rule.patch_node(aliased), rule.patch_node(assigned)];
+		const outcomes = [
+			rule.patch_node(direct),
+			rule.patch_node(aliased),
+			rule.patch_node(forward_alias),
+			rule.patch_node(assigned),
+		];
 
-		expect(outcomes).toEqual([true, true, true]);
+		expect(outcomes).toEqual([true, true, true, true]);
 	});
 
 	test("detects callable and data property descriptor replacement", () => {
@@ -92,7 +103,11 @@ describe("runtime patching policy", () => {
 		const project_sources = new Map([[source_file.fileName, source_file]]);
 		const module_resolver = new TestModuleResolver("runtime-patching");
 		const rule = new RuntimePatching(new TypeScriptObjectAliasDeclarationIndex());
-		const detected = rule.patch_test_node(test_source.analyzed_node(), module_resolver, project_sources);
+		const detected = rule.patch_test_node(
+			test_source.analyzed_node(),
+			module_resolver,
+			source_file_map_cache.for_map(project_sources),
+		);
 
 		expect(detected).toBe(true);
 	});
@@ -105,7 +120,11 @@ describe("runtime patching policy", () => {
 		const project_sources = new Map([[source_file.fileName, source_file]]);
 		const module_resolver = new TestModuleResolver("runtime-patching");
 		const rule = new RuntimePatching(new TypeScriptObjectAliasDeclarationIndex());
-		const detected = rule.patch_test_node(test_source.analyzed_node(), module_resolver, project_sources);
+		const detected = rule.patch_test_node(
+			test_source.analyzed_node(),
+			module_resolver,
+			source_file_map_cache.for_map(project_sources),
+		);
 
 		expect(detected).toBe(false);
 	});

@@ -1,4 +1,4 @@
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliases } from "src/parser/typescript-aliases/type_script_object_aliases";
 import type {
 	DynamicObjectMemberAliasesContract,
@@ -83,7 +83,7 @@ export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesCon
 		const { expression, source, property_name } = query;
 		const objects = this.source_objects(source);
 		const values = objects.property_values(expression, property_name);
-		const array_values = this._array_aliases.expressions(expression, source.getSourceFile());
+		const array_values = this._array_aliases.expressions(query);
 		if (array_values.length === 0) {
 			return values;
 		}
@@ -137,7 +137,7 @@ export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesCon
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
 			return false;
 		}
-		const array_values = this._array_aliases.expressions(expression, source.getSourceFile());
+		const array_values = this._array_aliases.expressions(query);
 		if (array_values.some((value) => this._target_aliases.receiver({ expression: value, node: source }))) {
 			return true;
 		}
@@ -150,9 +150,11 @@ export class DynamicObjectMemberAliases implements DynamicObjectMemberAliasesCon
 		if (!ts.isPropertyAccessExpression(expression) && !ts.isElementAccessExpression(expression)) {
 			return false;
 		}
-		const array_values = this._array_aliases.expressions(expression, source.getSourceFile());
-		if (array_values.some((value) => this.member_value({ value, source, member_name }))) {
-			return true;
+		if (ts.isElementAccessExpression(expression)) {
+			const array_values = this._array_aliases.expressions(query);
+			if (array_values.some((value) => this.member_value({ value, source, member_name }))) {
+				return true;
+			}
 		}
 		return this.object_member(query);
 	}

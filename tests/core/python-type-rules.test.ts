@@ -1,11 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import { NULLABLE_DOMAIN_FILES } from "tests/core/constants/callable_usage/constants";
 import { TestFixture } from "tests/core/test-fixture";
 

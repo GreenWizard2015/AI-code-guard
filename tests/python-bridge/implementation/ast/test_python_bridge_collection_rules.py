@@ -45,7 +45,7 @@ class PythonBridgeCollectionRuleTest(unittest.TestCase):
     def test_multiple_result_shape_subscript(self) -> None:
         """Responsibilities: _subscript result shape verification_."""
         source = 'value = result["structuredContent"]\n'
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         kinds = {issue["kind"] for issue in issues}
         self.assertIn("multiple-result-shapes", kinds)
@@ -62,7 +62,7 @@ class PythonBridgeCollectionRuleTest(unittest.TestCase):
             "def ordinary_value(response: dict[str, str]) -> str:\n"
             '    return response.get("label", "")\n'
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
 
         self.assertEqual(
             [issue["line"] for issue in parser.coding_issues() if issue["kind"] == "multiple-result-shapes"],
@@ -165,7 +165,7 @@ def last():
             "    def value(self) -> int:\n"
             "        return 1\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         kinds = {issue["kind"] for issue in issues}
         self.assertIn("python-property", kinds)
@@ -179,14 +179,14 @@ def last():
             "    @property\n"
             "    def value(self) -> int: ...\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         property_issues = [issue for issue in parser.coding_issues() if issue["kind"] == "python-property"]
         self.assertEqual(property_issues, [])
 
     def test_collects_single_item_array_state_issue(self) -> None:
         """Responsibilities: _array state indexing verification_."""
         source = "def find_service() -> list[Service]:\n    return []\nservice = find_service()[0]\n"
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertIn("single-item-array-state", {issue["kind"] for issue in issues})
 
@@ -199,7 +199,7 @@ def last():
             "context, = payload.arguments\n"
             "entry, = payload.entries\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertEqual(
             sorted(issue["line"] for issue in issues if issue["kind"] == "single-item-array-state"),
@@ -214,7 +214,7 @@ def last():
             "selected = values()[0]\n"
             "combined = left + right * other\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         kinds = {issue["kind"] for issue in parser.coding_issues()}
 
         self.assertIn("single-item-array-state", kinds)
@@ -230,7 +230,7 @@ def last():
             "items_alias, ignored = (find_service, None)\n"
             "candidate = items_alias()[0]\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertEqual(
             [issue["line"] for issue in issues if issue["kind"] == "single-item-array-state"],
@@ -250,7 +250,7 @@ def last():
             "    services = find_other()\n"
             "    second = services[0]\n"
         )
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertEqual(
             [issue["line"] for issue in issues if issue["kind"] == "single-item-array-state"],

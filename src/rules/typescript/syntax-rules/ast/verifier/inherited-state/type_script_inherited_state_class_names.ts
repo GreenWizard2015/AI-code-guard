@@ -1,7 +1,9 @@
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
+import type { SourceFileMapResolverCacheContract } from "src/core/project-source/types";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import { InheritedStateProjectGraph } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/inherited_state_project_graph";
 import { TypeScriptInheritedStateSymbolIndex } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/type_script_inherited_state_symbol_index";
 import type {
@@ -17,6 +19,7 @@ import ts from "typescript";
 export class TypeScriptInheritedStateClassNames implements TypeScriptInheritedStateClassNamesContract {
 	private readonly _scope_cache: InheritedStateCache;
 	private readonly _collection_mutators: ReadonlySet<string>;
+	private readonly _source_map_cache: SourceFileMapResolverCacheContract;
 
 	/** Responsibilities: _source declaration indexing_. **/
 	private source_declaration_nodes(source_file: ts.SourceFile): ts.Node[] {
@@ -39,7 +42,12 @@ export class TypeScriptInheritedStateClassNames implements TypeScriptInheritedSt
 				source_files.set(record.absolute_path, record.typescript_ast.source_file_node());
 			}
 		}
-		const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, context.source_io());
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			this._source_map_cache.for_map(source_files),
+			false,
+			context.source_io(),
+		);
 		return exports_context.module_exports();
 	}
 
@@ -47,13 +55,14 @@ export class TypeScriptInheritedStateClassNames implements TypeScriptInheritedSt
 	public constructor(collection_mutators: ReadonlySet<string>) {
 		this._scope_cache = new WeakMap();
 		this._collection_mutators = collection_mutators;
+		this._source_map_cache = new SourceFileMapCache();
 	}
 
 	/** Responsibilities: _project declaration records_. **/
-	public declarations(scope: ProjectSourceAnalysisOptions): InheritedStateDeclaration[] {
-		const symbol_index = new TypeScriptInheritedStateSymbolIndex(this.module_exports(scope.root, scope.context));
+	public declarations(scope: ProjectSourceAnalysisOptionsContract): InheritedStateDeclaration[] {
+		const symbol_index = new TypeScriptInheritedStateSymbolIndex(this.module_exports(scope.root(), scope.context()));
 		const declarations: InheritedStateDeclaration[] = [];
-		for (const record of scope.context.files()) {
+		for (const record of scope.context().files()) {
 			if (record.language !== TYPESCRIPT_LANGUAGE) {
 				continue;
 			}
@@ -71,7 +80,7 @@ export class TypeScriptInheritedStateClassNames implements TypeScriptInheritedSt
 	}
 
 	/** Responsibilities: _cached inherited state collection_. **/
-	public collect(scope: ProjectSourceAnalysisOptions): InheritedStateNodes {
+	public collect(scope: ProjectSourceAnalysisOptionsContract): InheritedStateNodes {
 		const cached_names = this._scope_cache.get(scope);
 		if (cached_names !== undefined) {
 			return cached_names;

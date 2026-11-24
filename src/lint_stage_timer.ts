@@ -5,7 +5,7 @@ import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _stage duration recording_, _hierarchical timing formatting_. **/
 export class LintStageTimer implements LintStageTimerContract {
-	private readonly _durations_by_stage: Map<string, number>;
+	private readonly _durations_by_stage: Map<string, number[]>;
 
 	/** Responsibilities: _calculation stage duration percentage_. **/
 	private parent_percentage(
@@ -121,47 +121,64 @@ export class LintStageTimer implements LintStageTimerContract {
 		});
 	}
 
+	/** Responsibilities: _numeric stage duration aggregation_. **/
+	private accumulate_duration(stage_name: string, duration_ms: number): void {
+		let durations = this._durations_by_stage.get(stage_name);
+		if (durations === undefined) {
+			durations = [];
+			this._durations_by_stage.set(stage_name, durations);
+		}
+		durations.push(duration_ms);
+	}
+
 	/** Responsibilities: _aggregation measurement stage duration_. **/
 	/** Responsibilities: _field initialization_. **/
 	public constructor() {
-		this._durations_by_stage = new Map<string, number>();
+		this._durations_by_stage = new Map<string, number[]>();
 	}
 	/** Responsibilities: _public operation_. **/
 	public add_duration(duration: LintStageDuration): void {
-		let previous = this._durations_by_stage.get(duration.name);
-		if (previous === undefined) {
-			previous = 0;
-		}
-		this._durations_by_stage.set(duration.name, previous + duration.duration_ms);
+		this.accumulate_duration(duration.name, duration.duration_ms);
+	}
+	/** Responsibilities: _measurement start timestamp_. **/
+	public start_measurement(): number {
+		return performance.now();
+	}
+	/** Responsibilities: _measurement duration recording_. **/
+	public finish_measurement(stage_name: string, start_time: number): void {
+		this.accumulate_duration(stage_name, performance.now() - start_time);
 	}
 
 	/** Responsibilities: _measurement synchronous lint operation_. **/
-	public measure<T>(stage_name: string, operation: CallableOperation<T>): T {
+	public measure<T>(measured_stage: string, operation: CallableOperation<T>): T {
 		const start_time = performance.now();
 		try {
 			return operation();
 		} finally {
-			this.add_duration({ name: stage_name, duration_ms: performance.now() - start_time });
+			this.accumulate_duration(measured_stage, performance.now() - start_time);
 		}
 	}
 
 	/** Responsibilities: _measurement asynchronous lint operation_. **/
-	public async measure_async<T>(stage_name: string, operation: CallableAsyncOperation<T>): Promise<T> {
+	public async measure_async<T>(async_stage: string, operation: CallableAsyncOperation<T>): Promise<T> {
 		const start_time = performance.now();
 		try {
 			return await operation();
 		} finally {
-			this.add_duration({ name: stage_name, duration_ms: performance.now() - start_time });
+			this.accumulate_duration(async_stage, performance.now() - start_time);
 		}
 	}
 
 	/** Responsibilities: _exposure measurement stage durations_. **/
 	public durations(): readonly LintStageDuration[] {
 		const stage_entries = [...this._durations_by_stage.entries()];
-		return stage_entries.map(([name, duration_ms]) => ({
-			name,
-			duration_ms,
-		}));
+		return stage_entries.map(([name, samples]) => {
+			let duration_ms = 0;
+			for (const sample of samples) {
+				duration_ms += sample;
+			}
+			return { name, duration_ms };
+		});
 	}
 
 	/** Responsibilities: _measurement stages parent-relative formatting_. **/

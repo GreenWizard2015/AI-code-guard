@@ -1,10 +1,10 @@
 import type { StaticExpressionArrayContract } from "src/analysis_protocols";
 import type { StaticKeyCollectionState } from "src/model_types";
 import type { StaticObjectBindingsContract } from "src/parser/analysis/protocols";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import { TypeScriptStaticArrayAliases } from "src/parser/typescript-aliases/callables/static-key/type_script_static_array_aliases";
 import { TypeScriptStaticObjectBindings } from "src/parser/typescript-aliases/callables/static-key/type_script_static_object_bindings";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";

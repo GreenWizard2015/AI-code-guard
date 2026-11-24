@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
@@ -8,7 +8,7 @@ import {
 	MODULE_PROTOCOL_FILES,
 	MODULE_TYPE_FILES,
 } from "src/rules/constants";
-import { DirectoryStructureRules } from "src/rules/support/directory_structure_rules";
+import { DirectoryStructureRules } from "src/rules/support/directory_structure/directory_structure_rules";
 import { ModuleDeclarationsRule } from "src/rules/support/module_declarations_rule";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 

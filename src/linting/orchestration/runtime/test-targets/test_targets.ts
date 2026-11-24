@@ -1,5 +1,5 @@
-import { TestTargetImports } from "src/linting/orchestration/runtime/test-targets/test_target_imports";
-import { TestTargetSource } from "src/linting/orchestration/runtime/test-targets/test_target_source";
+import { TestTargetImports } from "src/linting/test_target_imports";
+import { TestTargetSource } from "src/linting/test_target_source";
 import type { AstPythonImport, TestTargetImport } from "src/model/ast/normalized_ast_types";
 import type { LintSourceRecordData } from "src/source_types";
 import type {

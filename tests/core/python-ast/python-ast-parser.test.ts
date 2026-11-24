@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { LintStageTimer } from "src/lint_stage_timer";

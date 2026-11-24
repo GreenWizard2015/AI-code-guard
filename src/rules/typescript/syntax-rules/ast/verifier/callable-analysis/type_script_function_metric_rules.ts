@@ -1,5 +1,5 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
-import { CallableMetrics } from "src/metrics/callable_metrics";
+import { CallableMetrics } from "src/metrics/callable_analysis/callable_metrics";
 import type { AstCallableNode, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CallableLineMap } from "src/rules/typescript/syntax-rules/types";

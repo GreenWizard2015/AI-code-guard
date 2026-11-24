@@ -1,6 +1,6 @@
 import type { NodeReadonlyStringSetCache } from "src/cache_types";
 import { TypeScriptCallableAliasCollector } from "src/linting/test-support/type_script_callable_alias_collector";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type {
 	TypeScriptCallableAliasesContract,

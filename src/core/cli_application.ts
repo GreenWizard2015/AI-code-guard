@@ -1,12 +1,11 @@
 import { REPORTING_PROJECT_ROOT } from "src/constants";
+import { ProjectLintExecution } from "src/core/lint-run/project_lint_execution";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
-import { ProjectLintExecution } from "src/core/project_lint_execution";
-import { CliArchitectureReview } from "src/core/support/cli_architecture_review";
+import { CliArchitectureReview } from "src/core/support/cli/cli_architecture_review";
 import { CliResultReporter } from "src/core/support/reporting/cli_result_reporter";
 import { ReportStatus } from "src/core/support/reporting/report_status";
 import { TaskRuleDocumentation } from "src/core/support/task/reporting/task_rule_documentation";
-import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
+import { TaskReporting } from "src/core/support/task/reporting/workspace/reports/documents/task_reporting";
 import type {
 	CliLintReportRequest,
 	CliProjectReportContext,
@@ -15,6 +14,7 @@ import type {
 } from "src/core/types";
 import type { ProjectLintExecutionContract } from "src/core/types";
 import type { IOContract } from "src/io/protocols";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import type { LintRunRuntimeContract } from "src/runtime_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";

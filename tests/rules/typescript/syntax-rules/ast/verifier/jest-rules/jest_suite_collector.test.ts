@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import { JestSuiteCollector } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_suite_collector";
 import ts from "typescript";

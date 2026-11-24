@@ -1,4 +1,4 @@
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import { TypeScriptObjectPropertyValueSearch } from "src/parser/typescript-aliases/type_script_object_property_value_search";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";

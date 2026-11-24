@@ -1,10 +1,10 @@
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
 import { TypeScriptConditionExpression } from "src/parser/internals/type_script_condition_expression";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
-import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
-import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
+import { TypeScriptStaticExpressionOperations } from "src/parser/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionValues } from "src/parser/type_script_static_expression_values";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
+import { TypeScriptMemberAliases } from "src/type_script_member_aliases";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";

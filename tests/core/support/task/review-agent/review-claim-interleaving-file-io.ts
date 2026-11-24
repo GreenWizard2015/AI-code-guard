@@ -1,4 +1,4 @@
-import type { ReviewRecoveryClaim } from "src/core/support/task/review-agent/review_recovery_claim";
+import type { ReviewRecoveryClaim } from "src/core/support/task/review-agent/recovery/review_recovery_claim";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import type { CallableInterleaving } from "tests/core/types";
 

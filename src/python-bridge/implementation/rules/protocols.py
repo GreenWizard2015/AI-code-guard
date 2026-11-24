@@ -39,9 +39,7 @@ class PythonNameBindingIndexContract(Protocol):
     """Responsibilities: _module binding state_, _callable local names_."""
 
     def index_tree(self) -> None: ...
-
     def module_binding(self, name: str) -> str: ...
-
     def function_binds(self, function: ast.AST, name: str) -> bool: ...
 
 

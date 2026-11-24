@@ -2,7 +2,7 @@ import type { SpawnOptions } from "node:child_process";
 import type { LintRunConfiguration } from "src/core/lint_run_configuration";
 import type { TaskReviewAgent } from "src/core/support/task/reporting/workspace/review/task_review_agent";
 import type { LintReportMode, LintReportOptions } from "src/core/types";
-import type { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import type { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import type {
 	AstArgumentUse,
 	AstClassField,

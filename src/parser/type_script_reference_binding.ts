@@ -1,5 +1,5 @@
 import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
-import { TypeScriptReferenceType } from "src/parser/analysis/type_script_reference_type";
+import { TypeScriptReferenceType } from "src/parser/analysis/module-resolution/type_script_reference_type";
 import type { TypeScriptReferenceBindingContract } from "src/typescript_analysis_protocols";
 import ts from "typescript";
 

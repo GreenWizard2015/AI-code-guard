@@ -4,7 +4,7 @@ import { ModuleMemberPlacement } from "src/linting/orchestration/runtime/global-
 import { PlacementAnalysis } from "src/linting/orchestration/runtime/global-rules/placement_analysis";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { PlacementAnalysisContract } from "src/shared_services_protocols";
@@ -95,13 +95,13 @@ export class ModulePlacementAnalyzer {
 	}
 
 	/** Responsibilities: _analysis dependency initialization_. **/
-	public constructor(options: ProjectSourceAnalysisOptions) {
-		this._root = options.root;
-		this._project_files = options.project_files;
-		this._context = options.context;
-		this._ignored_files = options.ignored_files;
-		this._scanner = options.scanner;
-		this._files = options.files;
+	public constructor(options: ProjectSourceAnalysisOptionsContract) {
+		this._root = options.root();
+		this._project_files = options.project_files();
+		this._context = options.context();
+		this._ignored_files = options.ignored_files();
+		this._scanner = options.scanner();
+		this._files = new Set(options.directory_files().files);
 		this._member_placement = new ModuleMemberPlacement(this._context);
 	}
 

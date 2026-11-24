@@ -1,7 +1,7 @@
 import type { NodeReadonlyStringSetCache } from "src/cache_types";
 import { TypeScriptObjectCallableScopeAnalysis } from "src/linting/test-support/type_script_object_callable_scope_analysis";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptCallableTypeProperties } from "src/parser/typescript-aliases/callables/type_script_callable_type_properties";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type {
 	TypeScriptCallableTypePropertiesContract,

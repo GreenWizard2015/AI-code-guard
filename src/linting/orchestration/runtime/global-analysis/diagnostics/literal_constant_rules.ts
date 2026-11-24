@@ -1,7 +1,7 @@
-import { LiteralConstantReferenceIndex } from "src/literal_constant_reference_index";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import { LiteralConstantReferenceIndex } from "src/rules/literal_constant_reference_index";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";

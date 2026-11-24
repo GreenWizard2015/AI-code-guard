@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { CallableReferenceIdentity } from "src/model/ast/normalized_ast_types";
 import type {
 	TypeScriptInstanceFilesContract,
@@ -9,9 +10,9 @@ import type {
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import { TypeScriptPropertyInstanceFiles } from "src/parser/references/identity/properties/type_script_property_instance_files";
-import { TypeScriptInheritedMethods } from "src/parser/references/identity/references/type_script_inherited_methods";
-import { TypeScriptPropertyReferenceIdentity } from "src/parser/references/identity/references/type_script_property_reference_identity";
-import { TypeScriptReferenceFileIndex } from "src/parser/references/identity/references/type_script_reference_file_index";
+import { TypeScriptInheritedMethods } from "src/parser/references/identity/references/ownership/type_script_inherited_methods";
+import { TypeScriptPropertyReferenceIdentity } from "src/parser/references/identity/references/ownership/type_script_property_reference_identity";
+import { TypeScriptReferenceFileIndex } from "src/parser/references/identity/references/ownership/type_script_reference_file_index";
 import { TypeScriptInstanceFiles } from "src/parser/references/instance/instance-resolution/type_script_instance_files";
 import { TypeScriptThisReceiver } from "src/parser/references/instance/type_script_this_receiver";
 import type { ProjectSourceIOContract } from "src/source_protocols";
@@ -21,6 +22,7 @@ import ts from "typescript";
 export class TypeScriptReferenceIdentity implements TypeScriptReferenceIdentityContract {
 	private readonly _source_file: ts.SourceFile;
 	private readonly _project_root: string;
+	private readonly _relative_source: string;
 	private readonly _module_exports: TypeScriptModuleExportsContract;
 	private readonly _instance_files: TypeScriptInstanceFilesContract;
 	private readonly _properties: TypeScriptPropertyInstanceFilesContract;
@@ -117,7 +119,7 @@ export class TypeScriptReferenceIdentity implements TypeScriptReferenceIdentityC
 	public constructor(
 		source_file: ts.SourceFile,
 		project_root: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_files: SourceFileResolverContract,
 		source_io: ProjectSourceIOContract,
 	) {
 		const imported_binding_files = new Map<string, string>();
@@ -126,6 +128,7 @@ export class TypeScriptReferenceIdentity implements TypeScriptReferenceIdentityC
 		this._this_receiver = new TypeScriptThisReceiver(source_file, new Map<string, string>());
 		this._source_file = source_file;
 		this._project_root = project_root;
+		this._relative_source = relative(project_root, source_file.fileName).replaceAll("\\", "/");
 		const exports_context = new TypeScriptModuleExportsContext(this._project_root, source_files, false, source_io);
 		this._module_exports = exports_context.module_exports();
 		this._inherited_methods = new TypeScriptInheritedMethods(source_files, this._module_exports);
@@ -171,7 +174,11 @@ export class TypeScriptReferenceIdentity implements TypeScriptReferenceIdentityC
 		}
 		let relative_target = "";
 		if (target_file.length > 0) {
-			relative_target = relative(this._project_root, target_file).replaceAll("\\", "/");
+			if (target_file === this._source_file.fileName) {
+				relative_target = this._relative_source;
+			} else {
+				relative_target = relative(this._project_root, target_file).replaceAll("\\", "/");
+			}
 		}
 		return { name: this.member_name(reference_access), target_file: relative_target };
 	}

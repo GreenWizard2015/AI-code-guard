@@ -1,9 +1,9 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 import { AstNamespaceTypeImports } from "src/rules/typescript/syntax-rules/ast/ast_namespace_type_imports";
 import { AstPropertySourceGraph } from "src/rules/typescript/syntax-rules/ast/ast_property_source_graph";
 import type { AstPropertySourceGraphContract, AstPropertySourceIndexContract } from "src/source_protocols";
 import type { AstNamespaceTypeImportsContract, AstPropertySourcesContract } from "src/source_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import ts from "typescript";
 
 /** Responsibilities: _declaration sources_, _import sources_. **/
@@ -91,7 +91,7 @@ export class AstPropertySources implements AstPropertySourcesContract {
 	/** Responsibilities: _initialization AST property sources_. **/
 	public constructor(
 		source_file: ts.SourceFile,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 		module_exports: TypeScriptPropertyModuleResolverContract,
 		source_index: AstPropertySourceIndexContract,
 	) {

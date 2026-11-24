@@ -4,9 +4,9 @@ import type {
 	TypeScriptFactoryArraySourcesContract,
 	TypeScriptFactoryObjectBindingSourcesContract,
 } from "src/contracts/protocols/lint_runtime_protocols";
-import { TypeScriptFactoryArraySourceCandidate } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/type_script_factory_array_source_candidate";
-import { TypeScriptFactoryObjectBindingSources } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/type_script_factory_object_binding_sources";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptFactoryArraySourceCandidate } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/binding_sources/type_script_factory_array_source_candidate";
+import { TypeScriptFactoryObjectBindingSources } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/binding_sources/type_script_factory_object_binding_sources";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type ts from "typescript";
 

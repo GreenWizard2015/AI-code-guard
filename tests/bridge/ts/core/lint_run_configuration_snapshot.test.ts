@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { NODE_ENV_VARIABLE } from "src/core/constants";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";

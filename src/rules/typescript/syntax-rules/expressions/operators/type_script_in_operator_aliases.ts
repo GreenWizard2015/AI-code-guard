@@ -1,5 +1,5 @@
-import { TypeScriptBindingAliases } from "src/parser/typescript-aliases/type_script_binding_aliases";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptBindingAliases } from "src/parser/type_script_binding_aliases";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { DynamicBindingNamesContract } from "src/shared_services_protocols";
 import type { TypeScriptMembershipAliasScope } from "src/typescript_analysis_types";

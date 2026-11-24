@@ -1,4 +1,4 @@
-import { TypeScriptTypeNode } from "src/model/type_script_type_node";
+import { TypeScriptTypeNode } from "src/model/typescript/type_script_type_node";
 import ts from "typescript";
 
 /** Responsibilities: _primitive property lookup_, _property type classification_. **/

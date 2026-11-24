@@ -5,7 +5,7 @@ import type {
 	TypeScriptFactoryArraySourcesContract,
 } from "src/contracts/protocols/lint_runtime_protocols";
 import { TypeScriptFactoryArrayObjectSources } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/type_script_factory_array_object_sources";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { CallableArrayValuesVisitor } from "src/runtime_types";
 import ts from "typescript";

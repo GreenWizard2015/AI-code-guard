@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { REVIEW_STAGES } from "src/constants";
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { TaskReview } from "src/core/support/task/reporting/workspace/review/task_review";
 import { TaskReviewAgent } from "src/core/support/task/reporting/workspace/review/task_review_agent";
 import { StubReviewHooks } from "tests/bridge/ts/core/review-agent/stub-review-hooks";

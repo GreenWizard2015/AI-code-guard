@@ -1,4 +1,5 @@
 import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import type { StaticExpressionArray } from "src/parser/typescript-aliases/callables/static-array/static_expression_array";
 import { TypeScriptStaticArrayBindingValues } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_binding_values";
 import { TypeScriptStaticArraySources } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_sources";
@@ -7,7 +8,6 @@ import type {
 	TypeScriptStaticArrayExpressionBindingsContract,
 	TypeScriptStaticArraySourcesContract,
 } from "src/parser/typescript-aliases/protocols";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type { CallableMapValueAppender } from "src/runtime_types";
 import type { TypeScriptStaticArrayValuesContract } from "src/typescript_analysis_protocols";

@@ -1,5 +1,6 @@
 import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
@@ -7,6 +8,7 @@ import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _Python type declaration metadata_, _AST node construction_. **/
 export class ProjectNameRegistryPythonSource {
+	private readonly _map_cache: SourceFileMapCache;
 	/** Responsibilities: _Python class node construction_. **/
 	private class_node(name: string, base_class_names: readonly string[], protocol = false): AstClassNode {
 		return {
@@ -20,6 +22,11 @@ export class ProjectNameRegistryPythonSource {
 			},
 			field_analysis: { callback_fields: 0, inline_callback_fields: 0, fields: [], untyped_fields: [] },
 		};
+	}
+
+	/** Responsibilities: _source registry initialization_. **/
+	public constructor() {
+		this._map_cache = new SourceFileMapCache();
 	}
 
 	/** Responsibilities: _Python source record construction_. **/
@@ -47,7 +54,7 @@ export class ProjectNameRegistryPythonSource {
 			normalized_ast,
 			language: "python",
 			typescript_ast,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal,
 		};
 	}

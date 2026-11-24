@@ -1,7 +1,7 @@
 import { dirname, join, relative, sep } from "node:path";
 import { PYTHON_PACKAGE_MARKER } from "src/constants";
+import { ProjectPathRelation } from "src/core/project-source/project_path_relation";
 import { PythonAbsoluteImportIndex } from "src/core/project-source/python-imports/python_absolute_import_index";
-import { ProjectPathRelation } from "src/core/support/project_path_relation";
 import type {
 	PythonAbsoluteImportIndexContract,
 	PythonImportPartCache,

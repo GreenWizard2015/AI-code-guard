@@ -1,9 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import ts from "typescript";
 
 describe("TypeScript declaration index cache", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("resolves declarations consistently across resolver instances", () => {
 		const file = "/project/shared.ts";
 		const source_file = ts.createSourceFile(
@@ -14,10 +16,20 @@ describe("TypeScript declaration index cache", () => {
 		);
 		const source_files = new Map([[file, source_file]]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
-		const module_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const module_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = module_context.module_exports();
 		const first = resolver.resolve({ file, name: "Later" });
-		const second_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const second_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const second = second_context.module_exports().resolve({ file, name: "Later" });
 
 		expect({ first, second }).toEqual({
@@ -32,7 +44,7 @@ describe("TypeScript declaration index cache", () => {
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
 		const module_context = new TypeScriptModuleExportsContext(
 			"/project",
-			new Map([[file, source_file]]),
+			source_file_map_cache.for_map(new Map([[file, source_file]])),
 			false,
 			source_io,
 		);
@@ -65,7 +77,12 @@ describe("TypeScript declaration index cache", () => {
 			[second_file.fileName, second_file],
 		]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
-		const module_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const module_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = module_context.module_exports();
 		const first = resolver.resolve({ file: first_file.fileName, name: "Value" });
 		const second = resolver.resolve({ file: second_file.fileName, name: "Value" });
@@ -86,10 +103,20 @@ describe("TypeScript declaration index cache", () => {
 			[value_file, ts.createSourceFile(value_file, "export const Value = 1;\n", ts.ScriptTarget.Latest, true)],
 		]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
-		const module_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const module_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = module_context.module_exports();
 		const result = resolver.resolve({ file: barrel_file, name: "Value" });
-		const second_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const second_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const second_resolver = second_context.module_exports();
 		const second_result = second_resolver.resolve({ file: barrel_file, name: "Value" });
 
@@ -119,7 +146,12 @@ describe("TypeScript declaration index cache", () => {
 			[value_file, ts.createSourceFile(value_file, "export const Value = 2;\n", ts.ScriptTarget.Latest, true)],
 		]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
-		const exports_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 		const resolved = resolver.resolve({ file: barrel_file, name: "Value" });
 
@@ -146,7 +178,12 @@ describe("TypeScript declaration index cache", () => {
 			[value_file, ts.createSourceFile(value_file, "export const Value = 3;\n", ts.ScriptTarget.Latest, true)],
 		]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
-		const exports_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 		const resolved = resolver.resolve({ file: entry_file, name: "Value" });
 
@@ -159,7 +196,12 @@ describe("TypeScript declaration index cache", () => {
 		const source_files = new Map([[file, source_file]]);
 		const source_io = new InMemoryProjectSourceIO(new Map<string, string>());
 		const resolvers = Array.from({ length: 2 }, () => {
-			const module_resolver_context = new TypeScriptModuleExportsContext("/project", source_files, false, source_io);
+			const module_resolver_context = new TypeScriptModuleExportsContext(
+				"/project",
+				source_file_map_cache.for_map(source_files),
+				false,
+				source_io,
+			);
 			return module_resolver_context.module_exports();
 		});
 		const results = resolvers.map((resolver_instance) => resolver_instance.resolve({ file, name: "Value" }));

@@ -6,7 +6,7 @@ import type { AstClassNode, NamedLine, NamedSymbol } from "src/model/ast/normali
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
 import { NUMERIC_NAME_PATTERN, NUMERIC_NAME_RULE_ID } from "src/rules/constants";
-import { NamingValidation } from "src/rules/naming_validation";
+import { NamingValidation } from "src/rules/typescript/syntax-rules/ast/verifier/declaration-rules/naming/naming_validation";
 import type { LintStageTimerContract, TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import { TestPathKind } from "src/types";

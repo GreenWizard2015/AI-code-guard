@@ -1,7 +1,7 @@
 import { JEST_DESCRIBE_NAME } from "src/constants";
 import type { JestSuite } from "src/model/ast/normalized_ast_types";
-import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
-import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
+import { TypeScriptStaticExpressionOperations } from "src/parser/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionValues } from "src/parser/type_script_static_expression_values";
 import type { CallableConsumer } from "src/runtime_types";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 import type { JestSuiteCollectorContract, JestTestCallbackTraversal } from "src/testing_protocols";

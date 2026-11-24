@@ -1,38 +1,27 @@
 import type { TypeScriptProjectAnalysisContract } from "src/ast_verifier_protocols";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import type {
-	CallableProjectViolationCollector,
-	ProjectViolationsByScope,
-} from "src/rules/typescript/syntax-rules/types";
+import { TypeScriptProjectRuleResultCache } from "src/rules/typescript/syntax-rules/ast/verifier/project-rules/type_script_project_rule_result_cache";
+import type { CallableProjectViolationCollector } from "src/rules/typescript/syntax-rules/types";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
 
-/** Responsibilities: _project rule result caching_, _source violation delivery_. **/
+/** Responsibilities: _source violation selection_, _source violation delivery_. **/
 export class TypeScriptProjectRuleCache {
-	private readonly _violations_by_scope: ProjectViolationsByScope;
+	private readonly _results: TypeScriptProjectRuleResultCache;
 
-	/** Responsibilities: _scope result collection_. **/
-	private grouped_violations(
-		scope: ProjectSourceAnalysisOptions,
-		collect: CallableProjectViolationCollector,
-	): ReadonlyMap<string, readonly ViolationContract[]> {
-		const cached = this._violations_by_scope.get(scope);
-		if (cached !== undefined) {
-			return cached;
-		}
+	/** Responsibilities: _project violation grouping_. **/
+	private group_project_violations(violations: readonly ViolationContract[]): Map<string, ViolationContract[]> {
 		const grouped = new Map<string, ViolationContract[]>();
-		for (const violation of collect()) {
+		for (const violation of violations) {
 			const file_violations = grouped.get(violation.file()) ?? [];
 			file_violations.push(violation);
 			grouped.set(violation.file(), file_violations);
 		}
-		this._violations_by_scope.set(scope, grouped);
 		return grouped;
 	}
 
 	/** Responsibilities: _project rule cache initialization_. **/
 	public constructor() {
-		this._violations_by_scope = new WeakMap();
+		this._results = new TypeScriptProjectRuleResultCache();
 	}
 
 	/** Responsibilities: _source violation lookup_. **/
@@ -48,7 +37,10 @@ export class TypeScriptProjectRuleCache {
 			return [];
 		}
 		const collect_violations: CallableProjectViolationCollector = () => analysis.collect_project_violations(request);
-		const grouped = this.grouped_violations(rule_scope.project_analysis(), collect_violations);
+		const scope = rule_scope.project_analysis();
+		const grouped = this._results.grouped(scope, analysis.constructor.name, () =>
+			this.group_project_violations(collect_violations()),
+		);
 		const source_violations = grouped.get(file);
 		if (source_violations === undefined) {
 			return [];

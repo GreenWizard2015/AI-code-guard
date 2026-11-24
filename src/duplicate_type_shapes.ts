@@ -3,7 +3,7 @@ import type ts from "typescript";
 
 import type { DuplicateTypeShapesContract } from "src/analysis_protocols";
 import type { AstClassNode, DuplicateTypeShape, NamedLine, NamedShape } from "src/model/ast/normalized_ast_types";
-import { TypeScriptTypeShapeCollector } from "src/rules/typescript/syntax-rules/types/type_script_type_shape_collector";
+import { TypeScriptTypeShapeCollector } from "src/rules/typescript/syntax-rules/types/shapes/type_script_type_shape_collector";
 
 /** Responsibilities: _type shape normalization_, _cross-language duplicate grouping_. **/
 export class DuplicateTypeShapes implements DuplicateTypeShapesContract {

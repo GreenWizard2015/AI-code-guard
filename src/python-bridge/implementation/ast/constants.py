@@ -34,6 +34,8 @@ AST_UNTYPED_FIELDS_KEY = "untyped_fields"
 CLASS_BASE_CLASS_NAMES_KEY = "base_class_names"
 AST_FIELD_RECORDS_REQUIRED = "AST field {field!r} must contain records"
 AST_FIELD_OBJECT_RECORD_REQUIRED = "AST field {field!r} contains a non-object record"
+PYTHON_AST_PARALLEL_BATCH_MINIMUM = 8
+PYTHON_AST_PARALLEL_CHUNK_SIZE = 1
 
 AST_NAMED_RANGE_FIELDS = frozenset({"name", "start", "end"})
 AST_LINE_COUNT_FIELDS = frozenset({"lines", "sloc"})

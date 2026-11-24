@@ -1,16 +1,16 @@
 import type { StaticExpressionArrayContract } from "src/analysis_protocols";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import type { StaticExpressionArray } from "src/parser/typescript-aliases/callables/static-array/static_expression_array";
 import { TypeScriptStaticArraySources } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_sources";
 import { TypeScriptStaticArrayValues } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_values";
+import { TypeScriptStaticObjectSources } from "src/parser/typescript-aliases/callables/static-expression/type_script_static_object_sources";
 import { TypeScriptStaticObjectProperties } from "src/parser/typescript-aliases/callables/static-key/type_script_static_object_properties";
-import { TypeScriptStaticObjectSources } from "src/parser/typescript-aliases/callables/type_script_static_object_sources";
 import type {
 	StaticObjectBindingContext,
 	StaticObjectBindingQuery,
 	StaticObjectDeclarationQuery,
 } from "src/parser/typescript-aliases/protocols";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { CallableSpreadValueAppender } from "src/runtime_types";

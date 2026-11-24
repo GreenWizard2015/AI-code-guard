@@ -1,6 +1,6 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { RULE_IDS } from "src/linting/constants";
-import { TypeScriptHiddenGlobalStateIndex } from "src/rules/typescript/syntax-rules/ast/verifier/file-rules/type_script_hidden_global_state_index";
+import { TypeScriptHiddenGlobalStateIndex } from "src/rules/typescript/syntax-rules/ast/verifier/file-rules/singletons/type_script_hidden_global_state_index";
 import type { TypeScriptHiddenGlobalStateIndexContract } from "src/rules/typescript/syntax-rules/types";
 import type {
 	TypeScriptNodeVerificationRequest,

@@ -79,14 +79,21 @@ export class TypeScriptModuleExportScope implements TypeScriptModuleExportScopeC
 
 	/** Responsibilities: _source file export lookup_. **/
 	public file_for(query: TypeScriptFileExportQuery): TypeScriptModuleSymbolReference {
-		const { reference, visited } = query;
+		const { reference } = query;
 		const { file, name } = reference;
-		const visit_key = `${file}:${name}`;
 		const cache_key = `${this._cache_prefix}${file}${MODULE_CACHE_KEY_SEPARATOR}${name}`;
 		const cached = this._resolved_exports.get(cache_key);
 		if (cached !== undefined) {
 			return cached;
 		}
+		return this.file_for_miss(query, cache_key);
+	}
+
+	/** Responsibilities: _uncached source export lookup_. **/
+	public file_for_miss(query: TypeScriptFileExportQuery, cache_key: string): TypeScriptModuleSymbolReference {
+		const { reference, visited } = query;
+		const { file, name } = reference;
+		const visit_key = `${file}:${name}`;
 		if (visited.has(visit_key)) {
 			return { file: "", name: "" };
 		}

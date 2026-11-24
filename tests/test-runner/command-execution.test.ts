@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { CommandExecution } from "test-runner/command_execution";
 import type { CallableCommandSpawn, CommandResult } from "test-runner/types";
 

@@ -1,5 +1,6 @@
 import "src/linting/composition/composition_model";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import "src/callable_usage";
@@ -10,6 +11,7 @@ import { TestFixture } from "tests/core/test-fixture";
 import { TypeScriptReferenceIdentityFixture } from "tests/type_script_reference/type_script_reference_identity_fixture";
 
 describe("callable ownership identity", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const test_fixture = new TestFixture();
 	const identity_fixture = new TypeScriptReferenceIdentityFixture();
 
@@ -123,7 +125,7 @@ describe("callable ownership identity", () => {
 		const identity = new TypeScriptReferenceIdentity(
 			consumer,
 			root,
-			source_files,
+			source_file_map_cache.for_map(source_files),
 			new InMemoryProjectSourceIO(new Map()),
 		);
 		const resolution = identity.method_reference(access, "Holder");

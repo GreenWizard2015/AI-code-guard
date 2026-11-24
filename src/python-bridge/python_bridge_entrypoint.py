@@ -2,16 +2,22 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
-from implementation.ast.python_ast_bridge import PythonAstBridge
+from implementation.ast.constants import (
+    PYTHON_AST_PARALLEL_BATCH_MINIMUM,
+    PYTHON_AST_PARALLEL_CHUNK_SIZE,
+)
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.types import JsonObject, JsonValue
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from protocols import (
     PythonAstBridgeContract,
+    PythonAstParseOutcomeContract,
     PythonBridgeInputContract,
     PythonBridgeOutputContract,
 )
@@ -31,6 +37,8 @@ class PythonBatchSources:
 
 class PythonBridgeEntrypoint:
     """Responsibilities: _bridge request processing_, _mode-specific response writing_."""
+
+    _ast_process_pool: ProcessPoolExecutor
 
     def _json_value(self, value: JsonValue) -> JsonValue:
         """Responsibilities: _JSON value structure_."""
@@ -90,12 +98,27 @@ class PythonBridgeEntrypoint:
         output_buffer.write(b"\n")
         output_buffer.flush()
 
+    def _parse_batch_sources(self, sources: dict[str, str]) -> Iterable[PythonAstParseOutcomeContract]:
+        """Responsibilities: _worker batch policy_, _source iteration_."""
+        source_texts = sources.values()
+        parse_source = self._bridge.source_ast_input
+        if len(sources) < PYTHON_AST_PARALLEL_BATCH_MINIMUM:
+            return map(parse_source, source_texts)
+        return self._ast_process_pool.map(
+            parse_source,
+            source_texts,
+            chunksize=PYTHON_AST_PARALLEL_CHUNK_SIZE,
+        )
+
     def _worker_batch(self, request: JsonObject, output_buffer: BinaryIO) -> None:
         """Responsibilities: _worker batch response generation_."""
         batch_sources = self._batch_sources(request)
         batch = PythonBatchResult(batch_sources.batch_id)
-        for name, source in batch_sources.sources.items():
-            batch.add(name, self._bridge.source_ast_timed(source))
+        sources = batch_sources.sources
+        parse_results = self._parse_batch_sources(sources)
+        for name, parse_result in zip(sources, parse_results, strict=True):
+            result = self._bridge.source_ast_timed(parse_result)
+            batch.add(name, result)
         self._worker_write(output_buffer, batch.result())
 
     def __init__(
@@ -111,6 +134,7 @@ class PythonBridgeEntrypoint:
         self._output_stream: TextIO = output_stream
         self._output: PythonBridgeOutputContract = PythonBridgeOutput(output_stream)
         self._input_source: PythonBridgeInputContract = input_source
+        self._ast_process_pool: ProcessPoolExecutor = ProcessPoolExecutor(max_workers=2)
 
     def run(self) -> None:
         """Responsibilities: _configuration bridge execution dispatch_."""
@@ -141,14 +165,17 @@ class PythonBridgeEntrypoint:
         """Responsibilities: _repeated batch requests service_."""
         input_buffer: BinaryIO = self._input_stream.buffer
         output_buffer: BinaryIO = self._output_stream.buffer
-        while True:
-            request = self._worker_request(input_buffer)
-            if not request:
-                return
-            if request.get("command") == "exit":
-                self._worker_write(output_buffer, {"status": "exited"})
-                return
-            self._worker_batch(request, output_buffer)
+        try:
+            while True:
+                request = self._worker_request(input_buffer)
+                if not request:
+                    return
+                if request.get("command") == "exit":
+                    self._worker_write(output_buffer, {"status": "exited"})
+                    return
+                self._worker_batch(request, output_buffer)
+        finally:
+            self._ast_process_pool.shutdown(wait=True, cancel_futures=True)
 
     def run_cli(self, arguments: list[str]) -> None:
         """Responsibilities: _command-line argument parsing_."""
@@ -166,6 +193,8 @@ class PythonBridgeEntrypoint:
 
 
 if __name__ == "__main__":
+    from implementation.ast.python_ast_bridge import PythonAstBridge
+
     bridge: PythonAstBridge = PythonAstBridge(PythonAstTree)
     entrypoint: PythonBridgeEntrypoint = PythonBridgeEntrypoint(
         bridge,

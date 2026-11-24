@@ -74,6 +74,90 @@ describe("unused code entry points", () => {
 		expect(entries).toEqual([true, true, true]);
 	});
 
+	test("keeps URL-loaded Node worker modules reachable", () => {
+		const project = fixture._project_source.source_scanner_fixture({
+			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/worker-pool.ts": [
+				'import { Worker } from "node:worker_threads";',
+				'const extension = ".ts";',
+				"class WorkerPool {",
+				"\tprivate worker_entry: URL;",
+				"\tpublic constructor() {",
+				'\t\tthis.worker_entry = new URL("./worker-entry" + extension, import.meta.url);',
+				"\t}",
+				"\tpublic launch(): Worker {",
+				"\t\treturn new Worker(this.worker_entry);",
+				"\t}",
+				"}",
+				"export {};",
+			].join("\n"),
+			"tools/coding-lint/worker-entry.ts": "export const worker_ready = true;\n",
+			"tools/coding-lint/unused.ts": "export const unused = true;\n",
+		});
+		const unused_code = new UnusedCode();
+		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+
+		expect(violations.map((violation) => violation.file())).toEqual(["tools/coding-lint/unused.ts"]);
+	});
+
+	test("keeps all statically selected Node worker entries reachable", () => {
+		const project = fixture._project_source.source_scanner_fixture({
+			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/worker-pool.ts": [
+				'import { Worker } from "node:worker_threads";',
+				"class WorkerPool {",
+				"\tprivate worker_entry: URL;",
+				"\tpublic constructor(compiled: boolean) {",
+				"\t\tif (compiled) {",
+				'\t\t\tthis.worker_entry = new URL("./compiled-worker.ts", import.meta.url);',
+				"\t\t} else {",
+				'\t\t\tthis.worker_entry = new URL("./source-worker.ts", import.meta.url);',
+				"\t\t}",
+				"\t}",
+				"\tpublic launch(): Worker {",
+				"\t\treturn new Worker(this.worker_entry);",
+				"\t}",
+				"}",
+				"export {};",
+			].join("\n"),
+			"tools/coding-lint/compiled-worker.ts": "export const ready = true;\n",
+			"tools/coding-lint/source-worker.ts": "export const ready = true;\n",
+			"tools/coding-lint/unused.ts": "export const unused = true;\n",
+		});
+		const unused_code = new UnusedCode();
+		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+
+		expect(violations.map((violation) => violation.file())).toEqual(["tools/coding-lint/unused.ts"]);
+	});
+
+	test("keeps statically returned Node worker entries reachable", () => {
+		const project = fixture._project_source.source_scanner_fixture({
+			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/worker-pool.ts": [
+				'import { Worker } from "node:worker_threads";',
+				"class WorkerPool {",
+				"\tprivate selected_worker_entry(compiled: boolean): URL {",
+				"\t\tif (compiled) {",
+				'\t\t\treturn new URL("./compiled-worker.ts", import.meta.url);',
+				"\t\t}",
+				'\t\treturn new URL("./source-worker.ts", import.meta.url);',
+				"\t}",
+				"\tpublic launch(): Worker {",
+				"\t\treturn new Worker(this.selected_worker_entry(true));",
+				"\t}",
+				"}",
+				"export {};",
+			].join("\n"),
+			"tools/coding-lint/compiled-worker.ts": "export const ready = true;\n",
+			"tools/coding-lint/source-worker.ts": "export const ready = true;\n",
+			"tools/coding-lint/unused.ts": "export const unused = true;\n",
+		});
+		const unused_code = new UnusedCode();
+		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+
+		expect(violations.map((violation) => violation.file())).toEqual(["tools/coding-lint/unused.ts"]);
+	});
+
 	test("keeps configured Python plugin modules and their imports reachable", () => {
 		const project = fixture._project_source.source_scanner_fixture({
 			"pyproject.toml": '[project.entry-points."example.plugins"]\nsample = "example.plugin:Plugin"\n',

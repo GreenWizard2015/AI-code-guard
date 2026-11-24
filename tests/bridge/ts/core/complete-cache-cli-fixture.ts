@@ -2,6 +2,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import type { ProjectLintExecutionOptions } from "src/core/types";
 import type { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
+import type { CliOptions } from "src/task_types";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { CompleteCacheFixture } from "tests/bridge/ts/core/complete-cache-fixture";
 
@@ -17,12 +18,16 @@ export class CompleteCacheCliFixture {
 	}
 
 	/** Responsibilities: _execution dependency assembly_. **/
-	public execution_options(stage_timer: LintStageTimer): ProjectLintExecutionOptions {
+	public execution_options(stage_timer: LintStageTimer, agent_report = false): ProjectLintExecutionOptions {
+		let options: CliOptions = this._project_fixture._options;
+		if (agent_report) {
+			options = { ...options, agent_mode: { package_count: 1, test_target_links: [] } };
+		}
 		return {
 			file_io: this._project_fixture._file_io,
 			source_io: this._project_fixture._source_io,
 			analysis_identity: this._project_fixture._analysis_identity,
-			options: this._project_fixture._options,
+			options,
 			stage_timer,
 			lint_run_factory: this._configuration,
 		};

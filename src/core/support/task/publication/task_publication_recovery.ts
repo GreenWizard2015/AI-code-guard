@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { LINT_OUTPUT_DOCUMENT, TASK_PUBLICATION_LOCK_DIRECTORY } from "src/core/support/task/constants";
-import { TaskPublicationJournal } from "src/core/support/task/publication/task_publication_journal";
-import { TaskPublicationJournalFile } from "src/core/support/task/publication/task_publication_journal_file";
+import { TaskPublicationJournal } from "src/core/support/task/publication/journal/task_publication_journal";
+import { TaskPublicationJournalFile } from "src/core/support/task/publication/journal/task_publication_journal_file";
 import { TaskPublicationOwner } from "src/core/support/task/publication/task_publication_owner";
 import { TaskPublicationRollback } from "src/core/support/task/publication/task_publication_rollback";
 import { TaskPublicationTransactionPath } from "src/core/support/task/publication/task_publication_transaction_path";

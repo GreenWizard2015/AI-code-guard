@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { NonEnglishSourceTextRules } from "src/rules/support/non_english_source_text_rules";
-import { PythonSourceTextScanner } from "src/rules/support/python_source_text_scanner";
+import { PythonSourceTextScanner } from "src/rules/support/python_source_text/python_source_text_scanner";
 import { PythonUnicodeSamples } from "tests/model/python-unicode-samples";
 
 describe("Python non-English source text rule", () => {

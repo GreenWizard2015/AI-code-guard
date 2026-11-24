@@ -1,7 +1,7 @@
 import ts from "typescript";
 
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import { TypeScriptTypeNode } from "src/model/type_script_type_node";
+import { TypeScriptTypeNode } from "src/model/typescript/type_script_type_node";
 
 import { AST_SOURCE, TYPE_NODE_SOURCE } from "tests/core/constants/ast_nodes/constants";
 
@@ -93,6 +93,22 @@ describe("TypeScriptAstFile", () => {
 			functions_have_characters: parsed.functions().every((node) => node.metrics.characters > 0),
 			parse_issues: parsed.normalized().source.parse_issues,
 		}).toEqual({ methods_have_characters: true, functions_have_characters: true, parse_issues: [] });
+	});
+
+	test("does not duplicate class declarations in normalized metadata", () => {
+		const parsed = new TypeScriptAstFile("fixture.ts", AST_SOURCE);
+
+		expect(parsed.normalized().source.classes.map((node) => node.identity.name)).toEqual(["Service", "Worker"]);
+	});
+
+	test("keeps normalized function order aligned with source positions", () => {
+		const parsed = new TypeScriptAstFile(
+			"ordered-functions.ts",
+			"namespace Scope { export function nested() { return 1; } }\nfunction later() { return 2; }\nfunction final() { return 3; }",
+		);
+		const function_names = parsed.functions().map((node) => node.identity.name);
+
+		expect(parsed.normalized().source.functions.map((node) => node.identity.name)).toEqual(function_names);
 	});
 
 	test("reuses the normalized TypeScript AST result", () => {

@@ -34,6 +34,7 @@ if ! python3 -m venv --help >/dev/null 2>&1; then
 fi
 
 pnpm --dir "$PROJECT_ROOT" install
+pnpm --dir "$PROJECT_ROOT" build:cli
 
 if [[ ! -d "$VENV_PATH" ]]; then
     python3 -m venv "$VENV_PATH"
@@ -51,8 +52,7 @@ if ! grep -Fq "$SHORTCUT_MARKER" "$BASHRC_PATH"; then
         printf '\n%s\n' "$SHORTCUT_MARKER"
         printf 'ai-code-guard() {\n'
         printf '    local guard_root=%s\n' "$ESCAPED_PROJECT_ROOT"
-        printf '    PATH="$guard_root/.venv/bin:$PATH" pnpm --dir "$guard_root" exec tsx \\\n'
-        printf '        "$guard_root/src/core/cli.ts" \\\n'
+        printf '    PATH="$guard_root/.venv/bin:$PATH" node "$guard_root/bin/ai-code-guard.mjs" \\\n'
         printf '        --root "$PWD" "$@"\n'
         printf '}\n'
         printf '%s\n' "$SHORTCUT_MARKER"

@@ -97,6 +97,13 @@ export interface PythonAstWorkerBatchContract {
 	start(): void;
 	/** Responsibilities: _batch response collection_. **/
 	complete(): PythonAstWorkerResponse;
+	/** Responsibilities: _timed batch response collection_. **/
+	complete_timed(
+		stage_timer: LintStageTimerContract,
+		wait_stage_name: string,
+		batch_stage_name: string,
+		batch_started_at: number,
+	): PythonAstWorkerResponse;
 	/** Responsibilities: _batch cancellation_. **/
 	cancel(): void;
 }

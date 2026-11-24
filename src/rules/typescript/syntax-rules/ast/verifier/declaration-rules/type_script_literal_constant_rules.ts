@@ -1,9 +1,9 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import { RULE_IDS } from "src/linting/constants";
-import { LiteralConstantReferenceIndex } from "src/literal_constant_reference_index";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
+import { LiteralConstantReferenceIndex } from "src/rules/literal_constant_reference_index";
 import type { ProjectContextViolationsByScope, ProjectViolationsByFile } from "src/rules/typescript/syntax-rules/types";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
@@ -58,7 +58,7 @@ export class TypeScriptLiteralConstantRules implements ASTSourceRuleContract {
 			return;
 		}
 		const violations_by_file = this.violations_by_file(
-			rule_scope.project_analysis().context,
+			rule_scope.project_analysis().context(),
 			request.context.state().analysis.stage_timer,
 		);
 		const violations = violations_by_file.get(file);

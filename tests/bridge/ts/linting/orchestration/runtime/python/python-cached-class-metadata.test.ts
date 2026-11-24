@@ -1,9 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintFileName } from "src/core/context/lint_file_name";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { PythonScanner } from "src/linting/orchestration/runtime/python/python_scanner";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("cached Python class metadata", () => {

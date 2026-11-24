@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { CliApplication } from "src/core/cli_application";
-import { CommandLineOptions } from "src/core/support/command_line_options";
+import { CommandLineOptions } from "src/core/support/cli/command_line_options";
 import type { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { CliOptions } from "src/task_types";

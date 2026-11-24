@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import {
 	OBJECT_ASSIGN_METHOD_NAME,
@@ -14,7 +15,6 @@ import type {
 	RuntimePatchAliasIndexContract,
 	RuntimePatchAliases,
 } from "src/rules/typescript/syntax-rules/runtime/runtime-patching/types";
-import type { SourceFileResolver } from "src/source_types";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";
 
@@ -189,7 +189,7 @@ export class RuntimePatching {
 	public patch_test_node(
 		syntax_node: ts.Node,
 		module_resolver: TypeScriptModuleExportsContract,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 	): boolean {
 		if (ts.isClassDeclaration(syntax_node) || ts.isClassExpression(syntax_node)) {
 			const inherited_method = new InheritedMethodReplacement(syntax_node, module_resolver, source_resolver);

@@ -9,6 +9,22 @@ if TYPE_CHECKING:
     from implementation.types import JsonObject
 
 
+class PythonAstParseOutcomeContract(Protocol):
+    """Responsibilities: _source outcome contract_, _timing access_."""
+
+    def source_code(self) -> str: ...
+
+    def duration_ms(self) -> float: ...
+
+    def failed(self) -> bool: ...
+
+    def syntax_tree(self) -> ast.Module: ...
+
+    def issue_line(self) -> int: ...
+
+    def issue_message(self) -> str: ...
+
+
 class PythonModuleInstanceCollectorContract(Protocol):
     """Responsibilities: _module instance collection contract_."""
 
@@ -54,7 +70,9 @@ class PythonAstBridgeContract(Protocol):
 
     def source_ast(self, text: str) -> JsonObject: ...
 
-    def source_ast_timed(self, text: str) -> PythonAstTimedResultContract: ...
+    def source_ast_input(self, source_code: str) -> PythonAstParseOutcomeContract: ...
+
+    def source_ast_timed(self, parse_result: PythonAstParseOutcomeContract) -> PythonAstTimedResultContract: ...
 
 
 class PythonBridgeOutputContract(Protocol):

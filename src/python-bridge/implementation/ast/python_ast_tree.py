@@ -66,9 +66,9 @@ class PythonAstTree:
         )
         return builder.result
 
-    def __init__(self, source: str) -> None:
+    def __init__(self, source: str, syntax_tree: ast.Module) -> None:
         """Responsibilities: _reusable source initialization_."""
-        core_dependencies: PythonAstCoreDependenciesContract = PythonAstCoreDependencies(source)
+        core_dependencies: PythonAstCoreDependenciesContract = PythonAstCoreDependencies(source, syntax_tree)
         tree_dependencies = PythonAstTreeDependencies(
             core_dependencies.syntax_tree(),
             core_dependencies.node_index(),
@@ -104,7 +104,7 @@ class PythonAstTree:
     def class_nodes(self) -> list[JsonObject]:
         """Responsibilities: _class node collection_."""
         node_index = self._tree_state.core().source_dependencies().node_index()
-        nodes = node_index.class_definitions(self._tree)
+        nodes = [node for node in node_index.nodes(self._tree) if type(node) is ast.ClassDef]
         container_aliases = self._container_aliases
         for statement in self._tree.body:
             container_aliases.observe(statement)

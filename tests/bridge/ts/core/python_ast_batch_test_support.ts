@@ -1,9 +1,9 @@
 import { AstModel } from "src/core/ast_model";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PythonAstWorkerBatch } from "src/core/python-ast/python_ast_worker_batch";
 import type { PythonAstBridgeOptions, PythonAstWorkerAsts, PythonAstWorkerResponse } from "src/core/python-ast/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { NormalizedAstFile, PythonBatchAstOptions } from "src/model/ast/normalized_ast_types";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import type {
 	PythonAstWorkerBatchContract,
 	PythonAstWorkerBatchOwnerContract,

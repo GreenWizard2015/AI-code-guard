@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -19,7 +20,7 @@ def test_result():
         return 2
     fetch()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("unasserted-async-completion", issues)
@@ -34,7 +35,7 @@ def test_result():
     pending = fetch
     pending()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("unasserted-async-completion", issues)
@@ -54,7 +55,7 @@ async def test_observed():
     await fetch()
     assert True
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertEqual(issues.count("unasserted-async-completion"), 1)
@@ -67,7 +68,7 @@ def test_reads_the_real_clock():
     current_time = clock.time()
     assert current_time >= 0
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("test-time-dependency", issues)
@@ -88,7 +89,7 @@ def test_async_call():
     fetch()
     assert True
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertEqual(issues.count("unasserted-async-completion"), 1)
@@ -106,7 +107,7 @@ def test_result():
     fetch()
     assert True
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("unasserted-async-completion", issues)
@@ -124,7 +125,7 @@ def test_result():
         time.time()
     self.assertTrue(True)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertFalse({"unasserted-async-completion", "test-time-dependency"}.intersection(issues))
@@ -141,7 +142,7 @@ def test_result():
         return 1
     later()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("unasserted-async-completion", issues)
@@ -158,7 +159,7 @@ def test_second():
     def later():
         shared.append(2)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("test-order-dependency", issues)

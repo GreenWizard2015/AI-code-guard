@@ -1,18 +1,18 @@
 import { join, resolve } from "node:path";
 import { AI_CODE_GUARD_DIRECTORY, REPORTING_PROJECT_ROOT, REVIEW_STAGES } from "src/constants";
+import { NodeProcessSignal } from "src/core/support/task/node_process_signal";
+import { ReviewAgentDebugLog } from "src/core/support/task/reporting/workspace/review/review_agent_debug_log";
 import { TaskReviewAgentBatch } from "src/core/support/task/reporting/workspace/review/task_review_agent_batch";
 import { TaskReviewDocumentation } from "src/core/support/task/reporting/workspace/review/task_review_documentation";
 import { REVIEW_NO_AGENT_MESSAGE } from "src/core/support/task/review-agent/constants";
-import { NodeProcessSignal } from "src/core/support/task/review-agent/process/node_process_signal";
-import { ReviewAgentDebugLog } from "src/core/support/task/review-agent/process/review_agent_debug_log";
 import type {
 	ReviewAgentDebugLogContract,
 	ReviewAgentFilesContract,
 	ReviewStateIdentityContract,
 } from "src/core/support/task/review-agent/protocols";
+import { ReviewRunLock } from "src/core/support/task/review-agent/recovery/review_run_lock";
+import { ReviewStateIdentity } from "src/core/support/task/review-agent/recovery/review_state_identity";
 import { ReviewAgentFiles } from "src/core/support/task/review-agent/review_agent_files";
-import { ReviewRunLock } from "src/core/support/task/review-agent/review_run_lock";
-import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
 import type { TaskReviewAgentOptions } from "src/core/support/task/review-agent/types";
 import { BoundaryFailureClassifier } from "src/io/boundary_failure_classifier";
 import { SYSTEM_FAILURE_CODES } from "src/io/constants";

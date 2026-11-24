@@ -2,7 +2,7 @@ import { dirname, resolve } from "node:path";
 import type { LintFileDiscoveryContract } from "src/analysis_protocols";
 import { IGNORED_DIRS } from "src/constants";
 import { LintFileDiscovery } from "src/core/discovery/lint_file_discovery";
-import { ProjectPathRelation } from "src/core/support/project_path_relation";
+import { ProjectPathRelation } from "src/core/project-source/project_path_relation";
 import { GitIgnoredPaths } from "src/git_ignored_paths";
 import type {
 	LintInputCandidateState,

@@ -137,18 +137,14 @@ class FiniteVariantMapping:
     def __init__(self, tree: ast.AST, node_index: PythonAstNodeIndexContract) -> None:
         """Responsibilities: _source index ownership_."""
         self._tree = tree
-        self._parents = {}
         self._node_index = node_index
+        self._parents = node_index.parent_map(tree)
         self._type_index = PythonFiniteVariantIndex(node_index)
         self._patterns = PythonFiniteVariantPatternAnalysis(self._type_index)
         self._function_types = PythonFiniteVariantFunctionTypes(tree, self._parents)
 
     def prepare(self) -> None:
         """Responsibilities: _finite type index construction_."""
-        self._parents.clear()
-        for node in self._node_index.nodes(self._tree):
-            for child in self._node_index.children(node):
-                self._parents.update({child: node})
         self._type_index.add_source(self._tree)
 
     def supports_type(self, name: str) -> bool:

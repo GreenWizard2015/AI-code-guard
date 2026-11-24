@@ -1,3 +1,4 @@
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -16,14 +17,14 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "    loader = {'load': importlib.import_module}\n"
             "    return loader['load']('module')\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
     def test_resolves_import_from_container_attribute_alias(self) -> None:
         """Responsibilities: _container attribute alias resolution_."""
         source = "import importlib\nloaders = {'module': importlib.import_module}\nmodule = loaders.module('example')\n"
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
@@ -37,7 +38,7 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "    loader = resolve(importlib, 'import_module')\n"
             "    return loader(module_name)\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
@@ -48,7 +49,7 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "def load_module(module_name: str) -> object:\n"
             "    return importlib.import_module(module_name)\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual([issue["kind"] for issue in issues if issue["kind"] == "dynamic"], ["dynamic"])
 
@@ -59,7 +60,7 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "first = importlib.import_module('first')\n"
             "second = importlib.import_module('second')\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
         self.assertEqual(
             [issue["kind"] for issue in issues if issue["kind"] == "dynamic"],
@@ -76,7 +77,7 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "first = loader('first')\n"
             "second = loader('second')\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         dynamic_issues = [
             issue
             for issue in tree.analysis_state().imports().import_rules().import_issues(tree.tree())
@@ -94,7 +95,7 @@ class PythonDynamicImportResolutionTest(unittest.TestCase):
             "loader = print\n"
             "second = loader('second')\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
 
         self.assertEqual(

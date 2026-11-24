@@ -17,6 +17,18 @@ export type TypeScriptModuleSymbolReference = {
 	readonly name: string;
 };
 
+export type TypeScriptResolvedExportsByName = Map<string, TypeScriptModuleSymbolReference>;
+export type TypeScriptModuleExportCacheRequest = {
+	readonly reference: TypeScriptModuleSymbolReference;
+	readonly cache_key: string;
+};
+export type TypeScriptModuleExportCacheEntry = {
+	readonly file: string;
+	readonly name: string;
+	readonly resolved: TypeScriptModuleSymbolReference;
+};
+export const EMPTY_MODULE_EXPORT_REFERENCE: TypeScriptModuleSymbolReference = { file: "", name: "" };
+
 /** Responsibilities: _recursive file export lookup_. **/
 export type TypeScriptFileExportQuery = {
 	readonly reference: TypeScriptModuleSymbolReference;
@@ -57,7 +69,6 @@ export enum ResolvedTypeScriptDeclarationKind {
 }
 
 export type TypeScriptDeclarationIndex = ReadonlyMap<string, readonly ts.Statement[]>;
-export type TypeScriptSourceFileMap = ReadonlyMap<string, ts.SourceFile>;
 export type TypeScriptExportedDeclarationIndex = ReadonlyMap<string, readonly ts.Node[]>;
 export type TypeScriptNamedExportLink = {
 	statement: ts.ExportDeclaration;

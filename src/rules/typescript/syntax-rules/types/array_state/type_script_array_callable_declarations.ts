@@ -1,5 +1,5 @@
 import { READONLY_BUILTIN_TYPES, TYPESCRIPT_ARRAY_TYPE_NAME } from "src/metrics/constants";
-import { TypeScriptTypeAliases } from "src/parser/typescript-aliases/expressions/type_script_type_aliases";
+import { TypeScriptTypeAliases } from "src/parser/typescript-aliases/type_script_type_aliases";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { SourceFileCallableCache, SourceFileCallableMap } from "src/source_types";
 import type { TypeScriptTypeAliasesContract } from "src/typescript_runtime_protocols";

@@ -23,6 +23,7 @@ from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonDynamicTypeRulesContract,
     PythonExceptionRulesContract,
+    PythonNameBindingIndexContract,
 )
 from implementation.rules.python_syntax.dynamic_type_rules import (
     PythonDynamicTypeRules,
@@ -47,7 +48,9 @@ from implementation.rules.python_syntax.exceptions.python_primary_type_state imp
 from implementation.rules.python_syntax.python_dynamic_type_references import (
     PythonDynamicTypeReferences,
 )
-from implementation.rules.python_syntax.python_primary_call_assembly import PythonPrimaryCallAssembly
+from implementation.rules.python_syntax.python_primary_call_assembly import (
+    PythonPrimaryCallAssembly,
+)
 from implementation.rules.python_syntax.python_tuple_type_names import (
     PythonTupleTypeNames,
 )
@@ -68,6 +71,7 @@ class PythonPrimaryTypeAssembly:
     """Responsibilities: _primary Python rules_, _exception analysis_."""
 
     _context: PythonCodingIssueComponentContextContract
+    _name_binding_index: PythonNameBindingIndexContract
 
     def _dynamic_rules(self) -> PythonDynamicTypeRulesContract:
         """Responsibilities: _dynamic type dependencies_."""
@@ -109,9 +113,14 @@ class PythonPrimaryTypeAssembly:
             type_state.tuple_type_names(),
         )
 
-    def __init__(self, context: PythonCodingIssueComponentContextContract) -> None:
+    def __init__(
+        self,
+        context: PythonCodingIssueComponentContextContract,
+        binding_index: PythonNameBindingIndexContract,
+    ) -> None:
         """Responsibilities: _type context ownership_."""
         self._context: PythonCodingIssueComponentContextContract = context
+        self._name_binding_index = binding_index
 
     def exception_state(self) -> PythonPrimaryExceptionBundle:
         """Responsibilities: _exception rule assembly_."""
@@ -147,7 +156,7 @@ class PythonPrimaryTypeAssembly:
 
     def primary_rule_set(self) -> PythonPrimaryRuleSetContract:
         """Responsibilities: _primary rule composition_."""
-        call_assembly = PythonPrimaryCallAssembly(self._context)
+        call_assembly = PythonPrimaryCallAssembly(self._context, self._name_binding_index)
         call_state: PythonPrimaryCallBundleContract = call_assembly.call_state()
         type_state = self.type_state()
         return self._rule_set(call_state, type_state)

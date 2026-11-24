@@ -37,6 +37,9 @@ from implementation.references.protocols import (
     PythonReferenceAliasesContract,
     PythonScopedTypeAliasesContract,
 )
+from implementation.rules.call_analysis.python_name_binding_index import (
+    PythonNameBindingIndex,
+)
 from implementation.rules.coding_issues.python_coding_issue_component_context import (
     PythonCodingIssueComponentContext,
 )
@@ -55,7 +58,9 @@ from implementation.rules.protocols import (
     PythonCodingIssueOptionsContract,
     PythonCodingIssueSourceContract,
 )
-from implementation.rules.python_syntax.python_primary_type_assembly import PythonPrimaryTypeAssembly
+from implementation.rules.python_syntax.python_primary_type_assembly import (
+    PythonPrimaryTypeAssembly,
+)
 from implementation.types import JsonObject
 
 
@@ -149,10 +154,11 @@ class PythonAstCodingIssues:
         """Responsibilities: _coding issue component assembly_."""
         started = perf_counter()
         context = PythonCodingIssueComponentContext(collector_options)
-        primary_assembly = PythonPrimaryTypeAssembly(context)
+        binding_index = PythonNameBindingIndex(context.tree(), context.node_index())
+        primary_assembly = PythonPrimaryTypeAssembly(context, binding_index)
         rule_set = primary_assembly.primary_rule_set()
         primary = PythonCodingIssuePrimaryRules(context, rule_set)
-        components = PythonCodingIssueComponents(context, primary)
+        components = PythonCodingIssueComponents(context, primary, binding_index)
         self._setup_durations.update({"setup.components": (perf_counter() - started) * 1000})
         return components
 

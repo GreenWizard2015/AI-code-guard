@@ -5,7 +5,7 @@ import { LintReportMode } from "src/core/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import type { ViolationContract } from "src/reporting_protocols";
-import { AiCodeGuardIgnoreRule } from "src/rules/support/ai_code_guard_ignore_rule";
+import { AiCodeGuardIgnoreRule } from "src/rules/support/directory_structure/ai_code_guard_ignore_rule";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 describe("AI Code Guard ignore configuration in project context", () => {

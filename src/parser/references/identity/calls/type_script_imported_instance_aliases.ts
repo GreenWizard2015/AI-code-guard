@@ -1,6 +1,7 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { ModulePathResolverContract, TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
-import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/analysis/type_script_module_exports";
+import { TypeScriptModuleExports as TypeScriptSourceExports } from "src/parser/analysis/module-resolution/type_script_module_exports";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import ts from "typescript";
 
@@ -89,7 +90,7 @@ export class TypeScriptImportedInstanceAliases {
 	/** Responsibilities: _imported instance resolver initialization_. **/
 	public constructor(
 		project_root: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_files: SourceFileResolverContract,
 		source_io: ProjectSourceIOContract,
 	) {
 		const exports_context = new TypeScriptModuleExportsContext(project_root, source_files, false, source_io);

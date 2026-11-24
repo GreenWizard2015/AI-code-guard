@@ -1,15 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { NODE_ENV_VARIABLE } from "src/core/constants";
-import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { LintProjectContextCreator } from "src/core/project-context/lint_project_context_creator";
 import { ProjectSourceScanner } from "src/core/project-source/project_source_scanner";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
+import { ProjectSourceAnalysisOptionsFixture } from "tests/core/project_source_analysis_options_fixture";
 import type { CallableProjectSourceAction, CallablePythonAstWorkerProvider, Fixture } from "tests/core/types";
 import type ts from "typescript";
 
@@ -109,20 +110,15 @@ export class ProjectSourceFixture {
 		fixture: Fixture,
 		context: LintProjectContextContract,
 		ignored_files: ReadonlySet<string>,
-	): ProjectSourceAnalysisOptions {
-		return {
-			root: fixture.root,
-			project_files: fixture.paths,
+	): ProjectSourceAnalysisOptionsContract {
+		const options_fixture = new ProjectSourceAnalysisOptionsFixture(
+			fixture.root,
+			fixture.paths,
 			context,
 			ignored_files,
-			scanner: new ProjectSourceScanner(fixture.root, {
-				context_state: { available: true, value: context },
-				entry_files: [],
-			}),
-			files: new Set(fixture.paths),
-			file_io: new InMemoryFileIO(),
-			directory_files: { virtual_project: true, files: fixture.paths },
-		};
+			{ virtual_project: true, files: fixture.paths },
+		);
+		return options_fixture.options();
 	}
 
 	/** Responsibilities: _virtual source snapshot creation_. **/

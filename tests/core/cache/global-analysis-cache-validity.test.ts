@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { describe, expect, test } from "@jest/globals";
 import { GlobalAnalysisCache } from "src/core/cache/global_analysis_cache";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";

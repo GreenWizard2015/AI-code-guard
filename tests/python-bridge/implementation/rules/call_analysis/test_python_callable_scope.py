@@ -5,7 +5,12 @@ from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.rules.call_analysis.concrete_collaborator_creation import (
     ConcreteCollaboratorCreation,
 )
-from implementation.rules.call_analysis.python_implementation_downcast import PythonImplementationDowncast
+from implementation.rules.call_analysis.python_implementation_downcast import (
+    PythonImplementationDowncast,
+)
+from implementation.rules.call_analysis.python_name_binding_index import (
+    PythonNameBindingIndex,
+)
 
 
 class PythonCallableScopeTest(unittest.TestCase):
@@ -27,7 +32,7 @@ class PythonCallableScopeTest(unittest.TestCase):
         tree = ast.parse(source)
         node_index = PythonAstNodeIndex()
         node_index.nodes(tree)
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
 
         self.assertEqual(
@@ -53,7 +58,7 @@ class Loader:
         tree = ast.parse(source)
         node_index = PythonAstNodeIndex()
         node_index.nodes(tree)
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
 
         self.assertEqual(analysis.issues(), [])
@@ -76,7 +81,7 @@ class Loader:
         tree = ast.parse(source)
         node_index = PythonAstNodeIndex()
         node_index.nodes(tree)
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
 
         self.assertEqual(
@@ -95,7 +100,7 @@ class Store(StorageContract):
 """,
         )
         node_index = PythonAstNodeIndex()
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
         issues = analysis.issues()
 
@@ -117,7 +122,7 @@ class Store(StorageContract):
             "        return first, second, third\n",
         )
         node_index = PythonAstNodeIndex()
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
         issues = analysis.issues()
 
@@ -136,7 +141,8 @@ class Store(StorageContract):
             "    if isinstance(value, Reader): value.extra()\n"
             "    if isinstance(value, Reader): value.extra()\n",
         )
-        analysis = PythonImplementationDowncast(tree, PythonAstNodeIndex())
+        node_index = PythonAstNodeIndex()
+        analysis = PythonImplementationDowncast(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
         calls = [node for node in ast.walk(tree) if type(node) is ast.Call and type(node.func) is ast.Name]
         issues = [analysis.issue(call) for call in calls]
@@ -164,7 +170,7 @@ class Store(StorageContract):
         )
         node_index = PythonAstNodeIndex()
         node_index.nodes(tree)
-        analysis = ConcreteCollaboratorCreation(tree, node_index)
+        analysis = ConcreteCollaboratorCreation(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
         issues = analysis.issues()
 

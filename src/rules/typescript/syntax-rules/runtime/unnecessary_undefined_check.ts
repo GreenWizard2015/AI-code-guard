@@ -1,4 +1,5 @@
 import type { UnnecessaryUndefinedCheckContract } from "src/analysis_protocols";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { RULE_IDS } from "src/linting/constants";
 import { UNDEFINED_TYPE_NAME } from "src/metrics/constants";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
@@ -6,7 +7,6 @@ import { PROPERTY_STATE_REQUIRED } from "src/rules/constants";
 import { AstPropertyType } from "src/rules/typescript/syntax-rules/ast/ast_property_type";
 import type { AstPropertySourceIndexContract } from "src/source_protocols";
 import type { AstPropertyTypeContract } from "src/source_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import type { CallableRuleAppender } from "src/types";
 import ts from "typescript";
 
@@ -125,7 +125,7 @@ export class UnnecessaryUndefinedCheck implements UnnecessaryUndefinedCheckContr
 	public constructor(
 		source_file: ts.SourceFile,
 		append_rule: CallableRuleAppender,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 		module_exports: TypeScriptPropertyModuleResolverContract,
 		source_index: AstPropertySourceIndexContract,
 	) {

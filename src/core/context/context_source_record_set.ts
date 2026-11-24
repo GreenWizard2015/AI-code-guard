@@ -7,6 +7,7 @@ import { NODE_ENV_VARIABLE } from "src/core/constants";
 import { ContextSourceRecordCache } from "src/core/context/context_source_record_cache";
 import { ContextSourceRecordCacheIdentity } from "src/core/context/context_source_record_cache_identity";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import type { LintFileNameContract } from "src/core/support/protocols";
 import type { IOContract } from "src/io/protocols";
 import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
@@ -32,6 +33,7 @@ export class ContextSourceRecordSet {
 	private readonly _file_io: IOContract;
 	private readonly _typescript_extensions: readonly string[];
 	private readonly _disk_cache_enabled: boolean;
+	private readonly _map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _TypeScript source paths classification_. **/
 	private typescript(language_candidate_path: string): boolean {
@@ -75,7 +77,7 @@ export class ContextSourceRecordSet {
 		const ast_options: TypeScriptAstOptions = {
 			source_file,
 			traversal,
-			source_resolver: options.source_files,
+			source_resolver: this._map_cache.for_map(options.source_files),
 			source_io: options.source_io,
 			project_root: options.project_root,
 			stage_timer: options.stage_timer,
@@ -125,7 +127,7 @@ export class ContextSourceRecordSet {
 			normalized_ast: python_ast,
 			language: "python",
 			typescript_ast,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal,
 		};
 	}
@@ -167,7 +169,7 @@ export class ContextSourceRecordSet {
 			normalized_ast,
 			language: TYPESCRIPT_LANGUAGE,
 			typescript_ast: typescript_creation.ast_file,
-			source_resolver: options.source_files,
+			source_resolver: this._map_cache.for_map(options.source_files),
 			traversal: typescript_creation.traversal,
 		};
 	}
@@ -236,6 +238,7 @@ export class ContextSourceRecordSet {
 		this._file_io = file_io;
 		this._typescript_extensions = [".ts", ".tsx", ".mts", ".cts"];
 		this._disk_cache_enabled = process.env[NODE_ENV_VARIABLE] !== "test";
+		this._map_cache = new SourceFileMapCache();
 	}
 
 	/** Responsibilities: _construction source records requested_. **/

@@ -1,4 +1,4 @@
-import { PythonSourceImports } from "documentation_validation/python_source_imports";
+import { PythonSourceImports } from "documentation_validation/sandbox/python/imports/python_source_imports";
 import type { DocumentationExampleSourceFile } from "documentation_validation/types";
 
 /** Responsibilities: _Python import traversal state_, _reachable source resolution_. **/

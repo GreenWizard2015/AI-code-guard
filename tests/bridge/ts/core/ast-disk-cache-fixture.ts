@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from "node:path";
 import { AstDiskCache } from "src/core/cache/ast-disk-cache/ast_disk_cache";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import type { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { ANALYZER_FILES_V1 } from "tests/bridge/ts/core/constants";
 

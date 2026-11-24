@@ -24,15 +24,15 @@ export class TypeScriptProjectCallableUsageRules implements ASTSourceRuleContrac
 		const sources = rule_scope.source_files(TYPESCRIPT_LANGUAGE);
 		const files = sources.map((source) => source.absolute_path);
 		const import_context = {
-			root: scope.root,
+			root: scope.root(),
 			files: new Set(files),
-			resolver: new ProjectSourcePython(scope.root),
+			resolver: new ProjectSourcePython(scope.root()),
 		};
 		return {
-			project_root: scope.root,
+			project_root: scope.root(),
 			project_files: files,
 			import_context,
-			project_source_scanner: scope.scanner,
+			project_source_scanner: scope.scanner(),
 			source_asts: new Map(),
 			sources,
 			stage_timer,

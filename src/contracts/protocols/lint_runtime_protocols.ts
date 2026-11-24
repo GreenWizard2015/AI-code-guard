@@ -29,6 +29,13 @@ export interface RecoveredRuleAstFileContract {
 	reference_normalization(cached: NormalizedAstFile): NormalizedAstFile;
 }
 
+/** Responsibilities: _recovered source record dependencies_. **/
+export type RecoveredSourceRecordInput = {
+	readonly source_path: string;
+	readonly recovered_ast: RecoveredRuleAstFileContract;
+	readonly recovered_traversal: TypeScriptAstTraversalContract;
+};
+
 /** Responsibilities: _recovered rule context dependencies_. **/
 export type RecoveredRuleContextInput = {
 	readonly violations: ViolationContract[];

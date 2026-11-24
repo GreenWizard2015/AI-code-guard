@@ -1,14 +1,14 @@
+import { TypeScriptAstNodeObserverRegistry } from "src/model/type_script_ast_node_observer_registry";
+import { TypeScriptCallExpressionInspector } from "src/model/type_script_call_expression_inspector";
 import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
-import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
-import { TypeScriptCallExpressionInspector } from "src/parser/analysis/type_script_call_expression_inspector";
 import ts from "typescript";
 
 import { METRIC_KIND_FUNCTION, METRIC_KIND_METHOD } from "src/metrics/constants";
 import type { AstCallableReference } from "src/model/ast/normalized_ast_types";
 import type { TypeScriptCallReferenceCollectorContract } from "src/model/protocols";
-import { TypeScriptReferenceResolution } from "src/model/type_script_reference_resolution";
 import { TypeScriptReferenceQueryKind } from "src/model/types";
 import type { TypeScriptCallReferenceCollectorOptions } from "src/model/types";
+import { TypeScriptReferenceResolution } from "src/model/typescript/type_script_reference_resolution";
 import { TypeScriptReferenceOwnership } from "src/parser/references/identity/references/type_script_reference_ownership";
 import type { CallReferenceOptions } from "src/parser/types";
 import type { AstCallableReferenceRecord } from "src/source_types";
@@ -204,6 +204,8 @@ export class TypeScriptCallReferenceCollector implements TypeScriptCallReference
 			traversal: options.traversal,
 			project_root: options.project_root,
 			stage_timer: options.stage_timer,
+			stage_name_prefix: "startup.project-context.source-records.record-construction.initialize.call-references",
+			resolve_imports: true,
 			source_files: options.source_files,
 			source_io: options.source_io,
 		});

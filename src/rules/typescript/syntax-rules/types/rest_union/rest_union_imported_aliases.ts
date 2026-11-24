@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { ModulePathResolverContract } from "src/module-resolution/types";
 import { RestUnionSourceAliases } from "src/rules/typescript/syntax-rules/types/rest_union/rest_union_source_aliases";
 import type {
@@ -6,7 +7,6 @@ import type {
 	RestUnionResolverAliasCache,
 	RestUnionSourceAliasCache,
 } from "src/rules/typescript/syntax-rules/types/types";
-import type { SourceFileResolver } from "src/source_types";
 import ts from "typescript";
 
 /** Responsibilities: _imported type alias resolution_, _rest-union declaration indexing_. **/
@@ -45,7 +45,7 @@ export class RestUnionImportedAliases {
 		}
 		let by_resolver = by_module.get(module_path);
 		if (by_resolver === undefined) {
-			by_resolver = new WeakMap<SourceFileResolver, RestUnionAliasDeclarations>();
+			by_resolver = new WeakMap<SourceFileResolverContract, RestUnionAliasDeclarations>();
 			by_module.set(module_path, by_resolver);
 		}
 		return by_resolver;
@@ -61,7 +61,7 @@ export class RestUnionImportedAliases {
 	public aliases_for(
 		source_file: ts.SourceFile,
 		module_path: ModulePathResolverContract,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 	): RestUnionAliasDeclarations {
 		const cache = this.resolver_cache(source_file, module_path);
 		const cached = cache.get(source_resolver);

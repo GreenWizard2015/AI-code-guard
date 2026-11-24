@@ -5,8 +5,8 @@ from collections.abc import Sequence
 
 from implementation.ast.constants import AST_SCOPE_NODE_TYPES
 from implementation.types import (
-    PythonAstClassDefinitions,
     PythonAstNodeListIndex,
+    PythonAstParentIndex,
     PythonAstScopeIndex,
 )
 
@@ -43,25 +43,20 @@ class PythonAstNodeIndex:
         root_tree: ast.AST,
         root_nodes: list[ast.AST],
         scope_index: dict[ast.AST, str],
-        class_nodes: list[ast.ClassDef],
     ) -> None:
         """Responsibilities: _root AST index publication_."""
         self._cache[root_tree] = root_nodes
         self._scopes[root_tree] = scope_index
-        self._class_definitions[root_tree] = class_nodes
         self.alias_event_nodes(root_tree, root_nodes)
 
     def _cache_nodes(self, cache_root: ast.AST) -> list[ast.AST]:
         """Responsibilities: _traversal caching nodes AST_."""
         nodes: list[ast.AST] = [cache_root]
         scopes: dict[ast.AST, str] = {cache_root: "module"}
-        class_definitions: list[ast.ClassDef] = []
         for parent in nodes:
             self._roots[parent] = cache_root
-            if type(parent) is ast.ClassDef:
-                class_definitions.append(parent)
             self._append_children(parent, nodes, scopes)
-        self._publish_root_cache(cache_root, nodes, scopes, class_definitions)
+        self._publish_root_cache(cache_root, nodes, scopes)
         return nodes
 
     def __init__(self) -> None:
@@ -71,7 +66,7 @@ class PythonAstNodeIndex:
         self._scopes: PythonAstScopeIndex = {}
         self._children: PythonAstNodeListIndex = {}
         self._roots: dict[ast.AST, ast.AST] = {}
-        self._class_definitions: PythonAstClassDefinitions = {}
+        self._parent_maps: dict[ast.AST, PythonAstParentIndex] = {}
         self._alias_events: PythonAstNodeListIndex = {}
 
     def nodes(self, requested_root: ast.AST) -> list[ast.AST]:
@@ -85,14 +80,6 @@ class PythonAstNodeIndex:
             self._cache.update({requested_root: nodes})
             return nodes
         return self._cache_nodes(requested_root)
-
-    def class_definitions(self, requested_root: ast.AST) -> list[ast.ClassDef]:
-        """Responsibilities: _ordered class definition lookup_."""
-        self.nodes(requested_root)
-        if requested_root not in self._class_definitions:
-            definitions = [node for node in self._cache[requested_root] if type(node) is ast.ClassDef]
-            self._class_definitions[requested_root] = definitions
-        return self._class_definitions[requested_root]
 
     def alias_event_nodes(
         self,
@@ -127,6 +114,23 @@ class PythonAstNodeIndex:
     def parents(self, node: ast.AST) -> list[ast.AST]:
         """Responsibilities: _output parent path caching_."""
         return self._parents.get(node, [])
+
+    def parent_map(self, root: ast.AST) -> PythonAstParentIndex:
+        """Responsibilities: _cached subtree-relative parent mapping_."""
+        cached = self._parent_maps.get(root)
+        if cached is not None:
+            return cached
+        root_nodes = self.nodes(root)
+        root_node_set: set[ast.AST] | None = None
+        if self._roots.get(root, root) is not root:
+            root_node_set = set(root_nodes)
+        parent_map: PythonAstParentIndex = {}
+        for node in root_nodes:
+            for parent in self._parents.get(node, []):
+                if root_node_set is None or parent in root_node_set:
+                    parent_map[node] = parent
+        self._parent_maps[root] = parent_map
+        return parent_map
 
     def scopes(self, scope_root: ast.AST) -> dict[ast.AST, str]:
         """Responsibilities: _output lexical scope caching_."""

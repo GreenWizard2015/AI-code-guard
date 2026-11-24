@@ -17,10 +17,10 @@ import { DocumentationExampleConsole } from "documentation_validation/sandbox/do
 import { DocumentationExampleOutput } from "documentation_validation/sandbox/documentation_example_output";
 import { PythonExamplePolicy } from "documentation_validation/sandbox/python/python_example_policy";
 import { PythonSandboxResult } from "documentation_validation/sandbox/python/python_sandbox_result";
-import { TypeScriptExampleModuleCatalog } from "documentation_validation/sandbox/typescript/type_script_example_module_catalog";
-import { TypeScriptExampleModuleRuntime } from "documentation_validation/sandbox/typescript/type_script_example_module_runtime";
+import { TypeScriptExampleModuleCatalog } from "documentation_validation/sandbox/typescript/execution/modules/type_script_example_module_catalog";
+import { TypeScriptExampleModuleRuntime } from "documentation_validation/sandbox/typescript/execution/modules/type_script_example_module_runtime";
+import { TypeScriptExampleTestRuntime } from "documentation_validation/sandbox/typescript/execution/type_script_example_test_runtime";
 import { TypeScriptExamplePolicy } from "documentation_validation/sandbox/typescript/type_script_example_policy";
-import { TypeScriptExampleTestRuntime } from "documentation_validation/sandbox/typescript/type_script_example_test_runtime";
 import { DocumentationLanguage } from "documentation_validation/types";
 import type {
 	CallableDocumentationPythonProcessRunner,

@@ -2,7 +2,7 @@ import type { SourceTextAnalysisOptions, SourceTextOccurrence } from "src/model_
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { MarkdownProseLines } from "src/rules/support/markdown_prose_lines";
-import { PythonSourceTextScanner } from "src/rules/support/python_source_text_scanner";
+import { PythonSourceTextScanner } from "src/rules/support/python_source_text/python_source_text_scanner";
 import { TypeScriptSourceTextScanner } from "src/rules/support/type_script_source_text_scanner";
 import type { NonEnglishSourceTextRulesContract } from "src/shared_services_protocols";
 

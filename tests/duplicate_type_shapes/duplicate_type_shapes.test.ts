@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { DuplicateTypeShapes } from "src/duplicate_type_shapes";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
-import { TypeScriptTypeShapeCollector } from "src/rules/typescript/syntax-rules/types/type_script_type_shape_collector";
+import { TypeScriptTypeShapeCollector } from "src/rules/typescript/syntax-rules/types/shapes/type_script_type_shape_collector";
 import ts from "typescript";
 
 describe("coding-lint duplicate type shapes", () => {

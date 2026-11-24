@@ -1,10 +1,10 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
 import { CliApplication } from "src/core/cli_application";
-import { CliArchitectureReview } from "src/core/support/cli_architecture_review";
-import { CommandLineOptions } from "src/core/support/command_line_options";
-import { TaskReportingReviewState } from "src/core/support/task/reporting/workspace/task_reporting_review_state";
+import { CliArchitectureReview } from "src/core/support/cli/cli_architecture_review";
+import { CommandLineOptions } from "src/core/support/cli/command_line_options";
+import { TaskReportingReviewState } from "src/core/support/task/reporting/workspace/reports/documents/task_reporting_review_state";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { ViolationValue } from "src/model/violation_value";
 import type { TaskReviewOperationsContract } from "src/task_protocols";

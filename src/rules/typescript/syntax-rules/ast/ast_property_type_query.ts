@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
 import { PROPERTY_STATE_OPTIONAL, PROPERTY_STATE_REQUIRED, PROPERTY_STATE_UNKNOWN } from "src/rules/constants";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { AstPropertySourcesContract } from "src/source_protocols";

@@ -1,9 +1,7 @@
 import { join } from "node:path";
 import { AI_CODE_GUARD_DIRECTORY } from "src/constants";
-import { AgentPackageAssignmentStore } from "src/core/support/task/reporting/workspace/task_selection/agent_package_assignment_store";
-import { AgentPackagePlanIntegrity } from "src/core/support/task/reporting/workspace/task_selection/agent_package_plan_integrity";
-import { AgentPackagePlanner } from "src/core/support/task/reporting/workspace/task_selection/agent_package_planner";
 import { AgentTaskPackageMarkdown } from "src/core/support/task/reporting/workspace/task_selection/agent_task_package_markdown";
+import { AgentPackageAssignmentStore } from "src/core/support/task/reporting/workspace/task_selection/assignment/ownership/agent_package_assignment_store";
 import {
 	AGENT_PACKAGE_TASKS_DIRECTORY_NAME,
 	AGENT_TASK_PACKAGE_PREVIOUS_DIRECTORY_NAME,
@@ -11,6 +9,8 @@ import {
 	AGENT_TASK_PACKAGE_SUMMARY_FILE_NAME,
 	AGENT_TASK_PACKAGE_TRANSACTION_PREFIX,
 } from "src/core/support/task/reporting/workspace/task_selection/constants";
+import { AgentPackagePlanIntegrity } from "src/core/support/task/reporting/workspace/task_selection/planning/agent_package_plan_integrity";
+import { AgentPackagePlanner } from "src/core/support/task/reporting/workspace/task_selection/planning/agent_package_planner";
 import type { IOContract } from "src/io/protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type {

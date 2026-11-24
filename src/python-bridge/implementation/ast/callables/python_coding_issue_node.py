@@ -3,7 +3,9 @@ from __future__ import annotations
 import ast
 from time import perf_counter
 
-from implementation.ast.callables.coding_issue_protocols import PythonCodingIssueNodeContract
+from implementation.ast.callables.coding_issue_protocols import (
+    PythonCodingIssueNodeContract,
+)
 from implementation.ast.callables.constants import PYTHON_EXPLICITLY_TIMED_RULES
 from implementation.ast.protocols import PythonCodingIssueTimingContract
 from implementation.rules.constants import (
@@ -36,6 +38,8 @@ class PythonCodingIssueNode(PythonCodingIssueNodeContract):
         issues = stage(node)
         elapsed_ms = (perf_counter() - started) * 1000
         self._timing.add_duration(stage_name, elapsed_ms)
+        if not issues:
+            return issues
         measured_rules = set()
         for issue in issues:
             rule_id = issue.get("kind")

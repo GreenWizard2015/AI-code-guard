@@ -63,7 +63,10 @@ class PythonComponentsMetricsTest(unittest.TestCase):
 
     def test_coding_issue_timers_preserve_diagnostics(self) -> None:
         """Responsibilities: _coding issue timer stages_, _diagnostic preservation_."""
-        tree = PythonAstTree('created = type("Generated", (), {})\n')
+        tree = PythonAstTree(
+            'created = type("Generated", (), {})\n',
+            ast.parse('created = type("Generated", (), {})\n'),
+        )
 
         issues = [issue["kind"] for issue in tree.coding_issues()]
         timings = tree.timings_data()
@@ -98,7 +101,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
     def test_collects_each_dynamic_type_diagnostic_once(self) -> None:
         """Responsibilities: _dynamic type diagnostics collection_."""
         source = 'first = type("GeneratedFirst", (), {})\nsecond = type("GeneratedSecond", (), {})\n'
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.coding_issues()
 
         self.assertEqual(
@@ -175,7 +178,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
 
     def test_ignores_ast_nodes_without_coding_rules(self) -> None:
         """Responsibilities: _unclassified AST node dispatch_."""
-        python_ast_tree = PythonAstTree("value = 1\n")
+        python_ast_tree = PythonAstTree("value = 1\n", ast.parse("value = 1\n"))
         issues = python_ast_tree.coding_issues()
         self.assertEqual(issues, [])
 

@@ -27,6 +27,7 @@ class PythonNameBindingIndex(PythonNameBindingIndexContract):
     _module_bound_names: set[str]
     _module_reassigned_names: set[str]
     _function_bound_names: PythonNameSetsByCallable
+    _indexed: bool
 
     def _import_alias_name(self, alias: ast.alias) -> str:
         """Responsibilities: _import local name lookup_."""
@@ -144,9 +145,12 @@ class PythonNameBindingIndex(PythonNameBindingIndexContract):
         self._module_bound_names = set()
         self._module_reassigned_names = set()
         self._function_bound_names = {}
+        self._indexed = False
 
     def index_tree(self) -> None:
         """Responsibilities: _AST binding index construction_."""
+        if self._indexed:
+            return
         callable_owners: PythonCallableOwners = {self._tree: self._tree}
         binding_scopes: PythonBindingScopesByNode = {
             self._tree: PYTHON_NAME_BINDING_MODULE_SCOPE,
@@ -172,6 +176,7 @@ class PythonNameBindingIndex(PythonNameBindingIndexContract):
                 continue
             callable_owners[node] = owner
             binding_scopes[node] = scope
+        self._indexed = True
 
     def module_binding(self, name: str) -> str:
         """Responsibilities: _module binding lookup_."""

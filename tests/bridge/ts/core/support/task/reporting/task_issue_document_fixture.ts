@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { TaskRuleDocumentation } from "src/core/support/task/reporting/task_rule_documentation";
-import { TaskBatchReplacement } from "src/core/support/task/reporting/workspace/task_batch_replacement";
+import { TaskBatchReplacement } from "src/core/support/task/reporting/workspace/reports/documents/task_batch_replacement";
 import { TaskWorkspace } from "src/core/task_workspace";
 import { ViolationValue } from "src/model/violation_value";
 import type { TaskBatchReplacementContract, TaskWorkspaceDocumentsContract } from "src/task_protocols";

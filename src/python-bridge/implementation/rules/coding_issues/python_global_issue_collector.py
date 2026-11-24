@@ -32,6 +32,7 @@ from implementation.rules.finite_variants.finite_variant_mapping import (
 from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonModuleIssueRuleContract,
+    PythonNameBindingIndexContract,
 )
 from implementation.types import JsonObject
 
@@ -40,6 +41,7 @@ class PythonGlobalIssueCollector:
     """Responsibilities: _collection rule analysis_, _state rule analysis_."""
 
     _timings: dict[str, float]
+    _binding_index: PythonNameBindingIndexContract
 
     @contextmanager
     def _measure(self, name: str) -> Iterator[None]:
@@ -70,7 +72,11 @@ class PythonGlobalIssueCollector:
         """Responsibilities: _collaborator creation analysis_."""
         with self._measure("rule.concrete-collaborator-created-per-operation"):
             with self._measure("rule.concrete-collaborator-created-per-operation.prepare"):
-                rule = ConcreteCollaboratorCreation(self._module_tree(), self._context.node_index())
+                rule = ConcreteCollaboratorCreation(
+                    self._module_tree(),
+                    self._context.node_index(),
+                    self._binding_index,
+                )
                 rule.prepare()
             with self._measure("rule.concrete-collaborator-created-per-operation.analysis"):
                 return rule.issues()
@@ -103,9 +109,14 @@ class PythonGlobalIssueCollector:
             "retry-without-ownership": retry_ownership,
         }
 
-    def __init__(self, context: PythonCodingIssueComponentContextContract) -> None:
+    def __init__(
+        self,
+        context: PythonCodingIssueComponentContextContract,
+        binding_index: PythonNameBindingIndexContract,
+    ) -> None:
         """Responsibilities: _project rule context ownership_."""
         self._context: PythonCodingIssueComponentContextContract = context
+        self._binding_index = binding_index
         self._timings = {}
 
     def collection_issues(self) -> list[JsonObject]:

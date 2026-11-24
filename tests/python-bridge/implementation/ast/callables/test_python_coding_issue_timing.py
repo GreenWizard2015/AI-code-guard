@@ -1,10 +1,19 @@
 import ast
 import unittest
+from unittest.mock import Mock
 
-from implementation.ast.callables.coding_issue_protocols import PythonRuleNodeDispatchContract
-from implementation.ast.callables.python_coding_issue_collector import PythonRuleNodeDispatch
-from implementation.ast.callables.python_coding_issue_timing import PythonCodingIssueTiming
+from implementation.ast.callables.coding_issue_protocols import (
+    PythonRuleNodeDispatchContract,
+)
+from implementation.ast.callables.python_coding_issue_collector import (
+    PythonRuleNodeDispatch,
+)
+from implementation.ast.callables.python_coding_issue_node import PythonCodingIssueNode
+from implementation.ast.callables.python_coding_issue_timing import (
+    PythonCodingIssueTiming,
+)
 from implementation.rules.constants import PYTHON_NODE_RULE_ANALYSIS_STAGE
+from implementation.rules.protocols import PythonCodingIssueComponentsContract
 from implementation.types import JsonObject, PythonRuleStageEntry
 
 
@@ -103,3 +112,20 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
                 {"proxy-analysis", PYTHON_NODE_RULE_ANALYSIS_STAGE, "rule-dispatch-overhead"},
             ),
         )
+
+    def test_empty_rule_results_skip_diagnostic_timing_but_keep_stage_duration(self) -> None:
+        """Responsibilities: _empty stage duration preservation_."""
+        timing = PythonCodingIssueTiming(lambda _node: [], lambda _node, _dispatch: [], {})
+        components = Mock(spec=PythonCodingIssueComponentsContract)
+        coding_issue_node = PythonCodingIssueNode(components, timing)
+        stage_calls: list[ast.AST] = []
+
+        def empty_stage(node: ast.AST) -> list[JsonObject]:
+            """Responsibilities: _empty rule result production_."""
+            stage_calls.append(node)
+            return []
+
+        node = ast.Constant(value=1)
+        result = coding_issue_node.timed_stage(node, empty_stage, "rule.sample")
+
+        self.assertEqual((result, stage_calls, set(timing.durations())), ([], [node], {"rule.sample"}))

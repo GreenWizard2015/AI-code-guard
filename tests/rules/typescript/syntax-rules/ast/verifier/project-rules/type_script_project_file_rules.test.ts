@@ -1,9 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import { TypeScriptRuleScope } from "src/core/lint-analysis/type_script_rule_scope";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import { TypeScriptProjectFileRules } from "src/rules/typescript/syntax-rules/ast/verifier/project-rules/type_script_project_file_rules";
+import { ProjectSourceAnalysisOptionsFixture } from "tests/core/project_source_analysis_options_fixture";
 import { TestFixture } from "tests/core/test-fixture";
 import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
 
@@ -86,13 +87,14 @@ describe("TypeScript project file rules", () => {
 			({ root, context, files, source_texts }) => {
 				const fixture = { root, paths: [...files], source_texts };
 				const analysis = fixture_builder._project_source.project_source_analysis_options(fixture, context, new Set());
-				const selected_scope: ProjectSourceAnalysisOptions = {
-					...analysis,
-					directory_files: { virtual_project: true, files: files.slice(0, 2) },
-				};
+				const selected_scope_fixture = new ProjectSourceAnalysisOptionsFixture(root, files, context, new Set(), {
+					virtual_project: true,
+					files: files.slice(0, 2),
+				});
+				const selected_scope = selected_scope_fixture.options();
 				const ast_file = new TypeScriptAstFile("features/first.ts", "export const first = 1;\n");
 				const source_file = ast_file.source_file_node();
-				const collect = (scope: ProjectSourceAnalysisOptions): string[] => {
+				const collect = (scope: ProjectSourceAnalysisOptionsContract): string[] => {
 					const context_for_source = new ASTVerifierTestContext(source_file);
 					const request = { node: source_file, context: context_for_source };
 					rules.append_directory_rules(request, scope);

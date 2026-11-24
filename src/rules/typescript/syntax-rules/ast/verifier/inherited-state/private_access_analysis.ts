@@ -5,8 +5,9 @@ import type {
 	PrivateAccessAnalysisOptions,
 	PrivateAccessCandidate,
 } from "src/contracts/types/type_script_rule_group_types";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
+import type { SourceFileMapContract } from "src/core/project-source/types";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import { LintStageTimer } from "src/lint_stage_timer";
 import { RULE_IDS } from "src/linting/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptReferenceQueryKind } from "src/model/types";
@@ -14,7 +15,7 @@ import { TypeScriptReferenceOwnership } from "src/parser/references/identity/ref
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { PrivateMemberKeys } from "src/rules/typescript/syntax-rules/ast/verifier/inherited-state/private_member_keys";
-import type { PrivateMemberKeysContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract, PrivateMemberKeysContract } from "src/shared_services_protocols";
 import type { TypeScriptReferenceOwnershipContract } from "src/typescript_analysis_protocols";
 import type {
 	TypeScriptAstTraversalContract,
@@ -26,11 +27,12 @@ import ts from "typescript";
 export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 	private readonly _source_file: ts.SourceFile;
 	private readonly _traversal: TypeScriptAstTraversalContract;
+	private readonly _stage_timer: LintStageTimerContract;
 	private readonly _member_keys: PrivateMemberKeysContract;
 	private readonly _members: StringSetMap;
 	private readonly _private_member_names: Set<string>;
+	private readonly _owner_by_name: Map<string, string>;
 	private readonly _accesses: ts.AccessExpression[];
-	private readonly _owners: string[];
 	private readonly _rule: RuleContract;
 	private readonly _private_keyword: ts.SyntaxKind;
 
@@ -54,6 +56,19 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 		return [member.name.getText(this._source_file)];
 	}
 
+	/** Responsibilities: _private member owner indexing_. **/
+	private append_private_owners(owner: string, names: ReadonlySet<string>): void {
+		for (const name of names) {
+			this._private_member_names.add(name);
+			const existing_owner = this._owner_by_name.get(name);
+			if (existing_owner === undefined) {
+				this._owner_by_name.set(name, owner);
+			} else if (existing_owner !== owner) {
+				this._owner_by_name.set(name, "");
+			}
+		}
+	}
+
 	/** Responsibilities: _private members declared addition_. **/
 	private append_class(node: ts.ClassLikeDeclaration): void {
 		const declaration_name = node.name;
@@ -61,17 +76,12 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 			return;
 		}
 		const name = declaration_name.text;
-		const private_names = new Set(
-			node.members.flatMap((member) => {
-				return this.private_names(member);
-			}),
-		);
-		if (private_names.size > 0) {
-			this._members.set(name, private_names);
-			for (const private_name of private_names) {
-				this._private_member_names.add(private_name);
-			}
+		const names = new Set(node.members.flatMap((member) => this.private_names(member)));
+		if (names.size === 0) {
+			return;
 		}
+		this._members.set(name, names);
+		this.append_private_owners(name, names);
 	}
 
 	/** Responsibilities: _private access membership_. **/
@@ -137,28 +147,33 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 	/** Responsibilities: _matching private access selection_. **/
 	private matching_accesses(): PrivateAccessCandidate[] {
 		const candidates: PrivateAccessCandidate[] = [];
-		for (let index = 0; index < this._accesses.length; index += 1) {
-			const access = this._accesses[index];
-			const current_owner = this._owners[index];
-			if (access === undefined || current_owner === undefined) {
+		for (const access of this._accesses) {
+			const name = this.access_name(access);
+			if (!this._private_member_names.has(name)) {
 				continue;
 			}
-			const name = this.access_name(access);
-			if (this._private_member_names.has(name)) {
-				candidates.push({ access, current_owner, name });
+			const current_owner = this.owner(access);
+			if (current_owner !== "" && this._owner_by_name.get(name) === current_owner) {
+				continue;
 			}
+			candidates.push({ access, current_owner, name });
 		}
 		return candidates;
 	}
 
 	/** Responsibilities: _reference ownership initialization_. **/
 	private reference_ownership(): TypeScriptReferenceOwnershipContract {
+		const source_files: SourceFileMapContract = new Map<string, ts.SourceFile>();
+		const source_map_cache = new SourceFileMapCache();
+		const source_resolver = source_map_cache.for_map(source_files);
 		return new TypeScriptReferenceOwnership({
 			source_file: this._source_file,
 			traversal: this._traversal,
 			project_root: dirname(this._source_file.fileName),
-			stage_timer: new LintStageTimer(),
-			source_files: new Map(),
+			stage_timer: this._stage_timer,
+			stage_name_prefix: "file-analysis.typescript.script-rule.private-member-access.reference-resolution",
+			resolve_imports: false,
+			source_files: source_resolver,
 			source_io: new InMemoryProjectSourceIO(new Map()),
 		});
 	}
@@ -168,11 +183,12 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 		this._private_keyword = ts.SyntaxKind.PrivateKeyword;
 		this._source_file = options.source_file;
 		this._traversal = options.traversal;
+		this._stage_timer = options.stage_timer;
 		this._member_keys = new PrivateMemberKeys(options.static_expression_operations);
 		this._members = new Map();
 		this._private_member_names = new Set();
+		this._owner_by_name = new Map();
 		this._accesses = [];
-		this._owners = [];
 		this._rule = new DiagnosticRule(RULE_IDS.private_member);
 	}
 
@@ -183,7 +199,6 @@ export class PrivateAccessAnalysis implements PrivateAccessAnalysisContract {
 		}
 		if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
 			this._accesses.push(node);
-			this._owners.push(this.owner(node));
 		}
 	}
 

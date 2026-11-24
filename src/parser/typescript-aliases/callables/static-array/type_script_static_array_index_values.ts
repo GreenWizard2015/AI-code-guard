@@ -1,7 +1,7 @@
 import type { StaticExpressionArrayContract } from "src/analysis_protocols";
 import type { StaticArraySourceAppenderContract } from "src/analysis_protocols";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptStaticArrayIndexOperation } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_index_operation";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
 import type { TypeScriptStaticArrayIndexValuesContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";

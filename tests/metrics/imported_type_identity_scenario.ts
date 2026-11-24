@@ -1,4 +1,5 @@
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
@@ -10,9 +11,11 @@ import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_trav
 export class ImportedTypeIdentityScenario {
 	private readonly _files: ReadonlyMap<string, TypeScriptAstFile>;
 	private readonly _options: TypeScriptScannerOptions;
+	private readonly _source_file_map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _source graph initialization_. **/
 	public constructor() {
+		this._source_file_map_cache = new SourceFileMapCache();
 		const port_file = "/project/port.ts";
 		const use_file = "/project/use.ts";
 		const other_file = "/project/other.ts";
@@ -32,7 +35,7 @@ export class ImportedTypeIdentityScenario {
 		const source_files = new Map(source_nodes);
 		const module_context = new TypeScriptModuleExportsContext(
 			"/project",
-			source_files,
+			this._source_file_map_cache.for_map(source_files),
 			false,
 			new InMemoryProjectSourceIO(new Map()),
 		);

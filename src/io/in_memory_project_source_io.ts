@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { ProjectPathRelation } from "src/core/support/project_path_relation";
+import { ProjectPathRelation } from "src/core/project-source/project_path_relation";
 import type { ProjectPathRelationContract } from "src/core/support/protocols";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 

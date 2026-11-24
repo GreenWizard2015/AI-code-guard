@@ -107,15 +107,15 @@ export class PythonAstData implements PythonAstDataContract {
 		});
 		return batch_id;
 	}
-
 	/** Responsibilities: _split batch result completion_. **/
 	private complete_batch_results(preparation: PythonBatchAstPreparation, batch_id: string): NormalizedAstFile[] {
 		const prefix = this.stage_prefix(preparation.options.stage_prefix);
-		const response = preparation.worker_batch.complete();
-		preparation.options.stage_timer.add_duration({
-			name: `${prefix}.bridge-round-trip`,
-			duration_ms: performance.now() - preparation.started_at,
-		});
+		const response = preparation.worker_batch.complete_timed(
+			preparation.options.stage_timer,
+			`${prefix}.bridge-round-trip.worker-wait`,
+			`${prefix}.bridge-round-trip`,
+			preparation.started_at,
+		);
 		const batch_result = new PythonAstBatchResult({
 			batch_id,
 			texts: preparation.cache.missing_texts,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import "src/lint_stage_timer";
 import { TestDataFactory } from "tests/core/test-data-factory";
 

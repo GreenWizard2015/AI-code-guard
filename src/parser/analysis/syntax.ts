@@ -1,6 +1,6 @@
 import type { AstParseIssue, AstTypeKind } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import { TypeScriptTypeNode } from "src/model/type_script_type_node";
+import { TypeScriptTypeNode } from "src/model/typescript/type_script_type_node";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { SyntaxContract } from "src/shared_services_protocols";
 import type { ParseLanguage } from "src/types";

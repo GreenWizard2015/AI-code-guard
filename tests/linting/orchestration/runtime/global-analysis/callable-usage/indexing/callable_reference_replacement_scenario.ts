@@ -1,4 +1,4 @@
-import type { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/callable_usage_references";
+import type { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/references/callable_usage_references";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 
 /** Responsibilities: _callable reference replacement_, _owner bucket lookup_. **/

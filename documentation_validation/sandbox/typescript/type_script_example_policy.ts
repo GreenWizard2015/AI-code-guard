@@ -1,8 +1,8 @@
 import { TYPESCRIPT_FORBIDDEN_GLOBAL_NAMES } from "documentation_validation/constants";
 import type { TypeScriptExampleModuleCatalogContract } from "documentation_validation/protocols";
-import { TypeScriptModuleImportPolicy } from "documentation_validation/sandbox/typescript/type_script_module_import_policy";
+import { TypeScriptModuleImportPolicy } from "documentation_validation/sandbox/typescript/execution/type_script_module_import_policy";
+import { TypeScriptRuntimeCapabilityPolicy } from "documentation_validation/sandbox/typescript/execution/type_script_runtime_capability_policy";
 import { TypeScriptReflectionPolicy } from "documentation_validation/sandbox/typescript/type_script_reflection_policy";
-import { TypeScriptRuntimeCapabilityPolicy } from "documentation_validation/sandbox/typescript/type_script_runtime_capability_policy";
 import ts from "typescript";
 
 /** Responsibilities: _TypeScript policy composition_, _source diagnostic aggregation_. **/

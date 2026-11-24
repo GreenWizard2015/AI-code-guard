@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type {
 	ModulePathResolverContract,
 	ResolvedTypeScriptDeclarationKind,
@@ -7,7 +8,6 @@ import type {
 	TypeScriptLocalSymbolQuery,
 	TypeScriptModuleCache,
 	TypeScriptModuleSymbolReference,
-	TypeScriptSourceFileMap,
 } from "src/module-resolution/types";
 import type { TypeScriptPathMapping } from "src/module-resolution/types";
 import type { ProjectSourceIOContract } from "src/source_protocols";
@@ -95,7 +95,7 @@ export interface TypeScriptModuleSourceContract {
 export type TypeScriptModuleSourceOptions = {
 	readonly file: string;
 	readonly runtime_module: boolean;
-	readonly shared_source_files: TypeScriptSourceFileMap;
+	readonly shared_source_files: SourceFileResolverContract;
 	readonly filesystem_fallback: boolean;
 	readonly loaded_source_files: Map<string, ts.SourceFile>;
 	readonly source_io: ProjectSourceIOContract;
@@ -104,5 +104,6 @@ export type TypeScriptModuleSourceOptions = {
 /** Responsibilities: _module export scope_. **/
 export interface TypeScriptModuleExportScopeContract {
 	file_for(query: TypeScriptFileExportQuery): TypeScriptModuleSymbolReference;
+	file_for_miss(query: TypeScriptFileExportQuery, cache_key: string): TypeScriptModuleSymbolReference;
 	local_symbol(query: TypeScriptLocalSymbolQuery): TypeScriptModuleSymbolReference;
 }

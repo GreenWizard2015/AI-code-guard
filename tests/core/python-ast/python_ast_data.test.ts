@@ -42,6 +42,19 @@ describe("Python AST batch response validation", () => {
 		);
 	});
 
+	test("records the blocking wait separately from the split bridge round trip", () => {
+		const scenario = new PythonAstBatchScenario();
+		const parser = new PythonAstData(scenario.parser_options());
+		const stage_timer = new LintStageTimer();
+		const options = { ...scenario.batch_options(["class First:\n    pass\n"]), stage_timer };
+		const batch_id = parser.begin_batch_ast(options);
+		parser.complete_batch_ast(batch_id);
+
+		const stage_names = stage_timer.durations().map((stage) => stage.name);
+		expect(stage_names).toContain("python-bridge.bridge-round-trip");
+		expect(stage_names).toContain("python-bridge.bridge-round-trip.worker-wait");
+	});
+
 	test("rejects a stale single batch identifier", () => {
 		const valid_scenario = new PythonAstBatchScenario();
 		const valid_parser = new PythonAstData(valid_scenario.parser_options());

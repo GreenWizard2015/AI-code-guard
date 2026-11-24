@@ -5,6 +5,9 @@ import ast
 from implementation.ast.callables.python_coding_issue_collector import (
     PythonCodingIssueCollector,
 )
+from implementation.rules.call_analysis.python_name_binding_index import (
+    PythonNameBindingIndex,
+)
 from implementation.rules.coding_issues.python_coding_issue_component_context import (
     PythonCodingIssueComponentContext,
 )
@@ -14,7 +17,9 @@ from implementation.rules.coding_issues.python_coding_issue_components import (
 from implementation.rules.coding_issues.python_coding_issue_primary_rules import (
     PythonCodingIssuePrimaryRules,
 )
-from implementation.rules.python_syntax.python_primary_type_assembly import PythonPrimaryTypeAssembly
+from implementation.rules.python_syntax.python_primary_type_assembly import (
+    PythonPrimaryTypeAssembly,
+)
 from python_collector_fixture_factory import PythonCollectorFixtureOptionsFactory
 
 
@@ -33,8 +38,9 @@ class PythonCollectorFixture:
         """Responsibilities: _coding collector construction_."""
         options = self._options_factory.create(tree, source)
         context = PythonCodingIssueComponentContext(options)
-        primary_assembly = PythonPrimaryTypeAssembly(context)
+        binding_index = PythonNameBindingIndex(tree, options.source.node_index)
+        primary_assembly = PythonPrimaryTypeAssembly(context, binding_index)
         rule_set = primary_assembly.primary_rule_set()
         primary = PythonCodingIssuePrimaryRules(context, rule_set)
-        components = PythonCodingIssueComponents(context, primary)
+        components = PythonCodingIssueComponents(context, primary, binding_index)
         return PythonCodingIssueCollector(components, components.execution_plan())

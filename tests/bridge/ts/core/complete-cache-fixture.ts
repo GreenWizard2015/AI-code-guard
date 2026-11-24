@@ -1,7 +1,7 @@
 import { dirname, join, resolve } from "node:path";
 import type { LintExecutionCacheContextOptions } from "src/core/cache/types";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import type { LintInputFiles } from "src/project_analysis_types";
 import type { CliOptions } from "src/task_types";
 import type { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";

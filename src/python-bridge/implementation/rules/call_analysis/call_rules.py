@@ -49,6 +49,7 @@ from implementation.rules.constants import (
 )
 from implementation.rules.protocols import (
     PythonDowncastAnalysisContract,
+    PythonNameBindingIndexContract,
 )
 from implementation.types import JsonObject
 
@@ -63,6 +64,7 @@ class CallRulesOptions:
     reference_aliases: PythonReferenceAliasesContract
     python_call_classification: PythonCallClassificationContract
     callable_condition_context: PythonCallableConditionContextContract
+    binding_index: PythonNameBindingIndexContract
 
 
 class CallRules:
@@ -192,6 +194,7 @@ class CallRules:
         self._protocol_downcast: PythonDowncastAnalysisContract = PythonImplementationDowncast(
             self._tree,
             self._node_index,
+            options.binding_index,
         )
         self._reflection_names: PythonCallReflectionIndexContract = PythonCallReflectionIndex(
             self._container_aliases,

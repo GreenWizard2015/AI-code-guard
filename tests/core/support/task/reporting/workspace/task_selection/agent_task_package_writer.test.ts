@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
-import { AgentPackageAssignmentStore } from "src/core/support/task/reporting/workspace/task_selection/agent_package_assignment_store";
 import { AgentTaskPackagePublication } from "src/core/support/task/reporting/workspace/task_selection/agent_task_package_publication";
+import { AgentPackageAssignmentStore } from "src/core/support/task/reporting/workspace/task_selection/assignment/ownership/agent_package_assignment_store";
 import { ViolationValue } from "src/model/violation_value";
 import type { AgentPackagePublicationRequest } from "src/task_selection_types";
 import { FailingDirectorySwapIO } from "tests/bridge/ts/core/cache/failing_directory_swap_io";

@@ -26,6 +26,7 @@ from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonDecoratorAliasStateContract,
     PythonDecoratorRuleContract,
+    PythonNameBindingIndexContract,
 )
 from implementation.rules.python_syntax.decorators.python_decorator_alias_state import (
     PythonDecoratorAliasState,
@@ -48,6 +49,7 @@ class PythonPrimaryCallAssembly:
     """Responsibilities: _invocation policy_, _decorator policy_."""
 
     _context: PythonCodingIssueComponentContextContract
+    _binding_index: PythonNameBindingIndexContract
 
     def _call_rules(
         self,
@@ -68,6 +70,7 @@ class PythonPrimaryCallAssembly:
             context.aliases().values.reference_aliases,
             classification,
             condition_context,
+            self._binding_index,
         )
         return CallRules(options)
 
@@ -83,9 +86,14 @@ class PythonPrimaryCallAssembly:
             assigned_descriptors,
         )
 
-    def __init__(self, context: PythonCodingIssueComponentContextContract) -> None:
+    def __init__(
+        self,
+        context: PythonCodingIssueComponentContextContract,
+        binding_index: PythonNameBindingIndexContract,
+    ) -> None:
         """Responsibilities: _context ownership_."""
         self._context: PythonCodingIssueComponentContextContract = context
+        self._binding_index = binding_index
 
     def condition_context(self) -> PythonCallableConditionContextContract:
         """Responsibilities: _callable scope_, _parent indexing_."""

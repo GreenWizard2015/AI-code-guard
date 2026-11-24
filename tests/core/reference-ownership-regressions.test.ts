@@ -1,11 +1,15 @@
 import "src/callable_usage";
 import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
+import { INSTANCE_PROPERTY_SIDE } from "src/constants";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
+import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import type { CallOwnerResolverContract } from "src/model/protocols";
-import { TypeScriptReferenceResolution } from "src/model/type_script_reference_resolution";
+import { TypeScriptReferenceResolution } from "src/model/typescript/type_script_reference_resolution";
+import { TypeScriptCallReturns } from "src/parser/references/identity/calls/type_script_call_returns";
 import { TypeScriptInstanceIndex } from "src/parser/references/identity/instances/type_script_instance_index";
 import { TypeScriptPropertyState } from "src/parser/references/identity/properties/type_script_property_state";
 import { TypeScriptThisReceiver } from "src/parser/references/instance/type_script_this_receiver";
@@ -13,6 +17,39 @@ import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
 describe("reference ownership regressions", () => {
+	const source_file_map_cache = new SourceFileMapCache();
+	test("resolves the latest instance binding before each reference", () => {
+		const source = ts.createSourceFile(
+			"service.ts",
+			"let service = new First(); const before = service; service = new Second(); const after = service; service = unknown; const unresolved = service;",
+			ts.ScriptTarget.Latest,
+			true,
+		);
+		const declarations = source.statements
+			.filter(ts.isVariableStatement)
+			.flatMap((statement) => statement.declarationList.declarations);
+		const assignments = source.statements
+			.filter(ts.isExpressionStatement)
+			.map((statement) => statement.expression)
+			.filter(ts.isBinaryExpression);
+		const [instance_declaration, before, after, unresolved] = declarations;
+		const [reassignment, unresolved_assignment] = assignments;
+		const index = new TypeScriptInstanceIndex(source);
+		index.add("service", "FirstOwner", instance_declaration ?? source);
+		index.add("service", "SecondOwner", reassignment ?? source);
+		index.add("service", "", unresolved_assignment ?? source);
+
+		expect({
+			before: index.instance_owner("service", before ?? source),
+			after: index.instance_owner("service", after ?? source),
+			unresolved: index.instance_owner("service", unresolved ?? source),
+		}).toEqual({
+			before: { bound: true, value: "FirstOwner" },
+			after: { bound: true, value: "SecondOwner" },
+			unresolved: { bound: true, value: "" },
+		});
+	});
+
 	test("resolves this from an instance field initializer", () => {
 		const source = ts.createSourceFile(
 			"service.ts",
@@ -105,6 +142,55 @@ describe("reference ownership regressions", () => {
 				.map((violation) => violation.file())
 				.filter((file) => file === "base.ts" || file === "child.ts"),
 		).toEqual([]);
+	});
+
+	test("reuses imported callable return analysis across aliases", () => {
+		const fixture = new TestFixture();
+		const references = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"service.ts": [
+					"export class Service { execute(): number { return 1; } }",
+					"export function create_service(): Service { return new Service(); }",
+				].join("\n"),
+				"consumer.ts": [
+					"import { Service, create_service as first_factory, create_service as second_factory } from './service';",
+					"first_factory().execute();",
+					"second_factory().execute();",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) => {
+				const execution = production_lint_configuration.lint_report(options, mode);
+				const consumer = execution.context.files().find((source) => source.relative_path === "consumer.ts");
+				if (consumer === undefined) {
+					return [];
+				}
+				const { references } = consumer.normalized_ast;
+				return references.call_references.filter((reference) => reference.name === "execute");
+			},
+		);
+		expect(references).toEqual([
+			expect.objectContaining({ kind: "method", name: "execute", owner: "Service" }),
+			expect.objectContaining({ kind: "method", name: "execute", owner: "Service" }),
+		]);
+	});
+
+	test("preserves local factory return owners when reusing the file analysis", () => {
+		const source = ts.createSourceFile(
+			"service.ts",
+			"class Service {}\nconst local_factory = (): Service => new Service();",
+			ts.ScriptTarget.Latest,
+			true,
+		);
+		const call_returns = new TypeScriptCallReturns(
+			source,
+			new Map<string, string>(),
+			process.cwd(),
+			source_file_map_cache.for_map(new Map<string, ts.SourceFile>()),
+			new InMemoryProjectSourceIO(new Map()),
+		);
+
+		expect(call_returns.owner_for("local_factory", "", INSTANCE_PROPERTY_SIDE)).toBe("Service");
 	});
 
 	test("keeps static and instance field references on their declaration files", () => {

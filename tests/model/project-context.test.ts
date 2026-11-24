@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
@@ -7,9 +7,10 @@ import "src/lint_stage_timer";
 import { describe, expect, test } from "@jest/globals";
 import { RULE_DOCUMENT_PATHS_BY_ID, RULE_LANGUAGE_BY_ID } from "src/constants";
 import { PythonSourceFiles } from "src/core/context/python_source_files";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { CodingRuleLinter } from "src/linting/file_linting/coding_rule_linter";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
@@ -18,6 +19,7 @@ import { EMPTY_PROJECT_NAMES } from "tests/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("coding lint rule contracts", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("exposes coding rules through the RuleContract interface", () => {
 		const rule: RuleContract = new DiagnosticRule("typescript-console-mock-in-test");
 		const expected_violation = rule.violation("fixture.ts", 1, {});
@@ -127,7 +129,7 @@ describe("coding lint rule contracts", () => {
 			{ file: "tests/example.test.ts", text },
 			source.normalized(),
 			source.source_file_node(),
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			new TypeScriptAstTraversal(source.source_file_node()),
 		);
 		const source_snapshot = source_ast.snapshot();
@@ -173,7 +175,7 @@ describe("coding lint rule contracts", () => {
 			{ file: "tests/example.test.ts", text },
 			source.normalized(),
 			source.source_file_node(),
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			new TypeScriptAstTraversal(source.source_file_node()),
 		);
 		const source_snapshot = source_ast.snapshot();

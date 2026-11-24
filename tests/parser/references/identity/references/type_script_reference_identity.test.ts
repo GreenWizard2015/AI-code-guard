@@ -1,8 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { TypeScriptReferenceIdentity } from "src/parser/references/identity/references/type_script_reference_identity";
 import { TypeScriptReferenceIdentityFixture } from "tests/type_script_reference/type_script_reference_identity_fixture";
 
 describe("TypeScript reference identity", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const fixture = new TypeScriptReferenceIdentityFixture();
 
 	test("keeps factory results tied to their imported declaration file", () => {
@@ -20,7 +22,7 @@ describe("TypeScript reference identity", () => {
 		const identity_resolver = new TypeScriptReferenceIdentity(
 			consumer,
 			root,
-			source_files,
+			source_file_map_cache.for_map(source_files),
 			fixture.source_io(root, texts),
 		);
 		const identity = identity_resolver.method_reference(fixture.property_access(consumer, "execute"), "Service");
@@ -37,7 +39,12 @@ describe("TypeScript reference identity", () => {
 		};
 		const source_files = fixture.source_files(root, texts);
 		const consumer = fixture.required_source_file(source_files, `${root}/consumer.ts`);
-		const resolver = new TypeScriptReferenceIdentity(consumer, root, source_files, fixture.source_io(root, texts));
+		const resolver = new TypeScriptReferenceIdentity(
+			consumer,
+			root,
+			source_file_map_cache.for_map(source_files),
+			fixture.source_io(root, texts),
+		);
 
 		expect(resolver.method_reference(fixture.property_access(consumer, "execute"), "Child")).toEqual({
 			name: "execute",
@@ -56,7 +63,12 @@ describe("TypeScript reference identity", () => {
 		};
 		const source_files = fixture.source_files(root, texts);
 		const local_file = fixture.required_source_file(source_files, `${root}/local.ts`);
-		const resolver = new TypeScriptReferenceIdentity(local_file, root, source_files, fixture.source_io(root, texts));
+		const resolver = new TypeScriptReferenceIdentity(
+			local_file,
+			root,
+			source_file_map_cache.for_map(source_files),
+			fixture.source_io(root, texts),
+		);
 
 		expect(resolver.method_reference(fixture.property_access(local_file, "execute"), "LocalService")).toEqual({
 			name: "execute",
@@ -77,7 +89,12 @@ describe("TypeScript reference identity", () => {
 		};
 		const source_files = fixture.source_files(root, texts);
 		const local_file = fixture.required_source_file(source_files, `${root}/local.ts`);
-		const resolver = new TypeScriptReferenceIdentity(local_file, root, source_files, fixture.source_io(root, texts));
+		const resolver = new TypeScriptReferenceIdentity(
+			local_file,
+			root,
+			source_file_map_cache.for_map(source_files),
+			fixture.source_io(root, texts),
+		);
 
 		expect(resolver.method_reference(fixture.property_access(local_file, "execute"), "LocalService")).toEqual({
 			name: "execute",
@@ -99,7 +116,12 @@ describe("TypeScript reference identity", () => {
 		const source_files = fixture.source_files(root, texts);
 		const consumer = fixture.required_source_file(source_files, `${root}/consumer.ts`);
 		const accesses = fixture.property_accesses_by_owner(consumer, "execute", new Set(["client", "local"]));
-		const resolver = new TypeScriptReferenceIdentity(consumer, root, source_files, fixture.source_io(root, texts));
+		const resolver = new TypeScriptReferenceIdentity(
+			consumer,
+			root,
+			source_file_map_cache.for_map(source_files),
+			fixture.source_io(root, texts),
+		);
 		const identity = {
 			client: resolver.method_reference(fixture.required_property_access(accesses, "client"), "Service"),
 			local: resolver.method_reference(fixture.required_property_access(accesses, "local"), "Service"),

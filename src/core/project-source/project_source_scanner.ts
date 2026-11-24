@@ -3,11 +3,13 @@ import { readdirSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
 import type { ReadonlyStringSetMap } from "src/analysis_types";
 import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from "src/constants";
+import { ProjectSourceImportCache } from "src/core/project-source/imports/project_source_import_cache";
+import { ProjectSourceImports } from "src/core/project-source/imports/project_source_imports";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
-import { ProjectSourceImportCache } from "src/core/project-source/project_source_import_cache";
-import { ProjectSourceImports } from "src/core/project-source/project_source_imports";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
+import { ProjectSourceWorkerEntries } from "src/core/project-source/project_source_worker_entries";
 import { PythonProjectEntryPointUsages } from "src/core/project-source/python-imports/python_project_entry_point_usages";
+import { WorkerUrlPaths } from "src/core/project-source/worker_url_paths";
 import { ProjectSourceEntry } from "src/linting/orchestration/runtime/global-rules/project_source_entry";
 import { ProjectSourceImportAnalysis } from "src/model/project_source_import_analysis";
 import type { ProjectContextState, ProjectSourceOptions } from "src/model_types";
@@ -27,6 +29,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 	private readonly _project_source_imports: ProjectSourceImports;
 	private readonly _context_imports: ProjectSourceContextImportsContract;
 	private readonly _specifier_resolver: ProjectSourceImportCache;
+	private readonly _worker_entries: ProjectSourceWorkerEntries;
 
 	/** Responsibilities: _source file classification_. **/
 	private project_source_file(name: string, path: string): boolean {
@@ -95,6 +98,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 	/** Responsibilities: _project entry classification_, _external entry-point lookup_. **/
 	private entry_files(files: readonly string[], available: ReadonlySet<string>): string[] {
 		const pending = files.filter((file) => this._source_entry.entry(file));
+		pending.push(...this._worker_entries.entry_files(files, available));
 		for (const relative_file of this.external_symbol_usages().keys()) {
 			const entry_file = resolve(this._root, relative_file);
 			if (available.has(entry_file)) {
@@ -121,6 +125,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 		this._root = root;
 		this._source_entry = new ProjectSourceEntry(root, options);
 		this._context_state = options.context_state;
+		this._worker_entries = new ProjectSourceWorkerEntries(options.context_state.value, new WorkerUrlPaths());
 	}
 
 	/** Responsibilities: _project source entry lookup_. **/

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Diagnostic Cycle Audit"
+  short_description: "Find diagnostic repair cycles"
+  default_prompt: "Use $diagnostic-cycle-audit to test whether ordinary diagnostics-to-zero repairs recreate an earlier lint problem."

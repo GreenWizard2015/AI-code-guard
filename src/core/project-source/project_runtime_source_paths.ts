@@ -5,14 +5,14 @@ import type { ProjectSourceIOContract } from "src/source_protocols";
 /** Responsibilities: _runtime source discovery_, _duplicate path avoidance_. **/
 export class ProjectRuntimeSourcePaths {
 	private readonly _root: string;
+	private readonly _runtime_source_extensions: ReadonlySet<string>;
 	private readonly _source_io: ProjectSourceIOContract;
-	private readonly _extensions: ReadonlySet<string>;
 
 	/** Responsibilities: _runtime source inventory initialization_. **/
 	public constructor(root: string, source_io: ProjectSourceIOContract) {
 		this._root = resolve(root);
+		this._runtime_source_extensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".json"]);
 		this._source_io = source_io;
-		this._extensions = new Set([".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts", ".json"]);
 	}
 
 	/** Responsibilities: _runtime source extension filtering_. **/
@@ -20,7 +20,7 @@ export class ProjectRuntimeSourcePaths {
 		const source_paths = this._source_io.source_paths(this._root, IGNORED_DIRS);
 		const runtime_paths: string[] = [];
 		for (const path of source_paths) {
-			if (this._extensions.has(extname(path))) {
+			if (this._runtime_source_extensions.has(extname(path))) {
 				runtime_paths.push(path);
 			}
 		}

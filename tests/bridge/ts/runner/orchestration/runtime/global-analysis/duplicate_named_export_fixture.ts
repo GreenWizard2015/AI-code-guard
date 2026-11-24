@@ -1,3 +1,4 @@
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
@@ -8,9 +9,11 @@ export class DuplicateNamedExportFixture {
 	public readonly barrel_file = "/project/index.ts";
 	public readonly value_file = "/project/value.ts";
 	private readonly _resolver: TypeScriptModuleExportsContract;
+	private readonly _map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _scenario construction_. **/
 	public constructor() {
+		this._map_cache = new SourceFileMapCache();
 		const missing_file = "/project/missing.ts";
 		const source_files = new Map([
 			[
@@ -30,7 +33,7 @@ export class DuplicateNamedExportFixture {
 		]);
 		const resolver_context = new TypeScriptModuleExportsContext(
 			"/project",
-			source_files,
+			this._map_cache.for_map(source_files),
 			false,
 			new InMemoryProjectSourceIO(new Map()),
 		);

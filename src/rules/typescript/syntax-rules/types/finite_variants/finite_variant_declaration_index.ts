@@ -144,11 +144,11 @@ export class FiniteVariantDeclarationIndex {
 		const imported_file = rule_context
 			.state()
 			.analysis.module_resolver.module_symbol(importing_file.fileName, module_import.moduleSpecifier.text);
-		const imported_source = rule_context.state().analysis.source_resolver.get(imported_file);
-		if (imported_source === undefined) {
+		const source_resolver = rule_context.state().analysis.source_resolver;
+		if (!source_resolver.contains_source_file(imported_file)) {
 			return index;
 		}
-		return this.source_members(imported_source);
+		return this.source_members(source_resolver.source_file(imported_file));
 	}
 
 	/** Responsibilities: _finite type member indexing_. **/

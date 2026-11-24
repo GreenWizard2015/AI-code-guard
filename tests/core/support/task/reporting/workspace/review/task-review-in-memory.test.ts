@@ -3,7 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import { TaskReview } from "src/core/support/task/reporting/workspace/review/task_review";
 import { ResolvedReviewArchive } from "src/core/support/task/resolved_review_archive";
 import { REVIEW_COMPLETION_TEXT, REVIEW_SOURCE_IDENTITY_PREFIX } from "src/core/support/task/review-agent/constants";
-import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
+import { ReviewStateIdentity } from "src/core/support/task/review-agent/recovery/review_state_identity";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 describe("task review in-memory IOContract", () => {

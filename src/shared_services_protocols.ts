@@ -10,7 +10,6 @@ import type {
 } from "src/model/ast/normalized_ast_types";
 import type { DirectoryFileViolationOptions, RemainingViolationOptions } from "src/model_types";
 import type { DirectoryFileSet } from "src/project_analysis_types";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageDuration } from "src/runtime_types";
 import type { CallableAsyncOperation, CallableOperation } from "src/runtime_types";
@@ -64,6 +63,8 @@ export interface PropertyOwnerCallbacksContract {
 /** Responsibilities: _lint stage measurement_. **/
 export interface LintStageTimerContract {
 	add_duration(duration: LintStageDuration): void;
+	start_measurement(): number;
+	finish_measurement(stage_name: string, start_time: number): void;
 	measure<T>(stage_name: string, operation: CallableOperation<T>): T;
 	measure_async<T>(stage_name: string, operation: CallableAsyncOperation<T>): Promise<T>;
 	durations(): readonly LintStageDuration[];
@@ -74,17 +75,6 @@ export interface LintStageTimerContract {
 export interface TestPathSyntaxContract {
 	classify(file: string): ReadonlySet<TestPathKind>;
 }
-
-/** Responsibilities: _global analysis stage inputs_. **/
-export type GlobalAnalysisStageOptions = {
-	readonly repo_root: string;
-	readonly project_files: string[];
-	readonly project_type_names: ReadonlySet<string>;
-	readonly context: LintProjectContextContract;
-	readonly entry_files: readonly string[];
-	readonly stage_timer: LintStageTimerContract;
-	readonly project_scope: ProjectSourceAnalysisOptions;
-};
 
 /** Responsibilities: _keyed source reference indexing_. **/
 export interface SourceReferenceIndexContract<TKey extends {}> {

@@ -1,4 +1,5 @@
 import { INSTANCE_PROPERTY_SIDE, STATIC_PROPERTY_SIDE } from "src/constants";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { TypeScriptCallReturnsContract } from "src/model/protocols";
 import { TypeScriptImportedCallOwners } from "src/parser/references/identity/calls/type_script_imported_call_owners";
 import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
@@ -17,7 +18,6 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 
 	/** Responsibilities: _index top-level function declarations_. **/
 	private add_local_functions(): void {
-		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 		for (const statement of this._source_file.statements) {
 			if (!ts.isFunctionDeclaration(statement)) {
 				continue;
@@ -28,7 +28,7 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 			if (statement.type === undefined) {
 				continue;
 			}
-			const owner = call_return_analysis.reference_owner(statement.type);
+			const owner = this._call_return_analysis.reference_owner(statement.type);
 			if (owner) {
 				this._owners.set(statement.name.text, owner);
 			}
@@ -52,14 +52,13 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 
 	/** Responsibilities: _resolution owner represented local_. **/
 	private local_variable_owner(declaration: ts.VariableDeclaration): string {
-		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 		if (!ts.isIdentifier(declaration.name)) {
 			return "";
 		}
 		if (declaration.initializer === undefined) {
 			return "";
 		}
-		const initializers = call_return_analysis.unwrap_expression(declaration.initializer);
+		const initializers = this._call_return_analysis.unwrap_expression(declaration.initializer);
 		if (initializers.length === 0) {
 			return "";
 		}
@@ -162,7 +161,7 @@ export class TypeScriptCallReturns implements TypeScriptCallReturnsContract {
 		source_file: ts.SourceFile,
 		aliases: ReadonlyMap<string, string>,
 		project_root: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_files: SourceFileResolverContract,
 		source_io: ProjectSourceIOContract,
 	) {
 		this._owners = new Map<string, string>();

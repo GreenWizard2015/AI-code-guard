@@ -1,17 +1,17 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { ModulePathResolverContract } from "src/module-resolution/types";
 import type {
 	RestUnionAliasDeclarations,
 	RestUnionSourceAliasCache,
 	RestUnionSourceAliasesOptions,
 } from "src/rules/typescript/syntax-rules/types/types";
-import type { SourceFileResolver } from "src/source_types";
 import ts from "typescript";
 
 /** Responsibilities: _rest-union import resolution_, _rest-union alias indexing_. **/
 export class RestUnionSourceAliases {
 	private readonly _source_file: ts.SourceFile;
 	private readonly _module_path: ModulePathResolverContract;
-	private readonly _source_resolver: SourceFileResolver;
+	private readonly _source_resolver: SourceFileResolverContract;
 	private readonly _alias_cache: RestUnionSourceAliasCache;
 	private readonly _local_aliases: RestUnionAliasDeclarations;
 
@@ -72,11 +72,10 @@ export class RestUnionSourceAliases {
 		if (file.length === 0) {
 			return new Map<string, ts.TypeAliasDeclaration>();
 		}
-		const source = this._source_resolver.get(file);
-		if (source === undefined) {
+		if (!this._source_resolver.contains_source_file(file)) {
 			return new Map<string, ts.TypeAliasDeclaration>();
 		}
-		return this.aliases_from_source(bindings, source);
+		return this.aliases_from_source(bindings, this._source_resolver.source_file(file));
 	}
 
 	/** Responsibilities: _one import's alias resolution_. **/

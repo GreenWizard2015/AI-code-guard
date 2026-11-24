@@ -1,5 +1,5 @@
 import { JestAssertionChain } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_assertion_chain";
-import { JestAssertionShapeMatcher } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_assertion_shape_matcher";
+import { JestAssertionShapeMatcher } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/matchers/jest_assertion_shape_matcher";
 import type { JestAssertionAnalysisContract } from "src/testing_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";

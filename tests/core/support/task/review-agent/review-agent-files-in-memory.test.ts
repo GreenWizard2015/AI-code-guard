@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { describe, expect, test } from "@jest/globals";
 import { ReviewAgentFiles } from "src/core/support/task/review-agent/review_agent_files";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";

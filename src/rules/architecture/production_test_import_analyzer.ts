@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
@@ -32,14 +32,14 @@ export class ProductionTestImportAnalyzer {
 		);
 	}
 	/** Responsibilities: _production test analysis setup_. **/
-	public constructor(options: ProjectSourceAnalysisOptions) {
+	public constructor(options: ProjectSourceAnalysisOptionsContract) {
 		this._rule = new DiagnosticRule("production-test-import");
-		this._root = options.root;
-		this._project_files = options.project_files;
-		this._context = options.context;
-		this._ignored_files = options.ignored_files;
-		this._files = options.files;
-		this._scanner = options.scanner;
+		this._root = options.root();
+		this._project_files = options.project_files();
+		this._context = options.context();
+		this._ignored_files = options.ignored_files();
+		this._files = new Set(options.project_files());
+		this._scanner = options.scanner();
 	}
 
 	/** Responsibilities: _production test targets_. **/

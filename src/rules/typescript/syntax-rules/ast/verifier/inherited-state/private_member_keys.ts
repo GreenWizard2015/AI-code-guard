@@ -1,7 +1,7 @@
+import { TypeScriptStaticExpressionValues } from "src/parser/type_script_static_expression_values";
+import { TypeScriptStaticKeyAliases } from "src/parser/type_script_static_key_aliases";
 import { TypeScriptStaticArrayKeys } from "src/parser/typescript-aliases/callables/static-array/type_script_static_array_keys";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
-import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
-import { TypeScriptStaticKeyAliases } from "src/parser/typescript-aliases/type_script_static_key_aliases";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 import type { PrivateMemberKeysContract, StaticExpressionOperationsContract } from "src/shared_services_protocols";
 import type {
@@ -87,6 +87,6 @@ export class PrivateMemberKeys implements PrivateMemberKeysContract {
 		if (alias !== "") {
 			return alias;
 		}
-		return this._static_array_keys.value(key, access.getSourceFile());
+		return this._static_array_keys.value({ expression: key, source: access });
 	}
 }

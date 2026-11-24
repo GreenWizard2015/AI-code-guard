@@ -1,5 +1,6 @@
 import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import type { UnusedSymbolDefinition } from "src/core/types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
@@ -8,6 +9,13 @@ import { ImportedSourceScanner } from "tests/bridge/ts/core/unused_symbol_import
 
 /** Responsibilities: _imported definition usage evidence_, _source import setup_. **/
 export class UnusedSymbolReferenceScenario {
+	private readonly _map_cache: SourceFileMapCache;
+
+	/** Responsibilities: _scenario initialization_. **/
+	public constructor() {
+		this._map_cache = new SourceFileMapCache();
+	}
+
 	/** Responsibilities: _consumer source record_. **/
 	public consumer_source(): LintSourceRecordData {
 		const ast_model = new AstModel("python");
@@ -33,7 +41,7 @@ export class UnusedSymbolReferenceScenario {
 			normalized_ast: ast,
 			language: "python",
 			typescript_ast,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal,
 		};
 	}

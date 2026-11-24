@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
 import { DocumentationExamplePathLayout } from "documentation_validation/examples/documentation_example_path_layout";
 import { DocumentationExamplePathValidation } from "documentation_validation/examples/documentation_example_path_validation";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
+import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation/rule_documentation_catalog";
 import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
 import type {
 	CallableDocumentationValidationOperation,

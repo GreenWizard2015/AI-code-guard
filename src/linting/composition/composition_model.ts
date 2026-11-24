@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
 import type { CompositionModelContract } from "src/contracts/protocols/composition_protocols";
 import type { PythonCompositionImportsContract } from "src/contracts/protocols/lint_runtime_protocols";
-import { ClassDependencyMap } from "src/linting/composition/class_dependency_map";
-import { PythonCompositionImports } from "src/linting/composition/python_composition_imports";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptCompositionModel } from "src/linting/composition/type_script_composition_model";
+import { ClassDependencyMap } from "src/linting/composition_analysis/class_dependency_map";
+import { PythonCompositionImports } from "src/linting/composition_analysis/python_composition_imports";
 import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { NormalizedAstSource } from "src/model/ast/normalized_ast_types";
 import type { ClassGraph, CodeClass, CompositionResult } from "src/model_types";
@@ -11,7 +12,6 @@ import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/ty
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { LintSourceRecordData, PythonProjectImportContext } from "src/source_types";
-import type ts from "typescript";
 
 /** Responsibilities: _TypeScript composition parsing_, _Python composition parsing_. **/
 export class CompositionModel implements CompositionModelContract {
@@ -76,7 +76,7 @@ export class CompositionModel implements CompositionModelContract {
 	public constructor(
 		project_root: string,
 		import_context: PythonProjectImportContext,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_resolver: SourceFileResolverContract,
 		filesystem_fallback: boolean,
 		source_io: ProjectSourceIOContract,
 	) {
@@ -85,7 +85,7 @@ export class CompositionModel implements CompositionModelContract {
 		this._import_context = import_context;
 		const export_context = new TypeScriptModuleExportsContext(
 			this._project_root,
-			source_files,
+			source_resolver,
 			filesystem_fallback,
 			source_io,
 		);

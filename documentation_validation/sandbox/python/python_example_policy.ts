@@ -1,6 +1,6 @@
 import type { DocumentationExamplePathContract } from "documentation_validation/protocols";
+import { PythonImportPolicy } from "documentation_validation/sandbox/python/imports/python_import_policy";
 import { PythonCapabilityPolicy } from "documentation_validation/sandbox/python/python_capability_policy";
-import { PythonImportPolicy } from "documentation_validation/sandbox/python/python_import_policy";
 import { PythonModuleGraph } from "documentation_validation/sandbox/python/python_module_graph";
 import type { DocumentationExampleSourceFile, DocumentationExampleSourceFiles } from "documentation_validation/types";
 

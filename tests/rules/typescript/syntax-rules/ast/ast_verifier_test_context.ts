@@ -2,16 +2,17 @@ import { resolve } from "node:path";
 import type { ASTNodeVerificationContract, ASTVerifierContract } from "src/ast_verifier_protocols";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { LintStageTimer } from "src/lint_stage_timer";
+import { TypeScriptNodeRuleContext } from "src/linting/orchestration/runtime/typescript/type_script_node_rule_context";
 import { AstPropertySourceIndexCache } from "src/model/ast/ast_property_source_index_cache";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
-import type { ProjectNames, ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectNames, ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { TypeScriptNodeRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_node_rule_context";
 import type { TypeScriptBoundaryRuleAppender } from "src/rules/typescript/syntax-rules/types/type_script_boundary_rule_appender";
 import type { LintSourceRecordData } from "src/source_types";
 import type {
@@ -33,9 +34,11 @@ export class ASTVerifierTestContext
 	private readonly _state: RuleContextState;
 	private readonly _violations: ViolationContract[];
 	private readonly _visited_nodes: ts.Node[];
+	private readonly _map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _AST test context initialization_. **/
 	public constructor(source_file: ts.SourceFile, ...provided_project_names: ProjectNames[]) {
+		this._map_cache = new SourceFileMapCache();
 		this._violations = [];
 		this._visited_nodes = [];
 		const ast_file = new TypeScriptAstFile(source_file.fileName, source_file.text);
@@ -50,7 +53,7 @@ export class ASTVerifierTestContext
 			normalized_ast: ast_file.normalized(),
 			language: TYPESCRIPT_LANGUAGE,
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal,
 		};
 		const project_name_analysis = new ASTVerifierTestProjectNames(this._source_record);
@@ -76,7 +79,7 @@ export class ASTVerifierTestContext
 			analysis: {
 				stage_timer: new LintStageTimer(),
 				traversal,
-				source_resolver: new Map(),
+				source_resolver: this._map_cache.for_map(new Map()),
 				module_resolver,
 				source_index: new AstPropertySourceIndexCache(),
 			},
@@ -89,7 +92,7 @@ export class ASTVerifierTestContext
 	}
 
 	/** Responsibilities: _invalid project analysis access_. **/
-	public project_analysis(): ProjectSourceAnalysisOptions {
+	public project_analysis(): ProjectSourceAnalysisOptionsContract {
 		throw new Error("AST verifier test context has file scope only.");
 	}
 

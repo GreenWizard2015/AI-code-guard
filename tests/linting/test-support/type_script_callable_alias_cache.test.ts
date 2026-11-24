@@ -3,8 +3,8 @@ import { ExternalImportedTypes } from "src/linting/test-support/external_importe
 import { FakeObject } from "src/linting/test-support/fake_object";
 import { TypeScriptCallableAliases } from "src/linting/test-support/type_script_callable_aliases";
 import { TypeScriptObjectCallableAliases } from "src/linting/test-support/type_script_object_callable_aliases";
-import { ObjectCallableAliases } from "src/rules/typescript/syntax-rules/ast/verifier/object-returns/object_callable_aliases";
-import { ObjectDestructuredAliases } from "src/rules/typescript/syntax-rules/ast/verifier/object-returns/object_destructured_aliases";
+import { ObjectCallableAliases } from "src/rules/typescript/syntax-rules/ast/verifier/object-returns/literals/returns/object_callable_aliases";
+import { ObjectDestructuredAliases } from "src/rules/typescript/syntax-rules/ast/verifier/object-returns/literals/returns/object_destructured_aliases";
 import ts from "typescript";
 
 describe("TypeScript callable alias scope caches", () => {

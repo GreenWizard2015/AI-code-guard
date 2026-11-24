@@ -11,12 +11,12 @@ import {
 	SETATTR,
 	UNION_CONTRACT_BYPASS,
 } from "src/parser/internals/constants";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptExpressionOperatorRules } from "src/rules/typescript/syntax-rules/expressions/operators/type_script_expression_operator_rules";
 import { TypeScriptExpressionDeclarationRules } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_declaration_rules";
 import { TypeScriptExpressionTerminalRules } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_terminal_rules";
 import { TypeScriptBasicRules } from "src/rules/typescript/syntax-rules/runtime/type_script_basic_rules";
-import { UnionTypeBypass } from "src/rules/typescript/syntax-rules/types/union_type_bypass";
+import { UnionTypeBypass } from "src/rules/typescript/syntax-rules/types/shapes/union_type_bypass";
 import type { CompositeStateTypeRulesContract, NullableTypeRulesContract } from "src/runtime_protocols";
 import { TestPathKind } from "src/types";
 import type { CallableRuleAppender, RuleContextContract } from "src/types";

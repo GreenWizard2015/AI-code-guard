@@ -29,7 +29,7 @@ class PythonBridgeTypeRuleTest(unittest.TestCase):
 
     def test_union_issues(self) -> None:
         """Responsibilities: _union diagnostics verification_."""
-        parser = PythonAstTree(TYPE_SOURCE)
+        parser = PythonAstTree(TYPE_SOURCE, ast.parse(TYPE_SOURCE))
         issues = parser.coding_issues()
         kinds = {issue["kind"] for issue in issues}
         self.assertIn("inline-generic-type", kinds)
@@ -37,7 +37,7 @@ class PythonBridgeTypeRuleTest(unittest.TestCase):
 
     def test_optional_assignment_alias(self) -> None:
         """Responsibilities: _optional assignment aliases verification_."""
-        parser = PythonAstTree(OPTIONAL_ALIAS_SOURCE)
+        parser = PythonAstTree(OPTIONAL_ALIAS_SOURCE, ast.parse(OPTIONAL_ALIAS_SOURCE))
         issues = parser.coding_issues()
         self.assertEqual(
             len([issue for issue in issues if issue["kind"] == "nullable-domain-type"]),
@@ -58,7 +58,7 @@ Choice = Maybe
 def read(value: Choice[str]) -> Choice[str]:
     return value
 """
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         nullable = [issue for issue in issues if issue["kind"] == "nullable-domain-type"]
 
@@ -108,7 +108,7 @@ def read(value: Choice[str]) -> Choice[str]:
     def test_collects_composite_union_issues(self) -> None:
         """Responsibilities: _composite union diagnostics verification_."""
         source = "Value = A | B\ndef read(value: A | B) -> A | B:\n    return value\n"
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertEqual(
             len([issue for issue in issues if issue["kind"] == "composite-state-type"]),
@@ -118,7 +118,7 @@ def read(value: Choice[str]) -> Choice[str]:
     def test_collects_composite_intersection_issues(self) -> None:
         """Responsibilities: _composite intersection diagnostics verification_."""
         source = "Value = A & B\ndef read(value: A & B) -> A & B:\n    return value\n"
-        parser = PythonAstTree(source)
+        parser = PythonAstTree(source, ast.parse(source))
         issues = parser.coding_issues()
         self.assertEqual(
             len([issue for issue in issues if issue["kind"] == "composite-state-type"]),
@@ -161,12 +161,12 @@ def read(value: Choice[str]) -> Choice[str]:
 
     def test_recognizes_static_method_aliases(self) -> None:
         """Responsibilities: _static decorator classification_."""
-        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE)
+        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE, ast.parse(BUILTIN_DECORATOR_ALIAS_SOURCE))
         kinds = [issue["kind"] for issue in tree.coding_issues()]
         self.assertIn("python-static-method", kinds)
 
     def test_recognizes_class_method_aliases(self) -> None:
         """Responsibilities: _class decorator classification_."""
-        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE)
+        tree = PythonAstTree(BUILTIN_DECORATOR_ALIAS_SOURCE, ast.parse(BUILTIN_DECORATOR_ALIAS_SOURCE))
         kinds = [issue["kind"] for issue in tree.coding_issues()]
         self.assertEqual(kinds.count("python-class-method"), 3)

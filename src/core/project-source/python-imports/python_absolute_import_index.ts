@@ -1,4 +1,4 @@
-import { ProjectPathRelation } from "src/core/support/project_path_relation";
+import { ProjectPathRelation } from "src/core/project-source/project_path_relation";
 import type { PythonAbsoluteImportIndexContract } from "src/python_types";
 import type { AbsoluteImportCandidate } from "src/source_types";
 

@@ -4,9 +4,9 @@ import { ANONYMOUS_CLASS_NAME } from "src/constants";
 import { TypeScriptClassDeclarationMetadata } from "src/model/ast/declarations/type_script_class_declaration_metadata";
 import type { AstClassNode } from "src/model/ast/normalized_ast_types";
 import type { TypeScriptClassCallableNodesContract } from "src/model/protocols";
+import { TypeScriptAstNodeObserverRegistry } from "src/model/type_script_ast_node_observer_registry";
+import { TypeScriptClassMembers } from "src/model/type_script_class_members";
 import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
-import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
-import { TypeScriptClassMembers } from "src/parser/analysis/type_script_class_members";
 import type { TypeScriptClassMembersContract, TypeScriptClassNodesContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 

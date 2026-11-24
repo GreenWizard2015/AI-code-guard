@@ -9,6 +9,7 @@ import {
 	TEST_RUNNER_DIRECTORY,
 	TYPESCRIPT_CONFIG_FILE,
 } from "src/constants";
+import { CACHE_DIRECTORY_ENTRY_KIND } from "src/core/constants";
 import { SYSTEM_FAILURE_CODES } from "src/io/constants";
 import type { FileEntry, IOContract } from "src/io/protocols";
 import ts from "typescript";
@@ -27,16 +28,22 @@ export class ProjectAnalysisFileIdentity {
 		}
 		const files: string[] = [];
 		for (const entry of this._file_io.list_entries(analyzer_directory)) {
-			const path = resolve(analyzer_directory, entry.name);
-			if (entry.is_directory) {
-				files.push(...this.analyzer_files(path));
-				continue;
-			}
-			if (entry.is_file) {
-				files.push(path);
-			}
+			this.append_analyzer_file(analyzer_directory, entry, files);
 		}
 		return files;
+	}
+
+	/** Responsibilities: _analyzer source selection_. **/
+	private append_analyzer_file(directory: string, entry: FileEntry, files: string[]): void {
+		if (entry.is_directory) {
+			if (entry.name !== "__pycache__") {
+				files.push(...this.analyzer_files(resolve(directory, entry.name)));
+			}
+			return;
+		}
+		if (entry.is_file && !entry.name.endsWith(".pyc")) {
+			files.push(resolve(directory, entry.name));
+		}
 	}
 
 	/** Responsibilities: _included analysis subdirectories_. **/
@@ -117,21 +124,44 @@ export class ProjectAnalysisFileIdentity {
 		return "";
 	}
 
-	/** Responsibilities: _Python executable path candidates_. **/
-	private python_executable_candidates(path_value: string): string[] {
+	/** Responsibilities: _Python executable candidates_. **/
+	private python_executable_candidates(): string[] {
 		const extensions = process.platform === "win32" ? [".exe", ".cmd", ".bat", ""] : [""];
-		return path_value
-			.split(delimiter)
-			.flatMap((directory) => extensions.map((extension) => join(directory, `python3${extension}`)));
+		const candidates: string[] = [];
+		for (const directory of this._runtime_search_path.split(delimiter)) {
+			for (const extension of extensions) {
+				candidates.push(join(directory, `python3${extension}`));
+			}
+		}
+		return candidates;
 	}
 
 	/** Responsibilities: _parser runtime selection_. **/
 	private parser_runtime_identity(): string {
-		const identity = this.python_identity(this.python_executable_candidates(this._runtime_search_path));
+		const identity = this.python_identity(this.python_executable_candidates());
 		if (identity.length > 0) {
 			return identity;
 		}
 		return JSON.stringify([ts.version, "python3-unresolved", this._runtime_search_path]);
+	}
+
+	/** Responsibilities: _directory entry identity_. **/
+	private directory_entry_identity(directory: string): string {
+		const entries: string[] = [];
+		for (const entry of this._file_io.list_entries(directory)) {
+			if (entry.is_directory && IGNORED_DIRS.has(entry.name)) {
+				continue;
+			}
+			let kind = "other";
+			if (entry.is_directory) {
+				kind = CACHE_DIRECTORY_ENTRY_KIND;
+			} else if (entry.is_file) {
+				kind = "file";
+			}
+			entries.push(`${entry.name}${this._separator}${kind}`);
+		}
+		entries.sort();
+		return `${resolve(directory)}${this._separator}${entries.join(this._separator)}${this._separator}`;
 	}
 
 	/** Responsibilities: _analysis file inventory initialization_. **/
@@ -163,10 +193,7 @@ export class ProjectAnalysisFileIdentity {
 		directories.sort();
 		for (const directory of directories) {
 			try {
-				const stats = this._file_io.file(directory).metadata();
-				hash.update(
-					`${resolve(directory)}${this._separator}${stats.mtime_ms}${this._separator}${stats.ctime_ms}${this._separator}`,
-				);
+				hash.update(this.directory_entry_identity(directory));
 			} catch (error) {
 				if (!this.system_failure(String(error))) {
 					throw error;

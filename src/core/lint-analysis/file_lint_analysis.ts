@@ -1,12 +1,13 @@
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import { TypeScriptRuleScope } from "src/core/lint-analysis/type_script_rule_scope";
-import type { FileLintAnalysisOptions, FileLintRunOptions } from "src/core/types";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { FileLinter } from "src/linting/orchestration/runtime/file_linter";
-import { FileViolationCollector } from "src/linting/orchestration/runtime/file_violation_collector";
-import { ProjectTestTargetImportPaths } from "src/linting/orchestration/runtime/test-targets/project_test_target_import_paths";
-import { TestFileViolationCollector } from "src/linting/orchestration/runtime/test-targets/test_file_violation_collector";
-import type { FileLinterOptions } from "src/model_types";
+import { FileLintWorkerMode, FileLintWorkerModeKind } from "src/core/types";
+import type { FileLintAnalysisOptions, FileLintRunOptions, FileLintWorkerModeContract } from "src/core/types";
+import { CodingRuleLinter } from "src/linting/file_linting/coding_rule_linter";
+import { FileLinter } from "src/linting/file_linting/file_linter";
+import { FileViolationCollector } from "src/linting/file_linting/file_violation_collector";
+import { ProjectTestTargetImportPaths } from "src/linting/project_test_target_import_paths";
+import { TestFileViolationCollector } from "src/linting/test_file_violation_collector";
+import type { FileLinterOptions, PythonProjectNames } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CodingRuleLinterContract, FileViolationCollectorContract } from "src/shared_services_protocols";
 
@@ -72,25 +73,53 @@ export class FileLintAnalysis {
 		);
 	}
 
+	/** Responsibilities: _Python worker name selection_. **/
+	private run_names(): PythonProjectNames {
+		const names = this._options.state.names;
+		return {
+			project_class_names: names.python_class_names,
+			project_protocol_names: names.project_protocol_names,
+			project_type_names: names.project_type_names,
+			project_alias_names: names.project_alias_names,
+		};
+	}
+
+	/** Responsibilities: _file worker execution mode_. **/
+	private worker_mode(): FileLintWorkerModeContract {
+		const { state } = this._options;
+		return new FileLintWorkerMode({
+			kind: FileLintWorkerModeKind.Project,
+			metadata: {
+				project_files: state.inventory.project_files,
+				entry_files: state.inventory.entry_files,
+				ignored_directories: state.inventory.ignored_directories,
+				directory_files: state.inventory.files,
+				virtual_project: state.cache.virtual_project,
+			},
+			scope: state.project_scope,
+		});
+	}
+
 	/** Responsibilities: _file lint execution options_. **/
 	private run_options(): FileLintRunOptions {
 		const { state, stage_timer, analysis_identity } = this._options;
 		return {
-			files: state.inventory.files,
-			repo_root: state.repo_root,
-			names: {
-				project_class_names: state.names.python_class_names,
-				project_protocol_names: state.names.project_protocol_names,
-				project_type_names: state.names.project_type_names,
-				project_alias_names: state.names.project_alias_names,
+			source: {
+				files: state.inventory.files,
+				repo_root: state.repo_root,
+				names: this.run_names(),
+				context: state.context,
+				ignored_files: state.inventory.ignored_files,
+				analysis_identity,
+				context_identity: this.context_identity(),
 			},
-			context: state.context,
-			ignored_files: state.inventory.ignored_files,
-			analysis_identity,
-			context_identity: this.context_identity(),
-			timers: [stage_timer],
-			coding_rule_linter: this.coding_rule_linter(),
-			violation_collector: this.violation_collector(),
+			services: {
+				timers: [stage_timer],
+				coding_rule_linter: this.coding_rule_linter(),
+				violation_collector: this.violation_collector(),
+				clean_cache_records: true,
+			},
+			worker_mode: this.worker_mode(),
 		};
 	}
 

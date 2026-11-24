@@ -4,6 +4,7 @@ import type {
 	ReadonlyStringSet,
 	StringBooleanMap,
 } from "src/analysis_types";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { LintFileNameContract } from "src/core/support/protocols";
 import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type {
@@ -19,7 +20,6 @@ import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceIOContract, ProjectSourcePythonContract } from "src/source_protocols";
 import type { TypeScriptAstFileContract, TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
-
 export type PythonProjectImportContext = {
 	root: string;
 	files: ReadonlySet<string>;
@@ -35,7 +35,7 @@ export type LintSourceRecordData = {
 	readonly normalized_ast: NormalizedAstFile;
 	readonly language: AstLanguage;
 	readonly typescript_ast: TypeScriptAstFileContract;
-	readonly source_resolver: SourceFileResolver;
+	readonly source_resolver: SourceFileResolverContract;
 	readonly traversal: TypeScriptAstTraversalContract;
 };
 export type PendingUnusedSymbolReference = { source: LintSourceRecordData; name: string; line: number };
@@ -95,8 +95,6 @@ export type SourceReference = { file: string; line: number };
 export type SourceReferenceRelation = "implementation" | "usage";
 export type SourceReferenceMap<TKey extends {}> = Map<TKey, SourceReference[]>;
 
-export type SourceFileResolver = ReadonlyMap<string, ts.SourceFile>;
-
 export type SourceFileDeclarationMap = Map<string, ts.Declaration>;
 
 export type SourceFileDeclarationCache = WeakMap<ts.SourceFile, SourceFileDeclarationMap>;
@@ -132,6 +130,6 @@ export type CodingRuleSourceData = {
 	text: string;
 	normalized_ast: NormalizedAstFile;
 	source_file: ts.SourceFile;
-	source_resolver: SourceFileResolver;
+	source_resolver: SourceFileResolverContract;
 	traversal: TypeScriptAstTraversalContract;
 };

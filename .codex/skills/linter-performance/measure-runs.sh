@@ -3,19 +3,20 @@ set -euo pipefail
 
 usage() {
 	cat >&2 <<'EOF'
-Usage: measure-runs.sh --target /absolute/project/path [--runs N] [--baseline-cold-max SEC] [--linter-arg ARG ...]
+Usage: measure-runs.sh --target /absolute/project/path [--runs N] [--baseline-cold-hot-ratio RATIO] [--linter-arg ARG ...]
 
 Options:
 	--target PATH    Existing absolute directory to lint.
-	--runs N         Number of cold/warm pairs (default: 3).
+	--runs N         Number of matched cold/hot pairs (default: 3).
 	--linter-arg ARG Append one argument to every linter invocation; repeat for multiple arguments.
-	--baseline-cold-max SEC  Accepted baseline maximum cold time for maximum Files/sec comparison.
+	--baseline-cold-hot-ratio RATIO  Accepted best-cold / best-hot baseline ratio.
 
 Each pair clears the complete known cache, measures one cold run, then measures
-one warm run using the cache produced by that cold run. Exit codes: 0 means the
-measurement is valid and the timing threshold passed or was not requested; 1
-means a valid measurement missed the requested timing threshold; 2 means the
-measurement or arguments were invalid.
+one hot run using the cache produced by that cold run. The primary score is the
+minimum cold duration divided by the minimum hot duration across all requested
+pairs. Exit codes: 0 means the measurement is valid and the ratio threshold
+passed or was not requested; 1 means a valid measurement missed the requested
+ratio threshold; 2 means the measurement or arguments were invalid.
 EOF
 }
 
@@ -31,7 +32,7 @@ trap 'interrupt_measurement 143' TERM
 
 target=""
 runs=3
-baseline_cold_max=""
+baseline_cold_hot_ratio=""
 linter_arguments=()
 
 while (($# > 0)); do
@@ -52,12 +53,12 @@ while (($# > 0)); do
 			runs="$2"
 			shift 2
 			;;
-		--baseline-cold-max)
+		--baseline-cold-hot-ratio)
 			if (($# < 2)) || ! [[ "$2" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
 				usage
 				exit 2
 			fi
-			baseline_cold_max="$2"
+			baseline_cold_hot_ratio="$2"
 			shift 2
 			;;
 		--linter-arg)
@@ -86,11 +87,6 @@ while (($# > 0)); do
 	esac
 done
 
-if [[ -n "$baseline_cold_max" ]] && ((runs < 3)); then
-	printf '%s\n' 'At least three cold/warm pairs are required for a timing decision.' >&2
-	exit 2
-fi
-
 if [[ -z "$target" ]] || [[ "$target" != /* ]]; then
 	printf '%s\n' '--target must be an existing absolute directory.' >&2
 	usage
@@ -113,7 +109,9 @@ measurement_id="$(date +%Y%m%d%H%M%S%N)"
 performance_directory="$linter_root/.ai-code-guard/performance-runs/$measurement_id"
 mkdir -p -- "$performance_directory"
 run_manifest="$performance_directory/runs.tsv"
-printf 'mode\trun\twall_seconds\texit\tissues\tfiles\tfiles_per_second\n' >"$run_manifest"
+printf 'mode\trun\twall_seconds\texit\tissues\tfiles\tfiles_per_second_info\n' >"$run_manifest"
+pair_manifest="$performance_directory/pairs.tsv"
+printf 'pair\tcold_seconds\thot_seconds\tcold_over_hot_ratio\tfiles\tcold_exit\thot_exit\tcold_issues\thot_issues\n' >"$pair_manifest"
 
 clear_known_cache() {
 	local cache_directory="$target/.ai-code-guard/cache"
@@ -152,7 +150,7 @@ run_guard() {
 
 	if [[ -f "$performance_file" ]]; then
 		run_files="$(sed -n 's/^- Total files: \([0-9][0-9]*\)$/\1/p' "$performance_file" | tail -n 1)"
-		if [[ "$mode" == "warm" ]]; then
+		if [[ "$mode" == "hot" ]]; then
 			if ! grep -Eq '^\| startup\.complete-cache-read \|' "$performance_file" ||
 				grep -Eq '^\| (file-analysis|global-analysis)(\.| \|)' "$performance_file"; then
 				printf 'CONSISTENCY_ERROR=%s expected complete-cache hit without analysis stages\n' "$run_label" >&2
@@ -173,8 +171,7 @@ run_guard() {
 		run_files_per_second="$(awk -v files="$run_files" -v seconds="$run_wall" \
 			'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
 	fi
-
-	printf '%s_SECONDS=%s EXIT=%s ISSUES=%s FILES=%s FILES_PER_SEC=%s\n' \
+	printf '%s_SECONDS=%s EXIT=%s ISSUES=%s FILES=%s SPEED_FILES_PER_SEC=%s\n' \
 		"$run_label" "$run_wall" "$run_exit" "${run_issues:-unavailable}" \
 		"${run_files:-missing}" "$run_files_per_second"
 	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
@@ -193,21 +190,6 @@ compare_run_value() {
 	fi
 }
 
-average() {
-	printf '%s\n' "$@" | awk '{ total += $1 } END { if (NR > 0) printf "%.3f", total / NR; else print "nan" }'
-}
-
-median() {
-	printf '%s\n' "$@" | sort -n | awk '
-		{ values[NR] = $1 }
-		END {
-			if (NR == 0) { print "nan"; exit }
-			if (NR % 2 == 1) { printf "%.3f", values[(NR + 1) / 2]; exit }
-			printf "%.3f", (values[NR / 2] + values[NR / 2 + 1]) / 2
-		}
-	'
-}
-
 minimum() {
 	printf '%s\n' "$@" | awk '
 		NR == 1 || $1 < minimum { minimum = $1 }
@@ -215,26 +197,19 @@ minimum() {
 	'
 }
 
-maximum() {
-	printf '%s\n' "$@" | awk '
-		NR == 1 || $1 > maximum { maximum = $1 }
-		END { if (NR > 0) printf "%.3f", maximum; else print "nan" }
-	'
-}
-
 printf 'Linter workspace: %s\n' "$linter_root"
 printf 'Target: %s\n' "$target"
-printf 'Cold/warm pairs: %s\n' "$runs"
-printf 'Primary score: maximum cold Files/sec\n'
+printf 'Cold/hot pairs: %s\n' "$runs"
+printf 'Primary score: best cold / best hot (lower is better)\n'
 
 run_directory="$(mktemp -d /tmp/ai-code-guard-measure-XXXXXX)"
 trap 'rm -rf -- "$run_directory"' EXIT
 
 measurement_status=0
 expected_files=""
+cold_hot_ratios=()
 cold_times=()
-warm_times=()
-paired_totals=()
+hot_times=()
 
 for ((run = 1; run <= runs; run += 1)); do
 	printf '\n===== PAIR %s/%s =====\n' "$run" "$runs"
@@ -243,27 +218,39 @@ for ((run = 1; run <= runs; run += 1)); do
 	run_guard cold "$run" "$run_directory/cold-${run}.log"
 	cold_exit="$run_exit"
 	cold_wall="$run_wall"
+	cold_times+=("$cold_wall")
 	cold_issues="$run_issues"
 	cold_files="$run_files"
-	cold_times+=("$cold_wall")
-	printf 'Mode: warm (reuse cache produced by cold run)\n'
-	run_guard warm "$run" "$run_directory/warm-${run}.log"
-	warm_exit="$run_exit"
-	warm_wall="$run_wall"
-	warm_issues="$run_issues"
-	warm_files="$run_files"
-	warm_times+=("$warm_wall")
-	paired_totals+=("$(awk -v cold="$cold_wall" -v warm="$warm_wall" 'BEGIN { printf "%.6f", cold + warm }')")
+	printf 'Mode: hot (reuse cache produced by cold run)\n'
+	run_guard hot "$run" "$run_directory/hot-${run}.log"
+	hot_exit="$run_exit"
+	hot_wall="$run_wall"
+	hot_times+=("$hot_wall")
+	hot_issues="$run_issues"
+	hot_files="$run_files"
+	if ! awk -v cold="$cold_wall" -v hot="$hot_wall" 'BEGIN { exit !(cold > 0 && hot > 0) }'; then
+		printf 'CONSISTENCY_ERROR=%s invalid cold/hot wall times: cold=%s hot=%s\n' \
+			"$run" "$cold_wall" "$hot_wall" >&2
+		measurement_status=2
+	fi
+	cold_hot_ratio="$(awk -v cold="$cold_wall" -v hot="$hot_wall" \
+		'BEGIN { if (cold > 0 && hot > 0) printf "%.6f", cold / hot; else print "nan" }')"
+	cold_hot_ratios+=("$cold_hot_ratio")
+	printf 'PAIR_%s_COLD_OVER_HOT_RATIO=%s\n' "$run" "$cold_hot_ratio"
+	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+		"$run" "$cold_wall" "$hot_wall" "$cold_hot_ratio" "$cold_files" \
+		"$cold_exit" "$hot_exit" "${cold_issues:-unavailable}" \
+		"${hot_issues:-unavailable}" >>"$pair_manifest"
 
 	if [[ -z "$expected_files" ]]; then
 		expected_files="$cold_files"
 	fi
 	compare_run_value "$run cold analyzed files" "$expected_files" "$cold_files"
-	compare_run_value "$run warm analyzed files" "$expected_files" "$warm_files"
+	compare_run_value "$run hot analyzed files" "$expected_files" "$hot_files"
 done
 
 # Sampling is intentionally deferred until all matched pairs finish. It must not
-# add CPU or scheduling noise between a cold run and its paired warm run.
+# add CPU or scheduling noise between a cold run and its paired hot run.
 for ((run = 1; run <= runs; run += 1)); do
 	cold_report="$performance_directory/cold_${run}.performance.md"
 	if [[ -f "$cold_report" ]]; then
@@ -276,55 +263,33 @@ for ((run = 1; run <= runs; run += 1)); do
 	fi
 done
 
-cold_average="$(average "${cold_times[@]}")"
-cold_median="$(median "${cold_times[@]}")"
 best_cold="$(minimum "${cold_times[@]}")"
-cold_maximum="$(maximum "${cold_times[@]}")"
-warm_average="$(average "${warm_times[@]}")"
-warm_median="$(median "${warm_times[@]}")"
-best_warm="$(minimum "${warm_times[@]}")"
-warm_maximum="$(maximum "${warm_times[@]}")"
-paired_median="$(median "${paired_totals[@]}")"
-best_paired_total="$(minimum "${paired_totals[@]}")"
-score="$(awk -v cold="$best_cold" -v warm="$best_warm" 'BEGIN { printf "%.3f", cold + warm }')"
-cold_files_per_second="$(awk -v files="$expected_files" -v seconds="$cold_average" \
-	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
-maximum_cold_files_per_second="$(awk -v files="$expected_files" -v seconds="$best_cold" \
-	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
-warm_files_per_second="$(awk -v files="$expected_files" -v seconds="$warm_average" \
-	'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
+best_hot="$(minimum "${hot_times[@]}")"
+primary_ratio="$(awk -v cold="$best_cold" -v hot="$best_hot" \
+	'BEGIN { if (cold > 0 && hot > 0) printf "%.6f", cold / hot; else print "nan" }')"
 
-printf '\nCold average: %s seconds\n' "$cold_average"
-printf 'Cold median: %s seconds\n' "$cold_median"
-printf 'Cold files/sec (files / average): %s\n' "$cold_files_per_second"
-printf 'Maximum cold files/sec (files / best cold): %s\n' "$maximum_cold_files_per_second"
-printf 'Best cold: %s seconds\n' "$best_cold"
-printf 'Maximum cold: %s seconds\n' "$cold_maximum"
-printf 'Warm average: %s seconds\n' "$warm_average"
-printf 'Warm median: %s seconds\n' "$warm_median"
-printf 'Warm files/sec (files / average): %s\n' "$warm_files_per_second"
-printf 'Best warm: %s seconds\n' "$best_warm"
-printf 'Maximum warm: %s seconds\n' "$warm_maximum"
-printf 'Median paired total: %s seconds\n' "$paired_median"
-printf 'Best paired total: %s seconds\n' "$best_paired_total"
-printf 'Candidate minimum sum (best cold + best warm): %s seconds\n' "$score"
+printf '\nCold/hot ratio per matched pair (informational): %s\n' "${cold_hot_ratios[*]}"
+printf 'Best cold duration: %s seconds\n' "$best_cold"
+printf 'Best hot duration: %s seconds\n' "$best_hot"
+printf 'Primary score (best cold / best hot): %s\n' "$primary_ratio"
+printf '%s\n' 'Speed (files/sec; informational only, not used for decisions):'
+awk -F '\t' 'NR > 1 { printf "  %s_%s: %s\n", toupper($1), $2, $7 }' "$run_manifest"
 timing_status=0
-	if [[ -n "$baseline_cold_max" ]]; then
-	baseline_minimum_files_per_second="$(awk -v files="$expected_files" -v seconds="$baseline_cold_max" \
-		'BEGIN { if (seconds > 0) printf "%.1f", files / seconds; else print "unavailable" }')"
-	if awk -v candidate="$best_cold" -v baseline="$baseline_cold_max" 'BEGIN { exit !(candidate < baseline) }'; then
-		printf 'Cold throughput threshold: PASS (candidate maximum %s files/sec > baseline minimum %s files/sec)\n' \
-			"$maximum_cold_files_per_second" "$baseline_minimum_files_per_second"
+	if [[ -n "$baseline_cold_hot_ratio" ]]; then
+	if awk -v candidate="$primary_ratio" -v baseline="$baseline_cold_hot_ratio" 'BEGIN { exit !(candidate < baseline) }'; then
+		printf 'Cold/hot ratio threshold: PASS (candidate %s < baseline %s)\n' \
+			"$primary_ratio" "$baseline_cold_hot_ratio"
 	else
-		printf 'Cold throughput threshold: FAIL (candidate maximum %s files/sec <= baseline minimum %s files/sec)\n' \
-			"$maximum_cold_files_per_second" "$baseline_minimum_files_per_second"
+		printf 'Cold/hot ratio threshold: FAIL (candidate %s >= baseline %s)\n' \
+			"$primary_ratio" "$baseline_cold_hot_ratio"
 		timing_status=1
 	fi
 else
-	printf '%s\n' 'Cold throughput threshold: not evaluated (provide --baseline-cold-max)'
+	printf '%s\n' 'Cold/hot ratio threshold: not evaluated (provide --baseline-cold-hot-ratio)'
 fi
 printf 'Performance snapshots: %s\n' "$performance_directory"
 printf 'Run manifest: %s\n' "$run_manifest"
+printf 'Pair manifest: %s\n' "$pair_manifest"
 if ((measurement_status == 0)); then
 	printf 'Measurement integrity: PASS (analyzed files=%s; diagnostic results are informational)\n' \
 		"$expected_files"

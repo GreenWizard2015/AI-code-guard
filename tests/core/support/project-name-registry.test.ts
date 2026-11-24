@@ -1,5 +1,6 @@
 import { LintFileName } from "src/core/context/lint_file_name";
-import { LintProjectContextStore } from "src/core/lint_project_context_store";
+import { LintProjectContextStore } from "src/core/project-context/lint_project_context_store";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { ProjectNameRegistry } from "src/core/support/project_name_registry";
 import { SourceText } from "src/io/source_text";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
@@ -9,6 +10,7 @@ import type { LintSourceRecordData } from "src/source_types";
 import { ProjectNameRegistryPythonSource } from "tests/core/support/project_name_registry_python_source";
 
 describe("ProjectNameRegistry", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("collects interface names without rescanning classes for every declaration", () => {
 		const file = "/tmp/project-name-registry/module.ts";
 		const text = [
@@ -26,7 +28,7 @@ describe("ProjectNameRegistry", () => {
 			normalized_ast: ast_file.normalized(),
 			language: "typescript",
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal,
 		};
 		const context: LintProjectContextContract = new LintProjectContextStore(
@@ -69,7 +71,7 @@ describe("ProjectNameRegistry", () => {
 			normalized_ast: ast_file.normalized(),
 			language: "typescript",
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal,
 		};
 		const context: LintProjectContextContract = new LintProjectContextStore(
@@ -131,7 +133,7 @@ describe("ProjectNameRegistry", () => {
 			normalized_ast: ast_file.normalized(),
 			language: "typescript",
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal,
 		};
 		const context = new LintProjectContextStore(

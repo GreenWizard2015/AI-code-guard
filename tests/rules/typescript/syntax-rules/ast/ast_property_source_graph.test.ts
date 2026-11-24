@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { AstPropertySourceIndexCache } from "src/model/ast/ast_property_source_index_cache";
 import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
 import { AstPropertySourceGraph } from "src/rules/typescript/syntax-rules/ast/ast_property_source_graph";
 import ts from "typescript";
 
 describe("AST property source graph", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("uses the project source resolver for imported files", () => {
 		const root = ts.createSourceFile(
 			"/project/src/consumer.ts",
@@ -21,7 +23,7 @@ describe("AST property source graph", () => {
 				module_symbol: (): string => "/project/src/model.ts",
 				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
 			},
-			new Map([["/project/src/model.ts", imported]]),
+			source_file_map_cache.for_map(new Map([["/project/src/model.ts", imported]])),
 			new AstPropertySourceIndexCache(),
 		);
 		expect(graph.source("/project/src/model.ts")).toBe(imported);
@@ -36,7 +38,7 @@ describe("AST property source graph", () => {
 				module_symbol: (): string => "",
 				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
 			},
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			new AstPropertySourceIndexCache(),
 		);
 
@@ -83,7 +85,7 @@ describe("AST property source graph", () => {
 				},
 				resolve: (reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference => reference,
 			},
-			sources,
+			source_file_map_cache.for_map(sources),
 			new AstPropertySourceIndexCache(),
 		);
 

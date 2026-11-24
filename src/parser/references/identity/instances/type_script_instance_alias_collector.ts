@@ -4,8 +4,8 @@ import ts from "typescript";
 
 import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
 import type { TypeScriptInstanceAliasCollectorContract, TypeScriptPropertyStateContract } from "src/model/protocols";
+import { TypeScriptAstNodeObserverRegistry } from "src/model/type_script_ast_node_observer_registry";
 import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
-import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
 import { TypeScriptInstanceAssignment } from "src/parser/references/identity/instances/type_script_instance_assignment";
 import { TypeScriptVariableInstanceAlias } from "src/parser/references/identity/instances/type_script_variable_instance_alias";
 import { TypeScriptObjectPropertyCollector } from "src/parser/references/identity/properties/type_script_object_property_collector";

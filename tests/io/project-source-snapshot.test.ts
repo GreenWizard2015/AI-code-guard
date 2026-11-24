@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { PYTHON_PROJECT_CONFIGURATION_FILE, TYPESCRIPT_CONFIG_FILE } from "src/constants";
-import { ProjectSourceSnapshot } from "src/core/cache/project_source_snapshot";
+import { ProjectSourceSnapshot } from "src/core/cache/lint_execution/snapshots/project_source_snapshot";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 
 describe("in-memory project source snapshots", () => {

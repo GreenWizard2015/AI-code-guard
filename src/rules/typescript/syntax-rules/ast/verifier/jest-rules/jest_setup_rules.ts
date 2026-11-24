@@ -6,7 +6,7 @@ import {
 	MAX_FUNCTION_LINES,
 } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import { TypeScriptExpressionIdentity } from "src/model/type_script_expression_identity";
+import { TypeScriptExpressionIdentity } from "src/model/typescript/type_script_expression_identity";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { JestSetupRulesContract, JestSuiteCollectorContract } from "src/testing_protocols";

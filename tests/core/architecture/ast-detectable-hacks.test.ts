@@ -1,16 +1,18 @@
 import { describe, expect, test } from "@jest/globals";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { CodingRuleLinter } from "src/linting/file_linting/coding_rule_linter";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
 import { TestFixture } from "tests/core/test-fixture";
 import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
 
 describe("AST-detectable implementation hacks", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("detects callable object literals", () => {
 		const source_text = [
 			"interface Base { run(): void; }",
@@ -28,7 +30,7 @@ describe("AST-detectable implementation hacks", () => {
 			{ file: "callable-object.ts", text: source_text },
 			ast_file.normalized(),
 			source_file,
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			new TypeScriptAstTraversal(source_file),
 		);
 		const context = new ASTVerifierTestContext(source_file);

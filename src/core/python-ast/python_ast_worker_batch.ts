@@ -4,6 +4,7 @@ import type {
 	PythonAstWorkerBatchOperationsContract,
 	PythonAstWorkerBatchOwnerContract,
 } from "src/python_protocols";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 
 /** Responsibilities: _Python batch identity_, _worker batch lifecycle_. **/
 export class PythonAstWorkerBatch implements PythonAstWorkerBatchContract {
@@ -45,6 +46,21 @@ export class PythonAstWorkerBatch implements PythonAstWorkerBatchContract {
 			return this._operations.complete_batch(this._batch_id);
 		} finally {
 			this._owner.batch_finished(this);
+		}
+	}
+	/** Responsibilities: _batch response collection timing_. **/
+	public complete_timed(
+		stage_timer: LintStageTimerContract,
+		wait_stage_name: string,
+		batch_stage_name: string,
+		batch_started_at: number,
+	): PythonAstWorkerResponse {
+		const wait_started_at = stage_timer.start_measurement();
+		try {
+			return this.complete();
+		} finally {
+			stage_timer.finish_measurement(wait_stage_name, wait_started_at);
+			stage_timer.finish_measurement(batch_stage_name, batch_started_at);
 		}
 	}
 

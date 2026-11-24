@@ -2,7 +2,7 @@
 
 Read this reference only when starting a new performance task or updating its journal.
 
-At the start of a new task, read any compatible baseline and relevant rejected hypotheses, then reset only `.ai-code-guard/linter-performance-log.md` for the new task. Carry forward concise baseline identity and rejected-attempt IDs. Do not delete timing snapshots or other files. A continuation, context compaction, baseline refresh, or next experiment in the same task is not a new start and must not clear the log.
+At the start of a new task, read any compatible baseline and relevant rejected hypotheses, then update the current task header in `.ai-code-guard/linter-performance-log.md` and preserve previous experiments. Carry forward concise baseline identity and rejected-attempt IDs. Do not delete timing snapshots or other files. A continuation, context compaction, baseline refresh, or next experiment in the same task is not a new start and must not clear the log.
 
 Keep one concise header with target/command, baseline identity and ranges, load state, active experiment, and current diagnostic/correctness gates. Keep one short row per attempt with mechanism, score/threshold, verdict, diagnostic/check status, and attempt number. Store individual runs and detailed reports in the existing snapshots. Do not copy profiler dumps, timing tables, or repeated narrative into the log or create a second verbose journal. Update the header in place, keep the rejected-mechanism index compact, and preserve each attempt's unique outcome.
 

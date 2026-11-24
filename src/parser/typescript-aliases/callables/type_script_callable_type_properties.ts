@@ -1,5 +1,5 @@
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
-import { TypeScriptStaticKeyAliases } from "src/parser/typescript-aliases/type_script_static_key_aliases";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
+import { TypeScriptStaticKeyAliases } from "src/parser/type_script_static_key_aliases";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type {
 	TypeScriptCallableTypePropertiesContract,

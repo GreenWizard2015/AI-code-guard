@@ -1,10 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { LintProjectContextCreator } from "src/core/lint_project_context_creator";
 import { LintRunConfiguration } from "src/core/lint_run_configuration";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { LintProjectContextCreator } from "src/core/project-context/lint_project_context_creator";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import { ProductionTestImportAnalyzer } from "src/rules/architecture/production_test_import_analyzer";
 import { TestFixture } from "tests/core/test-fixture";
 

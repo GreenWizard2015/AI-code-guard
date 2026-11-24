@@ -1,9 +1,10 @@
-import { TypeScriptReferenceType } from "src/parser/analysis/type_script_reference_type";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
+import { TypeScriptReferenceType } from "src/parser/analysis/module-resolution/type_script_reference_type";
 import ts from "typescript";
 
 /** Responsibilities: _declaration member lookup_, _property type resolution_. **/
 export class TypeScriptPropertyTypeLookup {
-	private readonly _source_files: ReadonlyMap<string, ts.SourceFile>;
+	private readonly _source_files: SourceFileResolverContract;
 	private readonly _declaration_name: string;
 	private readonly _property_name: string;
 
@@ -30,12 +31,16 @@ export class TypeScriptPropertyTypeLookup {
 		return [];
 	}
 
+	/** Responsibilities: _property owner source selection_. **/
+	private owner_source(file: string): ts.SourceFile {
+		if (this._source_files.contains_source_file(file)) {
+			return this._source_files.source_file(file);
+		}
+		return ts.createSourceFile(file, "", ts.ScriptTarget.Latest, true);
+	}
+
 	/** Responsibilities: _property type lookup initialization_. **/
-	public constructor(
-		source_files: ReadonlyMap<string, ts.SourceFile>,
-		declaration_name: string,
-		property_name: string,
-	) {
+	public constructor(source_files: SourceFileResolverContract, declaration_name: string, property_name: string) {
 		this._source_files = source_files;
 		this._declaration_name = declaration_name;
 		this._property_name = property_name;
@@ -58,10 +63,7 @@ export class TypeScriptPropertyTypeLookup {
 
 	/** Responsibilities: _property type resolution_. **/
 	public type_name(owner_file: string): string {
-		const source = this._source_files.get(owner_file);
-		if (source === undefined) {
-			return "";
-		}
+		const source = this.owner_source(owner_file);
 		for (const declaration of source.statements) {
 			if (!this.is_owner_declaration(declaration)) {
 				continue;

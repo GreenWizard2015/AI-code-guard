@@ -1,13 +1,13 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { RULE_IDS } from "src/linting/constants";
+import { TypeScriptOperatorPrecedence } from "src/rules/typescript/syntax-rules/expressions/precedence/type_script_operator_precedence";
 import { TypeScriptConditionalRules } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_rules";
-import { TypeScriptOperatorPrecedence } from "src/rules/typescript/syntax-rules/expressions/type_script_operator_precedence";
 import { CompositeStateTypeRules } from "src/rules/typescript/syntax-rules/types/composite_state_type_rules";
 import { NullableTypeRules } from "src/rules/typescript/syntax-rules/types/nullable_type_rules";
 import { RestUnionRule } from "src/rules/typescript/syntax-rules/types/rest_union/rest_union_rule";
+import { TypeScriptTypeShapeRules } from "src/rules/typescript/syntax-rules/types/shapes/type_script_type_shape_rules";
 import { TypeScriptStructuralRules } from "src/rules/typescript/syntax-rules/types/structural/type_script_structural_rules";
 import { TypeScriptBoundaryRuleAppender } from "src/rules/typescript/syntax-rules/types/type_script_boundary_rule_appender";
-import { TypeScriptTypeShapeRules } from "src/rules/typescript/syntax-rules/types/type_script_type_shape_rules";
 import type { CallableRuleAppender, RuleContextContract, RuleNodeDiagnosticContextContract } from "src/types";
 import type { TypeScriptVariableDeclarationIndexContract } from "src/typescript_analysis_protocols";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";

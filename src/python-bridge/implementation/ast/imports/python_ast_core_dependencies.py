@@ -24,10 +24,10 @@ class PythonAstCoreDependencies:
     _source_segments: PythonSourceSegmentsContract
     _structure_issues: PythonStructureIssuesContract
 
-    def __init__(self, source: str) -> None:
+    def __init__(self, source: str, syntax_tree: ast.Module) -> None:
         """Responsibilities: _core AST dependency initialization_."""
         self._source = source
-        self._tree: ast.Module = ast.parse(source)
+        self._tree: ast.Module = syntax_tree
         self._node_index: PythonAstNodeIndexContract = PythonAstNodeIndex()
         self._import_nodes: PythonImportNodesContract = PythonImportNodes(
             self._tree,

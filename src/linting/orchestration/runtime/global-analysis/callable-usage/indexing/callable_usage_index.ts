@@ -8,8 +8,8 @@ import type {
 	MethodOwnerIndexes,
 } from "src/contracts/types/callable_usage_types";
 import { CallableUsageDeclarations } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/callable_usage_declarations";
-import { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/callable_usage_references";
-import { MethodOwnerIndex } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/method_owner_index";
+import { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/references/callable_usage_references";
+import { MethodOwnerIndex } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/references/method_owner_index";
 
 /** Responsibilities: _declaration catalog_, _reference catalog_. **/
 export class CallableUsageIndex {

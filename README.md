@@ -231,9 +231,9 @@ chmod +x /absolute/path/to/AI-code-guard/setup-ubuntu-bash.sh
 source ~/.bashrc
 ```
 
-The script creates `.venv`, installs [`requirements.txt`](../requirements.txt), installs the Node dependencies, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
+The script creates `.venv`, installs [`requirements.txt`](../requirements.txt), installs the Node dependencies, builds `bin/ai-code-guard.mjs`, and adds an idempotent `ai-code-guard` function to `~/.bashrc`. It does not overwrite an existing shortcut block.
 
-The shortcut uses absolute paths for the linter installation and passes the directory where the command was invoked as the project root. This means the same command can lint any project without changing directory first.
+The shortcut runs the packaged `.mjs` launcher, uses absolute paths for the linter installation, and passes the directory where the command was invoked as the project root. This means the same command can lint any project without changing directory first.
 
 Now run it from any project directory:
 
@@ -432,7 +432,7 @@ This repository is a private project configuration and rule set. The rules evolv
 The following benchmark measures AI-code-guard against its own repository with
 architecture review disabled. Each series contains 10 measured runs.
 
-Results recorded on 2026-11-09:
+Results recorded on 2026-11-24:
 
 | Mode | Average | Median | Files/sec |
 | --- | ---: | ---: | ---: |
@@ -445,3 +445,6 @@ Results recorded on 2026-11-09:
 | **Date: 2026-11-09 Files: 1753 (1431 TypeScript files and 322 Python files)** | | | |
 | Without cache | 31.205 sec | 31.190 sec | 56.2 |
 | With cache | 2.469 sec | 2.460 sec | 710.0 |
+| **Date: 2026-11-24 Files: 1827 (1490 TypeScript files and 337 Python files)** | | | |
+| Without cache | 28.501 sec | 28.500 sec | 64.1 |
+| With cache | 0.941 sec | 0.940 sec | 1941.6 |

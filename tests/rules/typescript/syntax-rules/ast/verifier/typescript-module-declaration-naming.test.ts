@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
-import { TypeScriptModuleDeclarationNaming } from "src/rules/typescript/syntax-rules/ast/verifier/declaration-rules/type_script_module_declaration_naming";
+import { TypeScriptModuleDeclarationNaming } from "src/rules/typescript/syntax-rules/ast/verifier/declaration-rules/naming/type_script_module_declaration_naming";
 import { ASTVerifierTestContext } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_context";
 
 describe("TypeScript module declaration naming", () => {

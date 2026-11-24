@@ -1,5 +1,5 @@
 import type { PreferredVariableDeclaration } from "src/linting/types";
-import { TypeScriptTypeNode } from "src/model/type_script_type_node";
+import { TypeScriptTypeNode } from "src/model/typescript/type_script_type_node";
 import type {
 	TypeScriptTypeNodeContract,
 	TypeScriptVariableDeclarationIndexContract,

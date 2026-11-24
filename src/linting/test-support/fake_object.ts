@@ -1,6 +1,6 @@
 import { TypeScriptCallableAliases } from "src/linting/test-support/type_script_callable_aliases";
 import { TypeScriptObjectCallableAliases } from "src/linting/test-support/type_script_object_callable_aliases";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
 import type { ExternalImportedTypesContract, FakeObjectContract } from "src/shared_services_protocols";
 import type { TypeScriptObjectCallableAliasesContract } from "src/typescript_runtime_protocols";

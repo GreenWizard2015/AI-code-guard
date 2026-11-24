@@ -16,7 +16,9 @@ from implementation.protocols import PythonProxyCallableAnalyzerContract
 from implementation.references.aliases.python_container_alias_batch import (
     PythonContainerAliasBatch,
 )
-from implementation.rules.coding_issues.primary_rule_protocols import PythonPrimaryRulesContract
+from implementation.rules.coding_issues.primary_rule_protocols import (
+    PythonPrimaryRulesContract,
+)
 from implementation.rules.coding_issues.python_default_parameter_issues import (
     PythonDefaultParameterIssues,
 )
@@ -34,6 +36,7 @@ from implementation.rules.protocols import (
     PythonControlFlowIssuesContract,
     PythonFieldMutationCollectorContract,
     PythonGlobalIssueCollectorContract,
+    PythonNameBindingIndexContract,
     PythonOperatorPrecedenceContract,
 )
 from implementation.rules.type_rule_protocols import (
@@ -136,6 +139,7 @@ class PythonCodingIssueComponents:
         self,
         context: PythonCodingIssueComponentContextContract,
         primary: PythonPrimaryRulesContract,
+        binding_index: PythonNameBindingIndexContract,
     ) -> None:
         """Responsibilities: _coding issue component coordination_."""
         assembly = PythonCodingIssueAssembly(context, primary)
@@ -164,7 +168,10 @@ class PythonCodingIssueComponents:
         self._primary_branch_count: CallablePythonRuleStage = primary.branch_count_issues
         self._primary_prepare: CallablePythonPrepare = primary.prepare
         self._call_rules: PythonCallRulesContract = primary_rules.call_rules
-        self._global_issue_collector: PythonGlobalIssueCollectorContract = PythonGlobalIssueCollector(context)
+        self._global_issue_collector: PythonGlobalIssueCollectorContract = PythonGlobalIssueCollector(
+            context,
+            binding_index,
+        )
         self._phase_timings = {}
         self._execution_plan = PythonCodingIssueExecutionPlan(
             structure_state.source_nodes,

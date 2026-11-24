@@ -54,4 +54,17 @@ describe("cache directory tree", () => {
 			listed_directories: [root, join(root, "src")].sort(),
 		});
 	});
+
+	test("does not invalidate fingerprints when an ignored directory appears", () => {
+		const root = "/virtual/cache-ignored-directory";
+		const source_file = join(root, "src", "service.ts");
+		const file_io = new InMemoryFileIO();
+		file_io.seed_files(new Map([[source_file, "export class Service {}"]]));
+		const tree = new CacheDirectoryTree(root, file_io);
+		const fingerprints = tree.fingerprints([source_file]);
+
+		file_io.seed_files(new Map([[join(root, "src", "__pycache__", "module.pyc"), "bytecode"]]));
+
+		expect(tree.fingerprints_match(fingerprints)).toBe(true);
+	});
 });

@@ -1,4 +1,4 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { PassThrough } from "node:stream";
 import { describe, expect, test } from "@jest/globals";
 import { QualityCheckDefinitions } from "test-runner/quality_check_definitions";

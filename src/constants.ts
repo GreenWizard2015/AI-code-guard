@@ -3,6 +3,7 @@ import type { TestPathSuffixes } from "src/testing_protocols";
 import { resolve } from "node:path";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import type { DiagnosticRuleData, TaskReportDiagnosticScope } from "src/model/types";
 import type { TypeScriptModuleCache } from "src/module-resolution/types";
@@ -22,6 +23,7 @@ export const MISSING_CACHE_VALUE = "<missing>";
 export const IGNORE_DIRECTORY_OPTION = "--ignore-dir";
 export const REVIEW_AGENT_OPTION = "--review-agent";
 export const REMOVED_SKIP_REVIEW_MESSAGE = "--skip-review was removed; omit --review-agent to skip review.";
+export const BUNDLED_WORKER_ENTRY_PATH = "../../../../../../dist/typescript_file_worker_entry.mjs";
 export const MARKDOWN_TEXT_SUFFIXES: ReadonlySet<string> = new Set([".md", ".markdown", ".mdown", ".mkdn"]);
 export const RULE_DOCUMENT_DIRECTORY = "docs/rules";
 export const TEST_RUNNER_DIRECTORY = "test-runner";
@@ -228,7 +230,7 @@ export const MODULE_CACHE_KEY_SEPARATOR = "\u0000";
 export const MODULE_CACHE_DISK_SCOPE = "disk";
 export const MODULE_CACHE_SNAPSHOT_SCOPE = "snapshot";
 export const SHARED_MODULE_CACHES = new WeakMap<
-	ReadonlyMap<string, ts.SourceFile>,
+	SourceFileResolverContract,
 	WeakMap<ProjectSourceIOContract, TypeScriptModuleCache>
 >();
 export const IMPORT_KINDS = new Set([ts.SyntaxKind.ImportDeclaration, ts.SyntaxKind.ImportEqualsDeclaration]);
@@ -368,6 +370,8 @@ export const TYPESCRIPT_INDEX_MODULE = "index.ts";
 export const PYTHON_INDEX_MODULE = "index.py";
 export const PROTOCOL_NAME_PREFIX = "prot";
 export const TYPESCRIPT_METADATA_STAGE_PREFIX = "startup.project-context.source-records.record-construction.metadata";
+export const TYPESCRIPT_FUNCTIONS_STAGE = "startup.project-context.source-records.record-construction.functions";
+export const TYPESCRIPT_SOURCE_FILE_MISSING_NAME_ERROR = "TypeScript source file has no file name.";
 export const ERROR_CLASS_NAMES: ReadonlySet<string> = new Set(["Error", "Exception", "BaseException", "ValueError"]);
 export const INITIALIZED_REFERENCE_STATE = "initialized";
 export const INITIALIZING_REFERENCE_STATE = "initializing";

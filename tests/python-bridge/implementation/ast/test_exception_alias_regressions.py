@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -17,7 +18,7 @@ result = build("invoice", [])
 result_type: schema.Tuple[int]
 service.NamedTuple("invoice", [])
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("python-type-factory", issues)
@@ -34,7 +35,7 @@ def handle():
             raise billing.DomainError(code=1) from error
         raise shipping.DomainError(code=2) from error
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("duplicate-error-translation", issues)
@@ -50,7 +51,7 @@ def handle():
             raise DomainError(code=1) from error
         raise DomainError(code=1) from error
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("duplicate-error-translation", issues)
@@ -67,7 +68,7 @@ def handle():
         fallback_message = "record could not be loaded"
         raise RuntimeError(fallback_message)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("duplicate-error-translation", issues)
@@ -82,7 +83,7 @@ try:
 except Caught:
     recover()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("broad-except", issues)
@@ -104,7 +105,7 @@ def narrow_handler():
     except Caught:
         recover()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertEqual(issues.count("broad-except"), 1)
@@ -123,7 +124,7 @@ try:
 except exceptions:
     recover()
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertEqual(issues.count("python-multi-except"), 1)

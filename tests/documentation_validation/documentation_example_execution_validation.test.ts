@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
-import { DocumentationExampleEvaluation } from "documentation_validation/documentation_example_evaluation";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
+import { DocumentationExampleEvaluation } from "documentation_validation/examples/documentation_example_evaluation";
+import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation/rule_documentation_catalog";
 import { ExampleKind } from "documentation_validation/types";
 import type {
 	CallableDocumentationValidationOperation,

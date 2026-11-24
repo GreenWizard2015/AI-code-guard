@@ -11,7 +11,7 @@ import {
 	REVIEW_SOURCE_IDENTITY_PREFIX,
 } from "src/core/support/task/review-agent/constants";
 import type { ReviewStateIdentityContract } from "src/core/support/task/review-agent/protocols";
-import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
+import { ReviewStateIdentity } from "src/core/support/task/review-agent/recovery/review_state_identity";
 import type { IOContract } from "src/io/protocols";
 import type { TaskReviewContract, TaskReviewFileContract } from "src/task_protocols";
 

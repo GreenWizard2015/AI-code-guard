@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 from time import perf_counter
 
 from implementation.ast.constants import (
@@ -38,13 +39,15 @@ from implementation.ast.constants import (
     FUNCTIONS_KEY,
 )
 from implementation.ast.protocols import PythonAstParserContract
+from implementation.ast.python_ast_parsed_source import PythonAstParsedSource
+from implementation.ast.python_ast_syntax_error_source import PythonAstSyntaxErrorSource
 from implementation.ast.python_ast_timed_result import PythonAstTimedResult
 from implementation.rules.constants import (
     PYTHON_PARSE_ISSUES_KEY,
     PYTHON_REFERENCE_ALIASES_KEY,
 )
 from implementation.types import JsonObject, JsonValueList
-from protocols import PythonAstTimedResultContract
+from protocols import PythonAstParseOutcomeContract, PythonAstTimedResultContract
 
 
 class PythonAstBridge:
@@ -106,12 +109,13 @@ class PythonAstBridge:
             "coding_issues": [],
         }
 
-    def _syntax_error_result(self, error: SyntaxError) -> JsonObject:
+    def _syntax_error_result(self, parse_result: PythonAstParseOutcomeContract) -> JsonObject:
         """Responsibilities: _syntax error result serialization_."""
-        line = max(0, (error.lineno or 1) - 1)
         result = self._empty_syntax_collections()
         result.update(self._empty_syntax_metadata())
-        result[PYTHON_PARSE_ISSUES_KEY] = [{"line": line, "message": error.msg}]
+        result[PYTHON_PARSE_ISSUES_KEY] = [
+            {"line": parse_result.issue_line(), "message": parse_result.issue_message()},
+        ]
         return self._nested_ast(result)
 
     def _callable_groups(self, callable_data: JsonObject) -> JsonObject:
@@ -210,19 +214,29 @@ class PythonAstBridge:
         """Responsibilities: _source parser dependency setup_."""
         self._parser_type: type[PythonAstParserContract] = parser_type
 
-    def source_ast_timed(self, text: str) -> PythonAstTimedResultContract:
-        """Responsibilities: _timed source AST parsing_."""
+    def source_ast_input(self, source_code: str) -> PythonAstParseOutcomeContract:
+        """Responsibilities: _syntax tree input_, _duration measurement_."""
         parse_started = perf_counter()
         try:
-            parser = self._parser_type(text)
+            syntax_tree = ast.parse(source_code)
         except SyntaxError as error:
+            duration_ms = (perf_counter() - parse_started) * 1000
+            return PythonAstSyntaxErrorSource(source_code, error, duration_ms)
+        duration_ms = (perf_counter() - parse_started) * 1000
+        return PythonAstParsedSource(source_code, syntax_tree, duration_ms)
+
+    def source_ast_timed(self, parse_result: PythonAstParseOutcomeContract) -> PythonAstTimedResultContract:
+        """Responsibilities: _timed source AST parsing_."""
+        parse_ms = parse_result.duration_ms()
+        if parse_result.failed():
             return PythonAstTimedResult(
-                ast_value=self._syntax_error_result(error),
-                parse_ms=(perf_counter() - parse_started) * 1000,
+                ast_value=self._syntax_error_result(parse_result),
+                parse_ms=parse_ms,
                 build_ms=0.0,
                 stages={},
             )
-        parse_ms = (perf_counter() - parse_started) * 1000
+        syntax_tree = parse_result.syntax_tree()
+        parser = self._parser_type(parse_result.source_code(), syntax_tree)
         build_started = perf_counter()
         result = self._nested_ast(parser.ast())
         build_ms = (perf_counter() - build_started) * 1000
@@ -235,5 +249,6 @@ class PythonAstBridge:
 
     def source_ast(self, text: str) -> JsonObject:
         """Responsibilities: _source text AST parsing_."""
-        result = self.source_ast_timed(text)
+        parse_result = self.source_ast_input(text)
+        result = self.source_ast_timed(parse_result)
         return result.ast_data()

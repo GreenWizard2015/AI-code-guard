@@ -4,10 +4,10 @@ import {
 	TYPESCRIPT_PROTOTYPE_NAME,
 } from "src/constants";
 import { ObjectIntrinsicMemberModel } from "src/linting/object_intrinsic_member_model";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import type { ObjectValueRulesContract } from "src/runtime_protocols";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
+import { TypeScriptMemberAliases } from "src/type_script_member_aliases";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
@@ -92,6 +92,13 @@ export class ObjectIntrinsicModel implements ObjectValueRulesContract {
 	public object_assign(assign_candidate: ts.Node): boolean {
 		if (!ts.isCallExpression(assign_candidate)) {
 			return false;
+		}
+		if (ts.isIdentifier(assign_candidate.expression)) {
+			return this._object_member_aliases.property({
+				expression: assign_candidate.expression,
+				node: assign_candidate,
+				name: "assign",
+			});
 		}
 		const expression = this._object_aliases.unwrapped(assign_candidate.expression);
 		if (this.forwarded_object_assign(expression, assign_candidate)) {

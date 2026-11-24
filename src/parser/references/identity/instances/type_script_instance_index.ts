@@ -4,6 +4,7 @@ import type { TypeScriptInstanceStoreContract } from "src/model/protocols";
 import type { DestructuredAlias } from "src/model/types";
 import type { TypeScriptInstanceLookup } from "src/model/types";
 import type { DestructuredInstanceOptions } from "src/model/types";
+import type { InstanceBinding } from "src/parser/references/identity/instances/protocols";
 import { TypeScriptInstanceBindings } from "src/parser/references/identity/instances/type_script_instance_bindings";
 import { TypeScriptLexicalScope } from "src/parser/references/instance/type_script_lexical_scope";
 
@@ -13,19 +14,30 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStoreContract 
 	private readonly _instances: TypeScriptInstanceBindings;
 	private readonly _imported_instances: Map<string, string>;
 
-	/** Responsibilities: _binding owner before reference_. **/
-	private binding_owner(
-		bindings: readonly { declaration: ts.Node; owner: string }[],
-		reference: ts.Node,
-	): TypeScriptInstanceLookup {
-		const reference_start = reference.getStart(reference.getSourceFile());
-		let owner: TypeScriptInstanceLookup = { bound: false, value: "" };
-		for (const binding of bindings) {
-			if (binding.declaration.getStart(binding.declaration.getSourceFile()) <= reference_start) {
-				owner = { bound: true, value: binding.owner };
+	/** Responsibilities: _binding position search_. **/
+	private binding_position(bindings: readonly InstanceBinding[], reference_start: number): number {
+		let lower = 0;
+		let upper = bindings.length;
+		while (lower < upper) {
+			const middle = lower + Math.floor((upper - lower) / 2);
+			const binding = bindings[middle];
+			if (binding === undefined || binding.start > reference_start) {
+				upper = middle;
+			} else {
+				lower = middle + 1;
 			}
 		}
-		return owner;
+		return lower - 1;
+	}
+
+	/** Responsibilities: _binding owner before reference_. **/
+	private binding_owner(bindings: readonly InstanceBinding[], reference: ts.Node): TypeScriptInstanceLookup {
+		const reference_start = reference.getStart(reference.getSourceFile());
+		const binding = bindings[this.binding_position(bindings, reference_start)];
+		if (binding === undefined) {
+			return { bound: false, value: "" };
+		}
+		return { bound: true, value: binding.owner };
 	}
 
 	/** Responsibilities: _initialization source file scope_. **/
@@ -73,10 +85,9 @@ export class TypeScriptInstanceIndex implements TypeScriptInstanceStoreContract 
 				return owner;
 			}
 		}
-		for (const [imported_name, imported_owner] of this._imported_instances) {
-			if (imported_name === name) {
-				return { bound: true, value: imported_owner };
-			}
+		const imported_owner = this._imported_instances.get(name);
+		if (imported_owner !== undefined) {
+			return { bound: true, value: imported_owner };
 		}
 		return { bound: false, value: "" };
 	}

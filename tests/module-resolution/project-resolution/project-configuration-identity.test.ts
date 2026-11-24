@@ -1,11 +1,13 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import { TypeScriptProjectResolution } from "src/module-resolution/project-resolution/type_script_project_resolution";
 import ts from "typescript";
 
 describe("TypeScript project configuration identity", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	/** Responsibilities: _source AST construction_. **/
 	const create_source_files = (source_io: InMemoryProjectSourceIO, paths: string[]): Map<string, ts.SourceFile> =>
 		new Map(
@@ -77,7 +79,12 @@ describe("TypeScript project configuration identity", () => {
 		const source_io = new InMemoryProjectSourceIO(source_texts);
 		const compiler_target = resolve_compiler_target(root, source_io, config_file, consumer_file, "worker");
 		const source_sources = create_source_files(source_io, [consumer_file, configured_target, root_decoy, source_decoy]);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_sources, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_sources),
+			false,
+			source_io,
+		);
 		const guard_target = exports_context.module_exports().module_symbol(consumer_file, "worker");
 
 		expect({ compiler_target, guard_target }).toEqual({
@@ -218,7 +225,12 @@ describe("TypeScript project configuration identity", () => {
 		const source_io = new InMemoryProjectSourceIO(source_texts);
 		const compiler_target = resolve_compiler_target(root, source_io, config_file, consumer_file, "@worker");
 		const source_sources = create_source_files(source_io, [consumer_file, inherited_target, root_decoy]);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_sources, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_sources),
+			false,
+			source_io,
+		);
 		const module_exports = exports_context.module_exports();
 		const guard_target = module_exports.module_symbol(consumer_file, "@worker");
 
@@ -246,7 +258,12 @@ describe("TypeScript project configuration identity", () => {
 		const source_io = new InMemoryProjectSourceIO(source_texts);
 		const compiler_target = resolve_compiler_target(root, source_io, config_file, consumer_file, "@app/special/task");
 		const source_sources = create_source_files(source_io, [consumer_file, broad_target, specific_target]);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_sources, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_sources),
+			false,
+			source_io,
+		);
 		const module_exports = exports_context.module_exports();
 		const guard_target = module_exports.module_symbol(consumer_file, "@app/special/task");
 

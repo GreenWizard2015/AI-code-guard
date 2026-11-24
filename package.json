@@ -10,12 +10,13 @@
 		"./*": "./src/*.ts"
 	},
 	"bin": {
-		"ai-code-guard": "src/core/cli.ts"
+		"ai-code-guard": "bin/ai-code-guard.mjs"
 	},
 	"scripts": {
-		"prepare": "git config core.hooksPath .githooks",
+		"prepare": "git config core.hooksPath .githooks && pnpm build:cli",
+		"build:cli": "node scripts/build-cli.mjs",
 		"coverage:python": "COVERAGE_FILE=coverage/.coverage.python PYTHONPATH=src/python-bridge python3 -m coverage run --parallel-mode -m pytest tests/python-bridge tests/performance",
-  "coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=2 --coverage --coverageReporters=text",
+		"coverage:typescript": "COVERAGE_PROCESS_START=.coveragerc COVERAGE_FILE=coverage/.coverage.python NODE_OPTIONS=--experimental-vm-modules jest --maxWorkers=2 --coverage --coverageReporters=text",
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
 		"coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
 		"test:runner": "tsx test-runner/cli.ts",
@@ -34,6 +35,7 @@
 		"@jest/globals": "^29.7.0",
 		"@types/jest": "^29.5.12",
 		"@types/node": "^20.11.30",
+		"esbuild": "0.28.2",
 		"jest": "^29.7.0",
 		"ts-jest": "^29.1.2",
 		"typescript": "^5.4.3"

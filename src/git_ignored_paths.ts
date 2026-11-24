@@ -1,9 +1,9 @@
 import { homedir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { GITIGNORE_FILE_NAME } from "src/constants";
-import { ProjectPathRelation } from "src/core/support/project_path_relation";
+import { ProjectPathRelation } from "src/core/project-source/project_path_relation";
+import { GitIgnorePatternCatalog } from "src/core/support/git_ignore_tokens/git_ignore_pattern_catalog";
 import type { ProjectPathRelationContract } from "src/core/support/protocols";
-import { GitIgnorePatternCatalog } from "src/git_ignore_pattern_catalog";
 import type { GitIgnorePattern, GitIgnoreSourceFile } from "src/project_analysis_types";
 import type { ParsedConfigurationFilesContract, ProjectSourceIOContract } from "src/source_protocols";
 

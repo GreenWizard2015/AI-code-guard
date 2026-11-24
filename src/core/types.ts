@@ -26,7 +26,15 @@ import type {
 } from "src/model/ast/normalized_ast_types";
 import type { PythonProjectNames } from "src/model_types";
 import type { TaskViolationSuppression } from "src/model_types";
-import type { LintAnalysisStage, LintInputFiles, LintRunResult, LintRunState } from "src/project_analysis_types";
+import type {
+	DirectoryFileSet,
+	LintAnalysisStage,
+	LintInputFiles,
+	LintRunResult,
+	LintRunState,
+	ProjectRuleSnapshots,
+	ProjectSourceAnalysisOptionsContract,
+} from "src/project_analysis_types";
 import type {
 	PythonAstDataContract,
 	PythonAstWorkerCapabilityContract,
@@ -41,13 +49,18 @@ import type {
 	ProjectAnalysisIdentityContract,
 } from "src/runtime_protocols";
 import type { LintRunConfigurationContract } from "src/runtime_protocols";
+import type { CallableOperation } from "src/runtime_types";
 import type {
 	CodingRuleLinterContract,
 	FileViolationCollectorContract,
 	LintProjectContextContract,
 	LintStageTimerContract,
 } from "src/shared_services_protocols";
-import type { LintInputFileSelectorContract, ProjectSourceIOContract } from "src/source_protocols";
+import type {
+	LintInputFileSelectorContract,
+	ProjectSourceIOContract,
+	ProjectSourceScanContract,
+} from "src/source_protocols";
 import type { TaskReportingContract } from "src/task_protocols";
 import type { TaskReviewAgentContract } from "src/task_protocols";
 import type { CliOptions, TestTargetLink } from "src/task_types";
@@ -86,7 +99,7 @@ export type TaskFilePlanPriorityLabels = {
 	in_batch_rules: string;
 	deferred_rules: string;
 };
-export type FileLintRunOptions = {
+export type FileLintRunSourceOptions = {
 	files: string[];
 	repo_root: string;
 	names: PythonProjectNames;
@@ -94,9 +107,76 @@ export type FileLintRunOptions = {
 	ignored_files: ReadonlySet<string>;
 	analysis_identity: ProjectAnalysisIdentityContract;
 	context_identity: string;
+};
+
+export type FileLintRunServices = {
 	timers: readonly LintStageTimerContract[];
 	coding_rule_linter: CodingRuleLinterContract;
 	violation_collector: FileViolationCollectorContract;
+	clean_cache_records: boolean;
+};
+
+export type TypeScriptWorkerProjectMetadata = {
+	project_files: readonly string[];
+	entry_files: readonly string[];
+	ignored_directories: ReadonlySet<string>;
+	directory_files: readonly string[];
+	virtual_project: boolean;
+};
+
+export enum FileLintWorkerModeKind {
+	Project = "project",
+	Serial = "serial",
+}
+
+/** Responsibilities: _file worker mode contract_. **/
+export interface FileLintWorkerModeContract {
+	context(): FileLintWorkerModeContext;
+	snapshot_scope<Result>(operation: CallableOperation<Result>): Result;
+}
+
+/** Responsibilities: _file worker mode data_. **/
+export type FileLintWorkerModeContext = {
+	kind: FileLintWorkerModeKind;
+	metadata: TypeScriptWorkerProjectMetadata;
+	scope: ProjectSourceAnalysisOptionsContract;
+};
+
+/** Responsibilities: _file lint mode_, _snapshot scope_. **/
+export class FileLintWorkerMode implements FileLintWorkerModeContract {
+	private readonly _kind: FileLintWorkerModeKind;
+	private readonly _metadata: TypeScriptWorkerProjectMetadata;
+	private readonly _scope: ProjectSourceAnalysisOptionsContract;
+
+	/** Responsibilities: _file worker mode configuration_. **/
+	public constructor(options: FileLintWorkerModeContext) {
+		this._kind = options.kind;
+		this._metadata = options.metadata;
+		this._scope = options.scope;
+	}
+
+	/** Responsibilities: _worker mode data_. **/
+	public context(): FileLintWorkerModeContext {
+		return { kind: this._kind, metadata: this._metadata, scope: this._scope };
+	}
+
+	/** Responsibilities: _project snapshot scope_. **/
+	public snapshot_scope<Result>(operation: CallableOperation<Result>): Result {
+		if (this._kind === FileLintWorkerModeKind.Serial) {
+			return operation();
+		}
+		if (this._scope.capture_snapshots_during === undefined) {
+			throw new Error("Project lint mode requires a snapshot-capable project scope.");
+		}
+		return this._scope.capture_snapshots_during(operation);
+	}
+}
+
+/** Responsibilities: _file lint execution options_. **/
+export type FileLintRunOptions = {
+	source: FileLintRunSourceOptions;
+	services: FileLintRunServices;
+	worker_mode: FileLintWorkerModeContract;
 };
 
 export type FileLintAnalysisOptions = {
@@ -194,6 +274,10 @@ export type UnusedSourceImportFiles = ReadonlySet<string>;
 export type UnusedSourceImportCache = Map<string, UnusedSourceImportFiles>;
 export type UnusedSymbolAliasMap = ReadonlyMap<string, string>;
 export type UnusedSymbolAliasCache = Map<string, UnusedSymbolAliasMap>;
+export type UnusedSymbolUsageNames = Set<string>;
+export type UnusedSymbolUsageByFile = Map<string, UnusedSymbolUsageNames>;
+export type UnusedFieldUsageByOwner = Map<string, UnusedSymbolUsageNames>;
+export type UnusedFieldUsageByFile = Map<string, UnusedFieldUsageByOwner>;
 export type UnusedFieldOwner = { file: string; owner: string };
 export type UnusedFieldOwnerRecord = { file: string; owner: string; source_file: string };
 export type UnusedFieldOwnerIndex = Map<string, UnusedFieldOwnerRecord[]>;
@@ -293,6 +377,18 @@ export type LintRunStateContextOptions = {
 	analysis_identity: ProjectAnalysisIdentityContract;
 	file_io: IOContract;
 	source_io: ProjectSourceIOContract;
+};
+
+/** Responsibilities: _project source scope dependencies_. **/
+export type ProjectSourceScopeOptions = {
+	root: string;
+	project_files: readonly string[];
+	context: LintProjectContextContract;
+	ignored_files: ReadonlySet<string>;
+	scanner: ProjectSourceScanContract;
+	file_io: IOContract;
+	directory_files: DirectoryFileSet;
+	project_rule_snapshots: ProjectRuleSnapshots;
 };
 
 /** Responsibilities: _worker session state_, _parser capability ownership_. **/

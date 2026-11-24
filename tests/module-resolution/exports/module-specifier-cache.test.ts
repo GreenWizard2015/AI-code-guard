@@ -1,10 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptCompositionModel } from "src/linting/composition/type_script_composition_model";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import ts from "typescript";
 
 describe("module specifier cache ownership", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const source_io = new InMemoryProjectSourceIO(new Map());
 	test("retains composition import identities when several files share a module", () => {
 		const target = ts.createSourceFile(
@@ -30,7 +32,12 @@ describe("module specifier cache ownership", () => {
 			[first.fileName, first],
 			[second.fileName, second],
 		]);
-		const exports_context = new TypeScriptModuleExportsContext("/project", sources, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			"/project",
+			source_file_map_cache.for_map(sources),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 		const first_model = new TypeScriptCompositionModel(first.fileName, first, resolver);
 		const second_model = new TypeScriptCompositionModel(second.fileName, second, resolver);
@@ -46,9 +53,10 @@ describe("module specifier cache ownership", () => {
 		const file = "/project/src/shared.ts";
 		const source = ts.createSourceFile(file, "export const VALUE = 1;", ts.ScriptTarget.Latest, true);
 		const sources = new Map([[file, source]]);
-		const first_context = new TypeScriptModuleExportsContext("/project", sources, false, source_io);
+		const source_resolver = source_file_map_cache.for_map(sources);
+		const first_context = new TypeScriptModuleExportsContext("/project", source_resolver, false, source_io);
 		const first = first_context.module_exports();
-		const second_context = new TypeScriptModuleExportsContext("/project", sources, false, source_io);
+		const second_context = new TypeScriptModuleExportsContext("/project", source_resolver, false, source_io);
 		const second = second_context.module_exports();
 		const first_file = first.module_symbol("/project/one.ts", "src/shared");
 		const second_file = second.module_symbol("/project/two.ts", "src/shared");
@@ -56,7 +64,8 @@ describe("module specifier cache ownership", () => {
 	});
 
 	test("resolves missing non-relative modules consistently across importers", () => {
-		const exports_context = new TypeScriptModuleExportsContext("/project", new Map(), false, source_io);
+		const source_resolver = source_file_map_cache.for_map(new Map());
+		const exports_context = new TypeScriptModuleExportsContext("/project", source_resolver, false, source_io);
 		const resolver = exports_context.module_exports();
 		const first_file = resolver.module_symbol("/project/one.ts", "missing");
 		const second_file = resolver.module_symbol("/project/two.ts", "missing");
@@ -78,10 +87,12 @@ describe("module specifier cache ownership", () => {
 		);
 		const exports_context = new TypeScriptModuleExportsContext(
 			"/project",
-			new Map([
-				[first.fileName, first],
-				[second.fileName, second],
-			]),
+			source_file_map_cache.for_map(
+				new Map([
+					[first.fileName, first],
+					[second.fileName, second],
+				]),
+			),
 			false,
 			source_io,
 		);
@@ -98,9 +109,10 @@ describe("module specifier cache ownership", () => {
 			[first.fileName, first],
 			[second.fileName, second],
 		]);
-		const first_context = new TypeScriptModuleExportsContext("/one", sources, false, source_io);
+		const source_resolver = source_file_map_cache.for_map(sources);
+		const first_context = new TypeScriptModuleExportsContext("/one", source_resolver, false, source_io);
 		const first_resolver = first_context.module_exports();
-		const module_second_context = new TypeScriptModuleExportsContext("/two", sources, false, source_io);
+		const module_second_context = new TypeScriptModuleExportsContext("/two", source_resolver, false, source_io);
 		const second_resolver = module_second_context.module_exports();
 		const first_file = first_resolver.module_symbol("/one/use.ts", "shared");
 		const second_file = second_resolver.module_symbol("/two/use.ts", "shared");

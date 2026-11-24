@@ -1,3 +1,4 @@
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -10,7 +11,10 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
 
     def test_shares_module_aliases_between_ast_consumers(self) -> None:
         """Responsibilities: _module alias consistency_."""
-        tree = PythonAstTree("import builtins as native\ncallback = native.getattr\n")
+        tree = PythonAstTree(
+            "import builtins as native\ncallback = native.getattr\n",
+            ast.parse("import builtins as native\ncallback = native.getattr\n"),
+        )
         ast_data = tree.ast()
         tree_state = tree.analysis_state()
         source_tree = tree.tree()
@@ -33,8 +37,14 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
 
     def test_keeps_shared_aliases_owned_by_each_source(self) -> None:
         """Responsibilities: _source alias isolation_."""
-        first = PythonAstTree("from builtins import getattr as callback\n")
-        second = PythonAstTree("from builtins import setattr as callback\n")
+        first = PythonAstTree(
+            "from builtins import getattr as callback\n",
+            ast.parse("from builtins import getattr as callback\n"),
+        )
+        second = PythonAstTree(
+            "from builtins import setattr as callback\n",
+            ast.parse("from builtins import setattr as callback\n"),
+        )
         first_result = first.ast()
         second_result = second.ast()
         self.assertEqual(
@@ -44,11 +54,12 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
 
     def test_collects_annotated_type_alias_targets(self) -> None:
         """Responsibilities: _generic alias target resolution_."""
-        tree = PythonAstTree(
+        source = (
             "from typing import TypeAlias as Alias\n"
             "from collections import UserList\n"
-            "EntryList: Alias = UserList[str]\n",
+            "EntryList: Alias = UserList[str]\n"
         )
+        tree = PythonAstTree(source, ast.parse(source))
         ast_data = tree.ast()
         match ast_data["reference_aliases"]:
             case list() as aliases:

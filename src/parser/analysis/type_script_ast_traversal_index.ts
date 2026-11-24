@@ -1,8 +1,4 @@
-import type {
-	CallableTypeScriptAstTraversalDecision,
-	TypeScriptAstTraversalFrame,
-	TypeScriptAstTraversalNode,
-} from "src/typescript_runtime_types";
+import type { CallableTypeScriptAstTraversalDecision, TypeScriptAstTraversalNode } from "src/typescript_runtime_types";
 import ts from "typescript";
 
 /** Responsibilities: _AST preorder cache_, _subtree range index_. **/
@@ -12,6 +8,7 @@ export class TypeScriptAstTraversalIndex {
 	private readonly _subtree_end_indices: number[];
 	private readonly _node_indices: WeakMap<ts.Node, number>;
 	private readonly _children: ts.Node[];
+	private readonly _open_ranges: number[];
 
 	/** Responsibilities: _next cached node index_. **/
 	private next_cached_index(index: number, visit_descendants: boolean): number {
@@ -58,32 +55,37 @@ export class TypeScriptAstTraversalIndex {
 	}
 
 	/** Responsibilities: _preorder child frames_. **/
-	private append_child_frames(current: TypeScriptAstTraversalFrame, pending: TypeScriptAstTraversalFrame[]): void {
-		const inherited = this.child_context(current.traversal_node.node, current.traversal_node);
+	private append_children(
+		current: TypeScriptAstTraversalNode,
+		depth: number,
+		pending_nodes: ts.Node[],
+		pending_contexts: TypeScriptAstTraversalNode[],
+		pending_depths: number[],
+	): void {
 		this._children.length = 0;
-		current.traversal_node.node.forEachChild((child) => {
+		current.node.forEachChild((child) => {
 			this._children.push(child);
 		});
+		const inherited = this.child_context(current.node, current);
 		for (let index = this._children.length - 1; index >= 0; index -= 1) {
 			const child = this._children[index];
 			if (child !== undefined) {
-				pending.push({
-					traversal_node: {
-						node: child,
-						inside_constructor: inherited.inside_constructor,
-						owner: inherited.owner,
-						function_owner: inherited.function_owner,
-					},
-					depth: current.depth + 1,
+				pending_nodes.push(child);
+				pending_contexts.push({
+					node: child,
+					inside_constructor: inherited.inside_constructor,
+					owner: inherited.owner,
+					function_owner: inherited.function_owner,
 				});
+				pending_depths.push(depth + 1);
 			}
 		}
 	}
 
 	/** Responsibilities: _subtree range closure_. **/
-	private close_ranges(open_ranges: number[], ancestor_depth: number, final_index: number): void {
-		while (open_ranges.length > ancestor_depth) {
-			const closed_index = open_ranges.pop();
+	private close_ranges(ancestor_depth: number, final_index: number): void {
+		while (this._open_ranges.length > ancestor_depth) {
+			const closed_index = this._open_ranges.pop();
 			if (closed_index !== undefined) {
 				this._subtree_end_indices[closed_index] = final_index;
 			}
@@ -91,26 +93,47 @@ export class TypeScriptAstTraversalIndex {
 	}
 
 	/** Responsibilities: _preorder node frame_. **/
-	private append_collected_frame(current: TypeScriptAstTraversalFrame, open_ranges: number[]): void {
+	private append_collected_node(traversal_node: TypeScriptAstTraversalNode, depth: number): void {
 		const index = this._node_list.length;
-		this.close_ranges(open_ranges, current.depth, index - 1);
-		this._node_list.push(current.traversal_node);
-		this._node_indices.set(current.traversal_node.node, index);
+		this.close_ranges(depth, index - 1);
+		this._node_list.push(traversal_node);
+		this._node_indices.set(traversal_node.node, index);
 		this._subtree_end_indices.push(index);
-		open_ranges.push(index);
+		this._open_ranges.push(index);
 	}
 
-	/** Responsibilities: _source-file root frame_. **/
-	private source_file_frame(): TypeScriptAstTraversalFrame {
-		return {
-			traversal_node: {
+	/** Responsibilities: _pending preorder traversal_. **/
+	private collect_pending_nodes(): void {
+		const pending_nodes: ts.Node[] = [this._source_file];
+		const pending_contexts: TypeScriptAstTraversalNode[] = [
+			{
 				node: this._source_file,
 				inside_constructor: false,
 				owner: "",
 				function_owner: this._source_file,
 			},
-			depth: 0,
-		};
+		];
+		const pending_depths: number[] = [0];
+		while (pending_nodes.length > 0) {
+			this.collect_next_node(pending_nodes, pending_contexts, pending_depths);
+		}
+		this.close_ranges(0, this._node_list.length - 1);
+	}
+
+	/** Responsibilities: _one pending preorder node_. **/
+	private collect_next_node(
+		pending_nodes: ts.Node[],
+		pending_contexts: TypeScriptAstTraversalNode[],
+		pending_depths: number[],
+	): void {
+		const current_node = pending_nodes.pop();
+		const current = pending_contexts.pop();
+		const depth = pending_depths.pop();
+		if (current_node === undefined || current === undefined || depth === undefined) {
+			return;
+		}
+		this.append_collected_node(current, depth);
+		this.append_children(current, depth, pending_nodes, pending_contexts, pending_depths);
 	}
 
 	/** Responsibilities: _traversal index dependencies_. **/
@@ -120,6 +143,7 @@ export class TypeScriptAstTraversalIndex {
 		this._subtree_end_indices = [];
 		this._node_indices = new WeakMap();
 		this._children = [];
+		this._open_ranges = [];
 	}
 
 	/** Responsibilities: _cached AST preorder_. **/
@@ -127,17 +151,7 @@ export class TypeScriptAstTraversalIndex {
 		if (this._node_list.length > 0) {
 			return;
 		}
-		const pending: TypeScriptAstTraversalFrame[] = [this.source_file_frame()];
-		const open_ranges: number[] = [];
-		while (pending.length > 0) {
-			const current = pending.pop();
-			if (current === undefined) {
-				continue;
-			}
-			this.append_collected_frame(current, open_ranges);
-			this.append_child_frames(current, pending);
-		}
-		this.close_ranges(open_ranges, 0, this._node_list.length - 1);
+		this.collect_pending_nodes();
 	}
 
 	/** Responsibilities: _cached traversal node sequence_. **/

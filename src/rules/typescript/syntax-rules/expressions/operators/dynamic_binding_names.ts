@@ -1,5 +1,5 @@
 import { COLLECTION_TYPE_NAMES } from "src/constants";
-import { LexicalBindingScope } from "src/parser/typescript-aliases/lexical_binding_scope";
+import { LexicalBindingScope } from "src/parser/lexical_binding_scope";
 import type { DynamicBindingNamesContract } from "src/shared_services_protocols";
 import type { SourceFileStringSetCache } from "src/source_types";
 import type { LexicalBindingScopeContract } from "src/typescript_runtime_protocols";

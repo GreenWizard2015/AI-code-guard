@@ -1,6 +1,6 @@
 import { RULE_IDS } from "src/linting/constants";
 import { OVERLOAD } from "src/parser/internals/constants";
-import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/type_script_overload_rules";
+import { TypeScriptOverloadRules } from "src/rules/typescript/syntax-rules/callables/call-aliases/type_script_overload_rules";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type { TypeScriptExpressionRuleContract } from "src/typescript_runtime_protocols";

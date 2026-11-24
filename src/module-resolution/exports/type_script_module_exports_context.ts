@@ -1,5 +1,6 @@
 import { resolve as resolve_path } from "node:path";
 import { SHARED_MODULE_CACHES } from "src/constants";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptModuleExports } from "src/module-resolution/exports/type_script_module_exports";
 import { TypeScriptModulePathCatalog } from "src/module-resolution/path-resolution/type_script_module_path_catalog";
 import { TypeScriptProjectResolutionCache } from "src/module-resolution/project-resolution/type_script_project_resolution_cache";
@@ -9,13 +10,12 @@ import type {
 	TypeScriptModuleExportsContract,
 	TypeScriptProjectResolutionCacheContract,
 } from "src/module-resolution/types";
-import type { TypeScriptSourceFileMap } from "src/module-resolution/types";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 
 /** Responsibilities: _module resolution context_, _module export resolver assembly_. **/
 export class TypeScriptModuleExportsContext {
 	private readonly _project_root: string;
-	private readonly _source_files: TypeScriptSourceFileMap;
+	private readonly _source_files: SourceFileResolverContract;
 	private readonly _filesystem_fallback: boolean;
 	private readonly _source_io: ProjectSourceIOContract;
 
@@ -64,7 +64,7 @@ export class TypeScriptModuleExportsContext {
 	/** Responsibilities: _module resolution context storage_. **/
 	public constructor(
 		project_root: string,
-		source_files: TypeScriptSourceFileMap,
+		source_files: SourceFileResolverContract,
 		filesystem_fallback: boolean,
 		source_io: ProjectSourceIOContract,
 	) {
@@ -73,7 +73,6 @@ export class TypeScriptModuleExportsContext {
 		this._filesystem_fallback = filesystem_fallback;
 		this._source_io = source_io;
 	}
-
 	/** Responsibilities: _module path catalog creation_. **/
 	public module_paths(): TypeScriptModulePathCatalogContract {
 		const module_cache = this.module_cache();

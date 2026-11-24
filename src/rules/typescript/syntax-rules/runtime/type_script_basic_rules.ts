@@ -3,7 +3,7 @@ import { DeclarationPredicates } from "src/parser/analysis/declaration_predicate
 import { COMPLEX_DEFAULT, PARAMETER_PROPERTY, SINGULAR_PLURAL_ALIAS } from "src/parser/internals/constants";
 import { TypeScriptAssignmentValuePredicates } from "src/parser/internals/type_script_assignment_value_predicates";
 import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
-import { TypeScriptAliasPair } from "src/rules/typescript/syntax-rules/runtime/type_script_alias_pair";
+import { TypeScriptAliasPair } from "src/rules/typescript/syntax-rules/runtime/aliases/type_script_alias_pair";
 import type { BooleanExpressionContract } from "src/runtime_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type {

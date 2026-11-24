@@ -1,12 +1,12 @@
 import { RULE_IDS } from "src/linting/constants";
+import { TypeScriptRuleContext } from "src/linting/type_script_rule_context";
 import { AstPropertySourceIndexCache } from "src/model/ast/ast_property_source_index_cache";
 import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import type { ProjectNames } from "src/project_analysis_types";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { TypeScriptRuleContext } from "src/rules/typescript/syntax-rules/ast/type_script_rule_context";
 import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { LintSourceRecordData } from "src/source_types";
@@ -38,7 +38,7 @@ export class TypeScriptSourceRuleRuntime implements TypeScriptRuleScopeContract 
 	}
 
 	/** Responsibilities: _invalid project analysis access_. **/
-	public project_analysis(): ProjectSourceAnalysisOptions {
+	public project_analysis(): ProjectSourceAnalysisOptionsContract {
 		throw new Error("File-scoped TypeScript rule runtime has no project analysis.");
 	}
 

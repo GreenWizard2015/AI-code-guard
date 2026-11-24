@@ -9,6 +9,8 @@ import type {
 import type { CallableTypeData, DestructuredAlias, DestructuredInstanceOptions, TypedArgument } from "src/model/types";
 import type { TypeScriptReferenceQueryKind } from "src/model/types";
 import type { TypeScriptInstanceLookup } from "src/model/types";
+import type { ProjectRuleSnapshot } from "src/project_analysis_types";
+import type { ProjectRuleSnapshotFile } from "src/project_analysis_types";
 import type { RuleContract, ViolationContract } from "src/reporting_protocols";
 import type { AstCallableReferenceRecord } from "src/source_types";
 import type { CallableOptions, TypeScriptPropertyAddress, TypeScriptPropertySide } from "src/types";
@@ -25,6 +27,18 @@ export type ImportedFunctionSource = {
 /** Responsibilities: _diagnostic rule behavior_. **/
 export interface DiagnosticRuleContract extends RuleContract {
 	violation(file: string, line: number, parameters: RuleParameters): ViolationContract;
+}
+
+/** Responsibilities: _project rule snapshot serialization_, _violation restoration_. **/
+export interface ProjectRuleSnapshotRecordContract {
+	serialized(): ProjectRuleSnapshot;
+	restore(): Map<string, ViolationContract[]>;
+}
+
+/** Responsibilities: _snapshot record construction_, _file violation encoding_. **/
+export interface ProjectRuleSnapshotCaptureContract {
+	capture_file(file: string, violations: readonly ViolationContract[]): ProjectRuleSnapshotFile;
+	capture(grouped: ReadonlyMap<string, readonly ViolationContract[]>): ProjectRuleSnapshotRecordContract;
 }
 
 /** Responsibilities: _reference ownership query_. **/

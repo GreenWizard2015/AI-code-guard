@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { CallableReferenceIdentity } from "src/model/ast/normalized_ast_types";
 import type {
 	TypeScriptCallReturnsContract,
@@ -23,7 +24,7 @@ import type ts from "typescript";
 /** Responsibilities: _property declaration lookup dependencies_. **/
 export type TypeScriptPropertyReferenceIdentityOptions = {
 	readonly source_file: ts.SourceFile;
-	readonly source_files: ReadonlyMap<string, ts.SourceFile>;
+	readonly source_files: SourceFileResolverContract;
 	readonly instance_files: TypeScriptInstanceFilesContract;
 	readonly properties: TypeScriptPropertyInstanceFilesContract;
 	readonly file_index: TypeScriptReferenceFileIndexContract;
@@ -35,7 +36,7 @@ export type TypeScriptInheritedMethodSearchOptions = {
 	file: string;
 	class_name: string;
 	method: string;
-	source_files: ReadonlyMap<string, ts.SourceFile>;
+	source_files: SourceFileResolverContract;
 	module_exports: TypeScriptModuleExportsContract;
 	seen: Set<string>;
 };
@@ -123,6 +124,8 @@ export type TypeScriptReferenceOwnershipOptions = {
 	readonly traversal: TypeScriptAstTraversalContract;
 	readonly project_root: string;
 	readonly stage_timer: LintStageTimerContract;
-	readonly source_files: ReadonlyMap<string, ts.SourceFile>;
+	readonly stage_name_prefix: string;
+	readonly resolve_imports: boolean;
+	readonly source_files: SourceFileResolverContract;
 	readonly source_io: ProjectSourceIOContract;
 };

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linter Optimization Ideas"
+  short_description: "Find profiler-backed linter speedups"
+  default_prompt: "Use stage timings and CPU or allocation profiles to produce distinct linter optimization hypotheses. Screen each candidate with a read-only agent. Count only distinct ideas with evidence for a plausible full-project saving of at least 0.9 seconds; mark borderline or unverified estimates UNSCORED, and retain weak ideas with BAD labels."

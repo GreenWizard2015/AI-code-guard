@@ -1,10 +1,12 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import ts from "typescript";
 
 describe("coding-lint shared source boundaries", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("does not read an imported file outside the shared source boundary", () => {
 		const root = "/virtual/shared-source-boundary";
 		const consumer_file = join(root, "consumer.ts");
@@ -20,7 +22,12 @@ describe("coding-lint shared source boundaries", () => {
 				[generated_file, generated_text],
 			]),
 		);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_map, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_map),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 
 		expect(resolver.resolve({ file: generated_file, name: "Generated" }).file).toBe("");
@@ -38,7 +45,7 @@ describe("coding-lint shared source boundaries", () => {
 		]);
 		const exports_context = new TypeScriptModuleExportsContext(
 			root,
-			source_files,
+			source_file_map_cache.for_map(source_files),
 			false,
 			new InMemoryProjectSourceIO(
 				new Map([
@@ -68,7 +75,7 @@ describe("coding-lint shared source boundaries", () => {
 		}
 		const exports_context = new TypeScriptModuleExportsContext(
 			root,
-			source_files,
+			source_file_map_cache.for_map(source_files),
 			false,
 			new InMemoryProjectSourceIO(sources),
 		);

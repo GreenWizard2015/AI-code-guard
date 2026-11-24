@@ -1,6 +1,6 @@
 import { TEST_PATH_SUFFIXES } from "src/constants";
 import { TEST_SCOPE_DIRECTORIES } from "src/linting/constants";
-import { TestFileOrganizationPath } from "src/linting/orchestration/runtime/test-targets/test_file_organization_path";
+import { TestFileOrganizationPath } from "src/linting/orchestration/runtime/test-targets/paths/test_file_organization_path";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
 import type {

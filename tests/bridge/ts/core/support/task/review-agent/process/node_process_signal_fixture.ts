@@ -1,7 +1,7 @@
 import { constants } from "node:os";
 import type { ProcessKillContract } from "src/analysis_protocols";
+import { NodeProcessSignal } from "src/core/support/task/node_process_signal";
 import { REVIEW_AGENT_GROUP_TOKEN_VARIABLE } from "src/core/support/task/review-agent/constants";
-import { NodeProcessSignal } from "src/core/support/task/review-agent/process/node_process_signal";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 
 /** Responsibilities: _in-memory process inventory_, _group liveness_, _termination signal history_. **/

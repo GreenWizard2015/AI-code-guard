@@ -1,9 +1,9 @@
-import { TypeScriptMemberAliases } from "src/parser/typescript-aliases/type_script_member_aliases";
 import {
 	EMPTY_PATCH_METHODS,
 	PATCH_METHODS,
 } from "src/rules/typescript/syntax-rules/runtime/runtime-patching/constants";
 import type { RuntimePatchFrameworkAliasesContract } from "src/rules/typescript/syntax-rules/runtime/runtime-patching/types";
+import { TypeScriptMemberAliases } from "src/type_script_member_aliases";
 import type { TypeScriptMemberAliasesContract } from "src/typescript_runtime_protocols";
 import type { TypeScriptObjectAliasDeclarationIndexContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";

@@ -3,11 +3,12 @@ import { describe, expect, test } from "@jest/globals";
 import { PYTHON_LANGUAGE } from "src/constants";
 import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { CodingRuleLinter } from "src/linting/file_linting/coding_rule_linter";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import { TypeScriptSourceRuleRuntime } from "src/linting/orchestration/runtime/typescript/type_script_source_rule_runtime";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
@@ -17,6 +18,7 @@ import { EMPTY_PROJECT_NAMES } from "tests/core/constants";
 import type { PreparedPythonLintInput } from "tests/core/types";
 
 describe("project context prepared Python AST", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const ast_model = new AstModel("python");
 	const empty_ast = ast_model.empty_ast_file();
 	/** Responsibilities: _Python AST input_. **/
@@ -42,14 +44,14 @@ describe("project context prepared Python AST", () => {
 			normalized_ast,
 			language: PYTHON_LANGUAGE,
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal,
 		};
 		const source_ast = new SourceFileAst(
 			{ file: "prepared.py", text: source_text },
 			normalized_ast,
 			ast_file.source_file_node(),
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			traversal,
 		);
 		const module_exports_context = new TypeScriptModuleExportsContext(

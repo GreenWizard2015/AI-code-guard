@@ -6,9 +6,15 @@ import type { UnusedDefinitionMatches, UnusedSymbolDefinition } from "src/core/t
 import type { UnusedFieldOwner } from "src/core/types";
 import type { UnusedSourceImportCache } from "src/core/types";
 import type { AstPythonImportName } from "src/model/ast/normalized_ast_types";
+import type { ViolationContract } from "src/reporting_protocols";
 import type { ProjectSourceScanContract } from "src/source_protocols";
 import type { LintSourceRecordData, PendingUnusedSymbolReference } from "src/source_types";
 import type ts from "typescript";
+
+/** Responsibilities: _global analysis diagnostics_. **/
+export interface GlobalAnalysisStagesContract {
+	collect(): ViolationContract[];
+}
 
 /** Responsibilities: _source ownership analysis options_. **/
 export type UnusedSymbolSourceOwnershipOptions = {
@@ -27,6 +33,24 @@ export interface UnusedSymbolReferenceIndexContract {
 	add_source(source: LintSourceRecordData): void;
 }
 
+export type UnusedSymbolUsageKey = {
+	file: string;
+	name: string;
+};
+
+export type UnusedFieldUsageKey = {
+	owner: UnusedFieldOwner;
+	name: string;
+};
+
+/** Responsibilities: _unused symbol presence storage_. **/
+export interface UnusedSymbolUsageStoreContract {
+	record_symbol_usage(key: UnusedSymbolUsageKey): void;
+	symbol_usage_present(key: UnusedSymbolUsageKey): boolean;
+	record_field_usage(key: UnusedFieldUsageKey): void;
+	field_usage_present(key: UnusedFieldUsageKey): boolean;
+}
+
 /** Responsibilities: _unused field ownership lookup_. **/
 export interface UnusedSymbolPropertyOwnershipContract {
 	property_usage_owners(
@@ -42,10 +66,6 @@ export interface UnusedSymbolParameterShadowContract {
 	parameter_shadow(source: LintSourceRecordData, name: string, source_line: number): boolean;
 }
 
-export type UnusedSymbolPropertyAccess = {
-	source: LintSourceRecordData;
-	access: ts.PropertyAccessExpression;
-};
 export type UnusedSymbolElementAccess = {
 	source: LintSourceRecordData;
 	access: ts.ElementAccessExpression;

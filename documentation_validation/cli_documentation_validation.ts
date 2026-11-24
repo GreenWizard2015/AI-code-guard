@@ -1,7 +1,7 @@
-import { DocumentationExampleGroup } from "documentation_validation/documentation_example_group";
 import { DocumentationValidationReport } from "documentation_validation/documentation_validation_report";
+import { DocumentationExampleGroup } from "documentation_validation/examples/documentation_example_group";
 import { RootRuleSectionValidation } from "documentation_validation/root_rule_section_validation";
-import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation_catalog";
+import { RuleDocumentationCatalog } from "documentation_validation/rule_documentation/rule_documentation_catalog";
 
 import { DocumentationLanguage, ExampleKind } from "documentation_validation/types";
 import type {

@@ -1,7 +1,8 @@
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import type { PythonRuleInput } from "src/linting/types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_traversal";
@@ -9,12 +10,14 @@ import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_trav
 /** Responsibilities: _source ASTs_, _Python rule inputs_. **/
 export class ParsedSourceFiles {
 	private readonly _python_ast: PythonAstData;
+	private readonly _source_file_map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _Python AST data_. **/
 	public constructor() {
 		const python_ast_bridge = new PythonAstBridge();
 		const python_ast_options = python_ast_bridge.options();
 		this._python_ast = new PythonAstData(python_ast_options);
+		this._source_file_map_cache = new SourceFileMapCache();
 	}
 
 	/** Responsibilities: _Python source AST_. **/
@@ -24,7 +27,7 @@ export class ParsedSourceFiles {
 			{ file, text },
 			this._python_ast.source_ast(text),
 			typescript_ast.source_file_node(),
-			new Map(),
+			this._source_file_map_cache.for_map(new Map()),
 			new TypeScriptAstTraversal(typescript_ast.source_file_node()),
 		);
 	}
@@ -36,7 +39,7 @@ export class ParsedSourceFiles {
 			{ file, text },
 			ast_file.normalized(),
 			ast_file.source_file_node(),
-			new Map(),
+			this._source_file_map_cache.for_map(new Map()),
 			new TypeScriptAstTraversal(ast_file.source_file_node()),
 		);
 	}

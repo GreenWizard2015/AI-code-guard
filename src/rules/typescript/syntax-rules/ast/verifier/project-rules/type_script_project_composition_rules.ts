@@ -5,7 +5,7 @@ import { TEST_PATH_SUFFIXES } from "src/constants";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
 import { CompositionAnalyzer } from "src/linting/composition/composition_analyzer";
 import { CompositionModel } from "src/linting/composition/composition_model";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { TypeScriptProjectRuleCache } from "src/rules/typescript/syntax-rules/ast/verifier/project-rules/type_script_project_rule_cache";
 import type { LintSourceRecordData } from "src/source_types";
@@ -20,23 +20,27 @@ export class TypeScriptProjectCompositionRules implements ASTSourceRuleContract,
 
 	/** Responsibilities: _composition graph violation collection_. **/
 	private composition_violations(
-		scope: ProjectSourceAnalysisOptions,
-		sources: readonly LintSourceRecordData[],
+		scope: ProjectSourceAnalysisOptionsContract,
 		typescript_sources: readonly LintSourceRecordData[],
 	): ViolationContract[] {
-		const source_files = new Map(
-			sources
-				.filter((source) => source.language === TYPESCRIPT_LANGUAGE)
-				.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
-		);
+		const source = typescript_sources.find((item) => item.language === TYPESCRIPT_LANGUAGE);
+		if (source === undefined) {
+			return [];
+		}
 		const import_context = {
-			root: scope.root,
-			files: new Set(scope.project_files),
-			resolver: new ProjectSourcePython(scope.root),
+			root: scope.root(),
+			files: new Set(scope.project_files()),
+			resolver: new ProjectSourcePython(scope.root()),
 		};
-		const model = new CompositionModel(scope.root, import_context, source_files, false, scope.context.source_io());
+		const model = new CompositionModel(
+			scope.root(),
+			import_context,
+			source.source_resolver,
+			false,
+			scope.context().source_io(),
+		);
 		const graph = model.class_graph(typescript_sources);
-		const analyzer = new CompositionAnalyzer(graph, scope.root);
+		const analyzer = new CompositionAnalyzer(graph, scope.root());
 		return analyzer.violations();
 	}
 
@@ -74,11 +78,11 @@ export class TypeScriptProjectCompositionRules implements ASTSourceRuleContract,
 			return [];
 		}
 		const scope = rule_scope.project_analysis();
-		const sources = scope.context.files();
+		const sources = scope.context().files();
 		const typescript_sources = sources.filter(
 			(source) => source.language === TYPESCRIPT_LANGUAGE && source.file_name.product(),
 		);
-		const all_violations = this.composition_violations(scope, sources, typescript_sources);
+		const all_violations = this.composition_violations(scope, typescript_sources);
 		const production_files = this.production_files(typescript_sources);
 		return all_violations.filter((violation) => production_files.has(violation.file()));
 	}

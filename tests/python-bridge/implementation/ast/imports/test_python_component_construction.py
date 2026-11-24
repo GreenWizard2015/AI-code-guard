@@ -99,10 +99,10 @@ class PythonComponentConstructionTest(unittest.TestCase):
 
     def test_collects_coding_issues(self) -> None:
         """Responsibilities: _coding diagnostics verification_."""
-        python_ast_tree = PythonAstTree(CONSTRUCTOR_SOURCE)
+        python_ast_tree = PythonAstTree(CONSTRUCTOR_SOURCE, ast.parse(CONSTRUCTOR_SOURCE))
         kinds = {issue["kind"] for issue in python_ast_tree.coding_issues()}
         standalone_source = "ready and load()\n"
-        standalone_tree = PythonAstTree(standalone_source)
+        standalone_tree = PythonAstTree(standalone_source, ast.parse(standalone_source))
         standalone_kinds = {issue["kind"] for issue in standalone_tree.coding_issues()}
         self.assertEqual(
             {
@@ -137,7 +137,7 @@ class PythonComponentConstructionTest(unittest.TestCase):
             "def build_candidate():\n"
             '    return type("ReturnedCandidate", (), {})\n'
         )
-        python_ast_tree = PythonAstTree(source)
+        python_ast_tree = PythonAstTree(source, ast.parse(source))
         dynamic_issues = [issue for issue in python_ast_tree.coding_issues() if issue["kind"] == "dynamic-type"]
         self.assertEqual(len(dynamic_issues), 7)
 
@@ -155,13 +155,13 @@ class PythonComponentConstructionTest(unittest.TestCase):
             "except exception_type:\n"
             "    pass\n"
         )
-        python_ast_tree = PythonAstTree(source)
+        python_ast_tree = PythonAstTree(source, ast.parse(source))
         broad_issues = [issue for issue in python_ast_tree.coding_issues() if issue["kind"] == "broad-except"]
         self.assertEqual(len(broad_issues), 2)
 
     def test_collects_base_exception(self) -> None:
         """Responsibilities: _base exception diagnostics verification_."""
         source = "try:\n    value = 1\nexcept BaseException:\n    value = 2\n"
-        python_ast_tree = PythonAstTree(source)
+        python_ast_tree = PythonAstTree(source, ast.parse(source))
         kinds = {issue["kind"] for issue in python_ast_tree.coding_issues()}
         self.assertIn("broad-except", kinds)

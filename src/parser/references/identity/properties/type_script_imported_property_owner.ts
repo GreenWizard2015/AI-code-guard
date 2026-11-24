@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import type { TypeScriptModuleExportsContract, TypeScriptModuleSymbolReference } from "src/module-resolution/types";
 import { TypeScriptPropertyTypeLookup } from "src/parser/references/identity/properties/type_script_property_type_lookup";
@@ -7,7 +8,7 @@ import ts from "typescript";
 /** Responsibilities: _imported type property ownership_, _canonical property owner resolution_. **/
 export class TypeScriptImportedPropertyOwner {
 	private readonly _source_file: ts.SourceFile;
-	private readonly _source_files: ReadonlyMap<string, ts.SourceFile>;
+	private readonly _source_files: SourceFileResolverContract;
 	private readonly _module_exports: TypeScriptModuleExportsContract;
 	private readonly _owner_files: Map<string, string>;
 
@@ -28,10 +29,10 @@ export class TypeScriptImportedPropertyOwner {
 
 	/** Responsibilities: _local declaration lookup_. **/
 	private local_declaration(declaration_file: string, requested_name: string): TypeScriptModuleSymbolReference {
-		const source = this._source_files.get(declaration_file);
-		if (source === undefined) {
+		if (!this._source_files.contains_source_file(declaration_file)) {
 			return { file: "", name: "" };
 		}
+		const source = this._source_files.source_file(declaration_file);
 		for (const statement of source.statements) {
 			if (this.is_owner_declaration(statement, requested_name)) {
 				return { file: declaration_file, name: requested_name };
@@ -93,10 +94,10 @@ export class TypeScriptImportedPropertyOwner {
 
 	/** Responsibilities: _imported declaration lookup_. **/
 	private imported_declaration(importer_file: string, local_binding_name: string): TypeScriptModuleSymbolReference {
-		const source = this._source_files.get(importer_file);
-		if (source === undefined) {
+		if (!this._source_files.contains_source_file(importer_file)) {
 			return { file: "", name: "" };
 		}
+		const source = this._source_files.source_file(importer_file);
 		for (const statement of source.statements) {
 			for (const binding of this.import_bindings(statement)) {
 				if (binding.name.text === local_binding_name) {
@@ -120,7 +121,7 @@ export class TypeScriptImportedPropertyOwner {
 	public constructor(
 		source_file: ts.SourceFile,
 		project_root: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_files: SourceFileResolverContract,
 		source_io: ProjectSourceIOContract,
 	) {
 		this._source_file = source_file;

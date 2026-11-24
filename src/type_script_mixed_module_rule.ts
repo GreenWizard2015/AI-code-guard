@@ -3,7 +3,7 @@ import { TEST_PATH_SUFFIXES } from "src/constants";
 import { LintFileName } from "src/core/context/lint_file_name";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import { MixCollection } from "src/rules/mix_collection";
+import { MixCollection } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/mix_collection";
 import type { RuleContextContract } from "src/types";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
 import ts from "typescript";

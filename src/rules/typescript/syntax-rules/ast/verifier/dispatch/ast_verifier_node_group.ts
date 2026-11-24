@@ -58,10 +58,16 @@ export class ASTVerifierNodeGroup implements ASTVerifierNodeGroupContract {
 
 	/** Responsibilities: _matched verifier execution_. **/
 	public verify_if_match(request: TypeScriptNodeVerificationRequest): boolean {
-		if (!this.matches_node(request.node)) {
-			return false;
+		for (const registration of this._registrations) {
+			if (registration.kind_only()) {
+				this._verifier.verify(request);
+				return true;
+			}
+			if (registration.matches_node(request.node)) {
+				this._verifier.verify(request);
+				return true;
+			}
 		}
-		this._verifier.verify(request);
-		return true;
+		return false;
 	}
 }

@@ -8,7 +8,7 @@ import type {
 } from "src/model/ast/normalized_ast_types";
 import type { CodeClass } from "src/model_types";
 import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ProjectNames } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
@@ -25,7 +25,7 @@ export type ConstructorLocalValues = {
 
 export type ProjectViolationsByFile = ReadonlyMap<string, readonly ViolationContract[]>;
 export type DirectoryRuleContext = {
-	readonly analysis: ProjectSourceAnalysisOptions;
+	readonly analysis: ProjectSourceAnalysisOptionsContract;
 	readonly owner: LintSourceRecordData;
 	readonly files: string[];
 };
@@ -62,7 +62,7 @@ export type TopLevelRuleInput = {
 };
 export type ClassLineMap = ReadonlyMap<number, readonly AstClassNode[]>;
 export type CallableLineMap = ReadonlyMap<number, readonly AstCallableNode[]>;
-export type ProjectViolationsByScope = WeakMap<ProjectSourceAnalysisOptions, ProjectViolationsByFile>;
+export type ProjectViolationsByScope = WeakMap<ProjectSourceAnalysisOptionsContract, ProjectViolationsByFile>;
 export type ProjectContextViolationsByScope = WeakMap<LintProjectContextContract, ProjectViolationsByFile>;
 export type LineNumbers = Set<number>;
 export type DictionaryNames = ReadonlySet<string>;
@@ -132,10 +132,10 @@ export type InheritedStateNodes = ReadonlySet<string>;
 
 /** Responsibilities: _project inherited state collection_, _scope result caching_. **/
 export interface TypeScriptInheritedStateClassNamesContract {
-	collect(scope: ProjectSourceAnalysisOptions): InheritedStateNodes;
+	collect(scope: ProjectSourceAnalysisOptionsContract): InheritedStateNodes;
 }
 
-export type InheritedStateCache = WeakMap<ProjectSourceAnalysisOptions, InheritedStateNodes>;
+export type InheritedStateCache = WeakMap<ProjectSourceAnalysisOptionsContract, InheritedStateNodes>;
 export type InheritedStateTraversal = {
 	readonly dependents: ReadonlyMap<string, readonly string[]>;
 	readonly inherited_names: Set<string>;
@@ -184,7 +184,7 @@ export type ProjectTypeSources = ReadonlyMap<string, SharedParameterTypeSource>;
 export type TypeScriptSharedParameterTypeIndex = ReadonlyMap<string, SharedParameterTypeSource>;
 
 export type ProjectFunctionAnalysisRequest = {
-	readonly scope: ProjectSourceAnalysisOptions;
+	readonly scope: ProjectSourceAnalysisOptionsContract;
 	readonly project_types: ReadonlySet<string>;
 };
 

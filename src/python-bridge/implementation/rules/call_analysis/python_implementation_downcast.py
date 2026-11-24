@@ -4,7 +4,6 @@ import ast
 from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.rules.call_analysis.python_name_binding_index import PythonNameBindingIndex
 from implementation.rules.call_analysis.python_structural_member_index import (
     PythonStructuralMemberIndex,
 )
@@ -151,13 +150,18 @@ class PythonImplementationDowncast:
         methods = self._contracts.members(protocol)
         return self._implementation_member_call(branch, receiver_name, methods)
 
-    def __init__(self, tree: ast.AST, node_index: PythonAstNodeIndexContract) -> None:
+    def __init__(
+        self,
+        tree: ast.AST,
+        node_index: PythonAstNodeIndexContract,
+        binding_index: PythonNameBindingIndexContract,
+    ) -> None:
         """Responsibilities: _analysis state initialization_."""
         self._tree = tree
         self._parents = {}
         self._node_index = node_index
         self._contracts = PythonStructuralMemberIndex(tree, node_index)
-        self._binding_index = PythonNameBindingIndex(tree, node_index)
+        self._binding_index = binding_index
 
     def prepare(self) -> None:
         """Responsibilities: _AST parent indexing_."""

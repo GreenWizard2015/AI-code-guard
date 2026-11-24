@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { LintRunProjectSourceScope } from "src/core/project-context/lint_run_project_source_scope";
 
 import { ModulePlacementAnalyzer } from "src/rules/architecture/module_placement_analyzer";
 import { TestFixture } from "tests/core/test-fixture";
@@ -17,10 +18,21 @@ describe("cross-language module placement lint", () => {
 					context,
 					new Set<string>(),
 				);
-				return {
-					...source_options,
-					files: new Set([...source_options.files, `${root}/a/worker.mjs`]),
-				};
+				const directory_file_set = source_options.directory_files();
+				const lint_scope = new LintRunProjectSourceScope({
+					root: source_options.root(),
+					project_files: source_options.project_files(),
+					context: source_options.context(),
+					ignored_files: source_options.ignored_files(),
+					scanner: source_options.scanner(),
+					file_io: source_options.file_io(),
+					directory_files: {
+						...directory_file_set,
+						files: [...directory_file_set.files, `${root}/a/worker.mjs`],
+					},
+					project_rule_snapshots: source_options.project_rule_snapshots(),
+				});
+				return lint_scope.project_analysis();
 			},
 			new Map(),
 		);

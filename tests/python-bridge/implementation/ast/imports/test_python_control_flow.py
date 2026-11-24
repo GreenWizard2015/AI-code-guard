@@ -70,7 +70,7 @@ class PythonControlFlowTest(unittest.TestCase):
     def _private_count(self, tree: ast.AST) -> int:
         """Responsibilities: _private access count_."""
         source_text = ast.unparse(tree)
-        python_tree = PythonAstTree(source_text)
+        python_tree = PythonAstTree(source_text, ast.parse(source_text))
         parsed = python_tree.ast()
         match parsed["private_accesses"]:
             case list() as accesses:
@@ -141,7 +141,7 @@ class PythonControlFlowTest(unittest.TestCase):
             "    return loader('module')\n"
             "sys.path.append('module-path')\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.analysis_state().imports().import_rules().import_issues(tree.tree())
 
         self.assertCountEqual(

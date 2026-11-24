@@ -55,13 +55,15 @@ export class AgentPackageFeasibleAssignment implements AgentPackageFeasibleAssig
 		package_numbers: readonly number[],
 		limits: AgentPackagePlanLimits,
 	): AgentPackageAssignmentContext {
-		const total_files = units.reduce((total, unit) => total + unit.files.length, 0);
+		const ordered_units = [...units];
+		ordered_units.sort((left, right) => right.files.length - left.files.length);
+		const total_files = ordered_units.reduce((total, unit) => total + unit.files.length, 0);
 		const target_priorities = this.target_priorities(units, package_numbers.length);
 		const bins = package_numbers.map((package_number) => new AgentPackageBin(package_number));
 		const preserve_ownership = units.some((unit) => this._ownership.owner_for_unit(unit) > 0);
 		const min_package_files = this.minimum_package_files(total_files, bins.length);
 		return {
-			units,
+			units: ordered_units,
 			bins,
 			batch_size: limits.batch_size,
 			min_package_files,

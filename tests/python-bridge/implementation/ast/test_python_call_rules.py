@@ -27,14 +27,14 @@ class PythonCallRulesTest(unittest.TestCase):
 
     def test_annotated_class_init_alias(self) -> None:
         """Responsibilities: _annotated class initializer aliases_."""
-        parser = PythonAstTree(ANNOTATED_CLASS_ALIAS_SOURCE)
+        parser = PythonAstTree(ANNOTATED_CLASS_ALIAS_SOURCE, ast.parse(ANNOTATED_CLASS_ALIAS_SOURCE))
         issues = parser.coding_issues()
 
         self.assertEqual(sum(issue["kind"] == "python-direct-class-init" for issue in issues), 1)
 
     def test_local_class_init_alias(self) -> None:
         """Responsibilities: _local class initializer aliases_."""
-        parser = PythonAstTree(LOCAL_CLASS_ALIAS_SOURCE)
+        parser = PythonAstTree(LOCAL_CLASS_ALIAS_SOURCE, ast.parse(LOCAL_CLASS_ALIAS_SOURCE))
         issues = parser.coding_issues()
 
         self.assertEqual(sum(issue["kind"] == "python-direct-class-init" for issue in issues), 2)
@@ -55,7 +55,7 @@ class Child(Base):
         initializers = {"base": {"init": Base.__init__}}
         initializers["base"]["init"](self, value)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.coding_issues()
 
         self.assertEqual(
@@ -72,7 +72,7 @@ class Child(Base):
     def update_field(self, field_name: str, value: str) -> None:
         super().__setattr__(field_name, value)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.coding_issues()
 
         self.assertIn("python-object-setattr", [issue["kind"] for issue in issues])
@@ -106,7 +106,7 @@ def observe_capability(client: ClientContract) -> None:
     supports_run = callable(client.run)
     print(supports_run)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.coding_issues()
 
         self.assertEqual(
@@ -116,7 +116,7 @@ def observe_capability(client: ClientContract) -> None:
 
     def test_repeated_analysis_preserves_call_issues(self) -> None:
         """Responsibilities: _issue stability_."""
-        parser = PythonAstTree(REPEATED_CALL_SOURCE)
+        parser = PythonAstTree(REPEATED_CALL_SOURCE, ast.parse(REPEATED_CALL_SOURCE))
         first = parser.coding_issues()
         second = parser.coding_issues()
 

@@ -1,9 +1,9 @@
 import { AnyTypes } from "src/any_types";
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { LintFileName } from "src/core/context/lint_file_name";
-import { CallableNamingRules } from "src/metrics/callable_naming_rules";
+import { CallableNamingRules } from "src/metrics/callable_analysis/callable_naming_rules";
 import type { AstCallableNode, AstClassNode } from "src/model/ast/normalized_ast_types";
-import { TypeScriptTypeAliases } from "src/parser/typescript-aliases/expressions/type_script_type_aliases";
+import { TypeScriptTypeAliases } from "src/parser/typescript-aliases/type_script_type_aliases";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { AnyTypesContract, CallableNamingRulesContract } from "src/shared_services_protocols";
 import type { RuleContextContract } from "src/types";

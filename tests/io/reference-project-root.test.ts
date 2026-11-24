@@ -1,13 +1,15 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { ProjectSourceImports } from "src/core/project-source/imports/project_source_imports";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
-import { ProjectSourceImports } from "src/core/project-source/project_source_imports";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
-import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
+import { TypeScriptModuleExports } from "src/parser/analysis/module-resolution/type_script_module_exports";
 import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
 describe("TypeScript reference project root", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("resolves imports against the selected project root", () => {
 		const root = "/virtual/typescript-project-root";
 		const factory_file = join(root, "src/factory.ts");
@@ -22,7 +24,9 @@ describe("TypeScript reference project root", () => {
 		const statement = source.statements.find(ts.isImportDeclaration);
 		const resolver = new TypeScriptModuleExports(
 			root,
-			new Map([[factory_file, ts.createSourceFile(factory_file, factory_text, ts.ScriptTarget.Latest, true)]]),
+			source_file_map_cache.for_map(
+				new Map([[factory_file, ts.createSourceFile(factory_file, factory_text, ts.ScriptTarget.Latest, true)]]),
+			),
 			false,
 			new InMemoryProjectSourceIO(texts),
 		);
@@ -48,7 +52,9 @@ describe("TypeScript reference project root", () => {
 		const statement = source.statements.find(ts.isImportDeclaration);
 		const resolver = new TypeScriptModuleExports(
 			root,
-			new Map([[factory_file, ts.createSourceFile(factory_file, factory_text, ts.ScriptTarget.Latest, true)]]),
+			source_file_map_cache.for_map(
+				new Map([[factory_file, ts.createSourceFile(factory_file, factory_text, ts.ScriptTarget.Latest, true)]]),
+			),
 			false,
 			new InMemoryProjectSourceIO(texts),
 		);
@@ -85,7 +91,9 @@ describe("TypeScript reference project root", () => {
 		const statement = source.statements.find(ts.isImportDeclaration);
 		const resolver = new TypeScriptModuleExports(
 			root,
-			new Map([[worker, ts.createSourceFile(worker, worker_text, ts.ScriptTarget.Latest, true)]]),
+			source_file_map_cache.for_map(
+				new Map([[worker, ts.createSourceFile(worker, worker_text, ts.ScriptTarget.Latest, true)]]),
+			),
 			false,
 			new InMemoryProjectSourceIO(texts),
 		);

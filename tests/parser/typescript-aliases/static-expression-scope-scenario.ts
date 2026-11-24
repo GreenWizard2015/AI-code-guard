@@ -1,4 +1,4 @@
-import type { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
+import type { TypeScriptStaticExpressionValues } from "src/parser/type_script_static_expression_values";
 import ts from "typescript";
 
 /** Responsibilities: _scope expression selection_, _traversal observation_. **/

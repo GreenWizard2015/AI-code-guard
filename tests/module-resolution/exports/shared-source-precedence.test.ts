@@ -1,10 +1,12 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import ts from "typescript";
 describe("coding-lint shared source precedence and reader isolation", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("skips a missing earlier module candidate", () => {
 		const root = "/virtual/shared-source-precedence";
 		const consumer_file = join(root, "consumer.ts");
@@ -23,7 +25,12 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 				[generated_tsx, generated_tsx_text],
 			]),
 		);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 
 		expect(resolver.module_symbol(consumer_file, "./generated")).toBe(generated_tsx);
@@ -44,9 +51,10 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 				[generated_file, generated_text],
 			]),
 		);
-		const disk_context = new TypeScriptModuleExportsContext(root, source_map, true, source_io);
+		const source_resolver = source_file_map_cache.for_map(source_map);
+		const disk_context = new TypeScriptModuleExportsContext(root, source_resolver, true, source_io);
 		const disk_resolver = disk_context.module_exports();
-		const snapshot_context = new TypeScriptModuleExportsContext(root, source_map, false, source_io);
+		const snapshot_context = new TypeScriptModuleExportsContext(root, source_resolver, false, source_io);
 		const snapshot_resolver = snapshot_context.module_exports();
 
 		expect({
@@ -70,7 +78,12 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 				[runtime_file, "export class Worker {}\n"],
 			]),
 		);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 
 		expect({
@@ -100,7 +113,12 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 				[declaration_file, "export declare class Worker {}"],
 			]),
 		);
-		const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 
 		expect(resolver.module_symbol(consumer_file, "./worker.mjs")).toBe(declaration_file);
@@ -118,10 +136,30 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 			[module_file, ts.createSourceFile(module_file, "export class Worker {}\n", ts.ScriptTarget.Latest, true)],
 		]);
 		const source_io = new InMemoryProjectSourceIO(new Map([[module_file, "export class Worker {}\n"]]));
-		const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, source_io);
+		const exports_context = new TypeScriptModuleExportsContext(
+			root,
+			source_file_map_cache.for_map(source_files),
+			false,
+			source_io,
+		);
 		const resolver = exports_context.module_exports();
 
 		expect(resolver.module_symbol(consumer_file, `./worker${runtime_extension}`)).toBe(module_file);
+	});
+
+	test("resolves a source module from the first reader", () => {
+		const root = "/virtual/shared-source-reader-cache";
+		const consumer_file = join(root, "consumer.ts");
+		const helper_file = join(root, "helper.mjs");
+		const consumer_text = 'import { Helper } from "./helper.mjs";\n';
+		const source_files = new Map([
+			[consumer_file, ts.createSourceFile(consumer_file, consumer_text, ts.ScriptTarget.Latest, true)],
+		]);
+		const source_resolver = source_file_map_cache.for_map(source_files);
+		const first_reader = new InMemoryProjectSourceIO(new Map([[helper_file, "export class Helper {}\n"]]));
+		const first_context = new TypeScriptModuleExportsContext(root, source_resolver, false, first_reader);
+		const first_result = first_context.module_exports().module_symbol(consumer_file, "./helper.mjs");
+		expect(first_result).toBe(helper_file);
 	});
 
 	test("does not share module results between readers over the same source map", () => {
@@ -132,16 +170,13 @@ describe("coding-lint shared source precedence and reader isolation", () => {
 		const source_files = new Map([
 			[consumer_file, ts.createSourceFile(consumer_file, consumer_text, ts.ScriptTarget.Latest, true)],
 		]);
+		const source_resolver = source_file_map_cache.for_map(source_files);
 		const first_reader = new InMemoryProjectSourceIO(new Map([[helper_file, "export class Helper {}\n"]]));
 		const second_reader = new InMemoryProjectSourceIO(new Map());
-		const first_context = new TypeScriptModuleExportsContext(root, source_files, false, first_reader);
-		const first_resolver = first_context.module_exports();
-		const second_context = new TypeScriptModuleExportsContext(root, source_files, false, second_reader);
-		const second_resolver = second_context.module_exports();
-
-		const first_result = first_resolver.module_symbol(consumer_file, "./helper.mjs");
-		const second_result = second_resolver.module_symbol(consumer_file, "./helper.mjs");
-
-		expect({ first_result, second_result }).toEqual({ first_result: helper_file, second_result: "" });
+		const first_context = new TypeScriptModuleExportsContext(root, source_resolver, false, first_reader);
+		const second_context = new TypeScriptModuleExportsContext(root, source_resolver, false, second_reader);
+		first_context.module_exports().module_symbol(consumer_file, "./helper.mjs");
+		const second_result = second_context.module_exports().module_symbol(consumer_file, "./helper.mjs");
+		expect(second_result).toBe("");
 	});
 });

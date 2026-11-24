@@ -1,18 +1,19 @@
 import { PYTHON_LANGUAGE, TEST_PATH_SUFFIXES } from "src/constants";
+import type { GlobalAnalysisStagesContract } from "src/contracts/protocols/global_analysis_protocols";
 import { UNUSED_SYMBOL_KIND } from "src/core/types";
 import { GlobalAnalysisStages } from "src/linting/orchestration/runtime/global-analysis/diagnostics/global_analysis_stages";
 import { LiteralConstantRules } from "src/linting/orchestration/runtime/global-analysis/diagnostics/literal_constant_rules";
 import { TestFrameworkConsistency } from "src/linting/orchestration/runtime/global-analysis/diagnostics/test_framework_consistency";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { GlobalViolationCollectorOptions } from "src/project_analysis_types";
-import type { ProjectSourceAnalysisOptions } from "src/project_analysis_types";
+import type { ProjectSourceAnalysisOptionsContract } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { ModulePlacementAnalyzer } from "src/rules/architecture/module_placement_analyzer";
 import { ProductionTestImportAnalyzer } from "src/rules/architecture/production_test_import_analyzer";
+import { UnusedSymbolRules } from "src/rules/unused_symbol_rules";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceScanContract } from "src/source_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
-import { UnusedSymbolRules } from "src/unused_symbol_rules";
 
 /** Responsibilities: _global violation orchestration_, _targeted violation collection_. **/
 export class GlobalViolationCollector {
@@ -21,7 +22,7 @@ export class GlobalViolationCollector {
 
 	private readonly _test_framework_consistency: TestFrameworkConsistency;
 
-	private readonly _analysis_stages: GlobalAnalysisStages;
+	private readonly _analysis_stages: GlobalAnalysisStagesContract;
 
 	private readonly _project_source_scanner: ProjectSourceScanContract;
 
@@ -29,7 +30,7 @@ export class GlobalViolationCollector {
 
 	private readonly _literal_constant_rules: LiteralConstantRules;
 
-	private readonly _project_scope: ProjectSourceAnalysisOptions;
+	private readonly _project_scope: ProjectSourceAnalysisOptionsContract;
 
 	/** Responsibilities: _time collection module-placement violations_. **/
 	private module_placement_stage(): ViolationContract[] {
@@ -75,7 +76,7 @@ export class GlobalViolationCollector {
 			entry_files: options.entry_files,
 			project_scope: options.project_scope,
 		});
-		this._project_source_scanner = options.project_scope.scanner;
+		this._project_source_scanner = options.project_scope.scanner();
 		this._unused_symbol_rules = new UnusedSymbolRules(
 			new TestPathSyntax(TEST_PATH_SUFFIXES),
 			new Map([

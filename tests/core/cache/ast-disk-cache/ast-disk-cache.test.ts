@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { AstModel } from "src/core/ast_model";
 import { AstDiskCache } from "src/core/cache/ast-disk-cache/ast_disk_cache";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import { AstDiskCacheFixture } from "tests/bridge/ts/core/ast-disk-cache-fixture";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 

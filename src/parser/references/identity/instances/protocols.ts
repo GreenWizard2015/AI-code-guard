@@ -6,7 +6,7 @@ import type { TypeScriptObjectPropertyCollectorContract } from "src/typescript_r
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
 
-export type InstanceBinding = { declaration: ts.Node; owner: string };
+export type InstanceBinding = { start: number; owner: string };
 export type InstanceBindingsByName = Map<string, InstanceBinding[]>;
 
 /** Responsibilities: _instance alias collection inputs_. **/

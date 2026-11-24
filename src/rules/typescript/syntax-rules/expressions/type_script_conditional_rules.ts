@@ -2,9 +2,9 @@ import { CONDITIONAL_EXECUTION, LOGICAL_ASSIGNMENT, TERNARY } from "src/parser/i
 import { TypeScriptAssignmentContext } from "src/parser/internals/type_script_assignment_context";
 import { TypeScriptAssignmentValuePredicates } from "src/parser/internals/type_script_assignment_value_predicates";
 import { TypeScriptBooleanExpression } from "src/parser/internals/type_script_boolean_expression";
+import { TypeScriptNonBooleanCallAnalysis } from "src/rules/typescript/syntax-rules/expressions/boolean/type_script_non_boolean_call_analysis";
 import { TypeScriptConditionalParentIndex } from "src/rules/typescript/syntax-rules/expressions/type_script_conditional_parent_index";
 import { TypeScriptExpressionContainers } from "src/rules/typescript/syntax-rules/expressions/type_script_expression_containers";
-import { TypeScriptNonBooleanCallAnalysis } from "src/rules/typescript/syntax-rules/expressions/type_script_non_boolean_call_analysis";
 import type { BooleanExpressionContract } from "src/runtime_protocols";
 import type { CallableRuleAppender } from "src/types";
 import type {

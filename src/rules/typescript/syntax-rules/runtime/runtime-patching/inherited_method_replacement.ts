@@ -1,14 +1,14 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import type { TypeScriptModuleSymbolReference } from "src/module-resolution/types";
 import type { TypeScriptModuleExportsContract } from "src/module-resolution/types";
-import type { SourceFileResolver } from "src/source_types";
 import ts from "typescript";
 
 /** Responsibilities: _imported base class state_, _override classification_. **/
 export class InheritedMethodReplacement {
 	private readonly _declaration: ts.ClassLikeDeclaration;
 	private readonly _module_resolver: TypeScriptModuleExportsContract;
-	private readonly _source_resolver: SourceFileResolver;
+	private readonly _source_resolver: SourceFileResolverContract;
 	private readonly _imported_class_names: Set<string>;
 	private readonly _namespace_imports: Map<string, string>;
 
@@ -18,7 +18,7 @@ export class InheritedMethodReplacement {
 			return false;
 		}
 		const resolved = this._module_resolver.resolve(reference);
-		if (resolved.file.length === 0 || !this._source_resolver.has(resolved.file)) {
+		if (resolved.file.length === 0 || !this._source_resolver.contains_source_file(resolved.file)) {
 			return false;
 		}
 		return this._module_resolver.symbol_kind(resolved) === ResolvedTypeScriptDeclarationKind.Class;
@@ -90,7 +90,7 @@ export class InheritedMethodReplacement {
 	public constructor(
 		declaration: ts.ClassLikeDeclaration,
 		module_resolver: TypeScriptModuleExportsContract,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 	) {
 		this._declaration = declaration;
 		this._module_resolver = module_resolver;

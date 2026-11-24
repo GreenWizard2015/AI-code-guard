@@ -1,13 +1,16 @@
 import { extname } from "node:path";
 import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_LANGUAGE } from "src/constants";
-import { ProjectSourceContextImportResolution } from "src/core/project-source/project_source_context_import_resolution";
+import { ProjectSourceContextImportResolution } from "src/core/project-source/imports/project_source_context_import_resolution";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
+import type { SourceFileMapResolverCacheContract } from "src/core/project-source/types";
 import type { ContextProjectPaths } from "src/core/types";
 import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import { TypeScriptProjectResolutionCache } from "src/module-resolution/project-resolution/type_script_project_resolution_cache";
 import type { TypeScriptModuleExportsContract, TypeScriptModuleResolutionContract } from "src/module-resolution/types";
-import { TypeScriptImportSpecifierCollector } from "src/parser/analysis/type_script_import_specifier_collector";
+import { TypeScriptImportSpecifierCollector } from "src/parser/analysis/module-resolution/type_script_import_specifier_collector";
 import type { LintProjectContextContract } from "src/shared_services_protocols";
 import type {
 	ProjectSourceContextImportResolutionContract,
@@ -28,6 +31,8 @@ export class ProjectSourceContextImports implements ProjectSourceContextImportsC
 	private readonly _resolutions: WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>;
 	private readonly _resolution_cache: TypeScriptProjectResolutionCache;
 	private readonly _project_files: WeakMap<LintProjectContextContract, ContextProjectPaths>;
+	private readonly _map_cache: SourceFileMapResolverCacheContract;
+	private readonly _empty_source_files: Map<string, ts.SourceFile>;
 
 	/** Responsibilities: _context source file access_. **/
 	private source_file(source_record_path: string): ts.SourceFile {
@@ -49,14 +54,12 @@ export class ProjectSourceContextImports implements ProjectSourceContextImportsC
 	}
 
 	/** Responsibilities: _contextual module resolution_. **/
-	private source_files(): Map<string, ts.SourceFile> {
-		const source_files = new Map<string, ts.SourceFile>();
-		for (const source of this._context.files()) {
-			if (source.language === TYPESCRIPT_CACHE_OWNER) {
-				source_files.set(source.absolute_path, source.typescript_ast.source_file_node());
-			}
+	private source_files(): SourceFileResolverContract {
+		const source = this._context.files().find((record) => record.language === TYPESCRIPT_CACHE_OWNER);
+		if (source === undefined) {
+			return this._map_cache.for_map(this._empty_source_files);
 		}
-		return source_files;
+		return source.source_resolver;
 	}
 
 	/** Responsibilities: _context module resolver access_. **/
@@ -144,6 +147,8 @@ export class ProjectSourceContextImports implements ProjectSourceContextImportsC
 		this._resolutions = new WeakMap<LintProjectContextContract, TypeScriptModuleResolutionContract>();
 		this._resolution_cache = new TypeScriptProjectResolutionCache(source_io);
 		this._project_files = new WeakMap<LintProjectContextContract, ReadonlySet<string>>();
+		this._map_cache = new SourceFileMapCache();
+		this._empty_source_files = new Map();
 	}
 
 	/** Responsibilities: _project import specifiers_. **/

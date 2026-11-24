@@ -1,4 +1,4 @@
-import { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/callable_usage_references";
+import { CallableUsageReferences } from "src/linting/orchestration/runtime/global-analysis/callable-usage/indexing/references/callable_usage_references";
 import { CallableReferenceMatcher } from "src/linting/orchestration/runtime/global-analysis/callable-usage/reference-matching/callable_reference_matcher";
 import type { CallableMatcherContext, ParsedFile } from "src/metrics/types";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";

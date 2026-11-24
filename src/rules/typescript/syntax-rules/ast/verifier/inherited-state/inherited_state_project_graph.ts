@@ -1,4 +1,4 @@
-import { TypeScriptDirectClassState } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_direct_class_state";
+import { TypeScriptDirectClassState } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/class-analysis/type_script_direct_class_state";
 import type {
 	InheritedStateDeclaration,
 	InheritedStateNodes,

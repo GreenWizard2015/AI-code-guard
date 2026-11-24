@@ -1,5 +1,6 @@
 import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import type { DocumentationExampleLintConfigurationContract } from "src/core/support/protocols";
 import { LintReportMode } from "src/core/types";
 import type { LintReportOptions } from "src/core/types";
@@ -18,6 +19,7 @@ export class DocumentationValidationSessionScenario
 {
 	private readonly _repo_root = "/virtual/documentation-example";
 	private readonly _violation: ViolationValue;
+	private readonly _map_cache: SourceFileMapCache;
 	private _file_requests = 0;
 	private _lint_mode: LintReportMode;
 	private _project_analysis_enabled = false;
@@ -38,13 +40,14 @@ export class DocumentationValidationSessionScenario
 			normalized_ast: python_ast_model.empty_ast_file(),
 			language: "python",
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal: new TypeScriptAstTraversal(ast_file.source_file_node()),
 		};
 	}
 
 	/** Responsibilities: _scenario initialization_. **/
 	public constructor() {
+		this._map_cache = new SourceFileMapCache();
 		this._lint_mode = LintReportMode.PROJECT;
 		this._violation = new ViolationValue({
 			file: "cli.py",

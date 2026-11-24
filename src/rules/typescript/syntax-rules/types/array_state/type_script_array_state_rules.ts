@@ -1,8 +1,8 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { SINGLE_ARRAY_STATE } from "src/parser/internals/constants";
-import { TypeScriptBindingAliases } from "src/parser/typescript-aliases/type_script_binding_aliases";
-import { TypeScriptExpressionNames } from "src/parser/typescript-aliases/type_script_expression_names";
-import { TypeScriptCallAliases } from "src/rules/typescript/syntax-rules/callables/type_script_call_aliases";
+import { TypeScriptBindingAliases } from "src/parser/type_script_binding_aliases";
+import { TypeScriptExpressionNames } from "src/parser/type_script_expression_names";
+import { TypeScriptCallAliases } from "src/rules/typescript/syntax-rules/callables/call-aliases/type_script_call_aliases";
 import type { TypeScriptNumericExpressionEvaluatorContract } from "src/rules/typescript/syntax-rules/types";
 import { TypeScriptArrayCallableDeclarations } from "src/rules/typescript/syntax-rules/types/array_state/type_script_array_callable_declarations";
 import { TypeScriptArrayStateInspector } from "src/rules/typescript/syntax-rules/types/array_state/type_script_array_state_inspector";

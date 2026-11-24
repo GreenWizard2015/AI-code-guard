@@ -149,6 +149,22 @@ export class PythonAstWorker {
 			complete() {
 				return worker.complete_batch(batch_id);
 			},
+			/**
+			 * @param {import("src/shared_services_protocols").LintStageTimerContract} stage_timer
+			 * @param {string} wait_stage_name
+			 * @param {string} batch_stage_name
+			 * @param {number} batch_started_at
+			 * @returns {PythonAstWorkerResponse}
+			 */
+			complete_timed(stage_timer, wait_stage_name, batch_stage_name, batch_started_at) {
+				const wait_started_at = stage_timer.start_measurement();
+				try {
+					return worker.complete_batch(batch_id);
+				} finally {
+					stage_timer.finish_measurement(wait_stage_name, wait_started_at);
+					stage_timer.finish_measurement(batch_stage_name, batch_started_at);
+				}
+			},
 			cancel() {
 				worker.cancel_batch(batch_id);
 			},

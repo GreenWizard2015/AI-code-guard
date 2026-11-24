@@ -125,9 +125,15 @@ export interface TypeScriptCallableAliasesContract {
 }
 
 /** Responsibilities: _static array key contract_. **/
+export type TypeScriptStaticArrayKeyQuery = {
+	readonly expression: ts.Expression;
+	readonly source: ts.Node;
+};
+
+/** Responsibilities: _static array key contract_. **/
 export interface TypeScriptStaticArrayKeysContract {
-	value(expression: ts.Expression, source_file: ts.SourceFile): string;
-	expressions(expression: ts.Expression, source_file: ts.SourceFile): readonly ts.Expression[];
+	value(query: TypeScriptStaticArrayKeyQuery): string;
+	expressions(query: TypeScriptStaticArrayKeyQuery): readonly ts.Expression[];
 }
 
 /** Responsibilities: _static key alias contract_. **/

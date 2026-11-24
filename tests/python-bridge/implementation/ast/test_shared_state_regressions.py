@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -16,7 +17,7 @@ def test_state():
     shared.append(1)
     shared.append(2)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("test-order-dependency", issues)
@@ -32,7 +33,7 @@ def test_first():
 def test_second():
     shared.append(2)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertIn("test-order-dependency", issues)
@@ -49,7 +50,7 @@ def test_second():
     shared = []
     shared.append(2)
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue["kind"] for issue in tree.coding_issues()]
 
         self.assertNotIn("test-order-dependency", issues)
@@ -66,7 +67,7 @@ class Second:
     def run(self):
         return 2
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "python-static-method"]
 
         self.assertEqual([issue["line"] for issue in issues], [2])
@@ -87,7 +88,7 @@ class Outer:
         def run(self):
             return 2
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "python-static-method"]
 
         self.assertEqual(issues, [])

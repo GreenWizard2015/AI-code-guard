@@ -1,6 +1,7 @@
 import { constants } from "node:os";
 import { Readable } from "node:stream";
 import type { ProcessKillContract } from "src/analysis_protocols";
+import { NodeProcessSignal } from "src/core/support/task/node_process_signal";
 import {
 	AI_CODE_GUARD_DIRECTORY,
 	REVIEW_AGENT_DIRECTORY,
@@ -8,7 +9,6 @@ import {
 	REVIEW_DIRECTORY,
 	REVIEW_RUN_LOCK_DIRECTORY,
 } from "src/core/support/task/review-agent/constants";
-import { NodeProcessSignal } from "src/core/support/task/review-agent/process/node_process_signal";
 import type { ReviewAgentProcessExecution } from "src/core/support/task/review-agent/protocols";
 import { InMemoryFileIO } from "tests/bridge/ts/core/cache/in_memory_file_io";
 import { ReviewAgentChildProcess } from "tests/bridge/ts/core/review-agent/review-agent-child-process";

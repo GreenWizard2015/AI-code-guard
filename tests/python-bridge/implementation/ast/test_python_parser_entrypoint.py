@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
@@ -13,7 +14,7 @@ class PythonParserMetadataTest(unittest.TestCase):
 
     def test_parser_emits_entrypoint_metadata(self) -> None:
         """Responsibilities: _entrypoint metadata values_."""
-        tree = PythonAstTree(ENTRYPOINT_SOURCE)
+        tree = PythonAstTree(ENTRYPOINT_SOURCE, ast.parse(ENTRYPOINT_SOURCE))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         imports = output.records("python_imports")
@@ -40,7 +41,10 @@ class PythonParserMetadataTest(unittest.TestCase):
 
     def test_function_node_record_preserves_normalized_metadata(self) -> None:
         """Responsibilities: _Python callable metadata_."""
-        tree = PythonAstTree("def parse_value(value: int) -> int:\n    return value\n")
+        tree = PythonAstTree(
+            "def parse_value(value: int) -> int:\n    return value\n",
+            ast.parse("def parse_value(value: int) -> int:\n    return value\n"),
+        )
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         nodes = output.records("functions")
@@ -73,7 +77,7 @@ class PythonParserMetadataTest(unittest.TestCase):
             "    def method(self):\n"
             "        return 2\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         functions = output.records("functions")
@@ -96,7 +100,7 @@ class PythonParserMetadataTest(unittest.TestCase):
             "    def build(cls, value: str, fallback):\n"
             "        return value\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         classes = output.records("classes")
@@ -128,7 +132,10 @@ class PythonParserMetadataTest(unittest.TestCase):
 
     def test_function_call_reference_has_complete_identity_fields(self) -> None:
         """Responsibilities: _function call identity_."""
-        tree = PythonAstTree("def run() -> None:\n    return None\n\nrun()\n")
+        tree = PythonAstTree(
+            "def run() -> None:\n    return None\n\nrun()\n",
+            ast.parse("def run() -> None:\n    return None\n\nrun()\n"),
+        )
         ast_record = tree.ast()
         output = PythonParserOutput(self, ast_record)
         references = output.records("call_references")
@@ -157,7 +164,7 @@ class PythonParserMetadataTest(unittest.TestCase):
 
     def test_parser_preserves_python_import_statement_kind(self) -> None:
         """Responsibilities: _import statement kinds_."""
-        tree = PythonAstTree("import pkg\nfrom pkg import pkg\n")
+        tree = PythonAstTree("import pkg\nfrom pkg import pkg\n", ast.parse("import pkg\nfrom pkg import pkg\n"))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         imports = output.records("python_imports")
@@ -169,7 +176,7 @@ class PythonParserMetadataTest(unittest.TestCase):
 
     def test_parser_collects_literal_export_list(self) -> None:
         """Responsibilities: _Python export declaration_."""
-        tree = PythonAstTree('__all__ = ["First", "Second"]\n')
+        tree = PythonAstTree('__all__ = ["First", "Second"]\n', ast.parse('__all__ = ["First", "Second"]\n'))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
 
@@ -189,7 +196,7 @@ async def load():
     """async metadata"""
     return None
 '''
-        python_tree = PythonAstTree(source)
+        python_tree = PythonAstTree(source, ast.parse(source))
         output = PythonParserOutput(self, python_tree.ast())
         docstrings = output.records("docstring_spans")
 
@@ -210,7 +217,7 @@ __all__ = BASE_EXPORTS
 __all__ = ["Fourth"] + ["Fifth"]
 __all__: list[str] = ["Sixth"]
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         issues = output.records("coding_issues")
@@ -239,7 +246,7 @@ def first() -> str:
 def second() -> str:
     return "shared runtime message"
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
 
@@ -250,7 +257,7 @@ def second() -> str:
 
     def test_parser_emits_metadata(self) -> None:
         """Responsibilities: _parser symbol metadata_."""
-        tree = PythonAstTree(ENTRYPOINT_SOURCE)
+        tree = PythonAstTree(ENTRYPOINT_SOURCE, ast.parse(ENTRYPOINT_SOURCE))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         symbols = output.records("named_symbols")
@@ -275,7 +282,7 @@ def second() -> str:
             "                self.inside()\n"
             "        self.after()\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         references = output.records("call_references")
@@ -298,7 +305,7 @@ class Service:
         method_value = parameter
         return method_value
 """
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
         output = PythonParserOutput(self, parsed)
         symbols = {item.text("name"): item for item in output.records("named_symbols")}
@@ -349,7 +356,10 @@ class Service:
             "        return value",
             "    return nested(value)",
         ]
-        tree = PythonAstTree("\n".join([*within_limit, *over_limit, *nested]))
+        tree = PythonAstTree(
+            "\n".join([*within_limit, *over_limit, *nested]),
+            ast.parse("\n".join([*within_limit, *over_limit, *nested])),
+        )
         issues = tree.coding_issues()
         issue_records = [PythonParserOutput(self, issue) for issue in issues]
         branch_issues = [issue for issue in issue_records if issue.text("kind") == "callable-branch-count"]

@@ -68,7 +68,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "unbounded_type, ignored = (Any, None)\n"
             "candidate_value: unbounded_type = None\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unbounded-type"]
 
         self.assertEqual([issue["line"] for issue in issues], [1, 3, 3, 7])
@@ -84,7 +84,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "    def candidate(value: local_type) -> int:\n"
             "        return 1\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unbounded-type"]
 
         self.assertEqual(
@@ -101,7 +101,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "    def load(self, value: 'Model') -> 'Model':\n"
             "        return value\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = tree.coding_issues()
 
         self.assertEqual(
@@ -138,7 +138,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
     def test_rejects_none_checks_for_required_fields(self) -> None:
         """Responsibilities: _required-field checks verification_."""
         source = self._required_field_source()
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unnecessary-undefined-check"]
         self.assertEqual(len(issues), 4)
 
@@ -154,7 +154,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "def has_attributes(parsed: Parsed) -> bool:\n"
             "    return parsed.attribute_accesses is None\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unnecessary-undefined-check"]
         self.assertEqual(len(issues), 1)
 
@@ -364,7 +364,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "def has_value(container: Container) -> bool:\n"
             "    return container.record.value is None\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unnecessary-undefined-check"]
         self.assertEqual(len(issues), 1)
 
@@ -383,6 +383,6 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
             "def has_value(container: Container) -> bool:\n"
             "    return container.record.holder.value is None\n"
         )
-        tree = PythonAstTree(source)
+        tree = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in tree.coding_issues() if issue["kind"] == "unnecessary-undefined-check"]
         self.assertEqual(len(issues), 1)

@@ -3,7 +3,7 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
-import { DynamicRuntimeUsage } from "src/rules/typescript/syntax-rules/runtime/dynamic_runtime_usage";
+import { DynamicRuntimeUsage } from "src/rules/typescript/syntax-rules/runtime/dynamic-members/dynamic_runtime_usage";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("dynamic runtime alias analysis", () => {
@@ -15,6 +15,9 @@ describe("dynamic runtime alias analysis", () => {
 			{ source: "new Proxy(target, handler);", active: true },
 			{ source: "Object.hasOwn(target, key);", active: true },
 			{ source: "function read(key: string) { return target[key]; }", active: true },
+			{ source: "const ReflectiveWrapper = 1;", active: false },
+			{ source: "const ProxyFactory = 1;", active: false },
+			{ source: "const ObjectWrapper = 1;", active: false },
 		];
 		const results = samples.map(({ source }) => rule.active_for(source));
 		expect(results).toEqual(samples.map(({ active }) => active));

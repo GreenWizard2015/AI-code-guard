@@ -1,3 +1,4 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { TypeScriptPropertyModuleResolverContract } from "src/module-resolution/types";
 import { AstDeclarationLookup } from "src/rules/typescript/syntax-rules/ast/ast_declaration_lookup";
 import type {
@@ -6,7 +7,6 @@ import type {
 	AstPropertySourceIndexContract,
 } from "src/source_protocols";
 import type { AstDeclarationLookupContract } from "src/source_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import ts from "typescript";
 
 /** Responsibilities: _imported declaration graph assembly_, _re-export traversal_. **/
@@ -17,7 +17,7 @@ export class AstPropertySourceGraph implements AstPropertySourceGraphContract {
 	private readonly _bindings: AstPropertyBindingResolverContract;
 	private readonly _prepared_graphs: Set<AstPropertySourceGraph>;
 	private readonly _module_path: TypeScriptPropertyModuleResolverContract;
-	private readonly _source_resolver: SourceFileResolver;
+	private readonly _source_resolver: SourceFileResolverContract;
 	private readonly _source_index: AstPropertySourceIndexContract;
 
 	/** Responsibilities: _source declaration registration_. **/
@@ -82,10 +82,10 @@ export class AstPropertySourceGraph implements AstPropertySourceGraphContract {
 		if (this._source_files.has(file)) {
 			return;
 		}
-		const imported = this._source_resolver.get(file);
-		if (imported === undefined) {
+		if (!this._source_resolver.contains_source_file(file)) {
 			return;
 		}
+		const imported = this._source_resolver.source_file(file);
 		this._source_files.set(file, imported);
 		this.register_source(imported);
 		this.import_sources(imported);
@@ -106,7 +106,7 @@ export class AstPropertySourceGraph implements AstPropertySourceGraphContract {
 		root_source: ts.SourceFile,
 		declarations: Map<string, ts.Declaration>,
 		module_path: TypeScriptPropertyModuleResolverContract,
-		source_resolver: SourceFileResolver,
+		source_resolver: SourceFileResolverContract,
 		source_index: AstPropertySourceIndexContract,
 	) {
 		this._source_files = new Map<string, ts.SourceFile>();
@@ -122,6 +122,9 @@ export class AstPropertySourceGraph implements AstPropertySourceGraphContract {
 
 	/** Responsibilities: _source file lookup_. **/
 	public source(file: string): ts.SourceFile {
+		if (file === this._root_source.fileName) {
+			return this._root_source;
+		}
 		this.prepare_sources();
 		const source = this._source_files.get(file);
 		if (source !== undefined) {
@@ -132,13 +135,19 @@ export class AstPropertySourceGraph implements AstPropertySourceGraphContract {
 
 	/** Responsibilities: _declaration lookup_. **/
 	public declaration(key: string): AstDeclarationLookupContract {
+		if (key.startsWith(`${this._root_source.fileName}\u0000`)) {
+			return new AstDeclarationLookup(this._source_index.declarations_for(this._root_source), key);
+		}
+		this.prepare_sources();
 		return new AstDeclarationLookup(this._declaration_map, key);
 	}
 
 	/** Responsibilities: _declaration map access_. **/
 	/** Responsibilities: _binding type resolution_. **/
 	public binding_type(identifier: ts.Identifier, unknown_type: ts.TypeNode): ts.TypeNode {
-		this.prepare_sources();
+		if (identifier.getSourceFile() !== this._root_source) {
+			this.prepare_sources();
+		}
 		return this._bindings.type(identifier, unknown_type);
 	}
 }

@@ -1,12 +1,12 @@
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { LintFileName } from "src/core/context/lint_file_name";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { ClassStructureReporter } from "src/metrics/class_structure_reporter";
 import { EMPTY_MUTATED_FIELDS } from "src/metrics/constants";
 import type { AstClassField, AstClassNode } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
+import { TypeScriptClassFieldClassifier } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/class-analysis/type_script_class_field_classifier";
 import { TypeScriptAstTypeShape } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_ast_type_shape";
-import { TypeScriptClassFieldClassifier } from "src/rules/typescript/syntax-rules/ast/verifier/class-state/type_script_class_field_classifier";
 import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
@@ -96,6 +96,24 @@ describe("class state ownership", () => {
 			collection: true,
 			domain_data: false,
 		});
+	});
+
+	test("detects collection delegation only when a class owns a collection field", () => {
+		const source_file = ts.createSourceFile(
+			"collection-delegation.ts",
+			[
+				"class LoggerOwner { logger: Logger; run() { return new Helper(this.logger); } }",
+				"class CollectionOwner { records: Map<string, string>; run() { return new Helper(this.records); } }",
+			].join("\n"),
+			ts.ScriptTarget.Latest,
+			true,
+		);
+		const results = source_file.statements.filter(ts.isClassDeclaration).map((declaration) => {
+			const classifier = new TypeScriptClassFieldClassifier(declaration);
+			return classifier.delegates_collection();
+		});
+
+		expect(results).toEqual([false, true]);
 	});
 
 	test("reports stateless classes and forbids local class inheritance", () => {

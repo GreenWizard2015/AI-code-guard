@@ -1,10 +1,10 @@
 import { basename, resolve } from "node:path";
 import type { StringSetMap } from "src/analysis_types";
 import { REVIEW_FILES_FROM_OPTION, REVIEW_IGNORE_FILE_OPTION } from "src/core/support/task/review-agent/constants";
-import { CommandOptionPolicy } from "src/core/support/task/review-agent/policy/command_option_policy";
-import { CommandPolicy } from "src/core/support/task/review-agent/policy/command_policy";
+import { CommandOptionPolicy } from "src/core/support/task/review-agent/policy/commands/command_option_policy";
+import { CommandPolicy } from "src/core/support/task/review-agent/policy/commands/command_policy";
+import { ReviewShellCommand } from "src/core/support/task/review-agent/policy/commands/review_shell_command";
 import { RecursiveReviewSearchPolicy } from "src/core/support/task/review-agent/policy/recursive_review_search_policy";
-import { ReviewShellCommand } from "src/core/support/task/review-agent/policy/review_shell_command";
 import type {
 	CommandPolicyContract,
 	ReviewPathPolicyContract,

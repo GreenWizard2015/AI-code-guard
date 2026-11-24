@@ -8,11 +8,15 @@ import type {
 } from "src/module-resolution/protocols";
 import { ResolvedTypeScriptDeclarationKind } from "src/module-resolution/types";
 import type {
+	TypeScriptModuleExportCacheEntry,
+	TypeScriptModuleExportCacheRequest,
 	TypeScriptModuleExportsContract,
 	TypeScriptModuleSymbolNameCache,
 	TypeScriptModuleSymbolReference,
 	TypeScriptModuleSymbolScopeCache,
+	TypeScriptResolvedExportsByName,
 } from "src/module-resolution/types";
+import { EMPTY_MODULE_EXPORT_REFERENCE } from "src/module-resolution/types";
 
 /** Responsibilities: _module export resolution_, _module symbol lookup_. **/
 export class TypeScriptModuleExports implements TypeScriptModuleExportsContract {
@@ -21,6 +25,7 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportsContract 
 	private readonly _module_paths: TypeScriptModulePathCatalogContract;
 	private readonly _module_symbols: TypeScriptModuleSymbolScopeCache;
 	private readonly _resolved_exports: Map<string, TypeScriptModuleSymbolReference>;
+	private readonly _exports_by_file: Map<string, TypeScriptResolvedExportsByName>;
 	private readonly _declaration_index: TypeScriptDeclarationIndex;
 	private readonly _export_scope: TypeScriptModuleExportScopeContract;
 
@@ -59,6 +64,40 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportsContract 
 		return "";
 	}
 
+	/** Responsibilities: _file-scoped export cache lookup_. **/
+	private cached_export(reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference {
+		const file_exports = this._exports_by_file.get(reference.file);
+		if (file_exports === undefined) {
+			return EMPTY_MODULE_EXPORT_REFERENCE;
+		}
+		return file_exports.get(reference.name) ?? EMPTY_MODULE_EXPORT_REFERENCE;
+	}
+
+	/** Responsibilities: _file-scoped export cache insertion_. **/
+	private remember_export(entry: TypeScriptModuleExportCacheEntry): void {
+		let file_exports = this._exports_by_file.get(entry.file);
+		if (file_exports === undefined) {
+			file_exports = new Map();
+			this._exports_by_file.set(entry.file, file_exports);
+		}
+		file_exports.set(entry.name, entry.resolved);
+	}
+
+	/** Responsibilities: _shared export resolution_. **/
+	private resolve_export(request: TypeScriptModuleExportCacheRequest): TypeScriptModuleSymbolReference {
+		const { reference, cache_key } = request;
+		const cached = this._resolved_exports.get(cache_key);
+		if (cached !== undefined) {
+			this.remember_export({ file: reference.file, name: reference.name, resolved: cached });
+			return cached;
+		}
+		const resolved = this._export_scope.file_for_miss({ reference, visited: new Set() }, cache_key);
+		if (resolved.file.length > 0) {
+			this.remember_export({ file: reference.file, name: reference.name, resolved });
+		}
+		return resolved;
+	}
+
 	/** Responsibilities: _module resolver dependency storage_. **/
 	public constructor(options: TypeScriptModuleExportsInitialization) {
 		this._project_root = options.project_root;
@@ -71,6 +110,7 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportsContract 
 		}
 		this._module_symbols = module_symbol_scopes;
 		this._resolved_exports = options.module_cache.resolved_exports;
+		this._exports_by_file = new Map();
 		this._declaration_index = new TypeScriptDeclarationIndex(options.module_cache);
 		this._export_scope = new TypeScriptModuleExportScope(
 			this._project_root,
@@ -83,12 +123,14 @@ export class TypeScriptModuleExports implements TypeScriptModuleExportsContract 
 
 	/** Responsibilities: _export target identity_. **/
 	public resolve(reference: TypeScriptModuleSymbolReference): TypeScriptModuleSymbolReference {
-		const cache_key = `${this._cache_prefix}${reference.file}${MODULE_CACHE_KEY_SEPARATOR}${reference.name}`;
-		const cached = this._resolved_exports.get(cache_key);
-		if (cached !== undefined) {
+		const cached = this.cached_export(reference);
+		if (cached.file.length > 0) {
 			return cached;
 		}
-		return this._export_scope.file_for({ reference, visited: new Set() });
+		return this.resolve_export({
+			reference,
+			cache_key: `${this._cache_prefix}${reference.file}${MODULE_CACHE_KEY_SEPARATOR}${reference.name}`,
+		});
 	}
 
 	/** Responsibilities: _export declaration kind_. **/

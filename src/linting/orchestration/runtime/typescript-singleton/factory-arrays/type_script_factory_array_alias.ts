@@ -2,7 +2,7 @@ import type {
 	FactoryObjectSourcesContract,
 	TypeScriptFactoryArraySourcesContract,
 } from "src/contracts/protocols/lint_runtime_protocols";
-import { TypeScriptFactoryArrayBindingTraversal } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/type_script_factory_array_binding_traversal";
+import { TypeScriptFactoryArrayBindingTraversal } from "src/linting/orchestration/runtime/typescript-singleton/factory-arrays/binding_sources/type_script_factory_array_binding_traversal";
 import type { ExpressionNamesContract } from "src/runtime_protocols";
 import type { TypeScriptFactoryArrayAliasContract } from "src/typescript_runtime_protocols";
 import ts from "typescript";

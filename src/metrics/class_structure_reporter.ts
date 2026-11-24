@@ -1,7 +1,7 @@
 import { MAX_CLASS_LINES, MAX_CLASS_METHODS, MIN_CLASS_LINES } from "src/constants";
 import { MethodSpecializationReporter } from "src/core/support/method_specialization_reporter";
 import type { LintFileNameContract } from "src/core/support/protocols";
-import { CallableMetrics } from "src/metrics/callable_metrics";
+import { CallableMetrics } from "src/metrics/callable_analysis/callable_metrics";
 import { ClassDesignReporter } from "src/metrics/class_design_reporter";
 import {
 	CONSTRUCTOR_NAME,

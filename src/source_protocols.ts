@@ -217,6 +217,9 @@ export interface PythonImportSessionContract {
 }
 
 /** Responsibilities: _AST property type resolution_. **/
+export type AstPropertyFieldStateMap = Map<string, string>;
+
+/** Responsibilities: _AST property type resolution_. **/
 export interface AstPropertyTypeContract {
 	field_state(base: ts.Identifier, property: string): string;
 }

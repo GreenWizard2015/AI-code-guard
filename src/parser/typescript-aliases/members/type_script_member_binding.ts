@@ -1,9 +1,9 @@
 import type { StringSetMap } from "src/analysis_types";
 import type { NodeStringSetMapCache } from "src/cache_types";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptMemberVariableAliases } from "src/parser/typescript-aliases/members/type_script_member_variable_aliases";
 import type { TypeScriptMemberBindingContract } from "src/parser/typescript-aliases/protocols";
 import type { MemberAliasAccessQuery, MemberAliasCopyQuery } from "src/parser/typescript-aliases/protocols";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
 import type { CallableStaticValueResolver } from "src/runtime_types";
 import type {
 	TypeScriptMemberAliasTarget,

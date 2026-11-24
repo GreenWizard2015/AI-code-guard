@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { RULE_DOCUMENT_PATHS_BY_ID } from "src/constants";
 import { CliResultReporter } from "src/core/support/reporting/cli_result_reporter";
 import { PerformanceReport } from "src/core/support/reporting/performance_report";
-import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
+import { TaskReporting } from "src/core/support/task/reporting/workspace/reports/documents/task_reporting";
 import type { CliLintReportRequest } from "src/core/types";
 import { LintStageTimer } from "src/lint_stage_timer";
 import { ViolationValue } from "src/model/violation_value";

@@ -1,8 +1,10 @@
 import { TYPESCRIPT_CACHE_OWNER, TYPESCRIPT_SCANNER_STAGE } from "src/constants";
 import { AstModel } from "src/core/ast_model";
-import type { TypeScriptScannerInput } from "src/linting/orchestration/runtime/types";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptScannerProjectNames } from "src/linting/orchestration/runtime/typescript/type_script_scanner_project_names";
 import { TypeScriptSourceRuleRuntime } from "src/linting/orchestration/runtime/typescript/type_script_source_rule_runtime";
+import type { TypeScriptScannerInput } from "src/linting/types";
 import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { FileLinterOptions, TypeScriptScannerOptions } from "src/model_types";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
@@ -11,9 +13,9 @@ import type { ProjectNames } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { AstModelContract } from "src/source_protocols";
-import type { SourceFileResolver } from "src/source_types";
 import type { LintSourceRecordData } from "src/source_types";
 import type { TypeScriptFileScannerContract } from "src/typescript_analysis_protocols";
+import type ts from "typescript";
 
 /** Responsibilities: _TypeScript file analysis_, _ignored file diagnostics_. **/
 export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
@@ -80,9 +82,13 @@ export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
 	/** Responsibilities: _scanner dependencies_. **/
 	public constructor(options: FileLinterOptions) {
 		const source = options.context.files().find((item) => item.language === TYPESCRIPT_CACHE_OWNER);
-		let source_resolver: SourceFileResolver = new Map();
+		let source_resolver: SourceFileResolverContract;
 		if (source !== undefined) {
 			source_resolver = source.source_resolver;
+		} else {
+			const map_cache = new SourceFileMapCache();
+			const empty_sources = new Map<string, ts.SourceFile>();
+			source_resolver = map_cache.for_map(empty_sources);
 		}
 		const module_context = new TypeScriptModuleExportsContext(
 			options.repo_root,

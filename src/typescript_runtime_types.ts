@@ -8,11 +8,6 @@ export type TypeScriptAstTraversalNode = {
 	function_owner: ts.Node;
 };
 
-export type TypeScriptAstTraversalFrame = {
-	traversal_node: TypeScriptAstTraversalNode;
-	depth: number;
-};
-
 export type CallableTypeScriptAstTraversalVisitor = (traversal_node: TypeScriptAstTraversalNode) => void;
 
 export type CallableTypeScriptAstTraversalDecision = (traversal_node: TypeScriptAstTraversalNode) => boolean;

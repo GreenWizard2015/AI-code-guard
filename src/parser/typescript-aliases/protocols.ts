@@ -155,11 +155,6 @@ export type StaticObjectDeclarationQuery = {
 	readonly node: ts.VariableDeclaration;
 };
 
-/** Responsibilities: _source file selection_. **/
-export type StaticArraySourceCollectionQuery = {
-	readonly source_file: ts.SourceFile;
-};
-
 /** Responsibilities: _binding property name resolution_. **/
 export interface BindingPropertyNameResolverContract {
 	property_name(element: ts.Node): string;

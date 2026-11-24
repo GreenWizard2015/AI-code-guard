@@ -1,13 +1,14 @@
 import { resolve } from "node:path";
 import { PYTHON_LANGUAGE, TYPESCRIPT_LANGUAGE } from "src/constants";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { PythonAstBridge } from "src/core/python-ast/python_ast_bridge";
 import { PythonAstData } from "src/core/python-ast/python_ast_data";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { CodingRuleLinter } from "src/linting/orchestration/runtime/coding_rule_linter";
-import { SourceFileAst } from "src/linting/orchestration/runtime/source_file_ast";
+import { CodingRuleLinter } from "src/linting/file_linting/coding_rule_linter";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
 import { TypeScriptSourceRuleRuntime } from "src/linting/orchestration/runtime/typescript/type_script_source_rule_runtime";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
@@ -22,6 +23,7 @@ import type { DirectCase, LanguageParityCaseRunnerContract, ProjectCase } from "
 export class LanguageParityCaseRunner implements LanguageParityCaseRunnerContract {
 	private readonly _fixture: TestFixture;
 	private readonly _python_ast_data: PythonAstData;
+	private readonly _source_file_map_cache: SourceFileMapCache;
 
 	/** Responsibilities: _rule presence check_. **/
 	private has_rule(violations: readonly ViolationContract[], rule_id: string): boolean {
@@ -78,6 +80,7 @@ export class LanguageParityCaseRunner implements LanguageParityCaseRunnerContrac
 	/** Responsibilities: _language parity fixture initialization_. **/
 	public constructor() {
 		this._fixture = new TestFixture();
+		this._source_file_map_cache = new SourceFileMapCache();
 		const python_ast_bridge = new PythonAstBridge();
 		const python_ast_options = python_ast_bridge.options();
 		this._python_ast_data = new PythonAstData(python_ast_options);
@@ -92,14 +95,14 @@ export class LanguageParityCaseRunner implements LanguageParityCaseRunnerContrac
 				{ file: `${item.rule_id}.ts`, text: item.typescript },
 				typescript_ast.normalized(),
 				typescript_ast.source_file_node(),
-				new Map(),
+				this._source_file_map_cache.for_map(new Map()),
 				new TypeScriptAstTraversal(typescript_ast.source_file_node()),
 			);
 			const python_source = new SourceFileAst(
 				{ file: `${item.rule_id}.py`, text: item.python },
 				this._python_ast_data.source_ast(item.python),
 				python_ast.source_file_node(),
-				new Map(),
+				this._source_file_map_cache.for_map(new Map()),
 				new TypeScriptAstTraversal(python_ast.source_file_node()),
 			);
 			const typescript_linter = new CodingRuleLinter(

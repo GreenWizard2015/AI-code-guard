@@ -1,14 +1,14 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
+import { TaskReporting } from "src/core/support/task/reporting/workspace/reports/documents/task_reporting";
+import { TaskReportingReviewState } from "src/core/support/task/reporting/workspace/reports/documents/task_reporting_review_state";
 import { TaskReview } from "src/core/support/task/reporting/workspace/review/task_review";
-import { TaskReporting } from "src/core/support/task/reporting/workspace/task_reporting";
-import { TaskReportingReviewState } from "src/core/support/task/reporting/workspace/task_reporting_review_state";
 import {
 	REVIEW_COMPLETION_TEXT,
 	REVIEW_FAILURE_FILE,
 	REVIEW_SOURCE_IDENTITY_PREFIX,
 } from "src/core/support/task/review-agent/constants";
-import { ReviewStateIdentity } from "src/core/support/task/review-agent/review_state_identity";
+import { ReviewStateIdentity } from "src/core/support/task/review-agent/recovery/review_state_identity";
 import { TaskReportingMemoryFixture } from "tests/bridge/ts/core/support/task-reporting-memory-fixture";
 
 describe("coding-lint review completion reporting", () => {

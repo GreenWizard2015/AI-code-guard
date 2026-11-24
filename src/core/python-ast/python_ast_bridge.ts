@@ -1,20 +1,19 @@
 import type { SpawnOptions, SpawnSyncOptionsWithStringEncoding } from "node:child_process";
 import { existsSync } from "node:fs";
-import { delimiter, dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { PYTHON_BRIDGE_DIRECTORY } from "src/constants";
+import { delimiter, resolve } from "node:path";
+import { PYTHON_BRIDGE_DIRECTORY, REPORTING_PROJECT_ROOT } from "src/constants";
 import {
 	COVERAGE_MODULE,
 	COVERAGE_PARALLEL_MODE_ARGUMENT,
 	COVERAGE_RUN_COMMAND,
 	NODE_ENV_VARIABLE,
 } from "src/core/constants";
-import { ProjectAnalysisIdentity } from "src/core/project-source/project_analysis_identity";
 import { PYTHON_AST_WORKER_IO_TIMEOUT_MS } from "src/core/python-ast/constants";
 import { PythonAstWorker } from "src/core/python-ast/python_ast_worker.mjs";
 import type { PythonAstBridgeOptions, PythonAstWorkerOptions } from "src/core/python-ast/types";
 import { NodeFileIO } from "src/io/node_file_io";
 import type { IOContract } from "src/io/protocols";
+import { ProjectAnalysisIdentity } from "src/project_analysis_identity";
 import type { PythonAstWorkerContract } from "src/python_protocols";
 import type { ProjectAnalysisIdentityContract } from "src/runtime_protocols";
 
@@ -39,7 +38,7 @@ export class PythonAstBridge {
 	}
 	/** Responsibilities: _default worker composition_. **/
 	public constructor() {
-		this._project_root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+		this._project_root = REPORTING_PROJECT_ROOT;
 		this._python_bridge_path = resolve(this._project_root, PYTHON_BRIDGE_DIRECTORY);
 		this._python_path = [this._python_bridge_path, this._project_root].join(delimiter);
 		const resolved_file_io: IOContract = new NodeFileIO(process.cwd());

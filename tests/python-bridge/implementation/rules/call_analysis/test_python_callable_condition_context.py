@@ -6,6 +6,9 @@ from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.rules.call_analysis.python_callable_condition_context import (
     PythonCallableConditionContext,
 )
+from implementation.rules.call_analysis.python_name_binding_index import (
+    PythonNameBindingIndex,
+)
 from implementation.rules.coding_issues.python_coding_issue_component_context import (
     PythonCodingIssueComponentContext,
 )
@@ -43,9 +46,8 @@ class PythonCallableConditionContextTest(unittest.TestCase):
     def _call(self, tree: ast.Module, name: str) -> ast.Call:
         """Responsibilities: _named call selection_."""
         for node in ast.walk(tree):
-            if type(node) is ast.Call and type(node.func) is ast.Name:
-                if node.func.id == name:
-                    return node
+            if type(node) is ast.Call and type(node.func) is ast.Name and node.func.id == name:
+                return node
         return ast.Call(func=ast.Name(id="", ctx=ast.Load()), args=[], keywords=[])
 
     def test_live_alias_in_condition_is_classified_from_ast(self) -> None:
@@ -110,7 +112,8 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         options = options_factory.create(tree, source)
         context = PythonCodingIssueComponentContext(options)
         context.node_index().nodes(tree)
-        assembly = PythonPrimaryCallAssembly(context)
+        binding_index = PythonNameBindingIndex(tree, context.node_index())
+        assembly = PythonPrimaryCallAssembly(context, binding_index)
 
         condition_context = assembly.condition_context()
 

@@ -1,9 +1,9 @@
 import { RULE_IDS } from "src/linting/constants";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
-import { TypeScriptStaticExpressionOperations } from "src/parser/typescript-aliases/type_script_static_expression_operations";
-import { TypeScriptStaticExpressionValues } from "src/parser/typescript-aliases/type_script_static_expression_values";
-import { ConsoleAliasIndex } from "src/rules/typescript/syntax-rules/runtime/console_alias_index";
-import { ConsoleMock } from "src/rules/typescript/syntax-rules/runtime/console_mock";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
+import { TypeScriptStaticExpressionOperations } from "src/parser/type_script_static_expression_operations";
+import { TypeScriptStaticExpressionValues } from "src/parser/type_script_static_expression_values";
+import { ConsoleAliasIndex } from "src/rules/typescript/syntax-rules/runtime/builtins/console_alias_index";
+import { ConsoleMock } from "src/rules/typescript/syntax-rules/runtime/builtins/console_mock";
 import { RuntimePatching } from "src/rules/typescript/syntax-rules/runtime/runtime-patching/runtime_patching";
 import type { StaticExpressionValuesContract } from "src/shared_services_protocols";
 import type { RuleContextContract } from "src/types";

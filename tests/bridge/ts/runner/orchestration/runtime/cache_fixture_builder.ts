@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { ViolationValue } from "src/model/violation_value";
@@ -11,6 +12,8 @@ import { FileAnalysisCacheWorkspace } from "tests/bridge/ts/runner/orchestration
 
 /** Responsibilities: _cache fixture preparation_, _cache record setup_. **/
 export class CacheFixtureBuilder {
+	private readonly _map_cache: SourceFileMapCache;
+
 	/** Responsibilities: _fixture project writing_. **/
 	private write_project(ast_project: AstDiskCacheFixture, file: string, text: string, config_file: string): void {
 		ast_project.write(file, text);
@@ -27,6 +30,11 @@ export class CacheFixtureBuilder {
 			rule_id: "rule",
 			priority: 1,
 		});
+	}
+
+	/** Responsibilities: _cache fixture setup_. **/
+	public constructor() {
+		this._map_cache = new SourceFileMapCache();
 	}
 
 	/** Responsibilities: _cache fixture construction_. **/
@@ -66,7 +74,7 @@ export class CacheFixtureBuilder {
 			normalized_ast: ast_file.normalized(),
 			language: "typescript",
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: this._map_cache.for_map(new Map()),
 			traversal,
 		};
 	}

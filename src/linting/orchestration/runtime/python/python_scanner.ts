@@ -1,9 +1,9 @@
 import { TEST_PATH_SUFFIXES } from "src/constants";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
-import { PythonCompositionImports } from "src/linting/composition/python_composition_imports";
+import { PythonCompositionImports } from "src/linting/composition_analysis/python_composition_imports";
 import { PythonClassOwnership } from "src/linting/orchestration/runtime/python/class-ownership/python_class_ownership";
 import { PythonClassReference } from "src/linting/orchestration/runtime/python/class-ownership/python_class_reference";
-import { PythonAstFileRuleCollector } from "src/linting/orchestration/runtime/python/coding_rules/python_ast_file_rule_collector";
+import { PythonAstFileRuleCollector } from "src/linting/orchestration/runtime/python/coding_rules/collectors/python_ast_file_rule_collector";
 import { PythonCollaboratorScanner } from "src/linting/orchestration/runtime/python/python_collaborator_scanner";
 import type { AstClassNode, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";

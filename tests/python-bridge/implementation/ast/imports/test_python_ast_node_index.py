@@ -57,15 +57,6 @@ class PythonAstNodeIndexTest(unittest.TestCase):
 
         self.assertEqual(index.alias_event_nodes(module, custom_nodes), [first_assignment])
 
-    def test_collects_class_definitions_in_breadth_first_order_and_reuses_them(self) -> None:
-        """Responsibilities: _ordered class definition lookup_."""
-        module = ast.parse("class Outer:\n    class Nested:\n        pass\n\nclass Other:\n    pass\n")
-        index = PythonAstNodeIndex()
-        expected = [node for node in ast.walk(module) if type(node) is ast.ClassDef]
-
-        self.assertEqual(index.class_definitions(module), expected)
-        self.assertIs(index.class_definitions(module), index.class_definitions(module))
-
     def test_records_parent_chain_in_ast_order(self) -> None:
         """Responsibilities: _ordered parent relationship_."""
         module = ast.parse("value = left + right")
@@ -78,6 +69,38 @@ class PythonAstNodeIndexTest(unittest.TestCase):
             {"assignment": [module], "expression": [assignment]},
         )
 
+    def test_reuses_root_parent_map_for_shared_consumers(self) -> None:
+        """Responsibilities: _shared root parent-map cache_."""
+        module = ast.parse("def run():\n    value = left + right\n")
+        index = PythonAstNodeIndex()
+        parent_map = index.parent_map(module)
+        repeated_parent_map = index.parent_map(module)
+
+        self.assertIs(repeated_parent_map, parent_map)
+
+    def test_parent_map_includes_direct_root_children(self) -> None:
+        """Responsibilities: _root-relative parent lookup_."""
+        module = ast.parse("def run():\n    value = left + right\n")
+        function = module.body[0]
+        index = PythonAstNodeIndex()
+        parent_map = index.parent_map(module)
+
+        self.assertIs(parent_map[function], module)
+
+    def test_parent_map_excludes_parent_outside_requested_subtree(self) -> None:
+        """Responsibilities: _subtree-relative parent lookup_."""
+        module = ast.parse("def run():\n    value = left + right\n")
+        function = next(node for node in module.body if isinstance(node, ast.FunctionDef))
+        index = PythonAstNodeIndex()
+        subtree_parent_map = index.parent_map(function)
+        actual = {
+            "assignment_parent": subtree_parent_map[function.body[0]],
+            "includes_module_parent": module in subtree_parent_map.values(),
+        }
+        expected = {"assignment_parent": function, "includes_module_parent": False}
+
+        self.assertEqual(actual, expected)
+
     def test_keeps_all_parents_for_a_shared_node(self) -> None:
         """Responsibilities: _shared AST parent relationships_."""
         shared_name = ast.Name(id="value", ctx=ast.Load())
@@ -87,7 +110,12 @@ class PythonAstNodeIndexTest(unittest.TestCase):
         index = PythonAstNodeIndex()
         index.nodes(module)
 
-        self.assertEqual(index.parents(shared_name), [first_expression, second_expression])
+        shared_parents = index.parents(shared_name)
+        parent_map = index.parent_map(module)
+        actual = {"shared_parents": shared_parents, "parent_map_parent": parent_map[shared_name]}
+        expected = {"shared_parents": [first_expression, second_expression], "parent_map_parent": second_expression}
+
+        self.assertEqual(actual, expected)
 
     def test_reuses_cached_children_for_repeated_lookups(self) -> None:
         """Responsibilities: _cached direct child reuse_."""

@@ -1,5 +1,6 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { TypeScriptModuleExportLookupContract } from "src/module-resolution/types";
-import { TypeScriptModuleExports } from "src/parser/analysis/type_script_module_exports";
+import { TypeScriptModuleExports } from "src/parser/analysis/module-resolution/type_script_module_exports";
 import { TypeScriptCallReturnAnalysis } from "src/parser/type_script_call_return_analysis";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { TypeScriptCallReturnAnalysisContract } from "src/typescript_analysis_protocols";
@@ -10,14 +11,14 @@ import ts from "typescript";
 export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwnersContract {
 	private readonly _source_file: ts.SourceFile;
 	private readonly _script_module_exports: TypeScriptModuleExportLookupContract;
+	private readonly _call_return_analysis: TypeScriptCallReturnAnalysis;
 	private readonly _owners: Map<string, string>;
 
 	/** Responsibilities: _resolution owner imported callable_. **/
 	private imported_call_owner(exported_module: string, exported_name: string): string {
-		const call_return_analysis = new TypeScriptCallReturnAnalysis();
 		const declarations = this._script_module_exports.resolved_exported_declaration(exported_module, exported_name);
 		for (const declaration of declarations) {
-			const owner = this.exported_owner(declaration, call_return_analysis);
+			const owner = this.exported_owner(declaration, this._call_return_analysis);
 			if (owner.length > 0) {
 				return owner;
 			}
@@ -89,11 +90,12 @@ export class TypeScriptImportedCallOwners implements TypeScriptImportedCallOwner
 	public constructor(
 		source_file: ts.SourceFile,
 		project_root: string,
-		source_files: ReadonlyMap<string, ts.SourceFile>,
+		source_files: SourceFileResolverContract,
 		source_io: ProjectSourceIOContract,
 	) {
 		this._owners = new Map<string, string>();
 		this._source_file = source_file;
+		this._call_return_analysis = new TypeScriptCallReturnAnalysis();
 		this._script_module_exports = new TypeScriptModuleExports(project_root, source_files, false, source_io);
 	}
 

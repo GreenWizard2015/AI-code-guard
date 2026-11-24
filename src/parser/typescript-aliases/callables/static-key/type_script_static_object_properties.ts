@@ -1,5 +1,6 @@
-import { TypeScriptStaticObjectSources } from "src/parser/typescript-aliases/callables/type_script_static_object_sources";
-import { TypeScriptStaticObjectValues } from "src/parser/typescript-aliases/callables/type_script_static_object_values";
+import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
+import { TypeScriptStaticObjectValues } from "src/parser/type_script_static_object_values";
+import { TypeScriptStaticObjectSources } from "src/parser/typescript-aliases/callables/static-expression/type_script_static_object_sources";
 import type {
 	ResolvedStaticBindingQuery,
 	StaticArrayBindingElementQuery,
@@ -12,7 +13,6 @@ import type {
 	StaticObjectBindingSourceQuery,
 	StaticObjectPropertiesQuery,
 } from "src/parser/typescript-aliases/protocols";
-import { TypeScriptExpressionAliases } from "src/parser/typescript-aliases/type_script_expression_aliases";
 import type {
 	TypeScriptStaticObjectSourcesContract,
 	TypeScriptStaticObjectValuesContract,

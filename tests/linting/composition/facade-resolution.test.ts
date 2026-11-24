@@ -1,17 +1,19 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { ProjectSourcePython } from "src/core/project-source/project_source_python";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { CompositionAnalyzer } from "src/linting/composition/composition_analyzer";
 import { CompositionModel } from "src/linting/composition/composition_model";
 import { TypeScriptCompositionModel } from "src/linting/composition/type_script_composition_model";
-import { TypeScriptImportedFunctionAliases } from "src/model/type_script_imported_function_aliases";
+import { TypeScriptImportedFunctionAliases } from "src/model/typescript/type_script_imported_function_aliases";
 import { TypeScriptModuleExportsContext } from "src/module-resolution/exports/type_script_module_exports_context";
 import { TYPESCRIPT_FACADE_FILES } from "tests/bridge/ts/core/constants";
 import { TestFixture } from "tests/core/test-fixture";
 import ts from "typescript";
 
 describe("coding-lint facade resolution", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	const fixture = new TestFixture();
 
 	test("resolves TypeScript function aliases through index.ts", () => {
@@ -56,7 +58,12 @@ describe("coding-lint facade resolution", () => {
 						.filter((source) => source.language === "typescript")
 						.map((source) => [source.absolute_path, source.typescript_ast.source_file_node()] as const),
 				);
-				const exports_context = new TypeScriptModuleExportsContext(root, source_files, false, context.source_io());
+				const exports_context = new TypeScriptModuleExportsContext(
+					root,
+					source_file_map_cache.for_map(source_files),
+					false,
+					context.source_io(),
+				);
 				const exports_table = exports_context.module_exports();
 				const resolved = exports_table.resolve({ file: join(root, "barrel.ts"), name: "target" });
 				return { resolved, expected: { file: join(root, "leaf.ts"), name: "target" } };
@@ -79,7 +86,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(files),
 						resolver: new ProjectSourcePython(root),
 					},
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -114,7 +121,7 @@ describe("coding-lint facade resolution", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set(paths), resolver: new ProjectSourcePython(root) },
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -171,7 +178,7 @@ describe("coding-lint facade resolution", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set([path]), resolver: new ProjectSourcePython(root) },
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -202,7 +209,7 @@ describe("coding-lint facade resolution", () => {
 				const composition_model = new CompositionModel(
 					root,
 					{ root, files: new Set([path]), resolver: new ProjectSourcePython(root) },
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -237,7 +244,7 @@ describe("coding-lint facade resolution", () => {
 		);
 		const resolver_context = new TypeScriptModuleExportsContext(
 			"",
-			new Map(),
+			source_file_map_cache.for_map(new Map()),
 			false,
 			new InMemoryProjectSourceIO(new Map()),
 		);
@@ -273,7 +280,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(root),
 					},
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -310,7 +317,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(root),
 					},
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -347,7 +354,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(root),
 					},
-					fixture._project_source.typescript_source_files(context),
+					source_file_map_cache.for_map(fixture._project_source.typescript_source_files(context)),
 					false,
 					context.source_io(),
 				);
@@ -382,7 +389,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(root),
 					},
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					true,
 					context.source_io(),
 				);
@@ -433,7 +440,7 @@ describe("coding-lint facade resolution", () => {
 						files: new Set(paths),
 						resolver: new ProjectSourcePython(root),
 					},
-					new Map(),
+					source_file_map_cache.for_map(new Map()),
 					true,
 					context.source_io(),
 				);

@@ -34,24 +34,6 @@ export class TypeScriptVariableInstanceAlias {
 		return names;
 	}
 
-	/** Responsibilities: _destructured variable alias registration_. **/
-	private append_destructured(): boolean {
-		const source_initializer = this._node.initializer;
-		if (source_initializer === undefined) {
-			return false;
-		}
-		const initializer = this._call_return_analysis.unwrapped_expression(source_initializer);
-		if (!ts.isObjectBindingPattern(this._node.name) && !ts.isArrayBindingPattern(this._node.name)) {
-			return false;
-		}
-		let aliases: readonly DestructuredAlias[] = [];
-		if (ts.isObjectBindingPattern(this._node.name)) {
-			aliases = this._properties.destructured_aliases(this._node.name, this._source_file, initializer, this._owner);
-		}
-		this.append_destructured_bindings(aliases);
-		return true;
-	}
-
 	/** Responsibilities: _destructured alias registration_. **/
 	private append_destructured_bindings(aliases: readonly DestructuredAlias[]): void {
 		const resolved_names = new Set(aliases.map((alias) => alias.name));
@@ -65,49 +47,18 @@ export class TypeScriptVariableInstanceAlias {
 		}
 	}
 
-	/** Responsibilities: _instance alias recording_. **/
-	private append_constructed(): boolean {
-		const source_initializer = this._node.initializer;
-		if (source_initializer === undefined) {
-			return false;
+	/** Responsibilities: _destructured initializer alias registration_. **/
+	private append_destructured_initializer(binding_pattern: ts.BindingPattern, source_expression: ts.Expression): void {
+		let aliases: readonly DestructuredAlias[] = [];
+		if (ts.isObjectBindingPattern(binding_pattern)) {
+			aliases = this._properties.destructured_aliases(
+				binding_pattern,
+				this._source_file,
+				source_expression,
+				this._owner,
+			);
 		}
-		const initializer = this._call_return_analysis.unwrapped_expression(source_initializer);
-		if (this._reference_helpers.new_instance(this._node, initializer)) {
-			return true;
-		}
-		this._object_properties.appended(this._node, initializer);
-		return false;
-	}
-
-	/** Responsibilities: _reference variable alias registration_. **/
-	private append_reference_alias(): boolean {
-		const source_initializer = this._node.initializer;
-		if (source_initializer === undefined) {
-			return false;
-		}
-		const initializer = this._call_return_analysis.unwrapped_expression(source_initializer);
-		if (!ts.isIdentifier(this._node.name) || !ts.isIdentifier(initializer)) {
-			return false;
-		}
-		const owner = this._instances.instance_owner(initializer.text, initializer);
-		if (!owner.bound) {
-			return false;
-		}
-		this._instances.add(this._node.name.text, owner.value, this._node);
-		return true;
-	}
-
-	/** Responsibilities: _call-based variable alias registration_. **/
-	private append_call(): boolean {
-		const source_initializer = this._node.initializer;
-		if (source_initializer === undefined) {
-			return false;
-		}
-		const initializer = this._call_return_analysis.unwrapped_expression(source_initializer);
-		if (!ts.isCallExpression(initializer)) {
-			return false;
-		}
-		return this.append_call_owner(initializer);
+		this.append_destructured_bindings(aliases);
 	}
 
 	/** Responsibilities: _call owner binding_. **/
@@ -126,6 +77,28 @@ export class TypeScriptVariableInstanceAlias {
 		return true;
 	}
 
+	/** Responsibilities: _identifier alias registration_. **/
+	private append_reference_alias(identifier: ts.Identifier): boolean {
+		const owner = this._instances.instance_owner(identifier.text, identifier);
+		if (!owner.bound) {
+			return false;
+		}
+		this._instances.add(this._node.name.getText(this._source_file), owner.value, this._node);
+		return true;
+	}
+
+	/** Responsibilities: _instance alias registration_. **/
+	private append_instance_alias(expression: ts.Expression): boolean {
+		if (this._reference_helpers.new_instance(this._node, expression)) {
+			return true;
+		}
+		this._object_properties.appended(this._node, expression);
+		if (ts.isCallExpression(expression)) {
+			return this.append_call_owner(expression);
+		}
+		return false;
+	}
+
 	/** Responsibilities: _reference owner resolution_, _instance alias recording_. **/
 	public constructor(context: TypeScriptVariableInstanceAliasOptions) {
 		this._node = context.node;
@@ -140,17 +113,21 @@ export class TypeScriptVariableInstanceAlias {
 	}
 
 	/** Responsibilities: _variable initializer alias registration_. **/
-	public append_initializer(): boolean {
-		if (this.append_destructured()) {
+	public append_initializer(initializer: ts.Expression): boolean {
+		const binding_name = this._node.name;
+		if (ts.isObjectBindingPattern(binding_name) || ts.isArrayBindingPattern(binding_name)) {
+			this.append_destructured_initializer(binding_name, initializer);
 			return true;
 		}
-		if (this.append_reference_alias()) {
-			return true;
+		const name_is_id = ts.isIdentifier(binding_name);
+		const value_is_id = ts.isIdentifier(initializer);
+		if (name_is_id && value_is_id) {
+			const alias_recorded = this.append_reference_alias(initializer);
+			if (alias_recorded) {
+				return true;
+			}
 		}
-		if (this.append_constructed()) {
-			return true;
-		}
-		return false;
+		return this.append_instance_alias(initializer);
 	}
 
 	/** Responsibilities: _declared variable alias registration_. **/
@@ -175,10 +152,14 @@ export class TypeScriptVariableInstanceAlias {
 
 	/** Responsibilities: _variable alias classification_. **/
 	public append(): void {
-		if (this.append_initializer()) {
-			return;
+		const source_initializer = this._node.initializer;
+		if (source_initializer !== undefined) {
+			const initializer = this._call_return_analysis.unwrapped_expression(source_initializer);
+			if (this.append_initializer(initializer)) {
+				return;
+			}
 		}
-		if (this.append_call() || this.append_declared_type()) {
+		if (this.append_declared_type()) {
 			return;
 		}
 		this.append_unresolved();

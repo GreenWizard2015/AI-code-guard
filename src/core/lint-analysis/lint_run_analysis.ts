@@ -13,7 +13,7 @@ import type {
 	LintRunState,
 } from "src/project_analysis_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import { DirectoryRules } from "src/rules/support/directory_rules";
+import { DirectoryRules } from "src/rules/directory_rules";
 import type {
 	LintRunAnalysisContract,
 	ProjectAnalysisIdentityContract,
@@ -119,7 +119,7 @@ export class LintRunAnalysis implements LintRunAnalysisContract {
 			...timer.measure("file-analysis", () => this.collect_file(state, timer, stage.context_identity)),
 			...timer.measure("global-analysis", () => this.collect_global(stage)),
 			...timer.measure("unused-files", () =>
-				this.unused_python(state.repo_root, state.inventory, state.context, state.project_scope.scanner, state.cache),
+				this.unused_python(state.repo_root, state.inventory, state.context, state.project_scope.scanner(), state.cache),
 			),
 			...timer.measure("markdown-analysis", () =>
 				this._text_files

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { AstModel } from "src/core/ast_model";
 import { LintFileName } from "src/core/context/lint_file_name";
+import { SourceFileMapCache } from "src/core/project-source/source_file_map_cache";
 import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/import_fan_out";
 import { TypeScriptAstFile } from "src/model/ast/type_script_ast_file";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
@@ -8,6 +9,7 @@ import { TypeScriptAstTraversal } from "src/parser/analysis/type_script_ast_trav
 import type { ViolationContract } from "src/reporting_protocols";
 
 describe("Python import fan-out", () => {
+	const source_file_map_cache = new SourceFileMapCache();
 	test("reports more than twenty unique module paths", () => {
 		const ast_model = new AstModel("python");
 		const empty_ast = ast_model.empty_ast_file();
@@ -33,7 +35,7 @@ describe("Python import fan-out", () => {
 			normalized_ast,
 			language: "python" as const,
 			typescript_ast: new TypeScriptAstFile("/project/fanout.py", ""),
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal: new TypeScriptAstTraversal(source_file),
 		};
 		const violations: ViolationContract[] = [];
@@ -69,7 +71,7 @@ describe("Python import fan-out", () => {
 			normalized_ast,
 			language: "python" as const,
 			typescript_ast: ast_file,
-			source_resolver: new Map(),
+			source_resolver: source_file_map_cache.for_map(new Map()),
 			traversal: new TypeScriptAstTraversal(source_file),
 		};
 		const violations: ViolationContract[] = [];

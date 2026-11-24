@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { ASTAncestorRelation } from "src/ast_verifier_protocols";
 import { ASTVerifierRegistry } from "src/rules/typescript/syntax-rules/ast/verifier/ast_verifier_registry";
-import { ASTNodeKindPredicate } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/ast_node_kind_predicate";
+import { ASTNodeKindPredicate } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/node-verification/ast_node_kind_predicate";
 import { ASTVerifierTestRule } from "tests/rules/typescript/syntax-rules/ast/ast_verifier_test_rule";
 import ts from "typescript";
 

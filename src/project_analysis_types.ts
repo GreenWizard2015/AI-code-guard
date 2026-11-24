@@ -2,8 +2,10 @@ import type { IOContract } from "src/io/protocols";
 import type { ReportViolationOptions } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { GitIgnoreGlobMatcherContract } from "src/runtime_protocols";
+import type { CallableOperation } from "src/runtime_types";
 import type { LintProjectContextContract, LintStageTimerContract } from "src/shared_services_protocols";
 import type { ProjectSourceScanContract } from "src/source_protocols";
+import type { TestTargetLink } from "src/task_types";
 
 /** Responsibilities: _project symbol-name indexes_. **/
 export type ProjectNames = {
@@ -59,12 +61,13 @@ export type LintRunState = {
 	readonly inventory: LintRunInventory;
 	readonly names: ProjectNames;
 	readonly context: LintProjectContextContract;
-	readonly project_scope: ProjectSourceAnalysisOptions;
+	readonly project_scope: ProjectSourceAnalysisOptionsContract;
 	readonly source_texts: ReadonlyMap<string, string>;
 	readonly cache: LintRunCacheState;
 };
 
 export type LintRunResult = { files: string[]; violations: ViolationContract[] };
+export type CachedLintExecutionResult = { report: LintRunResult; test_target_links: TestTargetLink[] };
 export type LintInputFiles = {
 	files: string[];
 	project_files: string[];
@@ -115,12 +118,16 @@ export type LintExecutionCacheRecord = {
 	identity: string;
 	target_request: string;
 	entry_files: string[];
-	files: string[];
-	violations: ReportViolationOptions[];
+	result: LintExecutionCacheResultData;
 	fingerprints: LintFileFingerprint[];
 	inputs: LintInputFiles;
 	ignored_directories: string[];
 	directories: LintDirectoryFingerprint[];
+};
+export type LintExecutionCacheResultData = {
+	files: string[];
+	violations: ReportViolationOptions[];
+	test_target_links: TestTargetLink[];
 };
 export type LintExecutionCacheState = {
 	cache_file: string;
@@ -160,16 +167,29 @@ export type LintRawInputCandidates = {
 	markdown_candidates: string[];
 };
 export type LintProjectCandidates = { repository: string[]; external: string[] };
-export type ProjectSourceAnalysisOptions = {
-	root: string;
-	project_files: readonly string[];
-	context: LintProjectContextContract;
-	ignored_files: ReadonlySet<string>;
-	scanner: ProjectSourceScanContract;
-	files: Set<string>;
-	file_io: IOContract;
-	directory_files: DirectoryFileSet;
-};
+
+/** Responsibilities: _project analysis inputs_. **/
+export interface ProjectSourceAnalysisOptionsContract {
+	root(): string;
+	project_files(): readonly string[];
+	context(): LintProjectContextContract;
+	ignored_files(): ReadonlySet<string>;
+	scanner(): ProjectSourceScanContract;
+	file_io(): IOContract;
+	directory_files(): DirectoryFileSet;
+	project_rule_snapshots(): ProjectRuleSnapshots;
+	snapshot_capture_active(): boolean;
+	capture_snapshots_during<Result>(operation: CallableOperation<Result>): Result;
+}
+
+/** Responsibilities: _project rule file diagnostics_. **/
+export type ProjectRuleSnapshotFile = { file: string; violations: ReportViolationOptions[] };
+
+/** Responsibilities: _project rule snapshot group_. **/
+export type ProjectRuleSnapshot = { rule_name: string; files: ProjectRuleSnapshotFile[] };
+
+/** Responsibilities: _serialized project-rule diagnostic groups_. **/
+export type ProjectRuleSnapshots = ProjectRuleSnapshot[];
 
 /** Responsibilities: _global violation collection configuration_. **/
 export type GlobalViolationCollectorOptions = {
@@ -180,7 +200,7 @@ export type GlobalViolationCollectorOptions = {
 	ignored_files: ReadonlySet<string>;
 	entry_files: readonly string[];
 	stage_timer: LintStageTimerContract;
-	project_scope: ProjectSourceAnalysisOptions;
+	project_scope: ProjectSourceAnalysisOptionsContract;
 };
 
 export type DirectoryFileSet = { virtual_project: boolean; files: readonly string[] };

@@ -6,13 +6,13 @@ import type {
 	ASTVerifierNodeRegistrationContract,
 	ASTVerifierRegistryContract,
 } from "src/ast_verifier_protocols";
-import { ASTNodeKindPredicate } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/ast_node_kind_predicate";
 import { ASTVerifier } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/ast_verifier";
 import { ASTVerifierPath } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/ast_verifier_path";
-import { TypeScriptBehaviorAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/type_script_behavior_ast_registrations";
-import { TypeScriptCoreAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/type_script_core_ast_registrations";
-import { TypeScriptMetricAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/type_script_metric_ast_registrations";
-import { TypeScriptProjectAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/type_script_project_ast_registrations";
+import { ASTNodeKindPredicate } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/node-verification/ast_node_kind_predicate";
+import { TypeScriptBehaviorAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/registrations/type_script_behavior_ast_registrations";
+import { TypeScriptCoreAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/registrations/type_script_core_ast_registrations";
+import { TypeScriptMetricAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/registrations/type_script_metric_ast_registrations";
+import { TypeScriptProjectAstRegistrations } from "src/rules/typescript/syntax-rules/ast/verifier/dispatch/registrations/type_script_project_ast_registrations";
 import { TypeScriptArrayStateRules } from "src/rules/typescript/syntax-rules/types/array_state/type_script_array_state_rules";
 import ts from "typescript";
 

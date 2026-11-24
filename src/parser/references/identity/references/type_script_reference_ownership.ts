@@ -12,14 +12,14 @@ import { TypeScriptCallReturns } from "src/parser/references/identity/calls/type
 import { TypeScriptInstanceIndex } from "src/parser/references/identity/instances/type_script_instance_index";
 import { TypeScriptImportedPropertyOwner } from "src/parser/references/identity/properties/type_script_imported_property_owner";
 import { TypeScriptPropertyState } from "src/parser/references/identity/properties/type_script_property_state";
+import { TypeScriptReferenceExpressionOwner } from "src/parser/references/identity/references/ownership/type_script_reference_expression_owner";
+import { TypeScriptReferenceStateInitializer } from "src/parser/references/identity/references/ownership/type_script_reference_state_initializer";
 import type {
 	TypeScriptReferenceOwnerResolverContract,
 	TypeScriptReferenceOwnershipOptions,
 	TypeScriptReferenceStateInitializationContract,
 } from "src/parser/references/identity/references/protocols";
-import { TypeScriptReferenceExpressionOwner } from "src/parser/references/identity/references/type_script_reference_expression_owner";
 import { TypeScriptReferenceIdentity } from "src/parser/references/identity/references/type_script_reference_identity";
-import { TypeScriptReferenceStateInitializer } from "src/parser/references/identity/references/type_script_reference_state_initializer";
 import { TypeScriptThisReceiver } from "src/parser/references/instance/type_script_this_receiver";
 import type { TypeScriptReferenceOwnershipContract } from "src/typescript_analysis_protocols";
 import type ts from "typescript";

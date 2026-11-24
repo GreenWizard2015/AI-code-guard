@@ -76,15 +76,19 @@ export class CacheDirectoryTree {
 
 	/** Responsibilities: _cache directory entries_. **/
 	private fingerprint_entries(source_entries: readonly FileEntry[]): string[] {
-		const entries = source_entries.map((entry) => {
+		const entries: string[] = [];
+		for (const entry of source_entries) {
+			if (entry.is_directory && this._skipped_names.has(entry.name)) {
+				continue;
+			}
 			let kind = "other";
 			if (entry.is_directory) {
 				kind = CACHE_DIRECTORY_ENTRY_KIND;
 			} else if (entry.is_file) {
 				kind = "file";
 			}
-			return `${entry.name}\u0000${kind}`;
-		});
+			entries.push(`${entry.name}\u0000${kind}`);
+		}
 		entries.sort();
 		return entries;
 	}

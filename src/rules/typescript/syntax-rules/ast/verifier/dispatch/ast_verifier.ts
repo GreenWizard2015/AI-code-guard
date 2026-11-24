@@ -6,8 +6,9 @@ import type {
 	ASTVerifierNodeRegistrationContract,
 } from "src/ast_verifier_protocols";
 import { EMPTY_AST_NODE_VERIFIERS } from "src/constants";
+import { TypeScriptAstNodeObserverRegistry } from "src/model/type_script_ast_node_observer_registry";
 import { TypeScriptAstDispatchPhase } from "src/parser/analysis/protocols";
-import { TypeScriptAstNodeObserverRegistry } from "src/parser/analysis/type_script_ast_node_observer_registry";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { RuleContextContract } from "src/types";
 import type {
 	TypeScriptNodeVerificationRequest,
@@ -19,13 +20,37 @@ import type ts from "typescript";
 /** Responsibilities: _AST verifier dispatch_, _applicable verifier selection_. **/
 export class ASTVerifier implements ASTVerifierContract {
 	private readonly _verifiers: ASTVerifierNodeGroupContract[][];
+	private readonly _timing_names: string[][];
 	private readonly _source_finalizers: readonly ASTSourceRuleContract[];
 	private readonly _node_dispatcher: TypeScriptAstNodeObserverRegistry<RuleContextContract>;
 	private readonly _node_verifier: CallableTypeScriptAstNodeObserver<RuleContextContract>;
 
+	/** Responsibilities: _verifier dispatch timing_. **/
+	private verify_candidates(
+		candidates: readonly ASTVerifierNodeGroupContract[],
+		timing_names: readonly string[],
+		request: TypeScriptNodeVerificationRequest,
+		stage_timer: LintStageTimerContract,
+	): void {
+		for (let index = 0; index < candidates.length; index += 1) {
+			const candidate = candidates[index];
+			const timing_name = timing_names[index];
+			if (candidate === undefined || timing_name === undefined) {
+				continue;
+			}
+			const start_time = stage_timer.start_measurement();
+			try {
+				candidate.verify_if_match(request);
+			} finally {
+				stage_timer.finish_measurement(timing_name, start_time);
+			}
+		}
+	}
+
 	/** Responsibilities: _AST verifier initialization_. **/
 	public constructor(source_rules: readonly ASTSourceRuleContract[] = []) {
 		this._verifiers = [];
+		this._timing_names = [];
 		this._source_finalizers = source_rules.filter((rule) => rule.finish_source !== undefined);
 		this._node_dispatcher = new TypeScriptAstNodeObserverRegistry();
 		this._node_verifier = ({ node }, context) => this.verify(node, context);
@@ -38,6 +63,7 @@ export class ASTVerifier implements ASTVerifierContract {
 		const groups = this._verifiers[kind] ?? [];
 		registration.append_to(groups);
 		this._verifiers[kind] = groups;
+		this._timing_names[kind] = groups.map((candidate) => `typescript.ast-rule.${candidate.timing_name()}`);
 	}
 
 	/** Responsibilities: _applicable AST verifier selection_. **/
@@ -66,16 +92,11 @@ export class ASTVerifier implements ASTVerifierContract {
 		const candidates = this._verifiers[node.kind];
 		if (candidates !== undefined) {
 			const request: TypeScriptNodeVerificationRequest = { node, context };
-			for (const candidate of candidates) {
-				context
-					.state()
-					.analysis.stage_timer.measure(`typescript.ast-rule.${candidate.timing_name()}`, () =>
-						candidate.verify_if_match(request),
-					);
-			}
+			const timing_names = this._timing_names[node.kind] ?? [];
+			const stage_timer = context.state().analysis.stage_timer;
+			this.verify_candidates(candidates, timing_names, request, stage_timer);
 		}
 	}
-
 	/** Responsibilities: _timed source-file verifier traversal_. **/
 	public verify_source_file(request: TypeScriptSourceVerificationRequest): void {
 		const { source_root, context, stage_timer } = request;

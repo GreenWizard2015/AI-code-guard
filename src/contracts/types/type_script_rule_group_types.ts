@@ -1,6 +1,6 @@
 import type { TemporalFieldReaderIndexContract } from "src/analysis_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { StaticExpressionOperationsContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract, StaticExpressionOperationsContract } from "src/shared_services_protocols";
 import type { TypeScriptAstTraversalContract } from "src/typescript_runtime_protocols";
 import type {
 	AccessExpression as TypeScriptAccessExpression,
@@ -25,6 +25,7 @@ export type PrivateAccessAnalysisOptions = {
 	readonly source_file: TypeScriptSourceFile;
 	readonly static_expression_operations: StaticExpressionOperationsContract;
 	readonly traversal: TypeScriptAstTraversalContract;
+	readonly stage_timer: LintStageTimerContract;
 };
 
 /** Responsibilities: _private access node collection_, _private access reporting_. **/

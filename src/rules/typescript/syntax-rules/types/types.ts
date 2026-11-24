@@ -1,5 +1,5 @@
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import type { ModulePathResolverContract } from "src/module-resolution/types";
-import type { SourceFileResolver } from "src/source_types";
 import type { RuleContextContract } from "src/types";
 import type ts from "typescript";
 
@@ -9,14 +9,14 @@ export type CallableNamedFieldIndex = (owner: ts.Node) => ReadonlyMap<string, ts
 export type CallableMatchingAliasFields = (fields: ReadonlyMap<string, ts.Node>, names: readonly string[]) => boolean;
 
 export type RestUnionAliasDeclarations = ReadonlyMap<string, ts.TypeAliasDeclaration>;
-export type RestUnionResolverAliasCache = WeakMap<SourceFileResolver, RestUnionAliasDeclarations>;
+export type RestUnionResolverAliasCache = WeakMap<SourceFileResolverContract, RestUnionAliasDeclarations>;
 export type RestUnionSourceAliasCache = WeakMap<ts.SourceFile, RestUnionAliasDeclarations>;
 export type RestUnionSourceModuleCache = WeakMap<ModulePathResolverContract, RestUnionResolverAliasCache>;
 export type RestUnionPreparedAliasCache = WeakMap<ts.SourceFile, RestUnionSourceModuleCache>;
 export type RestUnionSourceAliasesOptions = {
 	source_file: ts.SourceFile;
 	module_path: ModulePathResolverContract;
-	source_resolver: SourceFileResolver;
+	source_resolver: SourceFileResolverContract;
 	alias_cache: RestUnionSourceAliasCache;
 	local_aliases: RestUnionAliasDeclarations;
 };

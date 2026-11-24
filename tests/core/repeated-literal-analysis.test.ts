@@ -3,8 +3,8 @@ import { LintRunConfiguration } from "src/core/lint_run_configuration";
 import { NodeFileIO } from "src/io/node_file_io";
 import { SourceText } from "src/io/source_text";
 import { LintStageTimer } from "src/lint_stage_timer";
-import { LiteralConstantReferenceIndex } from "src/literal_constant_reference_index";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
+import { LiteralConstantReferenceIndex } from "src/rules/literal_constant_reference_index";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("project-wide repeated literal analysis", () => {

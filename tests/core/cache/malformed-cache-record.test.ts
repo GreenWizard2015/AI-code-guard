@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
-import { LintExecutionCacheLookup } from "src/core/cache/lint_execution_cache_lookup";
+import { LintExecutionCacheLookup } from "src/core/cache/lint_execution/lint_execution_cache_lookup";
 import { ViolationCache } from "src/core/cache/violation_cache";
 import { ViolationValue } from "src/model/violation_value";
 import type { ReportViolationOptions } from "src/reporting_protocols";

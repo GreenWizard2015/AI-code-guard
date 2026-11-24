@@ -1,9 +1,9 @@
 import { MAX_CALLABLE_CHARACTERS } from "src/constants";
 import { RULE_IDS } from "src/linting/constants";
 import { EARLY_RETURN, POINTLESS_BOOLEAN_OPERATION, TS_BLOCK } from "src/parser/internals/constants";
-import { TypeScriptArithmeticPrecedence } from "src/rules/typescript/syntax-rules/expressions/type_script_arithmetic_precedence";
-import { TypeScriptBooleanIdentityAnalysis } from "src/rules/typescript/syntax-rules/expressions/type_script_boolean_identity_analysis";
-import { TypeScriptLogicalChain } from "src/rules/typescript/syntax-rules/expressions/type_script_logical_chain";
+import { TypeScriptBooleanIdentityAnalysis } from "src/rules/typescript/syntax-rules/expressions/boolean/type_script_boolean_identity_analysis";
+import { TypeScriptLogicalChain } from "src/rules/typescript/syntax-rules/expressions/boolean/type_script_logical_chain";
+import { TypeScriptArithmeticPrecedence } from "src/rules/typescript/syntax-rules/expressions/precedence/type_script_arithmetic_precedence";
 import { TypeScriptTerminalBranches } from "src/rules/typescript/syntax-rules/expressions/type_script_terminal_branches";
 import type { LintStageTimerContract } from "src/shared_services_protocols";
 import type { RuleContextContract } from "src/types";

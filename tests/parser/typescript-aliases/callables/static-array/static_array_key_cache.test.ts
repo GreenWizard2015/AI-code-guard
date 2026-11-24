@@ -30,7 +30,7 @@ describe("static array declaration index reuse", () => {
 	test("resolves values through an aliased Array factory", () => {
 		const declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		const keys = new TypeScriptStaticArrayKeys(declaration_index);
-		const value = keys.value(query, source_file);
+		const value = keys.value({ expression: query, source: source_file });
 
 		expect(value).toBe("kept");
 	});
@@ -39,7 +39,10 @@ describe("static array declaration index reuse", () => {
 		const first = new TypeScriptStaticArrayKeys(declaration_index);
 		const second = new TypeScriptStaticArrayKeys(declaration_index);
 
-		expect([first.value(query, source_file), second.value(query, source_file)]).toEqual(["kept", "kept"]);
+		expect([
+			first.value({ expression: query, source: source_file }),
+			second.value({ expression: query, source: source_file }),
+		]).toEqual(["kept", "kept"]);
 	});
 
 	test("preserves direct and spread literal element order", () => {
@@ -57,8 +60,8 @@ describe("static array declaration index reuse", () => {
 		]);
 		const declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		const keys = new TypeScriptStaticArrayKeys(declaration_index);
-		const direct_values = keys.expressions(direct, source);
-		const spread_values = keys.expressions(spread, source);
+		const direct_values = keys.expressions({ expression: direct, source });
+		const spread_values = keys.expressions({ expression: spread, source });
 
 		expect({
 			direct: direct_values.map((expression) => ts.isStringLiteral(expression) && expression.text),
@@ -80,8 +83,9 @@ describe("static array declaration index reuse", () => {
 	test("reuses the immutable expression result for the same AST node", () => {
 		const declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		const keys = new TypeScriptStaticArrayKeys(declaration_index);
-		const first = keys.expressions(query, source_file);
-		const second = keys.expressions(query, source_file);
+		const request = { expression: query, source: source_file };
+		const first = keys.expressions(request);
+		const second = keys.expressions(request);
 		const values = first.map((expression) => expression.getText(source_file));
 
 		expect({
@@ -111,7 +115,7 @@ describe("static array declaration index reuse", () => {
 		if (initializer !== undefined) {
 			const declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 			const keys = new TypeScriptStaticArrayKeys(declaration_index);
-			value = keys.value(initializer, forward_file);
+			value = keys.value({ expression: initializer, source: forward_file });
 		}
 
 		expect(value).toBe("forward");

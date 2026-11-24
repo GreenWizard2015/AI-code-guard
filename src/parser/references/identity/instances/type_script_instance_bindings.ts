@@ -22,7 +22,7 @@ export class TypeScriptInstanceBindings {
 			entries = [];
 			scope_bindings.set(name, entries);
 		}
-		entries.push({ declaration, owner });
+		entries.push({ start: declaration.getStart(declaration.getSourceFile()), owner });
 	}
 
 	/** Responsibilities: _lexical binding lookup_. **/

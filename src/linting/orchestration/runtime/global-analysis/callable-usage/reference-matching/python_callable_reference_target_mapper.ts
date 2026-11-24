@@ -2,7 +2,7 @@ import type {
 	PythonCallableReferenceTargetMapperContract,
 	PythonCompositionImportsContract,
 } from "src/contracts/protocols/lint_runtime_protocols";
-import { PythonCompositionImports } from "src/linting/composition/python_composition_imports";
+import { PythonCompositionImports } from "src/linting/composition_analysis/python_composition_imports";
 import { PythonCallableReferenceMapping } from "src/linting/orchestration/runtime/global-analysis/callable-usage/reference-matching/python_callable_reference_mapping";
 import type { AstCallableReference, AstClassNode, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { ImportedSymbol } from "src/model_types";

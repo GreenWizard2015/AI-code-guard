@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { TextFileDiscovery } from "src/core/discovery/text_file_discovery";
-import { LintInputFileSelector } from "src/core/lint_input_file_selector";
+import { LintInputFileSelector } from "src/core/lint-run/lint_input_file_selector";
 import { InMemoryProjectSourceIO } from "src/io/in_memory_project_source_io";
 import { CountingProjectSourceIO } from "tests/io/counting_project_source_io";
 

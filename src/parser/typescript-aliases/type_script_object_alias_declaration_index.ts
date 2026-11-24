@@ -1,4 +1,4 @@
-import { TypeScriptVariableDeclarationScope } from "src/parser/typescript-aliases/type_script_variable_declaration_scope";
+import { TypeScriptVariableDeclarationScope } from "src/parser/typescript-aliases/bindings/type_script_variable_declaration_scope";
 import type {
 	CallableTypeScriptObjectAliasDeclarationAppender,
 	TypeScriptExpressionNormalizerContract,

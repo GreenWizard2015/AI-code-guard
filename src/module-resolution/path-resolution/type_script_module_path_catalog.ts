@@ -1,5 +1,6 @@
 import { dirname, resolve as resolve_path } from "node:path";
 import { extname } from "node:path";
+import type { SourceFileResolverContract } from "src/core/project-source/types";
 import { TypeScriptModuleSource } from "src/module-resolution/path-resolution/type_script_module_source";
 import type {
 	TypeScriptModulePathCatalogContract,
@@ -15,7 +16,7 @@ export class TypeScriptModulePathCatalog implements TypeScriptModulePathCatalogC
 	private readonly _runtime_source_extensions: Map<string, readonly string[]>;
 	private readonly _source_extensions: readonly string[];
 	private readonly _runtime_extensions: ReadonlySet<string>;
-	private readonly _shared_source_files: ReadonlyMap<string, ts.SourceFile>;
+	private readonly _shared_source_files: SourceFileResolverContract;
 	private readonly _filesystem_fallback: boolean;
 	private readonly _loaded_source_files: Map<string, ts.SourceFile>;
 	private readonly _module_sources: Map<string, TypeScriptModuleSourceContract>;
@@ -41,27 +42,10 @@ export class TypeScriptModulePathCatalog implements TypeScriptModulePathCatalogC
 		];
 	}
 
-	/** Responsibilities: _module candidate availability_. **/
-	private candidate_available(candidate: string): boolean {
-		if (this._shared_source_files.has(candidate)) {
-			return true;
-		}
-		const runtime_module = this._runtime_extensions.has(extname(candidate));
-		if (!this._filesystem_fallback && !runtime_module) {
-			return false;
-		}
-		if (runtime_module) {
-			if (this._source_io.source_available(candidate)) {
-				return true;
-			}
-		}
-		return this.source(candidate).available();
-	}
-
 	/** Responsibilities: _module path catalog initialization_. **/
 	public constructor(
 		project_root: string,
-		shared_source_files: ReadonlyMap<string, ts.SourceFile>,
+		shared_source_files: SourceFileResolverContract,
 		filesystem_fallback: boolean,
 		resolution: TypeScriptModuleResolutionContract,
 		source_io: ProjectSourceIOContract,
@@ -103,7 +87,8 @@ export class TypeScriptModulePathCatalog implements TypeScriptModulePathCatalogC
 	/** Responsibilities: _module candidate resolution_. **/
 	public symbol(base: string): string {
 		for (const candidate of this.candidates(base)) {
-			if (this.candidate_available(candidate)) {
+			const source = this.source(candidate);
+			if (source.available()) {
 				return candidate;
 			}
 		}

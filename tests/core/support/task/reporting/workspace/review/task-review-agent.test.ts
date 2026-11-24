@@ -1,12 +1,12 @@
 import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import { REVIEW_STAGES } from "src/constants";
-import "src/core/lint_project_context_creator";
+import "src/core/project-context/lint_project_context_creator";
 import { TaskReview } from "src/core/support/task/reporting/workspace/review/task_review";
 import { TaskReviewAgent } from "src/core/support/task/reporting/workspace/review/task_review_agent";
 import { REVIEW_FAILURE_FILE } from "src/core/support/task/review-agent/constants";
+import { ReviewAgentHooks } from "src/core/support/task/review-agent/hooks/review_agent_hooks";
 import { ReviewAgentFiles } from "src/core/support/task/review-agent/review_agent_files";
-import { ReviewAgentHooks } from "src/core/support/task/review-agent/review_agent_hooks";
 import { RecordingProcess } from "tests/bridge/ts/core/recording-review-process";
 import { StubReviewHooks } from "tests/bridge/ts/core/review-agent/stub-review-hooks";
 import { StubTaskReviewRunner } from "tests/bridge/ts/core/stub_task_review_runner";

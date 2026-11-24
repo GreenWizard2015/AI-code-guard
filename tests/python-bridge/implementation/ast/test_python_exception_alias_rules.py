@@ -1,3 +1,4 @@
+import ast
 import unittest
 
 from constants import BUILTINS_DICTIONARY_SOURCE
@@ -17,7 +18,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "    alias = cause\n"
             "    raise RuntimeError('invalid input') from alias\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "error-context-loss"],
             ["error-context-loss"],
@@ -33,7 +34,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "    cause = error\n"
             "    raise RuntimeError('invalid input') from cause\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "error-context-loss"],
             [],
@@ -42,7 +43,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
     def test_collects_direct_converted_broad_exception(self) -> None:
         """Responsibilities: _exception alias_."""
         source = "try:\n    run()\nexcept tuple([Exception]):\n    pass\n"
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertIn("broad-except", [issue["kind"] for issue in collector.coding_issues()])
 
     def test_collects_dynamic_type_in_with_context(self) -> None:
@@ -52,7 +53,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             'with type("Session", (nullcontext,), {})("value") as session:\n'
             "    str(session)\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertIn("dynamic-type", [issue["kind"] for issue in collector.coding_issues()])
 
     def test_collects_dynamic_type_in_every_with_context(self) -> None:
@@ -62,7 +63,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             'with nullcontext(), type("Session", (), {})("value"):\n'
             "    pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "dynamic-type"],
             ["dynamic-type"],
@@ -72,7 +73,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
         """Responsibilities: _class base dynamic type_."""
         source = 'class Record(type("RecordBase", (), {})):\n'
         source += "    pass\n"
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertIn(
             "dynamic-type",
             [issue["kind"] for issue in collector.coding_issues()],
@@ -81,7 +82,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
     def test_collects_broad_except_star(self) -> None:
         """Responsibilities: _broad except-star_."""
         source = "try:\n    raise Exception()\nexcept* Exception:\n    pass\n"
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "broad-except"],
             ["broad-except"],
@@ -103,7 +104,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "except Exception as unused:\n"
             "    pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         issues = [issue for issue in collector.coding_issues() if issue["kind"] == "broad-except"]
 
         self.assertEqual([issue["line"] for issue in issues], [10])
@@ -117,7 +118,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "except (*exceptions,):\n"
             "    pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertTrue(any(issue["kind"] == "python-multi-except" for issue in collector.coding_issues()))
 
     def test_list_exception_handlers(self) -> None:
@@ -133,7 +134,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "except (*errors,):\n"
             "    pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "python-multi-except"],
             ["python-multi-except", "python-multi-except"],
@@ -142,7 +143,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
     def test_collects_sliced_exception_tuple_alias(self) -> None:
         """Responsibilities: _sliced exception sequence coverage_."""
         source = "errors = (ValueError, TypeError)\ntry:\n    run()\nexcept errors[:]:\n    pass\n"
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         self.assertIn(
             "python-multi-except",
             [issue["kind"] for issue in collector.coding_issues()],
@@ -170,7 +171,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "except builtins_alias.Exception:\n"
             "    value = 4\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         kinds = {issue["kind"] for issue in collector.coding_issues()}
         self.assertIn("broad-except", kinds)
 
@@ -187,7 +188,7 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "    except alias:\n"
             "        pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
 
         self.assertEqual(
             [issue["kind"] for issue in collector.coding_issues() if issue["kind"] == "broad-except"],
@@ -208,13 +209,13 @@ class PythonExceptionAliasRulesTest(unittest.TestCase):
             "except exception_type:\n"
             "    pass\n"
         )
-        collector = PythonAstTree(source)
+        collector = PythonAstTree(source, ast.parse(source))
         broad_issues = [issue for issue in collector.coding_issues() if issue["kind"] == "broad-except"]
         self.assertEqual(len(broad_issues), 2)
 
     def test_collects_builtins_dictionary_aliases(self) -> None:
         """Responsibilities: _builtins dictionary alias coverage_."""
-        collector = PythonAstTree(BUILTINS_DICTIONARY_SOURCE)
+        collector = PythonAstTree(BUILTINS_DICTIONARY_SOURCE, ast.parse(BUILTINS_DICTIONARY_SOURCE))
         kinds = [issue["kind"] for issue in collector.coding_issues()]
         self.assertEqual(
             {

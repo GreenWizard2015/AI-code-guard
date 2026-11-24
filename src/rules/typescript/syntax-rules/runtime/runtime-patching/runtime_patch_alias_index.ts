@@ -72,25 +72,60 @@ export class RuntimePatchAliasIndex implements RuntimePatchAliasIndexContract {
 		return false;
 	}
 
-	/** Responsibilities: _callable alias propagation_. **/
-	private propagate_aliases(names: Set<string>): void {
-		let changed = true;
-		while (changed) {
-			changed = false;
-			for (const declaration of this._declarations) {
-				if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+	/** Responsibilities: _alias target extraction_. **/
+	private alias_target(declaration: ts.VariableDeclaration): string {
+		if (!ts.isIdentifier(declaration.name)) {
+			return "";
+		}
+		const initializer = declaration.initializer;
+		if (initializer === undefined || !ts.isIdentifier(initializer)) {
+			return "";
+		}
+		return initializer.text;
+	}
+
+	/** Responsibilities: _reverse callable alias edges_. **/
+	private aliases_by_target(): Map<string, string[]> {
+		const aliases_by_target = new Map<string, string[]>();
+		for (const declaration of this._declarations) {
+			const target = this.alias_target(declaration);
+			if (target.length === 0 || !ts.isIdentifier(declaration.name)) {
+				continue;
+			}
+			const aliases = aliases_by_target.get(target) ?? [];
+			aliases.push(declaration.name.text);
+			aliases_by_target.set(target, aliases);
+		}
+		return aliases_by_target;
+	}
+
+	/** Responsibilities: _transitive callable alias closure_. **/
+	private append_reachable_aliases(
+		names: Set<string>,
+		aliases_by_target: ReadonlyMap<string, readonly string[]>,
+	): void {
+		const pending = [...names];
+		while (pending.length > 0) {
+			const target = pending.pop();
+			if (target === undefined) {
+				continue;
+			}
+			for (const alias of aliases_by_target.get(target) ?? []) {
+				if (names.has(alias)) {
 					continue;
 				}
-				if (!ts.isIdentifier(declaration.initializer)) {
-					continue;
-				}
-				if (!names.has(declaration.initializer.text) || names.has(declaration.name.text)) {
-					continue;
-				}
-				names.add(declaration.name.text);
-				changed = true;
+				names.add(alias);
+				pending.push(alias);
 			}
 		}
+	}
+
+	/** Responsibilities: _callable alias propagation_. **/
+	private propagate_aliases(names: Set<string>): void {
+		if (names.size === 0) {
+			return;
+		}
+		this.append_reachable_aliases(names, this.aliases_by_target());
 	}
 
 	/** Responsibilities: _callable declaration collection_. **/
