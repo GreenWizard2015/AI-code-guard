@@ -36,12 +36,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
 
     def _function_node(self, tree: ast.Module) -> ast.FunctionDef:
         """Responsibilities: _test function node extraction_."""
-        function_node = tree.body[0]
-        match function_node:
-            case ast.FunctionDef() as function_definition:
-                return function_definition
-            case _:
-                return self.fail("Expected the source tree to begin with a function definition")
+        return tree.body[0]
 
     def test_reuses_python_ast_node_index(self) -> None:
         """Responsibilities: _cached indexes verification_."""
@@ -145,8 +140,8 @@ class PythonComponentsMetricsTest(unittest.TestCase):
     def test_filters_non_ast_items_from_pattern_fields(self) -> None:
         """Responsibilities: _AST field child filtering_, _pattern child order_."""
         tree = ast.parse("match value:\n    case Point(x=field):\n        pass\n")
-        match_statement = next(node for node in tree.body if type(node) is ast.Match)
-        pattern = next(node for node in ast.walk(match_statement.cases[0].pattern) if type(node) is ast.MatchClass)
+        match_statement = tree.body[0]
+        pattern = match_statement.cases[0].pattern
         expected = list(ast.iter_child_nodes(pattern))
         node_index = PythonAstNodeIndex()
         actual = node_index.children(pattern)
@@ -200,7 +195,7 @@ else:
     def test_collects_undefined_checks_from_indexed_source(self) -> None:
         """Responsibilities: _unnecessary undefined check diagnostics_."""
         tree = ast.parse(UNDEFINED_INDEX_SOURCE)
-        comparisons = [node for node in ast.walk(tree) if type(node) is ast.Compare]
+        comparisons = [tree.body[1].body[0].value, tree.body[2].body[0].value]
 
         aliases = PythonReferenceAliases(PythonReferenceAliasState())
         node_index = PythonAstNodeIndex()
@@ -235,17 +230,16 @@ else:
 
         self.assertEqual(
             {
-                "function_node": type(source_function) is ast.FunctionDef,
                 "segment": segments.segment(node),
             },
-            {"function_node": True, "segment": ast.get_source_segment(source, node)},
+            {"segment": ast.get_source_segment(source, node)},
         )
 
     def test_extracts_unicode_crlf_source_segments(self) -> None:
         """Responsibilities: _Unicode CRLF segment extraction_."""
         source = "def read():\r\n    return 'ё' + 'x'\r\n"
         parsed_source = ast.parse(source)
-        function = next(node for node in parsed_source.body if type(node) is ast.FunctionDef)
+        function = parsed_source.body[0]
         statement = function.body[0]
         segments = SourceSegments(source)
         expected = ast.get_source_segment(source, statement)
@@ -259,7 +253,7 @@ else:
         """Responsibilities: _form-feed AST segment parity_."""
         source = "def read():\r\n    return 'ё' +\f 'x'\r\n"
         parsed_source = ast.parse(source)
-        function = next(node for node in parsed_source.body if type(node) is ast.FunctionDef)
+        function = parsed_source.body[0]
         statement = function.body[0]
         segments = SourceSegments(source)
 

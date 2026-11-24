@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { throws } from "node:assert/strict";
 import { describe, expect, test } from "@jest/globals";
 import type { ProcessLivenessContract } from "src/analysis_protocols";
 import "src/core/project-context/lint_project_context_creator";
@@ -30,11 +31,18 @@ describe("task publication claim recovery", () => {
 			process_liveness,
 		);
 		io.set_interleave(() => second.claim());
-		expect(() => first.claim()).toThrow("Task publication recovery claim failed");
+		throws(() => first.claim(), "Task publication recovery claim failed");
 
+		const owner_lines = io.file(join(claim_path, "owner")).file_text().split("\n");
 		expect({
-			owner_lines: io.file(join(claim_path, "owner")).file_text().split("\n"),
-		}).toEqual({ owner_lines: [String(process.pid), "second", expect.any(String), expect.any(String), ""] });
+			owner_prefix: owner_lines.slice(0, 2),
+			owner_line_count: owner_lines.length,
+			trailing_separator: owner_lines.at(-1),
+		}).toEqual({
+			owner_prefix: [String(process.pid), "second"],
+			owner_line_count: 5,
+			trailing_separator: "",
+		});
 	});
 
 	test("does not remove a replacement recovery claim after a stale-owner check", () => {

@@ -31,7 +31,7 @@ describe("ast verifier registry file class dispatch", () => {
 			import_fan_out: rule_ids.has("import-fan-out"),
 			reexports: rule_ids.has("reexports"),
 			singleton: rule_ids.has("singleton"),
-			function_placement: rule_ids.has("function-placement"),
+			function_placement: rule_ids.has("free-function-outside-entry-point"),
 			responsibilities: rule_ids.has("responsibilities"),
 			function_file_type: functions_scenario.rule_ids().includes("functions-file-type-declaration"),
 		}).toEqual({

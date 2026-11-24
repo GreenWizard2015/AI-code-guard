@@ -60,7 +60,7 @@ describe("transformation diagnostic suppression", () => {
 	test.each(["top-category", "all"] as const)("%s applies its placement visibility policy", (policy) => {
 		const selector = new TaskFileSelector("/project");
 		const placement_rule = new DiagnosticRule("module-placement");
-		const function_placement_rule = new DiagnosticRule("function-placement");
+		const function_placement_rule = new DiagnosticRule("free-function-outside-entry-point");
 		const size_rule = new DiagnosticRule("file-max-size");
 		const naming_rule = new DiagnosticRule("naming");
 		const placement = placement_rule.violation("src/module.ts", 1, {
@@ -89,7 +89,7 @@ describe("transformation diagnostic suppression", () => {
 			violations: selected.violations.map((violation) => violation.rule_id()),
 		}).toEqual({
 			files: ["/project/src/module.ts"],
-			violations: ["module-placement", "function-placement"],
+			violations: ["module-placement", "free-function-outside-entry-point"],
 		});
 	});
 

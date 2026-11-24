@@ -24,6 +24,7 @@ PythonNameSetsByCallable: TypeAlias = dict[ast.AST, PythonNameSet]
 PythonCallableOwners: TypeAlias = dict[ast.AST, ast.AST]
 PythonBindingScopesByNode: TypeAlias = dict[ast.AST, str]
 PythonLexicalScopeChain: TypeAlias = tuple[str, ...]
+PythonNameAccessKey: TypeAlias = tuple[str, str]
 PythonAstNodeTypeSet: TypeAlias = set[type[ast.AST]]
 PythonASTLocatedNode: TypeAlias = (
     ast.expr | ast.stmt | ast.arg | ast.keyword | ast.alias | ast.excepthandler | ast.pattern

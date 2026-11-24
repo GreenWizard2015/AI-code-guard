@@ -89,8 +89,12 @@ describe("Python AST batch response validation", () => {
 		const retry_batch = parser.begin_batch_ast(options);
 		const retry_results = parser.complete_batch_ast(retry_batch);
 
-		expect({ abandoned_batch, retry_batch: retry_batch.length > 0, retry_results: retry_results.length }).toEqual({
-			abandoned_batch: expect.any(String),
+		expect({
+			abandoned_batch_present: abandoned_batch.length > 0,
+			retry_batch: retry_batch.length > 0,
+			retry_results: retry_results.length,
+		}).toEqual({
+			abandoned_batch_present: true,
 			retry_batch: true,
 			retry_results: 1,
 		});

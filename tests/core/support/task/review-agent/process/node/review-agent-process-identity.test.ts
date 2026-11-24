@@ -35,13 +35,14 @@ describe("review agent process identity", () => {
 		);
 		const result = agent.run_async({ command: "codex", arguments_list: [], root: "/virtual/review-process-token" });
 		const spawned_token = fixture.spawned_token();
+		const spawned_token_is_uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(spawned_token);
 		const persisted_token = fixture.persisted_token();
 		fixture.seed_descendant_token(spawned_token);
 		fixture.finish_child();
 		const completed = await result;
 
-		expect({ spawned_token, persisted_token, exit_code: completed.exit_code }).toEqual({
-			spawned_token: expect.any(String),
+		expect({ spawned_token_is_uuid, persisted_token, exit_code: completed.exit_code }).toEqual({
+			spawned_token_is_uuid: true,
 			persisted_token: spawned_token,
 			exit_code: 0,
 		});

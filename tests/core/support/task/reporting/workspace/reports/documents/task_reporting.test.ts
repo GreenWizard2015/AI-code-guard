@@ -37,7 +37,7 @@ describe("coding-lint task reporting totals", () => {
 		});
 		const result = scenario.documents(fixture, output);
 		expect({
-			output: typeof result.output === "string",
+			output_present: result.output.length > 0,
 			file: result.issues.includes("## "),
 			parse_report: result.report.includes("| `parse-error[typescript]` | 2 | 1 |"),
 			parse_problem: result.issues.includes("Problem: parse-error message"),
@@ -47,7 +47,7 @@ describe("coding-lint task reporting totals", () => {
 			class_report: result.report.includes("| `class-size[typescript]` | 1 | 1 |"),
 			unused_report: result.report.includes("| `unused-file[typescript]` | 1 | 1 |"),
 		}).toEqual({
-			output: true,
+			output_present: true,
 			file: true,
 			parse_report: true,
 			parse_problem: true,

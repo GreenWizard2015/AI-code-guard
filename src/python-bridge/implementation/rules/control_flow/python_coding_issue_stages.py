@@ -14,62 +14,13 @@ from implementation.rules.constants import (
     PYTHON_TEST_SUBTEST_RULE,
     SPECIAL_NAMES,
 )
+from implementation.rules.control_flow.python_test_issue_stages import PythonTestIssueStages
+from implementation.rules.control_flow.python_type_check_issue_stage import PythonTypeCheckIssueStage
 from implementation.types import JsonObject
 
 
 class PythonCodingIssueStages:
-    """Responsibilities: _shape property analysis_, _exception subtest analysis_."""
-
-    def _assertion_statement(self, statement: ast.stmt) -> bool:
-        """Responsibilities: _test assertion statement_."""
-        if type(statement) is ast.Assert:
-            return True
-        if type(statement) is not ast.Expr or type(statement.value) is not ast.Call:
-            return False
-        function = statement.value.func
-        if type(function) is not ast.Attribute:
-            return False
-        return function.attr.startswith("assert")
-
-    def _setup_key(self, statement: ast.stmt) -> str:
-        """Responsibilities: _runtime-equivalent assignment normalization_."""
-        targets: list[ast.expr] = []
-        value: ast.expr | None = None
-        if type(statement) is ast.Assign:
-            targets = statement.targets
-            value = statement.value
-        if type(statement) is ast.AnnAssign:
-            targets = [statement.target]
-            value = statement.value
-        if not targets or value is None:
-            return ast.dump(statement, include_attributes=False)
-        target_keys = tuple(ast.dump(target, include_attributes=False) for target in targets)
-        value_key = ast.dump(value, include_attributes=False)
-        return repr((target_keys, value_key))
-
-    def _duplicate_setup_pair(
-        self,
-        previous: ast.stmt,
-        current: ast.stmt,
-    ) -> list[JsonObject]:
-        """Responsibilities: _duplicate setup pair_."""
-        if self._setup_key(previous) != self._setup_key(current):
-            return []
-        return [{"line": current.lineno - 1, "kind": "test-duplicate-setup"}]
-
-    def _duplicate_setup_body(self, statements: list[ast.stmt]) -> list[JsonObject]:
-        """Responsibilities: _duplicate setup body_."""
-        previous: ast.stmt | None = None
-        for statement in statements:
-            if self._assertion_statement(statement):
-                previous = None
-                continue
-            if previous is not None:
-                issue = self._duplicate_setup_pair(previous, statement)
-                if issue:
-                    return issue
-            previous = statement
-        return []
+    """Responsibilities: _shape and property analysis_, _test subtest analysis_, _exception analysis_."""
 
     def _shape_name(self, shape_expression: ast.expr) -> str:
         """Responsibilities: _special result shape name_."""
@@ -96,6 +47,24 @@ class PythonCodingIssueStages:
             return True
         return False
 
+    def _function_property_issues(
+        self,
+        name: str,
+        body: list[ast.stmt],
+        decorators: list[ast.expr],
+    ) -> list[JsonObject]:
+        """Responsibilities: _callable property rules_, _test body diagnostics_."""
+        issues: list[JsonObject] = []
+        if name.startswith("test_"):
+            issues = self._test_stages.test_body_issues(body)
+        issues.extend(self._type_check_stages.type_check_issues(body))
+        if not self._implemented_body(body):
+            return issues
+        for decorator in decorators:
+            if self._python_decorator_rules.property_decorator(decorator):
+                issues.append({"line": decorator.lineno - 1, "kind": PYTHON_PROPERTY_RULE})
+        return issues
+
     def __init__(
         self,
         container_keys: PythonContainerKeysContract,
@@ -106,6 +75,8 @@ class PythonCodingIssueStages:
         self._container_keys: PythonContainerKeysContract = container_keys
         self._python_decorator_rules: PythonPropertyDecoratorContract = python_decorator_rules
         self._subtest_aliases: PythonSubtestAliasesContract = subtest_aliases
+        self._test_stages: PythonTestIssueStages = PythonTestIssueStages()
+        self._type_check_stages: PythonTypeCheckIssueStage = PythonTypeCheckIssueStage()
 
     def shape_issues(self, shape_expression: ast.AST) -> list[JsonObject]:
         """Responsibilities: _multiple-result-shape issue collection_."""
@@ -121,20 +92,11 @@ class PythonCodingIssueStages:
         """Responsibilities: _property issue collection_."""
         match property_declaration:
             case ast.FunctionDef(name=name, body=body, decorator_list=decorators):
-                pass
+                return self._function_property_issues(name, body, decorators)
             case ast.AsyncFunctionDef(name=name, body=body, decorator_list=decorators):
-                pass
+                return self._function_property_issues(name, body, decorators)
             case _:
                 return []
-        issues: list[JsonObject] = []
-        if name.startswith("test_"):
-            issues = self._duplicate_setup_body(body)
-        if not self._implemented_body(body):
-            return issues
-        for decorator in decorators:
-            if self._python_decorator_rules.property_decorator(decorator):
-                issues.append({"line": decorator.lineno - 1, "kind": PYTHON_PROPERTY_RULE})
-        return issues
 
     def exception_issues(self, raise_statement: ast.AST) -> list[JsonObject]:
         """Responsibilities: _exception-raising issue collection_."""

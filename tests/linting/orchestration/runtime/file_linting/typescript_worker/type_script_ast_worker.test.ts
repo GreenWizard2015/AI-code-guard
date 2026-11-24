@@ -24,24 +24,22 @@ describe("TypeScript AST worker", () => {
 
 		const entry = new TypeScriptWorkerEntry(input);
 		entry.run();
-		const result = receiveMessageOnPort(channel.port2);
-		let output: unknown;
-		if (result !== undefined) {
-			output = result.message;
-		}
+		const received = receiveMessageOnPort(channel.port2);
 		channel.port1.close();
 		channel.port2.close();
-		expect(output).toMatchObject({
-			ok: true,
-			parsed_files: 2,
-			violations: [],
-			timers: [
-				{ name: "typescript.worker.shard./virtual/project/first.ts.queue", duration_ms: expect.any(Number) },
-				{ name: "typescript.worker.shard./virtual/project/first.ts.parse", duration_ms: expect.any(Number) },
-				{ name: "typescript.worker.shard./virtual/project/first.ts.completion", duration_ms: expect.any(Number) },
-			],
-			error: "",
-			stack: "",
+		expect(received).toMatchObject({
+			message: {
+				ok: true,
+				parsed_files: 2,
+				violations: [],
+				timers: [
+					{ name: "typescript.worker.shard./virtual/project/first.ts.queue" },
+					{ name: "typescript.worker.shard./virtual/project/first.ts.parse" },
+					{ name: "typescript.worker.shard./virtual/project/first.ts.completion" },
+				],
+				error: "",
+				stack: "",
+			},
 		});
 	});
 
@@ -57,24 +55,22 @@ describe("TypeScript AST worker", () => {
 
 		const entry = new TypeScriptWorkerEntry(input);
 		entry.run();
-		const result = receiveMessageOnPort(channel.port2);
-		let output: unknown;
-		if (result !== undefined) {
-			output = result.message;
-		}
+		const received = receiveMessageOnPort(channel.port2);
 		channel.port1.close();
 		channel.port2.close();
-		expect(output).toMatchObject({
-			ok: true,
-			parsed_files: 0,
-			violations: [],
-			timers: [
-				{ name: "typescript.worker.shard.empty.queue", duration_ms: expect.any(Number) },
-				{ name: "typescript.worker.shard.empty.parse", duration_ms: expect.any(Number) },
-				{ name: "typescript.worker.shard.empty.completion", duration_ms: expect.any(Number) },
-			],
-			error: "",
-			stack: "",
+		expect(received).toMatchObject({
+			message: {
+				ok: true,
+				parsed_files: 0,
+				violations: [],
+				timers: [
+					{ name: "typescript.worker.shard.empty.queue" },
+					{ name: "typescript.worker.shard.empty.parse" },
+					{ name: "typescript.worker.shard.empty.completion" },
+				],
+				error: "",
+				stack: "",
+			},
 		});
 	});
 });

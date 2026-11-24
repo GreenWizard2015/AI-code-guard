@@ -1,6 +1,7 @@
 import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { RULE_IDS } from "src/linting/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { DiagnosticRuleContract } from "src/model/protocols";
 import type { RuleContextContract } from "src/types";
 import type {
 	TypeScriptNodeVerificationRequest,
@@ -10,7 +11,7 @@ import ts from "typescript";
 
 /** Responsibilities: _namespace file boundaries_, _namespace declaration placement_. **/
 export class TypeScriptFileNamespaceRules implements ASTSourceRuleContract {
-	private readonly _namespace_rule: DiagnosticRule;
+	private readonly _namespace_rule: DiagnosticRuleContract;
 	private readonly _namespaces: WeakMap<RuleContextContract, ts.ModuleDeclaration[]>;
 
 	/** Responsibilities: _namespace declaration accumulation_. **/

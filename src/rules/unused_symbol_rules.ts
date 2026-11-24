@@ -29,7 +29,9 @@ export class UnusedSymbolRules {
 		if (this._test_path_syntax.classify(source.relative_path).has(TestPathKind.TestFile)) {
 			return false;
 		}
-		return !this._scanner.project_source_entry().entry(source.absolute_path);
+		const source_entry = this._scanner.project_source_entry();
+		const classification = source_entry.classification(source_entry.project_path(source.absolute_path));
+		return !classification.entry;
 	}
 
 	/** Responsibilities: _unused symbol violation collection_. **/

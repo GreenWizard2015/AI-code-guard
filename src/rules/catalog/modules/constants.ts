@@ -123,15 +123,15 @@ export const MODULES_RULE_DATA = {
 		hint: "split the file by ownership into focused modules. Do not: hide file size behind wrappers or generated-looking padding.",
 		priority: 3,
 	},
-	"function-placement": {
-		message: "module-level functions must be declared in the project-root functions file",
-		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. A cli.{ext} module may contain one entry-point function; keep all other behavior in domain classes. CLI startup wrappers may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
+	"free-function-outside-entry-point": {
+		message: "module-level free functions must be moved into a class or recognized entry point",
+		hint: "Move the operation and its state into a focused domain class. A file recognized as an entry point by the project scanner may contain one free function; keep all other behavior in domain classes.",
 		priority: 7,
 		task_report_scope: "file-placement",
 	},
-	"cli-file-function-count": {
-		message: "cli file contains more than one free function",
-		hint: "Keep exactly one free entry-point function in cli.{ext}; move every other operation into focused domain classes. Do not: add multiple CLI entry points to one module.",
+	"entry-point-function-count": {
+		message: "entry-point file contains more than one free function",
+		hint: "Keep at most one free function in a source file recognized as an entry point; move every other operation into focused domain classes. Entry-point status comes from an executable marker or configured entry-file path, not the filename.",
 		priority: 5,
 	},
 	"functions-file-domain-class": {

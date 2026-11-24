@@ -137,13 +137,7 @@ def exercise(self):
         container_aliases = container_assembly.container_aliases()
         container_aliases.state().configure_scope_tree(tree)
         function_node = tree.body[0]
-        if type(function_node) is not ast.FunctionDef:
-            self.fail("expected a function declaration")
-        assertion_call = next(
-            node
-            for node in nodes
-            if type(node) is ast.Call and type(node.func) is ast.Subscript and node.func.lineno == 3
-        )
+        assertion_call = function_node.body[1].value
         aliases = PythonTestAssertionAliases(
             PythonTestAssertionAliasOptions(
                 function_node,

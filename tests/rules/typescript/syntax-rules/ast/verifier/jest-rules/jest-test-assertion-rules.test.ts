@@ -7,6 +7,48 @@ import { TestModuleResolver } from "tests/rules/typescript/syntax-rules/test-mod
 import ts from "typescript";
 
 describe("AST-detectable implementation hacks", () => {
+	test("reports runtime type probes and Jest type matchers while allowing static type queries", () => {
+		const source_file = ts.createSourceFile(
+			"tests/runtime-type-probes.test.ts",
+			[
+				"describe('runtime type probes', () => {",
+				"  test('checks a value', () => {",
+				"    const value = service.value();",
+				"    expect(value).toBe('ready');",
+				"    expect(typeof value).toBe('string');",
+				"  });",
+				"  test('checks construction', () => {",
+				"    const value = service.value();",
+				"    expect(value.status).toBe('ready');",
+				"    expect(value).toBeInstanceOf(Value);",
+				"    expect(value.constructor === Value).toBe(true);",
+				"  });",
+				"  test('checks a matcher', () => {",
+				"    const constructor: typeof Value = Value;",
+				"    const value = service.value();",
+				"    expect(value.status).toBe('ready');",
+				"    expect(value).toEqual(expect.any(Value));",
+				"  });",
+				"});",
+			].join("\n"),
+			ts.ScriptTarget.Latest,
+			true,
+			ts.ScriptKind.TS,
+		);
+		const violations: ViolationContract[] = [];
+		const rules = new JestTestRules(
+			source_file.fileName,
+			source_file,
+			new JestBindingIndex(source_file),
+			new LintStageTimer(),
+		);
+		rules.append_violations(violations, new TestModuleResolver());
+
+		expect(
+			violations.filter((violation) => violation.rule_id() === "test-type-check").map((violation) => violation.line()),
+		).toEqual([5, 10, 11, 17]);
+	});
+
 	test("rejects Jest tests that only check runtime types", () => {
 		const source_file = ts.createSourceFile(
 			"tests/type-only.test.ts",

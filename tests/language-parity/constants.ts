@@ -220,7 +220,7 @@ export const PROJECT_CASES: ProjectCase[] = [
 		python: new Map(Object.entries({ "sample.py": "from .reader import read", "reader.py": "read = 1" })),
 	},
 	{
-		rule_id: "function-placement",
+		rule_id: "free-function-outside-entry-point",
 		typescript: new Map(Object.entries({ "sample.ts": "function read() { return 1; }" })),
 		python: new Map(Object.entries({ "sample.py": "def read():\n    return 1" })),
 	},

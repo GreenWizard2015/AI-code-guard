@@ -10,20 +10,39 @@ SYS_PATH_MUTATION_NODE_TYPES = (
 )
 
 PYTHON_ISINSTANCE_FUNCTION = "isinstance"
+PYTHON_ISSUBCLASS_FUNCTION = "issubclass"
+PYTHON_TYPE_FUNCTION = "type"
+PYTHON_ASSERT_TYPE_FUNCTION = "assert_type"
+PYTHON_REVEAL_TYPE_FUNCTION = "reveal_type"
+PYTHON_ISCLASS_METHOD = "isclass"
 PROTOCOL_DOWNCAST_TIMING = "rule.protocol-downcast-to-implementation"
 PROTOCOL_DOWNCAST_PREPARE_TIMING = f"{PROTOCOL_DOWNCAST_TIMING}.prepare"
 PYTHON_KNOWN_PREDICATE_NAMES: frozenset[str] = frozenset(
     {
-        "type",
+        PYTHON_TYPE_FUNCTION,
         "len",
         "bool",
         PYTHON_ISINSTANCE_FUNCTION,
-        "issubclass",
+        PYTHON_ISSUBCLASS_FUNCTION,
         "all",
         "any",
     },
 )
 PYTHON_CALLABLE_FUNCTION = "callable"
+PYTHON_TEST_TYPE_CHECK_FUNCTIONS: frozenset[str] = frozenset(
+    {
+        PYTHON_ISINSTANCE_FUNCTION,
+        PYTHON_ISSUBCLASS_FUNCTION,
+        PYTHON_CALLABLE_FUNCTION,
+        PYTHON_ASSERT_TYPE_FUNCTION,
+        PYTHON_REVEAL_TYPE_FUNCTION,
+        PYTHON_ISCLASS_METHOD,
+        "assertIsInstance",
+        "assertNotIsInstance",
+        "assertIsSubclass",
+        "assertNotIsSubclass",
+    },
+)
 CALLABLE_FEATURE_DETECTION_RULE = "callable-feature-detection"
 SYS_PATH_INSTANCE_OWNER = "instance"
 PYTHON_ATTRIBUTE_REFLECTION_CALLS: frozenset[str] = frozenset({"getattr", "setattr"})
@@ -227,6 +246,8 @@ PYTHON_MULTIPLE_RESULT_SHAPES_RULE = "multiple-result-shapes"
 PYTHON_EXCEPTION_RAISING_RULE = "exception-raising"
 PYTHON_BROAD_EXCEPT_RULE = "broad-except"
 PYTHON_TEST_SUBTEST_RULE = "python-test-subtest"
+PYTHON_TEST_TYPE_CHECK_RULE = "test-type-check"
+PYTHON_TEST_ASSERTION_PREFIX = "assert"
 PYTHON_UNNECESSARY_UNDEFINED_CHECK_RULE = "unnecessary-undefined-check"
 PYTHON_FIELD_READ_EFFECT = "read"
 PYTHON_FIELD_WRITE_EFFECT = "write"

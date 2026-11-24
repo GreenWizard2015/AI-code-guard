@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { beforeAll, describe, expect, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import { AgentPackagePlanner } from "src/core/support/task/reporting/workspace/task_selection/planning/agent_package_planner";
+
 import { AgentPackagePlannerFindingFactory } from "tests/core/support/task/reporting/workspace/task_selection/agent_package_planner_finding_factory";
 
 describe("agent package planner with a large linked scope", () => {
@@ -9,7 +10,8 @@ describe("agent package planner with a large linked scope", () => {
 	let child_output = "";
 	const finding_factory = new AgentPackagePlannerFindingFactory();
 
-	beforeAll(() => {
+	/** Responsibilities: _planner child execution_. **/
+	const run_child = (): void => {
 		const child_source = [
 			'import { AgentPackagePlanner } from "src/core/support/task/reporting/workspace/task_selection/planning/agent_package_planner";',
 			'import { ViolationValue } from "src/model/violation_value";',
@@ -34,9 +36,10 @@ describe("agent package planner with a large linked scope", () => {
 			child_error = child_result.error.message;
 		}
 		child_output = child_result.stdout;
-	});
+	};
 
-	test("finishes within the deadline and preserves the complete linked assignment", () => {
+	test("[local-process] finishes within the deadline and preserves the complete linked assignment", () => {
+		run_child();
 		const report = JSON.parse(child_output);
 		const planner = new AgentPackagePlanner("/project");
 		const ordinary_plan = planner.plan(finding_factory.repeated("src/smoke.ts", 1, 8), [], 1, 10);

@@ -12,7 +12,12 @@ import {
 } from "test-runner/constants";
 import { QualityCheckProcess } from "test-runner/quality_check_process";
 import { TestRunnerArguments } from "test-runner/test_runner_arguments";
-import type { CommandRunnerContract, TestRunnerOutput, TestRunnerRequest } from "test-runner/types";
+import type {
+	CommandRunnerContract,
+	TestExecutionRequest,
+	TestRunnerOutput,
+	TestRunnerRequest,
+} from "test-runner/types";
 
 /** Responsibilities: _quality check execution_, _test environment preparation_. **/
 export class TestExecution {
@@ -71,32 +76,6 @@ Examples:
 `;
 	}
 
-	/** Responsibilities: _print runner status_. **/
-	private print_start(headless: boolean): void {
-		this._output.stdout.write(`🖥  Mode: ${this.effective_headless(headless) ? "Headless" : "UI"}\n`);
-		this._output.stdout.write("\n");
-		this._output.stdout.write("📦 Preparing test dependencies...\n");
-	}
-
-	/** Responsibilities: _test workflow environment_, _test command execution_. **/
-	private execute_test_workflow(headless_mode: boolean, test_arguments: readonly string[]): number {
-		const environment = { ...process.env, CI: this.effective_headless(headless_mode) ? "true" : "false" };
-		this.print_start(headless_mode);
-		return this.run_tests(test_arguments, environment);
-	}
-
-	/** Responsibilities: _environment selection testing_. **/
-	private test_environment(...environment_candidates: NodeJS.ProcessEnv[]): NodeJS.ProcessEnv {
-		if (environment_candidates.length === 0) {
-			return process.env;
-		}
-		const environment = environment_candidates.at(0);
-		if (environment === undefined) {
-			return process.env;
-		}
-		return environment;
-	}
-
 	/** Responsibilities: _dependencies installation_. **/
 	private install_dependencies(environment: NodeJS.ProcessEnv): number {
 		const ci_key = "CI";
@@ -118,7 +97,8 @@ Examples:
 	}
 
 	/** Responsibilities: _TypeScript test execution_. **/
-	private run_typescript_tests(jest_arguments: readonly string[], environment: NodeJS.ProcessEnv): number {
+	private run_typescript_tests(jest_run: TestExecutionRequest): number {
+		const { jest_arguments, environment } = jest_run;
 		const node_options_key = "NODE_OPTIONS";
 		const node_options = [environment[node_options_key], NODE_VM_MODULES_ARGUMENT].filter(Boolean).join(" ");
 		return this.run_command(
@@ -131,21 +111,9 @@ Examples:
 		);
 	}
 
-	/** Responsibilities: _runner state initialization_. **/
-	public constructor(project_root: string, command_runner: CommandRunnerContract, output: TestRunnerOutput) {
-		this._project_root = resolve(project_root);
-		this._command_runner = command_runner;
-		this._output = output;
-		this._quality_checks = new QualityCheckProcess(this._project_root, command_runner, output);
-	}
-
-	/** Responsibilities: _tests execution_. **/
-	public run_tests(jest_arguments: readonly string[], ...environment_candidates: NodeJS.ProcessEnv[]): number {
-		const test_environment = this.test_environment(...environment_candidates);
-		const install_status = this.install_dependencies(test_environment);
-		if (install_status !== 0) {
-			return install_status;
-		}
+	/** Responsibilities: _suite execution_. **/
+	private execute_tests(test_run: TestExecutionRequest): number {
+		const { environment: test_environment } = test_run;
 		const python_status = this.run_command(
 			PYTHON_EXECUTABLE,
 			[
@@ -159,25 +127,53 @@ Examples:
 		if (python_status !== 0) {
 			return python_status;
 		}
-		return this.run_typescript_tests(jest_arguments, test_environment);
+		return this.run_typescript_tests(test_run);
 	}
 
+	/** Responsibilities: _quality and test workflow_. **/
+	private execute_request(request: TestRunnerRequest, environment: NodeJS.ProcessEnv): number {
+		const install_status = this.install_dependencies(environment);
+		if (install_status !== 0) {
+			return install_status;
+		}
+		const quality_status = this._quality_checks.run_test_request(request);
+		if (quality_status !== 0) {
+			return quality_status;
+		}
+		const test_status = this.run_tests({ jest_arguments: request.args, environment, dependencies_ready: true });
+		if (test_status !== 0) {
+			return test_status;
+		}
+		this._output.stdout.write("\n✅ All tests passed!\n");
+		return 0;
+	}
+
+	/** Responsibilities: _runner state initialization_. **/
+	public constructor(project_root: string, command_runner: CommandRunnerContract, output: TestRunnerOutput) {
+		this._project_root = resolve(project_root);
+		this._command_runner = command_runner;
+		this._output = output;
+		this._quality_checks = new QualityCheckProcess(this._project_root, command_runner, output);
+	}
+
+	/** Responsibilities: _repository test execution_. **/
+	public run_tests(test_request: TestExecutionRequest): number {
+		if (test_request.dependencies_ready !== true) {
+			const install_status = this.install_dependencies(test_request.environment);
+			if (install_status !== 0) {
+				return install_status;
+			}
+		}
+		return this.execute_tests(test_request);
+	}
 	/** Responsibilities: _runner requests handling_. **/
 	public run(request: TestRunnerRequest): number {
 		if (request.help_requested) {
 			this._output.stdout.write(this.help_text());
 			return 0;
 		}
-		const test_status = this.execute_test_workflow(request.headless, request.args);
-		if (test_status !== 0) {
-			return test_status;
-		}
-		const quality_status = this._quality_checks.run_test_request(request);
-		if (quality_status !== 0) {
-			return quality_status;
-		}
-		this._output.stdout.write("\n✅ All tests passed!\n");
-		return 0;
+		const environment = { ...process.env, CI: this.effective_headless(request.headless) ? "true" : "false" };
+		return this.execute_request(request, environment);
 	}
 
 	/** Responsibilities: _raw arguments parsing_. **/

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import unittest
 from dataclasses import dataclass
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
@@ -27,12 +26,46 @@ class PythonReferenceScenario:
     annotation_names: AnnotationNames
 
 
-class PythonReferenceTestSupport:
+class PythonReferenceTestSupport(ast.NodeVisitor):
     """Responsibilities: _reference scenario assembly_, _AST call selection_."""
 
-    def __init__(self, test_case: unittest.TestCase) -> None:
-        """Responsibilities: _test assertion owner assignment_."""
-        self._test_case: unittest.TestCase = test_case
+    def __init__(self) -> None:
+        """Responsibilities: _AST traversal state_."""
+        self._calls: list[ast.Call] = []
+        self._attributes: list[ast.Attribute] = []
+        self._functions: list[ast.FunctionDef] = []
+        self._annotations: list[ast.expr] = []
+        self._method_calls: list[ast.Call] = []
+        self._pending_call: ast.Call | None = None
+
+    def visit_Call(self, node: ast.Call) -> None:
+        """Responsibilities: _call node traversal_."""
+        self._calls.append(node)
+        self._pending_call = node
+        self.visit(node.func)
+        self._pending_call = None
+        for argument in node.args:
+            self.visit(argument)
+        for keyword in node.keywords:
+            self.visit(keyword.value)
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Responsibilities: _method call selection_."""
+        self._attributes.append(node)
+        if self._pending_call is not None:
+            self._method_calls.append(self._pending_call)
+            self._pending_call = None
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Responsibilities: _function declaration traversal_."""
+        self._functions.append(node)
+        self.generic_visit(node)
+
+    def visit_arg(self, node: ast.arg) -> None:
+        """Responsibilities: _argument annotation traversal_."""
+        if node.annotation is not None:
+            self._annotations.append(node.annotation)
 
     def create_scenario(self, source: str) -> PythonReferenceScenario:
         """Responsibilities: _reference analysis scenario assembly_."""
@@ -60,24 +93,42 @@ class PythonReferenceTestSupport:
 
     def call_expression(self, source: str) -> ast.Call:
         """Responsibilities: _call expression extraction_."""
-        expression = ast.parse(source, mode="eval").body
-        if type(expression) is not ast.Call:
-            self._test_case.fail("Expected a call expression.")
-        return expression
+        return ast.parse(source, mode="eval").body
 
     def call_receiver(self, call: ast.Call) -> ast.expr:
         """Responsibilities: _method receiver extraction_."""
-        if type(call.func) is not ast.Attribute:
-            self._test_case.fail("Expected a method call.")
         return call.func.value
 
     def method_calls(self, tree: ast.AST) -> list[ast.Call]:
         """Responsibilities: _method call selection_."""
-        calls: list[ast.Call] = []
-        for node in ast.walk(tree):
-            if type(node) is not ast.Call:
-                continue
-            if type(node.func) is not ast.Attribute:
-                continue
-            calls.append(node)
-        return calls
+        self._method_calls = []
+        self._pending_call = None
+        self.visit(tree)
+        self._method_calls.sort(key=lambda call: (call.lineno, call.col_offset))
+        return self._method_calls.copy()
+
+    def call_nodes(self, tree: ast.AST) -> list[ast.Call]:
+        """Responsibilities: _call node collection_."""
+        self._calls = []
+        self.visit(tree)
+        self._calls.sort(key=lambda call: (call.lineno, call.col_offset))
+        return self._calls.copy()
+
+    def attribute_nodes(self, tree: ast.AST) -> list[ast.Attribute]:
+        """Responsibilities: _attribute node collection_."""
+        self._attributes = []
+        self.visit(tree)
+        self._attributes.sort(key=lambda attribute: (attribute.lineno, attribute.col_offset))
+        return self._attributes.copy()
+
+    def function_nodes(self, tree: ast.AST) -> list[ast.FunctionDef]:
+        """Responsibilities: _function declaration collection_."""
+        self._functions = []
+        self.visit(tree)
+        return self._functions.copy()
+
+    def argument_annotations(self, tree: ast.AST) -> list[ast.expr]:
+        """Responsibilities: _argument annotation collection_."""
+        self._annotations = []
+        self.visit(tree)
+        return self._annotations.copy()

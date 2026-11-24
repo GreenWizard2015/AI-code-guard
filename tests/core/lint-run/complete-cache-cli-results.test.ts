@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -45,6 +45,7 @@ describe("complete cache CLI execution", () => {
 	});
 
 	test("bundled CLI preserves diagnostics when launched outside the installation", () => {
+		const node_options_key = "NODE_OPTIONS";
 		const fixture_root = mkdtempSync(join(tmpdir(), "ai-code-guard-bundle-"));
 		const cache_record = join(fixture_root, ".ai-code-guard", "cache", "lint-execution", "lint-result.json");
 		const source_command = [
@@ -54,19 +55,30 @@ describe("complete cache CLI execution", () => {
 		const launcher_alias = join(fixture_root, "guard-bin");
 		const bundle_command = [launcher_alias];
 		const lint_arguments = ["--root", fixture_root, "--policy", "all", "--batch-size", "10000"];
-		const child_options = { cwd: tmpdir(), encoding: "utf8" as const, env: { ...process.env, NODE_ENV: "production" } };
+		const child_options = {
+			cwd: tmpdir(),
+			encoding: "utf8" as const,
+			env: { ...process.env, NODE_ENV: "production" },
+		};
 		const bundle_options = {
 			...child_options,
 			env: {
 				...child_options.env,
-				["NODE_OPTIONS"]: [process.env["NODE_OPTIONS"], "--preserve-symlinks-main"].filter(Boolean).join(" "),
+				[node_options_key]: [process.env[node_options_key], "--preserve-symlinks-main"].filter(Boolean).join(" "),
 			},
 		};
 		let build_status: number | null = null;
 		let source_status: number | null = null;
 		let bundle_status: number | null = null;
+		let source_cache_exists = false;
+		let bundle_cache_exists = false;
 		let results_match = false;
 		let violation_count = 0;
+		let source_result: ReturnType<typeof JSON.parse> | undefined;
+		let bundle_result: ReturnType<typeof JSON.parse> | undefined;
+		let build_output = "";
+		let source_output = "";
+		let bundle_output = "";
 		try {
 			mkdirSync(join(fixture_root, "src"));
 			symlinkSync(join(REPORTING_PROJECT_ROOT, "bin", "ai-code-guard.mjs"), launcher_alias);
@@ -77,22 +89,48 @@ describe("complete cache CLI execution", () => {
 				encoding: "utf8",
 			});
 			build_status = build.status;
+			build_output = `${build.stdout}\n${build.stderr}`;
 			const source = spawnSync(process.execPath, [...source_command, ...lint_arguments], child_options);
 			source_status = source.status;
-			const source_result = JSON.parse(readFileSync(cache_record, "utf8"));
+			source_output = `${source.stdout}\n${source.stderr}`;
+			source_cache_exists = existsSync(cache_record);
+			if (source_cache_exists) {
+				source_result = JSON.parse(readFileSync(cache_record, "utf8"));
+			}
 			rmSync(join(fixture_root, ".ai-code-guard", "cache"), { recursive: true, force: true });
 			const bundle = spawnSync(process.execPath, [...bundle_command, ...lint_arguments], bundle_options);
 			bundle_status = bundle.status;
-			const bundle_result = JSON.parse(readFileSync(cache_record, "utf8"));
-			results_match = JSON.stringify(bundle_result.result) === JSON.stringify(source_result.result);
-			violation_count = bundle_result.result.violations.length;
+			bundle_output = `${bundle.stdout}\n${bundle.stderr}`;
+			bundle_cache_exists = existsSync(cache_record);
+			if (bundle_cache_exists) {
+				bundle_result = JSON.parse(readFileSync(cache_record, "utf8"));
+			}
+			if (source_result !== undefined && bundle_result !== undefined) {
+				results_match = JSON.stringify(bundle_result.result) === JSON.stringify(source_result.result);
+			}
+			if (bundle_result !== undefined) {
+				violation_count = bundle_result.result.violations.length;
+			}
 		} finally {
 			rmSync(fixture_root, { recursive: true, force: true });
 		}
-		expect({ build_status, source_status, bundle_status, results_match, has_violations: violation_count > 0 }).toEqual({
+		expect({
+			build_status,
+			source_status,
+			bundle_status,
+			build_output,
+			source_output,
+			bundle_output,
+			source_cache_exists,
+			bundle_cache_exists,
+			results_match,
+			has_violations: violation_count > 0,
+		}).toMatchObject({
 			build_status: 0,
 			source_status: 1,
 			bundle_status: 1,
+			source_cache_exists: true,
+			bundle_cache_exists: true,
 			results_match: true,
 			has_violations: true,
 		});

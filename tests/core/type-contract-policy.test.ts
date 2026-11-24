@@ -81,19 +81,26 @@ describe("type contract policies", () => {
 			(production_lint_configuration, options, mode) =>
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
-		expect(violations.map((item) => ({ file: item.file(), rule_id: item.rule_id(), line: item.line() }))).toEqual(
+		const reported_rules = violations.map((item) => `${item.file()}:${item.rule_id()}`);
+		expect(reported_rules).toEqual(
 			expect.arrayContaining([
-				{ file: "alias.ts", rule_id: "typescript-singular-plural-alias", line: expect.any(Number) },
-				{ file: "field-count.ts", rule_id: "type-field-count", line: expect.any(Number) },
-				{ file: "field-count.py", rule_id: "type-field-count", line: expect.any(Number) },
-				{ file: "inline-union.ts", rule_id: "typescript-inline-union-type", line: expect.any(Number) },
-				{ file: "array-state.ts", rule_id: "single-item-array-state", line: expect.any(Number) },
-				{ file: "nullable.ts", rule_id: "nullable-domain-type", line: 4 },
-				{ file: "union-contract.ts", rule_id: "typescript-union-contract-bypass", line: expect.any(Number) },
-				{ file: "qualified-union.ts", rule_id: "typescript-union-contract-bypass", line: expect.any(Number) },
-				{ file: "state-union.ts", rule_id: "composite-state-type", line: expect.any(Number) },
+				"alias.ts:typescript-singular-plural-alias",
+				"field-count.ts:type-field-count",
+				"field-count.py:type-field-count",
+				"inline-union.ts:typescript-inline-union-type",
+				"array-state.ts:single-item-array-state",
+				"nullable.ts:nullable-domain-type",
+				"union-contract.ts:typescript-union-contract-bypass",
+				"qualified-union.ts:typescript-union-contract-bypass",
+				"state-union.ts:composite-state-type",
 			]),
 		);
+		expect(
+			violations
+				.filter((item) => item.file() === "nullable.ts")
+				.filter((item) => item.rule_id() === "nullable-domain-type")
+				.map((item) => item.line()),
+		).toEqual([4, 5, 6, 7]);
 	});
 
 	test("accepts type contracts using named shapes and concrete state classes", () => {

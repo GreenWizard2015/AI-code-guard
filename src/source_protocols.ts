@@ -119,6 +119,7 @@ export interface ParsedConfigurationFilesContract extends ReadonlySet<string> {
 /** Responsibilities: _project source scanning_. **/
 export interface ProjectSourceScanContract {
 	files(): string[];
+	entry_point_files(): ReadonlySet<string>;
 	project_source_entry(): ProjectSourceEntryContract;
 	reachable_files(files: readonly string[]): ReadonlySet<string>;
 	external_symbol_usages(): ReadonlyStringSetMap;
@@ -188,10 +189,16 @@ export type ProjectSourcePath = {
 	relative: string;
 };
 
+export type ProjectSourceClassification = {
+	entry: boolean;
+	entry_point: boolean;
+};
+
 /** Responsibilities: _project source entry classification_. **/
 export interface ProjectSourceEntryContract {
-	relative_path(file: string): string;
-	entry(file: string): boolean;
+	project_path(absolute_path: string): ProjectSourcePath;
+	classification(source: ProjectSourcePath): ProjectSourceClassification;
+	configured_entries(source_files: readonly string[]): string[];
 }
 
 /** Responsibilities: _Python source import resolution_. **/

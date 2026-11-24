@@ -18,8 +18,6 @@ class PythonCallableMetricsTest(unittest.TestCase):
             "                pass\n",
         )
         function = tree.body[0]
-        if type(function) is not ast.FunctionDef:
-            self.fail("expected function declaration")
         metrics = CallableMetrics(PythonAstNodeIndex())
 
         self.assertEqual(metrics.control_flow_depth(function.body), 3)
@@ -35,14 +33,8 @@ class PythonCallableMetricsTest(unittest.TestCase):
             "                    pass\n",
         )
         function = tree.body[0]
-        if type(function) is not ast.FunctionDef:
-            self.fail("expected owner function")
         branch = function.body[0]
-        if type(branch) is not ast.If:
-            self.fail("expected control branch")
         nested = branch.body[0]
-        if type(nested) is not ast.FunctionDef:
-            self.fail("expected nested callable")
         metrics = CallableMetrics(PythonAstNodeIndex())
 
         self.assertEqual(

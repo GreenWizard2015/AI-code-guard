@@ -146,7 +146,9 @@ describe("AST-detectable implementation hacks", () => {
 				production_lint_configuration.lint_report(options, mode).report.violations,
 		);
 
-		expect(violations.filter((violation) => violation.rule_id() === "function-placement")).toHaveLength(1);
+		expect(violations.filter((violation) => violation.rule_id() === "free-function-outside-entry-point")).toHaveLength(
+			1,
+		);
 	});
 
 	test("rejects object literals returned as project classes or interfaces", () => {

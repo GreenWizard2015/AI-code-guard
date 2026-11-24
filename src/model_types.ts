@@ -3,12 +3,9 @@ import type { AstCacheAst } from "src/cache_types";
 import type { LintFileNameContract } from "src/core/support/protocols";
 import type { IOContract } from "src/io/protocols";
 import type {
-	AstCallableIdentity,
 	AstClassNode,
 	AstLanguage,
-	AstPythonImport,
 	AstSourceSpan,
-	LineOnly,
 	NamedLine,
 	NormalizedAstFile,
 } from "src/model/ast/normalized_ast_types";
@@ -31,15 +28,6 @@ import type ts from "typescript";
 export type NamedDeclaration = { name: string; line: number; has_self: boolean };
 export type LineViolation = { line: number };
 export type SimpleViolationGroup = { items: LineViolation[]; rule_id: string };
-export type ArchitectureInput = {
-	violations: ViolationContract[];
-	file: string;
-	accesses: LineOnly[];
-	branches: LineOnly[];
-	classes: AstClassNode[];
-	type_declarations: readonly NamedLine[];
-	imports: readonly AstPythonImport[];
-};
 export type PythonLintInput = {
 	file_name: LintFileNameContract;
 	source_file: string;
@@ -353,7 +341,6 @@ export type ViolationCounts = {
 	total: number;
 };
 
-export type PlacementFunctionNode = { identity: AstCallableIdentity };
 export type UnresolvedSpecifierInput = {
 	file: string;
 	path: string;

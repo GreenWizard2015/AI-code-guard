@@ -439,6 +439,9 @@ export const IGNORED_DIRS = new Set([
 	".tox",
 ]);
 export const REPORTING_PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+export const PROJECT_ENTRY_POINTS_CACHE_KEY = "project-entry-points";
+export const FUNCTIONS_FILE_TYPE_DECLARATION_RULE = "functions-file-type-declaration";
+export const NODE_EXECUTABLE_SHEBANG = "#!/usr/bin/env node";
 export const BUILTIN_CONSTRUCTORS = new Set([
 	"AbortController",
 	"Date",

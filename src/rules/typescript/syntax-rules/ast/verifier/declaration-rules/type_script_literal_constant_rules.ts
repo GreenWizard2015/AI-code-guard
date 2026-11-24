@@ -2,6 +2,7 @@ import type { ASTSourceRuleContract } from "src/ast_verifier_protocols";
 import { TYPESCRIPT_LANGUAGE } from "src/constants";
 import { RULE_IDS } from "src/linting/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
+import type { DiagnosticRuleContract } from "src/model/protocols";
 import type { ViolationContract } from "src/reporting_protocols";
 import { LiteralConstantReferenceIndex } from "src/rules/literal_constant_reference_index";
 import type { ProjectContextViolationsByScope, ProjectViolationsByFile } from "src/rules/typescript/syntax-rules/types";
@@ -13,8 +14,8 @@ import ts from "typescript";
 /** Responsibilities: _TypeScript project literal verification_, _source diagnostics_. **/
 export class TypeScriptLiteralConstantRules implements ASTSourceRuleContract {
 	private readonly _violations_by_project: ProjectContextViolationsByScope;
-	private readonly _constant_rule: DiagnosticRule;
-	private readonly _repeated_rule: DiagnosticRule;
+	private readonly _constant_rule: DiagnosticRuleContract;
+	private readonly _repeated_rule: DiagnosticRuleContract;
 
 	/** Responsibilities: _project file violation lookup_. **/
 	private violations_by_file(

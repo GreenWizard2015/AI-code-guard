@@ -24,6 +24,12 @@ export type TestRunnerRequest = {
 	readonly review_agent: ReviewAgentSelection;
 };
 
+export type TestExecutionRequest = {
+	readonly jest_arguments: readonly string[];
+	readonly environment: NodeJS.ProcessEnv;
+	readonly dependencies_ready: boolean;
+};
+
 export type QualityCheck = {
 	readonly label: string;
 	readonly command: string;

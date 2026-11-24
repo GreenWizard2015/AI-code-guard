@@ -37,11 +37,7 @@ class PythonComponentConstructionTest(unittest.TestCase):
         selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
 
         self.assertEqual(
-            [
-                node.name
-                for node in selector.nodes()
-                if type(node) is ast.FunctionDef or type(node) is ast.AsyncFunctionDef
-            ],
+            [node.name for node in selector.nodes()],
             ["module_function", "nested_function", "method"],
         )
 
@@ -51,7 +47,7 @@ class PythonComponentConstructionTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         function_selector = PythonFunctionSelector(parsed_source, node_index)
         function_nodes = function_selector.nodes()
-        function_node = next(node for node in function_nodes if type(node) is ast.AsyncFunctionDef)
+        function_node = next(node for node in function_nodes if node.name == "asynchronous")
         function_body = function_node.body
         metrics = CallableMetrics(node_index)
         control_depth = metrics.control_flow_depth(function_body)

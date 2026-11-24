@@ -50,8 +50,6 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
         type_aliases.collect()
         container_assembly = PythonContainerAssembly(node_index)
         class_declaration = tree.body[1]
-        if type(class_declaration) is not ast.ClassDef:
-            self.fail("expected class declaration")
         return PythonClassNodeOptions(
             class_declaration,
             CLASS_SOURCE,
@@ -75,12 +73,7 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
         """Responsibilities: _method visibility_."""
         class_builder = PythonClassNode(self._class_node_options())
         class_node = class_builder.result
-        methods = class_node["methods"]
-        if type(methods) is not list or not methods:
-            self.fail("expected normalized method records")
-        first_method = methods[0]
-        if type(first_method) is not dict:
-            self.fail("expected normalized method object")
+        first_method = class_node["methods"][0]
         self.assertEqual(first_method["visibility"], "private")
         self.assertNotIn("base_class_name", class_node)
 
@@ -102,11 +95,7 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
         )
         instances = symbols.module_instances()
         instance = instances[0]
-        constructor = instance["constructor"]
-        if type(constructor) is not str:
-            self.fail("expected constructor name")
-
-        self.assertEqual(constructor, "Record")
+        self.assertEqual(instance["constructor"], "Record")
 
     def test_module_instances_resolve_imported_constructor(self) -> None:
         """Responsibilities: _imported constructor resolution_."""
@@ -126,11 +115,7 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
         )
         instances = symbols.module_instances()
         instance = instances[0]
-        constructor = instance["constructor"]
-        if type(constructor) is not str:
-            self.fail("expected constructor name")
-
-        self.assertEqual(constructor, "service.Record")
+        self.assertEqual(instance["constructor"], "service.Record")
 
     def test_nested_type_alias_factory_collection(self) -> None:
         """Responsibilities: _nested alias factory detection_."""

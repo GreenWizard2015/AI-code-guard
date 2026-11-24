@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import { TYPESCRIPT_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants";
 
 describe("TypeScript example sandbox policy", () => {
-	test("rejects output emitted during TypeScript module import", () => {
+	test("[local-process] rejects output emitted during TypeScript module import", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -21,7 +22,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("executes literal dynamic imports from example modules and waits for their output", () => {
+	test("[local-process] executes literal dynamic imports from example modules and waits for their output", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -42,7 +43,7 @@ describe("TypeScript example sandbox policy", () => {
 		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
 	});
 
-	test("rejects dynamic imports outside the in-memory example sources", () => {
+	test("[local-process] rejects dynamic imports outside the in-memory example sources", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [{ path: "cli.ts", text: 'void import("node:fs");' }],
@@ -56,7 +57,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("rejects output written directly by a TypeScript CLI entrypoint", () => {
+	test("[local-process] rejects output written directly by a TypeScript CLI entrypoint", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [{ path: "cli.ts", text: 'console.log("ready");' }],
@@ -70,7 +71,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("rejects external TypeScript modules before evaluating the example", () => {
+	test("[local-process] rejects external TypeScript modules before evaluating the example", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [{ path: "cli.ts", text: 'import { readFile } from "node:fs"; void readFile;' }],
@@ -84,7 +85,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("rejects TypeScript network access before evaluating the example", () => {
+	test("[local-process] rejects TypeScript network access before evaluating the example", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -98,7 +99,7 @@ describe("TypeScript example sandbox policy", () => {
 		expect(result).toEqual({ stdout: "domain/request.ts: access to fetch is not allowed", exit_code: 1 });
 	});
 
-	test("rejects computed access to host module-loader properties before evaluation", () => {
+	test("[local-process] rejects computed access to host module-loader properties before evaluation", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -119,7 +120,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("rejects direct and literal host module require access before evaluation", () => {
+	test("[local-process] rejects direct and literal host module require access before evaluation", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -138,7 +139,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("rejects blocking Atomics access before evaluating an imported module", () => {
+	test("[local-process] rejects blocking Atomics access before evaluating an imported module", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -159,7 +160,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("cannot reach Node through VM function constructors", () => {
+	test("[local-process] cannot reach Node through VM function constructors", () => {
 		const loader_escape = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [
@@ -201,7 +202,7 @@ describe("TypeScript example sandbox policy", () => {
 		});
 	});
 
-	test("does not expose host exceptions when example output exceeds the limit", () => {
+	test("[local-process] does not expose host exceptions when example output exceeds the limit", () => {
 		const example = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
 			source_files: [

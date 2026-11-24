@@ -61,11 +61,7 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
         )
         tree = PythonAstTree(source, ast.parse(source))
         ast_data = tree.ast()
-        match ast_data["reference_aliases"]:
-            case list() as aliases:
-                pass
-            case _:
-                self.fail("expected reference alias records")
+        aliases = ast_data["reference_aliases"]
 
         self.assertIn(
             {"name": "EntryList", "target": "UserList[str]"},

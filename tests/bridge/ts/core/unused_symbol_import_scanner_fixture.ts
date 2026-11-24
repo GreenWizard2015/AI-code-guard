@@ -1,7 +1,7 @@
 import type { ReadonlyStringSetMap } from "src/analysis_types";
 import { ProjectSourceImportAnalysis } from "src/model/project_source_import_analysis";
 import type { ProjectSourceScanContract } from "src/source_protocols";
-import type { ProjectSourceEntryContract } from "src/source_protocols";
+import type { ProjectSourceClassification, ProjectSourceEntryContract, ProjectSourcePath } from "src/source_protocols";
 
 /** Responsibilities: _project import fixture_, _source scanner contract_, _entry classification_. **/
 export class ImportedSourceScanner implements ProjectSourceScanContract, ProjectSourceEntryContract {
@@ -9,7 +9,7 @@ export class ImportedSourceScanner implements ProjectSourceScanContract, Project
 	private readonly _resolved_target: string;
 	private _resolved_path_count = 0;
 
-	/** Responsibilities: _fixture scanner initialization_. **/
+	/** Responsibilities: _import scanner fixture initialization_. **/
 	public constructor(imported_files: readonly string[] = ["dependency.py"], resolved_target = "dependency.py") {
 		this._imported_files = imported_files;
 		this._resolved_target = resolved_target;
@@ -20,14 +20,24 @@ export class ImportedSourceScanner implements ProjectSourceScanContract, Project
 		return this;
 	}
 
-	/** Responsibilities: _fixture relative path_. **/
-	public relative_path(file: string): string {
-		return file;
+	/** Responsibilities: _entry-point file membership_. **/
+	public entry_point_files(): ReadonlySet<string> {
+		return new Set();
 	}
 
-	/** Responsibilities: _fixture entry decision_. **/
-	public entry(_file: string): boolean {
-		return false;
+	/** Responsibilities: _fixture relative path_. **/
+	public project_path(absolute_path: string): ProjectSourcePath {
+		return { absolute: absolute_path, relative: absolute_path };
+	}
+
+	/** Responsibilities: _fixture entry classification_. **/
+	public classification(_source: ProjectSourcePath): ProjectSourceClassification {
+		return { entry: false, entry_point: false };
+	}
+
+	/** Responsibilities: _project entry-point file classification_. **/
+	public configured_entries(_source_files: readonly string[]): string[] {
+		return [];
 	}
 
 	/** Responsibilities: _external symbol usage fixture_. **/

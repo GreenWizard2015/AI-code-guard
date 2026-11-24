@@ -16,7 +16,7 @@ class PythonParserMetadataTest(unittest.TestCase):
         """Responsibilities: _entrypoint metadata values_."""
         tree = PythonAstTree(ENTRYPOINT_SOURCE, ast.parse(ENTRYPOINT_SOURCE))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         imports = output.records("python_imports")
         docstrings = output.array("docstring_spans")
         type_declarations = output.records("type_declarations")
@@ -46,7 +46,7 @@ class PythonParserMetadataTest(unittest.TestCase):
             ast.parse("def parse_value(value: int) -> int:\n    return value\n"),
         )
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         nodes = output.records("functions")
         function = nodes[0]
         statements = function.records("statements")
@@ -79,7 +79,7 @@ class PythonParserMetadataTest(unittest.TestCase):
         )
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         functions = output.records("functions")
         classes = output.records("classes")
         methods = classes[0].records("methods")
@@ -102,7 +102,7 @@ class PythonParserMetadataTest(unittest.TestCase):
         )
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         classes = output.records("classes")
         function_nodes = [node for node in classes[0].records("methods") if node.text("name") == "build"]
         function = function_nodes[0]
@@ -137,7 +137,7 @@ class PythonParserMetadataTest(unittest.TestCase):
             ast.parse("def run() -> None:\n    return None\n\nrun()\n"),
         )
         ast_record = tree.ast()
-        output = PythonParserOutput(self, ast_record)
+        output = PythonParserOutput(ast_record)
         references = output.records("call_references")
         reference = references[0]
 
@@ -166,7 +166,7 @@ class PythonParserMetadataTest(unittest.TestCase):
         """Responsibilities: _import statement kinds_."""
         tree = PythonAstTree("import pkg\nfrom pkg import pkg\n", ast.parse("import pkg\nfrom pkg import pkg\n"))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         imports = output.records("python_imports")
 
         self.assertEqual(
@@ -178,7 +178,7 @@ class PythonParserMetadataTest(unittest.TestCase):
         """Responsibilities: _Python export declaration_."""
         tree = PythonAstTree('__all__ = ["First", "Second"]\n', ast.parse('__all__ = ["First", "Second"]\n'))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
 
         self.assertEqual(output.array("python_exports"), ["First", "Second"])
 
@@ -197,13 +197,13 @@ async def load():
     return None
 '''
         python_tree = PythonAstTree(source, ast.parse(source))
-        output = PythonParserOutput(self, python_tree.ast())
+        output = PythonParserOutput(python_tree.ast())
         docstrings = output.records("docstring_spans")
 
         self.assertEqual(
             {
                 "exports": output.array("python_exports"),
-                "docstring_lines": [span.field("start_line") for span in docstrings],
+                "docstring_lines": [span.start_line() for span in docstrings],
             },
             {"exports": ["First", "Second", "Third"], "docstring_lines": [0, 4, 9, 6]},
         )
@@ -219,10 +219,10 @@ __all__: list[str] = ["Sixth"]
 """
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         issues = output.records("coding_issues")
         issue_data = [
-            {"kind": issue.text("kind"), "line": issue.field("line"), "name": issue.text("name")}
+            {"kind": issue.text("kind"), "line": issue.line(), "name": issue.text("name")}
             for issue in issues
             if issue.text("kind") == "python-all-list-assignment"
         ]
@@ -248,7 +248,7 @@ def second() -> str:
 """
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
 
         self.assertEqual(
             [item.text("value") for item in output.records("literal_references")],
@@ -259,7 +259,7 @@ def second() -> str:
         """Responsibilities: _parser symbol metadata_."""
         tree = PythonAstTree(ENTRYPOINT_SOURCE, ast.parse(ENTRYPOINT_SOURCE))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         symbols = output.records("named_symbols")
         references = output.records("call_references")
         self.assertEqual(
@@ -284,7 +284,7 @@ def second() -> str:
         )
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         references = output.records("call_references")
         observed = [
             (reference.text("name"), reference.text("owner"))
@@ -307,7 +307,7 @@ class Service:
 """
         tree = PythonAstTree(source, ast.parse(source))
         parsed = tree.ast()
-        output = PythonParserOutput(self, parsed)
+        output = PythonParserOutput(parsed)
         symbols = {item.text("name"): item for item in output.records("named_symbols")}
 
         self.assertEqual(
@@ -361,7 +361,7 @@ class Service:
             ast.parse("\n".join([*within_limit, *over_limit, *nested])),
         )
         issues = tree.coding_issues()
-        issue_records = [PythonParserOutput(self, issue) for issue in issues]
+        issue_records = [PythonParserOutput(issue) for issue in issues]
         branch_issues = [issue for issue in issue_records if issue.text("kind") == "callable-branch-count"]
 
         self.assertEqual(

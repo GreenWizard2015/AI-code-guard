@@ -36,10 +36,7 @@ class Cache:
 
     def _class_declaration(self, module: ast.Module) -> ast.ClassDef:
         """Responsibilities: _class declaration extraction_."""
-        declaration = module.body[0]
-        if type(declaration) is not ast.ClassDef:
-            self.fail("expected class declaration")
-        return declaration
+        return module.body[0]
 
     def _options(self, module: ast.Module, node: ast.ClassDef, source: str) -> PythonClassNodeOptions:
         """Responsibilities: _class field-analysis inputs_."""
@@ -61,8 +58,6 @@ class Cache:
         summary: list[JsonObject] = []
         for field in fields:
             name = field["name"]
-            if type(name) is not str:
-                self.fail("normalized field name must be text")
             summary.append(
                 {
                     "name": name,
@@ -120,11 +115,7 @@ class Cache:
         field_analysis = PythonClassNodeFields(self._options(module, class_node, self._source_text()))
         typed_fields = field_analysis.fields()
         untyped_fields = field_analysis.untyped_field_records().collect(typed_fields)
-        untyped_names = set()
-        for field in untyped_fields:
-            name = field["name"]
-            if type(name) is str:
-                untyped_names.add(name)
+        untyped_names = {field["name"] for field in untyped_fields}
         self.assertEqual(untyped_names, {"cache_size", "reset_count"})
 
     def test_ignores_assignments_inside_nested_callable_and_class(self) -> None:

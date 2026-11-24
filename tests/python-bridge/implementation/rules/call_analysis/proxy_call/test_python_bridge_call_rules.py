@@ -45,7 +45,7 @@ class PythonBridgeCallRuleTest(unittest.TestCase):
             "def _build(self, value: Payload, /, limit: int = 1, *items: str, **options: object):\n"
             "    return value\n",
         )
-        function = next(node for node in parsed.body if type(node) is ast.FunctionDef)
+        function = parsed.body[0]
         node_index = self._python_ast_node_index()
         type_aliases = PythonScopedTypeAliases(parsed, node_index)
         type_aliases.collect()
@@ -104,7 +104,7 @@ class PythonBridgeCallRuleTest(unittest.TestCase):
         )
         tree = ast.parse(source)
         aliases = PythonProxyReceiverAliases(tree)
-        lambdas = [node for node in ast.walk(tree) if type(node) is ast.Lambda]
+        lambdas = [tree.body[0].body[0].body[index].value for index in range(3)]
         results = [aliases.lambda_receiver(node) for node in lambdas]
 
         self.assertEqual(results, [True, True, True])

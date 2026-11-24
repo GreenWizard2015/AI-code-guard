@@ -8,80 +8,33 @@ from tempfile import TemporaryDirectory
 
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.types import JsonObject, JsonValue, JsonValueList, JsonValueMap
+from implementation.types import JsonObject, JsonValueList
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from protocols import PythonAstBridgeContract
-from python_ast_tree_process_probe import PythonAstTreeProcessProbe
 from python_bridge_entrypoint import PythonBridgeEntrypoint
 from python_bridge_input import PythonBridgeInput
+from python_ast_tree_process_probe import PythonAstTreeProcessProbe
 
 
 class PythonBridgeEntrypointTest(unittest.TestCase):
     """Responsibilities: _bridge input routing_, _AST response verification_."""
 
-    def _object(self, value: JsonValue) -> JsonObject:
-        """Responsibilities: _bridge response object validation_."""
-        if type(value) is dict:
-            return value
-        return {"invalid_object": value}
-
-    def _json_value(self, value: JsonValue) -> JsonValue:
-        """Responsibilities: _JSON value validation_."""
-        if value is None or type(value) in (str, int, float, bool):
-            return value
-        if type(value) is list:
-            return [self._json_value(item) for item in value]
-        if type(value) is dict:
-            return self._json_object_values(value)
-        return {"invalid_json_value": type(value).__name__}
-
-    def _json_object_values(self, value: JsonValueMap) -> JsonValueMap:
-        """Responsibilities: _JSON object value validation_."""
-        values: JsonValueMap = {}
-        for key, item in value.items():
-            values[key] = self._json_value(item)
-        return values
-
     def _output_object(self, text: str) -> JsonObject:
         """Responsibilities: _bridge JSON response decoding_."""
-        return self._object(self._json_value(json.loads(text)))
+        return json.loads(text)
 
     def _first_symbol_name(self, result: JsonObject, collection: str) -> str:
         """Responsibilities: _symbol name lookup_."""
-        source = self._object(result.get("source"))
-        match source.get(collection):
-            case list() as symbols if symbols:
-                symbol = self._object(symbols[0])
-            case _:
-                return ""
-        identity = self._object(symbol.get("identity"))
-        match identity.get("name"):
-            case str() as name:
-                return name
-            case _:
-                return ""
+        return result["source"][collection][0]["identity"]["name"]
 
     def _parse_issues(self, result: JsonObject) -> JsonValueList:
         """Responsibilities: _syntax diagnostic collection_."""
-        source = self._object(result.get("source"))
-        match source.get("parse_issues"):
-            case list() as issues:
-                return issues
-            case _:
-                return [{"invalid_parse_issues": source.get("parse_issues")}]
+        return result["source"]["parse_issues"]
 
     def _first_parse_issue_line(self, result: JsonObject) -> int:
         """Responsibilities: _syntax diagnostic line lookup_."""
-        match self._parse_issues(result):
-            case [first_issue, *_]:
-                issue = self._object(first_issue)
-            case _:
-                return -1
-        match issue.get("line"):
-            case int() as line if type(line) is int:
-                return line
-            case _:
-                return -1
+        issues = self._parse_issues(result)
+        return issues[0]["line"]
 
     def test_runs_text_mode(self) -> None:
         """Responsibilities: _text mode output_."""
@@ -195,7 +148,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         entrypoint.run_worker()
         response_header, response_payload = output_buffer.getvalue().split(b"\n", maxsplit=1)
         response_length = int(response_header)
-        return self._object(json.loads(response_payload[:response_length]))
+        return json.loads(response_payload[:response_length])
 
     def test_worker_batch_processes_large_source_sets_in_parallel_without_reordering(self) -> None:
         """Responsibilities: _parallel worker result equivalence_, _source order preservation_."""
@@ -203,7 +156,7 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = {f"source_{index:02d}.py": f"def function_{index}():\n    return {index}\n" for index in range(8)}
         response = self._parallel_worker_result(sources, bridge)
         expected = {name: bridge.source_ast(source) for name, source in sources.items()}
-        response_asts = self._object(response.get("asts"))
+        response_asts = response["asts"]
         self.assertEqual(
             {"batch_id": response["batch_id"], "source_names": list(response_asts), "asts": response_asts},
             {"batch_id": "parallel-batch", "source_names": list(sources), "asts": expected},
@@ -225,8 +178,8 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources()
         bridge = PythonAstBridge(PythonAstTreeProcessProbe)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = self._object(response.get("asts"))
-        result_objects = [self._object(value) for value in response_asts.values()]
+        response_asts = response["asts"]
+        result_objects = list(response_asts.values())
         process_ids = [result_object.get("analysis_process_id") for result_object in result_objects]
         main_process_id = os.getpid()
         self.assertEqual(process_ids, [main_process_id] * len(sources))
@@ -236,8 +189,8 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources()
         bridge = PythonAstBridge(PythonAstTreeProcessProbe)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = self._object(response.get("asts"))
-        result_objects = [self._object(value) for value in response_asts.values()]
+        response_asts = response["asts"]
+        result_objects = list(response_asts.values())
         issue_counts = [result_object.get("analysis_issue_count") for result_object in result_objects]
         self.assertEqual(len(issue_counts), len(sources))
 
@@ -255,10 +208,11 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources(syntax_error_index=3)
         bridge = PythonAstBridge(PythonAstTree)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = self._object(response.get("asts"))
-        actual = {
-            "source_names": list(response_asts),
-            "parse_issue_line": self._first_parse_issue_line(self._object(response_asts["source_03.py"])),
-        }
-        expected = {"source_names": list(sources), "parse_issue_line": 0}
-        self.assertEqual(actual, expected)
+        response_asts = response["asts"]
+        self.assertEqual(
+            {
+                "source_names": list(response_asts),
+                "parse_issue_line": self._first_parse_issue_line(response_asts["source_03.py"]),
+            },
+            {"source_names": list(sources), "parse_issue_line": 0},
+        )

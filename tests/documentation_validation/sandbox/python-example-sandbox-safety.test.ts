@@ -146,12 +146,23 @@ describe("Python example sandbox behavior", () => {
 
 		const sandbox = new DocumentationExampleSandbox(python_runner);
 		const result = sandbox.capture_output(PYTHON_SANDBOX_EXAMPLE);
+		const invocations = python_runner.mock.calls.map(([command, arguments_, options]) => ({
+			command,
+			arguments_prefix: arguments_.slice(0, 3),
+			source: arguments_[3],
+			options: { cwd: options.cwd, env: options.env, timeout: options.timeout },
+		}));
 
-		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
-		expect(python_runner).toHaveBeenCalledWith(
-			"python3",
-			["-I", "-S", "-c", expect.any(String)],
-			expect.objectContaining({ cwd: "/", env: {}, timeout: 1000 }),
-		);
+		expect({ result, invocations }).toEqual({
+			result: { stdout: "ready\n", exit_code: 0 },
+			invocations: [
+				{
+					command: "python3",
+					arguments_prefix: ["-I", "-S", "-c"],
+					source: expect.stringContaining("source_files"),
+					options: { cwd: "/", env: {}, timeout: 1000 },
+				},
+			],
+		});
 	});
 });

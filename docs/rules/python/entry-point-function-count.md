@@ -1,10 +1,10 @@
-# `cli-file-function-count`
+# `entry-point-function-count`
 
-Description: Each `cli.*` module may contain at most one free function: its entry point. All other behavior belongs in focused domain classes. Class methods, nested functions, and an inline startup wrapper are not counted as additional free entry points.
+Description: A source file recognized as an entry point may contain at most one free function. Entry points are identified by a Python main guard or configured entry-file paths, not by their filenames. All other behavior belongs in focused domain classes. Class methods, nested functions, and an inline startup wrapper are not counted as additional free entry points.
 
-Problem: `cli.*` contains more than one free function.
+Problem: an entry-point file contains more than one free function.
 
-Hint: Keep one free entry-point function in `cli.*` and move every other operation into focused domain classes.
+Hint: Keep at most one free function in the recognized entry-point file and move every other operation into focused domain classes.
 
 ## Bad
 
@@ -25,7 +25,9 @@ def load_configuration() -> None:
 
 def report_status() -> None:
     StatusLabels().report("missing")
-start()
+
+if __name__ == "__main__":
+    start()
 ```
 
 ## Good

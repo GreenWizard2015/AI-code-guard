@@ -20,24 +20,28 @@ describe("unused code entry points", () => {
 		]);
 	});
 
-	test("recognizes named CLI modules as entry points without shebangs", () => {
+	test("does not infer entry points from filenames", () => {
 		const project = fixture._project_source.source_scanner_fixture({
 			"tools/coding-lint/cli.ts": 'import { value } from "./dependency";\nvoid value;\n',
 			"tools/coding-lint/dependency.ts": "export const value = 1;\n",
 			"tools/coding-lint/unused.ts": "export const unused = 1;\n",
 			"src/cli.py": "start()\n",
 		});
+		const entry_point_files = project.scanner.entry_point_files();
 		const unused_code = new UnusedCode();
-		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
-
+		const unused_violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+		const unused_files = unused_violations
+			.filter((violation) => violation.rule_id() === "unused-file")
+			.map((violation) => violation.file());
 		expect({
-			ts_entry: project.scanner.project_source_entry().entry(resolve(project.root, "tools/coding-lint/cli.ts")),
-			python_entry: project.scanner.project_source_entry().entry(resolve(project.root, "src/cli.py")),
-			unused: violations.map((violation) => violation.file()),
+			ts_entry: entry_point_files.has(resolve(project.root, "tools/coding-lint/cli.ts")),
+			python_entry: entry_point_files.has(resolve(project.root, "src/cli.py")),
+			filename_entry_points_are_unused:
+				unused_files.includes("tools/coding-lint/cli.ts") && unused_files.includes("src/cli.py"),
 		}).toEqual({
-			ts_entry: true,
-			python_entry: true,
-			unused: ["tools/coding-lint/unused.ts"],
+			ts_entry: false,
+			python_entry: false,
+			filename_entry_points_are_unused: true,
 		});
 	});
 
@@ -49,9 +53,12 @@ describe("unused code entry points", () => {
 		});
 		const unused_code = new UnusedCode();
 		const violations = unused_code.collect_scanner_violations(project.root, project.scanner, project.files);
+		const source_entry = project.scanner.project_source_entry();
+		const test_module = source_entry.project_path(resolve(project.root, "tests/plugin_harness_contract.py"));
+		const test_module_classification = source_entry.classification(test_module);
 
 		expect({
-			entry: project.scanner.project_source_entry().entry(resolve(project.root, "tests/plugin_harness_contract.py")),
+			entry: test_module_classification.entry,
 			unused: violations.map((violation) => violation.file()),
 		}).toEqual({ entry: true, unused: [] });
 	});
@@ -70,13 +77,19 @@ describe("unused code entry points", () => {
 			context_state: { available: true, value: project.context },
 			entry_files: [],
 		});
-		const entries = scanner.files().map((file) => scanner.project_source_entry().entry(file));
+		const source_entry = scanner.project_source_entry();
+		const entries: boolean[] = [];
+		for (const file of scanner.files()) {
+			const source_path = source_entry.project_path(file);
+			const classification = source_entry.classification(source_path);
+			entries.push(classification.entry);
+		}
 		expect(entries).toEqual([true, true, true]);
 	});
 
 	test("keeps URL-loaded Node worker modules reachable", () => {
 		const project = fixture._project_source.source_scanner_fixture({
-			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/cli.ts": '#!/usr/bin/env node\nimport "./worker-pool";\n',
 			"tools/coding-lint/worker-pool.ts": [
 				'import { Worker } from "node:worker_threads";',
 				'const extension = ".ts";',
@@ -102,7 +115,7 @@ describe("unused code entry points", () => {
 
 	test("keeps all statically selected Node worker entries reachable", () => {
 		const project = fixture._project_source.source_scanner_fixture({
-			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/cli.ts": '#!/usr/bin/env node\nimport "./worker-pool";\n',
 			"tools/coding-lint/worker-pool.ts": [
 				'import { Worker } from "node:worker_threads";',
 				"class WorkerPool {",
@@ -132,7 +145,7 @@ describe("unused code entry points", () => {
 
 	test("keeps statically returned Node worker entries reachable", () => {
 		const project = fixture._project_source.source_scanner_fixture({
-			"tools/coding-lint/cli.ts": 'import "./worker-pool";\n',
+			"tools/coding-lint/cli.ts": '#!/usr/bin/env node\nimport "./worker-pool";\n',
 			"tools/coding-lint/worker-pool.ts": [
 				'import { Worker } from "node:worker_threads";',
 				"class WorkerPool {",
@@ -188,10 +201,10 @@ describe("unused code entry points", () => {
 		const outside_file = resolve(project.root, "../outside.ts");
 
 		expect({
-			first_lookup: project.entry.relative_path(source_file),
-			repeated_lookup: project.entry.relative_path(source_file),
-			root_lookup: project.entry.relative_path(project.root),
-			outside_lookup: project.entry.relative_path(outside_file),
+			first_lookup: project.entry.project_path(source_file).relative,
+			repeated_lookup: project.entry.project_path(source_file).relative,
+			root_lookup: project.entry.project_path(project.root).relative,
+			outside_lookup: project.entry.project_path(outside_file).relative,
 		}).toEqual({
 			first_lookup: "src/main.ts",
 			repeated_lookup: "src/main.ts",

@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import { TYPESCRIPT_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants";
 
 describe("TypeScript documentation example failures", () => {
-	test("reports failed assertions from example test files", () => {
+	test("[local-process] reports failed assertions from example test files", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -25,7 +26,7 @@ describe("TypeScript documentation example failures", () => {
 		expect(result.stdout).toContain("Documentation test failed: toBe");
 	});
 
-	test("isolates sources and registered tests across sequential examples", () => {
+	test("[local-process] isolates sources and registered tests across sequential examples", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const first = {
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -60,7 +61,7 @@ describe("TypeScript documentation example failures", () => {
 		});
 	});
 
-	test("rejects asynchronous assertion failures before CLI execution", () => {
+	test("[local-process] rejects asynchronous assertion failures before CLI execution", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -91,7 +92,7 @@ describe("TypeScript documentation example failures", () => {
 		});
 	});
 
-	test("preserves isolated TypeScript runtime errors for documentation diagnostics", () => {
+	test("[local-process] preserves isolated TypeScript runtime errors for documentation diagnostics", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -100,7 +101,7 @@ describe("TypeScript documentation example failures", () => {
 		expect(result).toEqual({ stdout: "Error: example failure", exit_code: 1 });
 	});
 
-	test("does not call object conversion hooks from the sandbox output callback", () => {
+	test("[local-process] does not call object conversion hooks from the sandbox output callback", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -119,7 +120,7 @@ describe("TypeScript documentation example failures", () => {
 		expect(result).toEqual({ stdout: "[object]\n", exit_code: 0 });
 	});
 
-	test("executes TypeScript CLI entrypoints with a Node shebang", () => {
+	test("[local-process] executes TypeScript CLI entrypoints with a Node shebang", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,

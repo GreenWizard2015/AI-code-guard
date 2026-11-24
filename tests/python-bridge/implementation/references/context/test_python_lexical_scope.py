@@ -14,9 +14,9 @@ class PythonLexicalScopeTest(unittest.TestCase):
         index = PythonAstNodeIndex()
         index.nodes(tree)
         outer = tree.body[0]
-        comprehension = next(node for node in ast.walk(tree) if type(node) is ast.ListComp)
-        iterable = next(node for node in ast.walk(comprehension.generators[0].iter) if type(node) is ast.Name)
-        element = next(node for node in ast.walk(comprehension.elt) if type(node) is ast.Name)
+        comprehension = tree.body[0].body[0].value
+        iterable = comprehension.generators[0].iter
+        element = comprehension.elt
         resolver = PythonLexicalScope(index)
         expected = {
             "iterable": [str(id(outer)), "module"],
@@ -46,9 +46,9 @@ class PythonLexicalScopeTest(unittest.TestCase):
         )
         index = PythonAstNodeIndex()
         index.nodes(tree)
-        container = next(node for node in tree.body if type(node) is ast.ClassDef)
-        method = next(node for node in container.body if type(node) is ast.FunctionDef)
-        transform = next(node for node in ast.walk(tree) if type(node) is ast.Lambda)
+        container = tree.body[0]
+        method = container.body[0]
+        transform = method.body[0].value
         parameter = transform.args.args[0]
         resolver = PythonLexicalScope(index)
 

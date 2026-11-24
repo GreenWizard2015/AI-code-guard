@@ -149,16 +149,22 @@ describe("Python example import policy", () => {
 		}));
 		const result_sandbox = new DocumentationExampleSandbox(python_runner_mock);
 		const result = result_sandbox.capture_output(example);
+		const invocations = python_runner_mock.mock.calls.map(([command, arguments_, options]) => ({
+			command,
+			arguments_prefix: arguments_.slice(0, 3),
+			input: options.input,
+		}));
 
-		expect({ result, runner_calls: python_runner_mock.mock.calls.length }).toEqual({
+		expect({ result, invocations }).toEqual({
 			result: { stdout: "ready\n", exit_code: 0 },
-			runner_calls: 1,
+			invocations: [
+				{
+					command: "python3",
+					arguments_prefix: ["-I", "-S", "-c"],
+					input: expect.stringContaining('"tests/test_value.py"'),
+				},
+			],
 		});
-		expect(python_runner_mock).toHaveBeenCalledWith(
-			"python3",
-			expect.any(Array),
-			expect.objectContaining({ input: expect.stringContaining('"tests/test_value.py"') }),
-		);
 	});
 
 	test("rejects submodule access through an allowed Python standard module", () => {

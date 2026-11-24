@@ -11,6 +11,11 @@ export interface JestTestRulesContract {
 	append_violations(violations: ViolationContract[], resolver: TypeScriptModuleResolverContract): void;
 }
 
+/** Responsibilities: _Jest inline assertion policy_, _suite findings_. **/
+export interface JestInlineAssertionObjectLiteralsContract {
+	append_suite(suite: JestSuite): ViolationContract[];
+}
+
 /** Responsibilities: _Jest callback extraction_. **/
 export interface JestSuiteCollectorContract {
 	with_callback(node: ts.CallExpression, consumer: CallableConsumer): void;

@@ -7,19 +7,21 @@ from implementation.types import JsonObject
 
 
 class PythonAstTreeProcessProbe(PythonAstTree):
-    """Responsibilities: _AST rule execution_, _process identity evidence_."""
+    """Responsibilities: _AST execution identity_, _analysis issue evidence_."""
 
-    def _record_analysis_process(self, result: JsonObject) -> None:
-        """Responsibilities: _completed analysis evidence_, _process identity_."""
-        coding_issues = result.get("coding_issues")
-        if type(coding_issues) is not list:
-            return
-        issue_count = len(coding_issues)
-        process_id = os.getpid()
-        result.update({"analysis_process_id": process_id, "analysis_issue_count": issue_count})
+    def _analysis_issue_count(self) -> int:
+        """Responsibilities: _Python analysis issues_."""
+        return len(self.coding_issues())
+
+    def _analysis_process_evidence(self) -> JsonObject:
+        """Responsibilities: _analysis process evidence_."""
+        return {
+            "analysis_process_id": os.getpid(),
+            "analysis_issue_count": self._analysis_issue_count(),
+        }
 
     def ast(self) -> JsonObject:
-        """Responsibilities: _Python rule execution_."""
+        """Responsibilities: _AST analysis evidence_."""
         result = super().ast()
-        self._record_analysis_process(result)
+        result.update(self._analysis_process_evidence())
         return result

@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import { TYPESCRIPT_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants";
 
 describe("TypeScript documentation test hooks", () => {
-	test("resolves virtual test modules imported by production examples", () => {
+	test("[local-process] resolves virtual test modules imported by production examples", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -27,7 +28,7 @@ describe("TypeScript documentation test hooks", () => {
 		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
 	});
 
-	test("runs beforeEach hooks for every registered example test", () => {
+	test("[local-process] runs beforeEach hooks for every registered example test", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -50,7 +51,7 @@ describe("TypeScript documentation test hooks", () => {
 		expect(result).toEqual({ stdout: "pending\n", exit_code: 0 });
 	});
 
-	test("scopes beforeEach hooks to their suite and inherits parent hooks", () => {
+	test("[local-process] scopes beforeEach hooks to their suite and inherits parent hooks", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,

@@ -21,7 +21,11 @@ export class FileLintAnalysis {
 		const source_paths = state.context.files().map((record) => record.relative_path);
 		const import_paths = new ProjectTestTargetImportPaths(state.repo_root, state.context);
 		const test_violations = new TestFileViolationCollector(import_paths, source_paths);
-		return new FileViolationCollector(test_violations, file_io, source_io);
+		const source_entry_paths = state.project_scope.scanner().entry_point_files();
+		const entry_paths = [...source_entry_paths];
+		const relative_entry_paths = entry_paths.map((file) => state.context.source_record(file).relative_path);
+		const entry_point_files = new Set(relative_entry_paths);
+		return new FileViolationCollector(test_violations, file_io, source_io, entry_point_files);
 	}
 
 	/** Responsibilities: _ignore-file identity content_. **/

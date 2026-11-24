@@ -15,7 +15,8 @@ describe("coding lint project context timing", () => {
 		timer.finish_measurement("typescript.ast-rule.direct-timing", start_time);
 		const durations = timer.durations();
 
-		expect(durations).toEqual([{ name: "typescript.ast-rule.direct-timing", duration_ms: expect.any(Number) }]);
+		expect(durations.map((duration) => duration.name)).toEqual(["typescript.ast-rule.direct-timing"]);
+		expect(durations.map((duration) => duration.duration_ms >= 0)).toEqual([true]);
 	});
 
 	test("reports aggregate source timing without per-file stages", () => {

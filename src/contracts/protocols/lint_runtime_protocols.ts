@@ -6,7 +6,7 @@ import type { SharedParameterTypeSource } from "src/metrics/types";
 import type { AstPythonImport, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { AstResponsibilityKind } from "src/model/ast/normalized_ast_types";
 import type { ImportedSymbol } from "src/model_types";
-import type { PlacementFunctionNode } from "src/model_types";
+import type { PlacementFunctionNode } from "src/rules/architecture/types";
 import type { RemainingViolationOptions } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { ExpressionNamesContract, ProjectAnalysisIdentityContract } from "src/runtime_protocols";
@@ -219,9 +219,14 @@ export interface ImportFanOutContract {
 	append(violations: ViolationContract[], source: LintSourceRecordData): void;
 }
 
-/** Responsibilities: _function placement diagnostics_. **/
+/** Responsibilities: _free function diagnostics_. **/
 export interface FunctionPlacementRulesContract {
-	append(violations: ViolationContract[], file: string, functions: readonly PlacementFunctionNode[]): void;
+	append(
+		violations: ViolationContract[],
+		file: string,
+		functions: readonly PlacementFunctionNode[],
+		entry_point: boolean,
+	): void;
 }
 
 /** Responsibilities: _remaining reexport diagnostics_. **/

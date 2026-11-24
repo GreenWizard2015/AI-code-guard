@@ -8,7 +8,7 @@ import type {
 	PythonBatchAstOptions,
 	PythonSourceAstBatch,
 } from "src/model/ast/normalized_ast_types";
-import type { ArchitectureInput } from "src/model_types";
+import type { ArchitectureInput } from "src/rules/architecture/types";
 import type { CallablePythonAstBatchParser, PythonImportRootIndexContract } from "src/python_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { LintStageTimerContract } from "src/shared_services_protocols";

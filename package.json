@@ -20,6 +20,7 @@
 		"coverage:python:markdown": "COVERAGE_FILE=coverage/.coverage.python node scripts/python-coverage-markdown.mjs",
 		"coverage": "COVERAGE_FILE=coverage/.coverage.python python3 -m coverage erase && pnpm coverage:python && pnpm coverage:typescript && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage combine --keep && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage report && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage json -o coverage/python-coverage.json && pnpm coverage:python:markdown && COVERAGE_FILE=coverage/.coverage.python python3 -m coverage html",
 		"test:runner": "tsx test-runner/cli.ts",
+		"test:local-process": "CI=false NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testNamePattern=local-process",
 		"validate:rule-docs": "tsx documentation_validation/cli.ts",
 		"lint": "tsx src/core/cli.ts --entry-file src/core/cli.ts --entry-file documentation_validation/cli.ts --entry-file test-runner/cli.ts --ignore-dir .codex",
 		"format": "pnpm format:ts && pnpm format:python",

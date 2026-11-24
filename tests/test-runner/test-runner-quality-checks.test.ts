@@ -16,8 +16,8 @@ describe("test runner quality checks", () => {
 		expect(String(help_output)).toContain(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`);
 	});
 
-	test("does not run quality checks after a failed TypeScript test command", () => {
-		const runner = new CommandExecutionTestDouble([0, 3, 0]);
+	test("runs quality checks before stopping at a failed TypeScript test command", () => {
+		const runner = new CommandExecutionTestDouble([...Array.from({ length: 11 }, () => 0), 0, 3]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless"]);
@@ -30,16 +30,16 @@ describe("test runner quality checks", () => {
 			exit_code,
 			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
-			calls: [
+			calls: expect.arrayContaining([
 				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
 				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest"],
-			],
+			]),
 			exit_code: 3,
 			success_message: false,
 		});
 	});
 
-	test("stops the complete runner before quality checks after a failed test command", () => {
+	test("stops before tests when a quality check fails", () => {
 		const runner = new CommandExecutionTestDouble([3]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
@@ -53,7 +53,24 @@ describe("test runner quality checks", () => {
 			exit_code,
 			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
-			calls: [["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`]],
+			calls: [
+				[
+					"pnpm",
+					"--dir",
+					PROJECT_ROOT,
+					"exec",
+					"biome",
+					"check",
+					"--write",
+					"--organize-imports-enabled=true",
+					"--formatter-enabled=false",
+					"--linter-enabled=false",
+					`${PROJECT_ROOT}/documentation_validation`,
+					`${PROJECT_ROOT}/test-runner`,
+					`${PROJECT_ROOT}/src`,
+					`${PROJECT_ROOT}/tests`,
+				],
+			],
 			exit_code: 3,
 			success_message: false,
 		});
@@ -78,7 +95,7 @@ describe("test runner quality checks", () => {
 		});
 	});
 
-	test("runs quality checks after tests and reports successful completion", () => {
+	test("runs all quality checks before tests and reports successful completion", () => {
 		const runner = new CommandExecutionTestDouble([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
@@ -86,7 +103,7 @@ describe("test runner quality checks", () => {
 		const snapshot = runner.snapshot();
 		const calls = [...snapshot.calls];
 		const all_arguments = calls.flat();
-		const quality_commands = calls.slice(2).map((call) => {
+		const quality_commands = calls.slice(0, 11).map((call) => {
 			if (call[0] === "python3") {
 				return call[2];
 			}
@@ -99,7 +116,7 @@ describe("test runner quality checks", () => {
 		expect({
 			exit_code,
 			success_message: String(output.stdout.read()).includes("All tests passed!"),
-			test_commands: calls.slice(0, 2),
+			test_commands: calls.slice(-2),
 			quality_commands,
 			review_options: all_arguments.filter((argument) =>
 				["--force-review", "--review-agent", "codex"].includes(argument),

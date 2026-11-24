@@ -1,5 +1,4 @@
-import { FUNCTION_MODULE_NAMES, MAX_IMPORT_FAN_OUT } from "src/constants";
-import { PYTHON_LANGUAGE } from "src/constants";
+import { FUNCTION_MODULE_NAMES, MAX_IMPORT_FAN_OUT, PYTHON_LANGUAGE } from "src/constants";
 import type { IOContract } from "src/io/protocols";
 import { FileRemainingTextRules } from "src/linting/orchestration/runtime/file_linting/file_remaining_text_rules";
 import { FileRemainingViolationCollector } from "src/linting/orchestration/runtime/file_linting/file_remaining_violation_collector";
@@ -26,16 +25,19 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 	private readonly _tests: TestFileViolationCollectorContract;
 	private readonly _file_io: IOContract;
 	private readonly _source_io: ProjectSourceIOContract;
+	private readonly _entry_point_files: ReadonlySet<string>;
 
 	/** Responsibilities: _remaining file violation initialization_. **/
 	public constructor(
 		tests: TestFileViolationCollectorContract,
 		file_io: IOContract,
 		source_io: ProjectSourceIOContract,
+		entry_point_files: ReadonlySet<string>,
 	) {
 		this._tests = tests;
 		this._file_io = file_io;
 		this._source_io = source_io;
+		this._entry_point_files = entry_point_files;
 		this._import_fan_out = new ImportFanOut(MAX_IMPORT_FAN_OUT, new DiagnosticRule("import-fan-out"));
 		this._function_placement_rules = new FunctionPlacementRules(FUNCTION_MODULE_NAMES);
 		this._remaining_text_rules = new FileRemainingTextRules(
@@ -48,13 +50,16 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 		options: RemainingViolationOptions,
 		coding_rule_linter: CodingRuleLinterContract,
 	): void {
-		const remaining = new FileRemainingViolationCollector(
+		const remaining = new FileRemainingViolationCollector({
 			options,
-			this._import_fan_out,
-			this._function_placement_rules,
-			this._remaining_text_rules,
-			coding_rule_linter,
-		);
+			dependencies: {
+				import_fan_out: this._import_fan_out,
+				function_placement_rules: this._function_placement_rules,
+				text_rules: this._remaining_text_rules,
+				coding_rule_linter,
+			},
+			entry_point: this._entry_point_files.has(options.file),
+		});
 		remaining.append_common_rules();
 		remaining.append_metric_rules();
 		remaining.append_singletons();

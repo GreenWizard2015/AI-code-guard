@@ -25,6 +25,7 @@ from implementation.rules.python_syntax.python_type_factory_names import (
 )
 from implementation.rules.type_rules.type_rules import TypeRules
 from implementation.rules.type_rules.type_rules_options import TypeRulesOptions
+from python_reference_test_support import PythonReferenceTestSupport
 
 from tests.python.constants import TYPE_FACTORY_ALIAS_SOURCE
 
@@ -124,15 +125,9 @@ Result = Factory("Result", {"value": str})
 
     def _method(self, tree: ast.Module, name: str) -> ast.AST:
         """Responsibilities: _descriptor method selection_."""
-        class_node = tree.body[0]
-        if type(class_node) is not ast.ClassDef:
-            return tree
-        for statement in class_node.body:
-            if type(statement) is ast.FunctionDef and statement.name == name:
-                return statement
-            if type(statement) is ast.AsyncFunctionDef and statement.name == name:
-                return statement
-        return tree
+        support = PythonReferenceTestSupport()
+        functions = support.function_nodes(tree)
+        return [function for function in functions if function.name == name][0]
 
     def test_indexes_static_descriptor(self) -> None:
         """Responsibilities: _static descriptor indexing_."""
@@ -146,12 +141,9 @@ Result = Factory("Result", {"value": str})
         state = PythonDecoratorAliasState(aliases, references, node_index)
         state.observe_module(tree)
         method = self._method(tree, "run")
-        method_found = type(method) is ast.FunctionDef and method.name == "run"
-        actual_kind = ""
-        if method_found:
-            actual_kind = state.assigned_descriptors().kind(method)
+        actual_kind = state.assigned_descriptors().kind(method)
 
-        self.assertEqual({"method_found": method_found, "kind": actual_kind}, {"method_found": True, "kind": "static"})
+        self.assertEqual(actual_kind, "static")
 
     def test_indexes_class_descriptor(self) -> None:
         """Responsibilities: _class descriptor indexing_."""
@@ -165,12 +157,9 @@ Result = Factory("Result", {"value": str})
         state = PythonDecoratorAliasState(aliases, references, node_index)
         state.observe_module(tree)
         method = self._method(tree, "run")
-        method_found = type(method) is ast.FunctionDef and method.name == "run"
-        actual_kind = ""
-        if method_found:
-            actual_kind = state.assigned_descriptors().kind(method)
+        actual_kind = state.assigned_descriptors().kind(method)
 
-        self.assertEqual({"method_found": method_found, "kind": actual_kind}, {"method_found": True, "kind": "class"})
+        self.assertEqual(actual_kind, "class")
 
     def test_reassigned_descriptor_loses_its_kind(self) -> None:
         """Responsibilities: _descriptor reassignment_."""
@@ -184,12 +173,9 @@ Result = Factory("Result", {"value": str})
         state = PythonDecoratorAliasState(aliases, references, node_index)
         state.observe_module(tree)
         method = self._method(tree, "run")
-        method_found = type(method) is ast.FunctionDef and method.name == "run"
-        actual_kind = ""
-        if method_found:
-            actual_kind = state.assigned_descriptors().kind(method)
+        actual_kind = state.assigned_descriptors().kind(method)
 
-        self.assertEqual({"method_found": method_found, "kind": actual_kind}, {"method_found": True, "kind": ""})
+        self.assertEqual(actual_kind, "")
 
     def test_tuple_type_aliases(self) -> None:
         """Responsibilities: _tuple type alias classification_."""
@@ -204,8 +190,9 @@ Result = Factory("Result", {"value": str})
         aliases = container_assembly.container_aliases()
         tuple_names = PythonTupleTypeNames(aliases, PythonReferenceAliases(PythonReferenceAliasState()))
         tuple_names.configure(tree)
-        function = next(node for node in tree.body if type(node) is ast.FunctionDef)
-        annotations = [argument.annotation for argument in function.args.args if argument.annotation is not None]
+
+        support = PythonReferenceTestSupport()
+        annotations = support.argument_annotations(tree)
 
         self.assertEqual(
             [tuple_names.annotation(annotation) for annotation in annotations],

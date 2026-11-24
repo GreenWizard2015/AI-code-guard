@@ -124,7 +124,7 @@ def last():
         state = aliases.state()
         aliases.observe_all(index.nodes(tree), tree)
         last_scope_values = state.alias("registry").values()
-        first_function = next(node for node in tree.body if type(node) is ast.FunctionDef)
+        first_function = tree.body[0]
         first_assignment = first_function.body[0]
         state.select_scope_node(first_assignment)
         first_scope_values = state.alias("registry").values()
@@ -140,7 +140,7 @@ def last():
         node_index = PythonAstNodeIndex()
         state = PythonContainerAliasState(node_index)
         state.configure_scope_tree(tree)
-        function = next(node for node in tree.body if type(node) is ast.FunctionDef)
+        function = tree.body[0]
         assignment = function.body[0]
         state.select_scope_node(tree)
         state.record_alias("registry", "", {"module": tree})

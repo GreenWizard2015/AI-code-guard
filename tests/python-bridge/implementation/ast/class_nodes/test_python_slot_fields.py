@@ -19,10 +19,6 @@ class PythonSlotFieldsTests(unittest.TestCase):
         )
         module_slots = tree.body[0]
         account = tree.body[1]
-        if type(module_slots) is not ast.Assign:
-            self.fail("expected a module slot assignment")
-        if type(account) is not ast.ClassDef:
-            self.fail("expected an account class")
         slot_fields = PythonSlotFields(account, [module_slots])
         fields = slot_fields.fields()
 
@@ -37,10 +33,6 @@ class Account:
 """,
         )
         module_slots, account = tree.body
-        if type(module_slots) is not ast.Assign:
-            self.fail("expected a module slot assignment")
-        if type(account) is not ast.ClassDef:
-            self.fail("expected an account class")
         slot_fields = PythonSlotFields(account, [module_slots])
         fields = slot_fields.fields()
 
@@ -54,8 +46,6 @@ class Account:
 """,
         )
         account = tree.body[0]
-        if type(account) is not ast.ClassDef:
-            self.fail("expected an account class")
         slot_fields = PythonSlotFields(account, [])
         fields = slot_fields.fields()
 

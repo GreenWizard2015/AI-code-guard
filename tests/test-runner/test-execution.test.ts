@@ -12,7 +12,11 @@ describe("test execution commands", () => {
 	test("stops when dependency installation fails", () => {
 		const runner = new CommandExecutionTestDouble([3]);
 		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
-		const exit_code = execution.run_tests([], { ...process.env, CI: "false" });
+		const exit_code = execution.run_tests({
+			jest_arguments: [],
+			environment: { ...process.env, CI: "false" },
+			dependencies_ready: false,
+		});
 
 		expect({ exit_code, calls: runner.snapshot().calls }).toEqual({
 			exit_code: 3,
@@ -23,7 +27,11 @@ describe("test execution commands", () => {
 	test("installs dependencies before running both test suites", () => {
 		const runner = new CommandExecutionTestDouble([0, 0, 0]);
 		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
-		const exit_code = execution.run_tests([], { ...process.env, CI: "false" });
+		const exit_code = execution.run_tests({
+			jest_arguments: [],
+			environment: { ...process.env, CI: "false" },
+			dependencies_ready: false,
+		});
 
 		expect({ exit_code, calls: runner.snapshot().calls }).toEqual({
 			exit_code: 0,
@@ -39,7 +47,11 @@ describe("test execution commands", () => {
 		const python_path_key = "PYTHONPATH";
 		const runner = new CommandExecutionTestDouble([0, 0]);
 		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
-		const exit_code = execution.run_tests([], { ...process.env, CI: "true" });
+		const exit_code = execution.run_tests({
+			jest_arguments: [],
+			environment: { ...process.env, CI: "true" },
+			dependencies_ready: false,
+		});
 		const snapshot = runner.snapshot();
 		const python_environment = snapshot.environments[0];
 		let python_path: string | undefined;
@@ -90,10 +102,10 @@ describe("test execution commands", () => {
 		const inherited_node_option = "--trace-warnings";
 		const runner = new CommandExecutionTestDouble([0, 0]);
 		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
-		const exit_code = execution.run_tests([], {
-			...process.env,
-			CI: "true",
-			NODE_OPTIONS: inherited_node_option,
+		const exit_code = execution.run_tests({
+			jest_arguments: [],
+			environment: { ...process.env, CI: "true", NODE_OPTIONS: inherited_node_option },
+			dependencies_ready: false,
 		});
 		const snapshot = runner.snapshot();
 		const commands_and_node_options = snapshot.calls.map((call, index) => {
@@ -123,7 +135,7 @@ describe("test execution commands", () => {
 		delete environment[node_options_key];
 		const runner = new CommandExecutionTestDouble([0, 0]);
 		const execution = new TestExecution(PROJECT_ROOT, runner, { stdout: new PassThrough(), stderr: new PassThrough() });
-		execution.run_tests([], environment);
+		execution.run_tests({ jest_arguments: [], environment, dependencies_ready: false });
 		const snapshot = runner.snapshot();
 
 		expect(snapshot.environments.map((child_environment) => child_environment[node_options_key])).toEqual([

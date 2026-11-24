@@ -1,17 +1,18 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import { TYPESCRIPT_SANDBOX_EXAMPLE } from "tests/documentation_validation/constants";
 
 describe("TypeScript documentation example runtime", () => {
-	test("executes in-memory TypeScript modules and captures their output", () => {
+	test("[local-process] executes in-memory TypeScript modules and captures their output", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output(TYPESCRIPT_SANDBOX_EXAMPLE);
 
 		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
 	});
 
-	test("executes a static prototype assignment on a locally declared class", () => {
+	test("[local-process] executes a static prototype assignment on a locally declared class", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -30,7 +31,7 @@ describe("TypeScript documentation example runtime", () => {
 		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
 	});
 
-	test("executes safe Object.prototype methods and bound callbacks", () => {
+	test("[local-process] executes safe Object.prototype methods and bound callbacks", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -53,7 +54,7 @@ describe("TypeScript documentation example runtime", () => {
 		expect(result).toEqual({ stdout: "[object String] true\n", exit_code: 0 });
 	});
 
-	test("runs test files from an example before validating its CLI output", () => {
+	test("[local-process] runs test files from an example before validating its CLI output", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,
@@ -76,7 +77,7 @@ describe("TypeScript documentation example runtime", () => {
 		expect(result).toEqual({ stdout: "ready\n", exit_code: 0 });
 	});
 
-	test("executes Jest assertions on an instance method in example tests", () => {
+	test("[local-process] executes Jest assertions on an instance method in example tests", () => {
 		const sandbox = new DocumentationExampleSandbox(spawnSync);
 		const result = sandbox.capture_output({
 			...TYPESCRIPT_SANDBOX_EXAMPLE,

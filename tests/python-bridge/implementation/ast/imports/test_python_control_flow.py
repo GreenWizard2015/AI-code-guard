@@ -72,11 +72,7 @@ class PythonControlFlowTest(unittest.TestCase):
         source_text = ast.unparse(tree)
         python_tree = PythonAstTree(source_text, ast.parse(source_text))
         parsed = python_tree.ast()
-        match parsed["private_accesses"]:
-            case list() as accesses:
-                return len(accesses)
-            case _:
-                return -1
+        return len(parsed["private_accesses"])
 
     def _proxy_count(self, tree: ast.AST) -> int:
         """Responsibilities: _proxy diagnostic count_."""
@@ -100,9 +96,7 @@ class PythonControlFlowTest(unittest.TestCase):
         kinds: set[str] = set()
         for node in ast.walk(tree):
             for issue in control.conditional_issues(node):
-                match issue.get("kind"):
-                    case str() as kind:
-                        kinds.add(kind)
+                kinds.add(issue["kind"])
         return kinds
 
     def test_import_control_flow(self) -> None:
@@ -115,11 +109,7 @@ class PythonControlFlowTest(unittest.TestCase):
             PythonSysPathRules(aliases, node_index),
             node_index,
         )
-        import_kinds: set[str] = set()
-        for issue in import_rules.import_issues(tree):
-            match issue.get("kind"):
-                case str() as kind:
-                    import_kinds.add(kind)
+        import_kinds = {issue["kind"] for issue in import_rules.import_issues(tree)}
         self.assertEqual(
             {
                 "late": "late" in import_kinds,
@@ -273,7 +263,7 @@ class PythonControlFlowTest(unittest.TestCase):
         first_tree = ast.parse("import sys\nadd_path = sys.path.append\n")
         second_tree = ast.parse("pass\n")
         call_source = ast.parse("add_path('/tmp')\n")
-        call = next(node for node in ast.walk(call_source) if type(node) is ast.Call)
+        call = call_source.body[0].value
         rules = PythonSysPathRules(
             self._container_aliases(),
             self._python_ast_node_index(),
@@ -301,8 +291,8 @@ class PythonControlFlowTest(unittest.TestCase):
             self._container_aliases(),
             self._python_ast_node_index(),
         )
-        first_call = next(node for node in ast.walk(first_tree) if type(node) is ast.Call)
-        second_call = next(node for node in ast.walk(second_tree) if type(node) is ast.Call)
+        first_call = first_tree.body[1].body[1].body[0].value
+        second_call = second_tree.body[0].body[0].body[0].value
         rules.configure(first_tree)
         found_before_reset = rules.path_mutation(first_call)
         rules.configure(second_tree)

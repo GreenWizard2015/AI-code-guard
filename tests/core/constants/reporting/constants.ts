@@ -77,8 +77,8 @@ export const CRITICAL_ONLY_VIOLATIONS = [
 		file: "worker.ts",
 		line: 1,
 		message: "module-level functions must be declared in the project-root functions file",
-		hint: "FIRST move all functions to {project root}/functions.{ext}, then fix other problems. A cli.{ext} module may contain one entry-point function; keep all other behavior in domain classes. CLI startup wrappers may remain inline: use `if __name__ == '__main__':` in Python or `(function () { ... })();` in TypeScript.",
-		rule_id: "function-placement",
+		hint: "Move the operation and its state into a focused domain class. A file recognized as an entry point by the project scanner may contain one free function; keep all other behavior in domain classes.",
+		rule_id: "free-function-outside-entry-point",
 		priority: 3 as const,
 	},
 	{

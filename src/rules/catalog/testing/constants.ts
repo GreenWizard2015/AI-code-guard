@@ -107,6 +107,16 @@ export const TESTING_RULE_DATA = {
 		hint: "remove the duplicate setup statement or extract shared setup into one explicit fixture. Do not: repeat the same top-level setup operation consecutively before assertions.",
 		priority: 4,
 	},
+	"inline-assertion-object-literals": {
+		message: "object literal aliases in equality assertions must be inlined",
+		hint: "Pass object literals directly to the equality assertion instead of assigning them to temporary names used only by that assertion. Do not: name both actual and expected objects solely to compare them.",
+		priority: 5,
+	},
+	"test-type-check": {
+		message: "tests must verify behavior instead of runtime types",
+		hint: "Assert returned values or observable effects. A type is not behavior. Do not: use isinstance, type comparisons, instanceof, typeof, Array.isArray, or type matchers in a test.",
+		priority: 5,
+	},
 	"typescript-console-mock-in-test": {
 		message: "do not mock console in tests",
 		hint: "assert the returned value or collected diagnostics directly. Do not: mock console methods to verify behavior.",

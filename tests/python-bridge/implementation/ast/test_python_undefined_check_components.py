@@ -205,7 +205,7 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
         tree = ast.parse(
             "class Left(Right):\n    pass\nclass Right(Left):\n    pass\n",
         )
-        classes = {node.name: node for node in tree.body if type(node) is ast.ClassDef}
+        classes = {node.name: node for node in tree.body}
         own_fields: PythonClassFieldMap = {
             "Left": {"left": ast.Name(id="str", ctx=ast.Load())},
             "Right": {"right": ast.Name(id="int", ctx=ast.Load())},

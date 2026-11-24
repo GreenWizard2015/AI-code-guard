@@ -25,7 +25,7 @@ class PythonReferenceBindingOwnershipTest(unittest.TestCase):
     def __init__(self, method_name: str = "runTest") -> None:
         """Responsibilities: _reference support composition_."""
         super().__init__(method_name)
-        self._reference_support: PythonReferenceTestSupport = PythonReferenceTestSupport(self)
+        self._reference_support: PythonReferenceTestSupport = PythonReferenceTestSupport()
 
     def test_keeps_same_parameter_names_in_separate_function_scopes(self) -> None:
         """Responsibilities: _lexical instance ownership_."""
@@ -39,11 +39,9 @@ class PythonReferenceBindingOwnershipTest(unittest.TestCase):
         instance_collector = PythonInstanceCollector(scenario.tree, scenario.context, scenario.node_index)
         instance_collector.collect_instances(scenario.annotation_names)
         instance_collector.collect_for_aliases()
-        owners = [
-            scenario.context.attribute_owner(node.value, "")
-            for node in ast.walk(scenario.tree)
-            if type(node) is ast.Attribute and type(node.value) is ast.Name
-        ]
+
+        attributes = self._reference_support.attribute_nodes(scenario.tree)
+        owners = [scenario.context.attribute_owner(attribute.value, "") for attribute in attributes]
 
         self.assertEqual(owners, ["First", "Second"])
 

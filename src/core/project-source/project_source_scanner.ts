@@ -1,8 +1,13 @@
 import type { Dirent } from "node:fs";
 import { readdirSync } from "node:fs";
 import { extname, join, relative, resolve } from "node:path";
-import type { ReadonlyStringSetMap } from "src/analysis_types";
-import { IGNORED_DIRECTORIES, PROJECT_PREFIXES, SOURCE_EXTENSIONS } from "src/constants";
+import type { ReadonlyStringSetMap, StringReadonlySetMap } from "src/analysis_types";
+import {
+	IGNORED_DIRECTORIES,
+	PROJECT_ENTRY_POINTS_CACHE_KEY,
+	PROJECT_PREFIXES,
+	SOURCE_EXTENSIONS,
+} from "src/constants";
 import { ProjectSourceImportCache } from "src/core/project-source/imports/project_source_import_cache";
 import { ProjectSourceImports } from "src/core/project-source/imports/project_source_imports";
 import { ProjectSourceContextImports } from "src/core/project-source/project_source_context_imports";
@@ -30,6 +35,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 	private readonly _context_imports: ProjectSourceContextImportsContract;
 	private readonly _specifier_resolver: ProjectSourceImportCache;
 	private readonly _worker_entries: ProjectSourceWorkerEntries;
+	private readonly _entry_point_files: StringReadonlySetMap;
 
 	/** Responsibilities: _source file classification_. **/
 	private project_source_file(name: string, path: string): boolean {
@@ -97,7 +103,14 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 
 	/** Responsibilities: _project entry classification_, _external entry-point lookup_. **/
 	private entry_files(files: readonly string[], available: ReadonlySet<string>): string[] {
-		const pending = files.filter((file) => this._source_entry.entry(file));
+		const pending: string[] = [];
+		for (const file of files) {
+			const source = this._source_entry.project_path(file);
+			const classification = this._source_entry.classification(source);
+			if (classification.entry) {
+				pending.push(file);
+			}
+		}
 		pending.push(...this._worker_entries.entry_files(files, available));
 		for (const relative_file of this.external_symbol_usages().keys()) {
 			const entry_file = resolve(this._root, relative_file);
@@ -106,6 +119,16 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 			}
 		}
 		return pending;
+	}
+
+	/** Responsibilities: _external executable source files_. **/
+	private append_external_entries(entry_points: string[], available_files: ReadonlySet<string>): void {
+		for (const relative_file of this.external_symbol_usages().keys()) {
+			const entry_file = resolve(this._root, relative_file);
+			if (available_files.has(entry_file)) {
+				entry_points.push(entry_file);
+			}
+		}
 	}
 
 	/** Responsibilities: _initialization project root file_. **/
@@ -126,11 +149,28 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 		this._source_entry = new ProjectSourceEntry(root, options);
 		this._context_state = options.context_state;
 		this._worker_entries = new ProjectSourceWorkerEntries(options.context_state.value, new WorkerUrlPaths());
+		this._entry_point_files = new Map();
 	}
 
 	/** Responsibilities: _project source entry lookup_. **/
 	public project_source_entry(): ProjectSourceEntryContract {
 		return this._source_entry;
+	}
+
+	/** Responsibilities: _project entry-point root files_. **/
+	public entry_point_files(): ReadonlySet<string> {
+		const cached = this._entry_point_files.get(PROJECT_ENTRY_POINTS_CACHE_KEY);
+		if (cached !== undefined) {
+			return cached;
+		}
+		const files = this.files();
+		const available = new Set(files);
+		const entry_points = this._source_entry.configured_entries(files);
+		entry_points.push(...this._worker_entries.entry_files(files, available));
+		this.append_external_entries(entry_points, available);
+		const result = new Set(entry_points);
+		this._entry_point_files.set(PROJECT_ENTRY_POINTS_CACHE_KEY, result);
+		return result;
 	}
 
 	/** Responsibilities: _discovery supported project source_. **/
@@ -170,7 +210,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 	/** Responsibilities: _project import analysis_. **/
 	public imports(file: string, files: Set<string>): ProjectSourceImportAnalysisContract {
 		const analysis = new ProjectSourceImportAnalysis();
-		const path = this._source_entry.relative_path(file);
+		const path = this._source_entry.project_path(file).relative;
 		for (const specifier of this._specifier_resolver.import_specifiers(file, files)) {
 			analysis.append(
 				{
@@ -190,7 +230,7 @@ export class ProjectSourceScanner implements ProjectSourceScanContract {
 	public resolved_import_path(file: string, specifier: string, files: Set<string>): string {
 		return this._specifier_resolver.resolve({
 			file,
-			path: this._source_entry.relative_path(file),
+			path: this._source_entry.project_path(file).relative,
 			specifier,
 			files,
 			python: this._project_source_python,

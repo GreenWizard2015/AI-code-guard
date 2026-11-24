@@ -413,7 +413,7 @@ select `--review-agent codex`, `cx`, `cxa`, or `claude` explicitly to request re
 
 Keep tests focused on returned values and collected diagnostics. Test code should not mock console output to verify behavior. Python tests should use test methods on test classes, and TypeScript/Jest tests should follow the repository's one-suite-per-file and no-nested-suite conventions.
 
-When a file or class becomes too large, split it by ownership. Prefer focused classes that own shared data and operations over collections of unrelated free functions. Free functions belong only in the exact project-root `functions.*` file.
+When a file or class becomes too large, split it by ownership. Prefer focused classes that own shared data and operations over collections of unrelated free functions. Free functions are reserved for files recognized by the project entry-point scanner, including executable markers, worker and package entries, and configured entry-file paths; move other operations into focused classes.
 
 ## Current limitations
 

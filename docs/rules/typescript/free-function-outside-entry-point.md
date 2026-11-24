@@ -1,10 +1,12 @@
-# `function-placement`
+# `free-function-outside-entry-point`
 
 Description: Keep production behavior in domain classes, not module-level free functions.
 The exact project-root `functions.{ext}` file is not an exemption: it may hold
 focused domain classes, but free functions there are reported by
-`functions-file-domain-class`. A CLI may contain one entry point; keep startup
-code inline in `cli.{ext}`.
+`functions-file-domain-class`. An entry point is recognized by an executable
+marker such as a Node shebang or by a configured entry-file path. Its filename
+does not determine entry-point status, and it may contain at most one free
+function.
 
 ## Bad
 

@@ -24,7 +24,7 @@ class PythonReferenceCallOwnershipTest(unittest.TestCase):
     def __init__(self, method_name: str = "runTest") -> None:
         """Responsibilities: _reference support composition_."""
         super().__init__(method_name)
-        self._reference_support: PythonReferenceTestSupport = PythonReferenceTestSupport(self)
+        self._reference_support: PythonReferenceTestSupport = PythonReferenceTestSupport()
 
     def test_resolves_call_assignment_names_and_annotations(self) -> None:
         """Responsibilities: _call binding metadata results_."""
@@ -33,7 +33,8 @@ class PythonReferenceCallOwnershipTest(unittest.TestCase):
         )
         index = PythonAstNodeIndex()
         index.nodes(tree)
-        calls = [node for node in ast.walk(tree) if type(node) is ast.Call]
+
+        calls = self._reference_support.call_nodes(tree)
         bindings = [PythonCallAssignment(call, index) for call in calls]
 
         self.assertEqual(
@@ -48,7 +49,8 @@ class PythonReferenceCallOwnershipTest(unittest.TestCase):
         )
         index = PythonAstNodeIndex()
         index.nodes(tree)
-        calls = [node for node in ast.walk(tree) if type(node) is ast.Call]
+
+        calls = self._reference_support.call_nodes(tree)
         bindings = [PythonCallAssignment(call, index) for call in calls]
 
         self.assertEqual(

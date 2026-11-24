@@ -104,6 +104,7 @@ export class PythonCodingRuleSourceAnalysis {
 			RULE_IDS.exception_raising,
 			RULE_IDS.python_test_subtest,
 			RULE_IDS.test_order_dependency,
+			RULE_IDS.test_type_check,
 		]);
 		this._fixture_names = new Set(["setUp", "asyncSetUp", "tearDown", "asyncTearDown", "setUpClass", "tearDownClass"]);
 	}

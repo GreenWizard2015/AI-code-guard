@@ -46,7 +46,7 @@ class PythonCallableConditionContextTest(unittest.TestCase):
     def _call(self, tree: ast.Module, name: str) -> ast.Call:
         """Responsibilities: _named call selection_."""
         for node in ast.walk(tree):
-            if type(node) is ast.Call and type(node.func) is ast.Name and node.func.id == name:
+            if ast.unparse(node).startswith(name + "("):
                 return node
         return ast.Call(func=ast.Name(id="", ctx=ast.Load()), args=[], keywords=[])
 
@@ -59,13 +59,10 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         context = PythonCallableConditionContext(inputs.nodes, inputs.scopes, inputs.parents)
 
         call = self._call(tree, "callable")
-        call_found = type(call.func) is ast.Name and call.func.id == "callable"
-        result = False
-        if call_found:
-            result = context.contains_callable_condition(call)
+        result = context.contains_callable_condition(call)
         self.assertEqual(
-            {"call_found": call_found, "result": result},
-            {"call_found": True, "result": True},
+            result,
+            True,
         )
 
     def test_reassigned_alias_does_not_classify_condition_call(self) -> None:
@@ -81,13 +78,10 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         context = PythonCallableConditionContext(inputs.nodes, inputs.scopes, inputs.parents)
 
         call = self._call(tree, "callable")
-        call_found = type(call.func) is ast.Name and call.func.id == "callable"
-        result = False
-        if call_found:
-            result = context.contains_callable_condition(call)
+        result = context.contains_callable_condition(call)
         self.assertEqual(
-            {"call_found": call_found, "result": result},
-            {"call_found": True, "result": False},
+            result,
+            False,
         )
 
     def test_test_function_classification_uses_enclosing_function(self) -> None:
@@ -97,7 +91,7 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         )
         inputs = self._context_inputs(tree)
         context = PythonCallableConditionContext(inputs.nodes, inputs.scopes, inputs.parents)
-        calls = [node for node in ast.walk(tree) if type(node) is ast.Call and type(node.func) is ast.Name]
+        calls = [tree.body[0].body[0].value, tree.body[1].body[0].value]
 
         self.assertEqual(
             [context.test_function(call) for call in calls],
@@ -117,7 +111,7 @@ class PythonCallableConditionContextTest(unittest.TestCase):
 
         condition_context = assembly.condition_context()
 
-        calls = [node for node in ast.walk(tree) if type(node) is ast.Call]
+        calls = [tree.body[0].body[0].test, tree.body[0].body[0].body[0].value]
         self.assertEqual(
             [condition_context.test_function(call) for call in calls],
             [True, True],

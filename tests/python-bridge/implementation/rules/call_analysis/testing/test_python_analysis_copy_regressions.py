@@ -31,14 +31,12 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
         calls = [f"    action_{index}()" for index in range(helper_count)]
         tree = ast.parse("def test_scenario():\n" + "\n".join([*definitions, *calls]))
         test_function = tree.body[0]
-        if type(test_function) is not ast.FunctionDef:
-            self.fail("expected the test scenario function")
         return test_function
 
     def test_invoked_leaf_helpers_are_included_in_execution_region(self) -> None:
         """Responsibilities: _invoked helper execution result_."""
         test_function = self._helper_scope_scenario()
-        helper_definitions = [node for node in test_function.body if type(node) is ast.FunctionDef]
+        helper_definitions = test_function.body[: len(test_function.body) // 2]
         bindings: dict[str, ast.AST] = {node.name: node for node in helper_definitions}
         counted_bindings = CountedBindings(bindings, ast.parse(""))
         helper_bodies = [node.body[0] for node in helper_definitions]
@@ -94,7 +92,7 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
             {
                 "helper_found": "helper" in callables,
                 "execution_nodes_match_index": all(node in indexed_nodes for node in nodes),
-                "helper_call_included": any(type(node) is ast.Call for node in nodes),
+                "helper_call_included": "action_0()" in [ast.unparse(node) for node in nodes],
             },
             {"helper_found": True, "execution_nodes_match_index": True, "helper_call_included": True},
         )

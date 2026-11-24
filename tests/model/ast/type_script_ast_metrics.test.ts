@@ -8,7 +8,7 @@ describe("TypeScriptAstFile metrics and references", () => {
 		expect({
 			count: issues.length,
 			issues: issues.map((issue) => ({ line: issue.line, has_message: issue.message.length > 0 })),
-		}).toEqual({ count: expect.any(Number), issues: [{ line: 0, has_message: true }] });
+		}).toEqual({ count: 1, issues: [{ line: 0, has_message: true }] });
 	});
 
 	test("counts callable body lines independently from SLOC", () => {

@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import { PythonSandboxRuntimeExampleBuilder } from "tests/bridge/ts/documentation_validation/python_sandbox_runtime_example_builder";
 
 describe("Python documentation sandbox interpreter boundary", () => {
-	test("executes relative imports from the in-memory example package", () => {
+	test("[local-process] executes relative imports from the in-memory example package", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({
 			path: "src/catalog/item.py",
@@ -23,7 +24,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result).toEqual({ stdout: "relative-ready\n", exit_code: 0, error: "" });
 	});
 
-	test("executes dynamic imports of in-memory example modules", () => {
+	test("[local-process] executes dynamic imports of in-memory example modules", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({ path: "src/value.py", text: "VALUE = 'dynamic-ready'" });
 		example_builder.add_source_file({
@@ -39,7 +40,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result).toEqual({ stdout: "dynamic-ready\n", exit_code: 0, error: "" });
 	});
 
-	test("executes an ImportError fallback for a missing in-memory package module", () => {
+	test("[local-process] executes an ImportError fallback for a missing in-memory package module", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({
 			path: "src/catalog/record.py",
@@ -56,7 +57,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result).toEqual({ stdout: "fallback-ready\n", exit_code: 0, error: "" });
 	});
 
-	test("executes literal Python attribute mutation and reads the changed value", () => {
+	test("[local-process] executes literal Python attribute mutation and reads the changed value", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({
 			path: "src/profile.py",
@@ -73,7 +74,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result).toEqual({ stdout: "attribute-ready\n", exit_code: 0, error: "" });
 	});
 
-	test("rejects sandbox validation when a Python unittest fails", () => {
+	test("[local-process] rejects sandbox validation when a Python unittest fails", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({
 			path: "tests/test_value.py",
@@ -92,7 +93,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result.stdout).toContain("Documentation test failed: tests.test_value.test_value");
 	});
 
-	test("does not parse or execute unreachable Python example modules", () => {
+	test("[local-process] does not parse or execute unreachable Python example modules", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({ path: "src/broken.py", text: "def broken( -> str:\n    return 'invalid'" });
 		example_builder.add_source_file({
@@ -111,7 +112,7 @@ describe("Python documentation sandbox interpreter boundary", () => {
 		expect(result).toEqual({ stdout: "reachable-ready\n", exit_code: 0, error: "" });
 	});
 
-	test("reports the exception type and message raised by the isolated Python interpreter", () => {
+	test("[local-process] reports the exception type and message raised by the isolated Python interpreter", () => {
 		const example_builder = new PythonSandboxRuntimeExampleBuilder();
 		example_builder.add_source_file({
 			path: "cli.py",

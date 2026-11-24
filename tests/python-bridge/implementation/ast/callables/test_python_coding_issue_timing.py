@@ -68,8 +68,8 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
         timing.collect([name, constant], [], [])
 
         self.assertEqual(
-            {"nodes": [type(item[0]).__name__ for item in collected], "same_dispatch": collected[0][1] is dispatch},
-            {"nodes": ["Name"], "same_dispatch": True},
+            {"nodes": [ast.unparse(item[0]) for item in collected], "same_dispatch": collected[0][1] is dispatch},
+            {"nodes": ["value"], "same_dispatch": True},
         )
 
     def test_combined_pass_preserves_proxy_and_rule_issue_order(self) -> None:
@@ -79,12 +79,12 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
 
         def proxy_analysis(node: ast.AST) -> list[JsonObject]:
             """Responsibilities: _proxy candidate observation_."""
-            proxy_nodes.append(type(node).__name__)
+            proxy_nodes.append(ast.unparse(node))
             return [{"kind": "proxy"}]
 
         def node_analysis(node: ast.AST, _dispatch: PythonRuleNodeDispatchContract) -> list[JsonObject]:
             """Responsibilities: _rule candidate observation_."""
-            rule_nodes.append(type(node).__name__)
+            rule_nodes.append(ast.unparse(node))
             return [{"kind": "rule"}]
 
         rule_dispatch = PythonRuleNodeDispatch(
@@ -105,8 +105,8 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
         self.assertEqual(
             (proxy_nodes, rule_nodes, len(proxy_issues), len(rule_issues), set(timing.durations())),
             (
-                ["FunctionDef", "Lambda"],
-                ["Name"],
+                ["def target():\n    return lambda: target", "lambda: target"],
+                ["target"],
                 2,
                 1,
                 {"proxy-analysis", PYTHON_NODE_RULE_ANALYSIS_STAGE, "rule-dispatch-overhead"},

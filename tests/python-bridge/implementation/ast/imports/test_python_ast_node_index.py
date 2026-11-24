@@ -39,10 +39,10 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_caches_alias_events_for_subtrees(self) -> None:
         """Responsibilities: _subtree alias event reuse_."""
         module = ast.parse("def run():\n    value = 1\n    empty: int\n")
-        function = next(node for node in module.body if type(node) is ast.FunctionDef)
+        function = module.body[0]
         index = PythonAstNodeIndex()
         subtree_nodes = index.nodes(function)
-        expected = [node for node in subtree_nodes if type(node) is ast.Assign]
+        expected = [node for node in subtree_nodes if ast.unparse(node) == "value = 1"]
         events = index.alias_event_nodes(function, subtree_nodes)
 
         self.assertEqual(events, expected)
@@ -60,7 +60,7 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_records_parent_chain_in_ast_order(self) -> None:
         """Responsibilities: _ordered parent relationship_."""
         module = ast.parse("value = left + right")
-        assignment = next(node for node in module.body if type(node) is ast.Assign)
+        assignment = module.body[0]
         index = PythonAstNodeIndex()
         index.nodes(module)
 
@@ -90,16 +90,16 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_parent_map_excludes_parent_outside_requested_subtree(self) -> None:
         """Responsibilities: _subtree-relative parent lookup_."""
         module = ast.parse("def run():\n    value = left + right\n")
-        function = next(node for node in module.body if isinstance(node, ast.FunctionDef))
+        function = module.body[0]
         index = PythonAstNodeIndex()
         subtree_parent_map = index.parent_map(function)
-        actual = {
-            "assignment_parent": subtree_parent_map[function.body[0]],
-            "includes_module_parent": module in subtree_parent_map.values(),
-        }
-        expected = {"assignment_parent": function, "includes_module_parent": False}
-
-        self.assertEqual(actual, expected)
+        self.assertEqual(
+            {
+                "assignment_parent": subtree_parent_map[function.body[0]],
+                "includes_module_parent": module in subtree_parent_map.values(),
+            },
+            {"assignment_parent": function, "includes_module_parent": False},
+        )
 
     def test_keeps_all_parents_for_a_shared_node(self) -> None:
         """Responsibilities: _shared AST parent relationships_."""
@@ -112,10 +112,10 @@ class PythonAstNodeIndexTest(unittest.TestCase):
 
         shared_parents = index.parents(shared_name)
         parent_map = index.parent_map(module)
-        actual = {"shared_parents": shared_parents, "parent_map_parent": parent_map[shared_name]}
-        expected = {"shared_parents": [first_expression, second_expression], "parent_map_parent": second_expression}
-
-        self.assertEqual(actual, expected)
+        self.assertEqual(
+            {"shared_parents": shared_parents, "parent_map_parent": parent_map[shared_name]},
+            {"shared_parents": [first_expression, second_expression], "parent_map_parent": second_expression},
+        )
 
     def test_reuses_cached_children_for_repeated_lookups(self) -> None:
         """Responsibilities: _cached direct child reuse_."""
@@ -130,7 +130,7 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_subtree_scope_keeps_the_original_module_owner(self) -> None:
         """Responsibilities: _subtree lexical scope ownership_."""
         module = ast.parse("def run():\n    value = left + right\n")
-        assignment = next(node for node in ast.walk(module) if type(node) is ast.Assign)
+        assignment = module.body[0]
         index = PythonAstNodeIndex()
         module_scope = index.scopes(module)
         subtree_scope = index.scopes(assignment)

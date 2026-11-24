@@ -77,6 +77,7 @@ export const RULE_IDS = {
 	exception_raising: "exception-raising",
 	python_test_subtest: "python-test-subtest",
 	test_order_dependency: "test-order-dependency",
+	test_type_check: "test-type-check",
 	class_reference_warning: "class-reference-warning",
 	class_reference_info: "class-reference-info",
 	naming_type: "naming-type",

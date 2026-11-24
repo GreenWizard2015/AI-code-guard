@@ -45,7 +45,7 @@ export class UnusedCode implements UnusedCodeContract {
 		const reachable = scanner.reachable_files(files);
 		const source_entry = scanner.project_source_entry();
 		const unused = files.flatMap((file) => {
-			const path = source_entry.relative_path(file);
+			const path = source_entry.project_path(file).relative;
 			if (syntax.classify(path).has(TestPathKind.TestFile) || reachable.has(file)) {
 				return [];
 			}

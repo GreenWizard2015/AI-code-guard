@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { describe, expect, test } from "@jest/globals";
 import { CliDocumentationValidation } from "documentation_validation/cli_documentation_validation";
 import { DocumentationExampleSandbox } from "documentation_validation/sandbox/documentation_example_sandbox";
+
 import type {
 	DocumentationExampleExecutorContract,
 	DocumentationExampleLintContract,
@@ -44,7 +45,7 @@ describe("TypeScript documentation template handling", () => {
 		}).toEqual({ good_result_count: 1, first: true, second: true, template: false });
 	});
 
-	test("expands templates before executing source files", () => {
+	test("[local-process] expands templates before executing source files", () => {
 		const lint_runner: DocumentationExampleLintContract = {
 			lint: () => [],
 			with_worker: async (operation) => await operation(),

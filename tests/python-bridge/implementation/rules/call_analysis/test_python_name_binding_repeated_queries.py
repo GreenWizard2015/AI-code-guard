@@ -52,9 +52,8 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        functions = {node.name: node for node in node_index.nodes(tree) if isinstance(node, ast.FunctionDef)}
-        outer = functions["outer"]
-        inner = functions["inner"]
+        outer = tree.body[0]
+        inner = outer.body[2]
         names = ("outer_local", "inner_only", "outer_parameter", "inner_parameter", "shadowed")
         ownership = {
             name: (
@@ -89,7 +88,7 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        method = next(node for node in node_index.nodes(tree) if isinstance(node, ast.FunctionDef))
+        method = tree.body[2].body[1]
         module_bindings = {
             name: binding_index.module_binding(name)
             for name in ("package", "ImportedThing", "DeclaredType", "class_body_name", "method")
@@ -127,9 +126,7 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        method = next(
-            node for node in node_index.nodes(tree) if type(node) is ast.FunctionDef and node.name == "method"
-        )
+        method = tree.body[1].body[2]
         names = (
             "module_value",
             "DeclaredType",
@@ -178,7 +175,7 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        functions = {node.name: node for node in node_index.nodes(tree) if isinstance(node, ast.FunctionDef)}
+        functions = {"module_function": tree.body[1], "method": tree.body[2].body[1]}
         module_bindings = {
             name: binding_index.module_binding(name)
             for name in (

@@ -98,7 +98,7 @@ describe("project lint session worker lease", () => {
 			{ "first.py": "value = 1\n" },
 			(configuration, options, mode) => {
 				const report = configuration.lint_report(options, mode).report;
-				return { worker: configuration.active_worker_session().worker(), completed: Array.isArray(report.violations) };
+				return { worker: configuration.active_worker_session().worker(), completed: report.files.length > 0 };
 			},
 		);
 		const second = fixture.with_lint_request(
@@ -106,7 +106,7 @@ describe("project lint session worker lease", () => {
 			{ "second.py": "value = 2\n" },
 			(configuration, options, mode) => {
 				const report = configuration.lint_report(options, mode).report;
-				return { worker: configuration.active_worker_session().worker(), completed: Array.isArray(report.violations) };
+				return { worker: configuration.active_worker_session().worker(), completed: report.files.length > 0 };
 			},
 		);
 

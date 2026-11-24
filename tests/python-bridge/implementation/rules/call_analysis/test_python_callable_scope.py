@@ -144,7 +144,7 @@ class Store(StorageContract):
         node_index = PythonAstNodeIndex()
         analysis = PythonImplementationDowncast(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
-        calls = [node for node in ast.walk(tree) if type(node) is ast.Call and type(node.func) is ast.Name]
+        calls = [tree.body[3].body[0].test, tree.body[3].body[1].test]
         issues = [analysis.issue(call) for call in calls]
 
         self.assertEqual(
