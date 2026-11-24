@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 
 
@@ -39,8 +40,10 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_caches_alias_events_for_subtrees(self) -> None:
         """Responsibilities: _subtree alias event reuse_."""
         module = ast.parse("def run():\n    value = 1\n    empty: int\n")
-        function = module.body[0]
         index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(module, index)
+        functions = function_selector.nodes()
+        function = functions[0]
         subtree_nodes = index.nodes(function)
         expected = [node for node in subtree_nodes if ast.unparse(node) == "value = 1"]
         events = index.alias_event_nodes(function, subtree_nodes)
@@ -59,9 +62,16 @@ class PythonAstNodeIndexTest(unittest.TestCase):
 
     def test_records_parent_chain_in_ast_order(self) -> None:
         """Responsibilities: _ordered parent relationship_."""
-        module = ast.parse("value = left + right")
-        assignment = module.body[0]
         index = PythonAstNodeIndex()
+        assignment = ast.Assign(
+            targets=[ast.Name(id="value", ctx=ast.Store())],
+            value=ast.BinOp(
+                left=ast.Name(id="left", ctx=ast.Load()),
+                op=ast.Add(),
+                right=ast.Name(id="right", ctx=ast.Load()),
+            ),
+        )
+        module = ast.Module(body=[assignment], type_ignores=[])
         index.nodes(module)
 
         self.assertEqual(
@@ -81,8 +91,10 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_parent_map_includes_direct_root_children(self) -> None:
         """Responsibilities: _root-relative parent lookup_."""
         module = ast.parse("def run():\n    value = left + right\n")
-        function = module.body[0]
         index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(module, index)
+        functions = function_selector.nodes()
+        function = functions[0]
         parent_map = index.parent_map(module)
 
         self.assertIs(parent_map[function], module)
@@ -90,8 +102,10 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_parent_map_excludes_parent_outside_requested_subtree(self) -> None:
         """Responsibilities: _subtree-relative parent lookup_."""
         module = ast.parse("def run():\n    value = left + right\n")
-        function = module.body[0]
         index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(module, index)
+        functions = function_selector.nodes()
+        function = functions[0]
         subtree_parent_map = index.parent_map(function)
         self.assertEqual(
             {
@@ -130,8 +144,11 @@ class PythonAstNodeIndexTest(unittest.TestCase):
     def test_subtree_scope_keeps_the_original_module_owner(self) -> None:
         """Responsibilities: _subtree lexical scope ownership_."""
         module = ast.parse("def run():\n    value = left + right\n")
-        assignment = module.body[0]
         index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(module, index)
+        functions = function_selector.nodes()
+        function = functions[0]
+        assignment = function.body[0]
         module_scope = index.scopes(module)
         subtree_scope = index.scopes(assignment)
 

@@ -2,6 +2,13 @@ import { describe, expect, test } from "@jest/globals";
 import { TestRunnerArguments } from "test-runner/test_runner_arguments";
 
 describe("test runner request arguments", () => {
+	test("skips test suites when requested", () => {
+		const parser = new TestRunnerArguments(["--skip-tests"]);
+		const request = parser.request();
+
+		expect(request.skip_tests).toBe(true);
+	});
+
 	test("does not select an architecture-review agent by default", () => {
 		const arguments_parser = new TestRunnerArguments(["--headless"]);
 		const request = arguments_parser.request();

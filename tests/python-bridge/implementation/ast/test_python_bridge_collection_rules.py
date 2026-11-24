@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_container_alias_state import (
@@ -18,10 +19,6 @@ from implementation.references.aliases.python_container_items import (
 from implementation.references.aliases.python_container_keys import PythonContainerKeys
 from implementation.references.aliases.python_container_values import (
     PythonContainerValues,
-)
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
 )
 from implementation.references.protocols import PythonContainerAliasesContract
 
@@ -109,8 +106,8 @@ class PythonBridgeCollectionRuleTest(unittest.TestCase):
 
         self.assertTrue(lookup.found())
 
-    def test_container_alias_observation_preserves_final_lexical_scope(self) -> None:
-        """Responsibilities: _container alias scope resolution_."""
+    def test_container_alias_observation_preserves_final_scope(self) -> None:
+        """Responsibilities: _final container alias scope_."""
         source = """\
 def first():
     registry = {"first": 1}
@@ -119,41 +116,54 @@ def last():
 """
         tree = ast.parse(source)
         index = PythonAstNodeIndex()
-        assembly = PythonContainerAssembly(index)
-        aliases = assembly.container_aliases()
-        state = aliases.state()
-        aliases.observe_all(index.nodes(tree), tree)
-        last_scope_values = state.alias("registry").values()
-        first_function = tree.body[0]
-        first_assignment = first_function.body[0]
-        state.select_scope_node(first_assignment)
-        first_scope_values = state.alias("registry").values()
+        aliases = self._container_alias_fixture(tree, index)
+        last_scope_values = aliases.state().alias("registry").values()
 
-        self.assertEqual(
-            {"first_scope": list(first_scope_values), "last_scope": list(last_scope_values)},
-            {"first_scope": ["first"], "last_scope": []},
+        self.assertEqual(list(last_scope_values), [])
+
+    def test_container_alias_observation_keeps_prior_function_scope(self) -> None:
+        """Responsibilities: _prior container alias scope_."""
+        tree = ast.parse(
+            "def first():\n    registry = {'first': 1}\ndef last():\n    return first.second.third.fourth\n",
         )
+        index = PythonAstNodeIndex()
+        aliases = self._container_alias_fixture(tree, index)
+        function_selector = PythonFunctionSelector(tree, index)
+        functions = function_selector.nodes()
+        first_function = functions[0]
+        first_assignment = first_function.body[0]
+        aliases.state().select_scope_node(first_assignment)
+        first_scope_values = aliases.state().alias("registry").values()
 
-    def test_container_aliases_follow_ast_scope_boundaries(self) -> None:
-        """Responsibilities: _container alias scope behavior_."""
+        self.assertEqual(list(first_scope_values), ["first"])
+
+    def test_container_aliases_follow_local_scope(self) -> None:
+        """Responsibilities: _local container alias scope_."""
         tree = ast.parse("def run():\n    value = 1\n")
         node_index = PythonAstNodeIndex()
         state = PythonContainerAliasState(node_index)
         state.configure_scope_tree(tree)
-        function = tree.body[0]
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
         assignment = function.body[0]
-        state.select_scope_node(tree)
-        state.record_alias("registry", "", {"module": tree})
         state.select_scope_node(assignment)
         state.record_alias("registry", "", {"local": assignment})
         local_values = list(state.alias("registry").values())
+
+        self.assertEqual(local_values, ["local"])
+
+    def test_container_aliases_follow_module_scope(self) -> None:
+        """Responsibilities: _module container alias scope_."""
+        tree = ast.parse("def run():\n    value = 1\n")
+        node_index = PythonAstNodeIndex()
+        state = PythonContainerAliasState(node_index)
+        state.configure_scope_tree(tree)
         state.select_scope_node(tree)
+        state.record_alias("registry", "", {"module": tree})
         module_values = list(state.alias("registry").values())
 
-        self.assertEqual(
-            {"local": local_values, "module": module_values},
-            {"local": ["local"], "module": ["module"]},
-        )
+        self.assertEqual(module_values, ["module"])
 
     def test_builtin_property_alias(self) -> None:
         """Responsibilities: _builtin property alias verification_."""
@@ -255,35 +265,4 @@ def last():
         self.assertEqual(
             [issue["line"] for issue in issues if issue["kind"] == "single-item-array-state"],
             [6, 8],
-        )
-
-    def test_container_aliases_reuse_scope_index_for_one_tree(self) -> None:
-        """Responsibilities: _scope index reuse verification_."""
-        tree = ast.parse("value = []\ndef read() -> None:\n    return None\n")
-        index = PythonAstNodeIndex()
-        first = self._container_alias_fixture(tree, index)
-        second = self._container_alias_fixture(tree, index)
-        name = ast.Name(id="value", ctx=ast.Load())
-        self.assertEqual(
-            first.container_values().container_values(name),
-            second.container_values().container_values(name),
-        )
-
-    def test_reference_aliases_reuse_collection_for_one_tree(self) -> None:
-        """Responsibilities: _reference alias cache_."""
-        tree = ast.parse("import package.module as alias\n")
-        aliases = PythonReferenceAliases(PythonReferenceAliasState())
-        node_index = PythonAstNodeIndex()
-        nodes = node_index.nodes(tree)
-        first = aliases.collect(tree, nodes)
-        second = aliases.collect(tree, nodes)
-        self.assertEqual(
-            {
-                "first": first,
-                "second": second,
-            },
-            {
-                "first": [{"name": "alias", "target": "package.module"}],
-                "second": [{"name": "alias", "target": "package.module"}],
-            },
         )

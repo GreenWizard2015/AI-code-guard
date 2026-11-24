@@ -44,6 +44,31 @@ describe("documentation example paths", () => {
 		});
 	});
 
+	test("does not require a CLI for standalone test examples", () => {
+		const examples: DocumentationExample[] = [
+			{
+				rule_id: "typescript-test-example",
+				language: DocumentationLanguage.TYPESCRIPT,
+				kind: ExampleKind.GOOD,
+				index: 0,
+				text: "test('works', () => {});",
+				source_files: [{ path: "tests/example.test.ts", text: "test('works', () => {});" }],
+			},
+			{
+				rule_id: "python-test-example",
+				language: DocumentationLanguage.PYTHON,
+				kind: ExampleKind.GOOD,
+				index: 0,
+				text: "def test_works(): pass",
+				source_files: [{ path: "tests/test_example.py", text: "def test_works(): pass" }],
+			},
+		];
+		const validations = examples.map((example) => new DocumentationExamplePathValidation(example));
+		const issues = validations.map((validation) => validation.cli_order_issues());
+
+		expect(issues).toEqual([[], []]);
+	});
+
 	test("places recognizable test examples under the tests directory", () => {
 		const typescript_example = {
 			rule_id: "typescript-example",

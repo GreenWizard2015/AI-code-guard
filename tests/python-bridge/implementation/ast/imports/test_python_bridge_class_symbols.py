@@ -12,18 +12,12 @@ from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes impo
 from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes_options import (
     PythonAstSymbolNodesOptions,
 )
-from implementation.ast.class_nodes.python_class_method_node import (
-    PythonClassNodeOptions,
-)
-from implementation.ast.class_nodes.python_class_node import PythonClassNode
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
-from implementation.ast.imports.source_segments import SourceSegments
+from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.ast.type_declarations.python_type_declaration_collector import (
     PythonTypeDeclarationCollector,
 )
-from implementation.references.aliases.python_container_assembly import (
-    PythonContainerAssembly,
-)
+from implementation.json_value_view import JsonValueView
 from implementation.rules.call_analysis.proxy_call.python_proxy_callable_analyzer import (
     PythonProxyCallableAnalyzer,
 )
@@ -42,28 +36,11 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
 
     """Responsibilities: _Python class-symbol analysis_."""
 
-    def _class_node_options(self) -> PythonClassNodeOptions:
-        """Responsibilities: _class node input preparation_."""
-        tree = ast.parse(CLASS_SOURCE)
-        node_index = PythonAstNodeIndex()
-        type_aliases = PythonScopedTypeAliases(tree, node_index)
-        type_aliases.collect()
-        container_assembly = PythonContainerAssembly(node_index)
-        class_declaration = tree.body[1]
-        return PythonClassNodeOptions(
-            class_declaration,
-            CLASS_SOURCE,
-            node_index,
-            SourceSegments(CLASS_SOURCE),
-            container_assembly.container_aliases(),
-            type_aliases,
-            tree.body,
-        )
-
     def test_named_bases(self) -> None:
         """Responsibilities: _class base names_."""
-        class_builder = PythonClassNode(self._class_node_options())
-        class_node = class_builder.result
+        class_tree = PythonAstTree(CLASS_SOURCE, ast.parse(CLASS_SOURCE))
+        class_nodes = class_tree.class_nodes()
+        class_node = next(node for node in class_nodes if node["name"] == "Service")
         self.assertEqual(
             (class_node["name"], class_node["base_class_names"]),
             ("Service", ["Record"]),
@@ -71,9 +48,15 @@ class PythonBridgeClassSymbolTest(unittest.TestCase):
 
     def test_method_visibility(self) -> None:
         """Responsibilities: _method visibility_."""
-        class_builder = PythonClassNode(self._class_node_options())
-        class_node = class_builder.result
-        first_method = class_node["methods"][0]
+        class_tree = PythonAstTree(CLASS_SOURCE, ast.parse(CLASS_SOURCE))
+        class_nodes = class_tree.class_nodes()
+        class_node = next(node for node in class_nodes if node["name"] == "Service")
+        json_reader = JsonValueView()
+        json_reader.read(class_node["methods"])
+        methods = json_reader.array()
+        first_method_value = methods[0]
+        json_reader.read(first_method_value)
+        first_method = json_reader.object()
         self.assertEqual(first_method["visibility"], "private")
         self.assertNotIn("base_class_name", class_node)
 

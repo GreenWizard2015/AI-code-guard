@@ -1,18 +1,18 @@
 import { PYTHON_LANGUAGE, TYPESCRIPT_CACHE_OWNER } from "src/constants";
-import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
-import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { NamedLine } from "src/model/ast/normalized_ast_types";
 import type {
 	FileRemainingTextRulesContract,
 	FunctionPlacementRulesContract,
 	ImportFanOutContract,
 } from "src/contracts/protocols/lint_runtime_protocols";
 import type { LintFileNameContract } from "src/core/support/protocols";
+import { SourceFileAst } from "src/linting/orchestration/runtime/file_linting/source_file_ast";
+import type { FileRemainingViolationContext } from "src/linting/orchestration/runtime/file_linting/types";
+import type { NamedLine } from "src/model/ast/normalized_ast_types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RemainingViolationOptions } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { CodingRuleLinterContract } from "src/shared_services_protocols";
-import type { FileRemainingViolationContext } from "src/linting/orchestration/runtime/file_linting/types";
 import { SingletonCollector } from "src/rules/singleton_collector";
+import type { CodingRuleLinterContract } from "src/shared_services_protocols";
 import ts from "typescript";
 
 /** Responsibilities: _per-file remaining violation stages_, _source AST reuse_. **/

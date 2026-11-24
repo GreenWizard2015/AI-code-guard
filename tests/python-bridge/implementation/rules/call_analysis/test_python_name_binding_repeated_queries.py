@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.rules.call_analysis.python_name_binding_index import PythonNameBindingIndex
 from implementation.rules.constants import (
@@ -52,8 +53,9 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        outer = tree.body[0]
-        inner = outer.body[2]
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        outer, inner = functions
         names = ("outer_local", "inner_only", "outer_parameter", "inner_parameter", "shadowed")
         ownership = {
             name: (
@@ -88,7 +90,9 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        method = tree.body[2].body[1]
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        method = next(function for function in functions if function.name == "method")
         module_bindings = {
             name: binding_index.module_binding(name)
             for name in ("package", "ImportedThing", "DeclaredType", "class_body_name", "method")
@@ -126,7 +130,9 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        method = tree.body[1].body[2]
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        method = next(function for function in functions if function.name == "method")
         names = (
             "module_value",
             "DeclaredType",
@@ -175,7 +181,10 @@ class PythonNameBindingRepeatedQueriesTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         binding_index = PythonNameBindingIndex(tree, node_index)
         binding_index.index_tree()
-        functions = {"module_function": tree.body[1], "method": tree.body[2].body[1]}
+        function_selector = PythonFunctionSelector(tree, node_index)
+        function_nodes = function_selector.nodes()
+        module_function, method = function_nodes
+        functions = {"module_function": module_function, "method": method}
         module_bindings = {
             name: binding_index.module_binding(name)
             for name in (

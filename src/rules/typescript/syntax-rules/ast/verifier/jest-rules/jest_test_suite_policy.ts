@@ -9,14 +9,18 @@ import {
 import type { JestSuite } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { DiagnosticRuleContract } from "src/model/protocols";
-import type { JestInlineAssertionObjectLiteralsContract } from "src/testing_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import type { LintStageTimerContract } from "src/shared_services_protocols";
 import { JestTestEndingRule } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_test_ending_rule";
 import { JestAsyncCompletionRules } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/async/jest_async_completion_rules";
 import { JestSetupRules } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_setup_rules";
 import { JestTestShapeViolations } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/test-shape/jest_test_shape_violations";
 import { JestTestSize } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/test-shape/jest_test_size";
+import type {
+	JestRulePair,
+	JestTestSuitePolicyOptions,
+} from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/types";
+import type { LintStageTimerContract } from "src/shared_services_protocols";
+import type { JestInlineAssertionObjectLiteralsContract } from "src/testing_protocols";
 import type {
 	JestAsyncCompletionRulesContract,
 	JestSetupRulesContract,
@@ -24,10 +28,6 @@ import type {
 	JestTestSizeContract,
 } from "src/testing_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
-import type {
-	JestRulePair,
-	JestTestSuitePolicyOptions,
-} from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/types";
 import type ts from "typescript";
 
 /** Responsibilities: _suite structure policy_, _test callback policy_. **/

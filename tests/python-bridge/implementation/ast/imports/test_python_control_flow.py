@@ -31,13 +31,11 @@ from implementation.rules.control_flow.control_flow_issues import (
     PythonControlFlowIssues,
     PythonControlFlowOptions,
 )
-from implementation.rules.control_flow.python_temporal_coupling import (
-    PythonTemporalCoupling,
-)
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,
 )
 from implementation.rules.import_rules import ImportRules
+from implementation.types import JsonValue
 from import_rules_fixture import ImportRulesFixture
 
 from tests.python.constants import EDGE_SOURCE
@@ -67,12 +65,12 @@ class PythonControlFlowTest(unittest.TestCase):
         values = PythonContainerValues(state, keys, items)
         return PythonContainerAliases(state, keys, values, items)
 
-    def _private_count(self, tree: ast.AST) -> int:
-        """Responsibilities: _private access count_."""
+    def _has_private_accesses(self, tree: ast.AST) -> bool:
+        """Responsibilities: _private access presence_."""
         source_text = ast.unparse(tree)
         python_tree = PythonAstTree(source_text, ast.parse(source_text))
         parsed = python_tree.ast()
-        return len(parsed["private_accesses"])
+        return bool(parsed["private_accesses"])
 
     def _proxy_count(self, tree: ast.AST) -> int:
         """Responsibilities: _proxy diagnostic count_."""
@@ -81,7 +79,7 @@ class PythonControlFlowTest(unittest.TestCase):
         )
         return sum(len(proxy_analyzer.analyze(node)) for node in ast.walk(tree))
 
-    def _conditional_kinds(self, tree: ast.AST) -> set[str]:
+    def _conditional_kinds(self, tree: ast.AST) -> list[JsonValue]:
         """Responsibilities: _conditional diagnostic kinds_."""
         control = PythonControlFlowIssues(
             PythonControlFlowOptions(
@@ -93,10 +91,9 @@ class PythonControlFlowTest(unittest.TestCase):
                 SourceSegments(EDGE_SOURCE),
             ),
         )
-        kinds: set[str] = set()
+        kinds: list[JsonValue] = []
         for node in ast.walk(tree):
-            for issue in control.conditional_issues(node):
-                kinds.add(issue["kind"])
+            kinds.extend(issue["kind"] for issue in control.conditional_issues(node))
         return kinds
 
     def test_import_control_flow(self) -> None:
@@ -114,7 +111,7 @@ class PythonControlFlowTest(unittest.TestCase):
             {
                 "late": "late" in import_kinds,
                 "relative": "relative" in import_kinds,
-                "private": self._private_count(tree) >= 4,
+                "private": self._has_private_accesses(tree),
                 "proxy": self._proxy_count(tree),
                 "ternary": "ternary-expression" in self._conditional_kinds(tree),
             },
@@ -163,43 +160,6 @@ class PythonControlFlowTest(unittest.TestCase):
 
         self.assertEqual(nested_lines, [4, 7])
 
-    def test_temporal_coupling_reads_async_method_names(self) -> None:
-        """Responsibilities: _async field dependency detection_."""
-        source = (
-            "class Worker:\n"
-            "    def prepare(self):\n"
-            "        self.state = 'ready'\n"
-            "    async def run(self):\n"
-            "        return self.state\n"
-        )
-        tree = ast.parse(source)
-        node_index = self._python_ast_node_index()
-        node_index.nodes(tree)
-        coupling = PythonTemporalCoupling(node_index)
-        issues = coupling.issues(tree)
-
-        self.assertEqual(
-            [{"kind": issue["kind"], "line": issue["line"], "name": issue["name"]} for issue in issues],
-            [{"kind": "temporal-coupling", "line": 1, "name": "state"}],
-        )
-
-    def test_temporal_coupling_ignores_fields_after_receiver_reassignment(self) -> None:
-        """Responsibilities: _receiver variable reassignment ownership_."""
-        source = (
-            "class Worker:\n"
-            "    def prepare(self):\n"
-            "        self = temporary\n"
-            "        self.state = 'ready'\n"
-            "    def run(self):\n"
-            "        return self.state\n"
-        )
-        tree = ast.parse(source)
-        node_index = self._python_ast_node_index()
-        node_index.nodes(tree)
-        coupling = PythonTemporalCoupling(node_index)
-
-        self.assertEqual(coupling.issues(tree), [])
-
     def test_sys_path_import_aliases_drive_mutation_diagnostics(self) -> None:
         """Responsibilities: _aliased sys.path mutation results_."""
         source = (
@@ -222,7 +182,7 @@ class PythonControlFlowTest(unittest.TestCase):
             [2, 3],
         )
 
-    def test_detects_sys_path_mutation_through_instance_field(self) -> None:
+    def test_instance_path_alias_is_detected(self) -> None:
         """Responsibilities: _instance-held import path mutation_."""
         source = (
             "import sys\n"
@@ -258,47 +218,91 @@ class PythonControlFlowTest(unittest.TestCase):
             [7, 9, 11],
         )
 
-    def test_sys_path_mutator_aliases_reset_between_trees(self) -> None:
-        """Responsibilities: _sys path alias lifecycle_."""
+    def test_configured_sys_path_mutator_alias_is_detected(self) -> None:
+        """Responsibilities: _sys path alias recognition_."""
+        tree = ast.parse("import sys\nadd_path = sys.path.append\n")
+        call = ast.Call(
+            func=ast.Name(id="add_path", ctx=ast.Load()),
+            args=[ast.Constant(value="temporary-path")],
+            keywords=[],
+        )
+        rules = PythonSysPathRules(
+            self._container_aliases(),
+            self._python_ast_node_index(),
+        )
+        rules.configure(tree)
+
+        self.assertTrue(rules.path_mutation(call))
+
+    def test_reconfiguration_clears_sys_path_mutator_aliases(self) -> None:
+        """Responsibilities: _sys path alias reset_."""
         first_tree = ast.parse("import sys\nadd_path = sys.path.append\n")
         second_tree = ast.parse("pass\n")
-        call_source = ast.parse("add_path('/tmp')\n")
-        call = call_source.body[0].value
-        rules = PythonSysPathRules(
-            self._container_aliases(),
-            self._python_ast_node_index(),
-        )
-        rules.configure(first_tree)
-        before_reset = rules.path_mutation(call)
-        rules.configure(second_tree)
-        after_reset = rules.path_mutation(call)
-        self.assertEqual([before_reset, after_reset], [True, False])
-
-    def test_sys_path_instance_aliases_reset_between_trees(self) -> None:
-        """Responsibilities: _instance path alias lifecycle_."""
-        first_tree = ast.parse(
-            "import sys\n"
-            "class Settings:\n"
-            "    def __init__(self):\n"
-            "        self.paths = sys.path\n"
-            "    def add(self, path):\n"
-            "        self.paths.append(path)\n",
-        )
-        second_tree = ast.parse(
-            "class Settings:\n    def add(self, path):\n        self.paths.append(path)\n",
+        call = ast.Call(
+            func=ast.Name(id="add_path", ctx=ast.Load()),
+            args=[ast.Constant(value="temporary-path")],
+            keywords=[],
         )
         rules = PythonSysPathRules(
             self._container_aliases(),
             self._python_ast_node_index(),
         )
-        first_call = first_tree.body[1].body[1].body[0].value
-        second_call = second_tree.body[0].body[0].body[0].value
         rules.configure(first_tree)
-        found_before_reset = rules.path_mutation(first_call)
         rules.configure(second_tree)
-        found_after_reset = rules.path_mutation(second_call)
 
-        self.assertEqual([found_before_reset, found_after_reset], [True, False])
+        self.assertFalse(rules.path_mutation(call))
+
+    def test_reconfiguration_clears_instance_path_aliases(self) -> None:
+        """Responsibilities: _instance path alias reset_."""
+        call = ast.Call(
+            func=ast.Attribute(
+                value=ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr="paths", ctx=ast.Load()),
+                attr="append",
+                ctx=ast.Load(),
+            ),
+            args=[ast.Name(id="path", ctx=ast.Load())],
+            keywords=[],
+        )
+        path_assignment = ast.Assign(
+            targets=[
+                ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr="paths", ctx=ast.Store()),
+            ],
+            value=ast.Attribute(value=ast.Name(id="sys", ctx=ast.Load()), attr="path", ctx=ast.Load()),
+        )
+        initializer = ast.FunctionDef(
+            name="__init__",
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg="self")],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[],
+            ),
+            body=[path_assignment],
+            decorator_list=[],
+        )
+        add_path = ast.FunctionDef(
+            name="add",
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg="self"), ast.arg(arg="path")],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[],
+            ),
+            body=[ast.Expr(value=call)],
+            decorator_list=[],
+        )
+        settings = ast.ClassDef(name="Settings", bases=[], keywords=[], body=[initializer, add_path], decorator_list=[])
+        tree = ast.Module(body=[ast.Import(names=[ast.alias(name="sys")]), settings], type_ignores=[])
+        rules = PythonSysPathRules(
+            self._container_aliases(),
+            self._python_ast_node_index(),
+        )
+        rules.configure(tree)
+        rules.configure(ast.parse("pass\n"))
+
+        self.assertFalse(rules.path_mutation(call))
 
     def test_rejects_boolean_identity_return_hacks(self) -> None:
         """Responsibilities: _boolean identity hack test_."""

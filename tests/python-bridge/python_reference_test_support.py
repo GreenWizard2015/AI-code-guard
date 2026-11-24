@@ -35,6 +35,8 @@ class PythonReferenceTestSupport(ast.NodeVisitor):
         self._attributes: list[ast.Attribute] = []
         self._functions: list[ast.FunctionDef] = []
         self._annotations: list[ast.expr] = []
+        self._expressions: list[ast.Expr] = []
+        self._comparisons: list[ast.Compare] = []
         self._method_calls: list[ast.Call] = []
         self._pending_call: ast.Call | None = None
 
@@ -60,6 +62,16 @@ class PythonReferenceTestSupport(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Responsibilities: _function declaration traversal_."""
         self._functions.append(node)
+        self.generic_visit(node)
+
+    def visit_Expr(self, node: ast.Expr) -> None:
+        """Responsibilities: _expression statement traversal_."""
+        self._expressions.append(node)
+        self.generic_visit(node)
+
+    def visit_Compare(self, node: ast.Compare) -> None:
+        """Responsibilities: _comparison expression traversal_."""
+        self._comparisons.append(node)
         self.generic_visit(node)
 
     def visit_arg(self, node: ast.arg) -> None:
@@ -93,11 +105,14 @@ class PythonReferenceTestSupport(ast.NodeVisitor):
 
     def call_expression(self, source: str) -> ast.Call:
         """Responsibilities: _call expression extraction_."""
-        return ast.parse(source, mode="eval").body
+        expression = ast.parse(source, mode="eval").body
+        calls = self.call_nodes(expression)
+        return calls[0]
 
     def call_receiver(self, call: ast.Call) -> ast.expr:
         """Responsibilities: _method receiver extraction_."""
-        return call.func.value
+        attributes = self.attribute_nodes(call.func)
+        return attributes[0].value
 
     def method_calls(self, tree: ast.AST) -> list[ast.Call]:
         """Responsibilities: _method call selection_."""
@@ -132,3 +147,15 @@ class PythonReferenceTestSupport(ast.NodeVisitor):
         self._annotations = []
         self.visit(tree)
         return self._annotations.copy()
+
+    def expression_statements(self, tree: ast.AST) -> list[ast.Expr]:
+        """Responsibilities: _expression statement collection_."""
+        self._expressions = []
+        self.visit(tree)
+        return self._expressions.copy()
+
+    def comparisons(self, tree: ast.AST) -> list[ast.Compare]:
+        """Responsibilities: _comparison expression collection_."""
+        self._comparisons = []
+        self.visit(tree)
+        return self._comparisons.copy()

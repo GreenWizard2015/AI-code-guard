@@ -1,9 +1,9 @@
 import { resolve } from "node:path";
 import {
-	FUNCTION_MODULE_NAMES,
 	FUNCTIONS_FILE_TYPE_DECLARATION_RULE,
-	NODE_EXECUTABLE_SHEBANG,
+	FUNCTION_MODULE_NAMES,
 	MAX_IMPORT_FAN_OUT,
+	NODE_EXECUTABLE_SHEBANG,
 	RESPONSIBILITY_ACTION_EXTENSIONS,
 	RESPONSIBILITY_ACTION_WORDS,
 	RESPONSIBILITY_CONDITION_WORDS,
@@ -14,13 +14,13 @@ import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
 import { FunctionPlacementRules } from "src/rules/architecture/function_placement_rules";
-import type { ModulePlacementContext } from "src/rules/architecture/types";
 import { ResponsibilityRules } from "src/rules/architecture/responsibility_rules";
 import { ResponsibilityWording } from "src/rules/architecture/responsibility_wording";
+import type { ModulePlacementContext } from "src/rules/architecture/types";
 import { SingletonCollector } from "src/rules/singleton_collector";
 import { TypeScriptReexports } from "src/rules/type_script_reexports";
-import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
 import type { RuleContextContract } from "src/types";
+import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
 import ts from "typescript";
 
 /** Responsibilities: _source file semantic diagnostics_, _source responsibility verification_. **/

@@ -11,6 +11,7 @@ from implementation.rules.call_analysis.python_implementation_downcast import (
 from implementation.rules.call_analysis.python_name_binding_index import (
     PythonNameBindingIndex,
 )
+from python_reference_test_support import PythonReferenceTestSupport
 
 
 class PythonCallableScopeTest(unittest.TestCase):
@@ -144,7 +145,8 @@ class Store(StorageContract):
         node_index = PythonAstNodeIndex()
         analysis = PythonImplementationDowncast(tree, node_index, PythonNameBindingIndex(tree, node_index))
         analysis.prepare()
-        calls = [tree.body[3].body[0].test, tree.body[3].body[1].test]
+        support = PythonReferenceTestSupport()
+        calls = support.call_nodes(tree)
         issues = [analysis.issue(call) for call in calls]
 
         self.assertEqual(

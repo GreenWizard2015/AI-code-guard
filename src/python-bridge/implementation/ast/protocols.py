@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from collections.abc import Sequence
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, TypeAlias
 
 from implementation.ast.class_nodes.protocols import (
     PythonClassFieldRecordContract,
@@ -18,6 +18,9 @@ from implementation.ast.content_protocols import (
     PythonAstContentCollectorContract,
     PythonAstContentTreeViewContract,
 )
+
+PythonFunctionNode: TypeAlias = ast.FunctionDef | ast.AsyncFunctionDef
+PythonFunctionOwnerNode: TypeAlias = PythonFunctionNode | ast.ClassDef | ast.Module
 
 __all__ = [
     "PythonAstContentCollectorContract",
@@ -39,7 +42,12 @@ if TYPE_CHECKING:
         PythonReferenceAliasesContract,
         PythonScopedTypeAliasesContract,
     )
-    from implementation.types import JsonObject, LiteralMetadata, PythonAstParentIndex, PythonCallableAstNode
+    from implementation.types import (
+        JsonObject,
+        LiteralMetadata,
+        PythonAstParentIndex,
+        PythonCallableAstNode,
+    )
     from protocols import (
         PythonImportNodesContract,
         PythonImportRulesContract,
@@ -259,13 +267,6 @@ class PythonAstNodeIndexContract(Protocol):
     def scopes(self, root: ast.AST) -> dict[ast.AST, str]: ...
 
 
-class PythonAsyncNameOverlayContract(Protocol):
-    """Responsibilities: _test-local async name overlay_."""
-
-    def update_test_aliases(self, node: ast.AST) -> None: ...
-    def async_call_name(self, statement: ast.Expr) -> str: ...
-
-
 class PythonAstSymbolNodesContract(Protocol):
     """Responsibilities: _Python symbol collection contract_."""
 
@@ -328,8 +329,8 @@ class PythonStructureIssuesContract(Protocol):
 class PythonFunctionSelectorContract(Protocol):
     """Responsibilities: _Python function selection contract_."""
 
-    def nodes(self) -> list[ast.AST]: ...
-    def source_nodes(self) -> list[ast.AST]: ...
+    def nodes(self) -> list[PythonFunctionNode]: ...
+    def source_nodes(self) -> list[PythonFunctionNode]: ...
 
     def nested(self, node: ast.AST) -> bool: ...
 
@@ -339,7 +340,7 @@ class PythonFunctionSelectorContract(Protocol):
 class PythonFunctionOwnerContract(Protocol):
     """Responsibilities: _enclosing function ownership_, _nested function lookup_."""
 
-    def resolve(self, node: ast.AST) -> ast.AST: ...
+    def resolve(self, node: ast.AST) -> PythonFunctionOwnerNode: ...
 
     def nested(self, node: ast.AST) -> bool: ...
 

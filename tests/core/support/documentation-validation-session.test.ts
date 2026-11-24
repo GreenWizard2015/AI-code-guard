@@ -13,6 +13,7 @@ describe("documentation example project diagnostics", () => {
 
 		expect({ violations, ...scenario.lint_state() }).toEqual({
 			violations: [scenario.expected_violation()],
+			entry_files: ["cli.py"],
 			lint_mode: LintReportMode.IN_MEMORY_PROJECT,
 			project_analysis_enabled: true,
 		});

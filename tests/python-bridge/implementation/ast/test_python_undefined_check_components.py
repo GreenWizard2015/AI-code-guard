@@ -2,6 +2,7 @@ import ast
 import unittest
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
@@ -205,7 +206,9 @@ class PythonUndefinedCheckComponentsTest(unittest.TestCase):
         tree = ast.parse(
             "class Left(Right):\n    pass\nclass Right(Left):\n    pass\n",
         )
-        classes = {node.name: node for node in tree.body}
+        selection = PythonAstNodeSelection(PythonAstNodeIndex())
+        class_declarations = selection.class_definitions(tree)
+        classes = {node.name: node for node in class_declarations}
         own_fields: PythonClassFieldMap = {
             "Left": {"left": ast.Name(id="str", ctx=ast.Load())},
             "Right": {"right": ast.Name(id="int", ctx=ast.Load())},

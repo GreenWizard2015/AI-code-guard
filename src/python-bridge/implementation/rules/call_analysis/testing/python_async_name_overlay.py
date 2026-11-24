@@ -1,9 +1,9 @@
 import ast
 
-from implementation.ast.protocols import PythonAsyncNameOverlayContract
 from implementation.references.instances.python_assignment_effects import (
     PythonAssignmentEffects,
 )
+from implementation.rules.call_analysis.testing.protocols import PythonAsyncNameOverlayContract
 
 
 class PythonAsyncNameOverlay(PythonAsyncNameOverlayContract):

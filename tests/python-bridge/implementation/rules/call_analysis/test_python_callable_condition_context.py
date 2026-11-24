@@ -16,6 +16,7 @@ from implementation.rules.python_syntax.python_primary_call_assembly import (
     PythonPrimaryCallAssembly,
 )
 from python_collector_fixture_factory import PythonCollectorFixtureOptionsFactory
+from python_reference_test_support import PythonReferenceTestSupport
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class PythonCallableConditionInputs:
     nodes: list[ast.AST]
     scopes: dict[ast.AST, str]
     parents: dict[int, ast.AST]
+    calls: list[ast.Call]
 
 
 class PythonCallableConditionContextTest(unittest.TestCase):
@@ -41,14 +43,15 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         nodes = index.nodes(tree)
         scopes = index.scopes(tree)
         parents = {id(child): parent for parent in nodes for child in ast.iter_child_nodes(parent)}
-        return PythonCallableConditionInputs(tree, index, nodes, scopes, parents)
+        support = PythonReferenceTestSupport()
+        calls = support.call_nodes(tree)
+        return PythonCallableConditionInputs(tree, index, nodes, scopes, parents, calls)
 
     def _call(self, tree: ast.Module, name: str) -> ast.Call:
         """Responsibilities: _named call selection_."""
-        for node in ast.walk(tree):
-            if ast.unparse(node).startswith(name + "("):
-                return node
-        return ast.Call(func=ast.Name(id="", ctx=ast.Load()), args=[], keywords=[])
+        support = PythonReferenceTestSupport()
+        calls = support.call_nodes(tree)
+        return next(node for node in calls if ast.unparse(node).startswith(name + "("))
 
     def test_live_alias_in_condition_is_classified_from_ast(self) -> None:
         """Responsibilities: _live alias analysis result_."""
@@ -91,27 +94,34 @@ class PythonCallableConditionContextTest(unittest.TestCase):
         )
         inputs = self._context_inputs(tree)
         context = PythonCallableConditionContext(inputs.nodes, inputs.scopes, inputs.parents)
-        calls = [tree.body[0].body[0].value, tree.body[1].body[0].value]
+        support = PythonReferenceTestSupport()
+        expression_statements = support.expression_statements(tree)
+        test_statement, helper_statement = expression_statements
+        calls = [test_statement.value, helper_statement.value]
 
         self.assertEqual(
             [context.test_function(call) for call in calls],
             [True, False],
         )
 
-    def test_condition_context_reuses_cached_ast_children(self) -> None:
-        """Responsibilities: _cached AST child reuse_, _parent ownership preservation_."""
+    def _cached_condition_setup(self) -> PythonCallableConditionInputs:
+        """Responsibilities: _cached context fixture assembly_."""
         source = "def test_run():\n    if ready():\n        perform()\n"
         tree = ast.parse(source)
+        return self._context_inputs(tree)
+
+    def test_condition_context_reuses_cached_ast_children(self) -> None:
+        """Responsibilities: _cached AST child reuse_, _parent ownership preservation_."""
+        inputs = self._cached_condition_setup()
+        source = ast.unparse(inputs.tree)
         options_factory = PythonCollectorFixtureOptionsFactory()
-        options = options_factory.create(tree, source)
-        context = PythonCodingIssueComponentContext(options)
-        context.node_index().nodes(tree)
-        binding_index = PythonNameBindingIndex(tree, context.node_index())
-        assembly = PythonPrimaryCallAssembly(context, binding_index)
-
+        options = options_factory.create(inputs.tree, source)
+        component_context = PythonCodingIssueComponentContext(options)
+        component_context.node_index().nodes(inputs.tree)
+        binding_index = PythonNameBindingIndex(inputs.tree, inputs.node_index)
+        assembly = PythonPrimaryCallAssembly(component_context, binding_index)
         condition_context = assembly.condition_context()
-
-        calls = [tree.body[0].body[0].test, tree.body[0].body[0].body[0].value]
+        calls = inputs.calls
         self.assertEqual(
             [condition_context.test_function(call) for call in calls],
             [True, True],

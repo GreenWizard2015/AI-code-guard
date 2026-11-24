@@ -2,6 +2,7 @@ import ast
 import unittest
 
 from implementation.ast.python_ast_tree import PythonAstTree
+from implementation.json_value_view import JsonValueView
 
 
 class PythonReferenceAliasCacheTest(unittest.TestCase):
@@ -61,9 +62,10 @@ class PythonReferenceAliasCacheTest(unittest.TestCase):
         )
         tree = PythonAstTree(source, ast.parse(source))
         ast_data = tree.ast()
-        aliases = ast_data["reference_aliases"]
-
+        json_view = JsonValueView()
+        json_view.read(ast_data["reference_aliases"])
+        reference_aliases = json_view.array()
         self.assertIn(
             {"name": "EntryList", "target": "UserList[str]"},
-            aliases,
+            reference_aliases,
         )

@@ -18,6 +18,7 @@ from implementation.ast.class_nodes.python_class_node import (
 from implementation.ast.imports.python_ast_core_dependencies import (
     PythonAstCoreDependencies,
 )
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 from implementation.ast.protocols import (
     PythonAstContentCollectorContract,
     PythonAstCoreDependenciesContract,
@@ -43,6 +44,7 @@ class PythonAstTree:
     _container_aliases: PythonContainerAliasesContract
     _type_aliases: PythonScopedTypeAliasesContract
     _tree_state: PythonAstTreeStateContract
+    _node_selection: PythonAstNodeSelection
     _timings: dict[str, float]
     _content_collector: PythonAstContentCollectorContract
 
@@ -89,6 +91,7 @@ class PythonAstTree:
         source_dependencies = core.source_dependencies()
         self._source: str = source
         self._tree: ast.Module = source_dependencies.syntax_tree()
+        self._node_selection = PythonAstNodeSelection(source_dependencies.node_index())
         self._source_segments: PythonSourceSegmentsContract = source_dependencies.source_segments()
         self._container_aliases: PythonContainerAliasesContract = core.container_aliases()
         self._type_aliases: PythonScopedTypeAliasesContract = type_aliases
@@ -104,7 +107,7 @@ class PythonAstTree:
     def class_nodes(self) -> list[JsonObject]:
         """Responsibilities: _class node collection_."""
         node_index = self._tree_state.core().source_dependencies().node_index()
-        nodes = [node for node in node_index.nodes(self._tree) if type(node) is ast.ClassDef]
+        nodes = self._node_selection.class_definitions(self._tree)
         container_aliases = self._container_aliases
         for statement in self._tree.body:
             container_aliases.observe(statement)

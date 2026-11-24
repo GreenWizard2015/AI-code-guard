@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from implementation.ast.callable_nodes.python_function_node_context import (
@@ -14,6 +15,7 @@ from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.callables.callable_statements import CallableStatements
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
+    PythonFunctionNode,
     PythonFunctionSelectorContract,
     PythonSourceSegmentsContract,
     PythonTestAssertionDataContract,
@@ -41,15 +43,11 @@ class PythonFunctionNodesOptions:
 class PythonFunctionNodes:
     """Responsibilities: _function node collection_, _callable metadata normalization_."""
 
-    def _records(self, nodes: list[ast.AST]) -> list[JsonObject]:
+    def _records(self, nodes: Sequence[PythonFunctionNode]) -> list[JsonObject]:
         """Responsibilities: _Python function record normalization_."""
         results: list[JsonObject] = []
         for node in nodes:
-            match node:
-                case ast.FunctionDef() | ast.AsyncFunctionDef():
-                    record = PythonFunctionNodeRecord(node, self._context)
-                case _:
-                    continue
+            record = PythonFunctionNodeRecord(node, self._context)
             result = record.callable_metadata()
             result.update(record.body_data())
             if result:
@@ -80,7 +78,7 @@ class PythonFunctionNodes:
 
     def callable_count(self) -> JsonObject:
         """Responsibilities: _count Python callable nodes_."""
-        nodes: list[ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = []
+        nodes: list[PythonFunctionNode | ast.Lambda] = []
         for node in self._node_index.nodes(self._tree):
             match node:
                 case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda():

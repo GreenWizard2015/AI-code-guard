@@ -10,12 +10,27 @@ class PythonLexicalScopeTest(unittest.TestCase):
 
     def test_caches_scope_chains_without_sharing_mutable_results(self) -> None:
         """Responsibilities: _cached scope chain storage_."""
-        tree = ast.parse("def outer():\n    return [item for item in values]\n")
+        iterable = ast.Name(id="values", ctx=ast.Load())
+        comprehension = ast.ListComp(
+            elt=ast.Name(id="item", ctx=ast.Load()),
+            generators=[
+                ast.comprehension(
+                    target=ast.Name(id="item", ctx=ast.Store()),
+                    iter=iterable,
+                    ifs=[],
+                    is_async=0,
+                ),
+            ],
+        )
+        outer = ast.FunctionDef(
+            name="outer",
+            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+            body=[ast.Return(value=comprehension)],
+            decorator_list=[],
+        )
+        tree = ast.Module(body=[outer], type_ignores=[])
         index = PythonAstNodeIndex()
         index.nodes(tree)
-        outer = tree.body[0]
-        comprehension = tree.body[0].body[0].value
-        iterable = comprehension.generators[0].iter
         element = comprehension.elt
         resolver = PythonLexicalScope(index)
         expected = {
@@ -38,18 +53,22 @@ class PythonLexicalScopeTest(unittest.TestCase):
 
     def test_scope_chain_preserves_nested_class_and_lambda_boundaries(self) -> None:
         """Responsibilities: _nested scope traversal_."""
-        tree = ast.parse(
-            "class Container:\n"
-            "    def convert(self):\n"
-            "        transform = lambda item: item\n"
-            "        return transform\n",
+        parameter = ast.arg(arg="item")
+        transform = ast.Lambda(
+            args=ast.arguments(posonlyargs=[], args=[parameter], kwonlyargs=[], kw_defaults=[], defaults=[]),
+            body=ast.Name(id="item", ctx=ast.Load()),
         )
+        assignment = ast.Assign(targets=[ast.Name(id="transform", ctx=ast.Store())], value=transform)
+        method = ast.FunctionDef(
+            name="convert",
+            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
+            body=[assignment, ast.Return(value=ast.Name(id="transform", ctx=ast.Load()))],
+            decorator_list=[],
+        )
+        container = ast.ClassDef(name="Container", bases=[], keywords=[], body=[method], decorator_list=[])
+        tree = ast.Module(body=[container], type_ignores=[])
         index = PythonAstNodeIndex()
         index.nodes(tree)
-        container = tree.body[0]
-        method = container.body[0]
-        transform = method.body[0].value
-        parameter = transform.args.args[0]
         resolver = PythonLexicalScope(index)
 
         self.assertEqual(

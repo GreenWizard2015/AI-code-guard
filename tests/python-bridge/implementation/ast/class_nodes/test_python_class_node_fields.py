@@ -9,6 +9,7 @@ from implementation.ast.class_nodes.python_class_node_fields import (
     PythonClassNodeFields,
 )
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 from implementation.ast.imports.source_segments import SourceSegments
 from implementation.references.aliases.python_container_assembly import (
     PythonContainerAssembly,
@@ -36,7 +37,9 @@ class Cache:
 
     def _class_declaration(self, module: ast.Module) -> ast.ClassDef:
         """Responsibilities: _class declaration extraction_."""
-        return module.body[0]
+        selection = PythonAstNodeSelection(PythonAstNodeIndex())
+        class_declarations = selection.class_definitions(module)
+        return class_declarations[0]
 
     def _options(self, module: ast.Module, node: ast.ClassDef, source: str) -> PythonClassNodeOptions:
         """Responsibilities: _class field-analysis inputs_."""

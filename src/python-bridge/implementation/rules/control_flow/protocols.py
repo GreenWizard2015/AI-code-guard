@@ -14,6 +14,12 @@ class PythonCodingIssueFlowStateContract(Protocol):
     def precedence(self) -> PythonOperatorPrecedenceContract: ...
 
 
+class PythonAstExpressionSelectionContract(Protocol):
+    """Responsibilities: _expression selection_."""
+
+    def expressions(self, root: ast.AST) -> list[ast.expr]: ...
+
+
 class PythonExpressionBoundaryContract(Protocol):
     """Responsibilities: _expression boundary contract_."""
 

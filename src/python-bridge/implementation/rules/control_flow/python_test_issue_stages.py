@@ -48,6 +48,8 @@ class PythonTestIssueStages:
 
     def _object_assignment(self, assignment_candidate: ast.stmt) -> str:
         """Responsibilities: _object literal assignment name_."""
+        target: ast.expr | None = None
+        value: ast.expr | None = None
         if type(assignment_candidate) is ast.Assign:
             if len(assignment_candidate.targets) != 1:
                 return ""

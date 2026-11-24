@@ -13,7 +13,8 @@ from implementation.ast.constants import (
     PYTHON_AST_PARALLEL_CHUNK_SIZE,
 )
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.types import JsonObject, JsonValue
+from implementation.json_value_view import JsonValueView
+from implementation.types import JsonObject
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from protocols import (
     PythonAstBridgeContract,
@@ -39,28 +40,7 @@ class PythonBridgeEntrypoint:
     """Responsibilities: _bridge request processing_, _mode-specific response writing_."""
 
     _ast_process_pool: ProcessPoolExecutor
-
-    def _json_value(self, value: JsonValue) -> JsonValue:
-        """Responsibilities: _JSON value structure_."""
-        if value is None or type(value) in (str, int, float, bool):
-            return value
-        if type(value) is list:
-            return [self._json_value(item) for item in value]
-        if type(value) is dict:
-            values: dict[str, JsonValue] = {}
-            for key, item in value.items():
-                if type(key) is not str:
-                    raise ValueError("JSON object keys must be strings.")
-                values[key] = self._json_value(item)
-            return values
-        raise ValueError("Decoded value is outside the JSON value domain.")
-
-    def _json_object(self, value: JsonValue) -> JsonObject:
-        """Responsibilities: _JSON object shape_."""
-        decoded = self._json_value(value)
-        if type(decoded) is not dict:
-            raise ValueError("Expected a JSON object.")
-        return decoded
+    _json_reader: JsonValueView
 
     def _batch_sources(self, request: JsonObject) -> PythonBatchSources:
         """Responsibilities: _worker batch input validation_."""
@@ -87,7 +67,8 @@ class PythonBridgeEntrypoint:
         payload_length = int(header)
         payload = input_buffer.read(payload_length)
         input_buffer.read(1)
-        return self._json_object(json.loads(payload))
+        self._json_reader.read(json.loads(payload))
+        return self._json_reader.object()
 
     def _worker_write(self, output_buffer: BinaryIO, result: JsonObject) -> None:
         """Responsibilities: _encode worker result newline-delimited_."""
@@ -135,6 +116,7 @@ class PythonBridgeEntrypoint:
         self._output: PythonBridgeOutputContract = PythonBridgeOutput(output_stream)
         self._input_source: PythonBridgeInputContract = input_source
         self._ast_process_pool: ProcessPoolExecutor = ProcessPoolExecutor(max_workers=2)
+        self._json_reader = JsonValueView()
 
     def run(self) -> None:
         """Responsibilities: _configuration bridge execution dispatch_."""
@@ -154,9 +136,8 @@ class PythonBridgeEntrypoint:
         for line in self._input_stream:
             if not line.strip():
                 continue
-            decoded = self._json_value(json.loads(line))
-            if type(decoded) is not str:
-                raise ValueError("Batch input lines must contain JSON strings.")
+            self._json_reader.read(json.loads(line))
+            decoded = self._json_reader.text()
             source = self._input_source.resolve(decoded)
             result = self._bridge.source_ast(source)
             self._output.write(result)

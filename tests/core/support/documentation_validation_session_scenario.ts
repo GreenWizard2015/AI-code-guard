@@ -22,6 +22,7 @@ export class DocumentationValidationSessionScenario
 	private readonly _map_cache: SourceFileMapCache;
 	private _file_requests = 0;
 	private _lint_mode: LintReportMode;
+	private _entry_files: readonly string[];
 	private _project_analysis_enabled = false;
 	private _source_io_requests = 0;
 	private _source_record_requests = 0;
@@ -48,6 +49,7 @@ export class DocumentationValidationSessionScenario
 	/** Responsibilities: _scenario initialization_. **/
 	public constructor() {
 		this._map_cache = new SourceFileMapCache();
+		this._entry_files = [];
 		this._lint_mode = LintReportMode.PROJECT;
 		this._violation = new ViolationValue({
 			file: "cli.py",
@@ -62,6 +64,7 @@ export class DocumentationValidationSessionScenario
 	/** Responsibilities: _documentation lint report_. **/
 	public lint_report(options: LintReportOptions, mode: LintReportMode): LintExecutionReport {
 		this._lint_mode = mode;
+		this._entry_files = options.entry_files;
 		this._project_analysis_enabled = options.project_analysis_enabled;
 		return {
 			context: this,
@@ -134,8 +137,13 @@ export class DocumentationValidationSessionScenario
 	}
 
 	/** Responsibilities: _lint configuration observation_. **/
-	public lint_state(): { lint_mode: LintReportMode; project_analysis_enabled: boolean } {
+	public lint_state(): {
+		entry_files: readonly string[];
+		lint_mode: LintReportMode;
+		project_analysis_enabled: boolean;
+	} {
 		return {
+			entry_files: this._entry_files,
 			lint_mode: this._lint_mode,
 			project_analysis_enabled: this._project_analysis_enabled,
 		};

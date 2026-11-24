@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.protocols import PythonSubtestAliasesContract
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
+from implementation.ast.protocols import PythonAstNodeIndexContract, PythonSubtestAliasesContract
 from implementation.references.decorator_protocols import (
     PythonPropertyDecoratorContract,
 )
@@ -70,13 +71,17 @@ class PythonCodingIssueStages:
         container_keys: PythonContainerKeysContract,
         python_decorator_rules: PythonPropertyDecoratorContract,
         subtest_aliases: PythonSubtestAliasesContract,
+        node_index: PythonAstNodeIndexContract,
     ) -> None:
         """Responsibilities: _simple issue stage initialization_."""
         self._container_keys: PythonContainerKeysContract = container_keys
         self._python_decorator_rules: PythonPropertyDecoratorContract = python_decorator_rules
         self._subtest_aliases: PythonSubtestAliasesContract = subtest_aliases
         self._test_stages: PythonTestIssueStages = PythonTestIssueStages()
-        self._type_check_stages: PythonTypeCheckIssueStage = PythonTypeCheckIssueStage()
+        self._type_check_stages: PythonTypeCheckIssueStage = PythonTypeCheckIssueStage(
+            node_index,
+            PythonAstNodeSelection(node_index),
+        )
 
     def shape_issues(self, shape_expression: ast.AST) -> list[JsonObject]:
         """Responsibilities: _multiple-result-shape issue collection_."""

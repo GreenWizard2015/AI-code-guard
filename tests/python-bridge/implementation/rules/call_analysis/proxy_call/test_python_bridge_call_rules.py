@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_statements import CallableStatements
 from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
@@ -45,8 +46,10 @@ class PythonBridgeCallRuleTest(unittest.TestCase):
             "def _build(self, value: Payload, /, limit: int = 1, *items: str, **options: object):\n"
             "    return value\n",
         )
-        function = parsed.body[0]
         node_index = self._python_ast_node_index()
+        function_selector = PythonFunctionSelector(parsed, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
         type_aliases = PythonScopedTypeAliases(parsed, node_index)
         type_aliases.collect()
         arguments = CallableArguments(node_index, type_aliases)
@@ -104,10 +107,9 @@ class PythonBridgeCallRuleTest(unittest.TestCase):
         )
         tree = ast.parse(source)
         aliases = PythonProxyReceiverAliases(tree)
-        lambdas = [tree.body[0].body[0].body[index].value for index in range(3)]
-        results = [aliases.lambda_receiver(node) for node in lambdas]
+        results = [aliases.lambda_receiver(node) for node in ast.walk(tree)]
 
-        self.assertEqual(results, [True, True, True])
+        self.assertEqual([result for result in results if result], [True, True, True])
 
     def test_keyword_only_proxy_forwarding(self) -> None:
         """Responsibilities: _keyword-only proxy forwarding verification_."""

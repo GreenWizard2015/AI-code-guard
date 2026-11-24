@@ -14,6 +14,7 @@ import { QualityCheckProcess } from "test-runner/quality_check_process";
 import { TestRunnerArguments } from "test-runner/test_runner_arguments";
 import type {
 	CommandRunnerContract,
+	QualityStageRequest,
 	TestExecutionRequest,
 	TestRunnerOutput,
 	TestRunnerRequest,
@@ -58,13 +59,14 @@ export class TestExecution {
 		return `
 Usage: pnpm exec tsx ${this._project_root}/test-runner/cli.ts [options] [jest options]
 
-Runs the repository tests and then the TypeScript/Python formatters and quality checks.
+Runs TypeScript/Python formatters and quality checks, then the repository tests.
 
 Options:
   --headless         Run tests in headless CI mode
   --skip-quality     Skip formatters and quality checks
-	  --force-review    Force a review only when a review agent is selected
-	--review-agent     Select codex, cx, cxa, or claude. No selection means no review.
+  --skip-tests       Run quality checks without executing Python or Jest tests
+  --force-review     Force a review only when a review agent is selected
+  --review-agent     Select codex, cx, cxa, or claude. No selection means no review.
   --help             Show this help message
 
 Examples:
@@ -73,6 +75,7 @@ Examples:
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --headless
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --headless --force-review
   pnpm exec tsx ${this._project_root}/test-runner/cli.ts --skip-quality
+  pnpm exec tsx ${this._project_root}/test-runner/cli.ts --skip-tests
 `;
 	}
 
@@ -130,22 +133,59 @@ Examples:
 		return this.run_typescript_tests(test_run);
 	}
 
+	/** Responsibilities: _quality-stage policy_. **/
+	private run_quality_stage(request: QualityStageRequest): number {
+		if (request.skip_quality) {
+			if (request.skip_tests) {
+				this._output.stdout.write("\n⏭️ Quality checks and tests skipped by request.\n");
+			}
+			return 0;
+		}
+		const quality_status = this._quality_checks.run(request.quality_options);
+		if (quality_status !== 0) {
+			return quality_status;
+		}
+		if (request.skip_tests) {
+			this._output.stdout.write("\n⏭️ Tests skipped by request.\n");
+		}
+		return 0;
+	}
+
+	/** Responsibilities: _requested test-stage completion_. **/
+	private execute_test_stage(skip_tests: boolean, test_run: TestExecutionRequest): number {
+		if (skip_tests) {
+			return 0;
+		}
+		const test_status = this.run_tests({ ...test_run, dependencies_ready: true });
+		if (test_status !== 0) {
+			return test_status;
+		}
+		this._output.stdout.write("\n✅ All tests passed!\n");
+		return 0;
+	}
+
 	/** Responsibilities: _quality and test workflow_. **/
 	private execute_request(request: TestRunnerRequest, environment: NodeJS.ProcessEnv): number {
 		const install_status = this.install_dependencies(environment);
 		if (install_status !== 0) {
 			return install_status;
 		}
-		const quality_status = this._quality_checks.run_test_request(request);
+		const quality_status = this.run_quality_stage({
+			skip_quality: request.skip_quality,
+			skip_tests: request.skip_tests,
+			quality_options: {
+				force_review: request.force_review,
+				review_agent: request.review_agent,
+			},
+		});
 		if (quality_status !== 0) {
 			return quality_status;
 		}
-		const test_status = this.run_tests({ jest_arguments: request.args, environment, dependencies_ready: true });
-		if (test_status !== 0) {
-			return test_status;
-		}
-		this._output.stdout.write("\n✅ All tests passed!\n");
-		return 0;
+		return this.execute_test_stage(request.skip_tests, {
+			jest_arguments: request.args,
+			environment,
+			dependencies_ready: true,
+		});
 	}
 
 	/** Responsibilities: _runner state initialization_. **/

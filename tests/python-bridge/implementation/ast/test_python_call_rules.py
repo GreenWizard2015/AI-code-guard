@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
@@ -12,6 +13,7 @@ from implementation.references.test_assertions.assertion_aliases import (
     PythonTestAssertionAliases,
     PythonTestAssertionAliasOptions,
 )
+from python_reference_test_support import PythonReferenceTestSupport
 
 from tests.python.constants import (
     ANNOTATED_CLASS_ALIAS_SOURCE,
@@ -132,12 +134,16 @@ def exercise(self):
 """,
         )
         node_index = PythonAstNodeIndex()
-        nodes = node_index.nodes(tree)
+        node_index.nodes(tree)
         container_assembly = PythonContainerAssembly(node_index)
         container_aliases = container_assembly.container_aliases()
         container_aliases.state().configure_scope_tree(tree)
-        function_node = tree.body[0]
-        assertion_call = function_node.body[1].value
+        function_selector = PythonFunctionSelector(tree, node_index)
+        function_nodes = function_selector.nodes()
+        function_node = function_nodes[0]
+        support = PythonReferenceTestSupport()
+        calls = support.call_nodes(function_node)
+        assertion_call = calls[0]
         aliases = PythonTestAssertionAliases(
             PythonTestAssertionAliasOptions(
                 function_node,

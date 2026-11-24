@@ -23,6 +23,7 @@ describe("quality check execution", () => {
 			help_requested: false,
 			headless: true,
 			skip_quality: true,
+			skip_tests: false,
 			force_review: false,
 			review_agent: "none",
 		});

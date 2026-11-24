@@ -1,6 +1,6 @@
+import type { JestSuite } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { DiagnosticRuleContract } from "src/model/protocols";
-import type { JestSuite } from "src/model/ast/normalized_ast_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { JestSuiteCollectorContract } from "src/testing_protocols";
 import type { JestInlineAssertionObjectLiteralsContract } from "src/testing_protocols";

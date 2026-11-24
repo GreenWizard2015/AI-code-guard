@@ -15,6 +15,13 @@ class PythonAsyncModuleNameStateContract(Protocol):
     def snapshot(self) -> set[str]: ...
 
 
+class PythonAsyncNameOverlayContract(Protocol):
+    """Responsibilities: _test async name overlay_."""
+
+    def update_test_aliases(self, node: ast.AST) -> None: ...
+    def async_call_name(self, statement: ast.Expr) -> str: ...
+
+
 class PythonTestExecutionRegionContract(Protocol):
     """Responsibilities: _test execution region access_."""
 

@@ -127,7 +127,7 @@ Result = Factory("Result", {"value": str})
         """Responsibilities: _descriptor method selection_."""
         support = PythonReferenceTestSupport()
         functions = support.function_nodes(tree)
-        return [function for function in functions if function.name == name][0]
+        return next(function for function in functions if function.name == name)
 
     def test_indexes_static_descriptor(self) -> None:
         """Responsibilities: _static descriptor indexing_."""

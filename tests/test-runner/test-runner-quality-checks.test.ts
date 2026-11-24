@@ -14,6 +14,7 @@ describe("test runner quality checks", () => {
 
 		const help_output = output.stdout.read();
 		expect(String(help_output)).toContain(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`);
+		expect(String(help_output)).toContain("--skip-tests");
 	});
 
 	test("runs quality checks before stopping at a failed TypeScript test command", () => {
@@ -37,6 +38,22 @@ describe("test runner quality checks", () => {
 			exit_code: 3,
 			success_message: false,
 		});
+	});
+
+	test("runs all quality checks and skips both test suites when requested", () => {
+		const runner = new CommandExecutionTestDouble(Array.from({ length: 11 }, () => 0));
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args(["--headless", "--skip-tests"]);
+		const calls = runner.snapshot().calls;
+		const output_text = String(output.stdout.read());
+
+		expect({
+			exit_code,
+			call_count: calls.length,
+			test_commands: calls.filter((call) => call.includes("pytest") || call.includes("jest")),
+			skip_message: output_text.includes("Tests skipped by request."),
+		}).toEqual({ exit_code: 0, call_count: 11, test_commands: [], skip_message: true });
 	});
 
 	test("stops before tests when a quality check fails", () => {

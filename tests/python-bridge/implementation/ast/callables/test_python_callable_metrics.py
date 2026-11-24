@@ -1,6 +1,7 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 
@@ -17,8 +18,11 @@ class PythonCallableMetricsTest(unittest.TestCase):
             "            while active:\n"
             "                pass\n",
         )
-        function = tree.body[0]
-        metrics = CallableMetrics(PythonAstNodeIndex())
+        node_index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
+        metrics = CallableMetrics(node_index)
 
         self.assertEqual(metrics.control_flow_depth(function.body), 3)
 
@@ -32,10 +36,12 @@ class PythonCallableMetricsTest(unittest.TestCase):
             "                if deeper:\n"
             "                    pass\n",
         )
-        function = tree.body[0]
-        branch = function.body[0]
-        nested = branch.body[0]
-        metrics = CallableMetrics(PythonAstNodeIndex())
+        node_index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
+        nested = functions[1]
+        metrics = CallableMetrics(node_index)
 
         self.assertEqual(
             (metrics.control_flow_depth(function.body), metrics.control_flow_depth(nested.body)),

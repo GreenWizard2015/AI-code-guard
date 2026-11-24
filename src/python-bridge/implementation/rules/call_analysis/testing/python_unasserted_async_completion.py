@@ -4,10 +4,10 @@ import ast
 
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
-    PythonAsyncNameOverlayContract,
 )
 from implementation.rules.call_analysis.testing.protocols import (
     PythonAsyncModuleNameStateContract,
+    PythonAsyncNameOverlayContract,
 )
 from implementation.rules.call_analysis.testing.python_async_module_name_state import (
     PythonAsyncModuleNameState,

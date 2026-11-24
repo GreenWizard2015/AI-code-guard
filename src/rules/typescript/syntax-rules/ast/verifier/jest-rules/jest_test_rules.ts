@@ -1,18 +1,18 @@
-import { TEST_PATH_SUFFIXES, JEST_DESCRIBE_NAME } from "src/constants";
+import { JEST_DESCRIBE_NAME, TEST_PATH_SUFFIXES } from "src/constants";
 import type { JestSuite } from "src/model/ast/normalized_ast_types";
+import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
-import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import type { ViolationContract } from "src/reporting_protocols";
+import { JestInlineAssertionObjectLiterals } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_inline_assertion_object_literals";
+import { JestTestTypeChecks } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_test_type_checks";
+import { JestExecutionDependencyRules } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/async/jest_execution_dependency_rules";
 import { JestSuiteCollector } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_suite_collector";
 import { JestTestProductionUsage } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_test_production_usage";
-import { JestExecutionDependencyRules } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/async/jest_execution_dependency_rules";
-import { JestTestTypeChecks } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_test_type_checks";
-import { JestInlineAssertionObjectLiterals } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/assertions/jest_inline_assertion_object_literals";
 import { JestTestSuitePolicy } from "src/rules/typescript/syntax-rules/ast/verifier/jest-rules/jest_test_suite_policy";
-import type { JestBindingIndexContract, JestTestRulesContract } from "src/testing_protocols";
-import type { TestPathSyntaxContract, LintStageTimerContract } from "src/shared_services_protocols";
+import type { LintStageTimerContract, TestPathSyntaxContract } from "src/shared_services_protocols";
 import { TestPathSyntax } from "src/test_path_syntax";
+import type { JestBindingIndexContract, JestTestRulesContract } from "src/testing_protocols";
 import type { TypeScriptExpressionAliasesContract } from "src/typescript_runtime_protocols";
 import type ts from "typescript";
 

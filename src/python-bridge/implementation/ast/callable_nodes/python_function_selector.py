@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from implementation.ast.callable_nodes.python_function_owner import PythonFunctionOwner
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
+    PythonFunctionNode,
     PythonFunctionOwnerContract,
 )
 
@@ -13,11 +14,12 @@ from implementation.ast.protocols import (
 class PythonFunctionSelector:
     """Responsibilities: _function declaration selection_, _nested function detection_."""
 
-    def _function_nodes(self) -> Iterator[ast.AST]:
+    def _function_nodes(self) -> Iterator[PythonFunctionNode]:
         """Responsibilities: _Python function AST iteration_."""
         for node in self._node_index.nodes(self._tree):
-            if type(node) in (ast.FunctionDef, ast.AsyncFunctionDef):
-                yield node
+            match node:
+                case ast.FunctionDef() | ast.AsyncFunctionDef():
+                    yield node
 
     def __init__(
         self,
@@ -29,11 +31,11 @@ class PythonFunctionSelector:
         self._node_index: PythonAstNodeIndexContract = node_index
         self._owner: PythonFunctionOwnerContract = PythonFunctionOwner(tree, node_index)
 
-    def nodes(self) -> list[ast.AST]:
+    def nodes(self) -> list[PythonFunctionNode]:
         """Responsibilities: _collection Python function declarations_."""
         return list(self._function_nodes())
 
-    def source_nodes(self) -> list[ast.AST]:
+    def source_nodes(self) -> list[PythonFunctionNode]:
         """Responsibilities: _source function selection_."""
         return [node for node in self._function_nodes() if type(self._owner.resolve(node)) is not ast.ClassDef]
 

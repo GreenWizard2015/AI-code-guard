@@ -1,5 +1,5 @@
-import { join } from "node:path";
 import { throws } from "node:assert/strict";
+import { join } from "node:path";
 import { describe, expect, test } from "@jest/globals";
 import type { ProcessLivenessContract } from "src/analysis_protocols";
 import "src/core/project-context/lint_project_context_creator";

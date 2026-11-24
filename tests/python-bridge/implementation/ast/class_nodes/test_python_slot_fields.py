@@ -4,6 +4,8 @@ import ast
 import unittest
 
 from implementation.ast.class_nodes.python_slot_fields import PythonSlotFields
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 
 
 class PythonSlotFieldsTests(unittest.TestCase):
@@ -18,7 +20,9 @@ class PythonSlotFieldsTests(unittest.TestCase):
             "    __slots__ = LOCAL_SLOTS\n",
         )
         module_slots = tree.body[0]
-        account = tree.body[1]
+        selection = PythonAstNodeSelection(PythonAstNodeIndex())
+        class_declarations = selection.class_definitions(tree)
+        account = class_declarations[0]
         slot_fields = PythonSlotFields(account, [module_slots])
         fields = slot_fields.fields()
 
@@ -32,7 +36,10 @@ class Account:
     __slots__ = MODULE_SLOTS
 """,
         )
-        module_slots, account = tree.body
+        module_slots = tree.body[0]
+        selection = PythonAstNodeSelection(PythonAstNodeIndex())
+        class_declarations = selection.class_definitions(tree)
+        account = class_declarations[0]
         slot_fields = PythonSlotFields(account, [module_slots])
         fields = slot_fields.fields()
 
@@ -45,7 +52,9 @@ class Account:
     __slots__ = {"account_id": str, "__dict__": object, "__weakref__": object}
 """,
         )
-        account = tree.body[0]
+        selection = PythonAstNodeSelection(PythonAstNodeIndex())
+        class_declarations = selection.class_definitions(tree)
+        account = class_declarations[0]
         slot_fields = PythonSlotFields(account, [])
         fields = slot_fields.fields()
 

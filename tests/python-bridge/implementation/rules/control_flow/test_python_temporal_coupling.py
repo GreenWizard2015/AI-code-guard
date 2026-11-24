@@ -91,3 +91,40 @@ class PythonTemporalCouplingTest(unittest.TestCase):
         issues = analysis.issues(tree)
 
         self.assertEqual(issues, [])
+
+    def test_temporal_coupling_reads_async_method_names(self) -> None:
+        """Responsibilities: _async field dependency detection_."""
+        source = (
+            "class Worker:\n"
+            "    def prepare(self):\n"
+            "        self.state = 'ready'\n"
+            "    async def run(self):\n"
+            "        return self.state\n"
+        )
+        tree = self._tree(source)
+        node_index = PythonAstNodeIndex()
+        node_index.nodes(tree)
+        coupling = PythonTemporalCoupling(node_index)
+        issues = coupling.issues(tree)
+
+        self.assertEqual(
+            [{"kind": issue["kind"], "line": issue["line"], "name": issue["name"]} for issue in issues],
+            [{"kind": "temporal-coupling", "line": 1, "name": "state"}],
+        )
+
+    def test_temporal_coupling_ignores_fields_after_receiver_reassignment(self) -> None:
+        """Responsibilities: _receiver reassignment ownership_."""
+        source = (
+            "class Worker:\n"
+            "    def prepare(self):\n"
+            "        self = temporary\n"
+            "        self.state = 'ready'\n"
+            "    def run(self):\n"
+            "        return self.state\n"
+        )
+        tree = self._tree(source)
+        node_index = PythonAstNodeIndex()
+        node_index.nodes(tree)
+        coupling = PythonTemporalCoupling(node_index)
+
+        self.assertEqual(coupling.issues(tree), [])

@@ -22,24 +22,28 @@ from tests.python.constants import (
 class PythonComponentConstructionTest(unittest.TestCase):
     """Responsibilities: _AST metric collection_, _Python rule diagnostics_."""
 
-    def test_function_selector_keeps_module_methods_and_nested_functions(self) -> None:
-        """Responsibilities: _function declaration selection behavior_."""
-        source = (
+    def test_function_selector_keeps_module_and_nested_functions(self) -> None:
+        """Responsibilities: _function scope selection_."""
+        tree = ast.parse(
             "def module_function():\n"
             "    def nested_function():\n"
             "        return 1\n"
-            "    return nested_function()\n"
-            "class Service:\n"
-            "    def method(self):\n"
-            "        return 2\n"
+            "    return nested_function()\n",
         )
-        tree = ast.parse(source)
-        selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        function_nodes = function_selector.nodes()
+        selected_names = [node.name for node in function_nodes]
 
-        self.assertEqual(
-            [node.name for node in selector.nodes()],
-            ["module_function", "nested_function", "method"],
-        )
+        self.assertEqual(selected_names, ["module_function", "nested_function"])
+
+    def test_function_selector_keeps_class_methods(self) -> None:
+        """Responsibilities: _class method selection_."""
+        tree = ast.parse("class Service:\n    def method(self):\n        return 2\n")
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        function_nodes = function_selector.nodes()
+        selected_names = [node.name for node in function_nodes]
+
+        self.assertEqual(selected_names, ["method"])
 
     def test_collects_statement_metrics(self) -> None:
         """Responsibilities: _statement metrics verification_."""
@@ -47,7 +51,7 @@ class PythonComponentConstructionTest(unittest.TestCase):
         node_index = PythonAstNodeIndex()
         function_selector = PythonFunctionSelector(parsed_source, node_index)
         function_nodes = function_selector.nodes()
-        function_node = next(node for node in function_nodes if node.name == "asynchronous")
+        function_node = next(node for node in function_nodes if node.name == "measure")
         function_body = function_node.body
         metrics = CallableMetrics(node_index)
         control_depth = metrics.control_flow_depth(function_body)

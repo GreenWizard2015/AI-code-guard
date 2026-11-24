@@ -53,6 +53,7 @@ class PythonCodingIssueTestState(PythonCodingIssueTestStateContract):
             self._context.aliases().containers.simple_container_aliases.container_keys(),
             self._decorator_rules,
             self._subtest_alias_state,
+            self._context.node_index(),
         )
 
     @cached_property

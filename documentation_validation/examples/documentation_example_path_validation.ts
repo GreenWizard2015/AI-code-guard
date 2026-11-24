@@ -23,6 +23,16 @@ export class DocumentationExamplePathValidation {
 		return "cli.ts";
 	}
 
+	/** Responsibilities: _test source recognition_. **/
+	private test_source_file(path: string): boolean {
+		const segments = path.split("/");
+		const file_name = segments.at(-1) ?? "";
+		if (this._example.language === DocumentationLanguage.PYTHON) {
+			return /^test_.*\.py$/u.test(file_name) || /_test\.py$/u.test(file_name);
+		}
+		return segments.includes("tests") || /\.(?:test|spec)\.tsx?$/u.test(file_name);
+	}
+
 	/** Responsibilities: _declared CLI file lookup_. **/
 	private declared_cli_file(files: DocumentationExampleSourceFiles): string {
 		for (const file of files) {
@@ -51,6 +61,9 @@ export class DocumentationExamplePathValidation {
 	/** Responsibilities: _CLI declaration ordering_. **/
 	public cli_order_issues(): readonly string[] {
 		const files = this._example.source_files;
+		if (files.length > 0 && files.every((file) => this.test_source_file(file.path))) {
+			return [];
+		}
 		const last_file = files.at(-1);
 		if (last_file === undefined) {
 			return [`${this.required_entry()} must be declared as the final File: entry`];

@@ -30,6 +30,16 @@ export class DocumentationExampleRun {
 		return texts;
 	}
 
+	/** Responsibilities: _example entry-point selection_. **/
+	private entry_files(): string[] {
+		return this._source_files
+			.filter((source_file) => {
+				const file_name = source_file.path.split("/").at(-1);
+				return file_name === "cli.ts" || file_name === "cli.py";
+			})
+			.map((source_file) => source_file.path);
+	}
+
 	/** Responsibilities: _virtual project execution_. **/
 	private execute_example(source_texts: ReadonlyMap<string, string>): LintExecutionReport {
 		const inputs = {
@@ -47,7 +57,7 @@ export class DocumentationExampleRun {
 				inputs,
 				source_texts,
 				configuration_snapshot_complete: true,
-				entry_files: [],
+				entry_files: this.entry_files(),
 				project_analysis_enabled: PROJECT_ANALYSIS_RULE_IDS.has(this._rule_id),
 			},
 			LintReportMode.IN_MEMORY_PROJECT,

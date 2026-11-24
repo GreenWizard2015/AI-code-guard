@@ -8,33 +8,56 @@ from tempfile import TemporaryDirectory
 
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
+from implementation.json_value_view import JsonValueView
 from implementation.types import JsonObject, JsonValueList
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from protocols import PythonAstBridgeContract
+from python_ast_tree_process_probe import PythonAstTreeProcessProbe
 from python_bridge_entrypoint import PythonBridgeEntrypoint
 from python_bridge_input import PythonBridgeInput
-from python_ast_tree_process_probe import PythonAstTreeProcessProbe
 
 
 class PythonBridgeEntrypointTest(unittest.TestCase):
     """Responsibilities: _bridge input routing_, _AST response verification_."""
 
+    _json_reader: JsonValueView
+
+    def setUp(self) -> None:
+        """Responsibilities: _per-test JSON reader state_."""
+        self._json_reader = JsonValueView()
+
     def _output_object(self, text: str) -> JsonObject:
         """Responsibilities: _bridge JSON response decoding_."""
-        return json.loads(text)
+        self._json_reader.read(json.loads(text))
+        return self._json_reader.object()
 
     def _first_symbol_name(self, result: JsonObject, collection: str) -> str:
         """Responsibilities: _symbol name lookup_."""
-        return result["source"][collection][0]["identity"]["name"]
+        self._json_reader.read(result["source"])
+        source = self._json_reader.object()
+        self._json_reader.read(source[collection])
+        symbols = self._json_reader.array()
+        self._json_reader.read(symbols[0])
+        first_symbol = self._json_reader.object()
+        self._json_reader.read(first_symbol["identity"])
+        identity = self._json_reader.object()
+        self._json_reader.read(identity["name"])
+        return self._json_reader.text()
 
     def _parse_issues(self, result: JsonObject) -> JsonValueList:
         """Responsibilities: _syntax diagnostic collection_."""
-        return result["source"]["parse_issues"]
+        self._json_reader.read(result["source"])
+        source = self._json_reader.object()
+        self._json_reader.read(source["parse_issues"])
+        return self._json_reader.array()
 
     def _first_parse_issue_line(self, result: JsonObject) -> int:
         """Responsibilities: _syntax diagnostic line lookup_."""
         issues = self._parse_issues(result)
-        return issues[0]["line"]
+        self._json_reader.read(issues[0])
+        first_issue = self._json_reader.object()
+        self._json_reader.read(first_issue["line"])
+        return self._json_reader.integer()
 
     def test_runs_text_mode(self) -> None:
         """Responsibilities: _text mode output_."""
@@ -148,7 +171,9 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         entrypoint.run_worker()
         response_header, response_payload = output_buffer.getvalue().split(b"\n", maxsplit=1)
         response_length = int(response_header)
-        return json.loads(response_payload[:response_length])
+        decoded = json.loads(response_payload[:response_length])
+        self._json_reader.read(decoded)
+        return self._json_reader.object()
 
     def test_worker_batch_processes_large_source_sets_in_parallel_without_reordering(self) -> None:
         """Responsibilities: _parallel worker result equivalence_, _source order preservation_."""
@@ -156,7 +181,8 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = {f"source_{index:02d}.py": f"def function_{index}():\n    return {index}\n" for index in range(8)}
         response = self._parallel_worker_result(sources, bridge)
         expected = {name: bridge.source_ast(source) for name, source in sources.items()}
-        response_asts = response["asts"]
+        self._json_reader.read(response["asts"])
+        response_asts = self._json_reader.object()
         self.assertEqual(
             {"batch_id": response["batch_id"], "source_names": list(response_asts), "asts": response_asts},
             {"batch_id": "parallel-batch", "source_names": list(sources), "asts": expected},
@@ -178,8 +204,12 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources()
         bridge = PythonAstBridge(PythonAstTreeProcessProbe)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = response["asts"]
-        result_objects = list(response_asts.values())
+        self._json_reader.read(response["asts"])
+        response_asts = self._json_reader.object()
+        result_objects: list[JsonObject] = []
+        for result in response_asts.values():
+            self._json_reader.read(result)
+            result_objects.append(self._json_reader.object())
         process_ids = [result_object.get("analysis_process_id") for result_object in result_objects]
         main_process_id = os.getpid()
         self.assertEqual(process_ids, [main_process_id] * len(sources))
@@ -189,8 +219,12 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources()
         bridge = PythonAstBridge(PythonAstTreeProcessProbe)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = response["asts"]
-        result_objects = list(response_asts.values())
+        self._json_reader.read(response["asts"])
+        response_asts = self._json_reader.object()
+        result_objects: list[JsonObject] = []
+        for result in response_asts.values():
+            self._json_reader.read(result)
+            result_objects.append(self._json_reader.object())
         issue_counts = [result_object.get("analysis_issue_count") for result_object in result_objects]
         self.assertEqual(len(issue_counts), len(sources))
 
@@ -208,11 +242,15 @@ class PythonBridgeEntrypointTest(unittest.TestCase):
         sources = self._parallel_sources(syntax_error_index=3)
         bridge = PythonAstBridge(PythonAstTree)
         response = self._parallel_worker_result(sources, bridge)
-        response_asts = response["asts"]
+        self._json_reader.read(response["asts"])
+        response_asts = self._json_reader.object()
+        source_ast = response_asts["source_03.py"]
+        self._json_reader.read(source_ast)
+        source_object = self._json_reader.object()
         self.assertEqual(
             {
                 "source_names": list(response_asts),
-                "parse_issue_line": self._first_parse_issue_line(response_asts["source_03.py"]),
+                "parse_issue_line": self._first_parse_issue_line(source_object),
             },
             {"source_names": list(sources), "parse_issue_line": 0},
         )

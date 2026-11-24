@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.ast.protocols import (
+    PythonAstNodeIndexContract,
+    PythonFunctionOwnerNode,
+)
 
 
 class PythonFunctionOwner:
@@ -17,14 +20,15 @@ class PythonFunctionOwner:
         self._tree: ast.Module = tree
         self._node_index: PythonAstNodeIndexContract = node_index
 
-    def resolve(self, node: ast.AST) -> ast.AST:
+    def resolve(self, node: ast.AST) -> PythonFunctionOwnerNode:
         """Responsibilities: _resolution enclosing function owner_."""
         current: ast.AST = node
         parents = self._node_index.parents(current)
         while parents:
             current = parents[0]
-            if type(current) in (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef):
-                return current
+            match current:
+                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef():
+                    return current
             parents = self._node_index.parents(current)
         return self._tree
 

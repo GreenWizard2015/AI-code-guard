@@ -1,6 +1,6 @@
 import { REMOVED_SKIP_REVIEW_MESSAGE, REVIEW_AGENT_OPTION } from "src/constants";
 import type { ReviewAgentSelection } from "src/task_review_types";
-import { FORCE_REVIEW_ARGUMENT, HEADLESS_ARGUMENT } from "test-runner/constants";
+import { FORCE_REVIEW_ARGUMENT, HEADLESS_ARGUMENT, SKIP_TESTS_ARGUMENT } from "test-runner/constants";
 import type { TestRunnerRequest } from "test-runner/types";
 
 /** Responsibilities: _test runner command arguments_, _request option interpretation_. **/
@@ -28,6 +28,7 @@ export class TestRunnerArguments {
 			help_requested: false,
 			headless: false,
 			skip_quality: false,
+			skip_tests: false,
 			force_review: false,
 			review_agent: "none",
 		};
@@ -49,6 +50,8 @@ export class TestRunnerArguments {
 				return { ...request, force_review: true };
 			case "--skip-quality":
 				return { ...request, skip_quality: true };
+			case SKIP_TESTS_ARGUMENT:
+				return { ...request, skip_tests: true };
 			default:
 				return { ...request, args: [...request.args, argument] };
 		}

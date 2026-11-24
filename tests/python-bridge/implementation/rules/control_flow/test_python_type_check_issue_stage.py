@@ -1,6 +1,9 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 from implementation.rules.control_flow.python_type_check_issue_stage import PythonTypeCheckIssueStage
 
 
@@ -14,10 +17,13 @@ class PythonTypeCheckIssueStageTests(unittest.TestCase):
             "    isinstance(value, str)\n"
             "    type(value) is str\n"
             "    match value:\n"
-            "        case str(): pass\n"
+            "        case str(): pass\n",
         )
-        function = tree.body[0]
-        stage = PythonTypeCheckIssueStage()
+        node_index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
+        stage = PythonTypeCheckIssueStage(node_index, PythonAstNodeSelection(node_index))
         issues = stage.type_check_issues(function.body)
 
         self.assertEqual(
@@ -32,7 +38,10 @@ class PythonTypeCheckIssueStageTests(unittest.TestCase):
     def test_ignores_ordinary_named_access(self) -> None:
         """Responsibilities: _ordinary access classification_."""
         tree = ast.parse("def test_value(value):\n    value.name\n")
-        function = tree.body[0]
-        stage = PythonTypeCheckIssueStage()
+        node_index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        function = functions[0]
+        stage = PythonTypeCheckIssueStage(node_index, PythonAstNodeSelection(node_index))
 
         self.assertEqual(stage.type_check_issues(function.body), [])

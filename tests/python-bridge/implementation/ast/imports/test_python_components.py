@@ -1,8 +1,12 @@
 import ast
 import unittest
 
+from implementation.ast.callable_nodes.python_function_selector import (
+    PythonFunctionSelector,
+)
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.source_segments import SourceSegments
+from implementation.ast.protocols import PythonFunctionNode
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
@@ -18,7 +22,7 @@ from implementation.rules.control_flow.python_expression_boundary import (
     PythonExpressionBoundary,
 )
 from implementation.rules.structure_issues import StructureIssues
-from implementation.types import JsonObject
+from python_reference_test_support import PythonReferenceTestSupport
 
 from tests.python.constants import (
     UNDEFINED_INDEX_SOURCE,
@@ -34,9 +38,24 @@ class PythonComponentsMetricsTest(unittest.TestCase):
         """Responsibilities: _AST index creation_."""
         return PythonAstNodeIndex()
 
-    def _function_node(self, tree: ast.Module) -> ast.FunctionDef:
+    def _function_node(self, tree: ast.Module) -> PythonFunctionNode:
         """Responsibilities: _test function node extraction_."""
-        return tree.body[0]
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        functions = function_selector.nodes()
+        return functions[0]
+
+    def _undefined_check(self, tree: ast.Module) -> PythonUnnecessaryUndefinedCheck:
+        """Responsibilities: _indexed undefined-check setup_."""
+        aliases = PythonReferenceAliases(PythonReferenceAliasState())
+        node_index = PythonAstNodeIndex()
+        builder = UndefinedCheckState({}, {}, aliases, node_index)
+        state = UndefinedCheckState(
+            builder.bindings_for(tree),
+            builder.fields_for(tree),
+            aliases,
+            node_index,
+        )
+        return PythonUnnecessaryUndefinedCheck(tree, state)
 
     def test_reuses_python_ast_node_index(self) -> None:
         """Responsibilities: _cached indexes verification_."""
@@ -107,7 +126,7 @@ class PythonComponentsMetricsTest(unittest.TestCase):
     def test_reuses_root_children_for_subtree_index(self) -> None:
         """Responsibilities: _cached subtree indexes verification_."""
         tree = ast.parse("def build():\n    value = 1\n    return value\n")
-        function = tree.body[0]
+        function = self._function_node(tree)
         expected_nodes = list(ast.walk(tree))
         expected_function_nodes = list(ast.walk(function))
         python_ast_node_index = PythonAstNodeIndex()
@@ -124,37 +143,12 @@ class PythonComponentsMetricsTest(unittest.TestCase):
             },
         )
 
-    def test_reuses_cached_direct_children(self) -> None:
-        """Responsibilities: _cached direct child reuse_."""
-        tree = ast.parse("value = 1\n")
-        node_index = PythonAstNodeIndex()
-        expected = list(ast.iter_child_nodes(tree))
-        first = node_index.children(tree)
-        second = node_index.children(tree)
-
-        self.assertEqual(
-            {"first": first, "second": second, "same_reference": first is second},
-            {"first": expected, "second": expected, "same_reference": True},
-        )
-
-    def test_filters_non_ast_items_from_pattern_fields(self) -> None:
-        """Responsibilities: _AST field child filtering_, _pattern child order_."""
-        tree = ast.parse("match value:\n    case Point(x=field):\n        pass\n")
-        match_statement = tree.body[0]
-        pattern = match_statement.cases[0].pattern
-        expected = list(ast.iter_child_nodes(pattern))
-        node_index = PythonAstNodeIndex()
-        actual = node_index.children(pattern)
-
-        self.assertEqual(
-            {"actual": actual, "expected": expected, "keyword_names": pattern.kwd_attrs},
-            {"actual": expected, "expected": expected, "keyword_names": ["x"]},
-        )
-
     def test_children(self) -> None:
         """Responsibilities: _direct child cache_."""
         tree = ast.parse("def build():\n    value = 1\n    return value\n")
-        function = tree.body[0]
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        functions = function_selector.nodes()
+        function = functions[0]
         node_index = PythonAstNodeIndex()
         children = node_index.children(function)
         cached_children = node_index.children(function)
@@ -171,12 +165,6 @@ class PythonComponentsMetricsTest(unittest.TestCase):
             },
         )
 
-    def test_ignores_ast_nodes_without_coding_rules(self) -> None:
-        """Responsibilities: _unclassified AST node dispatch_."""
-        python_ast_tree = PythonAstTree("value = 1\n", ast.parse("value = 1\n"))
-        issues = python_ast_tree.coding_issues()
-        self.assertEqual(issues, [])
-
     def test_detects_reversed_branch_comparisons(self) -> None:
         """Responsibilities: _reversed branch comparison detection_."""
         source = """if kind == "a":
@@ -192,31 +180,34 @@ else:
 
         self.assertEqual(issues, [{"line": 0}])
 
-    def test_collects_undefined_checks_from_indexed_source(self) -> None:
-        """Responsibilities: _unnecessary undefined check diagnostics_."""
+    def test_collects_first_undefined_check_from_indexed_source(self) -> None:
+        """Responsibilities: _indexed undefined-check diagnostic_."""
         tree = ast.parse(UNDEFINED_INDEX_SOURCE)
-        comparisons = [tree.body[1].body[0].value, tree.body[2].body[0].value]
-
-        aliases = PythonReferenceAliases(PythonReferenceAliasState())
-        node_index = PythonAstNodeIndex()
-        builder = UndefinedCheckState({}, {}, aliases, node_index)
-        state = UndefinedCheckState(
-            builder.bindings_for(tree),
-            builder.fields_for(tree),
-            aliases,
-            node_index,
-        )
-        check = PythonUnnecessaryUndefinedCheck(tree, state)
-        issues: list[JsonObject] = []
-        for comparison in comparisons:
-            issues.extend(check.collect_checks(comparison))
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        functions = function_selector.nodes()
+        function = functions[0]
+        support = PythonReferenceTestSupport()
+        comparisons = support.comparisons(function)
+        comparison = comparisons[0]
 
         self.assertEqual(
-            issues,
-            [
-                {"line": 5, "kind": "unnecessary-undefined-check"},
-                {"line": 8, "kind": "unnecessary-undefined-check"},
-            ],
+            self._undefined_check(tree).collect_checks(comparison),
+            [{"line": 5, "kind": "unnecessary-undefined-check"}],
+        )
+
+    def test_collects_second_undefined_check_from_indexed_source(self) -> None:
+        """Responsibilities: _indexed undefined-check diagnostic_."""
+        tree = ast.parse(UNDEFINED_INDEX_SOURCE)
+        function_selector = PythonFunctionSelector(tree, PythonAstNodeIndex())
+        functions = function_selector.nodes()
+        function = functions[1]
+        support = PythonReferenceTestSupport()
+        comparisons = support.comparisons(function)
+        comparison = comparisons[0]
+
+        self.assertEqual(
+            self._undefined_check(tree).collect_checks(comparison),
+            [{"line": 8, "kind": "unnecessary-undefined-check"}],
         )
 
     def test_reuses_source_line_split_for_source_segments(self) -> None:
@@ -239,7 +230,7 @@ else:
         """Responsibilities: _Unicode CRLF segment extraction_."""
         source = "def read():\r\n    return 'ё' + 'x'\r\n"
         parsed_source = ast.parse(source)
-        function = parsed_source.body[0]
+        function = self._function_node(parsed_source)
         statement = function.body[0]
         segments = SourceSegments(source)
         expected = ast.get_source_segment(source, statement)
@@ -253,7 +244,7 @@ else:
         """Responsibilities: _form-feed AST segment parity_."""
         source = "def read():\r\n    return 'ё' +\f 'x'\r\n"
         parsed_source = ast.parse(source)
-        function = parsed_source.body[0]
+        function = self._function_node(parsed_source)
         statement = function.body[0]
         segments = SourceSegments(source)
 

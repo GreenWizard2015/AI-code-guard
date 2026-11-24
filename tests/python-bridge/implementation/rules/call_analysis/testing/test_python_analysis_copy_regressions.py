@@ -6,7 +6,11 @@ from collections import Counter
 
 from counted_bindings_support import CountedBindings
 from counting_async_completion_support import CountingAsyncCompletion
+from implementation.ast.callable_nodes.python_function_selector import (
+    PythonFunctionSelector,
+)
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from implementation.ast.protocols import PythonFunctionNode
 from implementation.rules.call_analysis.testing.python_test_callable_definition import (
     PythonTestCallableDefinition,
 )
@@ -22,32 +26,49 @@ from implementation.rules.call_analysis.testing.python_unasserted_async_completi
 
 
 class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
-    """Responsibilities: _scope-copy regression checks_, _binding snapshot regression checks_."""
+    """Responsibilities: _execution region coverage_, _binding snapshot access_."""
 
-    def _helper_scope_scenario(self) -> ast.FunctionDef:
-        """Responsibilities: _sibling helper AST fixture_."""
+    def _helper_bindings(self, test_function: PythonFunctionNode) -> CountedBindings:
+        """Responsibilities: _helper callable binding_, _binding access_."""
+        helper_tree = ast.Module(body=[test_function], type_ignores=[])
+        helper_selector = PythonFunctionSelector(helper_tree, PythonAstNodeIndex())
+        selected_helpers = helper_selector.nodes()
+        helper_definitions = selected_helpers[1:]
+        bindings: dict[str, ast.AST] = {node.name: node for node in helper_definitions}
+        return CountedBindings(bindings, ast.parse(""))
+
+    def _helper_bodies(self, test_function: PythonFunctionNode) -> list[ast.AST]:
+        """Responsibilities: _sibling helper body selection_."""
+        helper_tree = ast.Module(body=[test_function], type_ignores=[])
+        helper_selector = PythonFunctionSelector(helper_tree, PythonAstNodeIndex())
+        helper_functions = helper_selector.nodes()
+        helper_definitions = helper_functions[1:]
+        return [node.body[0] for node in helper_definitions]
+
+    def _helper_scope_scenario(self) -> PythonFunctionNode:
+        """Responsibilities: _sibling helper source generation_."""
         helper_count = 80
         definitions = [f"    def action_{index}():\n        pass" for index in range(helper_count)]
         calls = [f"    action_{index}()" for index in range(helper_count)]
         tree = ast.parse("def test_scenario():\n" + "\n".join([*definitions, *calls]))
-        test_function = tree.body[0]
-        return test_function
+        node_index = PythonAstNodeIndex()
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        return functions[0]
 
     def test_invoked_leaf_helpers_are_included_in_execution_region(self) -> None:
         """Responsibilities: _invoked helper execution result_."""
         test_function = self._helper_scope_scenario()
-        helper_definitions = test_function.body[: len(test_function.body) // 2]
-        bindings: dict[str, ast.AST] = {node.name: node for node in helper_definitions}
-        counted_bindings = CountedBindings(bindings, ast.parse(""))
-        helper_bodies = [node.body[0] for node in helper_definitions]
+        counted_bindings = self._helper_bindings(test_function)
+        helper_bodies = self._helper_bodies(test_function)
         node_index = PythonAstNodeIndex()
         node_index.nodes(test_function)
         definition = PythonTestCallableDefinition(test_function, node_index)
         production_callables = definition.nested_callables()
         production_region = PythonTestExecutionRegion(test_function, production_callables, node_index)
+        instrumented_region = PythonTestExecutionRegion(test_function, counted_bindings, node_index)
         production_nodes = production_region.nodes
-        execution_region = PythonTestExecutionRegion(test_function, counted_bindings, node_index)
-        instrumented_nodes = execution_region.nodes
+        instrumented_nodes = instrumented_region.nodes
 
         self.assertEqual(
             {
@@ -79,9 +100,11 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
         tree = ast.parse(
             "def test_flow():\n    def helper():\n        return 1\n    value = helper()\n",
         )
-        test_function = tree.body[0]
         node_index = PythonAstNodeIndex()
         indexed_nodes = node_index.nodes(tree)
+        function_selector = PythonFunctionSelector(tree, node_index)
+        functions = function_selector.nodes()
+        test_function = functions[0]
         definition = PythonTestCallableDefinition(test_function, node_index)
 
         callables = definition.nested_callables()
@@ -92,7 +115,7 @@ class PythonAnalysisCopyRegressionsTest(unittest.TestCase):
             {
                 "helper_found": "helper" in callables,
                 "execution_nodes_match_index": all(node in indexed_nodes for node in nodes),
-                "helper_call_included": "action_0()" in [ast.unparse(node) for node in nodes],
+                "helper_call_included": "helper()" in [ast.unparse(node) for node in nodes],
             },
             {"helper_found": True, "execution_nodes_match_index": True, "helper_call_included": True},
         )
