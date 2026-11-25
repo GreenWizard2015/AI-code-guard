@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
-    PythonSysPathAttributeAliasesContract,
-)
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.ast.sys_path_protocols import PythonSysPathAttributeAliasesContract
 from implementation.rules.constants import (
     PYTHON_FUNCTION_KIND,
     PYTHON_STATIC_METHOD_DECORATOR,

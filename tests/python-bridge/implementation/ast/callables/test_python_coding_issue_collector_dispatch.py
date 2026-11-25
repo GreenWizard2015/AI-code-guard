@@ -3,8 +3,8 @@ import unittest
 
 from implementation.ast.callables.python_coding_issue_collector import (
     PythonCodingIssueCollector,
-    PythonRuleNodeDispatch,
 )
+from implementation.ast.callables.types import PythonRuleNodeDispatch
 from python_collector_fixture import PythonCollectorFixture
 
 

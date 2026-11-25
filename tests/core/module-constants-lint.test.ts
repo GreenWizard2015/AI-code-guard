@@ -67,6 +67,71 @@ describe("coding-lint module constants", () => {
 		});
 	});
 
+	test("keeps Python data classes together and separate from implementation code", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"tests/models_test.py": [
+					"from dataclasses import dataclass",
+					"@dataclass",
+					"class FirstModel:",
+					"    name: str",
+					"@dataclass",
+					"class SecondModel:",
+					"    value: int",
+				].join("\n"),
+				"tests/proxy/files/runtime/files_test_runtime.py": [
+					"from dataclasses import dataclass",
+					"@dataclass",
+					"class FileHttpRequest:",
+					"    connection: object",
+					"    path: str",
+				"class FileTestRuntime:",
+				"    def prepare(self) -> None:",
+				"        return None",
+				].join("\n"),
+				"tests/mixed_function_test.py": [
+					"from dataclasses import dataclass",
+					"@dataclass",
+					"class RequestData:",
+					"    name: str",
+					"def handle_request() -> None:",
+					"    return None",
+				].join("\n"),
+				"tests/mixed_value_test.py": [
+					"from dataclasses import dataclass",
+					"@dataclass",
+					"class RequestData:",
+					"    name: str",
+					"module_value = 1",
+				].join("\n"),
+				"tests/types.py": [
+					"from dataclasses import dataclass",
+					"from typing import TypeAlias",
+					"@dataclass",
+					"class RequestData:",
+					"    name: str",
+					"RequestName: TypeAlias = str",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+
+		expect(
+			violations
+				.filter((item) => item.rule_id() === "module-types-separation")
+				.map((item) => item.file())
+				.sort(),
+		).toEqual([
+			"tests/mixed_function_test.py",
+			"tests/mixed_value_test.py",
+			"tests/proxy/files/runtime/files_test_runtime.py",
+			"tests/types.py",
+		]);
+	});
+
 	test("reports module declarations without a size threshold", () => {
 		const fixture = new TestFixture();
 		const violations = fixture.with_lint_request(

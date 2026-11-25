@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.protocols import (
@@ -15,19 +14,8 @@ from implementation.rules.protocols import (
 from implementation.rules.single_item_array_state.python_scope_alias_history import (
     PythonScopeAliasHistory,
 )
+from implementation.rules.single_item_array_state.options_protocols import PythonArrayCallOptionsContract
 from implementation.types import PythonAstCallableDeclarations, PythonAstNodeTypeSet
-
-
-@dataclass(frozen=True)
-class PythonArrayCallOptions:
-    """Responsibilities: _array source_, _result contract_."""
-
-    tree: ast.AST
-    node_index: PythonAstNodeIndexContract
-    type_inspector: PythonArrayTypeInspectorContract
-    return_analyzer: PythonReturnArrayAnalyzerContract
-    assignment_aliases: PythonReferenceAliasesContract
-    callable_declarations: PythonAstCallableDeclarations
 
 
 class PythonArrayCallAnalyzer:
@@ -88,7 +76,7 @@ class PythonArrayCallAnalyzer:
                 aliases[name] = target
         return aliases
 
-    def __init__(self, options: PythonArrayCallOptions) -> None:
+    def __init__(self, options: PythonArrayCallOptionsContract) -> None:
         """Responsibilities: _initialization Python tree node_."""
         self._tree: ast.AST = options.tree
         self._node_index: PythonAstNodeIndexContract = options.node_index

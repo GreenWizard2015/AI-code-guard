@@ -10,7 +10,7 @@ from implementation.rules.protocols import (
     PythonUnionRulesContract,
 )
 from implementation.rules.type_rules.python_typing_aliases import PythonTypingAliases
-from implementation.rules.types import PythonCodingIssueTypeBundle
+from implementation.rules.data_models import PythonCodingIssueTypeBundle
 from implementation.rules.union.union_annotation_rules import UnionAnnotationRules
 from implementation.rules.union.union_rules import UnionRules
 from implementation.rules.union.union_rules_options import UnionRulesOptions

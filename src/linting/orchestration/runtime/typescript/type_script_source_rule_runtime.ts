@@ -18,6 +18,7 @@ import ts from "typescript";
 /** Responsibilities: _file source selection_, _source rule context_, _source AST rule execution_. **/
 export class TypeScriptSourceRuleRuntime implements TypeScriptRuleScopeContract {
 	private readonly _source: LintSourceRecordData;
+	private readonly _source_records: readonly LintSourceRecordData[];
 	private readonly _project_names: ProjectNames;
 	private readonly _module_resolver: TypeScriptModuleResolverContract;
 
@@ -26,8 +27,10 @@ export class TypeScriptSourceRuleRuntime implements TypeScriptRuleScopeContract 
 		source: LintSourceRecordData,
 		project_names: ProjectNames,
 		module_resolver: TypeScriptModuleResolverContract,
+		source_records: readonly LintSourceRecordData[],
 	) {
 		this._source = source;
+		this._source_records = source_records;
 		this._project_names = project_names;
 		this._module_resolver = module_resolver;
 	}
@@ -44,10 +47,7 @@ export class TypeScriptSourceRuleRuntime implements TypeScriptRuleScopeContract 
 
 	/** Responsibilities: _file source selection_. **/
 	public source_files(language: AstLanguage): readonly LintSourceRecordData[] {
-		if (this._source.language !== language) {
-			return [];
-		}
-		return [this._source];
+		return this._source_records.filter((source) => source.language === language);
 	}
 
 	/** Responsibilities: _source rule context creation_. **/

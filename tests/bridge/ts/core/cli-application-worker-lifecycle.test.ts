@@ -5,7 +5,7 @@ import { CliWorkerLifecycleScenario } from "tests/bridge/ts/core/cli-worker-life
 import { TaskReviewMemoryFixture } from "tests/bridge/ts/core/task-review-memory-fixture";
 
 describe("CLI application Python worker lifecycle", () => {
-	test("releases the worker lease before a failed run settles", async () => {
+	test("releases the worker lease before a failed run settles [local-process]", async () => {
 		const scenario = new CliWorkerLifecycleScenario();
 		const fixture = new TaskReviewMemoryFixture();
 		const workspace = fixture.create("def read_value() -> int:\n    return 1\n", "source.py");
@@ -32,7 +32,7 @@ describe("CLI application Python worker lifecycle", () => {
 		});
 	});
 
-	test("releases the worker lease when run_project completes", async () => {
+	test("releases the worker lease when run_project completes [local-process]", async () => {
 		const scenario = new CliWorkerLifecycleScenario();
 		const fixture = new TaskReviewMemoryFixture();
 		const source = ["def read_value():", "    try:", "        return 1", "    except:", "        return 0"].join("\n");
@@ -55,7 +55,7 @@ describe("CLI application Python worker lifecycle", () => {
 		});
 	});
 
-	test("reuses one application for changed Python input without leaving worker leases", async () => {
+	test("reuses one application for changed Python input without leaving worker leases [local-process]", async () => {
 		const scenario = new CliWorkerLifecycleScenario();
 		const fixture = new TaskReviewMemoryFixture();
 		const source = ["def read_value():", "    try:", "        return 1", "    except:", "        return 0"].join("\n");
@@ -85,8 +85,8 @@ describe("CLI application Python worker lifecycle", () => {
 			second_lease_count: 0,
 			worker_exited: true,
 			reports: [
-				expect.objectContaining({ lint_output: expect.stringContaining("Total issues: 9.") }),
 				expect.objectContaining({ lint_output: expect.stringContaining("Total issues: 8.") }),
+				expect.objectContaining({ lint_output: expect.stringContaining("Total issues: 7.") }),
 			],
 		});
 	});

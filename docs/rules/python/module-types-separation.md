@@ -2,6 +2,8 @@
 
 Description: Keep a module-level type declaration in the exact sibling `types.ts` or `types.py`, separate from implementation.
 
+Python data classes form their own module category: keep one or more data classes together, but do not mix them with implementation classes, module-level functions, values, or other type declarations. Imports and `__all__` exports may remain alongside them.
+
 ## Bad
 
 

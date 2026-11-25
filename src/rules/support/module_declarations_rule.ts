@@ -2,7 +2,11 @@ import { basename } from "node:path";
 import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import { MODULE_PROTOCOL_NAME, MODULE_TYPE_NAME } from "src/rules/constants";
+import {
+	MODULE_PROTOCOL_NAME,
+	MODULE_TYPE_NAME,
+	MODULE_TYPES_SEPARATION_RULE_ID,
+} from "src/rules/constants";
 import { ModuleDeclarationFileAnalysis } from "src/rules/support/module_declaration_file_analysis";
 import type { ModuleDeclarationPolicyData } from "src/rules/support/protocols";
 import type { ModuleDeclarationsRuleContract } from "src/shared_services_protocols";
@@ -33,7 +37,7 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 			type_files: type_files,
 			protocol_files: protocol_files,
 			constants_rule: new DiagnosticRule("module-constants-separation"),
-			types_rule: new DiagnosticRule("module-types-separation"),
+			types_rule: new DiagnosticRule(MODULE_TYPES_SEPARATION_RULE_ID),
 			protocols_rule: new DiagnosticRule("module-protocols-separation"),
 			content_rule: new DiagnosticRule("constants-file-content"),
 		};
@@ -43,18 +47,17 @@ export class ModuleDeclarationsRule implements ModuleDeclarationsRuleContract {
 	/** Responsibilities: _module declaration placement analysis_. **/
 	public append(violations: ViolationContract[], file: string, ast: NormalizedAstFile): void {
 		const analysis = new ModuleDeclarationFileAnalysis(this._policy, violations, file, ast);
-		if (this._policy.constants_files.has(basename(file))) {
+		const name = basename(file);
+		if (this._policy.constants_files.has(name)) {
 			analysis.append_forbidden_content();
-			return;
+		} else {
+			const is_type_module = this.focused_module(name, this._policy.type_files, MODULE_TYPE_NAME);
+			const is_protocol_module = this.focused_module(name, this._policy.protocol_files, MODULE_PROTOCOL_NAME);
+			if (!is_type_module && !is_protocol_module) {
+				analysis.append_declarations();
+			}
 		}
-		const file_name = basename(file);
-		if (this.focused_module(file_name, this._policy.type_files, MODULE_TYPE_NAME)) {
-			return;
-		}
-		if (this.focused_module(file_name, this._policy.protocol_files, MODULE_PROTOCOL_NAME)) {
-			return;
-		}
-		analysis.append_declarations();
+		analysis.append_data_classes();
 	}
 
 	/** Responsibilities: _special declaration module classification_. **/

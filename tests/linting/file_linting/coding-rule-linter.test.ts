@@ -49,7 +49,6 @@ describe("coding rule linter", () => {
 		const linter = new CodingRuleLinter(rule_scope, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
 		const violations = linter.lint_typescript(source_ast, new LintStageTimer());
 		expect(violations.map((item) => item.rule_id()).sort()).toEqual([
-			"file-min-size",
 			"mixed-module",
 			"module-constants-separation",
 			"typescript-console-in-test",

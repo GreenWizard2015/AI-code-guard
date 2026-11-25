@@ -4,9 +4,9 @@ import ast
 
 from implementation.references.alias_types import (
     ExpandedContainerValues,
-    PythonContainerItemRequest,
     SequenceExpression,
 )
+from implementation.references.data_models import PythonContainerItemRequest
 from implementation.references.aliases.python_container_lookup import (
     PythonContainerLookup,
 )

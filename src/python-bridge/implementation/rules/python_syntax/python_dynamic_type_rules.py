@@ -2,33 +2,13 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Sequence
-from dataclasses import dataclass
 
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonContainerAliasStateContract,
-    PythonContainerValuesContract,
-    PythonDynamicTypeReferencesContract,
-    PythonReferenceAliasesContract,
-)
 from implementation.rules.constants import PYTHON_BUILTINS_MODULE
+from implementation.rules.python_syntax.protocols import PythonDynamicTypeRulesOptionsContract
 from implementation.rules.python_syntax.python_dynamic_type_statement_values import (
     PythonDynamicTypeStatementValues,
 )
 from implementation.types import JsonObject
-
-
-@dataclass
-class PythonDynamicTypeRulesOptions:
-    """Responsibilities: _dynamic type names_, _container and reference resolution_."""
-
-    type_names: set[str]
-    module_names: set[str]
-    references: PythonDynamicTypeReferencesContract
-    container_aliases: PythonContainerAliasesContract
-    container_state: PythonContainerAliasStateContract
-    lookup_values: PythonContainerValuesContract
-    assignment_aliases: PythonReferenceAliasesContract
 
 
 class PythonDynamicTypeRules:
@@ -96,9 +76,9 @@ class PythonDynamicTypeRules:
                 local_name = imported.asname
             self._options.module_names.add(local_name)
 
-    def __init__(self, options: PythonDynamicTypeRulesOptions) -> None:
+    def __init__(self, options: PythonDynamicTypeRulesOptionsContract) -> None:
         """Responsibilities: _configuration dynamic type names_."""
-        self._options: PythonDynamicTypeRulesOptions = options
+        self._options: PythonDynamicTypeRulesOptionsContract = options
 
     def configure_imports(self, tree: ast.AST) -> None:
         """Responsibilities: _configuration dynamic type aliases_."""

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from functools import cached_property
 from time import perf_counter
 
@@ -23,6 +22,11 @@ from implementation.ast.callables.coding_issue_protocols import (
 from implementation.ast.callables.python_coding_issue_collector import (
     PythonCodingIssueCollector,
 )
+from implementation.ast.callables.coding_issue_protocols import (
+    PythonAstCodingIssueInputsContract,
+    PythonAstCodingIssueResultContract,
+)
+from implementation.ast.callables.types import PythonAstCodingIssueResult
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonSourceSegmentsContract,
@@ -64,33 +68,10 @@ from implementation.rules.python_syntax.python_primary_type_assembly import (
 from implementation.types import JsonObject
 
 
-@dataclass(frozen=True)
-class PythonAstCodingIssueInputs:
-    """Responsibilities: _coding issue source inputs_, _reference analysis dependencies_."""
-
-    tree: ast.Module
-    source: str
-    node_index: PythonAstNodeIndexContract
-    source_segments: PythonSourceSegmentsContract
-    container_aliases: PythonContainerAliasesContract
-    container_values: PythonContainerValuesContract
-    container_keys: PythonContainerKeysContract
-    type_aliases: PythonScopedTypeAliasesContract
-    reference_aliases: PythonReferenceAliasesContract
-
-
-@dataclass(frozen=True)
-class PythonAstCodingIssueResult:
-    """Responsibilities: _coding issue diagnostics_, _analysis timing results_."""
-
-    issues: list[JsonObject]
-    timings: dict[str, float]
-
-
 class PythonAstCodingIssues:
     """Responsibilities: _coding issue aggregation_, _rule component coordination_."""
 
-    _inputs: PythonAstCodingIssueInputs
+    _inputs: PythonAstCodingIssueInputsContract
     _setup_durations: dict[str, float]
 
     def _source_options(self) -> PythonCodingIssueSourceContract:
@@ -174,7 +155,7 @@ class PythonAstCodingIssues:
         return collector
 
     @cached_property
-    def _result(self) -> PythonAstCodingIssueResult:
+    def _result(self) -> PythonAstCodingIssueResultContract:
         """Responsibilities: _coding issue collection_."""
         collector = self._setup_collector()
         issues = collector.collect()
@@ -185,9 +166,9 @@ class PythonAstCodingIssues:
             collector.timing().durations(),
         )
 
-    def __init__(self, inputs: PythonAstCodingIssueInputs) -> None:
+    def __init__(self, inputs: PythonAstCodingIssueInputsContract) -> None:
         """Responsibilities: _coding issue inputs_."""
-        self._inputs: PythonAstCodingIssueInputs = inputs
+        self._inputs: PythonAstCodingIssueInputsContract = inputs
         self._setup_durations = {}
 
     def issues(self) -> list[JsonObject]:

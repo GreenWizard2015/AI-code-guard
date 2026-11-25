@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.python_scoped_type_aliases import PythonScopedTypeAliases
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonCallableStatementsContract,

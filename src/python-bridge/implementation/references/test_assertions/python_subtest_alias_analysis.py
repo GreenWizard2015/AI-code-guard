@@ -6,8 +6,8 @@ from functools import cached_property
 from implementation.references.protocols import (
     PythonSubtestAliasesOptionsContract,
 )
-from implementation.references.test_assertions.types import (
-    PythonSubtestAliasAnalysisState,
+from implementation.references.test_assertions.data_models import PythonSubtestAliasAnalysisState
+from implementation.references.alias_types import (
     PythonSubtestAliasMap,
     PythonSubtestAssignmentList,
     PythonSubtestTargetValues,

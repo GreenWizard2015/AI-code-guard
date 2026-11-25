@@ -12,7 +12,7 @@ from implementation.ast.callables.coding_issue_options import (
     PythonCodingIssueRules,
     PythonCodingIssueSource,
 )
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.python_scoped_type_aliases import PythonScopedTypeAliases
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.source_segments import SourceSegments
 from implementation.references.aliases.python_container_assembly import (

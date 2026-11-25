@@ -1,27 +1,19 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.call_analysis.python_structural_member_index import (
     PythonStructuralMemberIndex,
 )
+from implementation.rules.call_analysis.types import PythonImplementationDowncastCandidate
+from implementation.rules.call_analysis.options_protocols import PythonImplementationDowncastCandidateContract
 from implementation.rules.constants import (
     PYTHON_ISINSTANCE_FUNCTION,
     PYTHON_MODULE_NAME_ABSENT,
 )
 from implementation.rules.protocols import PythonNameBindingIndexContract
 from implementation.types import JsonObject, PythonAstParentIndex
-
-
-@dataclass(frozen=True)
-class PythonImplementationDowncastCandidate:
-    """Responsibilities: _Protocol downcast candidate identity_."""
-
-    callable_scope: ast.AST
-    receiver_name: str
-    implementation_name: str
 
 
 class PythonImplementationDowncast:
@@ -102,7 +94,7 @@ class PythonImplementationDowncast:
 
     def _bindings_allow_downcast(
         self,
-        candidate: PythonImplementationDowncastCandidate,
+        candidate: PythonImplementationDowncastCandidateContract,
     ) -> bool:
         """Responsibilities: _downcast name binding validation_."""
         if self._binding_index.function_binds(
@@ -119,7 +111,7 @@ class PythonImplementationDowncast:
 
     def _candidate_protocol(
         self,
-        candidate: PythonImplementationDowncastCandidate,
+        candidate: PythonImplementationDowncastCandidateContract,
     ) -> str:
         """Responsibilities: _candidate Protocol resolution_."""
         if not self._bindings_allow_downcast(candidate):

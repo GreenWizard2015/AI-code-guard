@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from implementation.ast.callables.python_ast_callable_dependencies import (
     PythonAstCallableDependencies,
-    PythonAstCallableDependenciesOptions,
 )
+from implementation.ast.callables.types import PythonAstCallableDependenciesOptions
 from implementation.ast.protocols import (
     PythonAstCallableStateContract,
     PythonAstCoreDependenciesContract,
@@ -32,8 +32,8 @@ from implementation.references.aliases.python_container_values import (
 )
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
-    PythonReferenceAliasState,
 )
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,

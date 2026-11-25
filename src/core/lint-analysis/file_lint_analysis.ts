@@ -7,6 +7,7 @@ import { FileLinter } from "src/linting/file_linting/file_linter";
 import { FileViolationCollector } from "src/linting/file_linting/file_violation_collector";
 import { ProjectTestTargetImportPaths } from "src/linting/project_test_target_import_paths";
 import { TestFileViolationCollector } from "src/linting/test_file_violation_collector";
+import { CodeCategoryIndex } from "src/rules/support/code_category_index";
 import type { FileLinterOptions, PythonProjectNames } from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import type { CodingRuleLinterContract, FileViolationCollectorContract } from "src/shared_services_protocols";
@@ -25,7 +26,9 @@ export class FileLintAnalysis {
 		const entry_paths = [...source_entry_paths];
 		const relative_entry_paths = entry_paths.map((file) => state.context.source_record(file).relative_path);
 		const entry_point_files = new Set(relative_entry_paths);
-		return new FileViolationCollector(test_violations, file_io, source_io, entry_point_files);
+		const code_categories = new CodeCategoryIndex();
+		code_categories.index_sources(state.context.files());
+		return new FileViolationCollector(test_violations, file_io, source_io, entry_point_files, code_categories);
 	}
 
 	/** Responsibilities: _ignore-file identity content_. **/

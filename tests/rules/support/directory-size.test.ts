@@ -48,6 +48,7 @@ describe("directory size lint rules", () => {
 				classes: [],
 				docstring_spans: [],
 				normalized_ast,
+				unique_code_category: false,
 			},
 			new LintStageTimer(),
 		);
@@ -95,6 +96,7 @@ describe("directory size lint rules", () => {
 					classes: [],
 					docstring_spans: [],
 					normalized_ast,
+					unique_code_category: false,
 				},
 				new LintStageTimer(),
 			);

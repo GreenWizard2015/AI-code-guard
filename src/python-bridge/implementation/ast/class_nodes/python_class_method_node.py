@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_metrics import CallableMetrics
@@ -17,13 +16,13 @@ from implementation.ast.protocols import (
 )
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
-    PythonReferenceAliasState,
 )
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonScopedTypeAliasesContract,
 )
-from implementation.references.test_assertions.assertion_aliases import (
+from implementation.references.test_assertions.python_test_assertion_aliases import (
     PythonTestAssertionAliases,
     PythonTestAssertionAliasOptions,
 )
@@ -34,19 +33,6 @@ from implementation.rules.constants import PYTHON_RETURN_TYPE_KEY, PYTHON_STATEM
 from implementation.types import JsonObject, JsonValueList
 
 PythonMethodNode = ast.FunctionDef | ast.AsyncFunctionDef
-
-
-@dataclass(frozen=True)
-class PythonClassNodeOptions:
-    """Responsibilities: _class normalization inputs_."""
-
-    node: ast.ClassDef
-    source: str
-    node_index: PythonAstNodeIndexContract
-    source_segments: PythonSourceSegmentsContract
-    container_aliases: PythonContainerAliasesContract
-    type_aliases: PythonScopedTypeAliasesContract
-    module_body: list[ast.stmt]
 
 
 class PythonClassMethodNode:

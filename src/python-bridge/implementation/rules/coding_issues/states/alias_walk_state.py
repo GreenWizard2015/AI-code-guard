@@ -6,7 +6,7 @@ from implementation.rules.protocols import (
     AliasWalkStateContract,
     AliasWalkStateDataContract,
 )
-from implementation.rules.types import AliasWalkStateData
+from implementation.rules.data_models import AliasWalkStateData
 
 
 class AliasWalkState:

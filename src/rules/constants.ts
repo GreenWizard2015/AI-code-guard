@@ -27,6 +27,14 @@ export const IMPORT_RULE_IDS = {
 export const MODULE_FUNCTION_KIND = "function";
 export const MODULE_TYPE_NAME = "types";
 export const MODULE_PROTOCOL_NAME = "protocols";
+export const MODULE_TYPES_SEPARATION_RULE_ID = "module-types-separation";
+export const PYTHON_TYPES_FILE_NAME = "types.py";
+export const PYTHON_DATA_MODELS_FILE_NAME = "data_models.py";
+export const CODE_CATEGORY_DATA_CLASS = "data_class";
+export const CODE_CATEGORY_IMPLEMENTATION_CLASS = "implementation_class";
+export const CODE_CATEGORY_IMPLEMENTATION = "implementation";
+export const CODE_CATEGORY_VALUE = "value";
+export const CODE_CATEGORY_TYPE = "type";
 export const MODULE_DECLARATION_FILES: ReadonlySet<string> = new Set([
 	"constants.ts",
 	"constants.py",

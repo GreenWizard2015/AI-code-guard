@@ -30,6 +30,7 @@ export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
 	private readonly _project_boundary_types: ReadonlySet<string>;
 	private readonly _project_boundary_contracts: ReadonlySet<string>;
 	private readonly _module_resolver: TypeScriptModuleResolverContract;
+	private readonly _source_records: readonly LintSourceRecordData[];
 	private readonly _project_files: ReadonlySet<string>;
 	private readonly _project_names: ProjectNames;
 
@@ -97,7 +98,8 @@ export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
 			options.context.source_io(),
 		);
 		this._module_resolver = module_context.module_exports();
-		this._project_files = new Set(options.context.files().map((item) => item.absolute_path));
+		this._source_records = options.context.files();
+		this._project_files = new Set(this._source_records.map((item) => item.absolute_path));
 		this._project_names = options.project_names;
 		this._ast_model = new AstModel(TYPESCRIPT_CACHE_OWNER);
 		this._project_class_names = options.project_names.typescript_class_names;
@@ -148,7 +150,12 @@ export class TypeScriptFileScanner implements TypeScriptFileScannerContract {
 		return stage_timer.measure(TYPESCRIPT_SCANNER_STAGE, () => {
 			const normalized_ast = this.normalized_ast(options);
 			const violations: ViolationContract[] = [];
-			const rule_runtime = new TypeScriptSourceRuleRuntime(source, this._project_names, this._module_resolver);
+			const rule_runtime = new TypeScriptSourceRuleRuntime(
+				source,
+				this._project_names,
+				this._module_resolver,
+				this._source_records,
+			);
 			const context = rule_runtime.context_for_source(violations, normalized_ast, stage_timer);
 			rule_runtime.append_source_file(context, stage_timer);
 			return violations;

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from time import perf_counter
 
 from implementation.ast.protocols import (
@@ -20,6 +19,7 @@ from implementation.references.protocols import (
 from implementation.rules.call_analysis.python_implementation_downcast import (
     PythonImplementationDowncast,
 )
+from implementation.rules.call_analysis.options_protocols import CallRulesOptionsContract
 from implementation.rules.call_analysis.python_temporary_result_access import (
     PythonTemporaryResultAccess,
 )
@@ -52,19 +52,6 @@ from implementation.rules.protocols import (
     PythonNameBindingIndexContract,
 )
 from implementation.types import JsonObject
-
-
-@dataclass
-class CallRulesOptions:
-    """Responsibilities: _invocation syntax_, _reflection aliases_."""
-
-    tree: ast.AST
-    node_index: PythonAstNodeIndexContract
-    container_aliases: PythonCallAliasStateContract
-    reference_aliases: PythonReferenceAliasesContract
-    python_call_classification: PythonCallClassificationContract
-    callable_condition_context: PythonCallableConditionContextContract
-    binding_index: PythonNameBindingIndexContract
 
 
 class CallRules:
@@ -180,7 +167,7 @@ class CallRules:
             self._timings.get(PROTOCOL_DOWNCAST_PREPARE_TIMING, 0.0) + elapsed_ms
         )
 
-    def __init__(self, options: CallRulesOptions) -> None:
+    def __init__(self, options: CallRulesOptionsContract) -> None:
         """Responsibilities: _rule state setup_."""
         self._tree: ast.AST = options.tree
         self._node_index: PythonAstNodeIndexContract = options.node_index

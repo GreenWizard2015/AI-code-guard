@@ -2,38 +2,18 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Set as AbstractSet
-from dataclasses import dataclass
 from functools import cached_property
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import PYTHON_ASSERT_RAISES_NAME
 from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonContainerKeysContract,
-    PythonContainerValuesContract,
-    PythonReferenceAliasesContract,
+    PythonTestAssertionAliasNamesContract,
     PythonTestAssertionAliasOptionsContract,
 )
-
-
-@dataclass(frozen=True)
-class PythonTestAssertionAliasNames:
-    """Responsibilities: _assertion aliases_, _exception aliases_."""
-
-    assertion_names: frozenset[str]
-    exception_names: frozenset[str]
-
-
-@dataclass(frozen=True)
-class PythonTestAssertionAliasOptions:
-    """Responsibilities: _assertion AST_, _alias resolution dependencies_."""
-
-    node: ast.AST
-    node_index: PythonAstNodeIndexContract
-    container_aliases: PythonContainerAliasesContract
-    container_keys: PythonContainerKeysContract
-    container_values: PythonContainerValuesContract
-    assignment_aliases: PythonReferenceAliasesContract
+from implementation.references.test_assertions.data_models import (
+    PythonTestAssertionAliasNames,
+    PythonTestAssertionAliasOptions,
+)
 
 
 class PythonTestAssertionAliases:
@@ -148,7 +128,7 @@ class PythonTestAssertionAliases:
                 exception_aliases.discard(target)
 
     @cached_property
-    def _aliases(self) -> PythonTestAssertionAliasNames:
+    def _aliases(self) -> PythonTestAssertionAliasNamesContract:
         """Responsibilities: _assertion alias cache_."""
         assertion_aliases: set[str] = set()
         exception_aliases: set[str] = set()

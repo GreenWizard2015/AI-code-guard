@@ -12,10 +12,8 @@ from implementation.ast.protocols import (
     PythonModuleInstanceAliasStateContract,
     PythonModuleInstanceStatementContract,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.types import JsonObject, PythonAstNodeList, PythonAstNodeTypeSet
 

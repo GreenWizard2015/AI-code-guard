@@ -4,7 +4,7 @@ import ast
 
 from implementation.rules.coding_issues.states.alias_walk_state import AliasWalkState
 from implementation.rules.protocols import AliasWalkStateContract
-from implementation.rules.types import AliasWalkStateData
+from implementation.rules.data_models import AliasWalkStateData
 
 
 class PythonAliasGraph:

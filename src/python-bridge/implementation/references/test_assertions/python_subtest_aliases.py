@@ -9,9 +9,10 @@ from implementation.references.protocols import (
     PythonSubtestAliasesOptionsContract,
 )
 from implementation.references.test_assertions.python_subtest_alias_analysis import PythonSubtestAliasAnalysis
-from implementation.references.test_assertions.types import (
+from implementation.references.alias_types import (
     PythonSubtestAssignmentIndex,
     PythonSubtestAssignmentList,
+    PythonSubtestAnalysisCache,
 )
 
 
@@ -52,7 +53,7 @@ class PythonSubtestAliases:
         self._container_keys: PythonContainerKeysContract = options.container_keys
         self._options: PythonSubtestAliasesOptionsContract = options
         self._assignment_index: PythonSubtestAssignmentIndex = {}
-        self._analysis_cache: dict[ast.AST, PythonSubtestAliasAnalysisContract] = {}
+        self._analysis_cache: PythonSubtestAnalysisCache = {}
 
     def aliases_for(self, node: ast.AST) -> set[str]:
         """Responsibilities: _scope subtest alias lookup_."""

@@ -95,6 +95,16 @@ class PythonBridgeInputContract(Protocol):
     def file_text(self, file_path: Path) -> str: ...
 
 
+class PythonBatchSourcesContract(Protocol):
+    """Responsibilities: _worker batch identity_, _batch source mapping_."""
+
+    @property
+    def batch_id(self) -> str: ...
+
+    @property
+    def sources(self) -> dict[str, str]: ...
+
+
 class PythonBridgeFileIOContract(Protocol):
     """Responsibilities: _bridge file membership_, _source content retrieval_."""
 

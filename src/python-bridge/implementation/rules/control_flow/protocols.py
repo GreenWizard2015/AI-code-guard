@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import ast
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from implementation.types import JsonObject
+
+if TYPE_CHECKING:
+    from implementation.ast.protocols import PythonAstNodeIndexContract, PythonSourceSegmentsContract
+    from implementation.rules.protocols import (
+        PythonMethodRecordContract,
+        PythonTerminalBranchContract,
+        PythonTemporalFieldStateContract,
+    )
 
 
 class PythonCodingIssueFlowStateContract(Protocol):
@@ -30,10 +38,52 @@ class PythonExpressionBoundaryContract(Protocol):
     def ungrouped(self, node: ast.expr, root_parenthesized: bool = False) -> bool: ...
 
 
+class OperatorAppendOptionsContract(Protocol):
+    """Responsibilities: _operator group_, _root parenthesized state_."""
+
+    @property
+    def boolean_group(self) -> bool: ...
+
+    @property
+    def root_parenthesized(self) -> bool: ...
+
+
+class PythonControlFlowOptionsContract(Protocol):
+    """Responsibilities: _branch state_, _terminal rules_."""
+
+    @property
+    def tree(self) -> ast.AST: ...
+
+    @property
+    def source_lines(self) -> list[str]: ...
+
+    @property
+    def assignment_values(self) -> set[int]: ...
+
+    @property
+    def node_index(self) -> PythonAstNodeIndexContract: ...
+
+    @property
+    def terminal_branches(self) -> PythonTerminalBranchContract: ...
+
+    @property
+    def source_metrics(self) -> PythonSourceSegmentsContract: ...
+
+
 class PythonTerminalBranchContract(Protocol):
     """Responsibilities: _terminal branch contract_."""
 
     def terminal_block(self, statements: list[ast.stmt]) -> bool: ...
+
+
+class ClassMethodRecordsContract(Protocol):
+    """Responsibilities: _class method records_, _field initialization state_."""
+
+    @property
+    def methods(self) -> list[PythonMethodRecordContract]: ...
+
+    @property
+    def field_state(self) -> PythonTemporalFieldStateContract: ...
 
 
 class PythonLogicalChainAnalysisContract(Protocol):

@@ -45,7 +45,7 @@ from implementation.rules.type_rule_protocols import (
     PythonUnionRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.rules.types import PythonCodingIssueExecutionPlan
+from implementation.rules.data_models import PythonCodingIssueExecutionPlan
 from implementation.types import (
     CallablePythonPrepare,
     CallablePythonRuleStage,

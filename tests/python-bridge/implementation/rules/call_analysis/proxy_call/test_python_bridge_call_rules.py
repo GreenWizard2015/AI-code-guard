@@ -4,7 +4,7 @@ import unittest
 from implementation.ast.callable_nodes.python_function_selector import PythonFunctionSelector
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.python_scoped_type_aliases import PythonScopedTypeAliases
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.source_segments import SourceSegments
 from implementation.rules.call_analysis.proxy_call.python_proxy_callable_analyzer import (
@@ -19,10 +19,10 @@ from implementation.rules.call_analysis.proxy_call.python_proxy_receiver_aliases
 from implementation.rules.coding_issues.python_default_parameter_issues import (
     PythonDefaultParameterIssues,
 )
-from implementation.rules.control_flow.control_flow_issues import (
+from implementation.rules.control_flow.python_control_flow_issues import (
     PythonControlFlowIssues,
-    PythonControlFlowOptions,
 )
+from implementation.rules.control_flow.types import PythonControlFlowOptions
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,
 )

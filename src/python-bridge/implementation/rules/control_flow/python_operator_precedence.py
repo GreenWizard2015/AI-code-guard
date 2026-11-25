@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
-
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
+from implementation.rules.control_flow.types import OperatorAppendOptions
+from implementation.rules.control_flow.protocols import OperatorAppendOptionsContract
 from implementation.rules.protocols import PythonExpressionBoundaryContract
 from implementation.types import JsonObject, PythonOperatorKinds
-
-
-@dataclass(frozen=True)
-class OperatorAppendOptions:
-    """Responsibilities: _operator family_, _parenthesized root boundary_."""
-
-    boolean_group: bool
-    root_parenthesized: bool
 
 
 class PythonOperatorPrecedence:
@@ -55,7 +47,7 @@ class PythonOperatorPrecedence:
     def _append_operators(
         self,
         traversal_expression: ast.expr,
-        options: OperatorAppendOptions,
+        options: OperatorAppendOptionsContract,
         root_expression: bool = True,
     ) -> PythonOperatorKinds:
         """Responsibilities: _collection operators expression_."""
@@ -77,7 +69,7 @@ class PythonOperatorPrecedence:
     def _append_boolean_operators(
         self,
         traversal_node: ast.expr,
-        boolean_options: OperatorAppendOptions,
+        boolean_options: OperatorAppendOptionsContract,
         root_expression: bool = True,
     ) -> PythonOperatorKinds:
         """Responsibilities: _boolean operator traversal_."""

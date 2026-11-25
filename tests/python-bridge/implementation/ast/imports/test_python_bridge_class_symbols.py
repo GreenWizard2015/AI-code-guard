@@ -5,7 +5,7 @@ from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.module_instances.python_module_instance_collector import (
     PythonModuleInstanceCollector,
 )
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.python_scoped_type_aliases import PythonScopedTypeAliases
 from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes import (
     PythonAstSymbolNodes,
 )

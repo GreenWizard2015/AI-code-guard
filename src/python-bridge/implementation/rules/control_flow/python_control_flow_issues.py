@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from typing import Any
 
-from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
-    PythonSourceSegmentsContract,
-)
+
 from implementation.rules.constants import (
     PYTHON_ASSIGNMENT_EXPRESSION_RULE,
     PYTHON_ELIF_RULE,
@@ -16,22 +12,8 @@ from implementation.rules.constants import (
 from implementation.rules.control_flow.python_logical_chain_analysis import (
     PythonLogicalChainAnalysis,
 )
-from implementation.rules.protocols import (
-    PythonTerminalBranchContract,
-)
+from implementation.rules.control_flow.protocols import PythonControlFlowOptionsContract
 from implementation.types import JsonObject
-
-
-@dataclass(frozen=True)
-class PythonControlFlowOptions:
-    """Responsibilities: _branch state_, _terminal rules_."""
-
-    tree: ast.AST
-    source_lines: list[str]
-    assignment_values: set[int]
-    node_index: PythonAstNodeIndexContract
-    terminal_branches: PythonTerminalBranchContract
-    source_metrics: PythonSourceSegmentsContract
 
 
 class PythonControlFlowIssues:
@@ -99,9 +81,9 @@ class PythonControlFlowIssues:
             return []
         return [{"line": node.lineno - 1, "kind": "pointless-boolean-operation"}]
 
-    def __init__(self, options: PythonControlFlowOptions) -> None:
+    def __init__(self, options: PythonControlFlowOptionsContract) -> None:
         """Responsibilities: _Python control-flow analysis initialization_."""
-        self._options: PythonControlFlowOptions = options
+        self._options: PythonControlFlowOptionsContract = options
 
     def conditional_issues(self, expression_node: ast.AST) -> list[JsonObject]:
         """Responsibilities: _conditional-expression violations collection_."""

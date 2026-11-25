@@ -9,7 +9,8 @@ from implementation.rules.constants import (
     PYTHON_NOW_ATTRIBUTE,
     PYTHON_TODAY_ATTRIBUTE,
 )
-from implementation.types import JsonObject, PythonTimeName
+from implementation.types import JsonObject
+from implementation.data_models import PythonTimeName
 
 
 class PythonTestTimeDependency:

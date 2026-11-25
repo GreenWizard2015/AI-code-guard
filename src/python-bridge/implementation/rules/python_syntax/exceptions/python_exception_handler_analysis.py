@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.protocols import (
     PythonExceptionBroadnessContract,
@@ -16,19 +15,8 @@ from implementation.rules.protocols import PythonExceptionHandlerAssignmentsCont
 from implementation.rules.python_syntax.exceptions.python_exception_handler_assignments import (
     PythonExceptionHandlerAssignments,
 )
+from implementation.rules.python_syntax.protocols import PythonExceptionHandlerAnalysisOptionsContract
 from implementation.types import JsonObject
-
-
-@dataclass(frozen=True)
-class PythonExceptionHandlerAnalysisOptions:
-    """Responsibilities: _exception handler analysis inputs_."""
-
-    handler: ast.ExceptHandler
-    enclosing_statement: ast.AST
-    aliases: PythonExceptionAliasStateContract
-    broadness: PythonExceptionBroadnessContract
-    multiplicity: PythonExceptionMultiplicityContract
-    container_values: PythonContainerValuesContract
 
 
 class PythonExceptionHandlerAnalysis:
@@ -178,7 +166,7 @@ class PythonExceptionHandlerAnalysis:
             return
         issues.append({"line": self._handler.lineno - 1, "kind": "empty-error-handler"})
 
-    def __init__(self, options: PythonExceptionHandlerAnalysisOptions) -> None:
+    def __init__(self, options: PythonExceptionHandlerAnalysisOptionsContract) -> None:
         """Responsibilities: _exception handler context ownership_."""
         self._handler = options.handler
         self._enclosing_statement = options.enclosing_statement

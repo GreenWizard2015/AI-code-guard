@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
@@ -11,16 +10,11 @@ from implementation.rules.constants import (
 from implementation.rules.control_flow.python_temporal_access import (
     PythonTemporalAccess,
 )
+from implementation.rules.control_flow.types import ClassMethodRecords, PythonTemporalFieldState
+from implementation.rules.control_flow.protocols import ClassMethodRecordsContract
 from implementation.rules.protocols import PythonMethodRecordContract, PythonTemporalFieldStateContract
-from implementation.rules.types import PythonTemporalFieldState, PythonTemporalReaderIndex
+from implementation.rules.types import PythonTemporalReaderIndex
 from implementation.types import JsonObject
-
-@dataclass
-class ClassMethodRecords:
-    """Responsibilities: _class method records_, _class field state_."""
-
-    methods: list[PythonMethodRecordContract]
-    field_state: PythonTemporalFieldStateContract
 
 
 class PythonTemporalCoupling:
@@ -62,7 +56,7 @@ class PythonTemporalCoupling:
             case _:
                 field_state.initialized_fields.update(self._declared_fields(item))
 
-    def _method_records(self, class_body: list[ast.stmt]) -> ClassMethodRecords:
+    def _method_records(self, class_body: list[ast.stmt]) -> ClassMethodRecordsContract:
         """Responsibilities: _method record collection_, _field initialization analysis_."""
         methods: list[PythonMethodRecordContract] = []
         field_state = PythonTemporalFieldState(initialized_fields=set(), readers={})

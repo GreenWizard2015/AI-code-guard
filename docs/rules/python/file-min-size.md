@@ -2,6 +2,8 @@
 
 Description: Detect a source file with very little implementation code. A tiny forwarding module can indicate misplaced behavior; this size check does not decide whether a small domain type is meaningful.
 
+Each non-empty source file is assigned one code category, such as a data class, protocol, type, constant, function, value, or implementation. A file is exempt from the minimum-size check when it is the only file of that category in its directory. Category counts are language-specific, so Python files do not affect TypeScript diagnostics and vice versa. Empty files have no category and remain subject to the minimum-size check. This lets a directory keep one focused, small file for a category without padding it or mixing unrelated categories; when the category appears in multiple files in the same directory, the size check applies.
+
 Pytest `conftest.py` files are exempt: even a one-line plugin declaration can be a required framework entrypoint. Do not pad them with unrelated code.
 
 ## Bad

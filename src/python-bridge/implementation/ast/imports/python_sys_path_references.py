@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.protocols import (
+from implementation.ast.sys_path_protocols import (
     PythonSysPathImportAliasesContract,
     PythonSysPathStateContract,
 )

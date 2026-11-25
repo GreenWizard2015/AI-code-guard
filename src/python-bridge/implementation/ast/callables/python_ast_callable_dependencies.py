@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
-from implementation.ast.callable_nodes.function_nodes import (
+from implementation.ast.callable_nodes.python_function_nodes import (
     PythonFunctionNodes,
-    PythonFunctionNodesOptions,
 )
+from implementation.ast.callable_nodes.types import PythonFunctionNodesOptions
 from implementation.ast.callable_nodes.python_function_selector import (
     PythonFunctionSelector,
 )
@@ -21,6 +20,7 @@ from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes_opti
     PythonAstSymbolNodesOptions,
 )
 from implementation.ast.protocols import (
+    PythonAstCallableDependenciesOptionsContract,
     PythonAstNodeIndexContract,
     PythonAstSymbolNodesContract,
     PythonFunctionNodesContract,
@@ -38,23 +38,12 @@ from implementation.references.test_assertions.python_test_assertion_data import
 )
 
 
-@dataclass(frozen=True)
-class PythonAstCallableDependenciesOptions:
-    """Responsibilities: _callable dependency inputs_."""
-
-    tree: ast.Module
-    node_index: PythonAstNodeIndexContract
-    source_segments: PythonSourceSegmentsContract
-    container_aliases: PythonContainerAliasesContract
-    type_aliases: PythonScopedTypeAliasesContract
-
-
 class PythonAstCallableDependencies:
     """Responsibilities: _callable dependency assembly_, _symbol node access_."""
 
-    def __init__(self, options: PythonAstCallableDependenciesOptions) -> None:
+    def __init__(self, options: PythonAstCallableDependenciesOptionsContract) -> None:
         """Responsibilities: _callable dependency input initialization_."""
-        self._options: PythonAstCallableDependenciesOptions = options
+        self._options: PythonAstCallableDependenciesOptionsContract = options
 
     def function_nodes(self) -> PythonFunctionNodesContract:
         """Responsibilities: _function node dependency access_."""

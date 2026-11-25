@@ -76,6 +76,7 @@ describe("coding-lint directory rules", () => {
 				classes: normalized_ast.source.classes,
 				docstring_spans: normalized_ast.module_declarations.docstring_spans,
 				normalized_ast,
+				unique_code_category: false,
 			},
 			new LintStageTimer(),
 		);
@@ -99,6 +100,7 @@ describe("coding-lint directory rules", () => {
 				classes: [],
 				docstring_spans: [],
 				normalized_ast,
+				unique_code_category: false,
 			},
 			new LintStageTimer(),
 		);

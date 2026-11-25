@@ -259,6 +259,7 @@ export type DirectoryFileViolationOptions = {
 	classes: readonly AstClassNode[];
 	docstring_spans: readonly AstSourceSpan[];
 	normalized_ast: NormalizedAstFile;
+	unique_code_category: boolean;
 };
 export type DirectoryViolationContext = {
 	directory_sources: ReadonlyMap<string, readonly string[]>;

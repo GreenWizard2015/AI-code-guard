@@ -1,5 +1,16 @@
 import type { SourceTextOccurrence } from "src/model_types";
+import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import type { RuleContract } from "src/reporting_protocols";
+import type { LintSourceRecordData } from "src/source_types";
+
+export type CodeCategoryCounts = Map<string, number>;
+export type CodeCategoryTotals = Map<string, CodeCategoryCounts>;
+
+/** Responsibilities: _source category inventory_. **/
+export interface CodeCategoryIndexContract {
+	index_sources(sources: readonly LintSourceRecordData[]): void;
+	category_is_unique(file: string, ast: NormalizedAstFile, language: AstLanguage, text: string): boolean;
+}
 
 /** Responsibilities: _Python quote state_. **/
 export interface PythonFStringExpressionScannerContract {

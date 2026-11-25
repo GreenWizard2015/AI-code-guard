@@ -5,16 +5,15 @@ from unittest.mock import Mock
 from implementation.ast.callables.coding_issue_protocols import (
     PythonRuleNodeDispatchContract,
 )
-from implementation.ast.callables.python_coding_issue_collector import (
-    PythonRuleNodeDispatch,
-)
+from implementation.ast.callables.types import PythonRuleNodeDispatch
 from implementation.ast.callables.python_coding_issue_node import PythonCodingIssueNode
 from implementation.ast.callables.python_coding_issue_timing import (
     PythonCodingIssueTiming,
 )
 from implementation.rules.constants import PYTHON_NODE_RULE_ANALYSIS_STAGE
 from implementation.rules.protocols import PythonCodingIssueComponentsContract
-from implementation.types import JsonObject, PythonRuleStageEntry
+from implementation.types import JsonObject
+from implementation.data_models import PythonRuleStageEntry
 
 
 class PythonCodingIssueTimingTest(unittest.TestCase):

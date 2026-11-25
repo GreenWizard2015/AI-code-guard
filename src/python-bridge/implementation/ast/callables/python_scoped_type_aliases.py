@@ -1,31 +1,19 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.ast.callables.python_scoped_type_alias_node import (
     PythonScopedTypeAliasNode,
 )
+from implementation.ast.callables.types import PythonTypeAliasRecord
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonScopedTypeAliasIndexContract,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.types import PythonASTLocatedNode
-
-
-@dataclass(frozen=True)
-class PythonTypeAliasRecord:
-    """Responsibilities: _scoped alias identity_, _source alias location_."""
-
-    name: str
-    target: str
-    scope: ast.AST
-    line: int
 
 
 class PythonScopedTypeAliases(PythonScopedTypeAliasIndexContract):

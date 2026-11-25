@@ -55,8 +55,11 @@ export class DirectoryRules implements DirectoryRulesContract {
 
 	/** Responsibilities: _aggregation size violations directory_. **/
 	private append_file_size(options: DirectoryFileViolationOptions): void {
-		const { violations, file, text, docstring_spans } = options;
+		const { violations, file, text, docstring_spans, unique_code_category } = options;
 		if (basename(file) === "conftest.py") {
+			return;
+		}
+		if (unique_code_category) {
 			return;
 		}
 		const line_count = this._directory_comment_segments.count_code_lines(text, file.endsWith(".py"), docstring_spans);

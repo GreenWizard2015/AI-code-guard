@@ -74,7 +74,7 @@ export class LanguageParityCaseRunner implements LanguageParityCaseRunnerContrac
 			new InMemoryProjectSourceIO(new Map()),
 		);
 		const module_exports = module_exports_context.module_exports();
-		return new TypeScriptSourceRuleRuntime(record, EMPTY_PROJECT_NAMES, module_exports);
+		return new TypeScriptSourceRuleRuntime(record, EMPTY_PROJECT_NAMES, module_exports, [record]);
 	}
 
 	/** Responsibilities: _language parity fixture initialization_. **/

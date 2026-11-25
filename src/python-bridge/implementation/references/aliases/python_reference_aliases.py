@@ -1,30 +1,15 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
 
-from implementation.references.alias_types import (
-    AssignmentAliasCache,
-    TreeAliasCache,
-)
+from implementation.references.alias_types import AssignmentAliasCache, TreeAliasCache
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.aliases.python_annotated_type_alias_collector import (
     PythonAnnotatedTypeAliasCollector,
 )
 from implementation.references.protocols import (
     PythonReferenceAliasStateContract,
 )
-from implementation.types import JsonObject
-
-
-@dataclass
-class PythonReferenceAliasState:
-    """Responsibilities: _alias records_, _resolution and collection caches_."""
-
-    aliases: list[JsonObject] = field(default_factory=list)
-    alias_index: dict[str, str] = field(default_factory=dict)
-    resolved_aliases: dict[str, str] = field(default_factory=dict)
-    assignment_cache: AssignmentAliasCache = field(default_factory=dict)
-    tree_cache: TreeAliasCache = field(default_factory=dict)
 
 
 class PythonReferenceAliases:

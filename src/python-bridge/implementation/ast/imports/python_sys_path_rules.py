@@ -9,8 +9,8 @@ from implementation.ast.imports.python_sys_path_import_aliases import (
 from implementation.ast.imports.python_sys_path_references import (
     PythonSysPathReferences,
 )
-from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.ast.sys_path_protocols import (
     PythonSysPathImportAliasesContract,
     PythonSysPathStateContract,
 )

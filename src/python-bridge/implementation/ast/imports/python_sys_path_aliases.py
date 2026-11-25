@@ -5,15 +5,13 @@ import ast
 from implementation.ast.imports.python_sys_path_attribute_aliases import (
     PythonSysPathAttributeAliases,
 )
-from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
+from implementation.ast.sys_path_protocols import (
     PythonSysPathAttributeAliasesContract,
     PythonSysPathImportAliasesContract,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,

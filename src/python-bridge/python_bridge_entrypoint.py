@@ -4,7 +4,6 @@ import json
 import sys
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, TextIO
 
@@ -21,19 +20,13 @@ from protocols import (
     PythonAstParseOutcomeContract,
     PythonBridgeInputContract,
     PythonBridgeOutputContract,
+    PythonBatchSourcesContract,
 )
 from python_batch_result import PythonBatchResult
 from python_bridge_arguments import PythonBridgeArguments
 from python_bridge_input import PythonBridgeInput
 from python_bridge_output import PythonBridgeOutput
-
-
-@dataclass(frozen=True)
-class PythonBatchSources:
-    """Responsibilities: _batch identity_, _source text mapping_."""
-
-    batch_id: str
-    sources: dict[str, str]
+from implementation.data_models import PythonBatchSources
 
 
 class PythonBridgeEntrypoint:
@@ -42,7 +35,7 @@ class PythonBridgeEntrypoint:
     _ast_process_pool: ProcessPoolExecutor
     _json_reader: JsonValueView
 
-    def _batch_sources(self, request: JsonObject) -> PythonBatchSources:
+    def _batch_sources(self, request: JsonObject) -> PythonBatchSourcesContract:
         """Responsibilities: _worker batch input validation_."""
         batch_id = request.get("batch_id")
         if type(batch_id) is not str:

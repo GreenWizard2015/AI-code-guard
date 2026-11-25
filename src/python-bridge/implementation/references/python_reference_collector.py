@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
 from time import perf_counter
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
@@ -18,6 +17,7 @@ from implementation.references.protocols import (
     PythonReferenceContextContract,
     PythonReferenceSourceContract,
 )
+from implementation.references.data_models import PythonReferenceState
 from implementation.references.python_call_assignment import PythonCallAssignment
 from implementation.references.python_call_binding import PythonCallBinding
 from implementation.references.python_call_reference_options import (
@@ -29,16 +29,6 @@ from implementation.references.python_reference_source import (
 )
 from implementation.rules.constants import PYTHON_REFERENCE_COLLECTION_STAGE
 from implementation.types import JsonObject, PythonASTLocatedNode
-
-
-@dataclass
-class PythonReferenceState:
-    """Responsibilities: _reference context storage_, _storage reference builders records_."""
-
-    context: PythonReferenceContextContract = field(init=False)
-    builder: PythonReferenceBuilderContract = field(init=False)
-    references: list[JsonObject] = field(default_factory=list)
-    current_owner: str = ""
 
 
 class PythonReferenceCollector:

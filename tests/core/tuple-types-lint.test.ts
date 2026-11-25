@@ -19,6 +19,12 @@ describe("tuple type rules", () => {
 					"def prepare() -> PreparedFileHttpRequest:",
 					"    return None",
 				].join("\n"),
+				"tests/proxy/files/runtime/files_test_runtime.py": [
+					"import http.client",
+					"PreparedFileHttpRequest = tuple[http.client.HTTPConnection, str, bytes, dict[str, str]]",
+					"def prepare() -> PreparedFileHttpRequest:",
+					"    return None",
+				].join("\n"),
 				"python-native-forms.py": [
 					"NativeTuple = tuple",
 					"def resolve_bare(value: tuple) -> NativeTuple:",
@@ -78,6 +84,7 @@ describe("tuple type rules", () => {
 			"python-native-forms.py:16",
 			"python-native-forms.py:18",
 			"python-native-alias.py:3",
+			"tests/proxy/files/runtime/files_test_runtime.py:3",
 			"python-tuple.py:1",
 			"readonly.ts:1",
 			].sort(),

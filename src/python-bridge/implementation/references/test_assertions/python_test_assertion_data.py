@@ -17,7 +17,7 @@ from implementation.references.protocols import (
     PythonContainerValuesContract,
     PythonReferenceAliasesContract,
 )
-from implementation.references.test_assertions.assertion_aliases import (
+from implementation.references.test_assertions.python_test_assertion_aliases import (
     PythonTestAssertionAliases,
     PythonTestAssertionAliasOptions,
 )

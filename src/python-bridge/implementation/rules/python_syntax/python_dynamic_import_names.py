@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
@@ -20,19 +19,9 @@ from implementation.rules.constants import (
     PYTHON_IMPORTLIB_MODULE,
 )
 from implementation.rules.python_syntax.protocols import (
+    PythonDynamicImportNamesOptionsContract,
     PythonDynamicImportReferenceResolverContract,
 )
-
-
-@dataclass(frozen=True)
-class PythonDynamicImportNamesOptions:
-    """Responsibilities: _import aliases_, _dynamic module names_."""
-
-    container_aliases: PythonContainerAliasesContract
-    references: PythonDynamicImportReferenceResolverContract
-    module_aliases: dict[str, str]
-    builtin_module_aliases: set[str]
-    function_aliases: dict[str, str]
 
 
 class PythonDynamicImportNames:
@@ -125,7 +114,7 @@ class PythonDynamicImportNames:
 
     def __init__(
         self,
-        options: PythonDynamicImportNamesOptions,
+        options: PythonDynamicImportNamesOptionsContract,
     ) -> None:
         """Responsibilities: _initialization dynamic import aliases_."""
         self._module_aliases: dict[str, str] = options.module_aliases

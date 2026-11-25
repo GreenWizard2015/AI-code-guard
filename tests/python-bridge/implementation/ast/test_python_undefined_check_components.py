@@ -18,7 +18,7 @@ from implementation.rules.coding_issues.states.python_inherited_fields import (
 from implementation.rules.coding_issues.states.undefined_check_state import (
     UndefinedCheckState,
 )
-from implementation.rules.types import AliasWalkStateData
+from implementation.rules.data_models import AliasWalkStateData
 from implementation.types import PythonClassFieldMap
 
 

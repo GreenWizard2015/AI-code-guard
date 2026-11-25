@@ -30,7 +30,7 @@ from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.rules.types import PythonCodingIssueBoundaryBundle
+from implementation.rules.data_models import PythonCodingIssueBoundaryBundle
 
 
 class PythonCodingIssueBoundaryState:

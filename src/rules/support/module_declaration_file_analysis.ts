@@ -8,7 +8,13 @@ import type {
 } from "src/model/ast/normalized_ast_types";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
-import { MODULE_FUNCTION_KIND, MODULE_PROTOCOL_NAME } from "src/rules/constants";
+import {
+	MODULE_FUNCTION_KIND,
+	MODULE_PROTOCOL_NAME,
+	PYTHON_DATA_MODELS_FILE_NAME,
+	PYTHON_TYPES_FILE_NAME,
+	MODULE_TYPES_SEPARATION_RULE_ID,
+} from "src/rules/constants";
 import type { ModuleDeclarationPolicyData } from "src/rules/support/protocols";
 
 /** Responsibilities: _module declaration placement_, _forbidden declaration content_, _target path creation_. **/
@@ -46,6 +52,38 @@ export class ModuleDeclarationFileAnalysis {
 		this._violations.push(this._policy.content_rule.violation(this._file, line, parameters));
 	}
 
+	/** Responsibilities: _mixed dataclass declaration detection_. **/
+	private data_class_mixed(): boolean {
+		for (const item of this._source.classes) {
+			if (!item.classification.is_data_class) {
+				return true;
+			}
+		}
+		for (const item of this._source.functions) {
+			if (item.identity.owner.length === 0 && !item.identity.nested) {
+				return true;
+			}
+		}
+		for (const item of this._references.named_symbols) {
+			if (item.is_module_variable && item.name !== "__all__") {
+				return true;
+			}
+		}
+		return this.has_other_declarations();
+	}
+
+	/** Responsibilities: _other declaration inventory_. **/
+	private has_other_declarations(): boolean {
+		const declarations = this._module_declarations;
+		if (declarations.module_constant_spans.length > 0) {
+			return true;
+		}
+		if (declarations.module_type_spans.length > 0) {
+			return true;
+		}
+		return declarations.module_protocol_spans.length > 0;
+	}
+
 	/** Responsibilities: _module file analysis initialization_. **/
 	public constructor(
 		policy: ModuleDeclarationPolicyData,
@@ -59,6 +97,28 @@ export class ModuleDeclarationFileAnalysis {
 		this._source = ast.source;
 		this._references = ast.references;
 		this._module_declarations = ast.module_declarations;
+	}
+
+	/** Responsibilities: _data class module isolation_. **/
+	public append_data_classes(): void {
+		const data_class = this._source.classes.find((item) => item.classification.is_data_class);
+		if (data_class === undefined || !this.data_class_mixed()) {
+			return;
+		}
+		const already_reported = this._violations.some(
+			(item) => item.file() === this._file && item.rule_id() === MODULE_TYPES_SEPARATION_RULE_ID,
+		);
+		if (already_reported) {
+			return;
+		}
+		let target_name = PYTHON_TYPES_FILE_NAME;
+		if (basename(this._file) === PYTHON_TYPES_FILE_NAME) {
+			target_name = PYTHON_DATA_MODELS_FILE_NAME;
+		}
+		const target = join(dirname(this._file), target_name);
+		this._violations.push(
+			this._policy.types_rule.violation(this._file, data_class.identity.start + 1, { target }),
+		);
 	}
 
 	/** Responsibilities: _module declaration placement analysis_. **/

@@ -6,6 +6,7 @@ import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/imp
 import { PythonReexports } from "src/linting/orchestration/runtime/python_reexports";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RemainingViolationOptions } from "src/model_types";
+import type { CodeCategoryIndexContract } from "src/rules/support/protocols";
 import { FunctionPlacementRules } from "src/rules/architecture/function_placement_rules";
 import { DirectoryRules } from "src/rules/directory_rules";
 import { TypeScriptReexports } from "src/rules/type_script_reexports";
@@ -26,6 +27,7 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 	private readonly _file_io: IOContract;
 	private readonly _source_io: ProjectSourceIOContract;
 	private readonly _entry_point_files: ReadonlySet<string>;
+	private readonly _code_categories: CodeCategoryIndexContract;
 
 	/** Responsibilities: _remaining file violation initialization_. **/
 	public constructor(
@@ -33,11 +35,13 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 		file_io: IOContract,
 		source_io: ProjectSourceIOContract,
 		entry_point_files: ReadonlySet<string>,
+		code_categories: CodeCategoryIndexContract,
 	) {
 		this._tests = tests;
 		this._file_io = file_io;
 		this._source_io = source_io;
 		this._entry_point_files = entry_point_files;
+		this._code_categories = code_categories;
 		this._import_fan_out = new ImportFanOut(MAX_IMPORT_FAN_OUT, new DiagnosticRule("import-fan-out"));
 		this._function_placement_rules = new FunctionPlacementRules(FUNCTION_MODULE_NAMES);
 		this._remaining_text_rules = new FileRemainingTextRules(
@@ -80,6 +84,12 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 					classes: source.normalized_ast.source.classes,
 					docstring_spans: source.normalized_ast.module_declarations.docstring_spans,
 					normalized_ast: source.normalized_ast,
+					unique_code_category: this._code_categories.category_is_unique(
+						source.relative_path,
+						source.normalized_ast,
+							source.language,
+							source.text,
+					),
 				},
 				stage_timer,
 			);

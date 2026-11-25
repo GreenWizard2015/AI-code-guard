@@ -4,10 +4,8 @@ import ast
 from functools import cached_property
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.constants import (
     PYTHON_CONSTANT_KIND,
     PYTHON_MODULE_NESTED_STATEMENT_TYPES,

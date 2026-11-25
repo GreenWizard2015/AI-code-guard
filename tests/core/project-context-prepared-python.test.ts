@@ -68,7 +68,7 @@ describe("project context prepared Python AST", () => {
 			prepared_ast([{ line: 0, kind: "python-elif", name: "" }]),
 		);
 		const module_exports = module_exports_context.module_exports();
-		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports);
+		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports, [source_record]);
 		const linter = new CodingRuleLinter(runtime, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
 		const violations = linter.lint_python(source_ast, new LintStageTimer());
 
@@ -78,7 +78,7 @@ describe("project context prepared Python AST", () => {
 	test("does not reparse invalid Python source when the prepared AST has no coding issues", () => {
 		const { source_record, source_ast, module_exports_context } = prepare_lint_input(prepared_ast([]));
 		const module_exports = module_exports_context.module_exports();
-		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports);
+		const runtime = new TypeScriptSourceRuleRuntime(source_record, EMPTY_PROJECT_NAMES, module_exports, [source_record]);
 		const linter = new CodingRuleLinter(runtime, process.cwd(), new SourceText(), EMPTY_PROJECT_NAMES);
 		const violations = linter.lint_python(source_ast, new LintStageTimer());
 

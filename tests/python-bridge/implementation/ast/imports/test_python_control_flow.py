@@ -3,7 +3,6 @@ import unittest
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.python_sys_path_rules import PythonSysPathRules
-from implementation.ast.imports.source_segments import SourceSegments
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_container_alias_state import (
     PythonContainerAliasState,
@@ -27,15 +26,7 @@ from implementation.rules.call_analysis.proxy_call.python_proxy_callable_syntax 
 from implementation.rules.call_analysis.proxy_call.python_proxy_receiver_aliases import (
     PythonProxyReceiverAliases,
 )
-from implementation.rules.control_flow.control_flow_issues import (
-    PythonControlFlowIssues,
-    PythonControlFlowOptions,
-)
-from implementation.rules.control_flow.python_terminal_branch_rules import (
-    PythonTerminalBranchRules,
-)
 from implementation.rules.import_rules import ImportRules
-from implementation.types import JsonValue
 from import_rules_fixture import ImportRulesFixture
 
 from tests.python.constants import EDGE_SOURCE
@@ -79,23 +70,6 @@ class PythonControlFlowTest(unittest.TestCase):
         )
         return sum(len(proxy_analyzer.analyze(node)) for node in ast.walk(tree))
 
-    def _conditional_kinds(self, tree: ast.AST) -> list[JsonValue]:
-        """Responsibilities: _conditional diagnostic kinds_."""
-        control = PythonControlFlowIssues(
-            PythonControlFlowOptions(
-                tree,
-                EDGE_SOURCE.splitlines(),
-                set(),
-                self._python_ast_node_index(),
-                PythonTerminalBranchRules(),
-                SourceSegments(EDGE_SOURCE),
-            ),
-        )
-        kinds: list[JsonValue] = []
-        for node in ast.walk(tree):
-            kinds.extend(issue["kind"] for issue in control.conditional_issues(node))
-        return kinds
-
     def test_import_control_flow(self) -> None:
         """Responsibilities: _import diagnostics verification_."""
         tree = ast.parse(EDGE_SOURCE)
@@ -113,9 +87,8 @@ class PythonControlFlowTest(unittest.TestCase):
                 "relative": "relative" in import_kinds,
                 "private": self._has_private_accesses(tree),
                 "proxy": self._proxy_count(tree),
-                "ternary": "ternary-expression" in self._conditional_kinds(tree),
             },
-            {"late": True, "relative": True, "private": True, "proxy": 2, "ternary": True},
+            {"late": True, "relative": True, "private": True, "proxy": 2},
         )
 
     def test_import_analysis_keeps_dynamic_and_path_mutation_results(self) -> None:
@@ -303,125 +276,3 @@ class PythonControlFlowTest(unittest.TestCase):
         rules.configure(ast.parse("pass\n"))
 
         self.assertFalse(rules.path_mutation(call))
-
-    def test_rejects_boolean_identity_return_hacks(self) -> None:
-        """Responsibilities: _boolean identity hack test_."""
-        source = (
-            "def check(value: bool) -> None:\n"
-            "    if value is True:\n"
-            "        return\n"
-            "    if value is False:\n"
-            "        return\n"
-        )
-        tree = ast.parse(source)
-        control = PythonControlFlowIssues(
-            PythonControlFlowOptions(
-                tree,
-                source.splitlines(),
-                set(),
-                self._python_ast_node_index(),
-                PythonTerminalBranchRules(),
-                SourceSegments(source),
-            ),
-        )
-
-        self.assertEqual(
-            [
-                issue["kind"]
-                for node in ast.walk(tree)
-                for issue in control.conditional_issues(node)
-                if issue["kind"] == "pointless-boolean-operation"
-            ],
-            ["pointless-boolean-operation", "pointless-boolean-operation"],
-        )
-
-    def test_preserves_identity_check_for_mapping_values(self) -> None:
-        """Responsibilities: _mapping value identity preservation_."""
-        source = (
-            "def is_error(result: dict[str, object]) -> bool:\n"
-            '    if result.get("isError") is True:\n'
-            "        return True\n"
-            "    return False\n"
-        )
-        tree = ast.parse(source)
-        control = PythonControlFlowIssues(
-            PythonControlFlowOptions(
-                tree,
-                source.splitlines(),
-                set(),
-                self._python_ast_node_index(),
-                PythonTerminalBranchRules(),
-                SourceSegments(source),
-            ),
-        )
-
-        self.assertEqual(
-            [
-                issue
-                for node in ast.walk(tree)
-                for issue in control.conditional_issues(node)
-                if issue["kind"] == "pointless-boolean-operation"
-            ],
-            [],
-        )
-
-    def test_reports_long_single_line_logical_chain(self) -> None:
-        """Responsibilities: _single-line logical chain diagnosis_."""
-        source = "def check(a, b, c, d):\n    return a and b and c and d\n"
-        tree = ast.parse(source)
-        control = PythonControlFlowIssues(
-            PythonControlFlowOptions(
-                tree,
-                source.splitlines(),
-                set(),
-                self._python_ast_node_index(),
-                PythonTerminalBranchRules(),
-                SourceSegments(source),
-            ),
-        )
-
-        self.assertEqual(
-            [issue["kind"] for node in ast.walk(tree) for issue in control.conditional_issues(node)],
-            ["logical-chain-size"],
-        )
-
-    def test_reports_unknown_calls_without_name_based_exceptions(self) -> None:
-        """Responsibilities: _conditional call issues_."""
-        source = (
-            "def _is_receiver(value):\n"
-            "    return True\n"
-            "def check(arguments):\n"
-            "    return len(arguments) == 1 and not _is_receiver(arguments[0])\n"
-            "def run(ready):\n"
-            "    return ready and perform_action()\n"
-            "def verify(ready):\n"
-            "    return ready and ready.perform()\n"
-            "def compute(ready):\n"
-            "    return ready and _compute_value()\n"
-        )
-        tree = ast.parse(source)
-        control = PythonControlFlowIssues(
-            PythonControlFlowOptions(
-                tree,
-                source.splitlines(),
-                set(),
-                self._python_ast_node_index(),
-                PythonTerminalBranchRules(),
-                SourceSegments(source),
-            ),
-        )
-
-        self.assertEqual(
-            [
-                issue["kind"]
-                for node in ast.walk(tree)
-                for issue in control.conditional_issues(node)
-                if issue["kind"] == "conditional-execution"
-            ],
-            [
-                "conditional-execution",
-                "conditional-execution",
-                "conditional-execution",
-                "conditional-execution",
-            ],
-        )

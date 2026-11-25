@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 
 from implementation.references.protocols import PythonContainerValuesContract
 from implementation.rules.constants import (
@@ -22,22 +21,10 @@ from implementation.rules.python_syntax.protocols import (
 from implementation.rules.python_syntax.python_dynamic_import_reference import (
     PythonDynamicImportReference,
 )
-
-
-@dataclass(frozen=True)
-class PythonDynamicImportSubscriptOwner:
-    """Responsibilities: _dynamic import subscript owner_."""
-
-    module: str
-    name: str
-
-
-@dataclass(frozen=True)
-class PythonDynamicImportCallTarget:
-    """Responsibilities: _dynamic import target_."""
-
-    reference: PythonDynamicImportReferenceContract
-    name: str
+from implementation.rules.python_syntax.types import (
+    PythonDynamicImportCallTarget,
+    PythonDynamicImportSubscriptOwner,
+)
 
 
 class PythonDynamicImportReferences:

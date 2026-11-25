@@ -6,10 +6,8 @@ from collections.abc import Iterable
 from functools import cached_property
 
 from implementation.ast.protocols import PythonAstNodeIndexContract, PythonCallableArgumentsContract
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.constants import (
     PYTHON_TYPE_ALIAS_FACTORY_NAME,

@@ -13,7 +13,7 @@ from implementation.rules.protocols import (
     PythonCodingIssueTestStateContract,
     PythonDecoratorRuleContract,
 )
-from implementation.rules.types import PythonCodingIssueStructureBundle
+from implementation.rules.data_models import PythonCodingIssueStructureBundle
 
 
 class PythonCodingIssueStructureState:

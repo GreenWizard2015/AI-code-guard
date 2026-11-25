@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from functools import cached_property
 from time import perf_counter
 
@@ -13,6 +12,7 @@ from implementation.ast.callables.coding_issue_protocols import (
 )
 from implementation.ast.callables.constants import PYTHON_RULE_STAGE_NAMES
 from implementation.ast.callables.python_coding_issue_node import PythonCodingIssueNode
+from implementation.ast.callables.types import PythonRuleNodeDispatch
 from implementation.ast.callables.python_coding_issue_timing import (
     PythonCodingIssueTiming,
 )
@@ -28,17 +28,8 @@ from implementation.rules.protocols import (
 from implementation.types import (
     CallablePythonRuleStage,
     JsonObject,
-    PythonRuleStageEntry,
 )
-
-
-@dataclass(frozen=True)
-class PythonRuleNodeDispatch:
-    """Responsibilities: _AST node rule stages_, _precedence eligibility_."""
-
-    stages: list[PythonRuleStageEntryContract]
-    checks_precedence: bool
-    checks_proxy: bool = False
+from implementation.data_models import PythonRuleStageEntry
 
 
 class PythonCodingIssueCollector:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
 from typing import Any
 
 from implementation.references.instances.python_assignment_effects import (
@@ -10,18 +9,10 @@ from implementation.references.instances.python_assignment_effects import (
 from implementation.references.protocols import (
     PythonAnnotatedInstanceBindingsContract,
     PythonAnnotationResolverContract,
+    PythonInstanceBindingSourceContract,
     PythonInstanceOwnerContract,
     PythonReferenceContextContract,
 )
-
-
-@dataclass(frozen=True)
-class PythonInstanceBindingSource:
-    """Responsibilities: _source binding identity_."""
-
-    node: ast.AST
-    owner: str
-    annotation_resolver: PythonAnnotationResolverContract
 
 
 class PythonInstanceBindingAnalysis:
@@ -103,13 +94,13 @@ class PythonInstanceBindingAnalysis:
 
     def __init__(
         self,
-        source: PythonInstanceBindingSource,
+        source: PythonInstanceBindingSourceContract,
         context: PythonReferenceContextContract,
         owner_resolver: PythonInstanceOwnerContract,
         annotated_bindings: PythonAnnotatedInstanceBindingsContract,
     ) -> None:
         """Responsibilities: _binding analysis state initialization_."""
-        self._source: PythonInstanceBindingSource = source
+        self._source: PythonInstanceBindingSourceContract = source
         self._context: PythonReferenceContextContract = context
         self._owner_resolver: PythonInstanceOwnerContract = owner_resolver
         self._annotated_bindings: PythonAnnotatedInstanceBindingsContract = annotated_bindings

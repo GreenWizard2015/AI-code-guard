@@ -96,6 +96,16 @@ class PythonTestAssertionAliasOptionsContract(Protocol):
     def assignment_aliases(self) -> PythonReferenceAliasesContract: ...
 
 
+class PythonTestAssertionAliasNamesContract(Protocol):
+    """Responsibilities: _assertion aliases_, _exception aliases_."""
+
+    @property
+    def assertion_names(self) -> frozenset[str]: ...
+
+    @property
+    def exception_names(self) -> frozenset[str]: ...
+
+
 class PythonSubtestAliasAnalysisContract(Protocol):
     """Responsibilities: _subtest alias results_, _context matching_."""
 
@@ -121,6 +131,19 @@ class PythonAnnotationResolverContract(Protocol):
         class_names: set[str],
         constructor_aliases: Mapping[str, str],
     ) -> str: ...
+
+
+class PythonInstanceBindingSourceContract(Protocol):
+    """Responsibilities: _binding source node_, _owner and annotation resolution_."""
+
+    @property
+    def node(self) -> ast.AST: ...
+
+    @property
+    def owner(self) -> str: ...
+
+    @property
+    def annotation_resolver(self) -> PythonAnnotationResolverContract: ...
 
 
 class PythonReferenceContextContract(Protocol):

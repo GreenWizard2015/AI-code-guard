@@ -1,24 +1,9 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
 
+from implementation.rules.data_models import PythonInheritedFieldResolutionState
 from implementation.types import PythonAnnotatedFieldMap, PythonClassFieldMap
-
-InheritanceEdges = dict[str, list[str]]
-
-
-@dataclass
-class PythonInheritedFieldResolutionState:
-    """Responsibilities: _inheritance graph inputs_, _resolution traversal state_."""
-
-    classes: dict[str, ast.ClassDef]
-    own_fields: PythonClassFieldMap
-    edges: InheritanceEdges = field(default_factory=dict)
-    visiting: list[str] = field(default_factory=list)
-    visited: set[str] = field(default_factory=set)
-    cycle_names: set[str] = field(default_factory=set)
-    memo: PythonClassFieldMap = field(default_factory=dict)
 
 
 class PythonInheritedFields:

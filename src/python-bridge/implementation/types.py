@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import TypeAlias
 
 JsonValueReference: TypeAlias = "JsonValue"
@@ -39,14 +38,6 @@ CallablePythonAstIssueAnalysis: TypeAlias = Callable[[ast.AST], list[JsonObject]
 CallablePythonPrepare: TypeAlias = Callable[[ast.AST], None]
 
 
-@dataclass(frozen=True)
-class PythonRuleStageEntry:
-    """Responsibilities: _Python rule dispatch_."""
-
-    stage: CallablePythonRuleStage
-    name: str
-
-
 PythonAstParentIndex: TypeAlias = dict[ast.AST, ast.AST]
 PythonCharacterColumnIndex: TypeAlias = dict[int, int]
 PythonCharacterColumnsByLine: TypeAlias = dict[str, PythonCharacterColumnIndex]
@@ -63,19 +54,6 @@ PythonCreationAssignments: TypeAlias = list[ast.AnnAssign]
 PythonAssignmentsByCreation: TypeAlias = dict[ast.Call, PythonCreationAssignments]
 PythonReceiverMethods: TypeAlias = set[str]
 PythonMethodsByReceiver: TypeAlias = dict[str, PythonReceiverMethods]
-
-
-@dataclass(frozen=True)
-class PythonTimeName:
-    """Responsibilities: _time module identity_, _time callable identity_."""
-
-    module: str
-    callable_name: str
-
-
-@dataclass
-class PythonImportedNames:
-    """Responsibilities: _symbol name index_."""
-
-    names: set[str]
-    modules: set[str]
+InheritanceEdges: TypeAlias = dict[str, list[str]]
+PythonSourcePosition: TypeAlias = tuple[int, int]
+PythonFieldAccessMap: TypeAlias = dict[str, set[str]]

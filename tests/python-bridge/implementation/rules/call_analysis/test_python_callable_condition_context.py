@@ -1,8 +1,8 @@
 import ast
 import unittest
-from dataclasses import dataclass
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
+from data_models import PythonCallableConditionInputs
 from implementation.rules.call_analysis.python_callable_condition_context import (
     PythonCallableConditionContext,
 )
@@ -17,18 +17,6 @@ from implementation.rules.python_syntax.python_primary_call_assembly import (
 )
 from python_collector_fixture_factory import PythonCollectorFixtureOptionsFactory
 from python_reference_test_support import PythonReferenceTestSupport
-
-
-@dataclass(frozen=True)
-class PythonCallableConditionInputs:
-    """Responsibilities: _callable node sources_, _AST parent ownership_."""
-
-    tree: ast.Module
-    node_index: PythonAstNodeIndex
-    nodes: list[ast.AST]
-    scopes: dict[ast.AST, str]
-    parents: dict[int, ast.AST]
-    calls: list[ast.Call]
 
 
 class PythonCallableConditionContextTest(unittest.TestCase):

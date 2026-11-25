@@ -9,7 +9,7 @@ from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
     PythonReferenceAliasState,
 )
-from implementation.references.test_assertions.assertion_aliases import (
+from implementation.references.test_assertions.python_test_assertion_aliases import (
     PythonTestAssertionAliases,
     PythonTestAssertionAliasOptions,
 )

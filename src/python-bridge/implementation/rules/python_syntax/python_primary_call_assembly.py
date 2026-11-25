@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from implementation.ast.protocols import PythonCallableConditionContextContract
 from implementation.protocols import PythonCallAliasStateContract
 from implementation.references.aliases.python_reference_aliases import (
@@ -11,7 +9,8 @@ from implementation.references.aliases.python_reference_aliases import (
 from implementation.references.decorator_protocols import (
     PythonAssignedDescriptorIndexContract,
 )
-from implementation.rules.call_analysis.call_rules import CallRules, CallRulesOptions
+from implementation.rules.call_analysis.call_rules import CallRules
+from implementation.rules.call_analysis.types import CallRulesOptions
 from implementation.rules.call_analysis.python_call_alias_state import (
     PythonCallAliasState,
 )
@@ -21,6 +20,7 @@ from implementation.rules.call_analysis.python_call_classification import (
 from implementation.rules.call_analysis.python_callable_condition_context import (
     PythonCallableConditionContext,
 )
+from implementation.rules.coding_issues.primary_rule_protocols import PythonPrimaryCallBundleContract
 from implementation.rules.protocols import (
     PythonCallRulesContract,
     PythonCodingIssueComponentContextContract,
@@ -34,15 +34,7 @@ from implementation.rules.python_syntax.decorators.python_decorator_alias_state 
 from implementation.rules.python_syntax.decorators.python_decorator_rules import (
     PythonDecoratorRules,
 )
-
-
-@dataclass(frozen=True)
-class PythonPrimaryCallBundle:
-    """Responsibilities: _invocation policy_, _decorator policy_."""
-
-    call_rules: PythonCallRulesContract
-    decorator_rules: PythonDecoratorRuleContract
-    decorator_aliases: PythonDecoratorAliasStateContract
+from implementation.rules.python_syntax.types import PythonPrimaryCallBundle
 
 
 class PythonPrimaryCallAssembly:
@@ -103,7 +95,7 @@ class PythonPrimaryCallAssembly:
         parents = {id(child): node for node in nodes for child in context.node_index().children(node)}
         return PythonCallableConditionContext(nodes, scopes, parents)
 
-    def call_state(self) -> PythonPrimaryCallBundle:
+    def call_state(self) -> PythonPrimaryCallBundleContract:
         """Responsibilities: _invocation dependency state_."""
         aliases = PythonCallAliasState()
         call_rules = self._call_rules(aliases, self.condition_context())

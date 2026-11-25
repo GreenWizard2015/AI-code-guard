@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass
-
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
     PYTHON_FIELD_READ_EFFECT,
@@ -15,18 +13,7 @@ from implementation.rules.control_flow.python_method_record_value import (
     PythonMethodRecordValue,
 )
 from implementation.rules.protocols import PythonMethodRecordContract
-from implementation.types import PythonCallableAstNode
-
-
-@dataclass(frozen=True, order=True)
-class SourcePosition:
-    """Responsibilities: _source position_, _position ordering_."""
-
-    line: int
-    column: int
-
-
-FieldAccessMap = dict[str, set[str]]
+from implementation.types import PythonCallableAstNode, PythonFieldAccessMap, PythonSourcePosition
 
 
 class PythonTemporalAccess:
@@ -76,7 +63,7 @@ class PythonTemporalAccess:
         self,
         arguments: ast.arguments,
         body: list[ast.stmt],
-    ) -> list[SourcePosition]:
+    ) -> list[PythonSourcePosition]:
         """Responsibilities: _receiver rebinding boundaries_."""
         parameters = arguments.posonlyargs
         if len(parameters) == 0:
@@ -88,19 +75,19 @@ class PythonTemporalAccess:
                 continue
             if statement.end_lineno is None or statement.end_col_offset is None:
                 continue
-            return [SourcePosition(statement.end_lineno, statement.end_col_offset)]
+            return [(statement.end_lineno, statement.end_col_offset)]
         return []
 
     def _append_field_access(
         self,
         current: ast.AST,
-        boundaries: list[SourcePosition],
-        accesses: FieldAccessMap,
+        boundaries: list[PythonSourcePosition],
+        accesses: PythonFieldAccessMap,
     ) -> None:
         """Responsibilities: _method field access roles_."""
         field = self.field_name(current)
         if field and boundaries and type(current) is ast.Attribute:
-            access_position = SourcePosition(current.lineno, current.col_offset)
+            access_position: PythonSourcePosition = (current.lineno, current.col_offset)
             if any(boundary < access_position for boundary in boundaries):
                 return
         if not field:
@@ -114,8 +101,8 @@ class PythonTemporalAccess:
     def _append_accesses(
         self,
         current: ast.AST,
-        boundaries: list[SourcePosition],
-        accesses: FieldAccessMap,
+        boundaries: list[PythonSourcePosition],
+        accesses: PythonFieldAccessMap,
     ) -> None:
         """Responsibilities: _method AST field traversal_."""
         if type(current) in (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef):
@@ -124,9 +111,9 @@ class PythonTemporalAccess:
         for child in self._node_index.children(current):
             self._append_accesses(child, boundaries, accesses)
 
-    def _method_field_accesses(self, definition: ast.AST) -> FieldAccessMap:
+    def _method_field_accesses(self, definition: ast.AST) -> PythonFieldAccessMap:
         """Responsibilities: _method field access state_."""
-        accesses: FieldAccessMap = {"reads": set(), "writes": set()}
+        accesses: PythonFieldAccessMap = {"reads": set(), "writes": set()}
         if type(definition) is ast.FunctionDef:
             boundaries = self._first_receiver_boundary(definition.args, definition.body)
         else:

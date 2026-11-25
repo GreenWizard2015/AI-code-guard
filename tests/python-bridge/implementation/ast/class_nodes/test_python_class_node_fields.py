@@ -1,10 +1,8 @@
 import ast
 import unittest
 
-from implementation.ast.callables.scoped_type_aliases import PythonScopedTypeAliases
-from implementation.ast.class_nodes.python_class_method_node import (
-    PythonClassNodeOptions,
-)
+from implementation.ast.callables.python_scoped_type_aliases import PythonScopedTypeAliases
+from implementation.ast.callables.types import PythonClassNodeOptions
 from implementation.ast.class_nodes.python_class_node_fields import (
     PythonClassNodeFields,
 )

@@ -20,7 +20,7 @@ from implementation.rules.type_rule_protocols import (
 from implementation.rules.type_rules.python_coding_issue_type_state import (
     PythonCodingIssueTypeState,
 )
-from implementation.rules.types import PythonCodingIssueAssemblyBundle
+from implementation.rules.data_models import PythonCodingIssueAssemblyBundle
 
 
 class PythonCodingIssueAssembly:

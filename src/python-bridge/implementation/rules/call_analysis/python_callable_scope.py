@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from collections import deque
-from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
@@ -10,6 +9,7 @@ from implementation.rules.constants import (
     PYTHON_MODULE_NAME_REASSIGNED,
     PYTHON_POST_INIT_METHOD,
 )
+from implementation.rules.call_analysis.options_protocols import PythonCallableScopeOptionsContract
 from implementation.rules.protocols import (
     PythonNameBindingIndexContract,
     PythonStructuralMemberLookupContract,
@@ -21,18 +21,6 @@ from implementation.types import (
     PythonMethodsByReceiver,
     PythonNameSetIndex,
 )
-
-
-@dataclass(frozen=True)
-class PythonCallableScopeOptions:
-    """Responsibilities: _callable scope analysis inputs_."""
-
-    tree: ast.AST
-    definition: ast.AST
-    parents: PythonAstParentIndex
-    contracts: PythonStructuralMemberLookupContract
-    node_index: PythonAstNodeIndexContract
-    binding_index: PythonNameBindingIndexContract
 
 
 class PythonCallableScope:
@@ -162,7 +150,7 @@ class PythonCallableScope:
                 receiver = candidate.func.value.id
                 self._methods_by_receiver.setdefault(receiver, set()).add(candidate.func.attr)
 
-    def __init__(self, options: PythonCallableScopeOptions) -> None:
+    def __init__(self, options: PythonCallableScopeOptionsContract) -> None:
         """Responsibilities: _callable analysis state setup_."""
         self._tree = options.tree
         self._definition = options.definition

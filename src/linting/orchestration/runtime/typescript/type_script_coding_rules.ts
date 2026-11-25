@@ -65,6 +65,7 @@ export class TypeScriptCodingRules {
 			source_record,
 			this._project_names,
 			exports_context.module_exports(),
+			[source_record],
 		);
 		return runtime.context_for_source(input.violations, input.ast_file.normalized(), input.stage_timer);
 	}

@@ -4,7 +4,11 @@ import ast
 from collections.abc import Callable
 from typing import Protocol, TypeAlias
 
-from implementation.ast.protocols import PythonCodingIssueTimingContract
+from implementation.ast.protocols import (
+    PythonAstNodeIndexContract,
+    PythonCodingIssueTimingContract,
+    PythonSourceSegmentsContract,
+)
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
@@ -36,6 +40,47 @@ class PythonRuleStageEntryContract(Protocol):
 
     @property
     def name(self) -> str: ...
+
+
+class PythonAstCodingIssueInputsContract(Protocol):
+    """Responsibilities: _coding issue source_, _AST reference dependencies_."""
+
+    @property
+    def tree(self) -> ast.Module: ...
+
+    @property
+    def source(self) -> str: ...
+
+    @property
+    def node_index(self) -> PythonAstNodeIndexContract: ...
+
+    @property
+    def source_segments(self) -> PythonSourceSegmentsContract: ...
+
+    @property
+    def container_aliases(self) -> PythonContainerAliasesContract: ...
+
+    @property
+    def container_values(self) -> PythonContainerValuesContract: ...
+
+    @property
+    def container_keys(self) -> PythonContainerKeysContract: ...
+
+    @property
+    def type_aliases(self) -> PythonScopedTypeAliasesContract: ...
+
+    @property
+    def reference_aliases(self) -> PythonReferenceAliasesContract: ...
+
+
+class PythonAstCodingIssueResultContract(Protocol):
+    """Responsibilities: _coding issue diagnostics_, _analysis timing results_."""
+
+    @property
+    def issues(self) -> list[JsonObject]: ...
+
+    @property
+    def timings(self) -> dict[str, float]: ...
 
 
 class PythonRuleNodeDispatchContract(Protocol):

@@ -2,15 +2,12 @@ from __future__ import annotations
 
 import ast
 
-from implementation.ast.callables.python_ast_coding_issue_runner import (
-    PythonAstCodingIssueInputs,
+from implementation.ast.callables.python_ast_coding_issues import (
     PythonAstCodingIssues,
 )
+from implementation.ast.callables.types import PythonAstCodingIssueInputs, PythonClassNodeOptions
 from implementation.ast.callables.python_ast_tree_dependencies import (
     PythonAstTreeDependencies,
-)
-from implementation.ast.class_nodes.python_class_method_node import (
-    PythonClassNodeOptions,
 )
 from implementation.ast.class_nodes.python_class_node import (
     PythonClassNode,

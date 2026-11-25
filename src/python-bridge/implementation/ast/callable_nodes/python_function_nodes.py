@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Sequence
-from dataclasses import dataclass
 
 from implementation.ast.callable_nodes.python_function_node_context import (
     PythonFunctionNodeContext,
@@ -10,6 +9,7 @@ from implementation.ast.callable_nodes.python_function_node_context import (
 from implementation.ast.callable_nodes.python_function_node_record import (
     PythonFunctionNodeRecord,
 )
+from implementation.ast.callable_nodes.protocols import PythonFunctionNodesOptionsContract
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.callables.callable_statements import CallableStatements
@@ -27,19 +27,6 @@ from implementation.references.protocols import (
 from implementation.types import JsonObject
 
 
-@dataclass(frozen=True)
-class PythonFunctionNodesOptions:
-    """Responsibilities: _Python syntax tree input_, _callable collection dependencies_."""
-
-    tree: ast.Module
-    node_index: PythonAstNodeIndexContract
-    source_segments: PythonSourceSegmentsContract
-    container_aliases: PythonContainerAliasesContract
-    function_selector: PythonFunctionSelectorContract
-    test_assertion_data: PythonTestAssertionDataContract
-    type_aliases: PythonScopedTypeAliasesContract
-
-
 class PythonFunctionNodes:
     """Responsibilities: _function node collection_, _callable metadata normalization_."""
 
@@ -54,7 +41,7 @@ class PythonFunctionNodes:
                 results.append(result)
         return results
 
-    def __init__(self, options: PythonFunctionNodesOptions) -> None:
+    def __init__(self, options: PythonFunctionNodesOptionsContract) -> None:
         """Responsibilities: _initialization Python function collection_."""
         self._tree: ast.Module = options.tree
         self._node_index: PythonAstNodeIndexContract = options.node_index

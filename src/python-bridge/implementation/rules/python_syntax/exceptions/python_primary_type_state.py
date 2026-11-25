@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from implementation.protocols import (
     PythonTupleTypeNamesContract,
     PythonTypeFactoryNamesContract,
@@ -11,23 +9,13 @@ from implementation.rules.protocols import (
     PythonDynamicTypeRulesContract,
     PythonExceptionRulesContract,
 )
-
-
-@dataclass(frozen=True)
-class PythonPrimaryTypeStateOptions:
-    """Responsibilities: _primary type analyzer dependencies_."""
-
-    type_factory_names: PythonTypeFactoryNamesContract
-    tuple_type_names: PythonTupleTypeNamesContract
-    dynamic_rules: PythonDynamicTypeRulesContract
-    exception_aliases: PythonExceptionAliasStateContract
-    exception_rules: PythonExceptionRulesContract
+from implementation.rules.python_syntax.protocols import PythonPrimaryTypeStateOptionsContract
 
 
 class PythonPrimaryTypeState:
     """Responsibilities: _type analysis_, _exception analysis_."""
 
-    def __init__(self, options: PythonPrimaryTypeStateOptions) -> None:
+    def __init__(self, options: PythonPrimaryTypeStateOptionsContract) -> None:
         """Responsibilities: _type state initialization_."""
         self._type_factory_names: PythonTypeFactoryNamesContract = options.type_factory_names
         self._tuple_type_names: PythonTupleTypeNamesContract = options.tuple_type_names

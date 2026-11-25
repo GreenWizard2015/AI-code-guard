@@ -9,8 +9,8 @@ from implementation.references.instances.python_annotated_instance_bindings impo
 )
 from implementation.references.instances.python_instance_binding_analysis import (
     PythonInstanceBindingAnalysis,
-    PythonInstanceBindingSource,
 )
+from implementation.references.data_models import PythonInstanceBindingSource
 from implementation.references.instances.python_instance_owner import (
     PythonInstanceOwner,
 )
