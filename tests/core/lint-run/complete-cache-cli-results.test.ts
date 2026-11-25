@@ -44,7 +44,7 @@ describe("complete cache CLI execution", () => {
 		expect(files_match).toBe(true);
 	});
 
-	test("bundled CLI preserves diagnostics when launched outside the installation", () => {
+	test("[local-process] builds the CLI bundle and preserves diagnostics outside the installation", () => {
 		const node_options_key = "NODE_OPTIONS";
 		const fixture_root = mkdtempSync(join(tmpdir(), "ai-code-guard-bundle-"));
 		const cache_record = join(fixture_root, ".ai-code-guard", "cache", "lint-execution", "lint-result.json");
