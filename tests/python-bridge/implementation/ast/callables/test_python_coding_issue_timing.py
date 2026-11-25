@@ -52,14 +52,16 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
             [PythonRuleStageEntry(lambda _node: [], "rule.name")],
             checks_precedence=False,
         )
-        collected: list[tuple[ast.AST, PythonRuleNodeDispatchContract]] = []
+        collected_nodes: list[ast.AST] = []
+        collected_dispatches: list[PythonRuleNodeDispatchContract] = []
 
         def collect_node(
             node: ast.AST,
             node_dispatch: PythonRuleNodeDispatchContract,
         ) -> list[JsonObject]:
             """Responsibilities: _dispatch record observation_."""
-            collected.append((node, node_dispatch))
+            collected_nodes.append(node)
+            collected_dispatches.append(node_dispatch)
             return []
 
         timing = PythonCodingIssueTiming(lambda _node: [], collect_node, {ast.Name: dispatch})
@@ -68,7 +70,10 @@ class PythonCodingIssueTimingTest(unittest.TestCase):
         timing.collect([name, constant], [], [])
 
         self.assertEqual(
-            {"nodes": [ast.unparse(item[0]) for item in collected], "same_dispatch": collected[0][1] is dispatch},
+            {
+                "nodes": [ast.unparse(node) for node in collected_nodes],
+                "same_dispatch": collected_dispatches[0] is dispatch,
+            },
             {"nodes": ["value"], "same_dispatch": True},
         )
 

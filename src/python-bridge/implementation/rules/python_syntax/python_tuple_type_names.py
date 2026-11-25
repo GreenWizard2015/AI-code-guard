@@ -7,6 +7,7 @@ from implementation.references.protocols import (
     PythonReferenceAliasesContract,
 )
 from implementation.rules.constants import (
+    PYTHON_BUILTINS_MODULE,
     PYTHON_TYPING_EXTENSIONS_MODULE,
     PYTHON_TYPING_MODULE,
 )
@@ -17,22 +18,28 @@ class PythonTupleTypeNames:
 
     def _configure_import(self, node: ast.ImportFrom) -> None:
         """Responsibilities: _tuple import alias collection_."""
-        if node.module not in (PYTHON_TYPING_MODULE, PYTHON_TYPING_EXTENSIONS_MODULE):
-            return
         for imported in node.names:
-            if imported.name in {"Tuple", "tuple"}:
-                self._aliases.add(imported.asname or imported.name)
+            if node.module in (PYTHON_TYPING_MODULE, PYTHON_TYPING_EXTENSIONS_MODULE):
+                if imported.name in {"Tuple", "tuple"}:
+                    self._aliases.add(imported.asname or imported.name)
+            if node.module == PYTHON_BUILTINS_MODULE:
+                if imported.name == "tuple":
+                    self._aliases.add(imported.asname or imported.name)
 
     def _tuple_attribute(self, expression: ast.Attribute) -> bool:
         """Responsibilities: _qualified tuple alias matching_."""
         if type(expression.value) is not ast.Name:
             return False
         module = self._module_aliases.get(expression.value.id, expression.value.id)
-        return module in (PYTHON_TYPING_MODULE, PYTHON_TYPING_EXTENSIONS_MODULE) and expression.attr == "Tuple"
+        if module in (PYTHON_TYPING_MODULE, PYTHON_TYPING_EXTENSIONS_MODULE):
+            return expression.attr == "Tuple"
+        return module == PYTHON_BUILTINS_MODULE and expression.attr == "tuple"
 
     def _tuple_expression(self, expression: ast.AST) -> bool:
         """Responsibilities: _tuple type expression matching_."""
         if type(expression) is ast.Subscript:
+            if self._tuple_expression(expression.value):
+                return True
             resolved = self._container_aliases.container_values().container_value(
                 expression,
             )
@@ -89,6 +96,7 @@ class PythonTupleTypeNames:
                 if imported.name in (
                     PYTHON_TYPING_MODULE,
                     PYTHON_TYPING_EXTENSIONS_MODULE,
+                    PYTHON_BUILTINS_MODULE,
                 ):
                     self._module_aliases.update({imported.asname or imported.name: imported.name})
         if type(statement) is ast.ImportFrom:
@@ -103,6 +111,4 @@ class PythonTupleTypeNames:
 
     def annotation(self, expression: ast.AST) -> bool:
         """Responsibilities: _tuple annotation classification_."""
-        if type(expression) is not ast.Subscript:
-            return False
-        return self._tuple_expression(expression.value)
+        return any(self._tuple_expression(node) for node in ast.walk(expression))

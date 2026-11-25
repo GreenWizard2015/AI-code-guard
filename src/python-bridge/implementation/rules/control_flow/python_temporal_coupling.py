@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
@@ -14,7 +15,12 @@ from implementation.rules.protocols import PythonMethodRecordContract, PythonTem
 from implementation.rules.types import PythonTemporalFieldState, PythonTemporalReaderIndex
 from implementation.types import JsonObject
 
-ClassMethodRecords = tuple[list[PythonMethodRecordContract], PythonTemporalFieldStateContract]
+@dataclass
+class ClassMethodRecords:
+    """Responsibilities: _class method records_, _class field state_."""
+
+    methods: list[PythonMethodRecordContract]
+    field_state: PythonTemporalFieldStateContract
 
 
 class PythonTemporalCoupling:
@@ -62,7 +68,7 @@ class PythonTemporalCoupling:
         field_state = PythonTemporalFieldState(initialized_fields=set(), readers={})
         for item in class_body:
             self._append_class_member(item, methods, field_state)
-        return methods, field_state
+        return ClassMethodRecords(methods, field_state)
 
     def _append_method_issues(
         self,
@@ -93,7 +99,9 @@ class PythonTemporalCoupling:
 
     def class_issues(self, class_definition: ast.ClassDef) -> list[JsonObject]:
         """Responsibilities: _class temporal coupling_."""
-        methods, field_state = self._method_records(class_definition.body)
+        method_records = self._method_records(class_definition.body)
+        methods = method_records.methods
+        field_state = method_records.field_state
         field_state.readers.update(self._field_readers(methods))
         issues: list[JsonObject] = []
         for method in methods:

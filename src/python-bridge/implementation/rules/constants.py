@@ -1,4 +1,5 @@
 import ast
+from collections.abc import Sequence
 
 IMPORT_OBSERVER_NODE_TYPES = (ast.Import, ast.ImportFrom, ast.Assign, ast.AnnAssign)
 SYS_PATH_MUTATION_NODE_TYPES = (
@@ -264,13 +265,13 @@ PYTHON_PROPERTY_RULE = "python-property"
 PYTHON_ELIF_RULE = "python-elif"
 PYTHON_ASSIGNMENT_EXPRESSION_RULE = "python-assignment-expression"
 PYTHON_CONDITIONAL_TYPE_ALIAS_RULE = "python-conditional-type-alias"
-CALLABLE_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
+CALLABLE_STAGE_TYPES: dict[type[ast.AST], Sequence[int]] = {
     ast.FunctionDef: (0, 1, 2, 7, 4, 13, 14),
     ast.AsyncFunctionDef: (0, 1, 2, 7, 4, 13, 14),
     ast.ClassDef: (1, 6, 18),
     ast.arg: (1, 13, 14),
 }
-STATEMENT_STAGE_TYPES: dict[type[ast.AST], tuple[int, ...]] = {
+STATEMENT_STAGE_TYPES: dict[type[ast.AST], Sequence[int]] = {
     ast.ImportFrom: (1,),
     ast.Assign: (1, 6, 12, 13, 14, 16),
     ast.AnnAssign: (1, 6, 12, 13, 14, 16),

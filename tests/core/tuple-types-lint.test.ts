@@ -13,6 +13,33 @@ describe("tuple type rules", () => {
 				"readonly.ts": "export type Result = readonly [file: string, name: string];",
 				"positional.ts": "export type Result = [string, number];",
 				"python-tuple.py": 'def resolve() -> tuple[str, int]:\n    return "file", 1\n',
+				"python-native-alias.py": [
+					"import http.client",
+					"PreparedFileHttpRequest = tuple[http.client.HTTPConnection, str, bytes, dict[str, str]]",
+					"def prepare() -> PreparedFileHttpRequest:",
+					"    return None",
+				].join("\n"),
+				"python-native-forms.py": [
+					"NativeTuple = tuple",
+					"def resolve_bare(value: tuple) -> NativeTuple:",
+					"    return value",
+					"def resolve_nested(value: list[tuple[str, int]]) -> None:",
+					"    return None",
+					"def resolve_union(value: tuple | None) -> None:",
+					"    return None",
+					"import builtins as native_types",
+					"def resolve_qualified(value: native_types.tuple) -> None:",
+					"    return None",
+					"from builtins import tuple as BuiltinTuple",
+					"def resolve_import_alias(value: BuiltinTuple) -> None:",
+					"    return None",
+					"import typing",
+					"from typing import Tuple",
+					"def resolve_typing_alias(value: Tuple) -> None:",
+					"    return None",
+					"def resolve_qualified_typing(value: typing.Tuple) -> None:",
+					"    return None",
+				].join("\n"),
 				"python-alias.py": [
 					"from typing import Tuple",
 					"TupleAlias = Tuple",
@@ -33,7 +60,8 @@ describe("tuple type rules", () => {
 			.filter((item) => item.rule_id() === "tuple-type")
 			.map((item) => `${item.file()}:${item.line()}`)
 			.sort();
-		expect(tuple_locations).toEqual([
+		expect(tuple_locations).toEqual(
+			[
 			"positional.ts:1",
 			"python-alias.py:3",
 			"python-alias.py:3",
@@ -41,9 +69,19 @@ describe("tuple type rules", () => {
 			"python-alias.py:6",
 			"python-alias.py:9",
 			"python-alias.py:9",
+			"python-native-forms.py:2",
+			"python-native-forms.py:2",
+			"python-native-forms.py:4",
+			"python-native-forms.py:6",
+			"python-native-forms.py:9",
+			"python-native-forms.py:12",
+			"python-native-forms.py:16",
+			"python-native-forms.py:18",
+			"python-native-alias.py:3",
 			"python-tuple.py:1",
 			"readonly.ts:1",
-		]);
+			].sort(),
+		);
 	});
 
 	test("accepts named result contracts", () => {

@@ -33,13 +33,13 @@ class PythonBridgeReferenceTest(unittest.TestCase):
         entrypoint.run_text(INSTANCE_SOURCE)
         parsed = json.loads(output.getvalue())
         references = parsed["references"]["call_references"]
-        model_calls: list[tuple[str, str]] = []
+        model_calls: list[str] = []
         for reference in references:
             name = reference["name"]
             owner = reference["owner"]
             if name == "save":
-                model_calls.append((name, owner))
-        self.assertEqual(model_calls, [("save", "Model"), ("save", "Model")])
+                model_calls.append(f"{name}:{owner}")
+        self.assertEqual(model_calls, ["save:Model", "save:Model"])
 
     def test_reference_alias_resolution_keeps_first_alias_and_reuses_index(self) -> None:
         """Responsibilities: _indexed alias resolution verification_."""

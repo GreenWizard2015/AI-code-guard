@@ -1,6 +1,6 @@
 # `tuple-type`
 
-Description: Detect TypeScript tuple type contracts, including readonly and labelled tuples.
+Description: Detect bare, parameterized, nested, and aliased Python tuple type contracts.
 
 Tuples expose data through positional indexes. This makes a result harder to understand and
 allows callers to depend on ordering instead of a named contract.
