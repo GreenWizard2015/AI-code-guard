@@ -4,8 +4,8 @@ import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { DiagnosticRuleContract } from "src/model/protocols";
 import { CodeCategoryIndex } from "src/rules/support/code_category_index";
-import type { CodeCategoryIndexContract } from "src/rules/support/protocols";
 import { NonEnglishSourceTextRules } from "src/rules/support/non_english_source_text_rules";
+import type { CodeCategoryIndexContract } from "src/rules/support/protocols";
 import { TestPathKind } from "src/types";
 import type { RuleContextContract, TypeScriptRuleScopeContract } from "src/types";
 import type { TypeScriptNodeVerificationRequest } from "src/typescript_analysis_types";
@@ -25,10 +25,7 @@ export class TypeScriptFileTextRules {
 			return cached;
 		}
 		const index = new CodeCategoryIndex();
-		index.index_sources([
-			...scope.source_files(TYPESCRIPT_LANGUAGE),
-			...scope.source_files(PYTHON_LANGUAGE),
-		]);
+		index.index_sources([...scope.source_files(TYPESCRIPT_LANGUAGE), ...scope.source_files(PYTHON_LANGUAGE)]);
 		this._category_indexes.set(scope, index);
 		return index;
 	}

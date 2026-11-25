@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import ast
 
+from implementation.rules.data_models import AliasWalkStateData
 from implementation.rules.protocols import (
     AliasWalkStateContract,
     AliasWalkStateDataContract,
 )
-from implementation.rules.data_models import AliasWalkStateData
 
 
 class AliasWalkState:

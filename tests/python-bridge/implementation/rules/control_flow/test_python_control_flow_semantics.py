@@ -3,8 +3,11 @@ import unittest
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.source_segments import SourceSegments
+from implementation.rules.control_flow.protocols import (
+    PythonControlFlowIssuesContract,
+    PythonControlFlowOptionsContract,
+)
 from implementation.rules.control_flow.python_control_flow_issues import PythonControlFlowIssues
-from implementation.rules.control_flow.protocols import PythonControlFlowIssuesContract, PythonControlFlowOptionsContract
 from implementation.rules.control_flow.python_terminal_branch_rules import PythonTerminalBranchRules
 from implementation.rules.control_flow.types import PythonControlFlowOptions
 from implementation.types import JsonObject

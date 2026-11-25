@@ -4,7 +4,6 @@ import ast
 from collections.abc import Set as AbstractSet
 from functools import cached_property
 
-from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import PYTHON_ASSERT_RAISES_NAME
 from implementation.references.protocols import (
     PythonTestAssertionAliasNamesContract,
@@ -12,7 +11,6 @@ from implementation.references.protocols import (
 )
 from implementation.references.test_assertions.data_models import (
     PythonTestAssertionAliasNames,
-    PythonTestAssertionAliasOptions,
 )
 
 

@@ -6,29 +6,21 @@ from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.callables.callable_statements import CallableStatements
 from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
     PythonCallableArgumentsContract,
     PythonCallableMetricsContract,
     PythonCallableStatementsContract,
     PythonClassNodeOptionsContract,
-    PythonSourceSegmentsContract,
     PythonTestAssertionAliasesContract,
 )
 from implementation.references.aliases.python_reference_aliases import (
     PythonReferenceAliases,
 )
 from implementation.references.data_models import PythonReferenceAliasState
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonScopedTypeAliasesContract,
-)
-from implementation.references.test_assertions.python_test_assertion_aliases import (
-    PythonTestAssertionAliases,
-    PythonTestAssertionAliasOptions,
-)
+from implementation.references.test_assertions.data_models import PythonTestAssertionAliasOptions
 from implementation.references.test_assertions.python_callable_test_assertions import (
     PythonCallableTestAssertions,
 )
+from implementation.references.test_assertions.python_test_assertion_aliases import PythonTestAssertionAliases
 from implementation.rules.constants import PYTHON_RETURN_TYPE_KEY, PYTHON_STATEMENTS_KEY
 from implementation.types import JsonObject, JsonValueList
 

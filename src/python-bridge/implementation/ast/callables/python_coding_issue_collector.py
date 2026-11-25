@@ -8,15 +8,15 @@ from implementation.ast.callables.coding_issue_protocols import (
     PythonCodingIssueNodeContract,
     PythonRuleNodeDispatchContract,
     PythonRuleNodeDispatchIndex,
-    PythonRuleStageEntryContract,
 )
 from implementation.ast.callables.constants import PYTHON_RULE_STAGE_NAMES
 from implementation.ast.callables.python_coding_issue_node import PythonCodingIssueNode
-from implementation.ast.callables.types import PythonRuleNodeDispatch
 from implementation.ast.callables.python_coding_issue_timing import (
     PythonCodingIssueTiming,
 )
+from implementation.ast.callables.types import PythonRuleNodeDispatch
 from implementation.ast.protocols import PythonCodingIssueTimingContract
+from implementation.data_models import PythonRuleStageEntry
 from implementation.rules.constants import (
     PYTHON_PRECEDENCE_NODE_TYPES,
     STAGE_TYPES,
@@ -29,7 +29,6 @@ from implementation.types import (
     CallablePythonRuleStage,
     JsonObject,
 )
-from implementation.data_models import PythonRuleStageEntry
 
 
 class PythonCodingIssueCollector:

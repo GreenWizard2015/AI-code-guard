@@ -7,23 +7,19 @@ from implementation.ast.protocols import (
     PythonCallableStatementsContract,
     PythonTestAssertionAliasesContract,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,
     PythonContainerValuesContract,
     PythonReferenceAliasesContract,
 )
-from implementation.references.test_assertions.python_test_assertion_aliases import (
-    PythonTestAssertionAliases,
-    PythonTestAssertionAliasOptions,
-)
+from implementation.references.test_assertions.data_models import PythonTestAssertionAliasOptions
 from implementation.references.test_assertions.python_callable_test_assertions import (
     PythonCallableTestAssertions,
 )
+from implementation.references.test_assertions.python_test_assertion_aliases import PythonTestAssertionAliases
 from implementation.types import JsonObject, PythonCallableAstNode
 
 

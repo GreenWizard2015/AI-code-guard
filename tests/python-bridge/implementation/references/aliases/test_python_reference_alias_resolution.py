@@ -2,10 +2,8 @@ import ast
 import unittest
 
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 
 
 class PythonReferenceAliasResolutionTest(unittest.TestCase):

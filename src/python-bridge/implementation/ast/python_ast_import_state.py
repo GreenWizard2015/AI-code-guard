@@ -20,16 +20,16 @@ from implementation.references.python_reference_collector import (
 )
 from implementation.rules.constants import PYTHON_DYNAMIC_IMPORT_FUNCTION
 from implementation.rules.import_rules import ImportRules
-from implementation.rules.python_syntax.python_dynamic_import_names import (
-    PythonDynamicImportNames,
-)
-from implementation.rules.python_syntax.types import PythonDynamicImportNamesOptions
 from implementation.rules.python_syntax.protocols import (
     PythonDynamicImportNamesContract,
+)
+from implementation.rules.python_syntax.python_dynamic_import_names import (
+    PythonDynamicImportNames,
 )
 from implementation.rules.python_syntax.python_dynamic_import_references import (
     PythonDynamicImportReferences,
 )
+from implementation.rules.python_syntax.types import PythonDynamicImportNamesOptions
 from protocols import PythonImportRulesContract, PythonReferenceCollectorContract
 
 

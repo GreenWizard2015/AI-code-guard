@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-
 from implementation.protocols import (
     PythonPrimaryTypeStateContract,
     PythonTupleTypeNamesContract,
     PythonTypeFactoryNamesContract,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.coding_issues.constructor_rules import ConstructorRules
 from implementation.rules.coding_issues.primary_rule_protocols import (
     PythonPrimaryCallBundleContract,
@@ -22,18 +19,17 @@ from implementation.rules.protocols import (
     PythonDynamicTypeRulesContract,
     PythonNameBindingIndexContract,
 )
-from implementation.rules.python_syntax.protocols import PythonPrimaryExceptionBundleContract
-from implementation.rules.python_syntax.python_dynamic_type_rules import (
-    PythonDynamicTypeRules,
-)
-from implementation.rules.python_syntax.types import PythonDynamicTypeRulesOptions
 from implementation.rules.python_syntax.exceptions.python_exception_rules import PythonExceptionRules
 from implementation.rules.python_syntax.exceptions.python_primary_type_state import (
     PythonPrimaryTypeState,
 )
 from implementation.rules.python_syntax.exceptions.types import PythonPrimaryTypeStateOptions
+from implementation.rules.python_syntax.protocols import PythonPrimaryExceptionBundleContract
 from implementation.rules.python_syntax.python_dynamic_type_references import (
     PythonDynamicTypeReferences,
+)
+from implementation.rules.python_syntax.python_dynamic_type_rules import (
+    PythonDynamicTypeRules,
 )
 from implementation.rules.python_syntax.python_primary_call_assembly import (
     PythonPrimaryCallAssembly,
@@ -44,6 +40,7 @@ from implementation.rules.python_syntax.python_tuple_type_names import (
 from implementation.rules.python_syntax.python_type_factory_names import (
     PythonTypeFactoryNames,
 )
+from implementation.rules.python_syntax.types import PythonDynamicTypeRulesOptions
 
 
 class PythonPrimaryTypeAssembly:

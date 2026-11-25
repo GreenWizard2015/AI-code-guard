@@ -1,6 +1,15 @@
 import { dirname } from "node:path";
 import { MODULE_CONSTANT_KIND, MODULE_PROTOCOL_KIND } from "src/constants";
 import { METRIC_KIND_FUNCTION } from "src/metrics/constants";
+import type {
+	AstCallableNode,
+	AstClassNode,
+	NamedLine,
+	NamedSymbol,
+	NormalizedAstFile,
+	NormalizedAstModuleDeclarations,
+} from "src/model/ast/normalized_ast_types";
+import type { AstLanguage } from "src/model/ast/normalized_ast_types";
 import {
 	CODE_CATEGORY_DATA_CLASS,
 	CODE_CATEGORY_IMPLEMENTATION,
@@ -8,17 +17,8 @@ import {
 	CODE_CATEGORY_TYPE,
 	CODE_CATEGORY_VALUE,
 } from "src/rules/constants";
-import type {
-	AstClassNode,
-	AstCallableNode,
-	NamedLine,
-	NamedSymbol,
-	NormalizedAstFile,
-	NormalizedAstModuleDeclarations,
-} from "src/model/ast/normalized_ast_types";
-import type { AstLanguage } from "src/model/ast/normalized_ast_types";
-import type { LintSourceRecordData } from "src/source_types";
 import type { CodeCategoryIndexContract, CodeCategoryTotals } from "src/rules/support/protocols";
+import type { LintSourceRecordData } from "src/source_types";
 
 /** Responsibilities: _directory code category counts_, _file category uniqueness_. **/
 export class CodeCategoryIndex implements CodeCategoryIndexContract {

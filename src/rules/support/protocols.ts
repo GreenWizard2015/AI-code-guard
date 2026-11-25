@@ -1,5 +1,5 @@
-import type { SourceTextOccurrence } from "src/model_types";
 import type { AstLanguage, NormalizedAstFile } from "src/model/ast/normalized_ast_types";
+import type { SourceTextOccurrence } from "src/model_types";
 import type { RuleContract } from "src/reporting_protocols";
 import type { LintSourceRecordData } from "src/source_types";
 

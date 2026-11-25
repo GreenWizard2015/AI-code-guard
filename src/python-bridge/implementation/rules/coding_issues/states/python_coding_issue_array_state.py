@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
+from implementation.rules.data_models import PythonArrayCallOptions
 from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
 )
-from implementation.rules.data_models import PythonArrayCallOptions
 from implementation.rules.single_item_array_state.python_array_call_analyzer import PythonArrayCallAnalyzer
 from implementation.rules.single_item_array_state.python_array_type_inspector import (
     PythonArrayTypeInspector,

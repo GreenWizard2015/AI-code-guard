@@ -6,6 +6,7 @@ from implementation.rules.coding_issues.states.python_coding_issue_flow_state im
 from implementation.rules.coding_issues.states.python_coding_issue_test_state import (
     PythonCodingIssueTestState,
 )
+from implementation.rules.data_models import PythonCodingIssueStructureBundle
 from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonCodingIssueFlowStateContract,
@@ -13,7 +14,6 @@ from implementation.rules.protocols import (
     PythonCodingIssueTestStateContract,
     PythonDecoratorRuleContract,
 )
-from implementation.rules.data_models import PythonCodingIssueStructureBundle
 
 
 class PythonCodingIssueStructureState:

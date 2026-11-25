@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import ast
+
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import PYTHON_MIXED_BOOLEAN_PRECEDENCE_KIND
-from implementation.rules.control_flow.types import OperatorAppendOptions
 from implementation.rules.control_flow.protocols import OperatorAppendOptionsContract
+from implementation.rules.control_flow.types import OperatorAppendOptions
 from implementation.rules.protocols import PythonExpressionBoundaryContract
 from implementation.types import JsonObject, PythonOperatorKinds
 

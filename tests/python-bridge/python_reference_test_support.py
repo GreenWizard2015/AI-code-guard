@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 
+from data_models import PythonReferenceScenario
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.references.call_returns import CallReturns
@@ -12,7 +13,6 @@ from implementation.references.context.python_reference_symbol_tables import (
     PythonReferenceSymbolTables,
 )
 from implementation.references.python_reference_context import PythonReferenceContext
-from data_models import PythonReferenceScenario
 
 
 class PythonReferenceTestSupport(ast.NodeVisitor):

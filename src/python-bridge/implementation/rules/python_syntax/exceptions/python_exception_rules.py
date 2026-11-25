@@ -7,7 +7,8 @@ from implementation.protocols import (
     PythonExceptionBroadnessContract,
     PythonExceptionMultiplicityContract,
 )
-from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases, PythonReferenceAliasState
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerValuesContract,
@@ -15,11 +16,11 @@ from implementation.references.protocols import (
 )
 from implementation.rules.constants import PYTHON_BROAD_EXCEPT_RULE
 from implementation.rules.protocols import PythonExceptionRulesContract
+from implementation.rules.python_syntax.exceptions.python_exception_alias_state import PythonExceptionAliasState
+from implementation.rules.python_syntax.exceptions.python_exception_broadness import PythonExceptionBroadness
 from implementation.rules.python_syntax.exceptions.python_exception_handler_analysis import (
     PythonExceptionHandlerAnalysis,
 )
-from implementation.rules.python_syntax.exceptions.python_exception_alias_state import PythonExceptionAliasState
-from implementation.rules.python_syntax.exceptions.python_exception_broadness import PythonExceptionBroadness
 from implementation.rules.python_syntax.exceptions.python_exception_multiplicity import PythonExceptionMultiplicity
 from implementation.rules.python_syntax.exceptions.types import PythonExceptionHandlerAnalysisOptions
 from implementation.rules.python_syntax.protocols import PythonPrimaryExceptionBundleContract

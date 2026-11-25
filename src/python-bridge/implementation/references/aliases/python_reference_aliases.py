@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.alias_types import AssignmentAliasCache, TreeAliasCache
-from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.aliases.python_annotated_type_alias_collector import (
     PythonAnnotatedTypeAliasCollector,
 )
 from implementation.references.protocols import (
     PythonReferenceAliasStateContract,
 )
+from implementation.types import JsonObject
 
 
 class PythonReferenceAliases:

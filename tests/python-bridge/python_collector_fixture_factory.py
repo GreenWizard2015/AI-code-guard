@@ -18,10 +18,8 @@ from implementation.ast.imports.source_segments import SourceSegments
 from implementation.references.aliases.python_container_assembly import (
     PythonContainerAssembly,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import PythonContainerAliasesContract
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,

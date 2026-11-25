@@ -10,6 +10,7 @@ from implementation.rules.coding_issues.states.python_coding_issue_boundary_stat
 from implementation.rules.coding_issues.states.python_coding_issue_structure_state import (
     PythonCodingIssueStructureState,
 )
+from implementation.rules.data_models import PythonCodingIssueAssemblyBundle
 from implementation.rules.protocols import (
     PythonCodingIssueAssemblyBundleContract,
     PythonCodingIssueComponentContextContract,
@@ -20,7 +21,6 @@ from implementation.rules.type_rule_protocols import (
 from implementation.rules.type_rules.python_coding_issue_type_state import (
     PythonCodingIssueTypeState,
 )
-from implementation.rules.data_models import PythonCodingIssueAssemblyBundle
 
 
 class PythonCodingIssueAssembly:

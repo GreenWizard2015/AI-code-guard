@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from implementation.ast.protocols import PythonCallableConditionContextContract
 from implementation.protocols import PythonCallAliasStateContract
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.decorator_protocols import (
     PythonAssignedDescriptorIndexContract,
 )
 from implementation.rules.call_analysis.call_rules import CallRules
-from implementation.rules.call_analysis.types import CallRulesOptions
 from implementation.rules.call_analysis.python_call_alias_state import (
     PythonCallAliasState,
 )
@@ -20,6 +17,7 @@ from implementation.rules.call_analysis.python_call_classification import (
 from implementation.rules.call_analysis.python_callable_condition_context import (
     PythonCallableConditionContext,
 )
+from implementation.rules.call_analysis.types import CallRulesOptions
 from implementation.rules.coding_issues.primary_rule_protocols import PythonPrimaryCallBundleContract
 from implementation.rules.protocols import (
     PythonCallRulesContract,

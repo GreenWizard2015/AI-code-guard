@@ -3,13 +3,13 @@ from __future__ import annotations
 import ast
 from collections.abc import Sequence
 
+from implementation.ast.callable_nodes.protocols import PythonFunctionNodesOptionsContract
 from implementation.ast.callable_nodes.python_function_node_context import (
     PythonFunctionNodeContext,
 )
 from implementation.ast.callable_nodes.python_function_node_record import (
     PythonFunctionNodeRecord,
 )
-from implementation.ast.callable_nodes.protocols import PythonFunctionNodesOptionsContract
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.callable_metrics import CallableMetrics
 from implementation.ast.callables.callable_statements import CallableStatements
@@ -17,12 +17,6 @@ from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonFunctionNode,
     PythonFunctionSelectorContract,
-    PythonSourceSegmentsContract,
-    PythonTestAssertionDataContract,
-)
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonScopedTypeAliasesContract,
 )
 from implementation.types import JsonObject
 

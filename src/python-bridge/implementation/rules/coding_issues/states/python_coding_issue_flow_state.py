@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from implementation.ast.callables.callable_statements import CallableStatements
-from implementation.rules.control_flow.types import PythonControlFlowOptions
 from implementation.rules.control_flow.python_control_flow_issues import (
     PythonControlFlowIssues,
 )
 from implementation.rules.control_flow.python_operator_precedence import (
     PythonOperatorPrecedence,
 )
+from implementation.rules.control_flow.types import PythonControlFlowOptions
 from implementation.rules.protocols import (
     PythonCodingIssueComponentContextContract,
     PythonControlFlowIssuesContract,

@@ -3,11 +3,11 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
+from implementation.ast.callables.coding_issue_protocols import PythonRuleStageEntryContract
 from implementation.ast.protocols import (
     PythonAstNodeIndexContract,
     PythonSourceSegmentsContract,
 )
-from implementation.ast.callables.coding_issue_protocols import PythonRuleStageEntryContract
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonContainerKeysContract,

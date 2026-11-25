@@ -4,13 +4,13 @@ import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.references.constants import PYTHON_INSTANCE_BINDING_NODE_TYPES
+from implementation.references.data_models import PythonInstanceBindingSource
 from implementation.references.instances.python_annotated_instance_bindings import (
     PythonAnnotatedInstanceBindings,
 )
 from implementation.references.instances.python_instance_binding_analysis import (
     PythonInstanceBindingAnalysis,
 )
-from implementation.references.data_models import PythonInstanceBindingSource
 from implementation.references.instances.python_instance_owner import (
     PythonInstanceOwner,
 )

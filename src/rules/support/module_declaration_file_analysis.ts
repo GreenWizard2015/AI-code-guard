@@ -11,9 +11,9 @@ import type { ViolationContract } from "src/reporting_protocols";
 import {
 	MODULE_FUNCTION_KIND,
 	MODULE_PROTOCOL_NAME,
+	MODULE_TYPES_SEPARATION_RULE_ID,
 	PYTHON_DATA_MODELS_FILE_NAME,
 	PYTHON_TYPES_FILE_NAME,
-	MODULE_TYPES_SEPARATION_RULE_ID,
 } from "src/rules/constants";
 import type { ModuleDeclarationPolicyData } from "src/rules/support/protocols";
 
@@ -116,9 +116,7 @@ export class ModuleDeclarationFileAnalysis {
 			target_name = PYTHON_DATA_MODELS_FILE_NAME;
 		}
 		const target = join(dirname(this._file), target_name);
-		this._violations.push(
-			this._policy.types_rule.violation(this._file, data_class.identity.start + 1, { target }),
-		);
+		this._violations.push(this._policy.types_rule.violation(this._file, data_class.identity.start + 1, { target }));
 	}
 
 	/** Responsibilities: _module declaration placement analysis_. **/

@@ -3,8 +3,8 @@ from __future__ import annotations
 import ast
 
 from implementation.rules.coding_issues.states.alias_walk_state import AliasWalkState
-from implementation.rules.protocols import AliasWalkStateContract
 from implementation.rules.data_models import AliasWalkStateData
+from implementation.rules.protocols import AliasWalkStateContract
 
 
 class PythonAliasGraph:

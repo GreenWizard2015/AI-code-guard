@@ -87,9 +87,9 @@ describe("coding-lint module constants", () => {
 					"class FileHttpRequest:",
 					"    connection: object",
 					"    path: str",
-				"class FileTestRuntime:",
-				"    def prepare(self) -> None:",
-				"        return None",
+					"class FileTestRuntime:",
+					"    def prepare(self) -> None:",
+					"        return None",
 				].join("\n"),
 				"tests/mixed_function_test.py": [
 					"from dataclasses import dataclass",

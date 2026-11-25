@@ -4,17 +4,17 @@ import ast
 from dataclasses import dataclass
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonContainerKeysContract,
-    PythonContainerValuesContract,
-    PythonReferenceAliasesContract,
-)
 from implementation.references.alias_types import (
     PythonSubtestAliasMap,
     PythonSubtestAliasSourceIndex,
     PythonSubtestAssignmentList,
     PythonSubtestNameSet,
+)
+from implementation.references.protocols import (
+    PythonContainerAliasesContract,
+    PythonContainerKeysContract,
+    PythonContainerValuesContract,
+    PythonReferenceAliasesContract,
 )
 
 

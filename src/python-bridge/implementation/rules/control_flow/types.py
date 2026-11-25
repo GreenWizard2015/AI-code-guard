@@ -9,8 +9,8 @@ from implementation.ast.protocols import (
 )
 from implementation.rules.protocols import (
     PythonMethodRecordContract,
-    PythonTerminalBranchContract,
     PythonTemporalFieldStateContract,
+    PythonTerminalBranchContract,
 )
 from implementation.rules.types import PythonTemporalReaderIndex
 

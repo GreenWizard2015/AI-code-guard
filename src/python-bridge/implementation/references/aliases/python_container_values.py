@@ -6,10 +6,10 @@ from implementation.references.alias_types import (
     ExpandedContainerValues,
     SequenceExpression,
 )
-from implementation.references.data_models import PythonContainerItemRequest
 from implementation.references.aliases.python_container_lookup import (
     PythonContainerLookup,
 )
+from implementation.references.data_models import PythonContainerItemRequest
 from implementation.references.protocols import (
     PythonContainerAliasStateContract,
     PythonContainerItemRequestContract,

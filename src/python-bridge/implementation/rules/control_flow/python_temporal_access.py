@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.constants import (
     PYTHON_FIELD_READ_EFFECT,

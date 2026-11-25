@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import ast
 
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.references.protocols import (
     PythonContainerAliasesContract,
     PythonReferenceAliasesContract,

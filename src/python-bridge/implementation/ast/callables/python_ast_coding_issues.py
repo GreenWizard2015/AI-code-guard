@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 from functools import cached_property
 from time import perf_counter
 
@@ -15,6 +14,8 @@ from implementation.ast.callables.coding_issue_options import (
     PythonCodingIssueSource,
 )
 from implementation.ast.callables.coding_issue_protocols import (
+    PythonAstCodingIssueInputsContract,
+    PythonAstCodingIssueResultContract,
     PythonCodingIssueCollectorContract,
     PythonCodingIssueContainerAliasesContract,
     PythonCodingIssueValueAliasesContract,
@@ -22,24 +23,9 @@ from implementation.ast.callables.coding_issue_protocols import (
 from implementation.ast.callables.python_coding_issue_collector import (
     PythonCodingIssueCollector,
 )
-from implementation.ast.callables.coding_issue_protocols import (
-    PythonAstCodingIssueInputsContract,
-    PythonAstCodingIssueResultContract,
-)
 from implementation.ast.callables.types import PythonAstCodingIssueResult
-from implementation.ast.protocols import (
-    PythonAstNodeIndexContract,
-    PythonSourceSegmentsContract,
-)
 from implementation.references.aliases.python_container_assembly import (
     PythonContainerAssembly,
-)
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonContainerKeysContract,
-    PythonContainerValuesContract,
-    PythonReferenceAliasesContract,
-    PythonScopedTypeAliasesContract,
 )
 from implementation.rules.call_analysis.python_name_binding_index import (
     PythonNameBindingIndex,

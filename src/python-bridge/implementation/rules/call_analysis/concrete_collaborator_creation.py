@@ -4,10 +4,10 @@ import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.rules.call_analysis.python_callable_scope import PythonCallableScope
-from implementation.rules.call_analysis.types import PythonCallableScopeOptions
 from implementation.rules.call_analysis.python_structural_member_index import (
     PythonStructuralMemberIndex,
 )
+from implementation.rules.call_analysis.types import PythonCallableScopeOptions
 from implementation.rules.protocols import (
     PythonNameBindingIndexContract,
     PythonStructuralMemberLookupContract,

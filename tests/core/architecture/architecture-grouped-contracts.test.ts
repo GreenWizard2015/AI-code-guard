@@ -47,7 +47,10 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 		);
 
 		expect(
-			violations.filter((item) => item.rule_id() === "file-min-size").map((item) => item.file()).sort(),
+			violations
+				.filter((item) => item.rule_id() === "file-min-size")
+				.map((item) => item.file())
+				.sort(),
 		).toEqual([
 			"fallback_group/imports_one.py",
 			"fallback_group/imports_two.py",
@@ -58,9 +61,9 @@ describe("coding-lint architecture and metrics rules - grouped contracts", () =>
 			"shared/reader_two.py",
 			"shared/reader_two.ts",
 		]);
-		expect(violations.some((item) => item.file() === "fallback_single/imports.py" && item.rule_id() === "file-min-size")).toBe(
-			false,
-		);
+		expect(
+			violations.some((item) => item.file() === "fallback_single/imports.py" && item.rule_id() === "file-min-size"),
+		).toBe(false);
 	});
 
 	test("ignores minimum size for a single Python protocol file", () => {

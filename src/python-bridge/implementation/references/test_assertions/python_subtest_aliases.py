@@ -3,17 +3,15 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
-from implementation.references.protocols import (
-    PythonContainerKeysContract,
-    PythonSubtestAliasAnalysisContract,
-    PythonSubtestAliasesOptionsContract,
-)
-from implementation.references.test_assertions.python_subtest_alias_analysis import PythonSubtestAliasAnalysis
 from implementation.references.alias_types import (
     PythonSubtestAssignmentIndex,
     PythonSubtestAssignmentList,
-    PythonSubtestAnalysisCache,
 )
+from implementation.references.protocols import (
+    PythonContainerKeysContract,
+    PythonSubtestAliasesOptionsContract,
+)
+from implementation.references.test_assertions.python_subtest_alias_analysis import PythonSubtestAliasAnalysis
 
 
 class PythonSubtestAliases:
@@ -53,7 +51,7 @@ class PythonSubtestAliases:
         self._container_keys: PythonContainerKeysContract = options.container_keys
         self._options: PythonSubtestAliasesOptionsContract = options
         self._assignment_index: PythonSubtestAssignmentIndex = {}
-        self._analysis_cache: PythonSubtestAnalysisCache = {}
+        self._analysis_cache: dict[ast.AST, PythonSubtestAliasAnalysis] = {}
 
     def aliases_for(self, node: ast.AST) -> set[str]:
         """Responsibilities: _scope subtest alias lookup_."""

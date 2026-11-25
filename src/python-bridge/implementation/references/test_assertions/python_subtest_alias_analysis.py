@@ -3,15 +3,15 @@ from __future__ import annotations
 import ast
 from functools import cached_property
 
-from implementation.references.protocols import (
-    PythonSubtestAliasesOptionsContract,
-)
-from implementation.references.test_assertions.data_models import PythonSubtestAliasAnalysisState
 from implementation.references.alias_types import (
     PythonSubtestAliasMap,
     PythonSubtestAssignmentList,
     PythonSubtestTargetValues,
 )
+from implementation.references.protocols import (
+    PythonSubtestAliasesOptionsContract,
+)
+from implementation.references.test_assertions.data_models import PythonSubtestAliasAnalysisState
 from implementation.types import PythonASTLocatedNode
 
 

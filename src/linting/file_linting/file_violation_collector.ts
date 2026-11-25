@@ -6,9 +6,9 @@ import { ImportFanOut } from "src/linting/orchestration/runtime/global-rules/imp
 import { PythonReexports } from "src/linting/orchestration/runtime/python_reexports";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { RemainingViolationOptions } from "src/model_types";
-import type { CodeCategoryIndexContract } from "src/rules/support/protocols";
 import { FunctionPlacementRules } from "src/rules/architecture/function_placement_rules";
 import { DirectoryRules } from "src/rules/directory_rules";
+import type { CodeCategoryIndexContract } from "src/rules/support/protocols";
 import { TypeScriptReexports } from "src/rules/type_script_reexports";
 import type {
 	CodingRuleLinterContract,
@@ -87,8 +87,8 @@ export class FileViolationCollector implements FileViolationCollectorContract {
 					unique_code_category: this._code_categories.category_is_unique(
 						source.relative_path,
 						source.normalized_ast,
-							source.language,
-							source.text,
+						source.language,
+						source.text,
 					),
 				},
 				stage_timer,

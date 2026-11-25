@@ -8,7 +8,6 @@ from implementation.references.instances.python_assignment_effects import (
 )
 from implementation.references.protocols import (
     PythonAnnotatedInstanceBindingsContract,
-    PythonAnnotationResolverContract,
     PythonInstanceBindingSourceContract,
     PythonInstanceOwnerContract,
     PythonReferenceContextContract,

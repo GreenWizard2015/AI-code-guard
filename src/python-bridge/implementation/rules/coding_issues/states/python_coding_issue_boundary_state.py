@@ -3,10 +3,8 @@ from __future__ import annotations
 import ast
 
 from implementation.protocols import PythonProxyCallableAnalyzerContract
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.call_analysis.proxy_call.python_proxy_callable_analyzer import (
     PythonProxyCallableAnalyzer,
 )
@@ -25,12 +23,12 @@ from implementation.rules.coding_issues.states.python_field_mutation_collector i
 from implementation.rules.coding_issues.states.undefined_check_state import (
     UndefinedCheckState,
 )
+from implementation.rules.data_models import PythonCodingIssueBoundaryBundle
 from implementation.rules.protocols import (
     PythonCodingIssueBoundaryBundleContract,
     PythonCodingIssueComponentContextContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.rules.data_models import PythonCodingIssueBoundaryBundle
 
 
 class PythonCodingIssueBoundaryState:

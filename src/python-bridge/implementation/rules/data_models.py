@@ -20,7 +20,6 @@ if TYPE_CHECKING:
         PythonCodingIssueStructureBundleContract,
         PythonCodingIssueTypeBundleContract,
         PythonControlFlowIssuesContract,
-        PythonDynamicTypeRulesContract,
         PythonFieldMutationCollectorContract,
         PythonOperatorPrecedenceContract,
         PythonSingleItemArrayStateRulesContract,
@@ -32,10 +31,9 @@ if TYPE_CHECKING:
         PythonArrayTypeInspectorContract,
         PythonReturnArrayAnalyzerContract,
     )
-    from implementation.rules.types import CallablePythonRuleStage
     from implementation.types import (
+        CallablePythonRuleStage,
         InheritanceEdges,
-        JsonObject,
         PythonAstCallableDeclarations,
         PythonClassFieldMap,
     )

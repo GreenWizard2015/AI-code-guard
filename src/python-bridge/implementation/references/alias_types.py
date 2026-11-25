@@ -4,8 +4,7 @@ import ast
 from collections.abc import Callable
 from typing import TypeAlias
 
-from implementation.types import JsonObject
-from implementation.types import PythonASTLocatedNode
+from implementation.types import JsonObject, PythonASTLocatedNode
 
 SequenceExpression: TypeAlias = ast.List | ast.Tuple | ast.Set
 
@@ -29,4 +28,3 @@ PythonSubtestAliasMap: TypeAlias = dict[str, str]
 PythonSubtestNameSet: TypeAlias = set[str]
 PythonSubtestTargetValues: TypeAlias = dict[str, ast.AST]
 PythonSubtestAliasSourceIndex: TypeAlias = dict[PythonASTLocatedNode, PythonSubtestTargetValues]
-PythonSubtestAnalysisCache: TypeAlias = dict[ast.AST, "PythonSubtestAliasAnalysisContract"]

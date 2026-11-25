@@ -22,10 +22,10 @@ from implementation.rules.coding_issues.python_default_parameter_issues import (
 from implementation.rules.control_flow.python_control_flow_issues import (
     PythonControlFlowIssues,
 )
-from implementation.rules.control_flow.types import PythonControlFlowOptions
 from implementation.rules.control_flow.python_terminal_branch_rules import (
     PythonTerminalBranchRules,
 )
+from implementation.rules.control_flow.types import PythonControlFlowOptions
 
 from tests.python.constants import EDGE_SOURCE
 

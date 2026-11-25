@@ -11,10 +11,10 @@ from implementation.rules.protocols import (
     PythonArrayTypeInspectorContract,
     PythonReturnArrayAnalyzerContract,
 )
+from implementation.rules.single_item_array_state.options_protocols import PythonArrayCallOptionsContract
 from implementation.rules.single_item_array_state.python_scope_alias_history import (
     PythonScopeAliasHistory,
 )
-from implementation.rules.single_item_array_state.options_protocols import PythonArrayCallOptionsContract
 from implementation.types import PythonAstCallableDeclarations, PythonAstNodeTypeSet
 
 

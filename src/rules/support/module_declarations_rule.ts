@@ -2,11 +2,7 @@ import { basename } from "node:path";
 import type { NormalizedAstFile } from "src/model/ast/normalized_ast_types";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { ViolationContract } from "src/reporting_protocols";
-import {
-	MODULE_PROTOCOL_NAME,
-	MODULE_TYPE_NAME,
-	MODULE_TYPES_SEPARATION_RULE_ID,
-} from "src/rules/constants";
+import { MODULE_PROTOCOL_NAME, MODULE_TYPES_SEPARATION_RULE_ID, MODULE_TYPE_NAME } from "src/rules/constants";
 import { ModuleDeclarationFileAnalysis } from "src/rules/support/module_declaration_file_analysis";
 import type { ModuleDeclarationPolicyData } from "src/rules/support/protocols";
 import type { ModuleDeclarationsRuleContract } from "src/shared_services_protocols";

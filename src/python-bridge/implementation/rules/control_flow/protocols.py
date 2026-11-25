@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from implementation.ast.protocols import PythonAstNodeIndexContract, PythonSourceSegmentsContract
     from implementation.rules.protocols import (
         PythonMethodRecordContract,
-        PythonTerminalBranchContract,
         PythonTemporalFieldStateContract,
     )
 

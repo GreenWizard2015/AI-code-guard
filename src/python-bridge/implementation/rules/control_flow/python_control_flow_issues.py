@@ -3,16 +3,15 @@ from __future__ import annotations
 import ast
 from typing import Any
 
-
 from implementation.rules.constants import (
     PYTHON_ASSIGNMENT_EXPRESSION_RULE,
     PYTHON_ELIF_RULE,
     PYTHON_TERNARY_KIND,
 )
+from implementation.rules.control_flow.protocols import PythonControlFlowOptionsContract
 from implementation.rules.control_flow.python_logical_chain_analysis import (
     PythonLogicalChainAnalysis,
 )
-from implementation.rules.control_flow.protocols import PythonControlFlowOptionsContract
 from implementation.types import JsonObject
 
 

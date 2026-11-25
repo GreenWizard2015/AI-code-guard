@@ -6,6 +6,7 @@ from time import perf_counter
 from implementation.ast.protocols import PythonAstNodeIndexContract
 from implementation.ast.type_declarations.annotation_names import AnnotationNames
 from implementation.references.alias_types import CallablePythonReferenceOperation
+from implementation.references.data_models import PythonReferenceState
 from implementation.references.instances.python_instance_collector import (
     PythonInstanceCollector,
 )
@@ -17,7 +18,6 @@ from implementation.references.protocols import (
     PythonReferenceContextContract,
     PythonReferenceSourceContract,
 )
-from implementation.references.data_models import PythonReferenceState
 from implementation.references.python_call_assignment import PythonCallAssignment
 from implementation.references.python_call_binding import PythonCallBinding
 from implementation.references.python_call_reference_options import (

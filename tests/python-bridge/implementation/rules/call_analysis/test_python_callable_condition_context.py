@@ -1,8 +1,8 @@
 import ast
 import unittest
 
-from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from data_models import PythonCallableConditionInputs
+from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.rules.call_analysis.python_callable_condition_context import (
     PythonCallableConditionContext,
 )

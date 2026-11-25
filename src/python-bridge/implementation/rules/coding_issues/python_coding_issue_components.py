@@ -28,6 +28,7 @@ from implementation.rules.coding_issues.python_global_issue_collector import (
 from implementation.rules.coding_issues.states.python_coding_issue_assembly import (
     PythonCodingIssueAssembly,
 )
+from implementation.rules.data_models import PythonCodingIssueExecutionPlan
 from implementation.rules.protocols import (
     PythonCallRulesContract,
     PythonCodingIssueComponentContextContract,
@@ -45,7 +46,6 @@ from implementation.rules.type_rule_protocols import (
     PythonUnionRulesContract,
     PythonUnnecessaryUndefinedCheckContract,
 )
-from implementation.rules.data_models import PythonCodingIssueExecutionPlan
 from implementation.types import (
     CallablePythonPrepare,
     CallablePythonRuleStage,

@@ -13,13 +13,10 @@ from implementation.protocols import (
     PythonCallReflectionIndexContract,
     PythonTemporaryResultAccessContract,
 )
-from implementation.references.protocols import (
-    PythonReferenceAliasesContract,
-)
+from implementation.rules.call_analysis.options_protocols import CallRulesOptionsContract
 from implementation.rules.call_analysis.python_implementation_downcast import (
     PythonImplementationDowncast,
 )
-from implementation.rules.call_analysis.options_protocols import CallRulesOptionsContract
 from implementation.rules.call_analysis.python_temporary_result_access import (
     PythonTemporaryResultAccess,
 )
@@ -49,7 +46,6 @@ from implementation.rules.constants import (
 )
 from implementation.rules.protocols import (
     PythonDowncastAnalysisContract,
-    PythonNameBindingIndexContract,
 )
 from implementation.types import JsonObject
 

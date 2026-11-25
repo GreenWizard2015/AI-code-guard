@@ -4,10 +4,8 @@ import unittest
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.python_ast_node_selection import PythonAstNodeSelection
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.coding_issues.states.alias_walk_state import AliasWalkState
 from implementation.rules.coding_issues.states.python_field_mutation_collector import (
     PythonFieldMutationCollector,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.protocols import PythonCallableConditionContextContract
+from implementation.data_models import PythonTimeName
 from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.constants import (
     PYTHON_DATETIME_MODULE,
@@ -10,7 +11,6 @@ from implementation.rules.constants import (
     PYTHON_TODAY_ATTRIBUTE,
 )
 from implementation.types import JsonObject
-from implementation.data_models import PythonTimeName
 
 
 class PythonTestTimeDependency:

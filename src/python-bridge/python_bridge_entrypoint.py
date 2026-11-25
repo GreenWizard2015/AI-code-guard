@@ -12,21 +12,21 @@ from implementation.ast.constants import (
     PYTHON_AST_PARALLEL_CHUNK_SIZE,
 )
 from implementation.ast.python_ast_tree import PythonAstTree
+from implementation.data_models import PythonBatchSources
 from implementation.json_value_view import JsonValueView
 from implementation.types import JsonObject
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from protocols import (
     PythonAstBridgeContract,
     PythonAstParseOutcomeContract,
+    PythonBatchSourcesContract,
     PythonBridgeInputContract,
     PythonBridgeOutputContract,
-    PythonBatchSourcesContract,
 )
 from python_batch_result import PythonBatchResult
 from python_bridge_arguments import PythonBridgeArguments
 from python_bridge_input import PythonBridgeInput
 from python_bridge_output import PythonBridgeOutput
-from implementation.data_models import PythonBatchSources
 
 
 class PythonBridgeEntrypoint:

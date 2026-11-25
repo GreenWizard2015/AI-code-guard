@@ -3,11 +3,11 @@ from __future__ import annotations
 import ast
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.call_analysis.options_protocols import PythonImplementationDowncastCandidateContract
 from implementation.rules.call_analysis.python_structural_member_index import (
     PythonStructuralMemberIndex,
 )
 from implementation.rules.call_analysis.types import PythonImplementationDowncastCandidate
-from implementation.rules.call_analysis.options_protocols import PythonImplementationDowncastCandidateContract
 from implementation.rules.constants import (
     PYTHON_ISINSTANCE_FUNCTION,
     PYTHON_MODULE_NAME_ABSENT,

@@ -8,10 +8,8 @@ from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.imports.source_segments import SourceSegments
 from implementation.ast.protocols import PythonFunctionNode
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.call_analysis.python_unnecessary_undefined_check import (
     PythonUnnecessaryUndefinedCheck,
 )

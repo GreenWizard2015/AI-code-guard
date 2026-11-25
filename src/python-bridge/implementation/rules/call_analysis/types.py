@@ -7,7 +7,7 @@ from implementation.ast.protocols import PythonAstNodeIndexContract, PythonCalla
 from implementation.protocols import PythonCallAliasStateContract, PythonCallClassificationContract
 from implementation.references.protocols import PythonReferenceAliasesContract
 from implementation.rules.protocols import PythonNameBindingIndexContract, PythonStructuralMemberLookupContract
-from implementation.types import PythonAstParentIndex, PythonAssignmentsByCreation, PythonMethodsByReceiver
+from implementation.types import PythonAstParentIndex
 
 
 @dataclass(frozen=True)

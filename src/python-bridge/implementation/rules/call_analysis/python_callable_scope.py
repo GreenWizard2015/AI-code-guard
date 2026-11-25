@@ -4,12 +4,12 @@ import ast
 from collections import deque
 
 from implementation.ast.protocols import PythonAstNodeIndexContract
+from implementation.rules.call_analysis.options_protocols import PythonCallableScopeOptionsContract
 from implementation.rules.constants import (
     PYTHON_INIT_METHOD,
     PYTHON_MODULE_NAME_REASSIGNED,
     PYTHON_POST_INIT_METHOD,
 )
-from implementation.rules.call_analysis.options_protocols import PythonCallableScopeOptionsContract
 from implementation.rules.protocols import (
     PythonNameBindingIndexContract,
     PythonStructuralMemberLookupContract,

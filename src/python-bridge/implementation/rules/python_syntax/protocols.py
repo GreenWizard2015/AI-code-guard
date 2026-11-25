@@ -11,11 +11,11 @@ if TYPE_CHECKING:
         PythonTypeFactoryNamesContract,
     )
     from implementation.references.protocols import (
-        PythonContainerValuesContract,
-        PythonExceptionAliasStateContract,
-        PythonDynamicTypeReferencesContract,
         PythonContainerAliasesContract,
         PythonContainerAliasStateContract,
+        PythonContainerValuesContract,
+        PythonDynamicTypeReferencesContract,
+        PythonExceptionAliasStateContract,
         PythonReferenceAliasesContract,
     )
     from implementation.rules.protocols import PythonExceptionRulesContract

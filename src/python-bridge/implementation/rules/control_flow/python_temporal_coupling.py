@@ -7,11 +7,11 @@ from implementation.rules.constants import (
     PYTHON_INIT_METHOD,
     PYTHON_TEMPORAL_COUPLING_RULE_ID,
 )
+from implementation.rules.control_flow.protocols import ClassMethodRecordsContract
 from implementation.rules.control_flow.python_temporal_access import (
     PythonTemporalAccess,
 )
 from implementation.rules.control_flow.types import ClassMethodRecords, PythonTemporalFieldState
-from implementation.rules.control_flow.protocols import ClassMethodRecordsContract
 from implementation.rules.protocols import PythonMethodRecordContract, PythonTemporalFieldStateContract
 from implementation.rules.types import PythonTemporalReaderIndex
 from implementation.types import JsonObject

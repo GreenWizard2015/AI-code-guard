@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import ast
-
 from implementation.ast.callable_nodes.python_function_nodes import (
     PythonFunctionNodes,
 )
-from implementation.ast.callable_nodes.types import PythonFunctionNodesOptions
 from implementation.ast.callable_nodes.python_function_selector import (
     PythonFunctionSelector,
 )
+from implementation.ast.callable_nodes.types import PythonFunctionNodesOptions
 from implementation.ast.callables.callable_arguments import CallableArguments
 from implementation.ast.callables.module_instances.python_module_instance_collector import (
     PythonModuleInstanceCollector,
@@ -21,17 +19,11 @@ from implementation.ast.callables.symbol_collection.python_ast_symbol_nodes_opti
 )
 from implementation.ast.protocols import (
     PythonAstCallableDependenciesOptionsContract,
-    PythonAstNodeIndexContract,
     PythonAstSymbolNodesContract,
     PythonFunctionNodesContract,
-    PythonSourceSegmentsContract,
 )
 from implementation.ast.type_declarations.python_type_declaration_collector import (
     PythonTypeDeclarationCollector,
-)
-from implementation.references.protocols import (
-    PythonContainerAliasesContract,
-    PythonScopedTypeAliasesContract,
 )
 from implementation.references.test_assertions.python_test_assertion_data import (
     PythonTestAssertionData,

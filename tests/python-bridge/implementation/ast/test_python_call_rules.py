@@ -5,14 +5,10 @@ from implementation.ast.callable_nodes.python_function_selector import PythonFun
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_tree import PythonAstTree
 from implementation.references.aliases.python_container_assembly import PythonContainerAssembly
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
-from implementation.references.test_assertions.python_test_assertion_aliases import (
-    PythonTestAssertionAliases,
-    PythonTestAssertionAliasOptions,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
+from implementation.references.test_assertions.data_models import PythonTestAssertionAliasOptions
+from implementation.references.test_assertions.python_test_assertion_aliases import PythonTestAssertionAliases
 from python_reference_test_support import PythonReferenceTestSupport
 
 from tests.python.constants import (

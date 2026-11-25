@@ -7,10 +7,8 @@ from pathlib import Path
 from implementation.ast.imports.python_ast_node_index import PythonAstNodeIndex
 from implementation.ast.python_ast_bridge import PythonAstBridge
 from implementation.ast.python_ast_tree import PythonAstTree
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from path_python_bridge_file_io import PathPythonBridgeFileIO
 from python_bridge_entrypoint import PythonBridgeEntrypoint
 from python_bridge_input import PythonBridgeInput

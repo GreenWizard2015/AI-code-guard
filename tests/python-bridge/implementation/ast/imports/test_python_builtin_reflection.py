@@ -17,10 +17,8 @@ from implementation.references.aliases.python_container_keys import PythonContai
 from implementation.references.aliases.python_container_values import (
     PythonContainerValues,
 )
-from implementation.references.aliases.python_reference_aliases import (
-    PythonReferenceAliases,
-    PythonReferenceAliasState,
-)
+from implementation.references.aliases.python_reference_aliases import PythonReferenceAliases
+from implementation.references.data_models import PythonReferenceAliasState
 from implementation.rules.call_analysis.reflection.python_builtin_reflection_names import (
     PythonBuiltinReflectionNames,
 )

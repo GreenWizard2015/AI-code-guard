@@ -4,7 +4,6 @@ import ast
 from typing import TypeAlias
 
 from implementation.types import (
-    CallablePythonRuleStage,
     JsonObject,
     PythonASTLocatedNode,
     PythonCallableAstNode,
