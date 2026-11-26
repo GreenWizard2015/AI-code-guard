@@ -53,6 +53,7 @@ describe("coding rule linter", () => {
 			"module-constants-separation",
 			"typescript-console-in-test",
 			"typescript-jest-describe-count",
+			"typescript-jest-test-in-describe",
 			"typescript-module-constant-case",
 		]);
 	});
