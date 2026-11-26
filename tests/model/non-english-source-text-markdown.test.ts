@@ -22,6 +22,27 @@ describe("Markdown non-English source text rule", () => {
 		expect(violations).toEqual([]);
 	});
 
+	test("ignores non-English text in inline code but still checks surrounding prose", () => {
+		const cyrillic_word = String.fromCodePoint(0x43f, 0x440, 0x435, 0x43c, 0x44c, 0x435, 0x440);
+		const rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));
+		const violations = rules.text_file_violations(
+			"notes.md",
+			`The \`${cyrillic_word}\` token appears in this sentence.\n${cyrillic_word} outside code is still prose.`,
+		);
+		expect(violations.map((item) => item.line())).toEqual([2]);
+	});
+
+	test("matches inline-code delimiter lengths and masks spans across lines", () => {
+		const cyrillic_word = String.fromCodePoint(0x43f, 0x440, 0x435, 0x43c, 0x44c, 0x435, 0x440);
+		const tick = String.fromCharCode(0x60);
+		const rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));
+		const violations = rules.text_file_violations(
+			"notes.md",
+			[`Double ticks: ${tick}${tick}code ${cyrillic_word} with ${tick} tick`, `${tick}${tick} and prose`].join("\n"),
+		);
+		expect(violations).toEqual([]);
+	});
+
 	test("accepts prose whose non-English language is declared in front matter", () => {
 		const cyrillic_heading = String.fromCodePoint(0x41f, 0x440, 0x438, 0x43c, 0x435, 0x440);
 		const rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));

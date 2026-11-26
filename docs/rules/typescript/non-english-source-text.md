@@ -1,6 +1,6 @@
 # `non-english-source-text`
 
-Description: Production source comments must use English; source string literals may use any language. Test comments are checked too, while test string literals may use any language. Markdown and supported text-file prose must use English. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected in checked text; Latin accents are allowed.
+Description: Production source comments must use English; source string literals may use any language. Test comments are checked too, while test string literals may use any language. Markdown and supported text-file prose must use English; fenced and inline code spans in Markdown are excluded. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected in checked text; Latin accents are allowed.
 
 ## Bad
 
