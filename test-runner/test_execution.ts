@@ -14,6 +14,7 @@ import { QualityCheckProcess } from "test-runner/quality_check_process";
 import { TestRunnerArguments } from "test-runner/test_runner_arguments";
 import type {
 	CommandRunnerContract,
+	PreparedTestExecution,
 	QualityStageRequest,
 	TestExecutionRequest,
 	TestRunnerOutput,
@@ -59,11 +60,11 @@ export class TestExecution {
 		return `
 Usage: pnpm exec tsx ${this._project_root}/test-runner/cli.ts [options] [jest options]
 
-Runs TypeScript/Python formatters and quality checks, then the repository tests.
+Builds the CLI, runs TypeScript/Python formatters and quality checks, then the repository tests.
 
 Options:
   --headless         Run tests in headless CI mode
-  --skip-quality     Skip formatters and quality checks
+  --skip-quality     Skip formatters and quality checks (the CLI build still runs)
   --skip-tests       Run quality checks without executing Python or Jest tests
   --force-review     Force a review only when a review agent is selected
   --review-agent     Select codex, cx, cxa, or claude. No selection means no review.
@@ -86,6 +87,16 @@ Examples:
 			return 0;
 		}
 		return this.run_command("pnpm", ["--dir", this._project_root, "install"], environment);
+	}
+
+	/** Responsibilities: _test execution preparation_. **/
+	private prepare_execution(environment: NodeJS.ProcessEnv): number {
+		const install_status = this.install_dependencies(environment);
+		if (install_status !== 0) {
+			return install_status;
+		}
+		this._output.stdout.write("🔎 Building bundled CLI...\n");
+		return this.run_command(PACKAGE_MANAGER, ["--dir", this._project_root, "build:cli"], environment);
 	}
 
 	/** Responsibilities: _Python test environment_. **/
@@ -133,8 +144,8 @@ Examples:
 		return this.run_typescript_tests(test_run);
 	}
 
-	/** Responsibilities: _quality-stage policy_. **/
-	private run_quality_stage(request: QualityStageRequest): number {
+	/** Responsibilities: _requested quality checks_. **/
+	private execute_quality_stage(request: QualityStageRequest): number {
 		if (request.skip_quality) {
 			if (request.skip_tests) {
 				this._output.stdout.write("\n⏭️ Quality checks and tests skipped by request.\n");
@@ -164,27 +175,39 @@ Examples:
 		return 0;
 	}
 
-	/** Responsibilities: _quality and test workflow_. **/
-	private execute_request(request: TestRunnerRequest, environment: NodeJS.ProcessEnv): number {
-		const install_status = this.install_dependencies(environment);
-		if (install_status !== 0) {
-			return install_status;
-		}
-		const quality_status = this.run_quality_stage({
-			skip_quality: request.skip_quality,
-			skip_tests: request.skip_tests,
-			quality_options: {
-				force_review: request.force_review,
-				review_agent: request.review_agent,
-			},
-		});
+	/** Responsibilities: _post-preparation workflow_. **/
+	private execute_prepared_stages(execution: PreparedTestExecution): number {
+		const quality_status = this.execute_quality_stage(execution.quality);
 		if (quality_status !== 0) {
 			return quality_status;
 		}
-		return this.execute_test_stage(request.skip_tests, {
-			jest_arguments: request.args,
-			environment,
-			dependencies_ready: true,
+		return this.execute_test_stage(execution.quality.skip_tests, execution.tests);
+	}
+
+	/** Responsibilities: _quality and test workflow_. **/
+	private execute_request(request: TestRunnerRequest): number {
+		const environment = {
+			...process.env,
+			CI: this.effective_headless(request.headless) ? "true" : "false",
+		};
+		const preparation_status = this.prepare_execution(environment);
+		if (preparation_status !== 0) {
+			return preparation_status;
+		}
+		return this.execute_prepared_stages({
+			quality: {
+				skip_quality: request.skip_quality,
+				skip_tests: request.skip_tests,
+				quality_options: {
+					force_review: request.force_review,
+					review_agent: request.review_agent,
+				},
+			},
+			tests: {
+				jest_arguments: request.args,
+				environment,
+				dependencies_ready: true,
+			},
 		});
 	}
 
@@ -212,8 +235,7 @@ Examples:
 			this._output.stdout.write(this.help_text());
 			return 0;
 		}
-		const environment = { ...process.env, CI: this.effective_headless(request.headless) ? "true" : "false" };
-		return this.execute_request(request, environment);
+		return this.execute_request(request);
 	}
 
 	/** Responsibilities: _raw arguments parsing_. **/

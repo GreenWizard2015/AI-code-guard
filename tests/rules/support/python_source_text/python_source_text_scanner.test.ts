@@ -44,17 +44,4 @@ describe("Python source text scanner", () => {
 		]);
 	});
 
-	test("tracks multiline callable annotation lines", () => {
-		const scanner = new PythonSourceTextScanner();
-		const lines = scanner.declaration_lines('def build(\n    source: "Source",\n) -> "Result":\n    return source');
-
-		expect([...lines.annotation]).toEqual([1, 2, 3]);
-	});
-
-	test("tracks every line in a multiline export list", () => {
-		const scanner = new PythonSourceTextScanner();
-		const lines = scanner.declaration_lines('__all__ = [\n    "Service",\n]\nlabel = "ordinary text"');
-
-		expect([...lines.exports]).toEqual([1, 2, 3]);
-	});
 });

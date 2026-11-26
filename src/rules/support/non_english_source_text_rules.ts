@@ -1,3 +1,4 @@
+import type { AstSourceSpan } from "src/model/ast/normalized_ast_types";
 import type { SourceTextAnalysisOptions, SourceTextOccurrence } from "src/model_types";
 import type { RuleContract } from "src/reporting_protocols";
 import type { ViolationContract } from "src/reporting_protocols";
@@ -41,40 +42,45 @@ export class NonEnglishSourceTextRules implements NonEnglishSourceTextRulesContr
 		return violations;
 	}
 
-	/** Responsibilities: _Python string annotation classification_. **/
-	private python_annotation_string(
+	/** Responsibilities: _docstring span membership_. **/
+	private span_contains_occurrence(span: AstSourceSpan, line_index: number, column: number): boolean {
+		if (line_index < span.start_line || line_index > span.end_line) {
+			return false;
+		}
+		if (line_index === span.start_line && column < span.start_column) {
+			return false;
+		}
+		if (line_index === span.end_line && column > span.end_column) {
+			return false;
+		}
+		return true;
+	}
+
+	/** Responsibilities: _Python docstring occurrence matching_. **/
+	private docstring_occurrence(
 		occurrence: SourceTextOccurrence,
-		lines: readonly string[],
-		annotation_lines: ReadonlySet<number>,
+		spans: readonly AstSourceSpan[],
+		source_lines: readonly string[],
 	): boolean {
-		if (!annotation_lines.has(occurrence.line)) {
+		const line_index = occurrence.line - 1;
+		const source_line = source_lines[line_index];
+		if (source_line === undefined) {
 			return false;
 		}
-		const line = lines[occurrence.line - 1];
-		if (line === undefined) {
-			return false;
-		}
-		const prefix = line.slice(0, occurrence.column);
-		const previous_assignment = prefix.lastIndexOf("=");
-		const annotation_separator = Math.max(prefix.lastIndexOf(":"), prefix.lastIndexOf("->"));
-		return annotation_separator > previous_assignment;
+		const column = Buffer.byteLength(source_line.slice(0, occurrence.column), "utf8");
+		return spans.some((span) => this.span_contains_occurrence(span, line_index, column));
 	}
 
 	/** Responsibilities: _Python source violations_. **/
 	private python_source_violations(python_options: SourceTextAnalysisOptions): ViolationContract[] {
 		const scanner = new PythonSourceTextScanner();
-		if (python_options.test_file) {
-			return this.violations(python_options.file, scanner.scan_comments(python_options.text));
-		}
-		const declaration_lines = scanner.declaration_lines(python_options.text);
-		const lines = python_options.text.split("\n");
+		const source_lines = python_options.text.split("\n");
 		const occurrences = scanner
 			.scan(python_options.text)
 			.filter(
 				(occurrence) =>
-					occurrence.kind !== "string" ||
-					(!declaration_lines.exports.has(occurrence.line) &&
-						!this.python_annotation_string(occurrence, lines, declaration_lines.annotation)),
+					occurrence.kind === "comment" ||
+					this.docstring_occurrence(occurrence, python_options.docstring_spans, source_lines),
 			);
 		return this.violations(python_options.file, occurrences);
 	}
@@ -85,7 +91,8 @@ export class NonEnglishSourceTextRules implements NonEnglishSourceTextRulesContr
 		if (typescript_options.test_file) {
 			return this.violations(typescript_options.file, scanner.scan_comments());
 		}
-		return this.violations(typescript_options.file, scanner.scan());
+		const occurrences = scanner.scan().filter((occurrence) => occurrence.kind !== "string");
+		return this.violations(typescript_options.file, occurrences);
 	}
 
 	/** Responsibilities: _explicit localized-document ownership_. **/

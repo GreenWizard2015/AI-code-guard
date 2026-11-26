@@ -14,6 +14,7 @@ export class FileRemainingTextRules implements FileRemainingTextRulesContract {
 	private append_foreign_text(options: RemainingViolationOptions, language: string): void {
 		const rule: RuleContract = new DiagnosticRule("non-english-source-text");
 		const text_rules = new NonEnglishSourceTextRules(rule);
+		const normalized_ast = options.source.normalized_ast;
 		options.stage_timer.measure(`file-analysis.${language}.post-remaining.non-english-text`, () =>
 			options.stage_timer.measure(`rule.non-english-source-text.${language}`, () =>
 				options.violations.push(
@@ -22,6 +23,7 @@ export class FileRemainingTextRules implements FileRemainingTextRulesContract {
 						text: options.text,
 						language: options.source.language,
 						test_file: options.source.file_name.test(),
+						docstring_spans: normalized_ast.module_declarations.docstring_spans,
 					}),
 				),
 			),

@@ -59,6 +59,7 @@ export class TypeScriptFileTextRules {
 			text,
 			language: TYPESCRIPT_LANGUAGE,
 			test_file,
+			docstring_spans: [],
 		});
 		for (const violation of violations) {
 			context.append_violation(violation);

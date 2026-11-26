@@ -71,6 +71,7 @@ export type SourceTextAnalysisOptions = {
 	readonly text: string;
 	readonly language: AstLanguage;
 	readonly test_file: boolean;
+	readonly docstring_spans: readonly AstSourceSpan[];
 };
 /** Responsibilities: _scanner module scope_. **/
 export type TypeScriptScannerModuleScope = {
@@ -314,15 +315,6 @@ export type PythonClassSummaryOptions = {
 };
 export type SourceTextOccurrenceKind = "comment" | "string";
 export type SourceTextOccurrence = { line: number; text: string; kind: SourceTextOccurrenceKind; column: number };
-export type PythonDeclarationStringLines = {
-	annotation: ReadonlySet<number>;
-	exports: ReadonlySet<number>;
-};
-export type PythonDeclarationLineScanStateData = {
-	in_signature: boolean;
-	in_exports: boolean;
-	export_depth: number;
-};
 export type PythonQuoteDelimiter = "'" | '"';
 export type PythonFStringExpressionState = {
 	depth: number;

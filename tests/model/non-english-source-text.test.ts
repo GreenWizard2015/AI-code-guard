@@ -12,12 +12,13 @@ describe("non-English source text rule", () => {
 			text: 'export const label = "plain ASCII"; // ordinary comment',
 			language: "typescript",
 			test_file: false,
+			docstring_spans: [],
 		});
 
 		expect(violations).toHaveLength(0);
 	});
 
-	test("reports non-English comments and literals in production TypeScript", () => {
+	test("reports non-English comments but allows localized TypeScript strings", () => {
 		const samples = new UnicodeSourceSamples();
 		const rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));
 		const source = [
@@ -33,9 +34,10 @@ describe("non-English source text rule", () => {
 			text: source,
 			language: "typescript",
 			test_file: false,
+			docstring_spans: [],
 		});
 
-		expect(violations.map((violation) => violation.line())).toEqual([1, 3, 4]);
+		expect(violations.map((violation) => violation.line())).toEqual([1, 4]);
 	});
 
 	test("checks test comments but allows test string literals", () => {
@@ -50,12 +52,13 @@ describe("non-English source text rule", () => {
 					text: source,
 					language: "typescript",
 					test_file: true,
+					docstring_spans: [],
 				})
 				.map((item) => item.line()),
 		).toEqual([1]);
 	});
 
-	test("reports non-English template text but ignores identifiers and interpolation code", () => {
+	test("allows non-English template text and ignores identifiers and interpolation code", () => {
 		const samples = new UnicodeSourceSamples();
 		const rules = new NonEnglishSourceTextRules(new DiagnosticRule("non-english-source-text"));
 		const source = [
@@ -68,9 +71,10 @@ describe("non-English source text rule", () => {
 			text: source,
 			language: "typescript",
 			test_file: false,
+			docstring_spans: [],
 		});
 
-		expect(violations.map((violation) => violation.line())).toEqual([1]);
+		expect(violations.map((violation) => violation.line())).toEqual([]);
 	});
 
 	test("keeps TypeScript comment locations after repeated tokens", () => {
@@ -87,6 +91,7 @@ describe("non-English source text rule", () => {
 			].join("\n"),
 			language: "typescript",
 			test_file: false,
+			docstring_spans: [],
 		});
 
 		expect(violations.map((violation) => violation.line())).toEqual([1, 3, 5]);

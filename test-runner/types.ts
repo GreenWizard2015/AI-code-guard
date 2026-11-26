@@ -56,6 +56,12 @@ export type QualityStageRequest = {
 	readonly quality_options: QualityCheckRunOptions;
 };
 
+/** Responsibilities: _prepared quality and test stages_. **/
+export type PreparedTestExecution = {
+	readonly quality: QualityStageRequest;
+	readonly tests: TestExecutionRequest;
+};
+
 export type QualityCheckArgument = {
 	readonly enabled: boolean;
 	readonly argument: string;

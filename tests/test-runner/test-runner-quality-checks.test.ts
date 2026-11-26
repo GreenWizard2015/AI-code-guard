@@ -13,12 +13,16 @@ describe("test runner quality checks", () => {
 		execution.run_args(["--help"]);
 
 		const help_output = output.stdout.read();
-		expect(String(help_output)).toContain(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`);
-		expect(String(help_output)).toContain("--skip-tests");
+		const help_text = String(help_output);
+		expect({
+			usage: help_text.includes(`Usage: pnpm exec tsx ${PROJECT_ROOT}/test-runner/cli.ts`),
+			build_first: help_text.includes("Builds the CLI"),
+			skip_tests_option: help_text.includes("--skip-tests"),
+		}).toEqual({ usage: true, build_first: true, skip_tests_option: true });
 	});
 
 	test("runs quality checks before stopping at a failed TypeScript test command", () => {
-		const runner = new CommandExecutionTestDouble([...Array.from({ length: 11 }, () => 0), 0, 3]);
+		const runner = new CommandExecutionTestDouble([...Array.from({ length: 12 }, () => 0), 0, 3]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless"]);
@@ -41,7 +45,7 @@ describe("test runner quality checks", () => {
 	});
 
 	test("runs all quality checks and skips both test suites when requested", () => {
-		const runner = new CommandExecutionTestDouble(Array.from({ length: 11 }, () => 0));
+		const runner = new CommandExecutionTestDouble(Array.from({ length: 12 }, () => 0));
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless", "--skip-tests"]);
@@ -53,11 +57,23 @@ describe("test runner quality checks", () => {
 			call_count: calls.length,
 			test_commands: calls.filter((call) => call.includes("pytest") || call.includes("jest")),
 			skip_message: output_text.includes("Tests skipped by request."),
-		}).toEqual({ exit_code: 0, call_count: 11, test_commands: [], skip_message: true });
+		}).toEqual({ exit_code: 0, call_count: 12, test_commands: [], skip_message: true });
+	});
+
+	test("stops immediately when the CLI build fails", () => {
+		const runner = new CommandExecutionTestDouble([7]);
+		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
+		const execution = new TestExecution(PROJECT_ROOT, runner, output);
+		const exit_code = execution.run_args(["--headless"]);
+
+		expect({ exit_code, calls: runner.snapshot().calls }).toEqual({
+			exit_code: 7,
+			calls: [["pnpm", "--dir", PROJECT_ROOT, "build:cli"]],
+		});
 	});
 
 	test("stops before tests when a quality check fails", () => {
-		const runner = new CommandExecutionTestDouble([3]);
+		const runner = new CommandExecutionTestDouble([0, 3]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless"]);
@@ -71,6 +87,7 @@ describe("test runner quality checks", () => {
 			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
 			calls: [
+				["pnpm", "--dir", PROJECT_ROOT, "build:cli"],
 				[
 					"pnpm",
 					"--dir",
@@ -94,7 +111,7 @@ describe("test runner quality checks", () => {
 	});
 
 	test("returns a quality command failure without printing success", () => {
-		const runner = new CommandExecutionTestDouble([0, 0, 0, 3]);
+		const runner = new CommandExecutionTestDouble([0, 0, 0, 0, 3]);
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless"]);
@@ -107,20 +124,20 @@ describe("test runner quality checks", () => {
 			success_message: String(output_text).includes("All tests passed!"),
 		}).toEqual({
 			exit_code: 3,
-			command_count: 4,
+			command_count: 5,
 			success_message: false,
 		});
 	});
 
 	test("runs all quality checks before tests and reports successful completion", () => {
-		const runner = new CommandExecutionTestDouble([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+		const runner = new CommandExecutionTestDouble(Array.from({ length: 14 }, () => 0));
 		const output = { stdout: new PassThrough(), stderr: new PassThrough() };
 		const execution = new TestExecution(PROJECT_ROOT, runner, output);
 		const exit_code = execution.run_args(["--headless", "--force-review", "--review-agent", "codex"]);
 		const snapshot = runner.snapshot();
 		const calls = [...snapshot.calls];
 		const all_arguments = calls.flat();
-		const quality_commands = calls.slice(0, 11).map((call) => {
+		const quality_commands = calls.slice(1, 12).map((call) => {
 			if (call[0] === "python3") {
 				return call[2];
 			}
@@ -132,6 +149,7 @@ describe("test runner quality checks", () => {
 
 		expect({
 			exit_code,
+			build_command: calls[0],
 			success_message: String(output.stdout.read()).includes("All tests passed!"),
 			test_commands: calls.slice(-2),
 			quality_commands,
@@ -140,6 +158,7 @@ describe("test runner quality checks", () => {
 			),
 		}).toEqual({
 			exit_code: 0,
+			build_command: ["pnpm", "--dir", PROJECT_ROOT, "build:cli"],
 			success_message: true,
 			test_commands: [
 				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],

@@ -1,6 +1,6 @@
 # `non-english-source-text`
 
-Description: Production comments and string literals must use English. In test files, check comments only; test literals may use any language. Markdown and supported text-file prose is checked too. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected; Latin accents are allowed.
+Description: Production source comments must use English; source string literals may use any language. Test comments are checked too, while test string literals may use any language. Markdown and supported text-file prose must use English. Non-Latin scripts, including Cyrillic and CJK ideographs, are detected in checked text; Latin accents are allowed.
 
 ## Bad
 
@@ -42,8 +42,9 @@ export class LocalizationCatalog {
 // File: cli.ts
 import { LocalizationCatalog } from "src/localization_catalog";
 (function () {
+	// Добро пожаловать <- error: production comments must use English
 	const messages = new Map<string, string>();
-	messages.set("welcome", "Добро пожаловать"); // <- error
+	messages.set("welcome", "Добро пожаловать"); // localized strings are allowed
 	const catalog = new LocalizationCatalog(messages, "Unknown");
 	catalog.report();
 })();
@@ -110,7 +111,7 @@ import { LocalizationCatalog } from "src/localization_catalog";
 
 (function () {
 	const messages = new Map<string, string>();
-	messages.set("welcome", "Welcome");
+	messages.set("welcome", "Добро пожаловать");
 	const catalog = new LocalizationCatalog(messages, "Unknown");
 	catalog.report();
 })();
