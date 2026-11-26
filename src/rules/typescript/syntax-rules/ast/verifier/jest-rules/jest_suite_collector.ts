@@ -136,6 +136,25 @@ export class JestSuiteCollector implements JestSuiteCollectorContract {
 		);
 	}
 
+	/** Responsibilities: _test suite membership scan_. **/
+	private root_test_nodes(node: ts.Node, inside_suite: boolean, root_tests: ts.CallExpression[]): void {
+		if (ts.isCallExpression(node)) {
+			const call_name = this.call_name(node.expression, node);
+			if (call_name === this._describe_name) {
+				this.with_callback(node, (callback) => {
+					if (callback.body !== undefined) {
+						ts.forEachChild(callback.body, (child) => this.root_test_nodes(child, true, root_tests));
+					}
+				});
+				return;
+			}
+			if (this.is_test_call(node, call_name) && !inside_suite) {
+				root_tests.push(node);
+			}
+		}
+		ts.forEachChild(node, (child) => this.root_test_nodes(child, inside_suite, root_tests));
+	}
+
 	/** Responsibilities: _suite and test discovery_. **/
 	private visit_suite_nodes(
 		node: ts.Node,
@@ -157,7 +176,7 @@ export class JestSuiteCollector implements JestSuiteCollectorContract {
 		ts.forEachChild(node, (child) => this.visit_suite_nodes(child, active_suites, suites, test_callback_depth));
 	}
 
-	/** Responsibilities: _execution callback each discovered_. **/
+	/** Responsibilities: _Jest callback execution_. **/
 	/** Responsibilities: _field initialization_. **/
 	public constructor(
 		describe_aliases: TypeScriptExpressionAliasesContract,
@@ -190,5 +209,12 @@ export class JestSuiteCollector implements JestSuiteCollectorContract {
 		const active_suites: JestSuite[] = [];
 		ts.forEachChild(source_file, (child) => this.visit_suite_nodes(child, active_suites, suites, 0));
 		return suites;
+	}
+
+	/** Responsibilities: _test case suite membership_. **/
+	public tests_without_suite(source_file: ts.SourceFile): ts.CallExpression[] {
+		const root_tests: ts.CallExpression[] = [];
+		ts.forEachChild(source_file, (child) => this.root_test_nodes(child, false, root_tests));
+		return root_tests;
 	}
 }

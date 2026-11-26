@@ -1,5 +1,6 @@
 import { JEST_DESCRIBE_NAME, TEST_PATH_SUFFIXES } from "src/constants";
 import type { JestSuite } from "src/model/ast/normalized_ast_types";
+import { DiagnosticRule } from "src/model/diagnostic_rule";
 import type { TypeScriptModuleResolverContract } from "src/module-resolution/protocols";
 import { TypeScriptExpressionAliases } from "src/parser/type_script_expression_aliases";
 import { TypeScriptObjectAliasDeclarationIndex } from "src/parser/typescript-aliases/type_script_object_alias_declaration_index";
@@ -21,6 +22,8 @@ export class JestTestRules implements JestTestRulesContract {
 	private readonly _file: string;
 	private readonly _source_file: ts.SourceFile;
 	private readonly _suite_collector: JestSuiteCollector;
+	private readonly _root_tests: readonly ts.CallExpression[];
+	private readonly _suite_membership_rule: DiagnosticRule;
 	private readonly _suites: JestSuite[];
 	private readonly _suite_policy: JestTestSuitePolicy;
 	private readonly _execution_dependency_rules: JestExecutionDependencyRules;
@@ -59,6 +62,7 @@ export class JestTestRules implements JestTestRulesContract {
 		this._stage_timer = stage_timer;
 		this._source_file = source_file;
 		this._test_path_syntax = new TestPathSyntax(TEST_PATH_SUFFIXES);
+		this._suite_membership_rule = new DiagnosticRule("typescript-jest-test-in-describe");
 		const declaration_index = new TypeScriptObjectAliasDeclarationIndex();
 		this._expect_aliases = new TypeScriptExpressionAliases("expect", declaration_index);
 		this._suite_collector = new JestSuiteCollector(
@@ -67,6 +71,7 @@ export class JestTestRules implements JestTestRulesContract {
 			new TypeScriptExpressionAliases("it", declaration_index),
 		);
 		this._suites = this._suite_collector.suites(source_file);
+		this._root_tests = this._suite_collector.tests_without_suite(source_file);
 		this._test_type_checks = new JestTestTypeChecks(file, source_file, this._suite_collector, this._expect_aliases);
 		const suite_tests = this._suites.flatMap((suite) => suite.tests);
 		this._execution_dependency_rules = new JestExecutionDependencyRules(
@@ -95,6 +100,10 @@ export class JestTestRules implements JestTestRulesContract {
 
 	/** Responsibilities: _aggregation Jest violations source_. **/
 	public append_violations(violations: ViolationContract[], resolver: TypeScriptModuleResolverContract): void {
+		for (const root_test of this._root_tests) {
+			const line = this._source_file.getLineAndCharacterOfPosition(root_test.getStart(this._source_file)).line + 1;
+			violations.push(this._suite_membership_rule.violation(this._file, line, {}));
+		}
 		violations.push(...this.production_usage_violations(resolver));
 		this._suite_policy.append_violations(this._suites, violations);
 		violations.push(...this._execution_dependency_rules.time_dependency_violations());

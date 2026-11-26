@@ -5,6 +5,35 @@ import { SourceText } from "src/io/source_text";
 import { TestFixture } from "tests/core/test-fixture";
 
 describe("Jest assertion and structure rules", () => {
+	test("allows it inside describe and reports module-level test and it cases", () => {
+		const fixture = new TestFixture();
+		const violations = fixture.with_lint_request(
+			new LintRunConfiguration(new SourceText(), new NodeFileIO(process.cwd())),
+			{
+				"tests/case-placement.test.ts": [
+					"it('module-level it', () => { expect(true).toBe(true); });",
+					"test('module-level test', () => { expect(true).toBe(true); });",
+					"describe('suite', () => {",
+					"  it('nested it', () => { expect(true).toBe(true); });",
+					"  test('nested test', () => { expect(true).toBe(true); });",
+					"});",
+					"describe('nested suite', () => {",
+					"  it.each([[true]])('nested data case', (value) => { expect(value).toBe(true); });",
+					"});",
+					"describe('test data suite', () => {",
+					"  test.each([[true]])('nested data case', (value) => { expect(value).toBe(true); });",
+					"});",
+				].join("\n"),
+			},
+			(production_lint_configuration, options, mode) =>
+				production_lint_configuration.lint_report(options, mode).report.violations,
+		);
+		expect(
+			violations.filter((item) => item.rule_id() === "typescript-jest-test-in-describe").map((item) => item.line()),
+		).toEqual([1, 2]);
+		expect(violations.filter((item) => item.rule_id() === "assertion-outside-test")).toEqual([]);
+	});
+
 	test("reports mixed-module for every module-level declaration kind beside Jest tests", () => {
 		const fixture = new TestFixture();
 		const declarations = [

@@ -88,12 +88,12 @@ export class TypeScriptTestNodeRules implements TypeScriptTestNodeRulesContract 
 	/** Responsibilities: _classification expression Jest test_. **/
 	private is_test_expression(test_callee: ts.Expression): boolean {
 		if (ts.isIdentifier(test_callee)) {
-			return test_callee.text === "test";
+			return test_callee.text === "test" || test_callee.text === "it";
 		}
 		if (!ts.isPropertyAccessExpression(test_callee) || !ts.isIdentifier(test_callee.expression)) {
 			return false;
 		}
-		if (test_callee.expression.text !== "test") {
+		if (test_callee.expression.text !== "test" && test_callee.expression.text !== "it") {
 			return false;
 		}
 		return test_callee.name.text === "each";

@@ -153,6 +153,11 @@ export const TESTING_RULE_DATA = {
 		hint: "Finish every Jest test callback with an expect assertion. Do not: leave cleanup, logging, or other statements after the final assertion.",
 		priority: 4,
 	},
+	"typescript-jest-test-in-describe": {
+		message: "Jest test case must be declared inside a describe(...) suite",
+		hint: "Place every test(...) and it(...) call inside a describe(...) callback. Do not: declare test cases at module scope.",
+		priority: 2,
+	},
 	"typescript-jest-test-lambda": {
 		message: "Jest test must use an arrow-function callback",
 		hint: 'Write each Jest test as test("...", () => {}). Do not: pass a function declaration or function expression as the test callback.',

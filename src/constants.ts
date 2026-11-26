@@ -123,6 +123,7 @@ export const RULE_LANGUAGE_BY_ID = new Map<string, AstLanguage>(
 		"typescript-jest-describe-count": "typescript",
 		"typescript-jest-nested-describe": "typescript",
 		"typescript-jest-test-ending": "typescript",
+		"typescript-jest-test-in-describe": "typescript",
 		"typescript-jest-test-lambda": "typescript",
 		"typescript-jest-test-expect": "typescript",
 		"typescript-jest-type-only-test": "typescript",
