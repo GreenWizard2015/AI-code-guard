@@ -70,7 +70,7 @@ describe("test execution commands", () => {
 	});
 
 	test("preserves inherited CI mode when quality checks are skipped", () => {
-		const runner = new CommandExecutionTestDouble([0, 0]);
+		const runner = new CommandExecutionTestDouble([0, 0, 0]);
 		const ci_key = "CI";
 		const previous_ci = process.env[ci_key];
 		process.env[ci_key] = "true";
@@ -90,10 +90,11 @@ describe("test execution commands", () => {
 			ci_values: snapshot.environments.map((environment) => environment[ci_key]),
 		}).toEqual({
 			calls: [
+				["pnpm", "--dir", PROJECT_ROOT, "build:cli"],
 				["python3", "-m", "pytest", `${PROJECT_ROOT}/tests/python-bridge`, `${PROJECT_ROOT}/tests/performance`],
 				["pnpm", "--dir", PROJECT_ROOT, "exec", "jest"],
 			],
-			ci_values: ["true", "true"],
+			ci_values: ["true", "true", "true"],
 		});
 	});
 
