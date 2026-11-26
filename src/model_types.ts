@@ -261,6 +261,21 @@ export type DirectoryFileViolationOptions = {
 	normalized_ast: NormalizedAstFile;
 	unique_code_category: boolean;
 };
+export type DirectoryTestSourceCounts = { test_count: number; production_count: number };
+export type DirectorySourceAnalysis = {
+	source_directories: Map<string, string[]>;
+	test_production_violations: ViolationContract[];
+};
+export type DirectorySourceAnalysisInput = { files: readonly string[]; diagnostic_root: string };
+export type TestSourceViolationInput = {
+	directory_counts: ReadonlyMap<string, DirectoryTestSourceCounts>;
+	diagnostic_root: string;
+};
+export type SubdirectoryViolationInput = {
+	directory: string;
+	diagnostic_root: string;
+	source_directory_children: ReadonlySourceDirectoryChildren;
+};
 export type DirectoryViolationContext = {
 	directory_sources: ReadonlyMap<string, readonly string[]>;
 	source_directory_children: ReadonlySourceDirectoryChildren;

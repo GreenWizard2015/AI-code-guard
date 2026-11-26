@@ -13,6 +13,7 @@ import { NAMING_RULE_DATA } from "src/rules/catalog/naming/constants";
 import { QUALITY_RULE_DATA } from "src/rules/catalog/quality/constants";
 import { TESTING_RULE_DATA } from "src/rules/catalog/testing/constants";
 import { TYPES_RULE_DATA } from "src/rules/catalog/types/constants";
+import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import type { ProjectSourceIOContract } from "src/source_protocols";
 import type { SourceReferenceRelation } from "src/source_types";
 import type { ReviewStageDefinition } from "src/task_review_types";
@@ -149,13 +150,7 @@ export const LANGUAGE_NEUTRAL_RULE_IDS: ReadonlySet<string> = new Set([
 	"ai-code-guard-directory-ignored",
 	"numeric-file-name",
 ]);
-export const SHARED_RULE_DOCUMENT_IDS: ReadonlySet<string> = new Set([
-	"directory-class-max-size",
-	"directory-class-min-size",
-	"directory-max-size",
-	"directory-max-source-subdirectories",
-	"directory-min-size",
-]);
+export const SHARED_RULE_DOCUMENT_IDS: ReadonlySet<string> = new Set(Object.values(DIRECTORY_RULE_IDS));
 export const RULE_DOCUMENT_PATHS_BY_ID = new Map<string, readonly string[]>(
 	Object.keys(RULE_DATA).map((rule_id) => {
 		const language = RULE_LANGUAGE_BY_ID.get(rule_id);

@@ -135,11 +135,11 @@ export class DirectoryStructureRules {
 			violations.push(...this._facade_rules.facade_violations(context.repo_root, source_files, context.source_asts));
 		}
 		violations.push(
-			...this._source_structure.source_subdirectory_violation(
-				current_directory,
-				context.repo_root,
-				context.source_directory_children,
-			),
+			...this._source_structure.source_subdirectory_violation({
+				directory: current_directory,
+				diagnostic_root: context.repo_root,
+				source_directory_children: context.source_directory_children,
+			}),
 		);
 	}
 
@@ -180,7 +180,8 @@ export class DirectoryStructureRules {
 		class_counts: ReadonlyMap<string, readonly AstClassNode[]>,
 		source_asts: ReadonlyMap<string, NormalizedAstFile>,
 	): void {
-		const directory_sources = this._source_structure.source_directories(files);
+		const source_analysis = this._source_structure.source_analysis({ files, diagnostic_root: repo_root });
+		const directory_sources = source_analysis.source_directories;
 		const context: DirectoryViolationContext = {
 			directory_sources,
 			source_directory_children: this._source_structure.source_directory_children(directory_sources.keys()),
@@ -188,6 +189,7 @@ export class DirectoryStructureRules {
 			class_counts,
 			source_asts,
 		};
+		violations.push(...source_analysis.test_production_violations);
 		for (const directory of this._source_structure.directories_to_check(directory_sources.keys(), repo_root)) {
 			this.append_directory(violations, directory, context);
 		}

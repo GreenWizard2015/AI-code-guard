@@ -1,8 +1,14 @@
-import { dirname, isAbsolute, relative, sep } from "node:path";
-import { TEST_PATH_SUFFIXES } from "src/constants";
-import { MAX_SOURCE_SUBDIRECTORIES } from "src/constants";
+import { dirname, extname, isAbsolute, relative, sep } from "node:path";
+import { MAX_SOURCE_SUBDIRECTORIES, SOURCE_EXTENSIONS, TEST_PATH_SUFFIXES } from "src/constants";
 import { DiagnosticRule } from "src/model/diagnostic_rule";
-import type { ReadonlySourceDirectoryChildren, SourceDirectoryChildMap } from "src/model_types";
+import type {
+	DirectorySourceAnalysis,
+	DirectorySourceAnalysisInput,
+	DirectoryTestSourceCounts,
+	SourceDirectoryChildMap,
+	SubdirectoryViolationInput,
+	TestSourceViolationInput,
+} from "src/model_types";
 import type { ViolationContract } from "src/reporting_protocols";
 import { DIRECTORY_RULE_IDS } from "src/rules/constants";
 import type { TestPathSyntaxContract } from "src/shared_services_protocols";
@@ -14,17 +20,22 @@ export class DirectorySourceStructure {
 	private readonly _test_path_syntax: TestPathSyntaxContract;
 	private readonly _maximum_source_subdirectories: number;
 
-	/** Responsibilities: _implementation source classification_. **/
-	private is_project_source(file: string): boolean {
-		if (!file.endsWith(".ts") && !file.endsWith(".py")) {
-			return false;
+	/** Responsibilities: _source file category indexing_. **/
+	private index_source_file(
+		file: string,
+		source_files: Map<string, string[]>,
+		directory_counts: Map<string, DirectoryTestSourceCounts>,
+	): void {
+		if (!SOURCE_EXTENSIONS.has(extname(file))) {
+			return;
 		}
-		return !this._test_path_syntax.classify(file).has(TestPathKind.TestFile);
-	}
-
-	/** Responsibilities: _source file indexing_. **/
-	private append_source_file(source_files: Map<string, string[]>, file: string): void {
 		const directory = dirname(file);
+		const is_test = this._test_path_syntax.classify(file).has(TestPathKind.TestFile);
+		const counts = directory_counts.get(directory) ?? { test_count: 0, production_count: 0 };
+		directory_counts.set(directory, this.increment_source_count(counts, is_test));
+		if (is_test || (!file.endsWith(".ts") && !file.endsWith(".py"))) {
+			return;
+		}
 		const current = source_files.get(directory);
 		if (current === undefined) {
 			source_files.set(directory, [file]);
@@ -54,6 +65,14 @@ export class DirectorySourceStructure {
 		return isAbsolute(root_relative_path);
 	}
 
+	/** Responsibilities: _source category count transition_. **/
+	private increment_source_count(counts: DirectoryTestSourceCounts, is_test: boolean): DirectoryTestSourceCounts {
+		if (is_test) {
+			return { test_count: counts.test_count + 1, production_count: counts.production_count };
+		}
+		return { test_count: counts.test_count, production_count: counts.production_count + 1 };
+	}
+
 	/** Responsibilities: _ancestor directory indexing_. **/
 	private add_parent_directories(directories: Set<string>, source_directory: string, parent_root: string): void {
 		let child_directory = source_directory;
@@ -69,6 +88,24 @@ export class DirectorySourceStructure {
 			}
 			child_directory = parent;
 		}
+	}
+
+	/** Responsibilities: _mixed source directory reporting_. **/
+	private test_source_violations(request: TestSourceViolationInput): ViolationContract[] {
+		const violations: ViolationContract[] = [];
+		for (const [directory, counts] of request.directory_counts) {
+			if (counts.test_count === 0 || counts.production_count === 0) {
+				continue;
+			}
+			const rule = new DiagnosticRule(DIRECTORY_RULE_IDS.test_production_mix);
+			violations.push(
+				rule.violation(relative(request.diagnostic_root, directory), 1, {
+					test_count: String(counts.test_count),
+					production_count: String(counts.production_count),
+				}),
+			);
+		}
+		return violations;
 	}
 
 	/** Responsibilities: _path syntax initialization_. **/
@@ -105,12 +142,8 @@ export class DirectorySourceStructure {
 	}
 
 	/** Responsibilities: _source subdirectory limit diagnostic_. **/
-	public source_subdirectory_violation(
-		directory: string,
-		diagnostic_root: string,
-		source_directory_children: ReadonlySourceDirectoryChildren,
-	): ViolationContract[] {
-		const children = source_directory_children.get(directory);
+	public source_subdirectory_violation(request: SubdirectoryViolationInput): ViolationContract[] {
+		const children = request.source_directory_children.get(request.directory);
 		let count = 0;
 		if (children !== undefined) {
 			count = children.size;
@@ -119,18 +152,22 @@ export class DirectorySourceStructure {
 			return [];
 		}
 		const rule = new DiagnosticRule(DIRECTORY_RULE_IDS.source_subdirectories_maximum);
-		return [rule.violation(relative(diagnostic_root, directory), 1, { count: String(count) })];
+		return [rule.violation(relative(request.diagnostic_root, request.directory), 1, { count: String(count) })];
 	}
 
-	/** Responsibilities: _source directory inventory_. **/
-	public source_directories(files: readonly string[]): Map<string, string[]> {
+	/** Responsibilities: _source directory separation analysis_. **/
+	public source_analysis(request: DirectorySourceAnalysisInput): DirectorySourceAnalysis {
 		const source_files = new Map<string, string[]>();
-		for (const file of files) {
-			if (!this.is_project_source(file)) {
-				continue;
-			}
-			this.append_source_file(source_files, file);
+		const directory_counts = new Map<string, DirectoryTestSourceCounts>();
+		for (const file of request.files) {
+			this.index_source_file(file, source_files, directory_counts);
 		}
-		return source_files;
+		return {
+			source_directories: source_files,
+			test_production_violations: this.test_source_violations({
+				directory_counts,
+				diagnostic_root: request.diagnostic_root,
+			}),
+		};
 	}
 }

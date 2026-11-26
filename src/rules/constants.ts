@@ -55,4 +55,5 @@ export const DIRECTORY_RULE_IDS = {
 	source_subdirectories_maximum: "directory-max-source-subdirectories",
 	class_minimum: "directory-class-min-size",
 	class_maximum: "directory-class-max-size",
+	test_production_mix: "test-production-directory-mix",
 } as const;

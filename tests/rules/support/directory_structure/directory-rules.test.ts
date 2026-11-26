@@ -60,6 +60,33 @@ describe("coding-lint directory rules", () => {
 		expect(violations).toEqual([]);
 	});
 
+	test.each([
+		["Python", "src/orders/order.py", "src/orders/test_order.py"],
+		["TypeScript", "src/orders/order.ts", "src/orders/order.test.ts"],
+	])("reports a test and production mix in one %s source directory", (_language, production_path, test_path) => {
+		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
+		const files = [join(root, production_path), join(root, test_path)];
+		const directory_files: DirectoryFileSet = { virtual_project: true, files };
+		const violations = directory_rules.collect_directory_violations(files, root, new Map(), new Map(), directory_files);
+		const mix_violations = violations.filter((item) => item.rule_id() === "test-production-directory-mix");
+
+		expect(mix_violations.map((item) => [item.file(), item.message()])).toEqual([
+			["src/orders", "directory mixes test files (1) with production files (1)"],
+		]);
+	});
+
+	test.each([
+		["Python", "src/orders/order.py", "tests/orders/test_order.py"],
+		["TypeScript", "src/orders/order.ts", "tests/orders/order.test.ts"],
+	])("allows %s tests in a separate directory", (_language, production_path, test_path) => {
+		const directory_rules = new DirectoryRules(new InMemoryFileIO(), new InMemoryProjectSourceIO(new Map()));
+		const files = [join(root, production_path), join(root, test_path)];
+		const directory_files: DirectoryFileSet = { virtual_project: true, files };
+		const violations = directory_rules.collect_directory_violations(files, root, new Map(), new Map(), directory_files);
+
+		expect(violations.map((item) => item.rule_id())).not.toContain("test-production-directory-mix");
+	});
+
 	test("applies the file-size limit to a class-named module", () => {
 		const file = join(root, "path_python_bridge_file_io.ts");
 		const text = "export class PathPythonBridgeFileIO { public file_present(): boolean { return true; } }\n";

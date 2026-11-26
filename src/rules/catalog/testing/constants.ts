@@ -1,4 +1,10 @@
 export const TESTING_RULE_DATA = {
+	"test-production-directory-mix": {
+		message: "directory mixes test files ({test_count}) with production files ({production_count})",
+		hint: "Move tests into a dedicated tests or __tests__ directory and keep production modules outside it. Do not: keep test and production source files side by side.",
+		priority: 8,
+		task_report_scope: "directory",
+	},
 	"assertion-outside-test": {
 		message: "test assertions must stay inside test cases",
 		hint: 'in test files, keep expect inside test("name", () => {}) in TypeScript and assert or unittest self.assert* inside def test_* in Python. Production files are outside this rule.',
